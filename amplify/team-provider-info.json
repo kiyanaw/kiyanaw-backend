@@ -1,0 +1,19 @@
+{
+    "dev": {
+        "awscloudformation": {
+            "AuthRoleName": "tanisi-20190312203843-authRole",
+            "UnauthRoleArn": "arn:aws:iam::494185203413:role/tanisi-20190312203843-unauthRole",
+            "AuthRoleArn": "arn:aws:iam::494185203413:role/tanisi-20190312203843-authRole",
+            "Region": "us-east-1",
+            "DeploymentBucketName": "tanisi-20190312203843-deployment",
+            "UnauthRoleName": "tanisi-20190312203843-unauthRole",
+            "StackName": "tanisi-20190312203843",
+            "StackId": "arn:aws:cloudformation:us-east-1:494185203413:stack/tanisi-20190312203843/1f4c0940-4539-11e9-b63e-0a583df6bf38"
+        },
+        "categories": {
+            "auth": {
+                "cognito4a7f4e73": {}
+            }
+        }
+    }
+}
