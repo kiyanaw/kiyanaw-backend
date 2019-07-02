@@ -1,6 +1,8 @@
 version: 2
 jobs:
   run_tests:
+    docker:
+      - image: circleci/node:8.16.0-stretch
     steps:
       - checkout
       - run:
