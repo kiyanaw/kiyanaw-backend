@@ -1,0 +1,17 @@
+version: 2
+jobs:
+  run_tests:
+    steps:
+      - checkout
+      - run:
+          name: Install kiyânaw deps
+          command: npm install
+      - run:
+          name: Run tests
+          command: npm run test
+
+workflows:
+  version: 2
+  build_and_test:
+    jobs:
+      - run_tests
