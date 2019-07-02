@@ -2,7 +2,7 @@
   <v-app>
     <v-toolbar app>
       <v-toolbar-title class="headline">
-        <span>morphemeDB</span>
+        <span>kiyânaw</span>
       </v-toolbar-title>
       <v-spacer></v-spacer>
       <v-toolbar-items class="hidden-sm-and-down">
@@ -22,9 +22,7 @@ import { EventBus } from '../event-bus.js'
 
 export default {
   name: 'App',
-  components: {
-    // HelloWorld
-  },
+  components: {},
   methods: {
     signOut () {
       console.log('sign out clicked')

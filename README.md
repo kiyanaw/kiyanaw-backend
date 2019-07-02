@@ -1,4 +1,4 @@
-# tanisi-backend
+# kiyanaw-backend
 
 ## Project setup
 ```

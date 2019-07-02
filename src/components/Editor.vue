@@ -8,7 +8,7 @@
           <v-list>
             <v-list-tile>
               <v-list-tile-title class="title">
-                menu
+                morphemes
               </v-list-tile-title>
             </v-list-tile>
           </v-list>
@@ -53,8 +53,12 @@ export default {
   data () {
     return {
       items: [
-        { title: 'edit', icon: 'dashboard', url: '/edit' },
-        { title: 'next', icon: 'question_answer', url: '/edit/next' }
+        { title: 'Morphemes', icon: 'widgets', url: '/edit/morphemes' },
+        { title: 'All words', icon: 'list', url: '/all' },
+        { title: 'Pending', icon: 'search', url: '/edit' },
+        { title: 'Skipped', icon: 'outlined_flag', url: '/skipped' },
+        { title: 'Starred', icon: 'star', url: '/skipped' },
+        { title: 'Next unverified', icon: 'create', url: '/next-unverified' }
       ],
       nav: (event) => {
         console.log(event.target)

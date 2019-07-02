@@ -35,7 +35,7 @@
 </template>
 
 <script>
-import corpus from '../services/corpus.js'
+import corpus from '../../services/corpus.js'
 
 export default {
   // https://router.vuejs.org/guide/advanced/data-fetching.html#fetching-after-navigation

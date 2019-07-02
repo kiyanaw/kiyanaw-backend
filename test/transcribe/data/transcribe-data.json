@@ -1,0 +1,67 @@
+{
+  "source": "https://some.url/foobar.mp3",
+  "regions": [
+    {
+      "start": 21.399272308445454,
+      "end": 28.549029177855964,
+      "id": "wavesurfer_kidn06ceb5o",
+      "text": [
+        {
+          "insert": "ê-nôhtê-âcimoyân ôma kîkwây mâna ê-kî-pê-itwêt kâ-kî-ohkômiyân",
+          "attributes": { "background": "#f9f6d9" }
+        },
+        { "insert": "\n" }
+      ]
+    },
+    {
+      "start": 30.29896967036903,
+      "end": 39.64865173036739,
+      "id": "wavesurfer_1bva8285c9",
+      "text": [
+        { "insert": "nâwâkîs kî-isiyihkâsow " },
+        {
+          "insert": "kâ-kî-ohkômiyân ôtê ohci aya, manitow sakahikanihk ê-pê-itohtêcik??",
+          "attributes": { "background": "#f9f6d9" }
+        },
+        { "insert": "\n" }
+      ]
+    },
+    {
+      "start": 42.82175813408768,
+      "end": 52.87259759210878,
+      "id": "wavesurfer_iutuhm98lb",
+      "text": [{ "insert": "êwako mâna? ê-kî-mistahi-kîkwêy-?? \n" }]
+    },
+    {
+      "start": 53.88631903911039,
+      "end": 57.33660721126688,
+      "id": "wavesurfer_0pkppr83rt",
+      "text": [{ "insert": "?pâmayês ôma ê-kî-nakatioyâhk?? \n" }]
+    },
+    {
+      "start": 57.977569558678205,
+      "end": 66.97832131212994,
+      "id": "wavesurfer_ok2o5adffjg",
+      "text": [
+        {
+          "insert": "tânitahto mâna ê-kî-itwêt ê-kakwê-kiskinwahamâcik ôma awasisak nêhiyawêwin\n"
+        }
+      ]
+    },
+    {
+      "start": 67.47836002419785,
+      "end": 84.72980088498035,
+      "id": "wavesurfer_jc3mtc6m4bg",
+      "text": [
+        {
+          "insert": "êka êwako kâwanihta kotak mîna kâ-kî-wîhtamâkoyân mîna aya kâkikê kâ-kakwê sâkihitot?? ayisiyiniw\n"
+        }
+      ]
+    }
+  ],
+  "title": "This is my title",
+  "type": "audio",
+  "author": "admin",
+  "id": "54aaaff460d71b2f5eedc6961e198331",
+  "authorId": "admin:54aaaff460d71b2f5eedc6961e198331"
+}

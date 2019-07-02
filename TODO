@@ -1,0 +1,74 @@
+
+Transcriber
+---
+[✓] HTML-rendered lines can't handle \n
+[✓] set up routes do default to /transcribe
+[✓] link to region/time in waveform
+[✓] list of recordings
+[✓] load recording
+[✓] save recording
+[✓] test harness
+[ ] TESTS
+[ ] edit title
+[ ] ? add description
+[ ] rename `text` field to `sro`
+[ ] add `english` field
+[ ] ability to add translation
+[ ] hook in websockets
+[ ] save after user changes delay
+[ ] versioning
+[ ] deploy it somewhere
+[ ] user for Ben
+
+Sprint 2
+---
+[ ] custom TextBlob to tie in definitions
+
+
+
+
+Morphemes
+---
+[✓] rename _id to adId (anlgonquin dictionary ID)
+[✓] mash AD data against AW data and flag the exact matches
+[✓] load up morphemes
+
+User
+---
+[✓] auth
+[ ] preferences?
+
+Views
+---
+[✓] search for stuff
+[ ] skip and un-skip
+[ ] versions
+
+
+SKIP tag
+---
+[ ] can 'skip' a document
+[ ] can view skipped documents
+[ ] can 'unskip' a document (remove tag)
+
+SRO
+---
+[ ] can 'verify' SRO -> copies from algSro to sro field
+[ ] can edit SRO, then 'verify' or save?
+[ ] ability to edit morpheme descriptions
+[ ] ability to edit definitions
+[ ] ability to adjust derivation
+
+NOTES
+---
+
+
+TAGS
+---
+freestyle tags (can't edit system tags)
+skipped - come back to this, show on 'skipped' screen
+
+Deployment
+---
+[ ] production env
+[ ] bootstrap data

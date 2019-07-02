@@ -10,5 +10,11 @@
 			"service": "Cognito",
 			"providerPlugin": "awscloudformation"
 		}
+	},
+	"storage": {
+		"useraudio": {
+			"service": "S3",
+			"providerPlugin": "awscloudformation"
+		}
 	}
 }

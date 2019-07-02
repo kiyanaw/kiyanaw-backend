@@ -58,7 +58,7 @@ export default {
         const user = await Auth.currentAuthenticatedUser()
         this.setSignedIn(true)
         this.setUser(user)
-        this.$router.push('/edit')
+        this.$router.push('/transcribe-list')
       } catch (error) {
         this.setSignedIn(false)
       }

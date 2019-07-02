@@ -7,6 +7,10 @@ import Editor from './components/Editor.vue'
 import EditorVerify from './components/EditorVerify.vue'
 import EditorNextUnverified from './components/EditorNextUnverified.vue'
 import SignIn from './components/SignIn.vue'
+import TranscribeEdit from './components/transcribe/Transcribe.vue'
+import TranscribeList from './components/transcribe/List.vue'
+import TranscribeAdd from './components/transcribe/Add.vue'
+import MorphemeEditor from './components/morphemes/Editor.vue'
 
 
 const router = new VueRouter({
@@ -14,16 +18,21 @@ const router = new VueRouter({
   routes: [
     {
       path: '/',
+      redirect: '/transcribe-list',
       component: App,
       children: [
         { path: 'signin', component: SignIn },
-        { path: 'edit', component: Editor, 
+        { path: 'edit/', component: Editor, 
           children: [
             { path: '', component: EditorVerify},
-            { path: 'next', component: EditorNextUnverified}
+            { path: 'morphemes', component: MorphemeEditor},
+            { path: ':id', component: EditorNextUnverified},
           ],
           meta: { requiresAuth: true}
-        }
+        },
+        { path: 'transcribe-list', component: TranscribeList, meta: {requiresAuth: true}},
+        { path: 'transcribe-add', component: TranscribeAdd, meta: {requiresAuth: true}},
+        { path: 'transcribe-edit/:id', component: TranscribeEdit, meta: {requiresAuth: true}}
       ],
     },
   ]
