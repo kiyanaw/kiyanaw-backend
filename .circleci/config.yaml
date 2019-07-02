@@ -7,7 +7,7 @@ jobs:
           name: Install kiyânaw deps
           command: npm install
       - run:
-          name: Run tests
+          name: Run mocha tests
           command: npm run test
 
 workflows:
