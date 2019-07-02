@@ -60,7 +60,10 @@
     </v-layout>
     <v-layout>
       <v-flex xs1></v-flex>
-      <v-flex xs10><v-btn small color="primary" dark v-on:click="saveData">save</v-btn></v-flex>
+      <v-flex xs10>
+        <v-btn small color="primary" dark v-on:click="saveData">save</v-btn>
+        <p v-if="saved">saved!</p>
+      </v-flex>
       <v-flex xs1></v-flex>
     </v-layout>
   </v-container>
@@ -73,6 +76,7 @@ import AudioPlayer from './AudioPlayer.vue'
 import Editor from './Editor.vue'
 import TranscriptionService from '../../services/transcriptions'
 import incomingData from './data'
+import { setTimeout } from 'timers';
 
 export default {
   mounted() {
@@ -104,7 +108,8 @@ export default {
       editingRegion: null,
       inRegions: [],
       title: '',
-      authorId: null
+      authorId: null,
+      saved: false
     }
   },
   computed: {
@@ -148,8 +153,12 @@ export default {
         type: 'audio',
         regions: this.sortedRegions
       })
-      console.log('saved')
-      console.log(result)
+      if (result) {
+        this.saved = true
+        setTimeout(() => {
+          this.saved = false
+        }, 3000)
+      }
     },
     highlightRegion (region) {
       this.inRegions.push(region.id)

@@ -1,5 +1,5 @@
 <template>
-  <v-layout class="region-editor-layout" v-bind:class="{ inRegion: isInRegion }">
+  <v-layout class="region-editor-layout" v-bind:class="{ inRegion: isInRegion, review: needsReview }">
 
       <v-flex xs1 v-on:click="playRegion">
         <div class="timestamps">
@@ -36,7 +36,7 @@
 import Quill from 'quill'
 import utils from './utils'
 
-let quill
+let quill = null
 
 export default {
   props: [
@@ -76,6 +76,14 @@ export default {
       if (inRegions && regionId) {
         return this.$props.inRegions.indexOf(this.$props.regionId) > -1
       }
+    },
+    needsReview () {
+      const doubleQuestion = this.regionText.filter(word => word.insert.indexOf('??') > -1)
+      console.log(doubleQuestion)
+      if (doubleQuestion.length) {
+        return true
+      }
+      return false
     }
   },
   methods: {
@@ -98,7 +106,8 @@ export default {
     }
   },
   updated () {
-    if (this.editing) {
+    if (this.editing && quill === null) {
+      console.log('create new editor')
       this.$nextTick(() => {
         quill = new Quill('#editor', {
           theme: 'snow',
@@ -109,7 +118,7 @@ export default {
         quill.root.setAttribute('spellcheck', false)
         quill.setContents(this.regionText)
         quill.focus()
-        quill.setSelection(99999)
+        // quill.setSelection(99999)
         quill.on('text-change', (delta) => {
           console.log('quill has changed')
           // fire off diff event here
@@ -134,6 +143,7 @@ export default {
             // lost focus?
             this.saveOps()
             this.$emit('editor-blur')
+            quill = null
           }
         })
 
@@ -167,6 +177,10 @@ export default {
 
 .inRegion {
   background-color:#edfcff;
+}
+
+.review {
+  background-color: #ffede6;
 }
 
 .timestamps {

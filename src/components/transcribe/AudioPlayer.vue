@@ -15,8 +15,11 @@
     <div id="controls" v-bind:style="{visibility: loading ? 'hidden' : 'visible'}">
       <v-layout>
         <v-flex xs3>
-          <v-btn flat icon v-on:click="playPause"><v-icon>play_arrow</v-icon></v-btn>
-          <v-btn flat icon v-on:click="markRegion"><v-icon>flag</v-icon></v-btn>
+          <v-btn flat icon v-on:click="playPause">
+            <v-icon v-if="!playing">play_arrow</v-icon>
+            <v-icon v-if="playing">pause</v-icon>
+          </v-btn>
+          <v-btn flat icon v-on:click="markRegion"><v-icon>play_for_work</v-icon></v-btn>
           <v-btn flat icon v-on:click="cancelRegion" v-if="currentRegion"><v-icon>clear</v-icon></v-btn>
           <span class="time">{{ normalTime(currentTime) }} - {{ normalTime(maxTime) }}</span>
         </v-flex>
@@ -25,7 +28,7 @@
         </v-flex>
         <v-flex xs3>
           <v-slider v-model="zoom"
-            max="50" min="5"
+            max="75" min="5"
             label="Zoom"
             >
           </v-slider>
@@ -114,6 +117,14 @@ export default {
       this.renderRegions()
     })
 
+    surfer.on('play', () => {
+      this.playing = true
+    })
+
+    surfer.on('pause', () => {
+      this.playing = false
+    })
+
     surfer.on('loading', (value) => {
       this.loadingProgress = value
     })
@@ -195,7 +206,8 @@ export default {
       loading: true,
       textRegions: {},
       zoom: 20,
-      speed: 10
+      speed: 10,
+      playing: false
     }
   }
 }

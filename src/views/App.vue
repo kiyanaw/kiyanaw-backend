@@ -6,6 +6,7 @@
       </v-toolbar-title>
       <v-spacer></v-spacer>
       <v-toolbar-items class="hidden-sm-and-down">
+        <v-btn v-on:click="goToTranscribe" flat>Transcribe</v-btn>
         <v-btn v-on:click="signOut" flat>Sign out</v-btn>
       </v-toolbar-items>
     </v-toolbar>
@@ -27,6 +28,9 @@ export default {
     signOut () {
       console.log('sign out clicked')
       EventBus.$emit('signOut')
+    },
+    goToTranscribe () {
+      this.$router.push('/transcribe-list')
     }
   },
   data () {
