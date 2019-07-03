@@ -79,7 +79,6 @@ export default {
     },
     needsReview () {
       const doubleQuestion = this.regionText.filter(word => word.insert.indexOf('??') > -1)
-      console.log(doubleQuestion)
       if (doubleQuestion.length) {
         return true
       }
