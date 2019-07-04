@@ -8,6 +8,10 @@ Transcriber
 [✓] load recording
 [✓] save recording
 [✓] test harness
+[✓] user for Ben
+[✓] speed
+[✓] zoom
+[ ] remove dynamo perms from IAM:PassRole role
 [ ] TESTS
 [ ] edit title
 [ ] ? add description
@@ -18,11 +22,13 @@ Transcriber
 [ ] save after user changes delay
 [ ] versioning
 [ ] deploy it somewhere
-[ ] user for Ben
 
 Sprint 2
 ---
 [ ] custom TextBlob to tie in definitions
+[ ] ability to link to specific region
+[ ] extract region for download - https://www.npmjs.com/package/mp3-cutter (works well)
+[ ] 
 
 
 

@@ -49,6 +49,7 @@
               v-on:editor-blur="editorBlur"
               v-on:play-region="playRegion"
               v-on:region-text-updated="regionTextUpdated"
+              v-on:region-delta="regionDelta"
               v-on:delete-region="deleteRegion"
               >
             </editor>
@@ -75,11 +76,40 @@
 import AudioPlayer from './AudioPlayer.vue'
 import Editor from './Editor.vue'
 import TranscriptionService from '../../services/transcriptions'
+import EnvService from '../../services/env'
 import incomingData from './data'
 import { setTimeout } from 'timers';
 
+let pusher
+let channel
+
 export default {
   mounted() {
+    
+    this.transcriptionId = this.$route.params.id
+
+    // Pusher.logToConsole = true
+    // pusher = new Pusher('9d0e04094a934d7eaad8', {
+    //   cluster: 'us3',
+    //   forceTLS: true
+    // })
+
+    const docId = this.transcriptionId.split(':')[1]
+
+    channel = this.$pusher.subscribe(`presence-transcribe-${EnvService.getEnvironmentName()}-${docId}`)
+
+    window.channel = channel
+    window.t = this
+
+    channel.bind('client-region-delta', (data) => {
+      console.log('incoming region delta')
+      // console.log(JSON.stringify(data))
+      this.$refs[data.name][0].insertDelta(data.delta)
+
+      // console.log(data.name)
+      // console.log(this.$refs[data.name][0].insertDelta)
+    })
+
     document.addEventListener('keyup', (evt) => {
       if (evt.keyCode === 27) {
         this.editingRegion = null
@@ -97,7 +127,6 @@ export default {
         // }
       }
     })
-    this.transcriptionId = this.$route.params.id
     this.load()
   },
   data () {
@@ -138,9 +167,12 @@ export default {
         targetRegion[0].text = update.text
       }
     },
+    regionDelta (data) {
+      console.log('region delta', data)
+      channel.trigger('client-region-delta', data)
+    },
     async saveData () {
       let regions = this.regions
-      window.t = this
       for (let index in regions) {
         const regionId = regions[index].id
         const regionText = this.$refs[regionId][0].text

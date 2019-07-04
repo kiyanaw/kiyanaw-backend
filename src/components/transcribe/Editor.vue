@@ -102,6 +102,11 @@ export default {
     deleteRegion() {
       console.log('deleting region')
       this.$emit('delete-region', this.regionId)
+    },
+    insertDelta (delta) {
+      console.log('inserting delta')
+      console.log(delta)
+      quill.updateContents(delta, 'api')
     }
   },
   updated () {
@@ -122,6 +127,7 @@ export default {
           console.log('quill has changed')
           // fire off diff event here
           // console.log(delta)
+          this.$emit('region-delta', {name: this.regionId, delta})
 
           this.regionText = quill.getContents().ops
           this.saveOps()

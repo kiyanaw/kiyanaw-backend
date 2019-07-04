@@ -94,8 +94,6 @@ export default {
 
     surfer.on('seek', function (event) {
       me.currentTime = me.maxTime * event
-      // surfer.playPause();
-      // surfer.playPause();
     })
 
     surfer.on('ready', function (event) {
@@ -106,66 +104,59 @@ export default {
       me.textRegions = me.regions
     })
 
+    /**
+     * This whole block sets up 'speed shift', and it mostly works
+     * though there is some wierdness with the timing
+     */
     surfer.on('ready', function() {
       var st = new soundtouch.SoundTouch(
           surfer.backend.ac.sampleRate
-      );
-      var buffer = surfer.backend.buffer;
-      var channels = buffer.numberOfChannels;
-      var l = buffer.getChannelData(0);
-      var r = channels > 1 ? buffer.getChannelData(1) : l;
-      var length = buffer.length;
-      var seekingPos = null;
-      var seekingDiff = 0;
-
+      )
+      var buffer = surfer.backend.buffer
+      var channels = buffer.numberOfChannels
+      var l = buffer.getChannelData(0)
+      var r = channels > 1 ? buffer.getChannelData(1) : l
+      var length = buffer.length
+      var seekingPos = null
+      var seekingDiff = 0
       var source = {
           extract: function(target, numFrames, position) {
               if (seekingPos != null) {
-                  seekingDiff = seekingPos - position;
-                  seekingPos = null;
+                  seekingDiff = seekingPos - position
+                  seekingPos = null
               }
-
-              position += seekingDiff;
-
+              position += seekingDiff
               for (var i = 0; i < numFrames; i++) {
-                  target[i * 2] = l[i + position];
-                  target[i * 2 + 1] = r[i + position];
+                  target[i * 2] = l[i + position]
+                  target[i * 2 + 1] = r[i + position]
               }
-
-              return Math.min(numFrames, length - position);
+              return Math.min(numFrames, length - position)
           }
-      };
-
+      }
       var soundtouchNode;
-
       surfer.on('play', function() {
-          seekingPos = ~~(surfer.backend.getPlayedPercents() * length);
-          console.log(seekingPos)
-          st.tempo = surfer.getPlaybackRate();
-
+          seekingPos = ~~(surfer.backend.getPlayedPercents() * length)
+          st.tempo = surfer.getPlaybackRate()
           if (st.tempo === 1) {
-              surfer.backend.disconnectFilters();
+              surfer.backend.disconnectFilters()
           } else {
               if (!soundtouchNode) {
-                  var filter = new soundtouch.SimpleFilter(source, st);
+                  var filter = new soundtouch.SimpleFilter(source, st)
                   soundtouchNode = soundtouch.getWebAudioNode(
                       surfer.backend.ac,
                       filter
-                  );
+                  )
               }
               surfer.backend.setFilter(soundtouchNode);
           }
-      });
-
+      })
       surfer.on('pause', function() {
-          soundtouchNode && soundtouchNode.disconnect();
-      });
-
+          soundtouchNode && soundtouchNode.disconnect()
+      })
       surfer.on('seek', function() {
-          seekingPos = ~~(surfer.backend.getPlayedPercents() * length);
-          console.log(seekingPos)
-      });
-    });
+          seekingPos = ~~(surfer.backend.getPlayedPercents() * length)
+      })
+    })
 
     surfer.enableDragSelection({slop: 5})
 

@@ -9,9 +9,22 @@ import Amplify, * as AmplifyModules from 'aws-amplify'
 import { AmplifyPlugin } from 'aws-amplify-vue'
 import awsmobile from './aws-exports'
 
+import VuePusher from 'vue-pusher'
+
 Amplify.configure(awsmobile)
 Vue.use(AmplifyPlugin, AmplifyModules)
 Vue.use(VueRouter)
+
+// TODO: load this API key separately
+Vue.use(VuePusher, {
+  api_key: '9d0e04094a934d7eaad8',
+  options: {
+    cluster: 'us3',
+    forceTLS: true,
+    authEndpoint: 'http://localhost:8000/pusher/auth'
+    // authTransport: 'jsonp'
+  }
+})
 
 Vue.config.productionTip = false
 
