@@ -45,7 +45,7 @@
               v-bind:end="region.end"
               v-bind:inRegions="inRegions"
               v-bind:editing="editingRegion === region.id"
-              v-on:region-editor-clicked="editRegionText"
+              v-on:editor-focus="editorFocus"
               v-on:editor-blur="editorBlur"
               v-on:play-region="playRegion"
               v-on:region-text-updated="regionTextUpdated"
@@ -79,36 +79,43 @@ import TranscriptionService from '../../services/transcriptions'
 import EnvService from '../../services/env'
 import incomingData from './data'
 import { setTimeout } from 'timers';
+import uuid from 'uuid/v1'
 
 let pusher
 let channel
+let localUuid = uuid()
 
 export default {
   mounted() {
     
     this.transcriptionId = this.$route.params.id
 
-    // Pusher.logToConsole = true
-    // pusher = new Pusher('9d0e04094a934d7eaad8', {
-    //   cluster: 'us3',
-    //   forceTLS: true
-    // })
-
     const docId = this.transcriptionId.split(':')[1]
 
     channel = this.$pusher.subscribe(`presence-transcribe-${EnvService.getEnvironmentName()}-${docId}`)
-
-    window.channel = channel
-    window.t = this
-
     channel.bind('client-region-delta', (data) => {
-      console.log('incoming region delta')
-      // console.log(JSON.stringify(data))
       this.$refs[data.name][0].insertDelta(data.delta)
-
-      // console.log(data.name)
-      // console.log(this.$refs[data.name][0].insertDelta)
     })
+
+    channel.bind('client-region-create', (data) => {
+      console.log('region created')
+      console.log(data)
+      this.regions.push(data)
+    })
+
+    channel.bind('client-region-update', (data) => {
+      console.log('region updated')
+      console.log(data)
+      const targetRegion = this.regions.filter(needle => needle.id === data.id)
+      console.log(targetRegion)
+      if (targetRegion.length) {
+        targetRegion[0].start = data.start
+        targetRegion[0].end = data.end
+      }
+      this.$refs.player.renderRegions()
+    })
+
+    window.t = this
 
     document.addEventListener('keyup', (evt) => {
       if (evt.keyCode === 27) {
@@ -118,7 +125,18 @@ export default {
         // play/pause on space bar
         if (evt.keyCode === 32) {
           try {
-            this.$refs.player.playPause()
+            let canPlay = true
+            for (let region of this.regions) {
+              console.log(this.$refs[region.id][0].hasFocus)
+              if (this.$refs[region.id][0].hasFocus) {
+                canPlay = false
+              }
+            }
+            console.log(`can play: ${canPlay}`)
+            if (canPlay) {
+              this.$refs.player.playPause()
+            }
+
           } catch (e) {}
         }
         // TODO: arrows should jump between regions
@@ -158,7 +176,7 @@ export default {
     editorBlur () {
       this.editingRegion = null
     },
-    editRegionText (regionId) {
+    editorFocus (regionId) {
       this.editingRegion = regionId
     },
     regionTextUpdated (update) {
@@ -168,7 +186,7 @@ export default {
       }
     },
     regionDelta (data) {
-      console.log('region delta', data)
+      data.uuid =  localUuid
       channel.trigger('client-region-delta', data)
     },
     async saveData () {
@@ -215,16 +233,22 @@ export default {
       const regionIds = this.regions.map(item => item.id)
       if (regionIds.indexOf(region.id) === -1) {
         console.log('Creating region')
-        this.regions.push({
+        const regionData = {
           start: region.start,
           end: region.end,
           id: region.id,
           text: []
-        })
+        }
+        channel.trigger('client-region-create', regionData)
+        this.regions.push(regionData)
       } else {
         console.log('updating region')
-        console.log(region)
         const targetRegion = this.regions.filter(needle => needle.id === region.id)
+        channel.trigger('client-region-update', {
+          id: region.id,
+          start: region.start,
+          end: region.end
+        })
         if (targetRegion.length) {
           targetRegion[0].start = region.start
           targetRegion[0].end = region.end

@@ -9,16 +9,8 @@
       </v-flex>
 
       <v-flex xs10>
-        <div v-bind:id="'region-'+regionId"
-          v-on:click="regionClicked"
-          v-if="!editing" class="nonEdit"
-          >
-          <div class="editor-rendered">
-            <span v-html="html"></span><br />
-          </div>
-        </div>
-        <div v-if="editing">
-          <div id="editor"></div>
+        <div>
+          <div v-bind:id="'editor-' + regionId"></div>
         </div>
       </v-flex>
 
@@ -36,7 +28,7 @@
 import Quill from 'quill'
 import utils from './utils'
 
-let quill = null
+// let quill = null
 
 export default {
   props: [
@@ -48,28 +40,6 @@ export default {
     'inRegions'
   ],
   computed: {
-    html() {
-      let _html = ''
-      for (let index in this.regionText) {
-        const word = this.regionText[index]
-        if (word.attributes && word.attributes.bold) {
-          _html += `<strong>${word.insert}</strong> `
-        } else {
-          _html += `${word.insert} `
-        }
-      }
-      // console.log(_html)
-      // console.log(_html.indexOf('\n'))
-      let bits = _html.split('\n')
-
-      // we end up with a bunch of \n at the end for some reason
-      while (['\n', ' ', ''].indexOf(bits[bits.length - 1]) !== -1) {
-      // while (bits[bits.length - 1] === '\n' || bits[bits.length - 1] === ' ') {
-        bits.pop()
-      }
-      _html = bits.join('<br />')
-      return _html
-    },
     isInRegion() {
       const inRegions = this.$props.inRegions
       const regionId = this.$props.regionId
@@ -86,12 +56,9 @@ export default {
     }
   },
   methods: {
-    regionClicked() {
-      this.$emit('region-editor-clicked', this.$props.regionId)
-    },
     saveOps() {
-      this.regionText = quill.getContents().ops
-      this.$emit('region-text-updated', {regionId: this.regionId, text: this.regionText})
+        this.regionText = this.quill.getContents().ops
+        this.$emit('region-text-updated', {regionId: this.regionId, text: this.regionText})
     },
     normalTime(value) {
       return utils.floatToMSM(value)
@@ -100,69 +67,64 @@ export default {
       this.$emit('play-region', this.regionId)
     },
     deleteRegion() {
-      console.log('deleting region')
-      this.$emit('delete-region', this.regionId)
+      this.this.$emit('delete-region', this.regionId)
     },
     insertDelta (delta) {
-      console.log('inserting delta')
-      console.log(delta)
-      quill.updateContents(delta, 'api')
-    }
-  },
-  updated () {
-    if (this.editing && quill === null) {
-      console.log('create new editor')
-      this.$nextTick(() => {
-        quill = new Quill('#editor', {
-          theme: 'snow',
-          modules: {
-            toolbar: false
-          }
-        })
-        quill.root.setAttribute('spellcheck', false)
-        quill.setContents(this.regionText)
-        quill.focus()
-        // quill.setSelection(99999)
-        quill.on('text-change', (delta) => {
-          console.log('quill has changed')
-          // fire off diff event here
-          // console.log(delta)
-          this.$emit('region-delta', {name: this.regionId, delta})
-
-          this.regionText = quill.getContents().ops
-          this.saveOps()
-        })
-
-        quill.on('selection-change', (range, oldRange, source) => {
-          if (range) {
-            if (range.length == 0) {
-              // console.log('User cursor is on', range.index);
-              let [leaf, offset] = quill.getLeaf(range.index)
-              console.log(leaf)
-              console.log(offset)
-            } else {
-              var text = quill.getText(range.index, range.length);
-              console.log('User has highlighted', text);
-            }
-          } else {
-            // lost focus?
-            this.saveOps()
-            this.$emit('editor-blur')
-            quill = null
-          }
-        })
-
-        window.quill = quill
-      })
+      this.quill.updateContents(delta, 'api')
     }
   },
   data () {
     return {
-      regionText: this.$props.text
+      regionText: this.$props.text,
+      hasFocus: false
     }
   },
   mounted() {
-    // clear the rendered html
+    this.$nextTick(() => {
+      this.quill = new Quill('#editor-' + this.regionId, {
+        theme: 'snow',
+        modules: {
+          toolbar: false
+        }
+      })
+      this.quill.root.setAttribute('spellcheck', false)
+      this.quill.setContents(this.regionText)
+      this.quill.focus()
+      this.hasFocus = true
+
+      /**
+       * If a user has typed into this editor the source will be 'user
+       * and we will emit an event to update all other editor instances.
+       */
+      this.quill.on('text-change', (delta, oldDelta, source) => {
+        if (source === 'user') {
+          this.$emit('region-delta', {name: this.regionId, delta})
+        }
+        this.regionText = this.quill.getContents().ops
+        this.saveOps()
+      })
+
+      this.quill.on('selection-change', (range, oldRange, source) => {
+        if (range) {
+          if (range.length == 0) {
+            console.log('User cursor is on', range.index);
+            // this.$nextTick(() => {
+            //   this.$emit('editor-focus', this.regionId)
+            // })
+            // let [leaf, offset] = this.quill.getLeaf(range.index)
+            this.hasFocus = true
+          } else {
+            var text = this.quill.getText(range.index, range.length);
+            // console.log('User has highlighted', text);
+          }
+        } else {
+          // lost focus?
+          this.saveOps()
+          // this.$emit('editor-blur')
+          this.hasFocus = false
+        }
+      })
+    })
   }
 }
 </script>
@@ -198,9 +160,9 @@ export default {
 .ql-container.ql-snow {
   border: none;
 }
-.ql-editor {
+/* .ql-editor {
   background-color: #f9f6d9;
-}
+} */
 .region-actions {
   text-align: right;
 }

@@ -42,11 +42,15 @@ export default {
     await this.setClient()
     const params = {
       TableName: transcribeTable,
-      KeyConditionExpression: 'theKey = :k and begins_with(author_ID, :u)',
+      KeyConditionExpression: 'theKey = :k',
       ExpressionAttributeValues: {
-        ':k': 'transcription',
-        ':u': user
+        ':k': 'transcription'
       }
+      // KeyConditionExpression: 'theKey = :k and begins_with(author_ID, :u)',
+      // ExpressionAttributeValues: {
+      //   ':k': 'transcription',
+      //   ':u': user
+      // }
     }
     let list = await new Promise(function (resolve, reject) {
       client.query(params, function(error, data) {
