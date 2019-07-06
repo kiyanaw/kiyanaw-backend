@@ -1,0 +1,34 @@
+{
+    "paths": [
+        {
+            "name": "/pusher",
+            "lambdaFunction": "kiyanawbackend6b2abcbb",
+            "privacy": {
+                "open": true
+            }
+        }
+    ],
+    "resourceName": "api10486bd0",
+    "apiName": "api10486bd0",
+    "functionArns": [
+        {
+            "lambdaFunction": "kiyanawbackend6b2abcbb"
+        }
+    ],
+    "privacy": {
+        "auth": 0,
+        "unauth": 0,
+        "authRoleName": "tanisi-20190312203843-authRole",
+        "unAuthRoleName": "tanisi-20190312203843-unauthRole"
+    },
+    "dependsOn": [
+        {
+            "category": "function",
+            "resourceName": "kiyanawbackend6b2abcbb",
+            "attributes": [
+                "Name",
+                "Arn"
+            ]
+        }
+    ]
+}

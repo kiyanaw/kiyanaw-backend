@@ -8,6 +8,7 @@ import store from './store'
 import Amplify, * as AmplifyModules from 'aws-amplify'
 import { AmplifyPlugin } from 'aws-amplify-vue'
 import awsmobile from './aws-exports'
+import EnvService from './services/env'
 
 import VuePusher from 'vue-pusher'
 
@@ -21,7 +22,7 @@ Vue.use(VuePusher, {
   options: {
     cluster: 'us3',
     forceTLS: true,
-    authEndpoint: 'http://localhost:8000/pusher/auth'
+    authEndpoint: `https://m3inhc2wwk.execute-api.us-east-1.amazonaws.com/${EnvService.getEnvironmentName()}/auth`
     // authTransport: 'jsonp'
   }
 })
