@@ -60,7 +60,7 @@
 				"Timeout": "25",
 				"Code": {
 					"S3Bucket": "tanisi-20190312203843-deployment",
-					"S3Key": "amplify-builds/kiyanawbackend6b2abcbb-1562381682-latest-build.zip"
+					"S3Key": "amplify-builds/kiyanawbackend6b2abcbb-1562384450-latest-build.zip"
 				}
 			}
 		},

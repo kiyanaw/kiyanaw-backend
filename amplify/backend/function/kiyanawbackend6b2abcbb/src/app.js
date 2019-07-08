@@ -1,12 +1,8 @@
 var express = require('express')
-var bodyParser = require('body-parser')
-const querystring = require('querystring')
 var awsServerlessExpressMiddleware = require('aws-serverless-express/middleware')
 const Pusher = require('pusher')
 
-// declare a new express app
 var app = express()
-// app.use(bodyParser.json())
 app.use(awsServerlessExpressMiddleware.eventContext())
 
 const port = 3000
@@ -22,44 +18,25 @@ var pusher = new Pusher({
   encrypted: true
 })
 
-const debug = (...args) => {
-  if (config.DEBUG) {
-    console.log('debug::: ', ...args)
-  }
-}
-
 // Enable CORS for all methods
-app.use(function(req, res, next) {
-  res.header("Access-Control-Allow-Origin", "*")
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
+app.use(function (req, res, next) {
+  res.header('Access-Control-Allow-Origin', '*')
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept')
   next()
-});
+})
 
-
-// app.get('/items', function(req, res) {
-//   // Add your code here
-//   res.json({success: 'get call succeed!', url: req.url});
-// });
-
-
-app.post('/auth', (req, res) => {
-  // Some logic to determine whether the user making the request has access to
-  // the private channel
-  // ...
-  // ...
-  // ...
-  // Extract the socket id and channel name from the request body
-  //
+app.post('/auth/', (req, res) => {
   const formData = req.apiGateway.event.formData
   const socketId = formData.socket_id
   const channelName = formData.channel_name
+  const user = req.query.user
+
+  console.log('Got auth data:')
+  console.log({ formData, socketId, channelName, user })
 
   if (/^presence-/.test(channelName)) {
-    // If the request is for a presence channel include some data about the user
-    // in the call to authenticate
-    let timestamp = new Date().toISOString()
     let presenceData = {
-      user_id: `user-${timestamp}`,
+      user_id: req.query.user,
       user_info: {
         name: 'Pusherino',
         twitter_id: '@pusher'
@@ -80,7 +57,7 @@ app.post('/auth', (req, res) => {
 })
 
 app.get('/auth', (req, res) => {
-  res.json({'hello': 'world', 'response': 'ok'})
+  res.json({ 'hello': 'world', 'response': 'ok' })
 })
 
 app.listen(port, () => {
@@ -89,7 +66,4 @@ app.listen(port, () => {
   console.log(msg)
 })
 
-// Export the app object. When executing the application local this does nothing. However,
-// to port it to AWS Lambda we will create a wrapper around that will load the app from
-// this file
 module.exports = app

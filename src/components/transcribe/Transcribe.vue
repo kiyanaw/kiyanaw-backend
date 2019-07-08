@@ -50,6 +50,7 @@
               v-on:play-region="playRegion"
               v-on:region-text-updated="regionTextUpdated"
               v-on:region-delta="regionDelta"
+              v-on:region-cursor="regionCursor"
               v-on:delete-region="deleteRegion"
               >
             </editor>
@@ -77,22 +78,39 @@ import AudioPlayer from './AudioPlayer.vue'
 import Editor from './Editor.vue'
 import TranscriptionService from '../../services/transcriptions'
 import EnvService from '../../services/env'
+import UserService from '../../services/user'
 import incomingData from './data'
 import { setTimeout } from 'timers';
 import uuid from 'uuid/v1'
 
 let pusher
 let channel
-let localUuid = uuid()
+const localUuid = uuid()
+const cursorColor = '#' + Math.floor(Math.random()*16777215).toString(16)
 
 export default {
   mounted() {
     
+    UserService.getUser().then((user) => {
+      this.username = user.name
+    })
     this.transcriptionId = this.$route.params.id
 
     const docId = this.transcriptionId.split(':')[1]
 
     channel = this.$pusher.subscribe(`presence-transcribe-${EnvService.getEnvironmentName()}-${docId}`)
+
+    channel.bind('pusher:subscription_succeeded', (members) => {
+      this.members = members
+      // for example
+      // update_member_count(members.count);
+
+      // members.each(function(member) {
+      //   // for example:
+      //   add_member(member.id, member.info);
+      // });
+    })
+
     channel.bind('client-region-delta', (data) => {
       this.$refs[data.name][0].insertDelta(data.delta)
     })
@@ -113,6 +131,11 @@ export default {
         targetRegion[0].end = data.end
       }
       this.$refs.player.renderRegions()
+    })
+
+    channel.bind('client-region-cursor', (data) => {
+      // console.log(`new cursor for ${data.username}, ${data.index}, ${data.regionId}`)
+      this.$refs[data.regionId][0].setCursor(data)
     })
 
     window.t = this
@@ -156,7 +179,14 @@ export default {
       inRegions: [],
       title: '',
       authorId: null,
-      saved: false
+      saved: false,
+      members: []
+    }
+  },
+  watch: {
+    members () {
+      console.log('members changed')
+      console.log(this.members)
     }
   },
   computed: {
@@ -188,6 +218,13 @@ export default {
     regionDelta (data) {
       data.uuid =  localUuid
       channel.trigger('client-region-delta', data)
+    },
+    regionCursor (data) {
+      channel.trigger('client-region-cursor', {
+        ...data,
+        username: this.username,
+        color: cursorColor
+      })
     },
     async saveData () {
       let regions = this.regions
@@ -221,7 +258,7 @@ export default {
       this.authorId = data.authorId
     },
     blurRegion (region) {
-      this.inRegions = this.inRegions.filter(r => r !== region.id);
+      this.inRegions = this.inRegions.filter(r => r !== region.id)
     },
     playRegion(regionId) {
       this.$refs.player.playRegion(regionId)

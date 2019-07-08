@@ -26,9 +26,10 @@
 <script>
 
 import Quill from 'quill'
+import QuillCursors from 'quill-cursors'
 import utils from './utils'
 
-// let quill = null
+Quill.register('modules/cursors', QuillCursors);
 
 export default {
   props: [
@@ -71,6 +72,20 @@ export default {
     },
     insertDelta (delta) {
       this.quill.updateContents(delta, 'api')
+    },
+    clearCursors () {
+      this.cursors.clearCursors()
+    },
+    setCursor (data) {
+      console.log('set cursor')
+      console.log(data)
+      const exists = this.cursors.cursors().filter(needle => needle.id = data.id)
+      console.log(exists)
+      if (!exists.length) {
+        this.cursors.createCursor(data.username, data.username, data.color)
+      }
+      this.cursors.moveCursor(data.username, data.range)
+      window.cursors = this.cursors
     }
   },
   data () {
@@ -84,9 +99,11 @@ export default {
       this.quill = new Quill('#editor-' + this.regionId, {
         theme: 'snow',
         modules: {
-          toolbar: false
+          toolbar: false,
+          cursors: true
         }
       })
+      this.cursors = this.quill.getModule('cursors')
       this.quill.root.setAttribute('spellcheck', false)
       this.quill.setContents(this.regionText)
       this.quill.focus()
@@ -107,16 +124,13 @@ export default {
       this.quill.on('selection-change', (range, oldRange, source) => {
         if (range) {
           if (range.length == 0) {
-            console.log('User cursor is on', range.index);
-            // this.$nextTick(() => {
-            //   this.$emit('editor-focus', this.regionId)
-            // })
-            // let [leaf, offset] = this.quill.getLeaf(range.index)
+            // console.log('User cursor is on', range.index);
             this.hasFocus = true
           } else {
             var text = this.quill.getText(range.index, range.length);
             // console.log('User has highlighted', text);
           }
+          this.$emit('region-cursor', {regionId: this.regionId, range: range})
         } else {
           // lost focus?
           this.saveOps()

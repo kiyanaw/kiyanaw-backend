@@ -18,17 +18,22 @@ Transcriber
 [ ] rename `text` field to `sro`
 [ ] add `english` field
 [ ] ability to add translation
-[ ] hook in websockets
+[✓] hook in websockets
+[ ] show cursors for other users
+[ ] show what users are online
+[ ] if refresh, sync up with other users' changes
+[ ] show what doc another user is editing
 [ ] save after user changes delay
 [ ] versioning
-[ ] deploy it somewhere
+[✓] deploy it somewhere
 
 Sprint 2
 ---
+[ ] better DNS
 [ ] custom TextBlob to tie in definitions
 [ ] ability to link to specific region
 [ ] extract region for download - https://www.npmjs.com/package/mp3-cutter (works well)
-[ ] 
+[ ] link known words to index
 
 
 
