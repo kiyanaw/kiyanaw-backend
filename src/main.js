@@ -17,24 +17,20 @@ Amplify.configure(awsmobile)
 Vue.use(AmplifyPlugin, AmplifyModules)
 Vue.use(VueRouter)
 
-UserService.getUser().then((user) => {
-  if (user) {
-    // TODO: load this API key separately
-    Vue.use(VuePusher, {
-      api_key: '9d0e04094a934d7eaad8',
-      options: {
-        cluster: 'us3',
-        forceTLS: true,
-        authEndpoint: `https://m3inhc2wwk.execute-api.us-east-1.amazonaws.com/${EnvService.getEnvironmentName()}/auth?user=${user.name}`
-        // authTransport: 'jsonp'
-      }
-    })
+Vue.use(VuePusher, {
+  api_key: '9d0e04094a934d7eaad8',
+  options: {
+    cluster: 'us3',
+    forceTLS: true,
+    // set dummy auth endpoint until after authentication
+    authEndpoint: `https://m3inhc2wwk.execute-api.us-east-1.amazonaws.com/{env}/auth?user={user}`
   }
-  Vue.config.productionTip = false
-  
-  new Vue({
-    router,
-    store
-  }).$mount('#app')
 })
+
+Vue.config.productionTip = false
+
+new Vue({
+  router,
+  store
+}).$mount('#app')
 

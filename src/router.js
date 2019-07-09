@@ -13,6 +13,7 @@ import TranscribeAdd from './components/transcribe/Add.vue'
 import MorphemeEditor from './components/morphemes/Editor.vue'
 import HelloWorld from './components/HelloWorld.vue'
 
+import EnvService from './services/env'
 
 const router = new VueRouter({
   mode: 'history',
@@ -23,18 +24,19 @@ const router = new VueRouter({
       component: App,
       children: [
         { path: 'signin', component: SignIn },
-        { path: 'edit/', component: Editor,
+        { path: 'edit/',
+          component: Editor,
           children: [
-            { path: '', component: EditorVerify},
-            { path: 'morphemes', component: MorphemeEditor},
-            { path: ':id', component: EditorNextUnverified},
+            { path: '', component: EditorVerify },
+            { path: 'morphemes', component: MorphemeEditor },
+            { path: ':id', component: EditorNextUnverified }
           ],
-          meta: { requiresAuth: true}
+          meta: { requiresAuth: true }
         },
-        { path: 'transcribe-list', component: TranscribeList, meta: {requiresAuth: true}},
-        { path: 'transcribe-add', component: TranscribeAdd, meta: {requiresAuth: true}},
-        { path: 'transcribe-edit/:id', component: TranscribeEdit, meta: {requiresAuth: true}}
-      ],
+        { path: 'transcribe-list', component: TranscribeList, meta: { requiresAuth: true } },
+        { path: 'transcribe-add', component: TranscribeAdd, meta: { requiresAuth: true } },
+        { path: 'transcribe-edit/:id', component: TranscribeEdit, meta: { requiresAuth: true } }
+      ]
     },
     {
       path: '/pusher/auth',
@@ -43,23 +45,29 @@ const router = new VueRouter({
   ]
 })
 
-
 router.beforeResolve((to, from, next) => {
   if (to.matched.some(record => record.meta.requiresAuth)) {
     Vue.prototype.$Amplify.Auth.currentAuthenticatedUser().then((data) => {
       if (data && data.signInUserSession) {
+        // set the Pusher auth string
+        const environmentName = EnvService.getEnvironmentName()
+        if (Vue.prototype.$pusher) {
+          let authEndpoint = Vue.prototype.$pusher.config.authEndpoint
+          authEndpoint = authEndpoint.replace('{env}', environmentName)
+          authEndpoint = authEndpoint.replace('{user}', data.username)
+          Vue.prototype.$pusher.config.authEndpoint = authEndpoint
+        }
+        console.log(Vue.prototype)
         return next()
       } else {
-        next({path:'/signin'});
+        next({ path: '/signin' })
       }
     }).catch((e) => {
       console.warn(e) // eslint-disable-line
-    });
+    })
   } else {
     next()
   }
 })
-
-
 
 export default router
