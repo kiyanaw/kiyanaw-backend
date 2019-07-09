@@ -2,7 +2,8 @@
   "extends": "standard",
   "parserOptions": {
     "ecmaVersion": 9,
-    "sourceType": "module"
+    "sourceType": "module",
+    "parser": "babel-eslint"
   },
   "overrides": [
     {

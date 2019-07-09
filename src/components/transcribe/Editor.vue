@@ -29,7 +29,13 @@ import Quill from 'quill'
 import QuillCursors from 'quill-cursors'
 import utils from './utils'
 
-Quill.register('modules/cursors', QuillCursors);
+const Parchment = Quill.import('parchment')
+let KnownWord = new Parchment.Attributor.Class('known', 'known-word', {
+  scope: Parchment.Scope.INLINE
+})
+Parchment.register(KnownWord)
+
+Quill.register('modules/cursors', QuillCursors)
 
 export default {
   props: [
@@ -95,9 +101,10 @@ export default {
     }
   },
   mounted() {
-    this.$nextTick(() => {
+    // this.$nextTick(() => {
       this.quill = new Quill('#editor-' + this.regionId, {
         theme: 'snow',
+        formats: ['known'],
         modules: {
           toolbar: false,
           cursors: true
@@ -108,6 +115,7 @@ export default {
       this.quill.setContents(this.regionText)
       this.quill.focus()
       this.hasFocus = true
+      window.quill = this.quill
 
       /**
        * If a user has typed into this editor the source will be 'user
@@ -125,6 +133,7 @@ export default {
         if (range) {
           if (range.length == 0) {
             // console.log('User cursor is on', range.index);
+            console.log(this.quill.getFormat(range.index))
             this.hasFocus = true
           } else {
             var text = this.quill.getText(range.index, range.length);
@@ -138,7 +147,7 @@ export default {
           this.hasFocus = false
         }
       })
-    })
+    // })
   }
 }
 </script>
@@ -174,10 +183,12 @@ export default {
 .ql-container.ql-snow {
   border: none;
 }
-/* .ql-editor {
-  background-color: #f9f6d9;
-} */
+
 .region-actions {
   text-align: right;
+}
+
+[class^='known-word-'] {
+  color: blue;
 }
 </style>

@@ -17,23 +17,29 @@ Transcriber
 [ ] ? add description
 [ ] rename `text` field to `sro`
 [ ] add `english` field
-[ ] ability to add translation
+[ ] editor - ability to add translation
+[ ] editor - save duration
+[ ] list - show last updated
+[ ] list - show % complete (any regions near the end)
+[ ] list - show issues count ?? 
+[ ] list - don't pull regions `ProjectionExpression`
 [✓] hook in websockets
-[ ] show cursors for other users
+[✓] editor - show cursors for other users
 [ ] show what users are online
 [ ] if refresh, sync up with other users' changes
 [ ] show what doc another user is editing
 [ ] save after user changes delay
-[ ] versioning
+[ ] versioning of data
 [✓] deploy it somewhere
 
 Sprint 2
 ---
 [ ] better DNS
 [ ] custom TextBlob to tie in definitions
-[ ] ability to link to specific region
-[ ] extract region for download - https://www.npmjs.com/package/mp3-cutter (works well)
+[ ] editor - ability to link to specific region/time
+[ ] editor - extract region for download - https://www.npmjs.com/package/mp3-cutter (works well)
 [ ] link known words to index
+[ ] editor - comments on regions
 
 
 
