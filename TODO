@@ -32,6 +32,11 @@ Transcriber
 [ ] versioning of data
 [✓] deploy it somewhere
 
+Index integration
+---
+[ ] match known words to new words in editor
+[ ] changing a word in the editor 
+
 Sprint 2
 ---
 [ ] better DNS

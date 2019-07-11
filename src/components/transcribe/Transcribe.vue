@@ -79,7 +79,6 @@ import Editor from './Editor.vue'
 import TranscriptionService from '../../services/transcriptions'
 import EnvService from '../../services/env'
 import UserService from '../../services/user'
-import incomingData from './data'
 import { setTimeout } from 'timers';
 import uuid from 'uuid/v1'
 

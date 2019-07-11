@@ -30,12 +30,14 @@ import QuillCursors from 'quill-cursors'
 import utils from './utils'
 
 const Parchment = Quill.import('parchment')
-let KnownWord = new Parchment.Attributor.Class('known', 'known-word', {
+let KnownWord = new Parchment.Attributor.Class('known-word', 'known-word', {
   scope: Parchment.Scope.INLINE
 })
 Parchment.register(KnownWord)
-
 Quill.register('modules/cursors', QuillCursors)
+
+let knownWords = {}
+let typingTimer
 
 export default {
   props: [
@@ -43,8 +45,7 @@ export default {
     'text',
     'start',
     'end',
-    'editing',
-    'inRegions'
+    'inRegions' // TODO: is this still used?
   ],
   computed: {
     isInRegion() {
@@ -83,15 +84,15 @@ export default {
       this.cursors.clearCursors()
     },
     setCursor (data) {
-      console.log('set cursor')
-      console.log(data)
       const exists = this.cursors.cursors().filter(needle => needle.id = data.id)
-      console.log(exists)
       if (!exists.length) {
         this.cursors.createCursor(data.username, data.username, data.color)
       }
       this.cursors.moveCursor(data.username, data.range)
       window.cursors = this.cursors
+    },
+    checkKnownWords () {
+      console.log('checking known words')
     }
   },
   data () {
@@ -102,12 +103,12 @@ export default {
   },
   mounted() {
     // this.$nextTick(() => {
-      this.quill = new Quill('#editor-' + this.regionId, {
+      this.quill = new Quill(this.$el.querySelector('#editor-' + this.regionId), {
         theme: 'snow',
-        formats: ['known'],
+        formats: ['known-word'],
         modules: {
           toolbar: false,
-          cursors: true
+          // cursors: true
         }
       })
       this.cursors = this.quill.getModule('cursors')
@@ -123,6 +124,10 @@ export default {
        */
       this.quill.on('text-change', (delta, oldDelta, source) => {
         if (source === 'user') {
+          // set an timeout for the user to stop typing
+          console.log('set timer')
+          clearTimeout(typingTimer)
+          typingTimer = setTimeout(this.checkKnownWords, 1000)
           this.$emit('region-delta', {name: this.regionId, delta})
         }
         this.regionText = this.quill.getContents().ops
@@ -131,17 +136,17 @@ export default {
 
       this.quill.on('selection-change', (range, oldRange, source) => {
         if (range) {
-          if (range.length == 0) {
+          if (range.length === 0) {
             // console.log('User cursor is on', range.index);
-            console.log(this.quill.getFormat(range.index))
-            this.hasFocus = true
+            // console.log(this.quill.getFormat(range.index))
           } else {
-            var text = this.quill.getText(range.index, range.length);
             // console.log('User has highlighted', text);
+            var text = this.quill.getText(range.index, range.length);
           }
+          this.hasFocus = true
           this.$emit('region-cursor', {regionId: this.regionId, range: range})
         } else {
-          // lost focus?
+          // lost focus
           this.saveOps()
           // this.$emit('editor-blur')
           this.hasFocus = false

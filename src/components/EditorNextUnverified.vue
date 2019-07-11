@@ -40,7 +40,7 @@
 
 <script>
 import corpus from '../services/corpus.js'
-import MorphemeSearch from './MorphemeSearch'
+import MorphemeSearch from './MorphemeSearch.vue'
 
 export default {
   // https://router.vuejs.org/guide/advanced/data-fetching.html#fetching-after-navigation

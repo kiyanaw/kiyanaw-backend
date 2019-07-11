@@ -37,8 +37,6 @@
 import TranscriptionService from '../../services/transcriptions'
 import UserService from '../../services/user'
 
-import Vue from 'vue'
-
 export default {
   mounted () {
     this.loadTranscriptionList()
