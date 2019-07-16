@@ -9,6 +9,7 @@
           <table class="transcription-table">
             <tr>
               <th width="65%">Name</th>
+              <th>Length</th>
               <th>Owner</th>
               <th>Type</th>
               <th>Source</th>
@@ -16,6 +17,7 @@
             <tr v-for="item in list"
               v-bind:key="item.author_ID">
               <td><a v-bind:href="'/transcribe-edit/' + item.authorId">{{ item.title }}</a></td>
+              <td>{{ normalTime(item.length || 0) }}</td>
               <td>{{ item.author }}</td>
               <td>{{ item.type }}</td>
               <td><a v-bind:href="item.source" _target="blank">Link</a></td>
@@ -37,6 +39,8 @@
 import TranscriptionService from '../../services/transcriptions'
 import UserService from '../../services/user'
 
+import utils from './utils'
+
 export default {
   mounted () {
     this.loadTranscriptionList()
@@ -52,6 +56,9 @@ export default {
     async loadTranscriptionList () {
       const currentUser = await UserService.getUser()
       this.list = await TranscriptionService.listTranscriptions(currentUser.name)
+    },
+    normalTime: function (value) {
+      return utils.floatToMSM(value)
     }
   }
 }

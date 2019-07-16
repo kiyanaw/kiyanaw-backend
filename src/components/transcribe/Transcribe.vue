@@ -232,7 +232,8 @@ export default {
         title: this.title,
         source: this.audioFile,
         type: 'audio',
-        regions: this.sortedRegions
+        regions: this.sortedRegions,
+        length: this.$refs.player.maxTime
       })
       if (result) {
         this.saved = true
