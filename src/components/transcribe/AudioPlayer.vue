@@ -96,6 +96,9 @@ export default {
       me.currentTime = me.maxTime * event
     })
 
+    /**
+     * TODO: there are like 3 'ready' handlers
+     */
     surfer.on('ready', function (event) {
       me.maxTime = surfer.backend.getDuration()
       me.regions.forEach(function (region) {

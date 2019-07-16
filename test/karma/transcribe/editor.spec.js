@@ -54,6 +54,7 @@ describe('components/Editor', function () {
     xit('should emit `region-cursor` event on user click/type', () => {
       // setSelection(index: Number, length: Number = 0, source: String = 'api')
       // this.rendered.quill.setSelection({ index: 1, length: 1 }, 'user')
+      this.rendered.quill.getSelection(true)
       this.rendered.quill.setSelection(1, 0, 'user')
       console.log(this.wrapper.emitted())
     })

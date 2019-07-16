@@ -28,6 +28,7 @@
 import Quill from 'quill'
 import QuillCursors from 'quill-cursors'
 import utils from './utils'
+import Lex from '../../services/lexicon'
 
 const Parchment = Quill.import('parchment')
 let KnownWord = new Parchment.Attributor.Class('known-word', 'known-word', {
@@ -36,7 +37,9 @@ let KnownWord = new Parchment.Attributor.Class('known-word', 'known-word', {
 Parchment.register(KnownWord)
 Quill.register('modules/cursors', QuillCursors)
 
-let knownWords = {}
+// let knownWords = {}
+// todo: this might need to go in Lex
+let wordCache = {}
 let typingTimer
 
 export default {
@@ -64,13 +67,23 @@ export default {
     }
   },
   methods: {
+    /**
+     * Syncs up the module regionText with the editor data.
+     */
     saveOps() {
         this.regionText = this.quill.getContents().ops
         this.$emit('region-text-updated', {regionId: this.regionId, text: this.regionText})
     },
+    /**
+     * TODO: this should maybe be a computed.
+     * Turns a 1.398456847365252 float into 0:01.40 time
+     */
     normalTime(value) {
       return utils.floatToMSM(value)
     },
+    /**
+     * Handler for when user clicks on the timestamps for this region.
+     */
     playRegion() {
       this.$emit('play-region', this.regionId)
     },
@@ -91,8 +104,41 @@ export default {
       this.cursors.moveCursor(data.username, data.range)
       window.cursors = this.cursors
     },
-    checkKnownWords () {
-      console.log('checking known words')
+    async checkKnownWords () {
+      const results = await Lex.wordSearch('foo')
+      const contents = this.quill.getText()
+      for (let item of results) {
+        if (!wordCache[item.sro]) {
+          wordCache[item.sro] = item
+        }
+        // check for matches
+        let re = new RegExp(item.sro, 'g')
+        let match = re.exec(contents)
+        if (match) {
+          quill.formatText(match.index, item.sro.length, 'known-word', true)
+        }
+      }
+    },
+    /**
+     * Whenever a user types we need to check that the words that have been
+     * flagged as 'known' are still intact. At the same time we'll see any new
+     * typed words match anything in the wordCache. If there is anything left
+     * over, that can be searched for when checkKnownWords fires.
+     */
+    auditWords () {
+      // pull the editor text this.quill.getText()
+      // loop through each one
+      // build up an index of word -> index range
+      // for (let word of this.quill.getText().split(' ')) {
+      // }
+      // compare it to the cached words
+      // if it matches add the known-word format
+      // if it doesn't match
+      //  - if it has a format remove it
+      //  - if it doesn't have a format add to 'lookup'
+      // when we get to lookup, cache all words we search for
+      //  so we know not to search them over and over again
+      // 
     }
   },
   data () {
@@ -102,57 +148,55 @@ export default {
     }
   },
   mounted() {
-    // this.$nextTick(() => {
-      this.quill = new Quill(this.$el.querySelector('#editor-' + this.regionId), {
-        theme: 'snow',
-        formats: ['known-word'],
-        modules: {
-          toolbar: false,
-          // cursors: true
-        }
-      })
-      this.cursors = this.quill.getModule('cursors')
-      this.quill.root.setAttribute('spellcheck', false)
-      this.quill.setContents(this.regionText)
-      this.quill.focus()
-      this.hasFocus = true
-      window.quill = this.quill
+    this.quill = new Quill(this.$el.querySelector('#editor-' + this.regionId), {
+      theme: 'snow',
+      formats: ['known-word'],
+      modules: {
+        toolbar: false,
+        cursors: true
+      }
+    })
+    this.cursors = this.quill.getModule('cursors')
+    this.quill.root.setAttribute('spellcheck', false)
+    this.quill.setContents(this.regionText)
+    window.quill = this.quill
 
-      /**
-       * If a user has typed into this editor the source will be 'user
-       * and we will emit an event to update all other editor instances.
-       */
-      this.quill.on('text-change', (delta, oldDelta, source) => {
-        if (source === 'user') {
-          // set an timeout for the user to stop typing
-          console.log('set timer')
-          clearTimeout(typingTimer)
-          typingTimer = setTimeout(this.checkKnownWords, 1000)
-          this.$emit('region-delta', {name: this.regionId, delta})
-        }
-        this.regionText = this.quill.getContents().ops
-        this.saveOps()
-      })
+    /**
+     * If a user has typed into this editor the source will be 'user
+     * and we will emit an event to update all other editor instances.
+     */
+    this.quill.on('text-change', (delta, oldDelta, source) => {
+      if (source === 'user') {
+        // set an timeout for the user to stop typing
+        clearTimeout(typingTimer)
+        typingTimer = setTimeout(this.checkKnownWords, 1000)
+        // check for breakages
+        this.auditWords()
+        // send off our delta
+        this.$emit('region-delta', {name: this.regionId, delta})
+      }
+      this.regionText = this.quill.getContents().ops
+      this.saveOps()
+    })
 
-      this.quill.on('selection-change', (range, oldRange, source) => {
-        if (range) {
-          if (range.length === 0) {
-            // console.log('User cursor is on', range.index);
-            // console.log(this.quill.getFormat(range.index))
-          } else {
-            // console.log('User has highlighted', text);
-            var text = this.quill.getText(range.index, range.length);
-          }
-          this.hasFocus = true
-          this.$emit('region-cursor', {regionId: this.regionId, range: range})
+    this.quill.on('selection-change', (range, oldRange, source) => {
+      if (range) {
+        if (range.length === 0) {
+          // console.log('User cursor is on', range.index);
+          // console.log(this.quill.getFormat(range.index))
         } else {
-          // lost focus
-          this.saveOps()
-          // this.$emit('editor-blur')
-          this.hasFocus = false
+          // console.log('User has highlighted', text);
+          var text = this.quill.getText(range.index, range.length);
         }
-      })
-    // })
+        this.hasFocus = true
+        this.$emit('region-cursor', {regionId: this.regionId, range: range})
+      } else {
+        // lost focus
+        this.saveOps()
+        // this.$emit('editor-blur')
+        this.hasFocus = false
+      }
+    })
   }
 }
 </script>

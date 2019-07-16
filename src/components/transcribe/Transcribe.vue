@@ -115,16 +115,11 @@ export default {
     })
 
     channel.bind('client-region-create', (data) => {
-      console.log('region created')
-      console.log(data)
       this.regions.push(data)
     })
 
     channel.bind('client-region-update', (data) => {
-      console.log('region updated')
-      console.log(data)
       const targetRegion = this.regions.filter(needle => needle.id === data.id)
-      console.log(targetRegion)
       if (targetRegion.length) {
         targetRegion[0].start = data.start
         targetRegion[0].end = data.end
@@ -248,6 +243,9 @@ export default {
     },
     highlightRegion (region) {
       this.inRegions.push(region.id)
+      this.$nextTick(() => {
+        document.getElementById(region.id).scrollIntoView()
+      })
     },
     async load () {
       const data = await TranscriptionService.getTranscription(this.transcriptionId)
@@ -268,7 +266,6 @@ export default {
     updateRegion (region) {
       const regionIds = this.regions.map(item => item.id)
       if (regionIds.indexOf(region.id) === -1) {
-        console.log('Creating region')
         const regionData = {
           start: region.start,
           end: region.end,
@@ -278,7 +275,6 @@ export default {
         channel.trigger('client-region-create', regionData)
         this.regions.push(regionData)
       } else {
-        console.log('updating region')
         const targetRegion = this.regions.filter(needle => needle.id === region.id)
         channel.trigger('client-region-update', {
           id: region.id,
