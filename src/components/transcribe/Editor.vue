@@ -30,6 +30,10 @@ import QuillCursors from 'quill-cursors'
 import utils from './utils'
 import Lex from '../../services/lexicon'
 
+/**
+ * Register our custom class attributor. This is used to flag a word as
+ * a 'known word', when it matches a word in the lexicon.
+ */
 const Parchment = Quill.import('parchment')
 let KnownWord = new Parchment.Attributor.Class('known-word', 'known-word', {
   scope: Parchment.Scope.INLINE
@@ -87,15 +91,27 @@ export default {
     playRegion() {
       this.$emit('play-region', this.regionId)
     },
+    /**
+     * 
+     */
     deleteRegion() {
       this.this.$emit('delete-region', this.regionId)
     },
+    /**
+     * 
+     */
     insertDelta (delta) {
-      this.quill.updateContents(delta, 'api')
+      this.quill.updateContents(delta)
     },
+    /**
+     * 
+     */
     clearCursors () {
       this.cursors.clearCursors()
     },
+    /**
+     * 
+     */
     setCursor (data) {
       const exists = this.cursors.cursors().filter(needle => needle.id = data.id)
       if (!exists.length) {
@@ -104,6 +120,9 @@ export default {
       this.cursors.moveCursor(data.username, data.range)
       window.cursors = this.cursors
     },
+    /**
+     * WIP
+     */
     async checkKnownWords () {
       const results = await Lex.wordSearch('foo')
       const contents = this.quill.getText()

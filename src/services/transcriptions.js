@@ -37,6 +37,7 @@ export default {
   /**
    * 
    * @param {*} user 
+   * @returns {Promise<Array>}
    */
   async listTranscriptions (user) {
     await this.setClient()

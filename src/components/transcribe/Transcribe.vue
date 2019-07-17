@@ -220,6 +220,15 @@ export default {
         color: cursorColor
       })
     },
+    coverage () {
+      let val = 0
+      if (this.$refs.player && this.regions) {
+        const regionCoverage = this.regions.map(x => (x.end - x.start)).reduce((x, y) => x + y)
+        const totalLength = this.$refs.player.maxTime
+        val = regionCoverage / totalLength
+      }
+      return (val * 100).toFixed(1)
+    },
     async saveData () {
       let regions = this.regions
       for (let index in regions) {
@@ -233,7 +242,10 @@ export default {
         source: this.audioFile,
         type: 'audio',
         regions: this.sortedRegions,
-        length: this.$refs.player.maxTime
+        length: this.$refs.player.maxTime,
+        coverage: this.coverage(),
+        dateLastUpdated: +new Date(),
+        lastUpdateBy: this.username
       })
       if (result) {
         this.saved = true
