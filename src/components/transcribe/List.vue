@@ -79,7 +79,7 @@ export default {
         { text: 'Title', value: 'title', width: '40%'},
         { text: 'Length', value: 'length'},
         { text: 'Coverage', value: 'coverage', width: '5%'},
-        { text: 'Last edit', value: 'lastUpdateBy'},
+        { text: 'Last edit', value: 'dateLastUpdated'},
         { text: 'Type', value: 'type'},
         { text: 'Source', value: 'source'},
       ]
