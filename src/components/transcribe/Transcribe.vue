@@ -52,6 +52,7 @@
               v-on:region-delta="regionDelta"
               v-on:region-cursor="regionCursor"
               v-on:delete-region="deleteRegion"
+              v-on:region-done-typing="regionDoneTyping"
               >
             </editor>
             <hr />
@@ -81,6 +82,10 @@ import EnvService from '../../services/env'
 import UserService from '../../services/user'
 import { setTimeout } from 'timers';
 import uuid from 'uuid/v1'
+import {ulid} from 'ulid'
+
+window.uuid = uuid
+window.ulid = ulid
 
 let pusher
 let channel
@@ -220,6 +225,10 @@ export default {
         color: cursorColor
       })
     },
+    regionDoneTyping(data) {
+      console.log(data)
+      this.saveData()
+    },
     coverage () {
       let val = 0
       if (this.$refs.player && this.regions) {
@@ -299,7 +308,6 @@ export default {
           targetRegion[0].end = region.end
         }
       }
-
     }
   }
 

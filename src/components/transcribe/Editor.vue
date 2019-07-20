@@ -24,7 +24,7 @@
 </template>
 
 <script>
-
+import sha1 from 'js-sha1'
 import Quill from 'quill'
 import QuillCursors from 'quill-cursors'
 import utils from './utils'
@@ -120,6 +120,17 @@ export default {
       this.cursors.moveCursor(data.username, data.range)
       window.cursors = this.cursors
     },
+    async doneTyping () {
+      this.$emit('region-done-typing', {region: this.regionId, sha: this.sha()})
+      this.checkKnownWords()
+    },
+    /**
+     * Returns the SHA1 of the editor contents, useful for checking for changes.
+     * @returns {string}
+     */
+    sha () {
+      return sha1(JSON.stringify(this.quill.getContents()))
+    },
     /**
      * WIP
      */
@@ -188,7 +199,7 @@ export default {
       if (source === 'user') {
         // set an timeout for the user to stop typing
         clearTimeout(typingTimer)
-        typingTimer = setTimeout(this.checkKnownWords, 1000)
+        typingTimer = setTimeout(this.doneTyping, 2000)
         // check for breakages
         this.auditWords()
         // send off our delta
