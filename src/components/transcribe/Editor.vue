@@ -93,6 +93,7 @@ export default {
      */
     playRegion() {
       this.$emit('play-region', this.regionId)
+      this.$router.push({ path: `#${this.regionId}` })
     },
     /**
      * 

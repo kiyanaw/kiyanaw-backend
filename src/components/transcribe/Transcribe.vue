@@ -9,6 +9,7 @@
           v-bind:audioFile="audioFile"
           v-bind:regions="regions"
           v-bind:canEdit="user !== null"
+          v-bind:inboundRegion="inboundRegion"
           v-on:region-updated="updateRegion"
           v-on:region-in="highlightRegion"
           v-on:region-out="blurRegion">
@@ -96,6 +97,7 @@ let channel
 let regionHashes = {}
 const localUuid = uuid()
 const cursorColor = '#' + Math.floor(Math.random()*16777215).toString(16)
+let inboundRegion = null
 
 export default {
   async mounted() {
@@ -179,6 +181,7 @@ export default {
       audioFile: null,
       regions: null,
       editingRegion: null,
+      inboundRegion: null,
       inRegions: [],
       title: '',
       authorId: null,
@@ -272,7 +275,7 @@ export default {
       }
     },
     highlightRegion (region) {
-      this.inRegions.push(region.id)
+      this.inRegions = [region.id]
       this.$nextTick(() => {
         document.getElementById(region.id).scrollIntoView()
       })
@@ -284,6 +287,7 @@ export default {
       this.regions = data.regions
       this.title = data.title
       this.authorId = data.authorId
+      this.inboundRegion = this.$route.hash.replace('#', '') || null
     },
     /**
      * Iterate over the current regions, pull the sha() from each one and

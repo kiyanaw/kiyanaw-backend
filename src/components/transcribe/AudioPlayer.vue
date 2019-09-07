@@ -19,6 +19,7 @@
             <v-icon v-if="!playing">play_arrow</v-icon>
             <v-icon v-if="playing">pause</v-icon>
           </v-btn>
+          <p v-if="!canEdit">Press <code>SPACE</code> to start/stop playback</p>
           <v-btn flat icon v-if="canEdit" v-on:click="markRegion"><v-icon>format_shapes</v-icon></v-btn>
           <v-btn flat icon v-on:click="cancelRegion" v-if="currentRegion"><v-icon>clear</v-icon></v-btn>
         </v-flex>
@@ -55,10 +56,14 @@ let surfer = null
 let playingRegionId = null
 let cacheTime = 0
 
+const regionRegularBackground = 'rgba(0, 0, 0, 0.1)'
+const regionHighlightedBackground = 'rgba(0, 213, 255, 0.1)'
+
 export default {
   props: [
     'audioFile',
     'canEdit',
+    'inboundRegion',
     'regions'
   ],
   async mounted () {
@@ -167,6 +172,13 @@ export default {
     surfer.on('ready', () => {
       this.loading = false
       this.renderRegions()
+      if (this.inboundRegion) {
+        const startTime = surfer.regions.list[this.inboundRegion].start
+        const maxTime = this.maxTime
+        surfer.seekTo(startTime / maxTime)
+        // this.$emit('region-in', {id: this.inboundRegion})
+        this.regionIn(this.inboundRegion)
+      }
     })
 
     surfer.on('play', () => {
@@ -178,7 +190,7 @@ export default {
     })
 
     surfer.on('loading', (value) => {
-      this.loadingProgress = value
+      this.loadingProgress = value 
     })
 
     surfer.on('region-play', function(region) {
@@ -190,11 +202,13 @@ export default {
     })
 
     surfer.on('region-in', (region) => {
-      this.$emit('region-in', region)
+      // this.$emit('region-in', region)
+      this.regionIn(region.id)
     })
 
     surfer.on('region-out', (region) => {
-      this.$emit('region-out', region)
+      // this.$emit('region-out', region)
+      this.regionOut(region.id)
     })
 
     surfer.load(this.audioFile);
@@ -233,6 +247,14 @@ export default {
         surfer.addRegion(region)
       })
       this.textRegions = this.regions
+    },
+    regionIn(regionName) {
+      document.querySelector(`[data-id="${regionName}"]`).style.backgroundColor = regionHighlightedBackground
+      this.$emit('region-in', {id: regionName})
+    },
+    regionOut(regionName) {
+      document.querySelector(`[data-id="${regionName}"]`).style.backgroundColor = regionRegularBackground
+      this.$emit('region-out', {id: regionName})
     }
   },
   watch: {
