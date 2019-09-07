@@ -112,35 +112,35 @@ export default {
     const docId = this.transcriptionId.split(':')[1]
 
     channel = this.$pusher.subscribe(`presence-transcribe-${EnvService.getEnvironmentName()}-${docId}`)
-    channel.bind('pusher:subscription_succeeded', (members) => {
-      this.members = members
-      // for example
-      // update_member_count(members.count);
+    // channel.bind('pusher:subscription_succeeded', (members) => {
+    //   this.members = members
+    //   // for example
+    //   // update_member_count(members.count);
 
-      // members.each(function(member) {
-      //   // for example:
-      //   add_member(member.id, member.info);
-      // });
-    })
+    //   // members.each(function(member) {
+    //   //   // for example:
+    //   //   add_member(member.id, member.info);
+    //   // });
+    // })
 
-    channel.bind('client-region-delta', (data) => {
-      this.$refs[data.name][0].insertDelta(data.delta)
-    })
-    channel.bind('client-region-create', (data) => {
-      this.regions.push(data)
-    })
-    channel.bind('client-region-update', (data) => {
-      const targetRegion = this.regions.filter(needle => needle.id === data.id)
-      if (targetRegion.length) {
-        targetRegion[0].start = data.start
-        targetRegion[0].end = data.end
-      }
-      this.$refs.player.renderRegions()
-    })
-    channel.bind('client-region-cursor', (data) => {
-      // console.log(`new cursor for ${data.username}, ${data.index}, ${data.regionId}`)
-      this.$refs[data.regionId][0].setCursor(data)
-    })
+    // channel.bind('client-region-delta', (data) => {
+    //   this.$refs[data.name][0].insertDelta(data.delta)
+    // })
+    // channel.bind('client-region-create', (data) => {
+    //   this.regions.push(data)
+    // })
+    // channel.bind('client-region-update', (data) => {
+    //   const targetRegion = this.regions.filter(needle => needle.id === data.id)
+    //   if (targetRegion.length) {
+    //     targetRegion[0].start = data.start
+    //     targetRegion[0].end = data.end
+    //   }
+    //   this.$refs.player.renderRegions()
+    // })
+    // channel.bind('client-region-cursor', (data) => {
+    //   // console.log(`new cursor for ${data.username}, ${data.index}, ${data.regionId}`)
+    //   this.$refs[data.regionId][0].setCursor(data)
+    // })
 
     // TODO: remove this, just for debugging
     window.t = this
