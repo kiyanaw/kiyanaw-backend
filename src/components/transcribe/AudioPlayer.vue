@@ -167,8 +167,9 @@ export default {
           seekingPos = ~~(surfer.backend.getPlayedPercents() * length)
       })
     })
-
-    surfer.enableDragSelection({slop: 5})
+    if (this.canEdit) {
+      surfer.enableDragSelection({slop: 5})
+    }
 
     surfer.on('ready', () => {
       this.loading = false
@@ -250,6 +251,8 @@ export default {
     renderRegions() {
       surfer.clearRegions()
       this.regions.forEach((region) => {
+        region.resize = this.canEdit
+        region.drag = this.canEdit
         surfer.addRegion(region)
       })
       this.textRegions = this.regions
