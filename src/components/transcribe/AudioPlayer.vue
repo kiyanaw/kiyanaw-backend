@@ -19,7 +19,7 @@
             <v-icon v-if="!playing">play_arrow</v-icon>
             <v-icon v-if="playing">pause</v-icon>
           </v-btn>
-          <p v-if="!canEdit">Press <code>SPACE</code> to start/stop playback</p>
+          <p v-if="!canEdit">Press <code>SPACE</code> to start/stop playb ack</p>
           <v-btn flat icon v-if="canEdit" v-on:click="markRegion"><v-icon>format_shapes</v-icon></v-btn>
           <v-btn flat icon v-on:click="cancelRegion" v-if="currentRegion"><v-icon>clear</v-icon></v-btn>
         </v-flex>
@@ -68,6 +68,7 @@ export default {
   ],
   async mounted () {
     var me = this
+    this.pendingInboundRegion = this.$props.inboundRegion
     surfer = WaveSurfer.create({
         container: '#waveform',
         waveColor: 'violet',
@@ -175,7 +176,7 @@ export default {
       if (this.inboundRegion) {
         const startTime = surfer.regions.list[this.inboundRegion].start
         const maxTime = this.maxTime
-        surfer.seekTo(startTime / maxTime)
+        // surfer.seekTo(startTime / maxTime) 
         // this.$emit('region-in', {id: this.inboundRegion})
         this.regionIn(this.inboundRegion)
       }
@@ -202,12 +203,10 @@ export default {
     })
 
     surfer.on('region-in', (region) => {
-      // this.$emit('region-in', region)
       this.regionIn(region.id)
     })
 
     surfer.on('region-out', (region) => {
-      // this.$emit('region-out', region)
       this.regionOut(region.id)
     })
 
@@ -222,7 +221,14 @@ export default {
       this.currentRegion = null
     },
     playPause: function () {
-      surfer.playPause()
+      // check if there's an inbound region we need to play, otherwise just play
+      console.log(`ib region: ${this.pendingInboundRegion}`)
+      if (this.pendingInboundRegion) {
+        this.playRegion(this.pendingInboundRegion)
+        this.pendingInboundRegion = null
+      } else {
+        surfer.playPause()
+      }
     },
     markRegion: function () {
       if (this.currentRegion) {
@@ -274,6 +280,7 @@ export default {
       currentTime: 0,
       maxTime: 0,
       currentRegion: null,
+      pendingInboundRegion: null,
       loadingProgress: 0,
       loading: true,
       textRegions: {},
