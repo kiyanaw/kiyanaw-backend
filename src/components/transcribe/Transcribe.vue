@@ -8,6 +8,7 @@
           v-if="audioFile"
           v-bind:audioFile="audioFile"
           v-bind:regions="regions"
+          v-bind:canEdit="user !== null"
           v-on:region-updated="updateRegion"
           v-on:region-in="highlightRegion"
           v-on:region-out="blurRegion">
@@ -38,6 +39,7 @@
             v-bind:key="region.id">
             <editor
               v-if="regions"
+              v-bind:canEdit="user !== null"
               v-bind:ref="region.id"
               v-bind:regionId="region.id"
               v-bind:text="region.text"
@@ -64,7 +66,9 @@
     <v-layout>
       <v-flex xs1></v-flex>
       <v-flex xs10>
-        <v-btn small color="primary" dark v-on:click="saveData">save</v-btn>
+        <v-btn small color="primary" dark
+          v-if="user!==null"
+          v-on:click="saveData">save</v-btn>
         <p v-if="saved">saved!</p>
       </v-flex>
       <v-flex xs1></v-flex>
@@ -89,21 +93,23 @@ window.ulid = ulid
 
 let pusher
 let channel
+let regionHashes = {}
 const localUuid = uuid()
 const cursorColor = '#' + Math.floor(Math.random()*16777215).toString(16)
 
 export default {
-  mounted() {
-    
-    UserService.getUser().then((user) => {
-      this.username = user.name
-    })
-    this.transcriptionId = this.$route.params.id
+  async mounted() {
+    try {
+      this.user = await UserService.getUser()
+    } catch (error) {
+      console.warn(error)
+      this.user = null
+    }
 
+    this.transcriptionId = this.$route.params.id
     const docId = this.transcriptionId.split(':')[1]
 
     channel = this.$pusher.subscribe(`presence-transcribe-${EnvService.getEnvironmentName()}-${docId}`)
-
     channel.bind('pusher:subscription_succeeded', (members) => {
       this.members = members
       // for example
@@ -118,11 +124,9 @@ export default {
     channel.bind('client-region-delta', (data) => {
       this.$refs[data.name][0].insertDelta(data.delta)
     })
-
     channel.bind('client-region-create', (data) => {
       this.regions.push(data)
     })
-
     channel.bind('client-region-update', (data) => {
       const targetRegion = this.regions.filter(needle => needle.id === data.id)
       if (targetRegion.length) {
@@ -131,12 +135,12 @@ export default {
       }
       this.$refs.player.renderRegions()
     })
-
     channel.bind('client-region-cursor', (data) => {
       // console.log(`new cursor for ${data.username}, ${data.index}, ${data.regionId}`)
       this.$refs[data.regionId][0].setCursor(data)
     })
 
+    // TODO: remove this, just for debugging
     window.t = this
 
     document.addEventListener('keyup', (evt) => {
@@ -179,15 +183,19 @@ export default {
       title: '',
       authorId: null,
       saved: false,
-      members: []
+      members: [],
+      user: null
     }
   },
-  watch: {
-    members () {
-      console.log('members changed')
-      console.log(this.members)
-    }
-  },
+  // watch: {
+  //   members () {
+  //     console.log('members changed')
+  //     console.log(this.members)
+  //   },
+  //   regions () {
+  //     console.log('regions changed')
+  //   }
+  // },
   computed: {
     sortedRegions() {
       if (this.regions) {
@@ -226,7 +234,7 @@ export default {
       })
     },
     regionDoneTyping(data) {
-      console.log(data)
+      // 
       this.saveData()
     },
     coverage () {
@@ -270,11 +278,28 @@ export default {
       })
     },
     async load () {
+      console.log('loaded!')
       const data = await TranscriptionService.getTranscription(this.transcriptionId)
       this.audioFile = data.source
       this.regions = data.regions
       this.title = data.title
       this.authorId = data.authorId
+    },
+    /**
+     * Iterate over the current regions, pull the sha() from each one and
+     * keep a record.
+     */
+    // you are here, how do we consistenly fire this 
+    async setRegionHashes () {
+      console.log('set hashes')
+      let regions = this.regions
+      for (let index in regions) {
+        const regionId = regions[index].id
+        const regionHash = this.$refs[regionId][0].sha()
+        this.regionHashes[regionId] = regionHash
+      }
+      console.log('hashes')
+      console.log(this.regionHashes)
     },
     blurRegion (region) {
       this.inRegions = this.inRegions.filter(r => r !== region.id)

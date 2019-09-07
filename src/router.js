@@ -35,7 +35,7 @@ const router = new VueRouter({
         },
         { path: 'transcribe-list', component: TranscribeList, meta: { requiresAuth: true } },
         { path: 'transcribe-add', component: TranscribeAdd, meta: { requiresAuth: true } },
-        { path: 'transcribe-edit/:id', component: TranscribeEdit, meta: { requiresAuth: true } }
+        { path: 'transcribe-edit/:id', component: TranscribeEdit }
       ]
     },
     {
@@ -57,13 +57,14 @@ router.beforeResolve((to, from, next) => {
           authEndpoint = authEndpoint.replace('{user}', data.username)
           Vue.prototype.$pusher.config.authEndpoint = authEndpoint
         }
-        console.log(Vue.prototype)
         return next()
       } else {
         next({ path: '/signin' })
       }
-    }).catch((e) => {
-      console.warn(e) // eslint-disable-line
+    }).catch((error) => {
+      console.warn(error)
+      // likely not authenticated
+      next({ path: '/signin' })
     })
   } else {
     next()

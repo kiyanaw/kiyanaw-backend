@@ -15,7 +15,9 @@
       </v-flex>
 
       <v-flex xs1 class="region-actions">
-        <v-btn flat icon v-on:click="deleteRegion">
+        <v-btn flat icon
+          v-if="canEdit"
+          v-on:click="deleteRegion">
           <v-icon>clear</v-icon>
         </v-btn>
       </v-flex>
@@ -48,6 +50,7 @@ let typingTimer
 
 export default {
   props: [
+    'canEdit',
     'regionId',
     'text',
     'start',
@@ -184,11 +187,13 @@ export default {
       modules: {
         toolbar: false,
         cursors: true
-      }
+      },
+      readOnly: !this.canEdit
     })
     this.cursors = this.quill.getModule('cursors')
     this.quill.root.setAttribute('spellcheck', false)
     this.quill.setContents(this.regionText)
+    // TODO: remove this, it's just for debugging.
     window.quill = this.quill
 
     /**

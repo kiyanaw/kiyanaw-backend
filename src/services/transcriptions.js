@@ -98,7 +98,7 @@ export default {
     const timestamp = `${+new Date()}`
     const fileResult = await Storage.put(`${timestamp}-${file.name}`, file, {
       ACL: 'public-read',
-      expires: new Date('Sat, 27 Jun 2099 23:59:59 GMT'),
+      expires: new Date('Wed, 31 Dec 2098 23:59:59 GMT'),
       cacheControl: 'max-age=3600000'
     })
     const key = fileResult.key

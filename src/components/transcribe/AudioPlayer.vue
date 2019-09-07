@@ -19,7 +19,7 @@
             <v-icon v-if="!playing">play_arrow</v-icon>
             <v-icon v-if="playing">pause</v-icon>
           </v-btn>
-          <v-btn flat icon v-on:click="markRegion"><v-icon>format_shapes</v-icon></v-btn>
+          <v-btn flat icon v-if="canEdit" v-on:click="markRegion"><v-icon>format_shapes</v-icon></v-btn>
           <v-btn flat icon v-on:click="cancelRegion" v-if="currentRegion"><v-icon>clear</v-icon></v-btn>
         </v-flex>
         <v-flex xs6 class="time">
@@ -58,6 +58,7 @@ let cacheTime = 0
 export default {
   props: [
     'audioFile',
+    'canEdit',
     'regions'
   ],
   async mounted () {
