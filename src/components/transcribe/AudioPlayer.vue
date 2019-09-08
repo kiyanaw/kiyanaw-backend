@@ -176,7 +176,7 @@ export default {
       if (this.inboundRegion) {
         const startTime = surfer.regions.list[this.inboundRegion].start
         const maxTime = this.maxTime
-        // surfer.seekTo(startTime / maxTime) 
+        surfer.seekTo(startTime / maxTime) 
         // this.$emit('region-in', {id: this.inboundRegion})
         this.regionIn(this.inboundRegion)
       }
