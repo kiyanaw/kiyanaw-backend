@@ -19,13 +19,13 @@
     </v-layout>
 
     <v-layout>
-      <v-flex xs1></v-flex>
-      <v-flex xs5>
+      <!-- <v-flex xs1></v-flex> -->
+      <v-flex xs12>
         <h3>{{ title }}</h3>
       </v-flex>
-      <v-flex xs5>
-      </v-flex>
-      <v-flex xs1></v-flex>
+      <!-- <v-flex xs5>
+      </v-flex> -->
+      <!-- <v-flex xs1></v-flex> -->
     </v-layout>
 
     <v-layout>
