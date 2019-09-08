@@ -19,22 +19,21 @@
             <v-icon v-if="!playing">play_arrow</v-icon>
             <v-icon v-if="playing">pause</v-icon>
           </v-btn>
-          <p v-if="!canEdit">Press <code>SPACE</code> to start/stop playb ack</p>
           <v-btn flat icon v-if="canEdit" v-on:click="markRegion"><v-icon>format_shapes</v-icon></v-btn>
           <v-btn flat icon v-on:click="cancelRegion" v-if="currentRegion"><v-icon>clear</v-icon></v-btn>
         </v-flex>
         <v-flex xs6 class="time">
           <span>{{ normalTime(currentTime) }} - {{ normalTime(maxTime) }}</span>
         </v-flex>
-        <v-flex xs2>
+        <v-flex xs4 hidden-sm-and-down>
           <v-slider v-model="zoom" max="75" min="5"
             prepend-icon="zoom_in" class="slider"></v-slider>
         </v-flex>
-
-        <v-flex xs2>
+<!-- 
+        <v-flex xs2 d-sm-flex>
           <v-slider v-model="speed" max="12" min="8"
             prepend-icon="directions_run" class="slider"></v-slider>
-        </v-flex>
+        </v-flex> -->
 
       </v-layout>
     </div>

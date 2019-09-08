@@ -29,8 +29,8 @@
     </v-layout>
 
     <v-layout>
-      <v-flex xs1></v-flex>
-      <v-flex xs10 elevation-1 tEditor>
+      <!-- <v-flex xs1></v-flex> -->
+      <v-flex xs12 elevation-1 tEditor>
         <v-container
           id="scroll-target"
           style="max-height: 500px"
@@ -62,7 +62,7 @@
           </div>
         </v-container>
       </v-flex>
-      <v-flex xs1></v-flex>
+      <!-- <v-flex xs1></v-flex> -->
     </v-layout>
     <v-layout>
       <v-flex xs1></v-flex>

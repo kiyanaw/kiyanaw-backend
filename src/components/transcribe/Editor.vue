@@ -1,20 +1,20 @@
 <template>
   <v-layout class="region-editor-layout" v-bind:class="{ inRegion: isInRegion, review: needsReview }">
 
-      <v-flex xs1 v-on:click="playRegion">
+      <v-flex xs2 md1 v-on:click="playRegion">
         <div class="timestamps">
           <span class="time region-start">{{ normalTime(start) }}</span><br />
           <span class="time region-end">{{ normalTime(end) }}</span>
         </div>
       </v-flex>
 
-      <v-flex xs10>
+      <v-flex xs10 md10>
         <div>
           <div v-bind:id="'editor-' + regionId"></div>
         </div>
       </v-flex>
 
-      <v-flex xs1 class="region-actions">
+      <v-flex md1 hidden-sm-and-down class="region-actions">
         <v-btn flat icon
           v-if="canEdit"
           v-on:click="deleteRegion">
