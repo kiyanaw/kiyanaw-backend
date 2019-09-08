@@ -46,4 +46,7 @@ export default {
 .container {
   padding: 0;
 }
+body {
+  height: 100vh;
+}
 </style>

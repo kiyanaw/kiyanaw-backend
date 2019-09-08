@@ -2,11 +2,11 @@
   <v-container class="the-container">
 
     <v-layout row>
-      <!-- <v-flex xs1></v-flex> -->
       <v-flex xs12 class="audio-player">
         <audio-player ref="player"
           v-if="audioFile"
           v-bind:audioFile="audioFile"
+          v-bind:peaks="peaks"
           v-bind:regions="regions"
           v-bind:canEdit="user !== null"
           v-bind:inboundRegion="inboundRegion"
@@ -15,21 +15,15 @@
           v-on:region-out="blurRegion">
         </audio-player>
       </v-flex>
-      <!-- <v-flex xs1></v-flex> -->
     </v-layout>
 
     <v-layout row>
-      <!-- <v-flex xs1></v-flex> -->
       <v-flex xs12>
         <h3>{{ title }}</h3>
       </v-flex>
-      <!-- <v-flex xs5>
-      </v-flex> -->
-      <!-- <v-flex xs1></v-flex> -->
     </v-layout>
 
     <v-layout row >
-      <!-- <v-flex xs1></v-flex> -->
       <v-flex xs12 elevation-1 tEditor scroll-container>
         <v-container
           id="scroll-target">
@@ -60,7 +54,6 @@
           </div>
         </v-container>
       </v-flex>
-      <!-- <v-flex xs1></v-flex> -->
     </v-layout>
     <v-layout>
       <v-flex xs1></v-flex>
@@ -180,6 +173,7 @@ export default {
     return {
       transcriptionId: null,
       audioFile: null,
+      peaks: null,
       regions: null,
       editingRegion: null,
       inboundRegion: null,
@@ -188,18 +182,10 @@ export default {
       authorId: null,
       saved: false,
       members: [],
-      user: null
+      user: null,
+      height: 0
     }
   },
-  // watch: {
-  //   members () {
-  //     console.log('members changed')
-  //     console.log(this.members)
-  //   },
-  //   regions () {
-  //     console.log('regions changed')
-  //   }
-  // },
   computed: {
     sortedRegions() {
       if (this.regions) {
@@ -215,6 +201,9 @@ export default {
   },
   methods: {
     fixScrollHeight() {
+      /**
+       * This is a mess. Someone please help.
+       */
       const scrollBox = document.querySelector('.scroll-container')
       const scrollBoxTop = scrollBox.getBoundingClientRect().y
       const randomFixNumber = 24 // don't ask - I'm just horrible at CSS
@@ -293,6 +282,7 @@ export default {
       console.log('loaded!')
       const data = await TranscriptionService.getTranscription(this.transcriptionId)
       this.audioFile = data.source
+      this.peaks = data.peaks || null
       this.regions = data.regions
       this.title = data.title
       this.authorId = data.authorId

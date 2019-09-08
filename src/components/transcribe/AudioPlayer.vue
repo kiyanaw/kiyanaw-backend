@@ -61,6 +61,7 @@ const regionHighlightedBackground = 'rgba(0, 213, 255, 0.1)'
 export default {
   props: [
     'audioFile',
+    'peaks',
     'canEdit',
     'inboundRegion',
     'regions'
@@ -171,15 +172,7 @@ export default {
     }
 
     surfer.on('ready', () => {
-      this.loading = false
-      this.renderRegions()
-      if (this.inboundRegion) {
-        const startTime = surfer.regions.list[this.inboundRegion].start
-        const maxTime = this.maxTime
-        surfer.seekAndCenter(startTime / maxTime) 
-        // this.$emit('region-in', {id: this.inboundRegion})
-        this.regionIn(this.inboundRegion)
-      }
+      this.loadIsReady()
     })
 
     surfer.on('play', () => {
@@ -210,7 +203,8 @@ export default {
       this.regionOut(region.id)
     })
 
-    surfer.load(this.audioFile);
+    surfer.load(this.audioFile)
+
     if (this.canEdit && localStorage.zoom) {
       this.zoom = localStorage.zoom
     } else {
@@ -219,6 +213,17 @@ export default {
     window.surfer = surfer
   },
   methods: {
+    loadIsReady: function () {
+      this.loading = false
+      this.renderRegions()
+      if (this.inboundRegion) {
+        const startTime = surfer.regions.list[this.inboundRegion].start
+        const maxTime = this.maxTime
+        surfer.seekAndCenter(startTime / maxTime) 
+        // this.$emit('region-in', {id: this.inboundRegion})
+        this.regionIn(this.inboundRegion)
+      }
+    },
     cancelRegion: function () {
       this.currentRegion = null
     },
