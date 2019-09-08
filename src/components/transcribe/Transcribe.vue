@@ -1,7 +1,7 @@
 <template>
-  <v-container>
+  <v-container class="the-container">
 
-    <v-layout>
+    <v-layout row>
       <!-- <v-flex xs1></v-flex> -->
       <v-flex xs12 class="audio-player">
         <audio-player ref="player"
@@ -18,7 +18,7 @@
       <!-- <v-flex xs1></v-flex> -->
     </v-layout>
 
-    <v-layout>
+    <v-layout row>
       <!-- <v-flex xs1></v-flex> -->
       <v-flex xs12>
         <h3>{{ title }}</h3>
@@ -28,13 +28,11 @@
       <!-- <v-flex xs1></v-flex> -->
     </v-layout>
 
-    <v-layout>
+    <v-layout row scroll-container>
       <!-- <v-flex xs1></v-flex> -->
       <v-flex xs12 elevation-1 tEditor>
         <v-container
-          id="scroll-target"
-          style="max-height: 500px"
-          class="scroll-y">
+          id="scroll-target">
           <div v-for="region in sortedRegions"
             v-bind:id="region.id"
             v-bind:key="region.id">
@@ -88,6 +86,7 @@ import UserService from '../../services/user'
 import { setTimeout } from 'timers';
 import uuid from 'uuid/v1'
 import {ulid} from 'ulid'
+import { randomFillSync } from 'crypto';
 
 window.uuid = uuid
 window.ulid = ulid
@@ -173,6 +172,8 @@ export default {
         // }
       }
     })
+    this.fixScrollHeight()
+    // load up
     this.load()
   },
   data () {
@@ -213,6 +214,14 @@ export default {
     Editor
   },
   methods: {
+    fixScrollHeight() {
+      const scrollBox = document.querySelector('.scroll-container')
+      const scrollBoxTop = scrollBox.getBoundingClientRect().y
+      const randomFixNumber = 24 // don't ask - I'm just horrible at CSS
+      const newHeight = `${window.innerHeight - scrollBoxTop - randomFixNumber}px`
+      console.log(`resizing element to ${newHeight}`)
+      scrollBox.style.height = newHeight
+    },
     editorBlur () {
       this.editingRegion = null
     },
@@ -288,6 +297,7 @@ export default {
       this.title = data.title
       this.authorId = data.authorId
       this.inboundRegion = this.$route.hash.replace('#', '') || null
+      this.fixScrollHeight()
     },
     /**
      * Iterate over the current regions, pull the sha() from each one and
@@ -344,9 +354,9 @@ export default {
 </script>
 
 <style>
-.tEditor {
-  margin-top:20px;
-  min-height: 500px;
+.scroll-container {
+  height:500px;
+  overflow: auto;
 }
 .time {
   font-family: monospace;
