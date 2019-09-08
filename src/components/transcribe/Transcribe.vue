@@ -28,9 +28,9 @@
       <!-- <v-flex xs1></v-flex> -->
     </v-layout>
 
-    <v-layout row scroll-container>
+    <v-layout row >
       <!-- <v-flex xs1></v-flex> -->
-      <v-flex xs12 elevation-1 tEditor>
+      <v-flex xs12 elevation-1 tEditor scroll-container>
         <v-container
           id="scroll-target">
           <div v-for="region in sortedRegions"

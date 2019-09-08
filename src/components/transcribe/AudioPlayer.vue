@@ -211,8 +211,10 @@ export default {
     })
 
     surfer.load(this.audioFile);
-    if (localStorage.zoom) {
+    if (this.canEdit && localStorage.zoom) {
       this.zoom = localStorage.zoom
+    } else {
+      this.zoom = 30
     }
     window.surfer = surfer
   },
