@@ -29,7 +29,7 @@
       <v-flex xs10 md10>
           <div class="region-options" v-if="!editing && translation">{{ translation }}</div>
           <div class="region-options-edit" v-if="editing">
-            <!-- <span class="region-options-label">Translation</span> -->
+            <span class="region-options-label">Translation</span>
             <div id="translation"></div>
           </div>
       </v-flex>
@@ -80,7 +80,6 @@ export default {
         this.$nextTick(() => {
           this.quillTranslate = new Quill(this.$el.querySelector('#translation'), {
             theme: 'snow',
-            placeholder: 'Translation',
             modules: {
               toolbar: false
             }
