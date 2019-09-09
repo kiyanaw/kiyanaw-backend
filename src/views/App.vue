@@ -36,7 +36,14 @@ export default {
   },
   data () {
     return {
-      //
+      user: null
+    }
+  },
+  async mounted () {
+    try {
+      this.user = await UserService.getUser()
+    } catch (error) {
+      this.user = null
     }
   }
 }

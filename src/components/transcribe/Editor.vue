@@ -14,23 +14,27 @@
         </div>
       </v-flex>
 
-      <v-flex md1 hidden-sm-and-down class="region-actions">
+      <!-- <v-flex md1 hidden-sm-and-down class="region-actions">
         <v-btn flat icon
           v-if="canEdit"
           v-on:click="deleteRegion">
           <v-icon>clear</v-icon>
         </v-btn>
-      </v-flex>
+      </v-flex> -->
     </v-layout>
 
     <v-layout class="region-options-layout">
       <v-flex xs2 md1><!-- spacer --></v-flex>
 
       <v-flex xs10 md10>
-          <div class="region-options" v-if="!editing && translation">{{ translation }}</div>
-          <div class="region-options-edit" v-if="editing">
+          <div class="region-options" v-if="translation && (!editing || !canEdit)">{{ translation }}</div>
+          <div class="region-options-edit" v-if="editing && canEdit">
             <span class="region-options-label">Translation</span>
             <div id="translation"></div>
+            <span class="region-options-label">Options</span>
+            <div class="region-options-controls">
+              <a v-on:click="deleteRegion">Delete this region</a>
+            </div>
           </div>
       </v-flex>
     </v-layout>
@@ -302,12 +306,12 @@ export default {
   padding: 12px 15px;
 }
 
-.inRegion {
-  background-color:#edfcff;
-}
-
 .review {
   background-color: #ffede6;
+}
+
+.inRegion {
+  background-color:#edfcff;
 }
 
 .timestamps {
@@ -340,5 +344,10 @@ export default {
     color: #888;
     font-size: 10px;
     margin-left: 14px;
+}
+.region-options-controls {
+  padding: 15px 5px 5px 5px;
+    text-transform: uppercase;
+    font-size: 10px;
 }
 </style>
