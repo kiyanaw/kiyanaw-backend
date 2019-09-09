@@ -11,7 +11,7 @@
     </div>
     <div v-bind:style="{visibility: loading ? 'hidden' : 'visible'}">
       <div id="minimap"></div>
-      <div id="waveform"></div>
+      <div id="waveform" v-on:click="waveformClicked"></div>
       <div id="timeline"></div>
       <div id="controls">
     </div>
@@ -165,7 +165,7 @@ export default {
       surfer.on('pause', function() {
           soundtouchNode && soundtouchNode.disconnect()
       })
-      surfer.on('seek', function() {
+      surfer.on('seek', () =>   {
           seekingPos = ~~(surfer.backend.getPlayedPercents() * length)
       })
     })
@@ -215,6 +215,14 @@ export default {
     window.surfer = surfer
   },
   methods: {
+    waveformClicked: function () {
+      // clear out any pending region if we click somewhere in the waveform
+      console.log('waveform clicked')
+      if (this.pendingInboundRegion) {
+        this.regionOut(this.pendingInboundRegion)
+        this.pendingInboundRegion = null
+      }
+    },
     loadIsReady: function () {
       this.loading = false
       this.renderRegions()
@@ -231,7 +239,6 @@ export default {
     },
     playPause: function () {
       // check if there's an inbound region we need to play, otherwise just play
-      console.log(`ib region: ${this.pendingInboundRegion}`)
       if (this.pendingInboundRegion) {
         this.playRegion(this.pendingInboundRegion)
         this.pendingInboundRegion = null
