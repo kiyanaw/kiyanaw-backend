@@ -37,6 +37,7 @@
               v-bind:ref="region.id"
               v-bind:regionId="region.id"
               v-bind:text="region.text"
+              v-bind:translation="region.translation"
               v-bind:start="region.start"
               v-bind:end="region.end"
               v-bind:inRegions="inRegions"
@@ -210,7 +211,7 @@ export default {
       const scrollBoxTop = scrollBox.getBoundingClientRect().y
       const randomFixNumber = 24 // don't ask - I'm just horrible at CSS
       const newHeight = `${window.innerHeight - scrollBoxTop - randomFixNumber}px`
-      console.log(`resizing element to ${newHeight}`)
+      // TODO: if the user is signed in you have the save button to account for
       scrollBox.style.height = newHeight
     },
     editorBlur () {
@@ -218,11 +219,15 @@ export default {
     },
     editorFocus (regionId) {
       this.editingRegion = regionId
+      for (let index in this.regions) {
+        this.regions[index].activeRegion = regionId
+      }
     },
     regionTextUpdated (update) {
       const targetRegion = this.regions.filter(r => r.id === update.regionId)
       if (targetRegion.length) {
         targetRegion[0].text = update.text
+        targetRegion[0].translation = update.translation
       }
     },
     regionDelta (data) {
@@ -254,7 +259,9 @@ export default {
       for (let index in regions) {
         const regionId = regions[index].id
         const regionText = this.$refs[regionId][0].text
+        const regionTranslation = this.$refs[regionId][0].translation
         regions[index].text = regionText
+        regions[index].translation = regionTranslation
       }
 
       const result = await TranscriptionService.saveTranscription(this.authorId, {
@@ -296,6 +303,7 @@ export default {
      * keep a record.
      */
     // you are here, how do we consistenly fire this 
+    // is this still needed? I think this was for collab editing
     async setRegionHashes () {
       console.log('set hashes')
       let regions = this.regions

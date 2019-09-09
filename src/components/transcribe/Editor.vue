@@ -1,6 +1,6 @@
 <template>
-  <v-layout class="region-editor-layout" v-bind:class="{ inRegion: isInRegion, review: needsReview }">
-
+  <v-container>
+    <v-layout class="region-editor-layout" v-bind:class="{ inRegion: isInRegion, review: needsReview }">
       <v-flex xs2 md1 v-on:click="playRegion">
         <div class="timestamps">
           <span class="time region-start">{{ normalTime(start) }}</span><br />
@@ -21,8 +21,21 @@
           <v-icon>clear</v-icon>
         </v-btn>
       </v-flex>
+    </v-layout>
 
-  </v-layout>
+    <v-layout class="region-options-layout">
+      <v-flex xs2 md1><!-- spacer --></v-flex>
+
+      <v-flex xs10 md10>
+          <div class="region-options" v-if="!editing && translation">{{ translation }}</div>
+          <div class="region-options-edit" v-if="editing">
+            <span class="translation-label">Translation</span>
+            <div id="translation"></div>
+          </div>
+      </v-flex>
+    </v-layout>
+
+  </v-container>
 </template>
 
 <script>
@@ -53,10 +66,44 @@ export default {
     'canEdit',
     'regionId',
     'text',
+    'translation',
     'start',
     'end',
-    'inRegions' // TODO: is this still used?
+    // this has the region where the playback head is located
+    'inRegions',
+    'editing'
   ],
+  watch: {
+    editing (newValue, oldValue) {
+      if (newValue) {
+        // Set up an editor for the translation field
+        this.$nextTick(() => {
+          this.quillTranslate = new Quill(this.$el.querySelector('#translation'), {
+            theme: 'snow',
+            modules: {
+              toolbar: false
+            }
+          })
+          this.quillTranslate.format('color', 'gray')
+          this.quillTranslate.root.setAttribute('spellcheck', false)
+          if (this.translation) {
+            this.quillTranslate.insertText(0, this.translation)
+          }
+          this.quillTranslate.on('text-change', (delta, oldDelta, source) => {
+            this._regionTranslation = this.quillTranslate.getText()
+            // force the text to grey
+            this.quillTranslate.formatText(0, 9999999, 'color', 'gray')
+            this.saveOps()
+          })
+          this.quillTranslate.formatText(0, 9999999, 'color', 'gray')
+          // shift focus to the regular editor
+          this.quill.focus()
+        })
+      } else {
+        this.quillTranslate = null
+      }
+    }
+  },
   computed: {
     isInRegion() {
       const inRegions = this.$props.inRegions
@@ -79,7 +126,7 @@ export default {
      */
     saveOps() {
         this.regionText = this.quill.getContents().ops
-        this.$emit('region-text-updated', {regionId: this.regionId, text: this.regionText})
+        this.$emit('region-text-updated', {regionId: this.regionId, text: this.regionText, translation: this._regionTranslation})
     },
     /**
      * TODO: this should maybe be a computed.
@@ -99,7 +146,7 @@ export default {
      * 
      */
     deleteRegion() {
-      this.this.$emit('delete-region', this.regionId)
+      this.$emit('delete-region', this.regionId)
     },
     /**
      * 
@@ -178,7 +225,8 @@ export default {
   data () {
     return {
       regionText: this.$props.text,
-      hasFocus: false
+      hasFocus: false,
+      _regionTranlation: null
     }
   },
   mounted() {
@@ -196,6 +244,9 @@ export default {
     this.quill.setContents(this.regionText)
     // TODO: remove this, it's just for debugging.
     window.quill = this.quill
+
+    // update the temporary translation value
+    this._regionTranslation = this.translation
 
     /**
      * If a user has typed into this editor the source will be 'user
@@ -226,6 +277,7 @@ export default {
         }
         this.hasFocus = true
         this.$emit('region-cursor', {regionId: this.regionId, range: range})
+        this.$emit('editor-focus', this.regionId)
       } else {
         // lost focus
         this.saveOps()
@@ -275,5 +327,18 @@ export default {
 
 [class^='known-word-'] {
   color: blue;
+}
+.region-options {
+  margin-left: 14px;
+  color: grey;
+}
+.region-options-layout {
+  background-color: #f5f5f5;
+}
+.translation-label {
+    text-transform: uppercase;
+    color: #888;
+    font-size: 10px;
+    margin-left: 14px;
 }
 </style>
