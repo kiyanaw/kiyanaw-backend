@@ -29,7 +29,7 @@
       <v-flex xs10 md10>
           <div class="region-options" v-if="!editing && translation">{{ translation }}</div>
           <div class="region-options-edit" v-if="editing">
-            <span class="translation-label">Translation</span>
+            <!-- <span class="region-options-label">Translation</span> -->
             <div id="translation"></div>
           </div>
       </v-flex>
@@ -80,6 +80,7 @@ export default {
         this.$nextTick(() => {
           this.quillTranslate = new Quill(this.$el.querySelector('#translation'), {
             theme: 'snow',
+            placeholder: 'Translation',
             modules: {
               toolbar: false
             }
@@ -335,7 +336,7 @@ export default {
 .region-options-layout {
   background-color: #f5f5f5;
 }
-.translation-label {
+.region-options-label {
     text-transform: uppercase;
     color: #888;
     font-size: 10px;

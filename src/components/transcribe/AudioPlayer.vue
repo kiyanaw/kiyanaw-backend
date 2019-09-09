@@ -9,10 +9,12 @@
       ></v-progress-circular>
       <h5>Loading audio...</h5>
     </div>
-    <div id="minimap"></div>
-    <div id="waveform"></div>
-    <div id="timeline"></div>
-    <div id="controls" v-bind:style="{visibility: loading ? 'hidden' : 'visible'}">
+    <div v-bind:style="{visibility: loading ? 'hidden' : 'visible'}">
+      <div id="minimap"></div>
+      <div id="waveform"></div>
+      <div id="timeline"></div>
+      <div id="controls">
+    </div>
       <v-layout>
         <v-flex xs4>
           <v-btn flat icon v-on:click="playPause">
