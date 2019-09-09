@@ -64,7 +64,7 @@
         <v-btn small color="primary" dark
           v-if="user!==null"
           v-on:click="saveData">save</v-btn>
-        <p v-if="saved">saved!</p>
+        <span v-if="saved">saved!</span>
       </v-flex>
       <v-flex xs1></v-flex>
     </v-layout>
@@ -210,7 +210,12 @@ export default {
       const scrollBox = document.querySelector('.scroll-container')
       const scrollBoxTop = scrollBox.getBoundingClientRect().y
       const randomFixNumber = 24 // don't ask - I'm just horrible at CSS
-      const newHeight = `${window.innerHeight - scrollBoxTop - randomFixNumber}px`
+      let newHeight
+      if (this.user) {
+        newHeight = `${window.innerHeight - scrollBoxTop - randomFixNumber - 50}px`
+      } else {
+        newHeight = `${window.innerHeight - scrollBoxTop - randomFixNumber}px`
+      }
       // TODO: if the user is signed in you have the save button to account for
       scrollBox.style.height = newHeight
     },

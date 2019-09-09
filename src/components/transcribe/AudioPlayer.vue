@@ -239,10 +239,13 @@ export default {
     },
     markRegion: function () {
       if (this.currentRegion) {
-        surfer.addRegion({
+        const regionData = {
+          id: `wavesurfer_${+new Date}`,
           start: this.currentRegion,
           end: surfer.getCurrentTime()
-        })
+        }
+        surfer.addRegion(regionData)
+        this.$emit('region-updated', regionData)
         this.currentRegion = null
       } else {
         this.currentRegion = surfer.getCurrentTime()
