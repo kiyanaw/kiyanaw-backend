@@ -37,6 +37,7 @@
               v-bind:ref="region.id"
               v-bind:regionId="region.id"
               v-bind:text="region.text"
+              v-bind:index="region.index"
               v-bind:translation="region.translation"
               v-bind:start="region.start"
               v-bind:end="region.end"
@@ -192,7 +193,12 @@ export default {
   computed: {
     sortedRegions() {
       if (this.regions) {
-        return this.regions.sort((a, b) => (a.start > b.start) ? 1 : -1)
+        const sorted = this.regions.sort((a, b) => (a.start > b.start) ? 1 : -1)
+        // add an index for visual aide
+        for (const index in sorted) {
+          sorted[index].index = index
+        }
+        return sorted
       } else {
         return []
       }

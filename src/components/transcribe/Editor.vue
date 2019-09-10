@@ -1,6 +1,9 @@
 <template>
   <v-container>
-    <v-layout class="region-editor-layout" v-bind:class="{ inRegion: isInRegion, review: needsReview }">
+    <v-layout class="region-editor-layout"
+      v-bind:class="{ inRegion: isInRegion, review: needsReview }"
+      style="position: relative">
+      <span class="region-index">{{ index }}</span>
       <v-flex xs2 md1 v-on:click="playRegion">
         <div class="timestamps">
           <span class="time region-start">{{ normalTime(start) }}</span><br />
@@ -8,19 +11,14 @@
         </div>
       </v-flex>
 
-      <v-flex xs10 md10>
+      <v-flex xs9 md10>
         <div>
           <div v-bind:id="'editor-' + regionId"></div>
         </div>
       </v-flex>
 
-      <!-- <v-flex md1 hidden-sm-and-down class="region-actions">
-        <v-btn flat icon
-          v-if="canEdit"
-          v-on:click="deleteRegion">
-          <v-icon>clear</v-icon>
-        </v-btn>
-      </v-flex> -->
+      <v-flex md1 xs1>
+      </v-flex>
     </v-layout>
 
     <v-layout class="region-options-layout">
@@ -71,6 +69,7 @@ export default {
     'regionId',
     'text',
     'translation',
+    'index',
     'start',
     'end',
     // this has the region where the playback head is located
@@ -338,6 +337,14 @@ export default {
 }
 .region-options-layout {
   background-color: #f5f5f5;
+}
+.region-index {
+  position: absolute;
+  top: 7px;
+  right: 10px;
+  font-size:20px;
+  font-weight: bolder;
+  color: #dedede;
 }
 .region-options-label {
     text-transform: uppercase;
