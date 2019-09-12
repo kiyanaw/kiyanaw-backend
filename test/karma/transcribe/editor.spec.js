@@ -21,12 +21,12 @@ describe('components/Editor', function () {
 
     it('should have start time based on props', async () => {
       const startTime = this.rendered.$el.querySelector('.region-start').innerText
-      assert.strictEqual(startTime, '0:01.35')
+      assert.strictEqual(startTime, '00:01.35')
     })
 
     it('should have end time based on props', async () => {
       const endTime = this.rendered.$el.querySelector('.region-end').innerText
-      assert.strictEqual(endTime, '0:04.45')
+      assert.strictEqual(endTime, '00:04.45')
     })
 
     it('should have text based on props', async () => {

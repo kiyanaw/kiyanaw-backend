@@ -58,9 +58,6 @@ let KnownWord = new Parchment.Attributor.Class('known-word', 'known-word', {
 Parchment.register(KnownWord)
 Quill.register('modules/cursors', QuillCursors)
 
-// let knownWords = {}
-// todo: this might need to go in Lex
-let wordCache = {}
 let typingTimer
 
 export default {
@@ -176,7 +173,6 @@ export default {
     },
     async doneTyping () {
       this.$emit('region-done-typing', {region: this.regionId, sha: this.sha()})
-      this.checkKnownWords()
     },
     /**
      * Returns the SHA1 of the editor contents, useful for checking for changes.
@@ -186,43 +182,38 @@ export default {
       return sha1(JSON.stringify(this.quill.getContents()))
     },
     /**
-     * WIP
+     * Whenever a user types, check all of the words in the editor against a list
+     * of known words in the Lexicon™, careful to make sure that when words break
+     * that they are discarded as 'known'.
      */
     async checkKnownWords () {
-      const results = await Lex.wordSearch('foo')
-      const contents = this.quill.getText()
-      for (let item of results) {
-        if (!wordCache[item.sro]) {
-          wordCache[item.sro] = item
-        }
+      // reset all the 'known-word' format
+      this.quill.formatText(0, 9999, 'known-word', false)
+      // loop through and refresh
+      const knownWords = await Lex.getKnownWords()
+      const text = this.quill.getText()
+      const matchedWordsIndex = []
+      for (let item of knownWords) {
         // check for matches
         let re = new RegExp(item.sro, 'g')
-        let match = re.exec(contents)
-        if (match) {
-          quill.formatText(match.index, item.sro.length, 'known-word', true)
+        let match = undefined
+        let matches = []
+        while (match = re.exec(text)) {
+          // TODO: this is icky, find a better way
+          // make sure we're matching whole words and not just partials
+          // grab the character right after our match to
+          const surroundingCharacters = [' ', '\n']
+          const beforeIsSpace = surroundingCharacters.includes(text[match.index - 1])
+          const afterIsSpace = surroundingCharacters.includes(text[match.index + item.sro.length])
+          if (beforeIsSpace && afterIsSpace) {
+            matches.push(match)
+          }
+        }
+        for (let match of matches) {
+          this.quill.formatText(match.index, item.sro.length, 'known-word', true)
+          matchedWordsIndex.push([match.index, item.sro.length])
         }
       }
-    },
-    /**
-     * Whenever a user types we need to check that the words that have been
-     * flagged as 'known' are still intact. At the same time we'll see any new
-     * typed words match anything in the wordCache. If there is anything left
-     * over, that can be searched for when checkKnownWords fires.
-     */
-    auditWords () {
-      // pull the editor text this.quill.getText()
-      // loop through each one
-      // build up an index of word -> index range
-      // for (let word of this.quill.getText().split(' ')) {
-      // }
-      // compare it to the cached words
-      // if it matches add the known-word format
-      // if it doesn't match
-      //  - if it has a format remove it
-      //  - if it doesn't have a format add to 'lookup'
-      // when we get to lookup, cache all words we search for
-      //  so we know not to search them over and over again
-      // 
     }
   },
   data () {
@@ -261,7 +252,7 @@ export default {
         clearTimeout(typingTimer)
         typingTimer = setTimeout(this.doneTyping, 2000)
         // check for breakages
-        this.auditWords()
+        this.checkKnownWords()
         // send off our delta
         this.$emit('region-delta', {name: this.regionId, delta})
       }

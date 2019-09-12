@@ -326,7 +326,6 @@ export default {
   padding-right: 10px;
 }
 .time {
-  padding-top: 25px;
   text-align: center;
 }
 </style>
