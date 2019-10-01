@@ -7,10 +7,15 @@ const axios = require('axios')
 const uuid = require('uuid')
 
 const paradigmTemplates = require('./generate-layouts').buildParadigmTemplates()
-const creeWords = fs.readFileSync(path.join(__dirname, 'cree-words', 'verb_stems.lexc'), 'utf-8')
+
+// delete index curl -XDELETE https://search-kiyanaw-dev-grohpnfdchux2gvdyytpdpqr5m.us-east-1.es.amazonaws.com/inflected
+// mapping curl -XPUT -H'Content-Type: application/json' -d'{"mappings": {"properties":{"inflected":{"type":"keyword", "index": true}, "lemma": {"type": "nested", "properties": {"sro": {"type": "keyword", "index": true}}}}}}' https://search-kiyanaw-dev-grohpnfdchux2gvdyytpdpqr5m.us-east-1.es.amazonaws.com/inflected
 
 const esUrl = 'https://search-kiyanaw-dev-grohpnfdchux2gvdyytpdpqr5m.us-east-1.es.amazonaws.com'
+const tempFile = `/tmp/inflected-${+new Date()}`
+const inFile = 'verb_stems.lexc'
 // const esUrl = 'http://localhost:9200'
+const creeWords = fs.readFileSync(path.join(__dirname, 'cree-words', inFile), 'utf-8')
 
 const formDetails = {
   'Present Independent': {
@@ -33,7 +38,6 @@ const formDetails = {
     translation: ''
   }
 }
-
 
 async function main () {
   // clear out the index
@@ -73,7 +77,7 @@ async function main () {
     const processedOutput = rawOutput.split('\n').filter(line => !line.startsWith('!') && line).map((line) => line.split(/\s+/))
     // process the raw output, map it to a lookup
     // clear the output file
-    process.execSync(`echo '' > /tmp/inflected.txt`)
+    process.execSync(`echo '' > ${tempFile}`)
     const wordList = []
     for (const bits of processedOutput) {
       if (bits.includes('+?')) {
@@ -122,11 +126,11 @@ async function main () {
       //   data: final
       // })
       // assert.ok(updated.status === 201)
-      process.execSync(`echo '${JSON.stringify(op)}' >> /tmp/inflected.txt`)
-      process.execSync(`echo '${JSON.stringify(final)}' >> /tmp/inflected.txt`)
+      process.execSync(`echo '${JSON.stringify(op)}' >> ${tempFile}`)
+      process.execSync(`echo '${JSON.stringify(final)}' >> ${tempFile}`)
     }
-    // process.execSync(`echo '${wordList.map(item => JSON.stringify(item)).join('\n')}' > /tmp/inflected.txt`)
-    const out = process.execSync(`curl -s -H "Content-Type: application/x-ndjson" -XPOST ${esUrl}/_bulk --data-binary "@/tmp/inflected.txt"; echo`)
+    // process.execSync(`echo '${wordList.map(item => JSON.stringify(item)).join('\n')}' > ${tempFile}`)
+    const out = process.execSync(`curl -s -H "Content-Type: application/x-ndjson" -XPOST ${esUrl}/_bulk --data-binary "@${tempFile}"; echo`)
     console.log(out.toString())
   }
 }
