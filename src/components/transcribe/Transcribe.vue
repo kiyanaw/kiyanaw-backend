@@ -88,6 +88,8 @@ import { randomFillSync } from 'crypto';
 window.uuid = uuid
 window.ulid = ulid
 
+// Instead of pusher, look at this one: https://www.ably.io/
+
 let pusher
 let channel
 let regionHashes = {}

@@ -1,0 +1,9 @@
+You're going to need:
+
+ - hfst-optimized-lookup - Eddie has published this
+ - *-full.layout files from lang tech, put them in ./layouts
+ - verb_stems.lexc from lang tech, put it in ./cree-words
+ - crk-normative-generator.hfstol, put it in this directory
+
+ Run `node inflect-verbs.js`
+ 

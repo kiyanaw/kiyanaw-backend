@@ -43,3 +43,14 @@ Deployment
 ---
 [ ] production env
 [ ] bootstrap data
+
+
+Indexing
+---
+[ ] commit new lexc files and have Circle build the new index
+
+Ideas for app
+----
+ - ability to 'bookmark' words I'm currently learning
+ - bonus points for linked audio
+ 

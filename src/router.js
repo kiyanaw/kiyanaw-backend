@@ -12,12 +12,14 @@ import TranscribeList from './components/transcribe/List.vue'
 import TranscribeAdd from './components/transcribe/Add.vue'
 import MorphemeEditor from './components/morphemes/Editor.vue'
 import HelloWorld from './components/HelloWorld.vue'
+import RenderedWord from './components/rendered/Index.vue'
 
 import EnvService from './services/env'
 
 const router = new VueRouter({
   mode: 'history',
   routes: [
+    { path: '/crk/:word', component: RenderedWord },
     {
       path: '/',
       redirect: '/transcribe-list',
@@ -36,6 +38,7 @@ const router = new VueRouter({
         { path: 'transcribe-list', component: TranscribeList, meta: { requiresAuth: true } },
         { path: 'transcribe-add', component: TranscribeAdd, meta: { requiresAuth: true } },
         { path: 'transcribe-edit/:id', component: TranscribeEdit }
+        
       ]
     },
     {

@@ -25,7 +25,7 @@
       <v-flex xs2 md1><!-- spacer --></v-flex>
 
       <v-flex xs10 md10>
-          <div class="region-options" v-if="translation && (!editing || !canEdit)">{{ translation }}</div>
+          <div class="region-options" v-if="translation && (!editing || !canEdit)">{{ translation.trim() }}</div>
           <div class="region-options-edit" v-if="editing && canEdit">
             <span class="region-options-label">Translation</span>
             <div id="translation"></div>
@@ -55,6 +55,7 @@ const Parchment = Quill.import('parchment')
 let KnownWord = new Parchment.Attributor.Class('known-word', 'known-word', {
   scope: Parchment.Scope.INLINE
 })
+
 Parchment.register(KnownWord)
 Quill.register('modules/cursors', QuillCursors)
 
@@ -87,7 +88,7 @@ export default {
           this.quillTranslate.format('color', 'gray')
           this.quillTranslate.root.setAttribute('spellcheck', false)
           if (this.translation) {
-            this.quillTranslate.insertText(0, this.translation)
+            this.quillTranslate.insertText(0, this.translation.trim())
           }
           this.quillTranslate.on('text-change', (delta, oldDelta, source) => {
             this._regionTranslation = this.quillTranslate.getText()
@@ -173,6 +174,13 @@ export default {
     },
     async doneTyping () {
       this.$emit('region-done-typing', {region: this.regionId, sha: this.sha()})
+      // TODO: optimize this so it doesn't search for already-known words
+      const words = this.quill.getText().split(' ').filter(item => item && (item.indexOf('\n') === -1))
+      console.log(words)
+      Lex.wordSearch(words, (results) => {
+        // 
+        console.log('got reslts', results)
+      })
     },
     /**
      * Returns the SHA1 of the editor contents, useful for checking for changes.
@@ -279,6 +287,7 @@ export default {
         this.hasFocus = false
       }
     })
+
   }
 }
 </script>
