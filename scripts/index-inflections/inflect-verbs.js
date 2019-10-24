@@ -74,6 +74,7 @@ async function main () {
     }).join('\n')
 
     const rawOutput = process.execSync(`echo '${fstInput}' | hfst-optimized-lookup --silent crk-normative-generator.hfstol 2>&1`).toString()
+    console.log(rawOutput.toString())
     const processedOutput = rawOutput.split('\n').filter(line => !line.startsWith('!') && line).map((line) => line.split(/\s+/))
     // process the raw output, map it to a lookup
     // clear the output file
@@ -130,8 +131,8 @@ async function main () {
       process.execSync(`echo '${JSON.stringify(final)}' >> ${tempFile}`)
     }
     // process.execSync(`echo '${wordList.map(item => JSON.stringify(item)).join('\n')}' > ${tempFile}`)
-    const out = process.execSync(`curl -s -H "Content-Type: application/x-ndjson" -XPOST ${esUrl}/_bulk --data-binary "@${tempFile}"; echo`)
-    console.log(out.toString())
+    // const out = process.execSync(`curl -s -H "Content-Type: application/x-ndjson" -XPOST ${esUrl}/_bulk --data-binary "@${tempFile}"; echo`)
+    // console.log(out.toString())
   }
 }
 

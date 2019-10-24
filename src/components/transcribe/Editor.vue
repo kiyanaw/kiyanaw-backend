@@ -179,7 +179,7 @@ export default {
       console.log(words)
       Lex.wordSearch(words, (results) => {
         // 
-        console.log('got reslts', results)
+        this.checkKnownWords()
       })
     },
     /**
@@ -203,7 +203,7 @@ export default {
       const matchedWordsIndex = []
       for (let item of knownWords) {
         // check for matches
-        let re = new RegExp(item.sro, 'g')
+        let re = new RegExp(item, 'g')
         let match = undefined
         let matches = []
         while (match = re.exec(text)) {
@@ -212,14 +212,14 @@ export default {
           // grab the character right after our match to
           const surroundingCharacters = [' ', '\n']
           const beforeIsSpace = surroundingCharacters.includes(text[match.index - 1])
-          const afterIsSpace = surroundingCharacters.includes(text[match.index + item.sro.length])
+          const afterIsSpace = surroundingCharacters.includes(text[match.index + item.length])
           if (beforeIsSpace && afterIsSpace) {
             matches.push(match)
           }
         }
         for (let match of matches) {
-          this.quill.formatText(match.index, item.sro.length, 'known-word', true)
-          matchedWordsIndex.push([match.index, item.sro.length])
+          this.quill.formatText(match.index, item.length, 'known-word', true)
+          matchedWordsIndex.push([match.index, item.length])
         }
       }
     }
@@ -258,7 +258,7 @@ export default {
       if (source === 'user') {
         // set an timeout for the user to stop typing
         clearTimeout(typingTimer)
-        typingTimer = setTimeout(this.doneTyping, 2000)
+        typingTimer = setTimeout(this.doneTyping, 500)
         // check for breakages
         this.checkKnownWords()
         // send off our delta
@@ -287,7 +287,6 @@ export default {
         this.hasFocus = false
       }
     })
-
   }
 }
 </script>
@@ -353,8 +352,12 @@ export default {
     margin-left: 14px;
 }
 .region-options-controls {
-  padding: 15px 5px 5px 5px;
+  padding: 0px 5px 5px 15px;
     text-transform: uppercase;
     font-size: 10px;
+}
+#translation {
+  margin-top: -12px;
+  margin-bottom: -10px;
 }
 </style>
