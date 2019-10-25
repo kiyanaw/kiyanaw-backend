@@ -103,6 +103,12 @@ import { sro2syllabics } from 'cree-sro-syllabics'
 
 window.sro2syllabics = sro2syllabics
 
+// TODO: fix me
+window.addEventListener("load", function(event) {
+  // If I set the color in the style sheet, it affects every component :S
+  document.body.style.backgroundColor = '#abe4ff'
+});
+
 // TODO: we may want details about the source of the word, AW or 'user'
 // so we can keep track of words that are inputted by us
 const word = {
@@ -147,7 +153,6 @@ export default {
 
 <style>
 body {
-  background-color: #abe4ff;
   font-family: 'Roboto', sans-serif;
 }
 .inflected {

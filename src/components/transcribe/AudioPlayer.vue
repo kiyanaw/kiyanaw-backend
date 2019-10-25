@@ -49,7 +49,6 @@ import TimelinePlugin from 'wavesurfer.js/dist/plugin/wavesurfer.timeline.min.js
 import MinimapPlugin from 'wavesurfer.js/dist/plugin/wavesurfer.minimap.min.js'
 
 import soundtouch from './lib/soundtouch'
-import TextManager from './text-manager'
 import utils from './utils'
 import { setTimeout } from 'timers'
 
