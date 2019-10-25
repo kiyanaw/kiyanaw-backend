@@ -199,29 +199,40 @@ export default {
       this.quill.formatText(0, 9999, 'known-word', false)
       // loop through and refresh
       const knownWords = await Lex.getKnownWords()
+      // add a space at the beginning to allow 0-index matches
       const text = this.quill.getText()
       const matchedWordsIndex = []
       for (let item of knownWords) {
         // check for matches
         let re = new RegExp(item, 'g')
-        let match = undefined
+        let match
         let matches = []
         while (match = re.exec(text)) {
           // TODO: this is icky, find a better way
           // make sure we're matching whole words and not just partials
           // grab the character right after our match to
           const surroundingCharacters = [' ', '\n']
-          const beforeIsSpace = surroundingCharacters.includes(text[match.index - 1])
+          const beforeIsSpace = match.index === 0 || surroundingCharacters.includes(text[match.index - 1])
           const afterIsSpace = surroundingCharacters.includes(text[match.index + item.length])
           if (beforeIsSpace && afterIsSpace) {
+            console.log(`match: ${match}`)
             matches.push(match)
           }
         }
+        console.log(matches)
         for (let match of matches) {
           this.quill.formatText(match.index, item.length, 'known-word', true)
           matchedWordsIndex.push([match.index, item.length])
         }
       }
+    },
+    /**
+     * Tell the lexicon service that we have known words so we can keep track of them
+     * without searching a second time.
+     */
+    async reportKnownWordsOnLoad (deltas) {
+      const known = deltas.filter(item => item.attributes && item.attributes['known-word'] !== undefined).map(item => item.insert)
+      Lex.addKnownWords(known)
     }
   },
   data () {
@@ -243,6 +254,8 @@ export default {
     })
     this.cursors = this.quill.getModule('cursors')
     this.quill.root.setAttribute('spellcheck', false)
+    this.reportKnownWordsOnLoad(this.regionText)
+    // check for known words on incoming text
     this.quill.setContents(this.regionText)
     // TODO: remove this, it's just for debugging.
     window.quill = this.quill
