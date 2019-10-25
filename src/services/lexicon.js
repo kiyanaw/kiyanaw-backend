@@ -32,32 +32,45 @@ class Lex {
     return words.filter(word => knownWords.indexOf(word) === -1).filter(word => unknownWords.indexOf(word) === -1)
   }
 
+  replaceMacrons (word) {
+    word = word.replace(/ā/g, 'â')
+      .replace(/ē/g, 'ê')
+      .replace(/ī/g, 'î')
+      .replace(/ō/g, 'ô')
+    return word
+  }
+
   stripWords (words) {
     const strippedWords = []
     for (let word of words) {
       if (word.indexOf('-') > -1) {
-        const stripped = word.split('-').filter(bit => preverbs.indexOf(bit) === -1).join('-')
-        // console.log(`word ${word} -> ${stripped}`)
+        let stripped = word.split('-').filter(bit => preverbs.indexOf(bit) === -1).join('-')
+        // pull out any macrons
+        stripped = this.replaceMacrons(stripped)
         // keep track of how stripped words map bac
         strippedWordMap[stripped] = word
         strippedWords.push(stripped)
       } else {
+        strippedWordMap[this.replaceMacrons(word)] = word
         strippedWords.push(word)
       }
     }
+    console.log(strippedWordMap)
     return strippedWords
   }
 
   /**
    * Search the index for matches to the given words, keeping track of the matched and unmatched.
+   * TODO: test this
    */
   async wordSearch (words, callback) {
     console.log(`Got search terms: ${words}`)
+    // pull preverbs and macrons out of the search terms
     const strippedWords = this.stripWords(words)
-    // console.log(`Stripped words: ${strippedWords}`)
+    // remove any words we already "know"
     const onlySearchFor = this.getWordsNotKnown(strippedWords)
-    // console.log(`Searching only for: ${onlySearchFor}`)
-
+    console.log(`searching for: ${onlySearchFor}`)
+    // build the query
     if (onlySearchFor.length) {
       let query = {
         index: 'inflected',
@@ -66,17 +79,15 @@ class Lex {
       }
       const raw = await client.search(query)
       const resultWords = raw.hits.hits.map(word => word._source.inflected)
+      console.log(`got results: ${resultWords}`)
       // loop through the stripped word map and match any results
       const matchedStrippedWords = resultWords.map(result => strippedWordMap[result])
       knownWords = knownWords.concat(resultWords)
       knownWords = knownWords.concat(matchedStrippedWords)
-
-      console.log(`Known words: ${knownWords}`)
-
       // keep track of the stuff we don't need to search for again
       // unknownWords = unknownWords.concat(words.filter(word => resultWords.indexOf(word) === -1))
     } else {
-      console.log('Nothing to search for')
+      console.log('Nothing to search for.')
     }
     callback()
   }
