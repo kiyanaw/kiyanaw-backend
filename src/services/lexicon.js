@@ -41,7 +41,7 @@ class Lex {
   }
 
   stripWords (words) {
-    const strippedWords = []
+    let strippedWords = []
     for (let word of words) {
       if (word.indexOf('-') > -1) {
         let stripped = word.split('-').filter(bit => preverbs.indexOf(bit) === -1).join('-')
@@ -55,6 +55,8 @@ class Lex {
         strippedWords.push(word)
       }
     }
+    // remove any puntuation
+    strippedWords = strippedWords.map(item => item.replace(/[.,]/g, ''))
     console.log(strippedWordMap)
     return strippedWords
   }
@@ -77,6 +79,7 @@ class Lex {
         type: '_doc',
         body: { query: { bool: { filter: { terms: { inflected: onlySearchFor } } } } }
       }
+      console.log(JSON.stringify(query))
       const raw = await client.search(query)
       const resultWords = raw.hits.hits.map(word => word._source.inflected)
       console.log(`got results: ${resultWords}`)
@@ -101,7 +104,7 @@ class Lex {
    * Return the list of known words
    */
   async getKnownWords () {
-    return knownWords
+    return knownWords.filter(item => item && item.length)
   }
 }
 

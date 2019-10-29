@@ -93,6 +93,7 @@ async function main () {
       const template = paradigmTemplates[verbType][originalForm]
       const final = {
         ...template,
+        // TODO: rename this to 'final' for consistency
         inflected,
         alternate: toSyllabics.sro2syllabics(inflected),
         language: 'nêhiyawêwin',

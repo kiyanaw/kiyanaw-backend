@@ -199,6 +199,7 @@ export default {
       this.quill.formatText(0, 9999, 'known-word', false)
       // loop through and refresh
       const knownWords = await Lex.getKnownWords()
+      console.log(`known words: ${knownWords}`)
       // add a space at the beginning to allow 0-index matches
       const text = this.quill.getText()
       const matchedWordsIndex = []
@@ -211,7 +212,7 @@ export default {
           // TODO: this is icky, find a better way
           // make sure we're matching whole words and not just partials
           // grab the character right after our match to
-          const surroundingCharacters = [' ', '\n']
+          const surroundingCharacters = [' ', '\n', '.', ',']
           const beforeIsSpace = match.index === 0 || surroundingCharacters.includes(text[match.index - 1])
           const afterIsSpace = surroundingCharacters.includes(text[match.index + item.length])
           if (beforeIsSpace && afterIsSpace) {
@@ -219,7 +220,6 @@ export default {
             matches.push(match)
           }
         }
-        console.log(matches)
         for (let match of matches) {
           this.quill.formatText(match.index, item.length, 'known-word', true)
           matchedWordsIndex.push([match.index, item.length])
