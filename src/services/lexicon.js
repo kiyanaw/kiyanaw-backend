@@ -28,6 +28,7 @@ let unknownWords = []
 let strippedWordMap = {}
 
 class Lex {
+
   getWordsNotKnown (words) {
     return words.filter(word => knownWords.indexOf(word) === -1).filter(word => unknownWords.indexOf(word) === -1)
   }
@@ -59,6 +60,7 @@ class Lex {
       }
 
       strippedWordMap[stripped] = word
+      console.log(stripped, word)
       strippedWords.push(stripped)
     }
     // remove any puntuation
@@ -98,6 +100,14 @@ class Lex {
     } else {
       console.log('Nothing to search for.')
     }
+    // push any mapped words into the knownWords
+    for (const known of knownWords) {
+      const original = strippedWordMap[known]
+      if (original && !knownWords.includes(original)) {
+        knownWords.push(original)
+      }
+    }
+    // notify
     callback()
   }
   /**

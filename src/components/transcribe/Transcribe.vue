@@ -124,8 +124,11 @@ export default {
      */
     UserService.listenForCursor((data) => {
       // console.log('got cursor update', data)
-      if (data.user !== this.user.name) {d
-        this.$refs[data.cursor.regionId][0].setCursor({user: data.user, ...data.cursor})
+      if (data.user !== this.user.name) {
+        // only try to set cursors for local regions
+        if (this.$refs[data.cursor.regionId]) {
+          this.$refs[data.cursor.regionId][0].setCursor({user: data.user, ...data.cursor})
+        }
       }
     })
 
