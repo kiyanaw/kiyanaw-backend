@@ -40,20 +40,25 @@ class Lex {
     return word
   }
 
+  fixKaKi (word) {
+    word = word.replace('kâ-')
+  }
+
   stripWords (words) {
     let strippedWords = []
     for (let word of words) {
+      let stripped
       if (word.indexOf('-') > -1) {
-        let stripped = word.split('-').filter(bit => preverbs.indexOf(bit) === -1).join('-')
-        // pull out any macrons
-        stripped = this.replaceMacrons(stripped)
-        // keep track of how stripped words map bac
-        strippedWordMap[stripped] = word
-        strippedWords.push(stripped)
-      } else {
-        strippedWordMap[this.replaceMacrons(word)] = word
-        strippedWords.push(word)
+        stripped = word.split('-').filter(bit => preverbs.indexOf(bit) === -1).join('-')
       }
+      stripped = this.replaceMacrons(word)
+
+      if (word.indexOf('kâ-kî-') > -1) {
+        stripped = word.replace('kâ-kî-', 'kâ-ki-')
+      }
+
+      strippedWordMap[stripped] = word
+      strippedWords.push(stripped)
     }
     // remove any puntuation
     strippedWords = strippedWords.map(item => item.replace(/[.,]/g, ''))
@@ -63,7 +68,7 @@ class Lex {
 
   /**
    * Search the index for matches to the given words, keeping track of the matched and unmatched.
-   * TODO: test this
+   * TODO: test this!!
    */
   async wordSearch (words, callback) {
     console.log(`Got search terms: ${words}`)

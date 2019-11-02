@@ -8,7 +8,18 @@
 	"auth": {
 		"cognito4a7f4e73": {
 			"service": "Cognito",
-			"providerPlugin": "awscloudformation"
+			"providerPlugin": "awscloudformation",
+			"dependsOn": [
+				{
+					"category": "function",
+					"resourceName": "cognito4a7f4e73PostConfirmation",
+					"triggerProvider": "Cognito",
+					"attributes": [
+						"Arn",
+						"Name"
+					]
+				}
+			]
 		}
 	},
 	"storage": {
@@ -29,6 +40,11 @@
 			"providerPlugin": "awscloudformation",
 			"build": true,
 			"dependsOn": []
+		},
+		"cognito4a7f4e73PostConfirmation": {
+			"service": "Lambda",
+			"providerPlugin": "awscloudformation",
+			"build": true
 		}
 	},
 	"api": {
@@ -64,7 +80,12 @@
 			"service": "AppSync",
 			"providerPlugin": "awscloudformation",
 			"output": {
-				"securityType": "AMAZON_COGNITO_USER_POOLS"
+				"authConfig": {
+					"additionalAuthenticationProviders": [],
+					"defaultAuthentication": {
+						"authenticationType": "AWS_IAM"
+					}
+				}
 			}
 		}
 	}

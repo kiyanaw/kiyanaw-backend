@@ -29,8 +29,8 @@
           <div class="region-options-edit" v-if="editing && canEdit">
             <span class="region-options-label">Translation</span>
             <div id="translation"></div>
-            <span class="region-options-label">Options</span>
-            <div class="region-options-controls">
+            <span class="region-options-label" v-if="!locked">Options</span>
+            <div class="region-options-controls" v-if="!locked">
               <a v-on:click="deleteRegion">Delete this region</a>
             </div>
           </div>
@@ -46,6 +46,7 @@ import Quill from 'quill'
 import QuillCursors from 'quill-cursors'
 import utils from './utils'
 import Lex from '../../services/lexicon'
+import UserService from '../../services/user'
 
 /**
  * Register our custom class attributor. This is used to flag a word as
@@ -90,6 +91,9 @@ export default {
           if (this.translation) {
             this.quillTranslate.insertText(0, this.translation.trim())
           }
+          if (this.locked) {
+            this.quillTranslate.disable()
+          }
           this.quillTranslate.on('text-change', (delta, oldDelta, source) => {
             this._regionTranslation = this.quillTranslate.getText()
             // force the text to grey
@@ -101,6 +105,7 @@ export default {
           this.quill.focus()
         })
       } else {
+        this.unlock()
         this.quillTranslate = null
       }
     }
@@ -122,6 +127,15 @@ export default {
     }
   },
   methods: {
+    lock () {
+      this.locked = true
+      this.$emit('editor-focus', this.regionId)
+      this.quill.disable()
+    },
+    unlock () {
+      this.locked = false
+      this.quill.enable()
+    },
     /**
      * Syncs up the module regionText with the editor data.
      */
@@ -165,11 +179,12 @@ export default {
      * 
      */
     setCursor (data) {
+      console.log('setting cursor', data)
       const exists = this.cursors.cursors().filter(needle => needle.id = data.id)
       if (!exists.length) {
-        this.cursors.createCursor(data.username, data.username, data.color)
+        this.cursors.createCursor(data.user, data.user, data.color)
       }
-      this.cursors.moveCursor(data.username, data.range)
+      this.cursors.moveCursor(data.user, data.range)
       window.cursors = this.cursors
     },
     async doneTyping () {
@@ -243,6 +258,7 @@ export default {
     }
   },
   mounted() {
+    this.locked = false
     this.quill = new Quill(this.$el.querySelector('#editor-' + this.regionId), {
       theme: 'snow',
       formats: ['known-word'],
@@ -281,24 +297,36 @@ export default {
       this.saveOps()
     })
 
-    this.quill.on('selection-change', (range, oldRange, source) => {
+    this.quill.on('selection-change', async (range, oldRange, source) => {
       if (range) {
+        // TODO: move locking outside of the regions
+        // const haveLock = await UserService.lockRegion(this.regionId)
+        // if (!haveLock) {
+        //   console.log('Could not lock region', this.regionId)
+        //   return this.lock()
+        // }
         if (range.length === 0) {
           // console.log('User cursor is on', range.index);
           // console.log(this.quill.getFormat(range.index))
         } else {
+          // TODO: here is where we will tag highlighted words
           // console.log('User has highlighted', text);
-          var text = this.quill.getText(range.index, range.length);
+          // var text = this.quill.getText(range.index, range.length);
         }
         this.hasFocus = true
+        // TODO: emit if we're editing {translation: true} or not
         this.$emit('region-cursor', {regionId: this.regionId, range: range})
         this.$emit('editor-focus', this.regionId)
       } else {
         // lost focus
         this.saveOps()
-        // this.$emit('editor-blur')
         this.hasFocus = false
       }
+    })
+
+    // listen for locked regions
+    UserService.listenForLock((data) => {
+      console.log('region has been locked', data)
     })
   }
 }
@@ -334,6 +362,7 @@ export default {
 }
 .ql-container.ql-snow {
   border: none;
+  padding: 10px 0;
 }
 
 .region-actions {

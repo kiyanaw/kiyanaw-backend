@@ -88,13 +88,20 @@ import { randomFillSync } from 'crypto';
 window.uuid = uuid
 window.ulid = ulid
 
-// Instead of pusher, look at this one: https://www.ably.io/
+function getColor(){ 
+  return "hsl(" + 360 * Math.random() + ',' +
+             (25 + 70 * Math.random()) + '%,' + 
+             (55 + 10 * Math.random()) + '%)'
+}
 
 let pusher
 let channel
 let regionHashes = {}
 const localUuid = uuid()
-const cursorColor = '#' + Math.floor(Math.random()*16777215).toString(16)
+// const cursorColor = '#' + Math.floor(Math.random()*16777215).toString(16)
+const cursorColor = `${getColor()}`
+// keep track of this cursor
+let myCursor
 let inboundRegion = null
 
 export default {
@@ -106,43 +113,30 @@ export default {
       this.user = null
     }
 
+    /**
+     * Pull some parameters out of our URL to determine the doc to load.
+     */
     this.transcriptionId = this.$route.params.id
     const docId = this.transcriptionId.split(':')[1]
 
-    channel = this.$pusher.subscribe(`presence-transcribe-${EnvService.getEnvironmentName()}-${docId}`)
-    // channel.bind('pusher:subscription_succeeded', (members) => {
-    //   this.members = members
-    //   // for example
-    //   // update_member_count(members.count);
+    /**
+     * Set up a subscription for new cursor changes.
+     */
+    UserService.listenForCursor((data) => {
+      // console.log('got cursor update', data)
+      if (data.user !== this.user.name) {d
+        this.$refs[data.cursor.regionId][0].setCursor({user: data.user, ...data.cursor})
+      }
+    })
 
-    //   // members.each(function(member) {
-    //   //   // for example:
-    //   //   add_member(member.id, member.info);
-    //   // });
-    // })
+    /**
+     * Get a list of the current locked regions.
+     */
+    // TODO: managing locked regions should probably happen outside of the regions
 
-    // channel.bind('client-region-delta', (data) => {
-    //   this.$refs[data.name][0].insertDelta(data.delta)
-    // })
-    // channel.bind('client-region-create', (data) => {
-    //   this.regions.push(data)
-    // })
-    // channel.bind('client-region-update', (data) => {
-    //   const targetRegion = this.regions.filter(needle => needle.id === data.id)
-    //   if (targetRegion.length) {
-    //     targetRegion[0].start = data.start
-    //     targetRegion[0].end = data.end
-    //   }
-    //   this.$refs.player.renderRegions()
-    // })
-    // channel.bind('client-region-cursor', (data) => {
-    //   // console.log(`new cursor for ${data.username}, ${data.index}, ${data.regionId}`)
-    //   this.$refs[data.regionId][0].setCursor(data)
-    // })
-
-    // TODO: remove this, just for debugging
-    window.t = this
-
+    /**
+     * Listen for <space> event (and others) to interact with the waveform.
+     */
     document.addEventListener('keyup', (evt) => {
       if (evt.keyCode === 27) {
         this.editingRegion = null
@@ -231,6 +225,7 @@ export default {
       this.editingRegion = null
     },
     editorFocus (regionId) {
+      // setting the editingRegion activates that region's editor
       this.editingRegion = regionId
       for (let index in this.regions) {
         this.regions[index].activeRegion = regionId
@@ -245,14 +240,14 @@ export default {
     },
     regionDelta (data) {
       data.uuid =  localUuid
-      channel.trigger('client-region-delta', data)
     },
     regionCursor (data) {
-      channel.trigger('client-region-cursor', {
-        ...data,
-        username: this.username,
-        color: cursorColor
-      })
+      data.color = cursorColor
+      const update = {
+        cursor: data,
+        user: `${this.user.name}`
+      }
+      UserService.sendCursor(update)
     },
     regionDoneTyping(data) {
       // 
@@ -311,23 +306,6 @@ export default {
       this.inboundRegion = this.$route.hash.replace('#', '') || null
       this.fixScrollHeight()
     },
-    /**
-     * Iterate over the current regions, pull the sha() from each one and
-     * keep a record.
-     */
-    // you are here, how do we consistenly fire this 
-    // is this still needed? I think this was for collab editing
-    async setRegionHashes () {
-      console.log('set hashes')
-      let regions = this.regions
-      for (let index in regions) {
-        const regionId = regions[index].id
-        const regionHash = this.$refs[regionId][0].sha()
-        this.regionHashes[regionId] = regionHash
-      }
-      console.log('hashes')
-      console.log(this.regionHashes)
-    },
     blurRegion (region) {
       this.inRegions = this.inRegions.filter(r => r !== region.id)
     },
@@ -346,15 +324,15 @@ export default {
           id: region.id,
           text: []
         }
-        channel.trigger('client-region-create', regionData)
+        // channel.trigger('client-region-create', regionData)
         this.regions.push(regionData)
       } else {
         const targetRegion = this.regions.filter(needle => needle.id === region.id)
-        channel.trigger('client-region-update', {
-          id: region.id,
-          start: region.start,
-          end: region.end
-        })
+        // channel.trigger('client-region-update', {
+        //   id: region.id,
+        //   start: region.start,
+        //   end: region.end
+        // })
         if (targetRegion.length) {
           targetRegion[0].start = region.start
           targetRegion[0].end = region.end

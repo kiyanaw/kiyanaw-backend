@@ -13,6 +13,11 @@
         "categories": {
             "auth": {
                 "cognito4a7f4e73": {}
+            },
+            "function": {
+                "cognito4a7f4e73PostConfirmation": {
+                    "GROUP": "Admins"
+                }
             }
         }
     }

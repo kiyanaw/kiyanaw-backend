@@ -1,0 +1,43 @@
+type Transcription @model
+@key(fields: ["id", "author"])
+@auth(rules: [{allow: public, provider: iam}])
+{
+  id: ID!
+  author: String!
+  coverage: Int
+  dateLastUpdated: Int!
+  length: Float
+  source: String
+  title: String!
+  type: String!
+  regions: [Region] @connection(name: "TranscriptionRegions")
+}
+
+type Region @model
+@key(fields: ["id"])
+@auth(rules: [{allow: public, provider: iam}])
+@versioned
+{
+  id: String!
+  start: Float!
+  end: Float!
+  lastChangeBy: String!
+  transcription: Transcription! @connection(name: "TranscriptionRegions")
+}
+
+type Cursor @model
+@key(fields: ["id", "user"])
+@auth(rules: [{allow: public, provider: iam}])
+{
+  id: ID!
+  user: String!
+  cursor: String!
+}
+
+type Lock @model 
+@key(fields: ["id"])
+@auth(rules: [{allow: public, provider: iam}])
+{
+  id: String!
+  user: String!
+}

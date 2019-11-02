@@ -52,6 +52,7 @@ export default {
   async setClient () {
     AWS.config.update({ region: EnvService.getRegion() })
     AWS.config.credentials = await UserService.getCredentials()
+    window.creds = AWS.config.credentials
     client = new AWS.DynamoDB.DocumentClient({ apiVersion: '2012-08-10' })
   },
 
