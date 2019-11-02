@@ -53,8 +53,9 @@ class Lex {
       }
       stripped = this.replaceMacrons(word)
 
+      // TODO: fix this total hack
       if (word.indexOf('kâ-kî-') > -1) {
-        stripped = word.replace('kâ-kî-', 'kâ-ki-')
+        stripped = word.replace('kâ-kî-', 'ê-')
       }
 
       strippedWordMap[stripped] = word
