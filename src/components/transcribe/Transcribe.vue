@@ -98,7 +98,7 @@ let pusher
 let channel
 let regionHashes = {}
 const localUuid = uuid()
-// const cursorColor = '#' + Math.floor(Math.random()*16777215).toString(16)
+// this is the local user's cursor color
 const cursorColor = `${getColor()}`
 // keep track of this cursor
 let myCursor
@@ -123,14 +123,13 @@ export default {
      * Set up a subscription for new cursor changes.
      */
     UserService.listenForCursor((data) => {
-      // console.log('got cursor update', data)
       if (data.user !== this.user.name) {
         // only try to set cursors for local regions
         if (this.$refs[data.cursor.regionId]) {
           this.$refs[data.cursor.regionId][0].setCursor({user: data.user, ...data.cursor})
         }
       }
-    })
+    }).catch((e) => {})
 
     /**
      * Get a list of the current locked regions.
@@ -141,6 +140,7 @@ export default {
      * Listen for <space> event (and others) to interact with the waveform.
      */
     document.addEventListener('keyup', (evt) => {
+      // TODO: this might work better in Editor, blur the cursor at the same time
       if (evt.keyCode === 27) {
         this.editingRegion = null
       }
@@ -155,17 +155,14 @@ export default {
                 canPlay = false
               }
             }
-            console.log(`can play: ${canPlay}`)
             if (canPlay) {
               this.$refs.player.playPause()
             }
 
-          } catch (e) {}
+          } catch (e) {
+            console.error(e)
+          }
         }
-        // TODO: arrows should jump between regions
-        // left arrow
-        // if (evt.keyCode === 37) {
-        // }
       }
     })
     this.fixScrollHeight()
@@ -250,7 +247,7 @@ export default {
         cursor: data,
         user: `${this.user.name}`
       }
-      UserService.sendCursor(update)
+      UserService.sendCursor(update).catch((e) => {})
     },
     regionDoneTyping(data) {
       // 

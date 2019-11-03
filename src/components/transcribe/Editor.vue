@@ -327,7 +327,7 @@ export default {
     // listen for locked regions
     UserService.listenForLock((data) => {
       console.log('region has been locked', data)
-    })
+    }).catch((err) => {})
   }
 }
 </script>

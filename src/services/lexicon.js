@@ -49,19 +49,22 @@ class Lex {
     let strippedWords = []
     for (let word of words) {
       let stripped
-      if (word.indexOf('-') > -1) {
-        stripped = word.split('-').filter(bit => preverbs.indexOf(bit) === -1).join('-')
-      }
+
       stripped = this.replaceMacrons(word)
 
-      // TODO: fix this total hack
-      if (word.indexOf('kâ-kî-') > -1) {
-        stripped = word.replace('kâ-kî-', 'ê-')
+      // TODO: fix this total hack - fuzz all conjunct types to ê- to make
+      // matching easier. Maybe we should only index ê-?
+      if (stripped.indexOf('kâ-kî-') > -1) {
+        stripped = stripped.replace('kâ-kî-', 'ê-')
       }
-
-      // TODO: fix this total hack
+      if (stripped.indexOf('kâ-') > -1) {
+        stripped = stripped.replace('kâ-', 'ê-')
+      }
       if (stripped.indexOf('ê-kî-') > -1) {
         stripped = stripped.replace('ê-kî-', 'ê-')
+      }
+      if (stripped.indexOf('-') > -1) {
+        stripped = stripped.split('-').filter(bit => preverbs.indexOf(bit) === -1).join('-')
       }
 
       strippedWordMap[stripped] = word
