@@ -61,6 +61,7 @@ Parchment.register(KnownWord)
 Quill.register('modules/cursors', QuillCursors)
 
 let typingTimer
+let cursorTimer
 
 export default {
   props: [
@@ -180,6 +181,11 @@ export default {
      */
     setCursor (data) {
       console.log('setting cursor', data)
+      // TODO: this is a hack, fix it
+      if (data.content) {
+        this.quill.setContents(data.content)
+      }
+
       const exists = this.cursors.cursors().filter(needle => needle.id = data.id)
       if (!exists.length) {
         this.cursors.createCursor(data.user, data.user, data.color)
@@ -188,6 +194,7 @@ export default {
       window.cursors = this.cursors
     },
     async doneTyping () {
+      // check for new words
       this.$emit('region-done-typing', {region: this.regionId, sha: this.sha()})
       // TODO: optimize this so it doesn't search for already-known words
       const words = this.quill.getText().split(' ').filter(item => item && (item.indexOf('\n') === -1))
@@ -290,7 +297,7 @@ export default {
       if (source === 'user') {
         // set an timeout for the user to stop typing
         clearTimeout(typingTimer)
-        typingTimer = setTimeout(this.doneTyping, 500)
+        typingTimer = setTimeout(this.doneTyping, 250)
         // check for breakages
         this.checkKnownWords()
         // send off our delta
@@ -317,8 +324,15 @@ export default {
           // var text = this.quill.getText(range.index, range.length);
         }
         this.hasFocus = true
+        // TODO: remove this hack
+        const content = this.quill.getContents()
         // TODO: emit if we're editing {translation: true} or not
-        this.$emit('region-cursor', {regionId: this.regionId, range: range})
+        // throttle the number of cursor updates
+        clearTimeout(cursorTimer)
+        cursorTimer = setTimeout(() => {
+          this.$emit('region-cursor', {regionId: this.regionId, range: range, content: content})
+        }, 75)
+        // announce our focus
         this.$emit('editor-focus', this.regionId)
       } else {
         // lost focus
