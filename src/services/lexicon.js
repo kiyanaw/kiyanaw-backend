@@ -59,6 +59,11 @@ class Lex {
         stripped = word.replace('kâ-kî-', 'ê-')
       }
 
+      // TODO: fix this total hack
+      if (stripped.indexOf('ê-kî-') > -1) {
+        stripped = stripped.replace('ê-kî-', 'ê-')
+      }
+
       strippedWordMap[stripped] = word
       console.log(stripped, word)
       strippedWords.push(stripped)
