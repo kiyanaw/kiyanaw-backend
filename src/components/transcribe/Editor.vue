@@ -218,20 +218,23 @@ export default {
       // add a space at the beginning to allow 0-index matches
       const text = this.quill.getText()
       const matchedWordsIndex = []
+      // TODO: we will need to refactor this to break the text down by word and match word-for-word
+      // instead of using a regex across the board, we can't match words like `ēkot(a)` with parens
+      // right now
       for (let item of knownWords) {
         // check for matches
         let re = new RegExp(item, 'g')
         let match
         let matches = []
         while (match = re.exec(text)) {
+          console.log(`match: ${match}`)
           // TODO: this is icky, find a better way
           // make sure we're matching whole words and not just partials
           // grab the character right after our match to
-          const surroundingCharacters = [' ', '\n', '.', ',']
+          const surroundingCharacters = [' ', '\n', '.', ',', '(', ')']
           const beforeIsSpace = match.index === 0 || surroundingCharacters.includes(text[match.index - 1])
           const afterIsSpace = surroundingCharacters.includes(text[match.index + item.length])
           if (beforeIsSpace && afterIsSpace) {
-            console.log(`match: ${match}`)
             matches.push(match)
           }
         }

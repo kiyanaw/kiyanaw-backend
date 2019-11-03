@@ -48,10 +48,9 @@ class Lex {
   stripWords (words) {
     let strippedWords = []
     for (let word of words) {
-      let stripped
-
-      stripped = this.replaceMacrons(word)
-
+      let stripped = this.replaceMacrons(word)
+      // strip out special characters
+      stripped = stripped.replace(/[.,()]/g, '')
       // TODO: fix this total hack - fuzz all conjunct types to ê- to make
       // matching easier. Maybe we should only index ê-?
       if (stripped.indexOf('kâ-kî-') > -1) {
@@ -66,13 +65,11 @@ class Lex {
       if (stripped.indexOf('-') > -1) {
         stripped = stripped.split('-').filter(bit => preverbs.indexOf(bit) === -1).join('-')
       }
-
+      // save to the map
       strippedWordMap[stripped] = word
-      console.log(stripped, word)
       strippedWords.push(stripped)
     }
-    // remove any puntuation
-    strippedWords = strippedWords.map(item => item.replace(/[.,]/g, ''))
+    // remove any punctuation
     console.log(strippedWordMap)
     return strippedWords
   }
@@ -85,6 +82,12 @@ class Lex {
     console.log(`Got search terms: ${words}`)
     // pull preverbs and macrons out of the search terms
     const strippedWords = this.stripWords(words)
+    // now that the words are stripped, match against known words one more time
+    for (const stripped of strippedWords) {
+      if (knownWords.includes(stripped)) {
+        knownWords.push(strippedWordMap[stripped])
+      }
+    }
     // remove any words we already "know"
     const onlySearchFor = this.getWordsNotKnown(strippedWords)
     console.log(`searching for: ${onlySearchFor}`)

@@ -16,23 +16,26 @@
       <div id="controls">
     </div>
       <v-layout>
-        <v-flex xs4>
-          <v-btn flat icon v-on:click="playPause">
+
+        <v-flex xs3 class="controls">
+          <v-btn flat icon v-on:click="playPause" class="control-btn">
             <v-icon v-if="!playing">play_arrow</v-icon>
             <v-icon v-if="playing">pause</v-icon>
           </v-btn>
-          <v-btn flat icon v-if="canEdit" v-on:click="markRegion"><v-icon>format_shapes</v-icon></v-btn>
-          <v-btn flat icon v-on:click="cancelRegion" v-if="currentRegion"><v-icon>clear</v-icon></v-btn>
+          <v-btn flat icon v-if="canEdit" v-on:click="markRegion" class="control-btn"><v-icon>content_cut</v-icon></v-btn>
+          <v-btn flat icon v-on:click="cancelRegion" v-if="currentRegion" class="control-btn"><v-icon>clear</v-icon></v-btn>
         </v-flex>
-        <v-flex xs6 class="time">
+
+        <v-flex xs6 class="time main-time">
           <span>{{ normalTime(currentTime) }} - {{ normalTime(maxTime) }}</span>
         </v-flex>
-        <v-flex xs4 hidden-sm-and-down>
+
+        <v-flex md3 hidden-sm-and-down>
           <v-slider v-model="zoom" max="75" min="5"
             prepend-icon="zoom_in" class="slider"></v-slider>
         </v-flex>
-<!-- 
-        <v-flex xs2 d-sm-flex>
+
+        <!-- <v-flex md2 hidden-sm-and-down>
           <v-slider v-model="speed" max="12" min="8"
             prepend-icon="directions_run" class="slider"></v-slider>
         </v-flex> -->
@@ -326,5 +329,15 @@ export default {
 }
 .time {
   text-align: center;
+}
+.main-time {
+  margin: 20px 0 0 0;
+  font-size: 1.2em !important;
+}
+.controls {
+
+}
+.control-btn {
+  margin-top:15px;
 }
 </style>

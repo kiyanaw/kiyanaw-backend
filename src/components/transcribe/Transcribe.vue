@@ -18,9 +18,11 @@
     </v-layout>
 
     <v-layout row>
-      <v-flex xs12>
-        <h3>{{ title }}</h3>
+      <v-flex md1></v-flex>
+      <v-flex xs12 md10>
+        <h3 class="title">{{ title }}</h3>
       </v-flex>
+      <v-flex md1></v-flex>
     </v-layout>
 
     <v-layout row >
@@ -355,5 +357,8 @@ export default {
 }
 .audio-player {
   height: 250px;
+}
+.title {
+  margin: 0 0 20px 0;
 }
 </style>
