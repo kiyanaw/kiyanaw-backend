@@ -66,11 +66,11 @@
 
           <v-layout row class="inflected-notes">
             <v-container grid-list-xl>
-              <v-flex>
+              <!-- <v-flex>
                 <h3>Form notes:</h3>
-              </v-flex>
+              </v-flex> -->
               <v-flex >
-               <h4>{{ word.form.name }} <span>"{{ word.form.translation }}"</span></h4>
+               <h3>{{ word.form.name }} <span>"{{ word.form.translation }}"</span></h3>
               </v-flex>
               <v-flex>
                 <p>{{ word.form.notes }}</p>
@@ -81,12 +81,11 @@
           <v-layout class="inflected-examples">
             <v-container grid-list-xl>
               <v-flex>
-                <h3>Examples</h3>
+                <h3>Explore</h3>
               </v-flex>
               <v-flex v-for="item in word.examples"
                 v-bind:key="item.title">
-                <a v-bind:href="item.link">{{ item.title }}</a>
-                <p class="example-text"><em>"{{ item.text }}"</em></p>
+                <a v-bind:href="item.link" v-html="item.text"></a> - <em>{{ item.title }}</em>
               </v-flex>
             </v-container>
           </v-layout>
@@ -114,9 +113,9 @@ window.addEventListener("load", function(event) {
 const word = {
   language: 'nêhiyawêwin',
   dialect: 'Southern Plains (Y)',
-  inflected: 'kâ-nêhiyawêcik',
+  inflected: 'kâ-kî-ohkomiyân',
   alternate: 'ᑳ ᓀᐦᐃᔭᐍᒋᐠ',
-  translation: 'when they speak Cree; those who speak Cree',
+  translation: 'when I had a grandmother',
   lemma: {
     sro: 'nêhiyawêw',
     translation: 's/he speaks Cree'
@@ -124,18 +123,42 @@ const word = {
   transitivity: 'Intransitive',
   animacy: 'Animate',
   type: 'Verb',
-  actor: '3Pl',
+  actor: '1s',
   goal: null,
   tempus: 'Past',
   mode: 'Conjunct',
-  fstIdentifier: 'PV/kâ+*+Cnj+Prs+3Pl',
+  fstIdentifier: 'PV/kâ+*+Cnj+Prt+1Sg',
   form: {
     name: 'kâ-',
     translation: "when",
     notes: 'kâ- is typically used to imply "when" as in "when I speak", but is also often used in names to imply "one who" as in "one who speaks".'
   },
   examples: [
-    {title: 'Doreen Frencheater Daychief Interview (00:21)', link: '/transcribe-edit/admin:54aaaff460d71b2f5eedc6961e198331#wavesurfer_2iqi7l8i4mc', text: 'ê-nôhtê-âcimoyân ôma kîkwây mâna kâ-kî-pê-itwêt kâ-kî-ohkômiyân'}
+    {
+      title: 'Doreen Frencheater Daychief Interview (00:21.39, r3)',
+      link: 'https://dev.kiyanaw.net/transcribe-edit/admin:54aaaff460d71b2f5eedc6961e198331#wavesurfer_kidn06ceb5o',
+      text: 'ê-nôhtê-âcimoyân ôma kîkway mâna kâ-kî-pê-itwêt <b>kâ-kî-ohkômiyân</b>'
+    },
+    {
+      title: 'Doreen Frencheater Daychief Interview (00:30.29, r4)',
+      link: 'https://dev.kiyanaw.net/transcribe-edit/admin:54aaaff460d71b2f5eedc6961e198331#wavesurfer_1bva8285c9',
+      text: 'nawakîs kî-isiyihkâsow <b>kâ-kî-ohkômiyân</b> ôtê ohci aya,'
+    },
+    {
+      title: 'Doreen Frencheater Daychief Interview (4:00.41, r39)',
+      link: 'https://dev.kiyanaw.net/transcribe-edit/admin:54aaaff460d71b2f5eedc6961e198331#wavesurfer_odj099f5o04',
+      text: 'êkwa kâ-kî-omosômiyân <b>kâ-kî-ohkômiyân</b> mîna êkotê ohci'
+    },
+    {
+      title: 'Doreen Frencheater Daychief Interview (4:38.12, r45)',
+      link: 'https://dev.kiyanaw.net/transcribe-edit/admin:54aaaff460d71b2f5eedc6961e198331#wavesurfer_403eo1qr3ok',
+      text: 'êkwa <b>kâ-kî-ohkômiyân</b> kîhtwâm'
+    },
+    {
+      title: 'Doreen Frencheater Daychief Interview (12:55.29, r118)',
+      link: 'https://dev.kiyanaw.net/transcribe-edit/admin:54aaaff460d71b2f5eedc6961e198331#wavesurfer_be6l2d1gau8',
+      text: 'nisto âcimowina nikî-pê-nakatamâkonân <b>kâ-kî-ohkômiyân</b>'
+    }
   ]
 }
 
