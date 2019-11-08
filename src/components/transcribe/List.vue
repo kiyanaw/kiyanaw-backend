@@ -7,12 +7,18 @@
             class="elevation-1"
             :headers="headers"
             :items="list"
-            :loading="loading">
+            :loading="loading"
+            ref="table">
           <template v-slot:items="props">
             <td><a v-bind:href="props.item.url">{{ props.item.title }}</a></td>
             <td>{{ props.item.length }}</td>
-            <td>{{ props.item.coverage }}%</td>
-            <td>{{ timeAgo(props.item.dateLastUpdated) }} by {{ props.item.lastUpdateBy }}</td>
+            <td>
+              <v-progress-linear
+                v-bind:value="props.item.coverage"
+                height="3">
+              </v-progress-linear>
+            </td>
+            <td>{{ timeAgo(props.item.dateLastUpdated) }} {{ props.item.lastUpdateBy }}</td>
             <td>{{ props.item.type }}</td>
             <td><a v-bind:href="props.item.source" _target="blank">Link</a></td>
           </template>
@@ -69,6 +75,8 @@ class Transcription {
 export default {
   mounted () {
     this.loadTranscriptionList()
+    // this is a hack, fix it
+    this.$refs.table.defaultPagination.rowsPerPage = 25
     window.list = this
   },
   data () {
