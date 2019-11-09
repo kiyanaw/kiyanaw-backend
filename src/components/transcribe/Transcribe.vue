@@ -152,7 +152,6 @@ export default {
           try {
             let canPlay = true
             for (let region of this.regions) {
-              console.log(this.$refs[region.id][0].hasFocus)
               if (this.$refs[region.id][0].hasFocus) {
                 canPlay = false
               }

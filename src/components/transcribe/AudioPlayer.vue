@@ -35,10 +35,10 @@
             prepend-icon="zoom_in" class="slider"></v-slider>
         </v-flex>
 
-        <!-- <v-flex md2 hidden-sm-and-down>
-          <v-slider v-model="speed" max="12" min="8"
+        <v-flex md3 hidden-sm-and-down>
+          <v-slider v-model="speed" max="20" min="5"
             prepend-icon="directions_run" class="slider"></v-slider>
-        </v-flex> -->
+        </v-flex>
 
       </v-layout>
     </div>
@@ -78,6 +78,7 @@ export default {
         waveColor: 'violet',
         progressColor: 'purple',
         scrollParent: true,
+        backend: 'MediaElement',
         barWidth: 1,
         plugins: [
           RegionPlugin.create({
@@ -118,59 +119,6 @@ export default {
       me.textRegions = me.regions
     })
 
-    /**
-     * This whole block sets up 'speed shift', and it mostly works
-     * though there is some wierdness with the timing
-     */
-    surfer.on('ready', function() {
-      var st = new soundtouch.SoundTouch(
-          surfer.backend.ac.sampleRate
-      )
-      var buffer = surfer.backend.buffer
-      var channels = buffer.numberOfChannels
-      var l = buffer.getChannelData(0)
-      var r = channels > 1 ? buffer.getChannelData(1) : l
-      var length = buffer.length
-      var seekingPos = null
-      var seekingDiff = 0
-      var source = {
-          extract: function(target, numFrames, position) {
-              if (seekingPos != null) {
-                  seekingDiff = seekingPos - position
-                  seekingPos = null
-              }
-              position += seekingDiff
-              for (var i = 0; i < numFrames; i++) {
-                  target[i * 2] = l[i + position]
-                  target[i * 2 + 1] = r[i + position]
-              }
-              return Math.min(numFrames, length - position)
-          }
-      }
-      var soundtouchNode;
-      surfer.on('play', function() {
-          seekingPos = ~~(surfer.backend.getPlayedPercents() * length)
-          st.tempo = surfer.getPlaybackRate()
-          if (st.tempo === 1) {
-              surfer.backend.disconnectFilters()
-          } else {
-              if (!soundtouchNode) {
-                  var filter = new soundtouch.SimpleFilter(source, st)
-                  soundtouchNode = soundtouch.getWebAudioNode(
-                      surfer.backend.ac,
-                      filter
-                  )
-              }
-              surfer.backend.setFilter(soundtouchNode);
-          }
-      })
-      surfer.on('pause', function() {
-          soundtouchNode && soundtouchNode.disconnect()
-      })
-      surfer.on('seek', () =>   {
-          seekingPos = ~~(surfer.backend.getPlayedPercents() * length)
-      })
-    })
     if (this.canEdit) {
       surfer.enableDragSelection({slop: 5})
     }
