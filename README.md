@@ -13,6 +13,9 @@ npm run serve
 ### Run your tests
 ```
 npm run test
+
+# to continually watch tests
+npm run test-watch
 ```
 
 ### Deploy

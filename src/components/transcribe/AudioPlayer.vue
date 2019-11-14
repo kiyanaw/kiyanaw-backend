@@ -36,7 +36,7 @@
         </v-flex>
 
         <v-flex md3 hidden-sm-and-down>
-          <v-slider v-model="speed" max="20" min="5"
+          <v-slider v-model="speed" max="15" min="5"
             prepend-icon="directions_run" class="slider"></v-slider>
         </v-flex>
 

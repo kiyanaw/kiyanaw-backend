@@ -10,7 +10,7 @@
           v-bind:regions="regions"
           v-bind:canEdit="user !== null"
           v-bind:inboundRegion="inboundRegion"
-          v-on:region-updated="updateRegion"
+          v-on:region-updated="onUpdateRegion"
           v-on:region-in="highlightRegion"
           v-on:region-out="blurRegion">
         </audio-player>
@@ -87,9 +87,6 @@ import uuid from 'uuid/v1'
 import {ulid} from 'ulid'
 import { randomFillSync } from 'crypto';
 
-window.uuid = uuid
-window.ulid = ulid
-
 function getColor(){ 
   return "hsl(" + 360 * Math.random() + ',' +
              (25 + 70 * Math.random()) + '%,' + 
@@ -124,14 +121,14 @@ export default {
     /**
      * Set up a subscription for new cursor changes.
      */
-    UserService.listenForCursor((data) => {
-      if (data.user !== this.user.name) {
-        // only try to set cursors for local regions
-        if (this.$refs[data.cursor.regionId]) {
-          this.$refs[data.cursor.regionId][0].setCursor({user: data.user, ...data.cursor})
-        }
-      }
-    }).catch((e) => {})
+    // UserService.listenForCursor((data) => {
+    //   if (data.user !== this.user.name) {
+    //     // only try to set cursors for local regions
+    //     if (this.$refs[data.cursor.regionId]) {
+    //       this.$refs[data.cursor.regionId][0].setCursor({user: data.user, ...data.cursor})
+    //     }
+    //   }
+    // }).catch((e) => {})
 
     /**
      * Get a list of the current locked regions.
@@ -188,9 +185,13 @@ export default {
     }
   },
   computed: {
+    /**
+     * @description Returns a list of regions in order of the starting timestamp.
+     */
     sortedRegions() {
       if (this.regions) {
-        const sorted = this.regions.sort((a, b) => (a.start > b.start) ? 1 : -1)
+        // use .slice() to copy the array and prevent modifying the original
+        const sorted = this.regions.slice().sort((a, b) => (a.start > b.start) ? 1 : -1)
         // add an index for visual aide
         for (const index in sorted) {
           sorted[index].index = index
@@ -210,17 +211,21 @@ export default {
       /**
        * This is a mess. Someone please help.
        */
-      const scrollBox = document.querySelector('.scroll-container')
-      const scrollBoxTop = scrollBox.getBoundingClientRect().y
-      const randomFixNumber = 24 // don't ask - I'm just horrible at CSS
-      let newHeight
-      if (this.user) {
-        newHeight = `${window.innerHeight - scrollBoxTop - randomFixNumber - 50}px`
-      } else {
-        newHeight = `${window.innerHeight - scrollBoxTop - randomFixNumber}px`
+      try {
+        const scrollBox = document.querySelector('.scroll-container')
+        const scrollBoxTop = scrollBox.getBoundingClientRect().y
+        const randomFixNumber = 24 // don't ask - I'm just horrible at CSS
+        let newHeight
+        if (this.user) {
+          newHeight = `${window.innerHeight - scrollBoxTop - randomFixNumber - 50}px`
+        } else {
+          newHeight = `${window.innerHeight - scrollBoxTop - randomFixNumber}px`
+        }
+        // TODO: if the user is signed in you have the save button to account for
+        scrollBox.style.height = newHeight
+      } catch (e) {
+        // pass
       }
-      // TODO: if the user is signed in you have the save button to account for
-      scrollBox.style.height = newHeight
     },
     editorBlur () {
       this.editingRegion = null
@@ -296,27 +301,42 @@ export default {
         document.getElementById(region.id).scrollIntoView()
       })
     },
+
+    /**
+     * @description Loads initial data based on URL params.
+     */
     async load () {
-      console.log('loaded!')
       const data = await TranscriptionService.getTranscription(this.transcriptionId)
       this.audioFile = data.source
       this.peaks = data.peaks || null
-      this.regions = data.regions
+      this.regions = data.regions || []
       this.title = data.title
       this.authorId = data.authorId
       this.inboundRegion = this.$route.hash.replace('#', '') || null
       this.fixScrollHeight()
     },
+
     blurRegion (region) {
       this.inRegions = this.inRegions.filter(r => r !== region.id)
     },
+
     playRegion(regionId) {
       this.$refs.player.playRegion(regionId)
     },
+
     deleteRegion (regionId) {
       this.regions = this.regions.filter(r => r.id !== regionId)
     },
-    updateRegion (region) {
+
+    /**
+     * @description Handle region changes. If the `region` provided already
+     * exists, update it with the new details, otherwise, create the region.
+     * @param {object} region The new region details to update with.
+     * @param {string} region.id The id of the region being updated.
+     * @param {number} region.start The timestamp of the region start point.
+     * @param {number} region.end The timestamp of the region end point.
+     */
+    onUpdateRegion (region) {
       const regionIds = this.regions.map(item => item.id)
       if (regionIds.indexOf(region.id) === -1) {
         const regionData = {
@@ -325,15 +345,9 @@ export default {
           id: region.id,
           text: []
         }
-        // channel.trigger('client-region-create', regionData)
         this.regions.push(regionData)
       } else {
         const targetRegion = this.regions.filter(needle => needle.id === region.id)
-        // channel.trigger('client-region-update', {
-        //   id: region.id,
-        //   start: region.start,
-        //   end: region.end
-        // })
         if (targetRegion.length) {
           targetRegion[0].start = region.start
           targetRegion[0].end = region.end

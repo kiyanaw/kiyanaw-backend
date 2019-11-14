@@ -180,12 +180,6 @@ export default {
      * 
      */
     setCursor (data) {
-      console.log('setting cursor', data)
-      // TODO: this is a hack, fix it
-      if (data.content) {
-        this.quill.setContents(data.content)
-      }
-
       const exists = this.cursors.cursors().filter(needle => needle.id = data.id)
       if (!exists.length) {
         this.cursors.createCursor(data.user, data.user, data.color)
@@ -324,13 +318,11 @@ export default {
           // var text = this.quill.getText(range.index, range.length);
         }
         this.hasFocus = true
-        // TODO: remove this hack
-        const content = this.quill.getContents()
         // TODO: emit if we're editing {translation: true} or not
         // throttle the number of cursor updates
         clearTimeout(cursorTimer)
         cursorTimer = setTimeout(() => {
-          this.$emit('region-cursor', {regionId: this.regionId, range: range, content: content})
+          this.$emit('region-cursor', {regionId: this.regionId, range: range})
         }, 75)
         // announce our focus
         this.$emit('editor-focus', this.regionId)
@@ -342,9 +334,9 @@ export default {
     })
 
     // listen for locked regions
-    UserService.listenForLock((data) => {
-      console.log('region has been locked', data)
-    }).catch((err) => {})
+    // UserService.listenForLock((data) => {
+    //   console.log('region has been locked', data)
+    // }).catch((err) => {})
   }
 }
 </script>

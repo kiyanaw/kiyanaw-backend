@@ -38,7 +38,6 @@ const router = new VueRouter({
         { path: 'transcribe-list', component: TranscribeList, meta: { requiresAuth: true } },
         { path: 'transcribe-add', component: TranscribeAdd, meta: { requiresAuth: true } },
         { path: 'transcribe-edit/:id', component: TranscribeEdit }
-        
       ]
     },
     {
