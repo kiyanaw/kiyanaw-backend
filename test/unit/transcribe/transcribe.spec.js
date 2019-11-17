@@ -42,7 +42,7 @@ describe('components/Transcribe', function () {
     assert.strictEqual(rendered.transcriptionId, 'someid12345')
     // transcription data
     assert.strictEqual(rendered.title, 'This is my title')
-    assert.strictEqual(rendered.audioFile, 'https://some.url/foobar.mp3')
+    assert.strictEqual(rendered.source, 'https://some.url/foobar.mp3')
     assert.strictEqual(rendered.regions.length, 6)
     assert.strictEqual(rendered.authorId, 'admin:54aaaff460d71b2f5eedc6961e198331')
     assert.strictEqual(rendered.inboundRegion, null)
@@ -123,6 +123,47 @@ describe('components/Transcribe', function () {
       assert.strictEqual(component.regions[0].start, 0.124)
       loadStub.restore()
     })
-  })
 
+    it('should provide sorted regions', async function () {
+      // set up a new transcription with no regions
+      const transcription = JSON.parse(JSON.stringify(transcriptionData))
+      delete transcription.regions
+      // mount the component
+      const loadStub = sinon.stub(TranscriptionService, 'getTranscription')
+      loadStub.resolves(transcription)
+      const wrapper = shallowMount(Transcribe, { mocks: { $route } })
+      const component = wrapper.vm
+      await wait()
+      // make sure there are no regions
+      assert.strictEqual(component.regions.length, 0)
+      // add regions
+      component.onUpdateRegion({ id: 'my-region', start: 0.124, end: 0.456 })
+      component.onUpdateRegion({ id: 'my-other-region', start: 0.123, end: 0.456 })
+      assert.strictEqual(component.sortedRegions[0].start, 0.123)
+      loadStub.restore()
+    })
+
+    /**
+     * Should notify all editors that a new region has been set.
+     */
+    it('onRegionFocus should set new regionId', async function () {
+      // set up a new transcription with no regions
+      const transcription = JSON.parse(JSON.stringify(transcriptionData))
+      // mount the component
+      const loadStub = sinon.stub(TranscriptionService, 'getTranscription')
+      loadStub.resolves(transcription)
+      const wrapper = shallowMount(Transcribe, { mocks: { $route } })
+      const component = wrapper.vm
+      await wait()
+      // check active is not set
+      assert.strictEqual(component.regions[0].activeRegion, undefined)
+      assert.strictEqual(component.regions[1].activeRegion, undefined)
+      // check new value
+      component.onRegionFocus('some-region-123')
+      assert.strictEqual(component.editingRegion, 'some-region-123')
+      assert.strictEqual(component.regions[0].activeRegion, 'some-region-123')
+      assert.strictEqual(component.regions[1].activeRegion, 'some-region-123')
+      loadStub.restore()
+    })
+  })
 })
