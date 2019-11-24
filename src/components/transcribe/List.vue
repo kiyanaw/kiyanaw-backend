@@ -35,7 +35,7 @@
 <script>
 
 import TimeAgo from 'javascript-time-ago'
-import en from 'javascript-time-ago/locale/en'
+import en from 'javascript-time-ago/locale/en' 
 import TranscriptionService from '../../services/transcriptions'
 import UserService from '../../services/user'
 import utils from './utils'
@@ -50,6 +50,7 @@ window.timeAgo = timeAgo
  */
 class Transcription {
   constructor (data) {
+    console.log(data) 
     this.data = data
     this.authorId = data.authorId
     this.title = data.title

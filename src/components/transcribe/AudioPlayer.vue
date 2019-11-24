@@ -36,7 +36,7 @@
         </v-flex>
 
         <v-flex md3 hidden-sm-and-down>
-          <v-slider v-model="speed" max="15" min="5"
+          <v-slider v-model="speed" max="150" min="50"
             prepend-icon="directions_run" class="slider"></v-slider>
         </v-flex>
 
@@ -56,7 +56,7 @@ import utils from './utils'
 import { setTimeout } from 'timers'
 
 let surfer = null
-let playingRegionId = null
+// let playingRegionId = null
 let cacheTime = 0
 
 const regionRegularBackground = 'rgba(0, 0, 0, 0.1)'
@@ -64,12 +64,31 @@ const regionHighlightedBackground = 'rgba(0, 213, 255, 0.1)'
 
 export default {
   props: [
+    /**
+     * The URL of the file to load.
+     * TODO: this should be 'media' to accommodate video in the future.
+     */
     'audioFile',
+    /**
+     * Currently not used.
+     * TODO: remove
+     */
     'peaks',
+    /**
+     * When `true`, region creation and manipulation will be enabled.
+     */
     'canEdit',
+    /**
+     * If a region was specified in the parent editor, the player will be advanced to the
+     * inboundRegion.start time in anticipation of a 'play' event.
+     */
     'inboundRegion',
+    /**
+     * Bound array, changes will notify parent components.
+     */
     'regions'
   ],
+
   async mounted () {
     var me = this
     this.pendingInboundRegion = this.$props.inboundRegion
@@ -143,16 +162,22 @@ export default {
       // no actions just yet
     });
 
+
+    /**
+     * This event fires when both a region is created, and when it is updated.
+     */
     surfer.on('region-update-end', function (event) {
       me.$emit('region-updated', event)
     })
 
+
+    /** */
     surfer.on('region-in', (region) => {
-      this.regionIn(region.id)
+      this.onRegionIn(region.id)
     })
 
     surfer.on('region-out', (region) => {
-      this.regionOut(region.id)
+      this.onRegionOut(region.id)
     })
 
     surfer.load(this.audioFile)
@@ -167,9 +192,8 @@ export default {
   methods: {
     waveformClicked: function () {
       // clear out any pending region if we click somewhere in the waveform
-      console.log('waveform clicked')
       if (this.pendingInboundRegion) {
-        this.regionOut(this.pendingInboundRegion)
+        this.onRegionOut(this.pendingInboundRegion)
         this.pendingInboundRegion = null
       }
     },
@@ -181,7 +205,7 @@ export default {
         const maxTime = this.maxTime
         surfer.seekAndCenter(startTime / maxTime) 
         // this.$emit('region-in', {id: this.inboundRegion})
-        this.regionIn(this.inboundRegion)
+        this.onRegionIn(this.inboundRegion)
       }
     },
     cancelRegion: function () {
@@ -225,11 +249,17 @@ export default {
       })
       this.textRegions = this.regions
     },
-    regionIn(regionName) {
+
+
+    /** */
+    onRegionIn(regionName) {
       document.querySelector(`[data-id="${regionName}"]`).style.backgroundColor = regionHighlightedBackground
       this.$emit('region-in', {id: regionName})
     },
-    regionOut(regionName) {
+
+
+    /** */
+    onRegionOut(regionName) {
       document.querySelector(`[data-id="${regionName}"]`).style.backgroundColor = regionRegularBackground
       this.$emit('region-out', {id: regionName})
     }
@@ -243,7 +273,7 @@ export default {
       localStorage.zoom = newValue
     },
     speed (newValue, oldValue) {
-      surfer.setPlaybackRate(newValue / 10)
+      surfer.setPlaybackRate(newValue / 100)
     }
   },
   data () {
@@ -256,7 +286,7 @@ export default {
       loading: true,
       textRegions: {},
       zoom: 35,
-      speed: 10,
+      speed: 100,
       playing: false
     }
   }

@@ -12,7 +12,7 @@
           v-bind:inboundRegion="inboundRegion"
           v-on:region-updated="onUpdateRegion"
           v-on:region-in="highlightRegion"
-          v-on:region-out="blurRegion">
+          v-on:region-out="onBlurRegion">
         </audio-player>
       </v-flex>
     </v-layout>
@@ -82,10 +82,9 @@ import Editor from './Editor.vue'
 import TranscriptionService from '../../services/transcriptions'
 import EnvService from '../../services/env'
 import UserService from '../../services/user'
+
 import { setTimeout } from 'timers';
-import uuid from 'uuid/v1'
-import {ulid} from 'ulid'
-import { randomFillSync } from 'crypto';
+
 
 function getColor(){ 
   return "hsl(" + 360 * Math.random() + ',' +
@@ -204,19 +203,29 @@ export default {
         targetRegion[0].translation = update.translation
       }
     },
+
+
     regionDelta (data) {},
+
+
+    /** */
     regionCursor (data) {
       data.color = cursorColor
       const update = {
         cursor: data,
         user: `${this.user.name}`
       }
-      UserService.sendCursor(update).catch((e) => {})
+      // UserService.sendCursor(update).catch((e) => {})
     },
-    regionDoneTyping(data) {
-      // 
+
+
+    /** */
+    regionDoneTyping() {
       this.saveData()
     },
+
+
+    /** */
     coverage () {
       let val = 0
       if (this.$refs.player && this.regions) {
@@ -244,7 +253,7 @@ export default {
         length: this.$refs.player.maxTime,
         coverage: this.coverage(),
         dateLastUpdated: +new Date(),
-        lastUpdateBy: this.username
+        lastUpdateBy: this.user.name
       })
       if (result) {
         this.saved = true
@@ -253,12 +262,16 @@ export default {
         }, 3000)
       }
     },
+
+
+    /** */
     highlightRegion (region) {
       this.inRegions = [region.id]
       this.$nextTick(() => {
         document.getElementById(region.id).scrollIntoView()
       })
     },
+
 
     /**
      * @description Loads initial data based on URL params.
@@ -274,14 +287,22 @@ export default {
       this.fixScrollHeight()
     },
 
-    blurRegion (region) {
+
+    /**
+     * @description Triggered when a region is no longer being edited
+     */
+    onBlurRegion (region) {
       this.inRegions = this.inRegions.filter(r => r !== region.id)
     },
 
+
+    /** */
     playRegion(regionId) {
       this.$refs.player.playRegion(regionId)
     },
 
+
+    /** */
     deleteRegion (regionId) {
       this.regions = this.regions.filter(r => r.id !== regionId)
     },
@@ -311,6 +332,7 @@ export default {
           targetRegion[0].end = region.end
         }
       }
+      // TODO: fire off the region update here
     }
   },
   /**
