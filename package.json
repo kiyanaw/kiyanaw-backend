@@ -13,6 +13,7 @@
     "unit": "vue-cli-service test:unit"
   },
   "dependencies": {
+    "amplify": "0.0.11",
     "aws-amplify": "^1.1.22",
     "aws-amplify-vue": "^0.2.7",
     "aws-appsync": "^2.0.1",

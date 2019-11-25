@@ -16,6 +16,7 @@ let client
  * @property {Array<Object>} text List of text items in this region
  */
 
+// TODO: there is a model in components/transcribe/Transcribe that would replace this
 /**
  * @typedef {Object} Transcription
  * @property {string} author The owner of the transcription
