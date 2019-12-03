@@ -1,11 +1,12 @@
 type Transcription @model
-@key(fields: ["id", "author"])
-@auth(rules: [{allow: public, provider: iam}])
+@key(fields: ["id"])
+@auth(rules: [{allow: public, provider: iam, ownerField: "author"}])
 {
   id: ID!
   author: String!
   coverage: Int
-  dateLastUpdated: Int!
+  dateLastUpdated: String!
+  userLastUpdated: String
   length: Float
   source: String
   title: String!
@@ -14,14 +15,15 @@ type Transcription @model
 }
 
 type Region @model
-@key(fields: ["id"])
 @auth(rules: [{allow: public, provider: iam}])
 @versioned
 {
   id: String!
   start: Float!
   end: Float!
-  lastChangeBy: String!
+  text: String!
+  dateLastUpdated: String!
+  userLastUpdated: String!
   transcription: Transcription! @connection(name: "TranscriptionRegions")
 }
 
@@ -29,15 +31,16 @@ type Cursor @model
 @key(fields: ["id", "user"])
 @auth(rules: [{allow: public, provider: iam}])
 {
-  id: ID!
+  id: String!
   user: String!
   cursor: String!
 }
 
-type Lock @model 
-@key(fields: ["id"])
+type RegionLock @model 
+@key(fields: ["id", "transcriptionId"])
 @auth(rules: [{allow: public, provider: iam}])
 {
   id: String!
+  transcriptionId: String!
   user: String!
 }

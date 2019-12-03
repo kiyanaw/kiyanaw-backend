@@ -1,9 +1,13 @@
 import { Auth } from 'aws-amplify'
 
 import appsync from './appsync'
-import { createCursor, updateCursor, createLock, deleteLock } from '../graphql/mutations'
-import { onUpdateCursor, onCreateLock, onDeleteLock } from '../graphql/subscriptions'
+import { createCursor, updateCursor, createRegionLock, deleteRegionLock } from '../graphql/mutations'
+import { onUpdateCursor, onCreateRegionLock, onDeleteRegionLock } from '../graphql/subscriptions'
+import { listRegionLocks } from '../graphql/queries'
 import gql from 'graphql-tag'
+import { ConsoleLogger } from '@aws-amplify/core'
+
+import { API, graphqlOperation, Storage } from 'aws-amplify'
 
 let user
 let cursorSubscription = null
@@ -11,6 +15,7 @@ let createLockSubscription = null
 let deleteLockSubscription = null
 const cursorSubscribers = []
 const lockSubscribers = []
+const myLocks = {}
 
 export default {
   async getUser () {
@@ -18,8 +23,12 @@ export default {
       window.auth = Auth
       user = await Auth.currentAuthenticatedUser({ bypassCache: false })
     }
+    // username is some garbage like 2b3cfffd-8c78-430f-a2b4-ef71c6017016
+    // pull name from first part of email
+    const name = user.attributes.email.split('@')[0]
     return {
-      name: user.username
+      name: name,
+      email: user.attributes.email
     }
   },
   async getCredentials () {
@@ -60,7 +69,7 @@ export default {
     }
     return result
   },
-  async listenForCursor (callback) {
+  async listenForCursor(callback) {
     // let up a listener, if we don't have one already
     if (!cursorSubscription) {
       const client = appsync.getClient()
@@ -81,37 +90,34 @@ export default {
     cursorSubscribers.push(callback)
   },
 
-  async lockRegion (regionId) {
+  async lockRegion (transcriptionId, regionId) {
     const user = await this.getUser()
-    try {
-      const client = appsync.getClient()
-      await client.mutate({
-        mutation: gql(createLock),
-        variables: {
-          input: {
-            id: regionId,
-            user: user.name
-          }
+    if (Object.keys(myLocks).includes(regionId)) {
+      return true
+    } else {
+      try {
+        const input = {
+          id: regionId,
+          user: user.name,
+          transcriptionId
         }
-      })
-    } catch (error) {
-      console.error(error)
-      return false
+        await API.graphql(graphqlOperation(createRegionLock, { input: input }))
+      } catch (error) {
+        // console.error(error)
+        delete myLocks[regionId]
+        return false
+      }
+      myLocks[regionId] = true
+      return true
     }
-    return true
   },
 
-  async unlockRegion (regionId) {
+  async unlockRegion (transcriptionId, regionId) {
+    const user = await this.getUser()
+    console.log(`unlock called by ${user.name} - ${regionId}`)
+    delete myLocks[regionId]
     try {
-      const client = appsync.getClient()
-      await client.mutate({
-        mutation: gql(deleteLock),
-        variables: {
-          input: {
-            id: regionId
-          }
-        }
-      })
+      await API.graphql(graphqlOperation(deleteRegionLock, { input: { id: regionId, transcriptionId } }))
     } catch (error) {
       console.error(error)
       return false
@@ -120,44 +126,59 @@ export default {
   },
 
   async listenForLock (callback) {
+    const user = await this.getUser()
     if (!createLockSubscription) {
-      const user = await this.getUser()
-      const client = appsync.getClient()
-      createLockSubscription = client.subscribe({ query: gql(onCreateLock) }).subscribe({
-        next: (data) => {
-          console.log('region lock created', data)
-          data = data.data.onCreateLock
-          data.action = 'created'
-          for (const subscriber of lockSubscribers) {
-            if (user.name !== data.user) {
-              subscriber(data)
+      createLockSubscription = API.graphql(graphqlOperation(onCreateRegionLock)).subscribe({
+        next: (lockData) => {
+          // console.log('lock data', lockData)
+          const data = lockData.value.data.onCreateRegionLock
+          if (data && data.user !== user.name) {
+            data.action = 'created'
+            console.log('Region locked by another user: ', data)
+            for (const subscriber of lockSubscribers) {
+              if (user.name !== data.user) {
+                subscriber(data)
+              }
             }
           }
-        },
-        error: (error) => {
-          console.error('onCreateLock subscription error', error)
         }
       })
     }
     if (!deleteLockSubscription) {
-      const user = await this.getUser()
-      const client = appsync.getClient()
-      deleteLockSubscription = client.subscribe({ query: gql(onDeleteLock) }).subscribe({
-        next: (data) => {
-          console.log('region lock deleted', data)
-          data = data.data.onDeleteLock
-          data.action = 'deleted'
-          for (const subscriber of lockSubscribers) {
-            if (user.name !== data.user) {
-              subscriber(data)
+      deleteLockSubscription = API.graphql(graphqlOperation(onDeleteRegionLock)).subscribe({
+        next: (lockData) => {
+          const data = lockData.value.data.onDeleteRegionLock
+          // TODO: check TTL on this
+          if (data.user !== user.name) {
+            data.action = 'deleted'
+            console.log('Region UNlocked by another user: ', data)
+            for (const subscriber of lockSubscribers) {
+              if (user.name !== data.user) {
+                subscriber(data)
+              }
             }
           }
-        },
-        error: (error) => {
-          console.error('onDeleteLock subscription error', error)
         }
       })
     }
     lockSubscribers.push(callback)
+  },
+
+  async getRegionLocks (transcriptionId) {
+    const user = await this.getUser()
+    const response = await API.graphql(graphqlOperation(listRegionLocks, { input: { transcriptionId: transcriptionId } }))
+    console.log('all region locks', response.data)
+    if (response.data) {
+      const locks = response.data.listRegionLocks.items
+      for (const lock of locks) {
+        if (lock.user === user.name) {
+          myLocks[lock.id] = true
+        }
+      }
+      console.log('my locks', myLocks)
+      // TODO: check for nextToken
+      return locks.filter(item => item.user !== user.name)
+    }
+    return []
   }
 }

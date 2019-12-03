@@ -1,8 +1,10 @@
 var path = require('path')
 var webpack = require('webpack')
 const nodeExternals = require('webpack-node-externals')
-const { VueLoaderPlugin } = require("vue-loader")
+const { VueLoaderPlugin } = require('vue-loader')
 var MiniCssExtractPlugin = require('mini-css-extract-plugin')
+const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin
+
 
 module.exports = {
   entry: [
@@ -64,17 +66,18 @@ module.exports = {
     hints: false
   },
   devtool: '#eval-source-map',
+  // devtool: 'inline-source-map',
   plugins: [
     new VueLoaderPlugin(),
     new MiniCssExtractPlugin({
       filename: 'style.css'
     })
+    // new BundleAnalyzerPlugin()
   ]
 }
 
-
 if (process.env.NODE_ENV === 'test') {
-  module.exports.externals = [require('webpack-node-externals')()]
+  // module.exports.externals = [require('webpack-node-externals')()]
   module.exports.devtool = 'eval'
   module.exports.mode = 'development'
 }

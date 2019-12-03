@@ -7,6 +7,7 @@ export const createTranscription = `mutation CreateTranscription($input: CreateT
     author
     coverage
     dateLastUpdated
+    userLastUpdated
     length
     source
     title
@@ -16,7 +17,9 @@ export const createTranscription = `mutation CreateTranscription($input: CreateT
         id
         start
         end
-        lastChangeBy
+        text
+        dateLastUpdated
+        userLastUpdated
         version
       }
       nextToken
@@ -30,6 +33,7 @@ export const updateTranscription = `mutation UpdateTranscription($input: UpdateT
     author
     coverage
     dateLastUpdated
+    userLastUpdated
     length
     source
     title
@@ -39,7 +43,9 @@ export const updateTranscription = `mutation UpdateTranscription($input: UpdateT
         id
         start
         end
-        lastChangeBy
+        text
+        dateLastUpdated
+        userLastUpdated
         version
       }
       nextToken
@@ -53,6 +59,7 @@ export const deleteTranscription = `mutation DeleteTranscription($input: DeleteT
     author
     coverage
     dateLastUpdated
+    userLastUpdated
     length
     source
     title
@@ -62,7 +69,9 @@ export const deleteTranscription = `mutation DeleteTranscription($input: DeleteT
         id
         start
         end
-        lastChangeBy
+        text
+        dateLastUpdated
+        userLastUpdated
         version
       }
       nextToken
@@ -75,12 +84,15 @@ export const createRegion = `mutation CreateRegion($input: CreateRegionInput!) {
     id
     start
     end
-    lastChangeBy
+    text
+    dateLastUpdated
+    userLastUpdated
     transcription {
       id
       author
       coverage
       dateLastUpdated
+      userLastUpdated
       length
       source
       title
@@ -98,12 +110,15 @@ export const updateRegion = `mutation UpdateRegion($input: UpdateRegionInput!) {
     id
     start
     end
-    lastChangeBy
+    text
+    dateLastUpdated
+    userLastUpdated
     transcription {
       id
       author
       coverage
       dateLastUpdated
+      userLastUpdated
       length
       source
       title
@@ -121,12 +136,15 @@ export const deleteRegion = `mutation DeleteRegion($input: DeleteRegionInput!) {
     id
     start
     end
-    lastChangeBy
+    text
+    dateLastUpdated
+    userLastUpdated
     transcription {
       id
       author
       coverage
       dateLastUpdated
+      userLastUpdated
       length
       source
       title
@@ -163,23 +181,26 @@ export const deleteCursor = `mutation DeleteCursor($input: DeleteCursorInput!) {
   }
 }
 `;
-export const createLock = `mutation CreateLock($input: CreateLockInput!) {
-  createLock(input: $input) {
+export const createRegionLock = `mutation CreateRegionLock($input: CreateRegionLockInput!) {
+  createRegionLock(input: $input) {
     id
+    transcriptionId
     user
   }
 }
 `;
-export const updateLock = `mutation UpdateLock($input: UpdateLockInput!) {
-  updateLock(input: $input) {
+export const updateRegionLock = `mutation UpdateRegionLock($input: UpdateRegionLockInput!) {
+  updateRegionLock(input: $input) {
     id
+    transcriptionId
     user
   }
 }
 `;
-export const deleteLock = `mutation DeleteLock($input: DeleteLockInput!) {
-  deleteLock(input: $input) {
+export const deleteRegionLock = `mutation DeleteRegionLock($input: DeleteRegionLockInput!) {
+  deleteRegionLock(input: $input) {
     id
+    transcriptionId
     user
   }
 }

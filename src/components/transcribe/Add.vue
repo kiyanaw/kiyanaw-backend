@@ -50,7 +50,7 @@ export default {
         title: this.title,
       })
       if (result) {
-        this.$router.push({path: `/transcribe-edit/${result.id}`})
+        this.$router.push({path: `/transcribe-edit/${result.author}:${result.id}`})
       }
     },
     previewFiles(evt) {

@@ -35,24 +35,17 @@
             v-bind:key="region.id">
             <editor
               v-if="regions"
+              v-bind:region="region"
               v-bind:canEdit="user !== null"
               v-bind:ref="region.id"
-              v-bind:regionId="region.id"
-              v-bind:text="region.text"
-              v-bind:index="region.index"
-              v-bind:translation="region.translation"
-              v-bind:start="region.start"
-              v-bind:end="region.end"
               v-bind:inRegions="inRegions"
               v-bind:editing="editingRegion === region.id"
               v-on:editor-focus="onRegionFocus"
               v-on:editor-blur="onEditorBlur"
               v-on:play-region="playRegion"
-              v-on:region-text-updated="regionTextUpdated"
-              v-on:region-delta="regionDelta"
+              v-on:region-text-updated="onRegionTextUpdated"
               v-on:region-cursor="regionCursor"
-              v-on:delete-region="deleteRegion"
-              v-on:region-done-typing="regionDoneTyping"
+              v-on:delete-region="onDeleteRegion"
               >
             </editor>
             <hr />
@@ -76,12 +69,14 @@
 </template> 
 
 <script>
+import Timeout from 'smart-timeout'
 
 import AudioPlayer from './AudioPlayer.vue'
 import Editor from './Editor.vue'
 import TranscriptionService from '../../services/transcriptions'
 import EnvService from '../../services/env'
 import UserService from '../../services/user'
+import Lex from '../../services/lexicon'
 
 import { setTimeout } from 'timers';
 
@@ -97,6 +92,13 @@ const cursorColor = `${getColor()}`
 // keep track of this cursor
 let myCursor
 let inboundRegion = null
+
+// used to throttle updates
+let regionUpdateTimer
+// only send updates after a pause
+const SEARCH_INTERVAL = 1500
+const SAVE_INTERVAL = 5000
+
 
 export default {
 
@@ -126,12 +128,12 @@ export default {
   },
  
   data () {
-    return {
+    return { 
       /**
        * @type {String}
        * @description ID of the transcription.
        */
-      transcriptionId: null,
+      // authorId: null,
       source: null,
       peaks: null,
       regions: null,
@@ -144,7 +146,7 @@ export default {
       inboundRegion: null,
       inRegions: [],
       title: '',
-      authorId: null,
+      // authorId: null,
       saved: false,
       members: [],
       user: null,
@@ -176,8 +178,19 @@ export default {
 
 
     /** */
-    onEditorBlur () {
-      this.editingRegion = null
+    onEditorBlur (regionId, { silent = false } = {}) {
+      // only clear the editing region if we focus away from any editor
+      if (regionId === this.editingRegion) {
+        this.editingRegion = null
+      }
+      // only unlock the region if we're the editor that has the lock
+      if (!silent) {
+        UserService.unlockRegion(this.transcriptionId, regionId).then(() => {
+          // console.log('region unlocked', regionId)
+        }).catch((error) => {
+          console.log('could not unlock region', error)
+        })
+      }
     },
 
 
@@ -192,21 +205,61 @@ export default {
       for (let index in this.regions) {
         this.regions[index].activeRegion = regionId
       }
+      UserService.lockRegion(this.transcriptionId, regionId).then((haveLock) => {
+        // console.log('We have lock:', haveLock)
+        if (!haveLock) {
+          if (this.$refs[regionId] && this.$refs[regionId][0]) {
+            // Someone else has the lock on this region
+            this.$refs[regionId][0].lock()
+          }
+        }
+      })
     },
 
 
     /** */
-    regionTextUpdated (update) {
-      const targetRegion = this.regions.filter(r => r.id === update.regionId)
-      if (targetRegion.length) {
-        targetRegion[0].text = update.text
-        targetRegion[0].translation = update.translation
+    onRegionTextUpdated (event) {
+      const targetRegion = this.regions.filter(r => r.id === event.id)[0]
+      // search for new words
+      if (event.editor === 'main') {
+        const words = this.$refs[targetRegion.id][0].getTokenizedText()
+        Timeout.clear('word-search-timer')
+        Timeout.set('word-search-timer', this.searchForNewWords, SEARCH_INTERVAL, words)
+      }
+
+      // set a timer to save this region
+      Timeout.clear(`save-region-${event.id}-timer`)
+      Timeout.set(`save-region-${event.id}-timer`, this.saveRegion, SAVE_INTERVAL, targetRegion)
+      
+      // let targetRegion = this.regions.filter(r => r.id === update.id)
+      // if (targetRegion.length) {
+      //   targetRegion = targetRegion[0]
+      //   targetRegion.text = update.text
+      //   targetRegion.translation = update.translation
+      //   // fire updates
+      // }
+
+      // TODO: send cursor updates from here
+      // Timeout.clear('done-typing-timer')
+      // Timeout.set('done-typing-timer', this.saveData, SEARCH_INTERVAL)
+    },
+
+    async searchForNewWords (words) {
+      await Lex.wordSearch(words)
+      for (let region of this.regions) {
+        // trigger update for all editors
+        this.$refs[region.id][0].invalidateKnownWords()
       }
     },
 
+    async saveRegion (region) {
+      console.log('saving region', region)
+      TranscriptionService.updateRegion(this.transcriptionId, region)
+    },
 
-    regionDelta (data) {},
-
+    readyUpdate (args) {
+      console.log('ready update called', args)
+    },
 
     /** */
     regionCursor (data) {
@@ -218,13 +271,6 @@ export default {
       // UserService.sendCursor(update).catch((e) => {})
     },
 
-
-    /** */
-    regionDoneTyping() {
-      this.saveData()
-    },
-
-
     /** */
     coverage () {
       let val = 0
@@ -235,6 +281,8 @@ export default {
       }
       return (val * 100).toFixed(1)
     },
+
+    /** don't use this for regions */
     async saveData () {
       let regions = this.regions
       for (let index in regions) {
@@ -244,17 +292,17 @@ export default {
         regions[index].text = regionText
         regions[index].translation = regionTranslation
       }
-
-      const result = await TranscriptionService.saveTranscription(this.authorId, {
-        title: this.title,
-        source: this.source,
-        type: 'audio',
-        regions: this.sortedRegions,
-        length: this.$refs.player.maxTime,
-        coverage: this.coverage(),
-        dateLastUpdated: +new Date(),
-        lastUpdateBy: this.user.name
-      })
+      let result
+      // const result = await TranscriptionService.saveTranscription(this.authorId, {
+      //   title: this.title,
+      //   source: this.source,
+      //   type: 'audio',
+      //   regions: this.sortedRegions,
+      //   length: this.$refs.player.maxTime,
+      //   coverage: this.coverage(),
+      //   dateLastUpdated: +new Date(),
+      //   lastUpdateBy: this.user.name
+      // })
       if (result) {
         this.saved = true
         setTimeout(() => {
@@ -277,14 +325,17 @@ export default {
      * @description Loads initial data based on URL params.
      */
     async load () {
+      // TODO: move this to updateDataFromTranscription() for realtime updates
       const data = await TranscriptionService.getTranscription(this.transcriptionId)
       this.source = data.source
       this.peaks = data.peaks || null
-      this.regions = data.regions || []
       this.title = data.title
-      this.authorId = data.authorId
+      // TODO: move this to updateDataFromRegions()
+      this.regions = data.regions || []
+      // this.authorId = data.authorId
       this.inboundRegion = this.$route.hash.replace('#', '') || null
       this.fixScrollHeight()
+      this.checkForLockedRegions()
     },
 
 
@@ -293,6 +344,7 @@ export default {
      */
     onBlurRegion (region) {
       this.inRegions = this.inRegions.filter(r => r !== region.id)
+      // TODO: unlock region
     },
 
 
@@ -303,7 +355,7 @@ export default {
 
 
     /** */
-    deleteRegion (regionId) {
+    onDeleteRegion (regionId) {
       this.regions = this.regions.filter(r => r.id !== regionId)
     },
 
@@ -315,24 +367,64 @@ export default {
      * @param {number} region.start The timestamp of the region start point.
      * @param {number} region.end The timestamp of the region end point.
      */
-    onUpdateRegion (region) {
+    onUpdateRegion (regionUpdate) {
       const regionIds = this.regions.map(item => item.id)
-      if (regionIds.indexOf(region.id) === -1) {
+      if (regionIds.indexOf(regionUpdate.id) === -1) {
         const regionData = {
-          start: region.start,
-          end: region.end,
-          id: region.id,
+          start: regionUpdate.start,
+          end: regionUpdate.end,
+          id: regionUpdate.id,
           text: []
         }
         this.regions.push(regionData)
+        window.data = regionData
+        // save the new region
+        TranscriptionService.createRegion(this.transcriptionId, regionData)
+          .catch(function (error) {
+            console.error('Failed to create region', error)
+          })
       } else {
-        const targetRegion = this.regions.filter(needle => needle.id === region.id)
+        let targetRegion = this.regions.filter(needle => needle.id === regionUpdate.id)
         if (targetRegion.length) {
-          targetRegion[0].start = region.start
-          targetRegion[0].end = region.end
+          // update bound data
+          targetRegion = targetRegion[0]
+          targetRegion.start = regionUpdate.start
+          targetRegion.end = regionUpdate.end
+          TranscriptionService.updateRegion(this.transcriptionId, targetRegion)
+            .catch(function (error) {
+              console.error('Failed to update region', error)
+            })
         }
       }
-      // TODO: fire off the region update here
+    },
+
+    async checkForLockedRegions () {
+      UserService.getRegionLocks(this.transcriptionId).then((locks) => {
+        for (const lock of locks) {
+          console.log('Incoming lock for region', lock.id)
+          if (this.$refs[lock.id]) {
+            this.$refs[lock.id][0].lock(lock.user)
+          }
+        }
+      }).catch((error) => {
+        console.error(error)
+      })
+    },
+
+    async listenForLockedRegions () {
+      // listen for locked regions
+      UserService.listenForLock((data) => {
+        if (this.$refs[data.id] && this.$refs[data.id][0]) {
+          console.log('region has been locked', data)
+          if (data.action === 'created') {
+            console.log(' --> create')
+            this.$refs[data.id][0].lock(data.user)
+          } else if (data.action === 'deleted') {
+            console.log(' --> delete')
+            this.$refs[data.id][0].unlock()
+          }
+        }
+      }).catch((err) => {})
     }
   },
   /**
@@ -349,8 +441,10 @@ export default {
     /**
      * Pull some parameters out of our URL to determine the doc to load.
      */
+    // this.authorId = this.$route.params.id
     this.transcriptionId = this.$route.params.id
-    const docId = this.transcriptionId.split(':')[1]
+
+    this.listenForLockedRegions()
 
     /**
      * Set up a subscription for new cursor changes.
@@ -372,31 +466,31 @@ export default {
     /**
      * Listen for <space> event (and others) to interact with the waveform.
      */
-    document.addEventListener('keyup', (evt) => {
-      // TODO: this might work better in Editor, blur the cursor at the same time
-      if (evt.keyCode === 27) {
-        this.editingRegion = null
-      }
-      if (!this.editingRegion) {
-        // play/pause on space bar
-        if (evt.keyCode === 32) {
-          try {
-            let canPlay = true
-            for (let region of this.regions) {
-              if (this.$refs[region.id][0].hasFocus) {
-                canPlay = false
-              }
-            }
-            if (canPlay) {
-              this.$refs.player.playPause()
-            }
+    // document.addEventListener('keyup', (evt) => {
+    //   // TODO: this might work better in Editor, blur the cursor at the same time
+    //   if (evt.keyCode === 27) {
+    //     this.editingRegion = null
+    //   }
+    //   if (!this.editingRegion) {
+    //     // play/pause on space bar
+    //     if (evt.keyCode === 32) {
+    //       try {
+    //         let canPlay = true
+    //         for (let region of this.regions) {
+    //           if (this.$refs[region.id][0].hasFocus) {
+    //             canPlay = false
+    //           }
+    //         }
+    //         if (canPlay) {
+    //           this.$refs.player.playPause()
+    //         }
 
-          } catch (e) {
-            console.error(e)
-          }
-        }
-      }
-    })
+    //       } catch (e) {
+    //         console.error(e)
+    //       }
+    //     }
+    //   }
+    // })
     this.fixScrollHeight()
     // load up
     this.load()

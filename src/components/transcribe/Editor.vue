@@ -1,47 +1,53 @@
 <template>
-  <v-container>
-    <v-layout class="region-editor-layout"
-      v-bind:class="{ inRegion: isInRegion, review: needsReview }"
-      style="position: relative">
-      <span class="region-index">{{ index }}</span>
+  <v-container v-bind:class="{ locked: locked }">
+    <v-layout
+      class="region-editor-layout"
+      v-bind:class="{ inRegion: isInRegion, review: needsReview}"
+      style="position: relative"
+    >
+      <span class="region-index">{{ region.index }}</span>
       <v-flex xs2 md1 v-on:click="playRegion">
         <div class="timestamps">
-          <span class="time region-start">{{ normalTime(start) }}</span><br />
-          <span class="time region-end">{{ normalTime(end) }}</span>
+          <span class="time region-start">{{ normalTime(region.start) }}</span
+          ><br />
+          <span class="time region-end">{{ normalTime(region.end) }}</span>
         </div>
       </v-flex>
 
       <v-flex xs9 md10>
         <div>
-          <div v-bind:id="'editor-' + regionId"></div>
+          <div v-bind:id="'editor-' + region.id"></div>
         </div>
       </v-flex>
 
-      <v-flex md1 xs1>
-      </v-flex>
+      <v-flex md1 xs1> </v-flex>
     </v-layout>
 
     <v-layout class="region-options-layout">
-      <v-flex xs2 md1><!-- spacer --></v-flex>
+      <v-flex xs2 md1>
+        <v-icon class="region-lock-icon" v-if="locked">lock</v-icon>
+        <div class="region-options-label" v-if="locked">{{ lockUser }}</div>
+        <div class="region-options-label label-translation" v-if="editing">English</div>
+          <!-- <div class="region-options-label label-options" v-if="editing">Options</div> -->
+      </v-flex>
 
       <v-flex xs10 md10>
-          <div class="region-options" v-if="translation && (!editing || !canEdit)">{{ translation.trim() }}</div>
-          <div class="region-options-edit" v-if="editing && canEdit">
-            <span class="region-options-label">Translation</span>
-            <div id="translation"></div>
-            <span class="region-options-label" v-if="!locked">Options</span>
-            <div class="region-options-controls" v-if="!locked">
+        <div class="region-options-edit">
+          <div v-bind:id="'editor-translate-' + region.id"></div>
+          <div v-if="editing">
+            <div class="region-options-controls">
               <a v-on:click="deleteRegion">Delete this region</a>
+              &nbsp;<span>Version {{ region.version }} by {{ region.userLastUpdated }}</span>
             </div>
           </div>
+        </div>
       </v-flex>
     </v-layout>
-
   </v-container>
 </template>
 
 <script>
-import sha1 from 'js-sha1'
+import Timeout from 'smart-timeout'
 import Quill from 'quill'
 import QuillCursors from 'quill-cursors'
 import utils from './utils'
@@ -63,64 +69,53 @@ Quill.register('modules/cursors', QuillCursors)
 let typingTimer
 let cursorTimer
 
+let blurFlag = false
+
 export default {
   props: [
+    'region',
     'canEdit',
-    'regionId',
-    'text',
-    'translation',
-    'index',
-    'start',
-    'end',
     // this has the region where the playback head is located
     'inRegions',
+    // true when the user is editing this region
     'editing'
   ],
+
+  data() {
+    return {
+      // regionText: this.$props.text,
+      // hasFocus: false,
+      _regionTranslation: null,
+      locked: false,
+      lockUser: '',
+      blurFlag: false
+    };
+  },
+
   watch: {
-    editing (newValue, oldValue) {
-      if (newValue) {
-        // Set up an editor for the translation field
-        this.$nextTick(() => {
-          this.quillTranslate = new Quill(this.$el.querySelector('#translation'), {
-            theme: 'snow',
-            modules: {
-              toolbar: false
-            }
-          })
-          this.quillTranslate.format('color', 'gray')
-          this.quillTranslate.root.setAttribute('spellcheck', false)
-          if (this.translation) {
-            this.quillTranslate.insertText(0, this.translation.trim())
-          }
-          if (this.locked) {
-            this.quillTranslate.disable()
-          }
-          this.quillTranslate.on('text-change', (delta, oldDelta, source) => {
-            this._regionTranslation = this.quillTranslate.getText()
-            // force the text to grey
-            this.quillTranslate.formatText(0, 9999999, 'color', 'gray')
-            this.saveOps()
-          })
-          this.quillTranslate.formatText(0, 9999999, 'color', 'gray')
-          // shift focus to the regular editor
-          this.quill.focus()
-        })
-      } else {
-        this.unlock()
-        this.quillTranslate = null
-      }
+    editing(newValue, oldValue) {
+      // if (newValue) {
+        console.log(`Editing - ${this.region.id} - ${newValue}`)
+      // } else {
+      //   this.unlock();
+      //   // this.quillTranslate = null;
+      // }
     }
   },
+
   computed: {
     isInRegion() {
       const inRegions = this.$props.inRegions
-      const regionId = this.$props.regionId
+      const regionId = this.$props.region.id
       if (inRegions && regionId) {
-        return this.$props.inRegions.indexOf(this.$props.regionId) > -1
+        return this.inRegions.indexOf(this.region.id) > -1
       }
     },
-    needsReview () {
-      const doubleQuestion = this.regionText.filter(word => word.insert.indexOf('??') > -1)
+    // TODO this needs tests
+    needsReview() {
+      const doubleQuestion = this.region.text.filter(
+        word => word.insert.indexOf('??') > -1
+      )
       if (doubleQuestion.length) {
         return true
       }
@@ -128,22 +123,22 @@ export default {
     }
   },
   methods: {
-    lock () {
+    lock(lockUser = 'unknown') {
+      console.log('This region is locked', this.region.id)
       this.locked = true
-      this.$emit('editor-focus', this.regionId)
+      this.$emit('editor-blur', this.region.id, { silent: true })
+      this.lockUser = lockUser
       this.quill.disable()
+      this.quillTranslate.disable()
     },
-    unlock () {
+    unlock() {
+      console.log('This region is unlocked', this.region.id)
       this.locked = false
+      this.lockUser = ''
       this.quill.enable()
+      this.quillTranslate.enable()
     },
-    /**
-     * Syncs up the module regionText with the editor data.
-     */
-    saveOps() {
-        this.regionText = this.quill.getContents().ops
-        this.$emit('region-text-updated', {regionId: this.regionId, text: this.regionText, translation: this._regionTranslation})
-    },
+
     /**
      * TODO: this should maybe be a computed.
      * Turns a 1.398456847365252 float into 0:01.40 time
@@ -155,67 +150,52 @@ export default {
      * Handler for when user clicks on the timestamps for this region.
      */
     playRegion() {
-      this.$emit('play-region', this.regionId)
-      this.$router.push({ path: `#${this.regionId}` })
+      this.$emit('play-region', this.region.id)
+      this.$router.push({ path: `#${this.region.id}` })
     },
     /**
-     * 
+     *
      */
     deleteRegion() {
-      this.$emit('delete-region', this.regionId)
+      this.$emit('delete-region', this.region.id)
     },
     /**
-     * 
+     *
      */
-    insertDelta (delta) {
+    insertDelta(delta) {
       this.quill.updateContents(delta)
     },
     /**
-     * 
+     *
      */
-    clearCursors () {
-      this.cursors.clearCursors()
+    clearCursors() {
+      this.cursors.clearCursors();
     },
     /**
-     * 
+     *
      */
-    setCursor (data) {
-      const exists = this.cursors.cursors().filter(needle => needle.id = data.id)
+    setCursor(data) {
+      const exists = this.cursors
+        .cursors()
+        .filter(needle => (needle.id = data.id));
       if (!exists.length) {
-        this.cursors.createCursor(data.user, data.user, data.color)
+        this.cursors.createCursor(data.user, data.user, data.color);
       }
-      this.cursors.moveCursor(data.user, data.range)
-      window.cursors = this.cursors
+      this.cursors.moveCursor(data.user, data.range);
+      window.cursors = this.cursors;
     },
-    async doneTyping () {
-      // check for new words
-      this.$emit('region-done-typing', {region: this.regionId, sha: this.sha()})
-      // TODO: optimize this so it doesn't search for already-known words
-      const words = this.quill.getText().split(' ').filter(item => item && (item.indexOf('\n') === -1))
-      console.log(words)
-      Lex.wordSearch(words, (results) => {
-        // 
-        this.checkKnownWords()
-      })
-    },
-    /**
-     * Returns the SHA1 of the editor contents, useful for checking for changes.
-     * @returns {string}
-     */
-    sha () {
-      return sha1(JSON.stringify(this.quill.getContents()))
-    },
+
     /**
      * Whenever a user types, check all of the words in the editor against a list
      * of known words in the Lexicon™, careful to make sure that when words break
      * that they are discarded as 'known'.
      */
-    async checkKnownWords () {
+    async invalidateKnownWords() {
       // reset all the 'known-word' format
       this.quill.formatText(0, 9999, 'known-word', false)
       // loop through and refresh
       const knownWords = await Lex.getKnownWords()
-      console.log(`known words: ${knownWords}`)
+      // console.log(`known words: ${knownWords}`)
       // add a space at the beginning to allow 0-index matches
       const text = this.quill.getText()
       const matchedWordsIndex = []
@@ -227,14 +207,18 @@ export default {
         let re = new RegExp(item, 'g')
         let match
         let matches = []
-        while (match = re.exec(text)) {
-          console.log(`match: ${match}`)
+        while ((match = re.exec(text))) {
+          // console.log(`match: ${match}`)
           // TODO: this is icky, find a better way
           // make sure we're matching whole words and not just partials
           // grab the character right after our match to
           const surroundingCharacters = [' ', '\n', '.', ',', '(', ')']
-          const beforeIsSpace = match.index === 0 || surroundingCharacters.includes(text[match.index - 1])
-          const afterIsSpace = surroundingCharacters.includes(text[match.index + item.length])
+          const beforeIsSpace =
+            match.index === 0 ||
+            surroundingCharacters.includes(text[match.index - 1])
+          const afterIsSpace = surroundingCharacters.includes(
+            text[match.index + item.length]
+          )
           if (beforeIsSpace && afterIsSpace) {
             matches.push(match)
           }
@@ -245,112 +229,233 @@ export default {
         }
       }
     },
+
     /**
      * Tell the lexicon service that we have known words so we can keep track of them
      * without searching a second time.
      */
-    async reportKnownWordsOnLoad (deltas) {
-      const known = deltas.filter(item => item.attributes && item.attributes['known-word'] !== undefined).map(item => item.insert)
-      Lex.addKnownWords(known)
+    async reportKnownWords(deltas) {
+      const known = deltas
+        .filter(item => item.attributes && item.attributes['known-word'] !== undefined)
+        .map(item => item.insert);
+      Lex.addKnownWords(known);
+    },
+
+    /**
+     * Returns a list of the quill text cleansed of newline characters.
+     */
+    getTokenizedText() {
+      return this.quill
+        .getText()
+        .replace(/(\r\n|\n|\r)/gm, '')
+        .split(' ')
+        .filter(item => item && item.indexOf('\n') === -1)
+    },
+
+    /**
+     * Syncs up the module regionText with the editor data.
+     */
+    notifyRegionChanged(editor) {
+      const ops = this.quill.getContents().ops;
+      // this.regionText = ops;
+      this.region.text = ops
+      this.$emit('region-text-updated', {
+        id: this.region.id,
+        editor: editor
+      });
+    },
+
+    /**
+     * @description Handles changes to the main editor.
+     */
+    async onEditorTextChange(delta, oldDelta, source) {
+      if (source === 'user') {
+        // check for breakages
+        this.invalidateKnownWords()
+        // notify this editor changed
+        this.notifyRegionChanged('main')
+        // set an timeout for the user to stop typing
+        // Timeout.clear('text-change-timeout')
+        // Timeout.set('text-change-timeout', this.doneTyping, 250)
+      }
+    },
+
+    async onTranslationTextChange(delta, oldDelta, source) {
+      if (source === 'user') {
+        this.notifyRegionChanged('secondary')
+      }
+    },
+
+    async onEditorSelectionChange(range, oldRange, source) {
+      if (!this.locked) {
+        if (range) {
+          if (range.length === 0) {
+            // console.log('User cursor is on', range.index)
+          } else {
+            // console.log('User has highlighted', text)
+          }
+          // throttle the number of cursor updates
+          Timeout.clear('cursor-change-timeout')
+          Timeout.set('cursor-change-timeout', this.onCursorChange, 100, range)
+          // we must delay the focus event to give the other editor's blur
+          // event a chance to fire first
+          this.$nextTick(() => {
+            this.maybeFocusBlur({
+              type: 'focus',
+              source: 'main'
+            })
+          })
+        } else {
+          this.maybeFocusBlur({
+            type: 'blur',
+            source: 'main'
+          })
+        }
+      }
+    },
+
+    async onCursorChange(range) {
+      this.$emit('region-cursor', {
+        id: this.region.id,
+        range
+      })
+    },
+
+    /**
+     * Binds the editor events to the component.
+     */
+    async bindEditorEvents() {
+      this.quill.on('text-change', this.onEditorTextChange)
+      this.quill.on('selection-change', this.onEditorSelectionChange)
+      // TODO
+      // this.quillTranslate.on('text-change', this.onEditorTextChange)
+      this.quillTranslate.on('selection-change', (range, oldRange, source) => {
+        if (!this.locked) {
+          if (range) {
+            // we must delay the focus event to give the other editor's blur
+            // event a chance to fire first
+            this.$nextTick(() => {
+              this.maybeFocusBlur({
+                type: 'focus',
+                source: 'secondary'
+              })
+            })
+          } else {
+            this.maybeFocusBlur({
+              type: 'blur',
+              source: 'secondary'
+            })
+          }
+        }
+      })
+    },
+
+    /**
+     * If we jump from main -> secondary editor, we don't want to fire the 'blur'
+     * event because we're not done yet. Only fire the event if we get a 'blur' 
+     * event without an immediate 'focus' event.
+     */
+    maybeFocusBlur(event) {
+      if (event.type === 'blur') {
+        console.log('blur called', event.source)
+        this.blurFlag = true
+        Timeout.set('blur-timeout', () => {
+          console.log(' --> fire blur', this.blurFlag, this.region.id)
+          if (this.blurFlag) {
+            this.$emit('editor-blur', this.region.id)
+            this.blurFlag = false
+          }
+        }, 25, this.region.id)
+      } else {
+        console.log('focus called', this.blurFlag, event.source)
+        if (this.blurFlag) {
+          console.log('clear pending')
+          // we're within the timeout, do not fire the blur event
+          this.blurFlag = false
+        } else {
+          console.log(' --> fire focus', event.source)
+          // we're clear, fire the event
+          this.$emit('editor-focus', this.region.id)
+        }
+      }
+    },
+
+    mountMainEditor() {
+      this.quill = new Quill(this.$el.querySelector('#editor-' + this.region.id), {
+        theme: 'snow',
+        formats: ['known-word'],
+        modules: {
+          toolbar: false,
+          cursors: true
+        },
+        readOnly: !this.canEdit
+      })
+      this.cursors = this.quill.getModule('cursors')
+      this.quill.root.setAttribute('spellcheck', false)
+    },
+
+    mountSecondEditor() {
+      // TODO: this needs to clear cursors, etc
+      this.quillTranslate = new Quill(this.$el.querySelector('#editor-translate-' + this.region.id), {
+        theme: 'snow',
+        modules: {
+          toolbar: false,
+          cursors: true
+        }
+      })
+      this.quillTranslate.format('color', 'gray')
+      this.quillTranslate.root.setAttribute('spellcheck', false)
+      if (this.translation) {
+        this.quillTranslate.insertText(0, this.translation.trim())
+      }
+      // if (this.locked) {
+      //   this.quillTranslate.disable()
+      // }
+      this.quillTranslate.on('text-change', (delta, oldDelta, source) => {
+        this._regionTranslation = this.quillTranslate.getText()
+        // force the text to grey
+        this.quillTranslate.formatText(0, 9999999, 'color', 'gray')
+        this.notifyRegionChanged()
+      })
+      this.quillTranslate.formatText(0, 9999999, 'color', 'gray')
+      this.quillTranslate.blur()
     }
+
   },
-  data () {
-    return {
-      regionText: this.$props.text,
-      hasFocus: false,
-      _regionTranlation: null
-    }
-  },
+
   mounted() {
+
     this.locked = false
-    this.quill = new Quill(this.$el.querySelector('#editor-' + this.regionId), {
-      theme: 'snow',
-      formats: ['known-word'],
-      modules: {
-        toolbar: false,
-        cursors: true
-      },
-      readOnly: !this.canEdit
-    })
-    this.cursors = this.quill.getModule('cursors')
-    this.quill.root.setAttribute('spellcheck', false)
-    this.reportKnownWordsOnLoad(this.regionText)
+
+    this.mountMainEditor()
+    this.mountSecondEditor()
+
+    this.reportKnownWords(this.region.text)
     // check for known words on incoming text
-    this.quill.setContents(this.regionText)
+    this.quill.setContents(this.region.text, 'silent')
+    this.bindEditorEvents()
+
     // TODO: remove this, it's just for debugging.
     window.quill = this.quill
 
     // update the temporary translation value
     this._regionTranslation = this.translation
 
-    /**
-     * If a user has typed into this editor the source will be 'user
-     * and we will emit an event to update all other editor instances.
-     */
-    this.quill.on('text-change', (delta, oldDelta, source) => {
-      if (source === 'user') {
-        // set an timeout for the user to stop typing
-        clearTimeout(typingTimer)
-        typingTimer = setTimeout(this.doneTyping, 250)
-        // check for breakages
-        this.checkKnownWords()
-        // send off our delta
-        this.$emit('region-delta', {name: this.regionId, delta})
-      }
-      this.regionText = this.quill.getContents().ops
-      this.saveOps()
-    })
-
-    this.quill.on('selection-change', async (range, oldRange, source) => {
-      if (range) {
-        // TODO: move locking outside of the regions
-        // const haveLock = await UserService.lockRegion(this.regionId)
-        // if (!haveLock) {
-        //   console.log('Could not lock region', this.regionId)
-        //   return this.lock()
-        // }
-        if (range.length === 0) {
-          // console.log('User cursor is on', range.index);
-          // console.log(this.quill.getFormat(range.index))
-        } else {
-          // TODO: here is where we will tag highlighted words
-          // console.log('User has highlighted', text);
-          // var text = this.quill.getText(range.index, range.length);
-        }
-        this.hasFocus = true
-        // TODO: emit if we're editing {translation: true} or not
-        // throttle the number of cursor updates
-        clearTimeout(cursorTimer)
-        cursorTimer = setTimeout(() => {
-          this.$emit('region-cursor', {regionId: this.regionId, range: range})
-        }, 75)
-        // announce our focus
-        this.$emit('editor-focus', this.regionId)
-      } else {
-        // lost focus
-        this.saveOps()
-        this.hasFocus = false
-      }
-    })
-
-    // listen for locked regions
-    // UserService.listenForLock((data) => {
-    //   console.log('region has been locked', data)
-    // }).catch((err) => {})
   }
-}
+};
 </script>
 
 <style>
 #editor {
-  max-height: 200px
+  max-height: 200px;
 }
 
 .editor-rendered {
   line-height: 1.42; /* same as quill */
 }
 
-.nonEdit, .edit {
+.nonEdit,Yu
+.edit {
   padding: 12px 15px;
 }
 
@@ -359,7 +464,7 @@ export default {
 }
 
 .inRegion {
-  background-color:#edfcff;
+  background-color: #edfcff;
 }
 
 .timestamps {
@@ -392,23 +497,43 @@ export default {
   position: absolute;
   top: 7px;
   right: 10px;
-  font-size:20px;
+  font-size: 20px;
   font-weight: bolder;
   color: #dedede;
 }
 .region-options-label {
-    text-transform: uppercase;
-    color: #888;
-    font-size: 10px;
-    margin-left: 14px;
+  text-transform: uppercase;
+  color: #888;
+  font-size: 10px;
+  margin-left: 8px;
 }
+
+.label-translation {
+  margin: 23px 0px 24px 8px;
+}
+
+.label-options {
+  position: relative;
+  bottom: 1px;
+}
+
 .region-options-controls {
   padding: 0px 5px 5px 15px;
-    text-transform: uppercase;
-    font-size: 10px;
+  text-transform: uppercase;
+  font-size: 10px;
 }
 #translation {
   margin-top: -12px;
   margin-bottom: -10px;
+}
+.ql-editor {
+  padding: 5px 15px !important;
+}
+
+.locked {
+  opacity: 0.4;
+}
+.region-lock-icon {
+  margin: 10px;
 }
 </style>

@@ -10,7 +10,7 @@ const path = require('path')
 const paradigms = {}
 
 // build out VAI layout csv to JSON file
-function buildParadigmTemplatesForType (verbType) {
+function buildParadigmTemplatesForType(verbType) {
   const verbLayouts = fs.readFileSync(path.join(__dirname, 'layouts', `verb-${verbType}-full.layout`), 'utf-8')
   const type = 'Verb'
 
@@ -100,7 +100,7 @@ function buildParadigmTemplatesForType (verbType) {
   }
 }
 
-function buildParadigmTemplates () {
+function buildParadigmTemplates() {
   buildParadigmTemplatesForType('ai')
   buildParadigmTemplatesForType('ii')
   buildParadigmTemplatesForType('ti')
@@ -108,8 +108,8 @@ function buildParadigmTemplates () {
   return paradigms
 }
 
-// buildParadigmTemplates()
-// console.log(paradigms)
+buildParadigmTemplates()
+console.log(Object.keys(paradigms))
 
 module.exports = {
   buildParadigmTemplatesForType,
