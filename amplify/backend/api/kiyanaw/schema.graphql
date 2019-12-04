@@ -15,6 +15,7 @@ type Transcription @model
 }
 
 type Region @model
+@key(fields: ["id"])
 @auth(rules: [{allow: public, provider: iam}])
 @versioned
 {
@@ -22,9 +23,10 @@ type Region @model
   start: Float!
   end: Float!
   text: String!
-  translation: String!
+  translation: String
   dateLastUpdated: String!
   userLastUpdated: String!
+  lock: String
   transcription: Transcription! @connection(name: "TranscriptionRegions")
 }
 

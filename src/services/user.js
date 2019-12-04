@@ -24,7 +24,6 @@ const timestamps = {
 export default {
   async getUser () {
     if (!user) {
-      window.auth = Auth
       user = await Auth.currentAuthenticatedUser({ bypassCache: false })
     }
     // username is some garbage like 2b3cfffd-8c78-430f-a2b4-ef71c6017016
@@ -77,7 +76,10 @@ export default {
           // console.log('cursor data', data.value.data.onUpdateCursor)
           const cursorData = data.value.data.onUpdateCursor
           // unpack the JSON data
-          cursorData.cursor = JSON.parse(cursorData.cursor)
+          // console.log(cursorData.cursor)
+          if (typeof cursorData === 'string') {
+            cursorData.cursor = JSON.parse(cursorData.cursor)
+          }
           for (const subscriber of cursorSubscribers) {
             subscriber(cursorData)
           }
@@ -137,7 +139,7 @@ export default {
       createLockSubscription = API.graphql(graphqlOperation(onCreateRegionLock)).subscribe({
         next: (lockData) => {
           const data = lockData.value.data.onCreateRegionLock
-          console.log('incoming lock', data, user)
+          console.log('incoming lock', data.user)
           if (data && data.user !== user.name) {
             console.log(`data.user ${data.user} !== ${user.name}`)
             data.action = 'created'

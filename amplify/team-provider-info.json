@@ -8,7 +8,8 @@
             "DeploymentBucketName": "amplify-kiyanaw-dev-02717-deployment",
             "UnauthRoleName": "amplify-kiyanaw-dev-02717-unauthRole",
             "StackName": "amplify-kiyanaw-dev-02717",
-            "StackId": "arn:aws:cloudformation:us-east-1:494185203413:stack/amplify-kiyanaw-dev-02717/b94caea0-10ef-11ea-97d1-122d883fe268"
+            "StackId": "arn:aws:cloudformation:us-east-1:494185203413:stack/amplify-kiyanaw-dev-02717/b94caea0-10ef-11ea-97d1-122d883fe268",
+            "AmplifyAppId": "d2vcnct5kwl6za"
         },
         "categories": {
             "auth": {

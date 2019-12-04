@@ -124,6 +124,10 @@ export default {
       } else {
         return []
       }
+    },
+
+    regionIds () {
+      return this.regions.map((region) => region.id)
     }
   },
  
@@ -243,9 +247,9 @@ export default {
       TranscriptionService.updateRegion(this.transcriptionId, region)
     },
 
-    readyUpdate (args) {
-      console.log('ready update called', args)
-    },
+    // readyUpdate (args) {
+    //   console.log('ready update called', args)
+    // },
 
     /** */
     regionCursor (data) {
@@ -318,7 +322,7 @@ export default {
       this.source = data.source
       this.peaks = data.peaks || null
       this.title = data.title
-      // TODO: move this to updateDataFromRegions()
+      // TODO: move regions to an ADT
       this.regions = data.regions || []
       // this.authorId = data.authorId
       this.inboundRegion = this.$route.hash.replace('#', '') || null
@@ -343,8 +347,13 @@ export default {
 
 
     /** */
-    onDeleteRegion (regionId) {
-      this.regions = this.regions.filter(r => r.id !== regionId)
+    onDeleteRegion (region) {
+      this.removeLocalRegion(region)
+      TranscriptionService.deleteRegion(this.transcriptionId, region)
+    },
+
+    removeLocalRegion (region) {
+      this.regions = this.regions.filter(r => r.id !== region.id)
     },
 
     /**
@@ -399,6 +408,33 @@ export default {
       })
     },
 
+    async listenForRegions () {
+      TranscriptionService.listenForRegions((actionType, region) => {
+        if (actionType === 'created') {
+          console.log('Creating region!', region, this.regionIds)
+          if (!this.regionIds.includes(region.id)) {
+            this.regions.push(region)
+          }
+        }
+        if (actionType === 'updated') {
+          if (this.regionIds.includes(region.id)) {
+            // update the editor (unobtrusively)
+            if (this.$refs[region.id] && this.$refs[region.id][0]) {
+              this.$refs[region.id][0].realtimeUpdate(region)
+              // update times for the player
+              const targetRegion = this.regions.filter(r => r.id === region.id)[0]
+              targetRegion.start = region.start
+              targetRegion.end = region.end
+              this.$refs.player.renderRegions()
+            }
+          }
+        }
+        if (actionType === 'deleted') {
+          this.removeLocalRegion(region)
+        }
+      })
+    },
+
     async listenForLockedRegions () {
       // listen for locked regions
       UserService.listenForLock((data) => {
@@ -432,6 +468,7 @@ export default {
     // this.authorId = this.$route.params.id
     this.transcriptionId = this.$route.params.id
 
+    this.listenForRegions()
     this.listenForLockedRegions()
 
     /**

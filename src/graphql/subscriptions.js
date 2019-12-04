@@ -21,6 +21,7 @@ export const onCreateTranscription = `subscription OnCreateTranscription {
         translation
         dateLastUpdated
         userLastUpdated
+        lock
         version
       }
       nextToken
@@ -48,6 +49,7 @@ export const onUpdateTranscription = `subscription OnUpdateTranscription {
         translation
         dateLastUpdated
         userLastUpdated
+        lock
         version
       }
       nextToken
@@ -75,6 +77,7 @@ export const onDeleteTranscription = `subscription OnDeleteTranscription {
         translation
         dateLastUpdated
         userLastUpdated
+        lock
         version
       }
       nextToken
@@ -91,6 +94,7 @@ export const onCreateRegion = `subscription OnCreateRegion {
     translation
     dateLastUpdated
     userLastUpdated
+    lock
     transcription {
       id
       author
@@ -118,6 +122,7 @@ export const onUpdateRegion = `subscription OnUpdateRegion {
     translation
     dateLastUpdated
     userLastUpdated
+    lock
     transcription {
       id
       author
@@ -145,6 +150,7 @@ export const onDeleteRegion = `subscription OnDeleteRegion {
     translation
     dateLastUpdated
     userLastUpdated
+    lock
     transcription {
       id
       author

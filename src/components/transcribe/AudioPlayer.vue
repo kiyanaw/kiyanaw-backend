@@ -74,7 +74,8 @@ import MinimapPlugin from "wavesurfer.js/dist/plugin/wavesurfer.minimap.min.js";
 
 import soundtouch from "./lib/soundtouch";
 import utils from "./utils";
-import { setTimeout } from "timers";
+// import { setTimeout } from "timers";
+import Timeout from 'smart-timeout'
 
 let surfer = null;
 // let playingRegionId = null
@@ -267,13 +268,18 @@ export default {
       surfer.regions.list[regionId].play();
     },
     renderRegions() {
-      surfer.clearRegions();
-      this.regions.forEach(region => {
-        region.resize = this.canEdit;
-        region.drag = this.canEdit;
-        surfer.addRegion(region);
-      });
-      this.textRegions = this.regions;
+      Timeout.clear('render-regions')
+      Timeout.set('render-regions', () => {
+        console.log('clearing regions')
+        surfer.clearRegions();
+        this.regions.forEach(region => {
+          console.log('got region', region.id)
+          region.resize = this.canEdit;
+          region.drag = this.canEdit;
+          surfer.addRegion(region);
+        });
+        this.textRegions = this.regions;
+      }, 50)
     },
 
     /** */

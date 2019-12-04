@@ -5,9 +5,11 @@ import { API, graphqlOperation, Storage } from 'aws-amplify'
 
 import * as queries from '../graphql/queries'
 import * as mutations from '../graphql/mutations'
+import * as subscriptions from '../graphql/subscriptions'
 
 import EnvService from '../services/env'
 import UserService from './user'
+import { ConsoleLogger } from '@aws-amplify/core'
 
 function pad (num, size) {
   return ('000000000' + num).substr(-size)
@@ -26,6 +28,11 @@ function floatToMSM (value) {
   if (`${millis}`.length === 2) { millis = `${millis}` }
   return `${minutes}:${pad(seconds, 2)}.${millis || '00'}`
 }
+
+let createRegionSubscription = null
+let updateRegionSubscription = null
+let deleteRegionSubscription = null
+const regionSubscribers = []
 
 /**
  * @typedef {Object} Region
@@ -51,6 +58,13 @@ class Transcription {
     this.dateLastUpdated = new Date(Number(data.dateLastUpdated))
     this.userLastUpdated = data.userLastUpdated
   }
+
+  // class Region {
+  //   constructor (data) {
+  //     this.id = data.id
+  //     this.
+  //   }
+  // }
   /**
    * Provide the URL to edit the transcription.
    * @returns {string}
@@ -64,16 +78,6 @@ class Transcription {
 }
 
 export default {
-  /**
-   * Helper, sets the AWS client for database calls.
-   */
-  // async setClient () {
-  //   AWS.config.update({ region: EnvService.getRegion() })
-  //   AWS.config.credentials = await UserService.getCredentials()
-  //   window.creds = AWS.config.credentials
-  //   client = new AWS.DynamoDB.DocumentClient({ apiVersion: '2012-08-10' })
-  // },
-
   /**
    * Get a list of transcriptions.
    * @param {string} user Currently unused.
@@ -142,7 +146,6 @@ export default {
   /** */
   async getTranscription (id, author) {
     console.log('transcription id', id)
-    // const response = await API.graphql(graphqlOperation(queries.getTranscription, { id: id, author: author }))
     let [transcription, regions] = await Promise.all([
       API.graphql(graphqlOperation(queries.getTranscription, { id: id, author: author })),
       API.graphql(graphqlOperation(queries.listRegions, { regionTranscriptionId: id }))
@@ -152,22 +155,23 @@ export default {
       item.text = JSON.parse(item.text)
       return item
     })
-    // console.log(transcription.regions)
+    console.log(transcription.regions)
     return transcription
   },
 
   /** */
   async createRegion (transcriptionId, regionData) {
+    console.log('create region', regionData)
     const input = {
       id: regionData.id,
       start: regionData.start,
       end: regionData.end,
       text: JSON.stringify(regionData.text),
-      translation: '',
       dateLastUpdated: `${+new Date()}`,
       userLastUpdated: (await UserService.getUser()).name,
       regionTranscriptionId: transcriptionId
     }
+    console.log(input)
     const update = await API.graphql(graphqlOperation(mutations.createRegion, { input: input }))
     regionData.version = 1
     return update.data.createRegion
@@ -181,7 +185,7 @@ export default {
       start: region.start,
       end: region.end,
       text: JSON.stringify(region.text),
-      translation: region.translation || '',
+      translation: region.translation,
       dateLastUpdated: `${+new Date()}`,
       userLastUpdated: user.name,
       regionTranscriptionId: transcriptionId,
@@ -190,6 +194,74 @@ export default {
     const update = await API.graphql(graphqlOperation(mutations.updateRegion, { input: input }))
     region.version = region.version + 1
     return update.data.updateRegion
+  },
+
+  async deleteRegion (transcriptionId, region) {
+    console.log('deleting region', transcriptionId, region.id)
+    await API.graphql(graphqlOperation(mutations.deleteRegion,
+      { input:
+        {
+          id: region.id,
+          expectedVersion: region.version
+        }
+      }
+    ))
+    return true
+  },
+
+  async listenForRegions (callback) {
+    const user = await UserService.getUser()
+    if (!this.createRegionSubscription) {
+      this.createRegionSubscription = API.graphql(graphqlOperation(subscriptions.onCreateRegion)).subscribe({
+        next: (lockData) => {
+          const data = lockData.value.data.onCreateRegion
+          console.log('incoming region', data, user)
+          // console.log('Region locked by another user: ', data)
+          for (const subscriber of regionSubscribers) {
+            const region = data
+            if (typeof region.text === 'string') {
+              region.text = JSON.parse(region.text)
+            }
+            subscriber('created', region)
+          }
+        }
+      })
+    }
+    if (!this.updateRegionSubscription) {
+      this.updateRegionsbsupdateRegionSubscription = API.graphql(graphqlOperation(subscriptions.onUpdateRegion)).subscribe({
+        next: (lockData) => {
+          const data = lockData.value.data.onUpdateRegion
+          console.log('incoming region', data, user)
+          if (data.userLastUpdated !== user.name) {
+            for (const subscriber of regionSubscribers) {
+              const region = data
+              if (typeof region.text === 'string') {
+                region.text = JSON.parse(region.text)
+              }
+              subscriber('updated', region)
+            }
+          }
+        }
+      })
+    }
+    if (!this.deleteRegionSubscription) {
+      this.updateRegionsbsdeleteRegionSubscription = API.graphql(graphqlOperation(subscriptions.onDeleteRegion)).subscribe({
+        next: (lockData) => {
+          const data = lockData.value.data.onDeleteRegion
+          console.log('incoming region', data, user)
+          if (data.userLastUpdated !== user.name) {
+            for (const subscriber of regionSubscribers) {
+              const region = data
+              if (typeof region.text === 'string') {
+                region.text = JSON.parse(region.text)
+              }
+              subscriber('deleted', region)
+            }
+          }
+        }
+      })
+    }
+    regionSubscribers.push(callback)
   },
 
   /** */

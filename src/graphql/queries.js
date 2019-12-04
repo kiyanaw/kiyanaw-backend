@@ -21,6 +21,7 @@ export const getTranscription = `query GetTranscription($id: ID!) {
         translation
         dateLastUpdated
         userLastUpdated
+        lock
         version
       }
       nextToken
@@ -60,7 +61,7 @@ export const listTranscriptions = `query ListTranscriptions(
   }
 }
 `;
-export const getRegion = `query GetRegion($id: ID!) {
+export const getRegion = `query GetRegion($id: String!) {
   getRegion(id: $id) {
     id
     start
@@ -69,6 +70,7 @@ export const getRegion = `query GetRegion($id: ID!) {
     translation
     dateLastUpdated
     userLastUpdated
+    lock
     transcription {
       id
       author
@@ -88,11 +90,19 @@ export const getRegion = `query GetRegion($id: ID!) {
 }
 `;
 export const listRegions = `query ListRegions(
+  $id: String
   $filter: ModelRegionFilterInput
   $limit: Int
   $nextToken: String
+  $sortDirection: ModelSortDirection
 ) {
-  listRegions(filter: $filter, limit: $limit, nextToken: $nextToken) {
+  listRegions(
+    id: $id
+    filter: $filter
+    limit: $limit
+    nextToken: $nextToken
+    sortDirection: $sortDirection
+  ) {
     items {
       id
       start
@@ -101,6 +111,7 @@ export const listRegions = `query ListRegions(
       translation
       dateLastUpdated
       userLastUpdated
+      lock
       transcription {
         id
         author

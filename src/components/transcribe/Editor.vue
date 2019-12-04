@@ -156,7 +156,7 @@ export default {
      */
     playRegion() {
       this.$emit('play-region', this.region.id)
-      if (this.region.id !== this.$router.history.current.hash) {
+      if (`#${this.region.id}` !== this.$router.history.current.hash) {
         this.$router.push({ path: `#${this.region.id}` })
       }
       // keep the editor from losing focus
@@ -171,7 +171,7 @@ export default {
      *
      */
     deleteRegion() {
-      this.$emit('delete-region', this.region.id)
+      this.$emit('delete-region', this.region)
     },
     /**
      *
@@ -190,7 +190,7 @@ export default {
      * If we are receiving cursor updates they are in another region.
      */
     setCursor(data) {
-      console.log('setting cursor', data)
+      // console.log('setting cursor', data)
       if (data.source === 'secondary') {
         this.quillTranslate.setText(data.text || '', 'api')
         this.quillTranslate.formatText(0, 9999999, 'color', 'gray')
@@ -216,6 +216,7 @@ export default {
         }
         this.cursors.moveCursor(data.user, data.range)
         this.cursorsTranslate.clearCursors()
+        this.cursorsTranslate.removeCursor(data.user)
       }
       window.cursors = this.cursors;
     },
@@ -369,15 +370,16 @@ export default {
       this.quill.on('selection-change', this.onEditorSelectionChange)
       this.quillTranslate.on('text-change', this.onTranslationTextChange)
 
+      // TODO: move this somewhere we can test it
       this.quillTranslate.on('selection-change', (range, oldRange, source) => {
         if (!this.locked) {
           if (range) {
             Timeout.clear(`cursor-change-timeout-secondary-${this.region.id}`)
             Timeout.set(`cursor-change-timeout-secondary-${this.region.id}`,
               this.onCursorChange, 100, range, 'secondary', this.region.translation)
+
             // we must delay the focus event to give the other editor's blur
             // event a chance to fire first
-
             this.$nextTick(() => {
               this.maybeFocusBlur({
                 type: 'focus',
@@ -399,38 +401,38 @@ export default {
      * If we jump from main -> secondary editor, we don't want to fire the 'blur'
      * event because we're not done yet. Only fire the event if we get a 'blur' 
      * event without an immediate 'focus' event.
+     * 
+     * TODO: test this
      */
     maybeFocusBlur(event) {
       // can't do anything if we're locked
+      console.log('!! mayFocusBlur', event)
       if (this.locked) {
         return
       }
-      console.log('maybeFocusBlur', event)
       if (event.type === 'blur') {
         // When the editors load they fire off a blur we can't silence.
         if (this.firstBlur) {
           this.firstBlur = false
           return
         }
-        console.log('blur called', event.source)
+        console.log('blur called')
         this.blurFlag = true
         Timeout.set(`blur-timeout-${this.region.id}`, () => {
-          console.log(' --> fire blur', this.blurFlag, this.region.id)
           if (this.blurFlag) {
+            console.log(' --> blur fired')
             this.$emit('editor-blur', this.region.id)
             this.blurFlag = false
           }
         }, 25, this.region.id)
       } else {
-        console.log('focus called', this.blurFlag, event.source)
         if (this.blurFlag) {
-          console.log('clear pending blur')
           // we're within the timeout, do not fire the blur event
           this.blurFlag = false
         } else {
-          console.log(' --> fire focus', event.source)
           // we're clear, fire the event
           if (!this.editing) {
+            console.log(' --> focus fired')
             this.$emit('editor-focus', this.region.id)
           }
         }
@@ -472,6 +474,28 @@ export default {
       this.cursorsTranslate = this.quillTranslate.getModule('cursors')
       this.quillTranslate.formatText(0, 9999999, 'color', 'gray')
       this.quillTranslate.blur()
+    },
+
+    async realtimeUpdate (region) {
+      if (this.editing) {
+        // only update start/end times when editing
+      } else {
+        console.log('updating with new region')
+        // deal with times
+        this.region.start = region.start
+        this.region.end = region.end
+        // update text
+        this.region.text = region.text
+        this.quill.setContents(region.text, 'silent')
+        // update translation
+        this.translation = region.translation
+        this.quillTranslate.setText(region.translation || '', 'silent')
+        this.quillTranslate.formatText(0, 9999999, 'color', 'gray')
+        // update verision
+        this.region.version = region.version
+        this.region.userLastUpdated = region.userLastUpdated
+        this.dateLastUpdated = region.dateLastUpdated
+      }
     }
 
   },
