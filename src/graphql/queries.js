@@ -18,6 +18,7 @@ export const getTranscription = `query GetTranscription($id: ID!) {
         start
         end
         text
+        translation
         dateLastUpdated
         userLastUpdated
         version
@@ -65,6 +66,7 @@ export const getRegion = `query GetRegion($id: ID!) {
     start
     end
     text
+    translation
     dateLastUpdated
     userLastUpdated
     transcription {
@@ -96,6 +98,7 @@ export const listRegions = `query ListRegions(
       start
       end
       text
+      translation
       dateLastUpdated
       userLastUpdated
       transcription {
@@ -152,6 +155,7 @@ export const getRegionLock = `query GetRegionLock($id: String!, $transcriptionId
   getRegionLock(id: $id, transcriptionId: $transcriptionId) {
     id
     transcriptionId
+    timestamp
     user
   }
 }
@@ -175,6 +179,7 @@ export const listRegionLocks = `query ListRegionLocks(
     items {
       id
       transcriptionId
+      timestamp
       user
     }
     nextToken

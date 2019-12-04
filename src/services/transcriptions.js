@@ -163,6 +163,7 @@ export default {
       start: regionData.start,
       end: regionData.end,
       text: JSON.stringify(regionData.text),
+      translation: '',
       dateLastUpdated: `${+new Date()}`,
       userLastUpdated: (await UserService.getUser()).name,
       regionTranscriptionId: transcriptionId
@@ -173,12 +174,14 @@ export default {
   },
 
   async updateRegion (transcriptionId, region) {
+    console.log('save region data', region)
     const user = await UserService.getUser()
     const input = {
       id: region.id,
       start: region.start,
       end: region.end,
       text: JSON.stringify(region.text),
+      translation: region.translation || '',
       dateLastUpdated: `${+new Date()}`,
       userLastUpdated: user.name,
       regionTranscriptionId: transcriptionId,

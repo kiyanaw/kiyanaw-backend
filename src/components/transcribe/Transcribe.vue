@@ -216,7 +216,6 @@ export default {
       })
     },
 
-
     /** */
     onRegionTextUpdated (event) {
       const targetRegion = this.regions.filter(r => r.id === event.id)[0]
@@ -226,22 +225,9 @@ export default {
         Timeout.clear('word-search-timer')
         Timeout.set('word-search-timer', this.searchForNewWords, SEARCH_INTERVAL, words)
       }
-
       // set a timer to save this region
       Timeout.clear(`save-region-${event.id}-timer`)
       Timeout.set(`save-region-${event.id}-timer`, this.saveRegion, SAVE_INTERVAL, targetRegion)
-      
-      // let targetRegion = this.regions.filter(r => r.id === update.id)
-      // if (targetRegion.length) {
-      //   targetRegion = targetRegion[0]
-      //   targetRegion.text = update.text
-      //   targetRegion.translation = update.translation
-      //   // fire updates
-      // }
-
-      // TODO: send cursor updates from here
-      // Timeout.clear('done-typing-timer')
-      // Timeout.set('done-typing-timer', this.saveData, SEARCH_INTERVAL)
     },
 
     async searchForNewWords (words) {
@@ -268,7 +254,9 @@ export default {
         cursor: data,
         user: `${this.user.name}`
       }
-      // UserService.sendCursor(update).catch((e) => {})
+      UserService.sendCursor(update).catch((e) => {
+        console.log(e)
+      })
     },
 
     /** */
@@ -449,14 +437,16 @@ export default {
     /**
      * Set up a subscription for new cursor changes.
      */
-    // UserService.listenForCursor((data) => {
-    //   if (data.user !== this.user.name) {
-    //     // only try to set cursors for local regions
-    //     if (this.$refs[data.cursor.regionId]) {
-    //       this.$refs[data.cursor.regionId][0].setCursor({user: data.user, ...data.cursor})
-    //     }
-    //   }
-    // }).catch((e) => {})
+    UserService.listenForCursor((data) => {
+      if (data.user !== this.user.name) {
+        // only try to set cursors for local regions
+        if (this.$refs[data.cursor.id] && this.$refs[data.cursor.id][0]) {
+          this.$refs[data.cursor.id][0].setCursor({user: data.user, ...data.cursor})
+        }
+      }
+    }).catch((e) => {
+      console.warn('Cursor listen error', e)
+    })
 
     /**
      * Get a list of the current locked regions.

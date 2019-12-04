@@ -18,6 +18,7 @@ export const createTranscription = `mutation CreateTranscription($input: CreateT
         start
         end
         text
+        translation
         dateLastUpdated
         userLastUpdated
         version
@@ -44,6 +45,7 @@ export const updateTranscription = `mutation UpdateTranscription($input: UpdateT
         start
         end
         text
+        translation
         dateLastUpdated
         userLastUpdated
         version
@@ -70,6 +72,7 @@ export const deleteTranscription = `mutation DeleteTranscription($input: DeleteT
         start
         end
         text
+        translation
         dateLastUpdated
         userLastUpdated
         version
@@ -85,6 +88,7 @@ export const createRegion = `mutation CreateRegion($input: CreateRegionInput!) {
     start
     end
     text
+    translation
     dateLastUpdated
     userLastUpdated
     transcription {
@@ -111,6 +115,7 @@ export const updateRegion = `mutation UpdateRegion($input: UpdateRegionInput!) {
     start
     end
     text
+    translation
     dateLastUpdated
     userLastUpdated
     transcription {
@@ -137,6 +142,7 @@ export const deleteRegion = `mutation DeleteRegion($input: DeleteRegionInput!) {
     start
     end
     text
+    translation
     dateLastUpdated
     userLastUpdated
     transcription {
@@ -185,6 +191,7 @@ export const createRegionLock = `mutation CreateRegionLock($input: CreateRegionL
   createRegionLock(input: $input) {
     id
     transcriptionId
+    timestamp
     user
   }
 }
@@ -193,6 +200,7 @@ export const updateRegionLock = `mutation UpdateRegionLock($input: UpdateRegionL
   updateRegionLock(input: $input) {
     id
     transcriptionId
+    timestamp
     user
   }
 }
@@ -201,6 +209,7 @@ export const deleteRegionLock = `mutation DeleteRegionLock($input: DeleteRegionL
   deleteRegionLock(input: $input) {
     id
     transcriptionId
+    timestamp
     user
   }
 }

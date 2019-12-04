@@ -18,6 +18,7 @@ export const onCreateTranscription = `subscription OnCreateTranscription {
         start
         end
         text
+        translation
         dateLastUpdated
         userLastUpdated
         version
@@ -44,6 +45,7 @@ export const onUpdateTranscription = `subscription OnUpdateTranscription {
         start
         end
         text
+        translation
         dateLastUpdated
         userLastUpdated
         version
@@ -70,6 +72,7 @@ export const onDeleteTranscription = `subscription OnDeleteTranscription {
         start
         end
         text
+        translation
         dateLastUpdated
         userLastUpdated
         version
@@ -85,6 +88,7 @@ export const onCreateRegion = `subscription OnCreateRegion {
     start
     end
     text
+    translation
     dateLastUpdated
     userLastUpdated
     transcription {
@@ -111,6 +115,7 @@ export const onUpdateRegion = `subscription OnUpdateRegion {
     start
     end
     text
+    translation
     dateLastUpdated
     userLastUpdated
     transcription {
@@ -137,6 +142,7 @@ export const onDeleteRegion = `subscription OnDeleteRegion {
     start
     end
     text
+    translation
     dateLastUpdated
     userLastUpdated
     transcription {
@@ -185,6 +191,7 @@ export const onCreateRegionLock = `subscription OnCreateRegionLock {
   onCreateRegionLock {
     id
     transcriptionId
+    timestamp
     user
   }
 }
@@ -193,6 +200,7 @@ export const onUpdateRegionLock = `subscription OnUpdateRegionLock {
   onUpdateRegionLock {
     id
     transcriptionId
+    timestamp
     user
   }
 }
@@ -201,6 +209,7 @@ export const onDeleteRegionLock = `subscription OnDeleteRegionLock {
   onDeleteRegionLock {
     id
     transcriptionId
+    timestamp
     user
   }
 }
