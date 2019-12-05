@@ -6,7 +6,7 @@
 		}
 	},
 	"auth": {
-		"kiyanawb2849c30": {
+		"kiyanaw5960e906": {
 			"service": "Cognito",
 			"providerPlugin": "awscloudformation",
 			"dependsOn": []
