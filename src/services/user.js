@@ -76,8 +76,7 @@ export default {
           // console.log('cursor data', data.value.data.onUpdateCursor)
           const cursorData = data.value.data.onUpdateCursor
           // unpack the JSON data
-          // console.log(cursorData.cursor)
-          if (typeof cursorData === 'string') {
+          if (typeof cursorData.cursor === 'string') {
             cursorData.cursor = JSON.parse(cursorData.cursor)
           }
           for (const subscriber of cursorSubscribers) {

@@ -215,7 +215,7 @@ export default {
       this.createRegionSubscription = API.graphql(graphqlOperation(subscriptions.onCreateRegion)).subscribe({
         next: (lockData) => {
           const data = lockData.value.data.onCreateRegion
-          console.log('incoming region', data, user)
+          // console.log('incoming region', data, user)
           // console.log('Region locked by another user: ', data)
           for (const subscriber of regionSubscribers) {
             const region = data
@@ -231,7 +231,7 @@ export default {
       this.updateRegionsbsupdateRegionSubscription = API.graphql(graphqlOperation(subscriptions.onUpdateRegion)).subscribe({
         next: (lockData) => {
           const data = lockData.value.data.onUpdateRegion
-          console.log('incoming region', data, user)
+          // console.log('incoming region', data, user)
           if (data.userLastUpdated !== user.name) {
             for (const subscriber of regionSubscribers) {
               const region = data
@@ -248,7 +248,7 @@ export default {
       this.updateRegionsbsdeleteRegionSubscription = API.graphql(graphqlOperation(subscriptions.onDeleteRegion)).subscribe({
         next: (lockData) => {
           const data = lockData.value.data.onDeleteRegion
-          console.log('incoming region', data, user)
+          // console.log('incoming region', data, user)
           if (data.userLastUpdated !== user.name) {
             for (const subscriber of regionSubscribers) {
               const region = data

@@ -270,10 +270,8 @@ export default {
     renderRegions() {
       Timeout.clear('render-regions')
       Timeout.set('render-regions', () => {
-        console.log('clearing regions')
-        surfer.clearRegions();
+        surfer.clearRegions()
         this.regions.forEach(region => {
-          console.log('got region', region.id)
           region.resize = this.canEdit;
           region.drag = this.canEdit;
           surfer.addRegion(region);
