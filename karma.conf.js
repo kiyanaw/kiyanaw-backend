@@ -1,11 +1,10 @@
 var webpackConfig = require('./webpack.config.karma.js')
 
-
 module.exports = function (config) {
   config.set({
     frameworks: ['mocha'],
-
-    files: ['test/karma/**/*.spec.js'],
+    browserNoActivityTimeout: 400000,
+    files: ['test/unit/transcribe/entrypoint.spec.js'],
 
     preprocessors: {
       'src/**/*.js': ['webpack', 'sourcemap'],

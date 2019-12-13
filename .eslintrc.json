@@ -22,7 +22,7 @@
       }
     },
     {
-        "files": ["node_modules/**/*.*"],
+        "files": ["node_modules/**/*.*", "src/aws-exports.js"],
         "rules": {
             "strict": "off"
         }

@@ -7,6 +7,7 @@ export const onCreateTranscription = `subscription OnCreateTranscription {
     author
     coverage
     dateLastUpdated
+    userLastUpdated
     length
     source
     title
@@ -16,7 +17,11 @@ export const onCreateTranscription = `subscription OnCreateTranscription {
         id
         start
         end
-        lastChangeBy
+        text
+        translation
+        dateLastUpdated
+        userLastUpdated
+        lock
         version
       }
       nextToken
@@ -30,6 +35,7 @@ export const onUpdateTranscription = `subscription OnUpdateTranscription {
     author
     coverage
     dateLastUpdated
+    userLastUpdated
     length
     source
     title
@@ -39,7 +45,11 @@ export const onUpdateTranscription = `subscription OnUpdateTranscription {
         id
         start
         end
-        lastChangeBy
+        text
+        translation
+        dateLastUpdated
+        userLastUpdated
+        lock
         version
       }
       nextToken
@@ -53,6 +63,7 @@ export const onDeleteTranscription = `subscription OnDeleteTranscription {
     author
     coverage
     dateLastUpdated
+    userLastUpdated
     length
     source
     title
@@ -62,7 +73,11 @@ export const onDeleteTranscription = `subscription OnDeleteTranscription {
         id
         start
         end
-        lastChangeBy
+        text
+        translation
+        dateLastUpdated
+        userLastUpdated
+        lock
         version
       }
       nextToken
@@ -75,12 +90,17 @@ export const onCreateRegion = `subscription OnCreateRegion {
     id
     start
     end
-    lastChangeBy
+    text
+    translation
+    dateLastUpdated
+    userLastUpdated
+    lock
     transcription {
       id
       author
       coverage
       dateLastUpdated
+      userLastUpdated
       length
       source
       title
@@ -98,12 +118,17 @@ export const onUpdateRegion = `subscription OnUpdateRegion {
     id
     start
     end
-    lastChangeBy
+    text
+    translation
+    dateLastUpdated
+    userLastUpdated
+    lock
     transcription {
       id
       author
       coverage
       dateLastUpdated
+      userLastUpdated
       length
       source
       title
@@ -121,12 +146,17 @@ export const onDeleteRegion = `subscription OnDeleteRegion {
     id
     start
     end
-    lastChangeBy
+    text
+    translation
+    dateLastUpdated
+    userLastUpdated
+    lock
     transcription {
       id
       author
       coverage
       dateLastUpdated
+      userLastUpdated
       length
       source
       title
@@ -163,23 +193,29 @@ export const onDeleteCursor = `subscription OnDeleteCursor {
   }
 }
 `;
-export const onCreateLock = `subscription OnCreateLock {
-  onCreateLock {
+export const onCreateRegionLock = `subscription OnCreateRegionLock {
+  onCreateRegionLock {
     id
+    transcriptionId
+    deleteTime
     user
   }
 }
 `;
-export const onUpdateLock = `subscription OnUpdateLock {
-  onUpdateLock {
+export const onUpdateRegionLock = `subscription OnUpdateRegionLock {
+  onUpdateRegionLock {
     id
+    transcriptionId
+    deleteTime
     user
   }
 }
 `;
-export const onDeleteLock = `subscription OnDeleteLock {
-  onDeleteLock {
+export const onDeleteRegionLock = `subscription OnDeleteRegionLock {
+  onDeleteRegionLock {
     id
+    transcriptionId
+    deleteTime
     user
   }
 }

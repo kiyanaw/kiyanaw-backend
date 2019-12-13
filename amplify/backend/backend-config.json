@@ -6,77 +6,20 @@
 		}
 	},
 	"auth": {
-		"cognito4a7f4e73": {
+		"kiyanaw664b231a": {
 			"service": "Cognito",
 			"providerPlugin": "awscloudformation",
-			"dependsOn": [
-				{
-					"category": "function",
-					"resourceName": "cognito4a7f4e73PostConfirmation",
-					"triggerProvider": "Cognito",
-					"attributes": [
-						"Arn",
-						"Name"
-					]
-				}
-			]
+			"dependsOn": []
 		}
 	},
 	"storage": {
-		"useraudio": {
+		"transcriptions": {
 			"service": "S3",
 			"providerPlugin": "awscloudformation"
 		}
 	},
-	"function": {
-		"kiyanawbackend6b2abcbb": {
-			"service": "Lambda",
-			"providerPlugin": "awscloudformation",
-			"build": true,
-			"dependsOn": []
-		},
-		"kiyanawbackend19dea4b7": {
-			"service": "Lambda",
-			"providerPlugin": "awscloudformation",
-			"build": true,
-			"dependsOn": []
-		},
-		"cognito4a7f4e73PostConfirmation": {
-			"service": "Lambda",
-			"providerPlugin": "awscloudformation",
-			"build": true
-		}
-	},
 	"api": {
-		"api8ea4781b": {
-			"service": "API Gateway",
-			"providerPlugin": "awscloudformation",
-			"dependsOn": [
-				{
-					"category": "function",
-					"resourceName": "kiyanawbackend6b2abcbb",
-					"attributes": [
-						"Name",
-						"Arn"
-					]
-				}
-			]
-		},
-		"api10486bd0": {
-			"service": "API Gateway",
-			"providerPlugin": "awscloudformation",
-			"dependsOn": [
-				{
-					"category": "function",
-					"resourceName": "kiyanawbackend6b2abcbb",
-					"attributes": [
-						"Name",
-						"Arn"
-					]
-				}
-			]
-		},
-		"transcriptions": {
+		"kiyanaw": {
 			"service": "AppSync",
 			"providerPlugin": "awscloudformation",
 			"output": {

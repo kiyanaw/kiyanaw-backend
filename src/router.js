@@ -3,15 +3,15 @@ import VueRouter from 'vue-router'
 
 // views
 import App from './views/App.vue'
-import Editor from './components/Editor.vue'
-import EditorVerify from './components/EditorVerify.vue'
-import EditorNextUnverified from './components/EditorNextUnverified.vue'
+// import Editor from './components/Editor.vue'
+// import EditorVerify from './components/EditorVerify.vue'
+// import EditorNextUnverified from './components/EditorNextUnverified.vue'
 import SignIn from './components/SignIn.vue'
 import TranscribeEdit from './components/transcribe/Transcribe.vue'
 import TranscribeList from './components/transcribe/List.vue'
 import TranscribeAdd from './components/transcribe/Add.vue'
-import MorphemeEditor from './components/morphemes/Editor.vue'
-import HelloWorld from './components/HelloWorld.vue'
+// import MorphemeEditor from './components/morphemes/Editor.vue'
+// import HelloWorld from './components/HelloWorld.vue'
 import RenderedWord from './components/rendered/Index.vue'
 
 import EnvService from './services/env'
@@ -26,23 +26,10 @@ const router = new VueRouter({
       component: App,
       children: [
         { path: 'signin', component: SignIn },
-        { path: 'edit/',
-          component: Editor,
-          children: [
-            { path: '', component: EditorVerify },
-            { path: 'morphemes', component: MorphemeEditor },
-            { path: ':id', component: EditorNextUnverified }
-          ],
-          meta: { requiresAuth: true }
-        },
         { path: 'transcribe-list', component: TranscribeList, meta: { requiresAuth: true } },
         { path: 'transcribe-add', component: TranscribeAdd, meta: { requiresAuth: true } },
         { path: 'transcribe-edit/:id', component: TranscribeEdit }
       ]
-    },
-    {
-      path: '/pusher/auth',
-      component: HelloWorld
     }
   ]
 })

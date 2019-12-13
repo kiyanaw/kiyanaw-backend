@@ -39,14 +39,16 @@ const formDetails = {
   }
 }
 
-async function main () {
+async function main() {
   // clear out the index
 
   // start parsing words
   let lines = creeWords.split(/\r?\n/)
   lines = lines.filter(line => !line.startsWith('!') && line.endsWith(';'))
   const total = lines.length
-  // lines = lines.slice(0, 1)
+
+  // this line is for testing, shortens the array
+  lines = lines.slice(0, 1)
 
   let count = 0
   for (const line of lines) {
@@ -62,10 +64,12 @@ async function main () {
 
     const originalFstIdsLookup = {}
 
+    // ['Imp+Del+2Pl+3PlO', 'Imp+Del+2Pl+3PlO', 'Imp+Del+2Pl+3PlO', ]
+
     const fstInput = paradigmStrings.map((form) => {
-      const lookupLemma = `${lemma}+${lookupVerbString}` // foo+V+AI
+      const lookupLemma = `${lemma}+${lookupVerbString}` // lemma+V+AI
       // independent lookup string
-      let lookup = `${lookupLemma}+${form}` // foo+V+AI+Ind+Prs+3Sg
+      let lookup = `${lookupLemma}+${form}` // lemma+V+AI+Ind+Prs+3Sg
       if (form.indexOf('*') > -1) {
         lookup = form.replace('*', lookupLemma)
       }
@@ -73,23 +77,31 @@ async function main () {
       return lookup
     }).join('\n')
 
+    console.log(fstInput)
+
     const rawOutput = process.execSync(`echo '${fstInput}' | hfst-optimized-lookup --silent crk-normative-generator.hfstol 2>&1`).toString()
     console.log(rawOutput.toString())
-    const processedOutput = rawOutput.split('\n').filter(line => !line.startsWith('!') && line).map((line) => line.split(/\s+/))
+    const processedOutput = rawOutput.split('\n')
+      .filter((line) => !line.startsWith('!') && line)
+      .map((line) => line.split(/\s+/))
+
     // process the raw output, map it to a lookup
     // clear the output file
     process.execSync(`echo '' > ${tempFile}`)
-    const wordList = []
-    for (const bits of processedOutput) {
-      if (bits.includes('+?')) {
+    // const wordList = []
+    for (const inflectionPair of processedOutput) {
+      if (inflectionPair.includes('+?')) {
         // this form didn't look up
-        console.log(`Unknown lookup: ${bits[0]}`)
+        console.warn(`Unknown lookup: ${inflectionPair[0]}`)
         continue
       }
 
+      // inflectionPair looks like this
+      // ['acâhkosiwiw+V+AI+Ind+Prs+2Sg', 'kitacâhkosiwin']
+
       // TODO: add a lemma: true flag to the proper forms
-      const [form, inflected] = bits
-      const originalForm = originalFstIdsLookup[form]
+      const [analysis, inflected] = inflectionPair
+      const originalForm = originalFstIdsLookup[analysis]
       const template = paradigmTemplates[verbType][originalForm]
       const final = {
         ...template,
@@ -103,7 +115,7 @@ async function main () {
           sro: lemma,
           translation: 'TODO'
         },
-        fstIdentifier: form,
+        fstIdentifier: analysis,
         form: {
           name: 'TODO',
           description: 'TODO',

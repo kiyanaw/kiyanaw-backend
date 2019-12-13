@@ -18,7 +18,7 @@
                 height="3">
               </v-progress-linear>
             </td>
-            <td>{{ timeAgo(props.item.dateLastUpdated) }} {{ props.item.lastUpdateBy }}</td>
+            <td>{{ timeAgo(props.item.dateLastUpdated) }} by {{ props.item.userLastUpdated }}</td>
             <td>{{ props.item.type }}</td>
             <td><a v-bind:href="props.item.source" _target="blank">Link</a></td>
           </template>
@@ -38,39 +38,12 @@ import TimeAgo from 'javascript-time-ago'
 import en from 'javascript-time-ago/locale/en' 
 import TranscriptionService from '../../services/transcriptions'
 import UserService from '../../services/user'
-import utils from './utils'
+// import utils from './utils'
 
 TimeAgo.addLocale(en)
 const timeAgo = new TimeAgo('en-US')
 
-window.timeAgo = timeAgo
-
-/**
- * Wraps the incoming transcription data to provide a consistent API.
- */
-class Transcription {
-  constructor (data) {
-    this.data = data
-    this.authorId = data.authorId
-    this.title = data.title
-    this.author = data.author
-    this.type = data.type
-    this.source = data.source
-    this.coverage = data.coverage || '?'
-    this.dateLastUpdated = new Date(data.dateLastUpdated)
-    this.lastUpdateBy = data.lastUpdateBy
-  }
-  /**
-   * Provide the URL to edit the transcription.
-   * @returns {string}
-   */
-  get url () { return '/transcribe-edit/' + this.data.authorId }
-  /**
-   * Provide the length of the transcription audio in MM:SS
-   * @returns {string}
-   */
-  get length () { return String(utils.floatToMSM(this.data.length)).split('.')[0] }
-}
+// window.timeAgo = timeAgo
 
 export default {
   mounted () {
@@ -100,7 +73,6 @@ export default {
     async loadTranscriptionList () {
       const currentUser = await UserService.getUser()
       this.list = (await TranscriptionService.listTranscriptions(currentUser.name))
-        .map(x => new Transcription(x))
       this.loading = false
     },
     timeAgo (date) {

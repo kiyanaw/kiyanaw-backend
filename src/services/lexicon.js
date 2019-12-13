@@ -70,7 +70,7 @@ class Lex {
       strippedWords.push(stripped)
     }
     // remove any punctuation
-    console.log(strippedWordMap)
+    // console.log(strippedWordMap)
     return strippedWords
   }
 
@@ -90,7 +90,7 @@ class Lex {
     }
     // remove any words we already "know"
     const onlySearchFor = this.getWordsNotKnown(strippedWords)
-    console.log(`searching for: ${onlySearchFor}`)
+    // console.log(`searching for: ${onlySearchFor}`)
     // build the query
     if (onlySearchFor.length) {
       let query = {
@@ -98,10 +98,10 @@ class Lex {
         type: '_doc',
         body: { query: { bool: { filter: { terms: { inflected: onlySearchFor } } } } }
       }
-      console.log(JSON.stringify(query))
+      // console.log(JSON.stringify(query))
       const raw = await client.search(query)
       const resultWords = raw.hits.hits.map(word => word._source.inflected)
-      console.log(`got results: ${resultWords}`)
+      // console.log(`got results: ${resultWords}`)
       // loop through the stripped word map and match any results
       const matchedStrippedWords = resultWords.map(result => strippedWordMap[result])
       knownWords = knownWords.concat(resultWords)
@@ -119,7 +119,9 @@ class Lex {
       }
     }
     // notify
-    callback()
+    if (callback) {
+      callback()
+    }
   }
   /**
    * Allow modules to report words that are known already (probably from saved data)

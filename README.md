@@ -12,7 +12,7 @@ npm run serve
 
 ### Run your tests
 ```
-npm run test
+npm run karma
 
 # to continually watch tests
 npm run test-watch

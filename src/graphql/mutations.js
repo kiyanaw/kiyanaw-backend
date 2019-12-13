@@ -1,12 +1,16 @@
 /* eslint-disable */
 // this is an auto generated file. This will be overwritten
 
-export const createTranscription = `mutation CreateTranscription($input: CreateTranscriptionInput!) {
-  createTranscription(input: $input) {
+export const createTranscription = `mutation CreateTranscription(
+  $input: CreateTranscriptionInput!
+  $condition: ModelTranscriptionConditionInput
+) {
+  createTranscription(input: $input, condition: $condition) {
     id
     author
     coverage
     dateLastUpdated
+    userLastUpdated
     length
     source
     title
@@ -16,7 +20,11 @@ export const createTranscription = `mutation CreateTranscription($input: CreateT
         id
         start
         end
-        lastChangeBy
+        text
+        translation
+        dateLastUpdated
+        userLastUpdated
+        lock
         version
       }
       nextToken
@@ -24,12 +32,16 @@ export const createTranscription = `mutation CreateTranscription($input: CreateT
   }
 }
 `;
-export const updateTranscription = `mutation UpdateTranscription($input: UpdateTranscriptionInput!) {
-  updateTranscription(input: $input) {
+export const updateTranscription = `mutation UpdateTranscription(
+  $input: UpdateTranscriptionInput!
+  $condition: ModelTranscriptionConditionInput
+) {
+  updateTranscription(input: $input, condition: $condition) {
     id
     author
     coverage
     dateLastUpdated
+    userLastUpdated
     length
     source
     title
@@ -39,7 +51,11 @@ export const updateTranscription = `mutation UpdateTranscription($input: UpdateT
         id
         start
         end
-        lastChangeBy
+        text
+        translation
+        dateLastUpdated
+        userLastUpdated
+        lock
         version
       }
       nextToken
@@ -47,12 +63,16 @@ export const updateTranscription = `mutation UpdateTranscription($input: UpdateT
   }
 }
 `;
-export const deleteTranscription = `mutation DeleteTranscription($input: DeleteTranscriptionInput!) {
-  deleteTranscription(input: $input) {
+export const deleteTranscription = `mutation DeleteTranscription(
+  $input: DeleteTranscriptionInput!
+  $condition: ModelTranscriptionConditionInput
+) {
+  deleteTranscription(input: $input, condition: $condition) {
     id
     author
     coverage
     dateLastUpdated
+    userLastUpdated
     length
     source
     title
@@ -62,7 +82,11 @@ export const deleteTranscription = `mutation DeleteTranscription($input: DeleteT
         id
         start
         end
-        lastChangeBy
+        text
+        translation
+        dateLastUpdated
+        userLastUpdated
+        lock
         version
       }
       nextToken
@@ -70,17 +94,25 @@ export const deleteTranscription = `mutation DeleteTranscription($input: DeleteT
   }
 }
 `;
-export const createRegion = `mutation CreateRegion($input: CreateRegionInput!) {
-  createRegion(input: $input) {
+export const createRegion = `mutation CreateRegion(
+  $input: CreateRegionInput!
+  $condition: ModelRegionConditionInput
+) {
+  createRegion(input: $input, condition: $condition) {
     id
     start
     end
-    lastChangeBy
+    text
+    translation
+    dateLastUpdated
+    userLastUpdated
+    lock
     transcription {
       id
       author
       coverage
       dateLastUpdated
+      userLastUpdated
       length
       source
       title
@@ -93,17 +125,25 @@ export const createRegion = `mutation CreateRegion($input: CreateRegionInput!) {
   }
 }
 `;
-export const updateRegion = `mutation UpdateRegion($input: UpdateRegionInput!) {
-  updateRegion(input: $input) {
+export const updateRegion = `mutation UpdateRegion(
+  $input: UpdateRegionInput!
+  $condition: ModelRegionConditionInput
+) {
+  updateRegion(input: $input, condition: $condition) {
     id
     start
     end
-    lastChangeBy
+    text
+    translation
+    dateLastUpdated
+    userLastUpdated
+    lock
     transcription {
       id
       author
       coverage
       dateLastUpdated
+      userLastUpdated
       length
       source
       title
@@ -116,17 +156,25 @@ export const updateRegion = `mutation UpdateRegion($input: UpdateRegionInput!) {
   }
 }
 `;
-export const deleteRegion = `mutation DeleteRegion($input: DeleteRegionInput!) {
-  deleteRegion(input: $input) {
+export const deleteRegion = `mutation DeleteRegion(
+  $input: DeleteRegionInput!
+  $condition: ModelRegionConditionInput
+) {
+  deleteRegion(input: $input, condition: $condition) {
     id
     start
     end
-    lastChangeBy
+    text
+    translation
+    dateLastUpdated
+    userLastUpdated
+    lock
     transcription {
       id
       author
       coverage
       dateLastUpdated
+      userLastUpdated
       length
       source
       title
@@ -139,47 +187,71 @@ export const deleteRegion = `mutation DeleteRegion($input: DeleteRegionInput!) {
   }
 }
 `;
-export const createCursor = `mutation CreateCursor($input: CreateCursorInput!) {
-  createCursor(input: $input) {
+export const createCursor = `mutation CreateCursor(
+  $input: CreateCursorInput!
+  $condition: ModelCursorConditionInput
+) {
+  createCursor(input: $input, condition: $condition) {
     id
     user
     cursor
   }
 }
 `;
-export const updateCursor = `mutation UpdateCursor($input: UpdateCursorInput!) {
-  updateCursor(input: $input) {
+export const updateCursor = `mutation UpdateCursor(
+  $input: UpdateCursorInput!
+  $condition: ModelCursorConditionInput
+) {
+  updateCursor(input: $input, condition: $condition) {
     id
     user
     cursor
   }
 }
 `;
-export const deleteCursor = `mutation DeleteCursor($input: DeleteCursorInput!) {
-  deleteCursor(input: $input) {
+export const deleteCursor = `mutation DeleteCursor(
+  $input: DeleteCursorInput!
+  $condition: ModelCursorConditionInput
+) {
+  deleteCursor(input: $input, condition: $condition) {
     id
     user
     cursor
   }
 }
 `;
-export const createLock = `mutation CreateLock($input: CreateLockInput!) {
-  createLock(input: $input) {
+export const createRegionLock = `mutation CreateRegionLock(
+  $input: CreateRegionLockInput!
+  $condition: ModelRegionLockConditionInput
+) {
+  createRegionLock(input: $input, condition: $condition) {
     id
+    transcriptionId
+    deleteTime
     user
   }
 }
 `;
-export const updateLock = `mutation UpdateLock($input: UpdateLockInput!) {
-  updateLock(input: $input) {
+export const updateRegionLock = `mutation UpdateRegionLock(
+  $input: UpdateRegionLockInput!
+  $condition: ModelRegionLockConditionInput
+) {
+  updateRegionLock(input: $input, condition: $condition) {
     id
+    transcriptionId
+    deleteTime
     user
   }
 }
 `;
-export const deleteLock = `mutation DeleteLock($input: DeleteLockInput!) {
-  deleteLock(input: $input) {
+export const deleteRegionLock = `mutation DeleteRegionLock(
+  $input: DeleteRegionLockInput!
+  $condition: ModelRegionLockConditionInput
+) {
+  deleteRegionLock(input: $input, condition: $condition) {
     id
+    transcriptionId
+    deleteTime
     user
   }
 }

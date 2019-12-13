@@ -1,12 +1,13 @@
 /* eslint-disable */
 // this is an auto generated file. This will be overwritten
 
-export const getTranscription = `query GetTranscription($id: ID!, $author: String!) {
-  getTranscription(id: $id, author: $author) {
+export const getTranscription = `query GetTranscription($id: ID!) {
+  getTranscription(id: $id) {
     id
     author
     coverage
     dateLastUpdated
+    userLastUpdated
     length
     source
     title
@@ -16,7 +17,11 @@ export const getTranscription = `query GetTranscription($id: ID!, $author: Strin
         id
         start
         end
-        lastChangeBy
+        text
+        translation
+        dateLastUpdated
+        userLastUpdated
+        lock
         version
       }
       nextToken
@@ -26,7 +31,6 @@ export const getTranscription = `query GetTranscription($id: ID!, $author: Strin
 `;
 export const listTranscriptions = `query ListTranscriptions(
   $id: ID
-  $author: ModelStringKeyConditionInput
   $filter: ModelTranscriptionFilterInput
   $limit: Int
   $nextToken: String
@@ -34,7 +38,6 @@ export const listTranscriptions = `query ListTranscriptions(
 ) {
   listTranscriptions(
     id: $id
-    author: $author
     filter: $filter
     limit: $limit
     nextToken: $nextToken
@@ -45,6 +48,7 @@ export const listTranscriptions = `query ListTranscriptions(
       author
       coverage
       dateLastUpdated
+      userLastUpdated
       length
       source
       title
@@ -62,12 +66,17 @@ export const getRegion = `query GetRegion($id: String!) {
     id
     start
     end
-    lastChangeBy
+    text
+    translation
+    dateLastUpdated
+    userLastUpdated
+    lock
     transcription {
       id
       author
       coverage
       dateLastUpdated
+      userLastUpdated
       length
       source
       title
@@ -98,12 +107,17 @@ export const listRegions = `query ListRegions(
       id
       start
       end
-      lastChangeBy
+      text
+      translation
+      dateLastUpdated
+      userLastUpdated
+      lock
       transcription {
         id
         author
         coverage
         dateLastUpdated
+        userLastUpdated
         length
         source
         title
@@ -115,7 +129,7 @@ export const listRegions = `query ListRegions(
   }
 }
 `;
-export const getCursor = `query GetCursor($id: ID!, $user: String!) {
+export const getCursor = `query GetCursor($id: String!, $user: String!) {
   getCursor(id: $id, user: $user) {
     id
     user
@@ -124,7 +138,7 @@ export const getCursor = `query GetCursor($id: ID!, $user: String!) {
 }
 `;
 export const listCursors = `query ListCursors(
-  $id: ID
+  $id: String
   $user: ModelStringKeyConditionInput
   $filter: ModelCursorFilterInput
   $limit: Int
@@ -148,22 +162,26 @@ export const listCursors = `query ListCursors(
   }
 }
 `;
-export const getLock = `query GetLock($id: String!) {
-  getLock(id: $id) {
+export const getRegionLock = `query GetRegionLock($id: String!, $transcriptionId: String!) {
+  getRegionLock(id: $id, transcriptionId: $transcriptionId) {
     id
+    transcriptionId
+    deleteTime
     user
   }
 }
 `;
-export const listLocks = `query ListLocks(
+export const listRegionLocks = `query ListRegionLocks(
   $id: String
-  $filter: ModelLockFilterInput
+  $transcriptionId: ModelStringKeyConditionInput
+  $filter: ModelRegionLockFilterInput
   $limit: Int
   $nextToken: String
   $sortDirection: ModelSortDirection
 ) {
-  listLocks(
+  listRegionLocks(
     id: $id
+    transcriptionId: $transcriptionId
     filter: $filter
     limit: $limit
     nextToken: $nextToken
@@ -171,6 +189,8 @@ export const listLocks = `query ListLocks(
   ) {
     items {
       id
+      transcriptionId
+      deleteTime
       user
     }
     nextToken
