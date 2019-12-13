@@ -189,6 +189,7 @@ export default {
       }
       // only unlock the region if we're the editor that has the lock
       if (!silent) {
+        console.log(' !!!! Unlocking region from blur', regionId)
         UserService.unlockRegion(this.transcriptionId, regionId).then(() => {
           // console.log('region unlocked', regionId)
         }).catch((error) => {
@@ -397,6 +398,8 @@ export default {
 
     async checkForLockedRegions () {
       UserService.getRegionLocks(this.transcriptionId).then((locks) => {
+        // we only care about locks that aren't ours
+        locks = locks.filter(item => item.user !== this.user.name)
         for (const lock of locks) {
           console.log('Incoming lock for region', lock.id)
           if (this.$refs[lock.id]) {
@@ -439,12 +442,12 @@ export default {
       // listen for locked regions
       UserService.listenForLock((data) => {
         if (this.$refs[data.id] && this.$refs[data.id][0]) {
-          console.log('region has been locked', data)
+          console.log(' ** region lock listener', data)
           if (data.action === 'created') {
-            console.log(' --> create')
+            // console.log(' --> create')
             this.$refs[data.id][0].lock(data.user)
           } else if (data.action === 'deleted') {
-            console.log(' --> delete')
+            // console.log(' --> delete')
             this.$refs[data.id][0].unlock()
           }
         }

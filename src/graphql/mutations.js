@@ -227,7 +227,7 @@ export const createRegionLock = `mutation CreateRegionLock(
   createRegionLock(input: $input, condition: $condition) {
     id
     transcriptionId
-    timestamp
+    deleteTime
     user
   }
 }
@@ -239,7 +239,7 @@ export const updateRegionLock = `mutation UpdateRegionLock(
   updateRegionLock(input: $input, condition: $condition) {
     id
     transcriptionId
-    timestamp
+    deleteTime
     user
   }
 }
@@ -251,7 +251,7 @@ export const deleteRegionLock = `mutation DeleteRegionLock(
   deleteRegionLock(input: $input, condition: $condition) {
     id
     transcriptionId
-    timestamp
+    deleteTime
     user
   }
 }

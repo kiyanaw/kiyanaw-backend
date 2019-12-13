@@ -166,7 +166,7 @@ export const getRegionLock = `query GetRegionLock($id: String!, $transcriptionId
   getRegionLock(id: $id, transcriptionId: $transcriptionId) {
     id
     transcriptionId
-    timestamp
+    deleteTime
     user
   }
 }
@@ -190,7 +190,7 @@ export const listRegionLocks = `query ListRegionLocks(
     items {
       id
       transcriptionId
-      timestamp
+      deleteTime
       user
     }
     nextToken

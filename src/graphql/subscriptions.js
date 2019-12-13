@@ -197,7 +197,7 @@ export const onCreateRegionLock = `subscription OnCreateRegionLock {
   onCreateRegionLock {
     id
     transcriptionId
-    timestamp
+    deleteTime
     user
   }
 }
@@ -206,7 +206,7 @@ export const onUpdateRegionLock = `subscription OnUpdateRegionLock {
   onUpdateRegionLock {
     id
     transcriptionId
-    timestamp
+    deleteTime
     user
   }
 }
@@ -215,7 +215,7 @@ export const onDeleteRegionLock = `subscription OnDeleteRegionLock {
   onDeleteRegionLock {
     id
     transcriptionId
-    timestamp
+    deleteTime
     user
   }
 }

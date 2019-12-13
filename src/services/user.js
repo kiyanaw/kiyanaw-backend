@@ -16,33 +16,25 @@ let deleteLockSubscription = null
 const cursorSubscribers = []
 const lockSubscribers = []
 const myLocks = {}
-// Keep track of the last update we've received.
-const timestamps = {
-  lock: 0
-}
+
 
 export default {
-  async getUser () {
+  async getUser() {
     if (!user) {
       user = await Auth.currentAuthenticatedUser({ bypassCache: false })
     }
-    // username is some garbage like 2b3cfffd-8c78-430f-a2b4-ef71c6017016
-    // pull name from first part of email
-    const name = user.attributes.email.split('@')[0]
     return {
-      name: name,
+      name: user.username,
       email: user.attributes.email
     }
   },
-  async getCredentials () {
+  async getCredentials() {
     return Auth.currentCredentials()
   },
   /**
    * Send updates about cursors in real time.
    */
-  async sendCursor (details) {
-    // const appsyncClient = appsync.getClient()
-    console.log(details)
+  async sendCursor(details) {
     let result
     // TODO: this works, but it might be better to put the cursor updates on a timer
     // this is going to flood dynamo with a lot of requests
@@ -68,7 +60,7 @@ export default {
     return result
   },
 
-  async listenForCursor (callback) {
+  async listenForCursor(callback) {
     // let up a listener, if we don't have one already
     if (!cursorSubscription) {
       cursorSubscription = API.graphql(graphqlOperation(onUpdateCursor)).subscribe({
@@ -91,10 +83,12 @@ export default {
     cursorSubscribers.push(callback)
   },
 
-  async lockRegion (transcriptionId, regionId) {
+  async lockRegion(transcriptionId, regionId) {
+    this.clearOtherUserLocks(transcriptionId, regionId)
     // if we don't have a lock already, attempt one
     if (!myLocks[regionId]) {
       const user = await this.getUser()
+      let newLock
       if (Object.keys(myLocks).includes(regionId)) {
         return true
       } else {
@@ -102,10 +96,10 @@ export default {
           const input = {
             id: regionId,
             user: user.name,
-            timestamp: Number((+new Date() / 1000).toFixed(0)),
+            deleteTime: Number((+new Date() / 1000).toFixed(0)) + 300, // 5 minutes from now
             transcriptionId
           }
-          await API.graphql(graphqlOperation(createRegionLock, { input: input }))
+          newLock = await API.graphql(graphqlOperation(createRegionLock, { input: input }))
         } catch (error) {
           console.error(error)
           delete myLocks[regionId]
@@ -119,7 +113,19 @@ export default {
     }
   },
 
-  async unlockRegion (transcriptionId, regionId) {
+  async clearOtherUserLocks(transcriptionId, keepLock) {
+    const user = await this.getUser()
+    const locks = await this.getRegionLocks(transcriptionId)
+    console.log('all locks', locks)
+    for (const lock of locks) {
+      if (lock.user === user.name && lock.id !== keepLock) {
+        console.log(' --> unlocking my other region', lock.id, keepLock)
+        this.unlockRegion(transcriptionId, lock.id)
+      }
+    }
+  },
+
+  async unlockRegion(transcriptionId, regionId) {
     const user = await this.getUser()
     console.log(`unlock called by ${user.name} - ${regionId}`)
     delete myLocks[regionId]
@@ -132,7 +138,7 @@ export default {
     return true
   },
 
-  async listenForLock (callback) {
+  async listenForLock(callback) {
     const user = await this.getUser()
     if (!createLockSubscription) {
       createLockSubscription = API.graphql(graphqlOperation(onCreateRegionLock)).subscribe({
@@ -155,8 +161,10 @@ export default {
     if (!deleteLockSubscription) {
       deleteLockSubscription = API.graphql(graphqlOperation(onDeleteRegionLock)).subscribe({
         next: (lockData) => {
-          console.log('incoming UNlock', lockData)
+          // console.log('incoming UNlock', lockData)
           const data = lockData.value.data.onDeleteRegionLock
+          const now = Number(+ new Date()) / 1000
+          console.log('incoming UNlock', data)
           // TODO: check TTL on this
           if (data.user !== user.name) {
             data.action = 'deleted'
@@ -173,7 +181,7 @@ export default {
     lockSubscribers.push(callback)
   },
 
-  async getRegionLocks (transcriptionId) {
+  async getRegionLocks(transcriptionId) {
     const user = await this.getUser()
     const response = await API.graphql(graphqlOperation(listRegionLocks, { input: { transcriptionId: transcriptionId } }))
     // console.log('all region locks', response.data)
@@ -186,7 +194,7 @@ export default {
       }
       console.log('my locks', myLocks)
       // TODO: check for nextToken
-      return locks.filter(item => item.user !== user.name)
+      return locks //.filter(item => item.user !== user.name)
     }
     return []
   }

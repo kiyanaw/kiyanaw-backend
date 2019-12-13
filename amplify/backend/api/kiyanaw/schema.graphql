@@ -45,6 +45,6 @@ type RegionLock @model
 {
   id: String!
   transcriptionId: String!
-  timestamp: AWSTimestamp!
+  deleteTime: AWSTimestamp!
   user: String!
 }
