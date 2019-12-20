@@ -15,20 +15,6 @@ export const createTranscription = `mutation CreateTranscription(
     source
     title
     type
-    regions {
-      items {
-        id
-        start
-        end
-        text
-        translation
-        dateLastUpdated
-        userLastUpdated
-        lock
-        version
-      }
-      nextToken
-    }
   }
 }
 `;
@@ -46,20 +32,6 @@ export const updateTranscription = `mutation UpdateTranscription(
     source
     title
     type
-    regions {
-      items {
-        id
-        start
-        end
-        text
-        translation
-        dateLastUpdated
-        userLastUpdated
-        lock
-        version
-      }
-      nextToken
-    }
   }
 }
 `;
@@ -77,20 +49,6 @@ export const deleteTranscription = `mutation DeleteTranscription(
     source
     title
     type
-    regions {
-      items {
-        id
-        start
-        end
-        text
-        translation
-        dateLastUpdated
-        userLastUpdated
-        lock
-        version
-      }
-      nextToken
-    }
   }
 }
 `;
@@ -106,21 +64,7 @@ export const createRegion = `mutation CreateRegion(
     translation
     dateLastUpdated
     userLastUpdated
-    lock
-    transcription {
-      id
-      author
-      coverage
-      dateLastUpdated
-      userLastUpdated
-      length
-      source
-      title
-      type
-      regions {
-        nextToken
-      }
-    }
+    transcriptionId
     version
   }
 }
@@ -137,21 +81,7 @@ export const updateRegion = `mutation UpdateRegion(
     translation
     dateLastUpdated
     userLastUpdated
-    lock
-    transcription {
-      id
-      author
-      coverage
-      dateLastUpdated
-      userLastUpdated
-      length
-      source
-      title
-      type
-      regions {
-        nextToken
-      }
-    }
+    transcriptionId
     version
   }
 }
@@ -168,21 +98,7 @@ export const deleteRegion = `mutation DeleteRegion(
     translation
     dateLastUpdated
     userLastUpdated
-    lock
-    transcription {
-      id
-      author
-      coverage
-      dateLastUpdated
-      userLastUpdated
-      length
-      source
-      title
-      type
-      regions {
-        nextToken
-      }
-    }
+    transcriptionId
     version
   }
 }

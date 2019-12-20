@@ -11,6 +11,20 @@ import EnvService from '../services/env'
 import UserService from './user'
 import { ConsoleLogger } from '@aws-amplify/core'
 
+import gql from 'graphql-tag'
+import AWSAppSyncClient, { AUTH_TYPE } from 'aws-appsync'
+import Amplify, { Auth } from 'aws-amplify'
+import awsconfig from '../aws-exports'
+
+const client = new AWSAppSyncClient({
+  url: awsconfig.aws_appsync_graphqlEndpoint,
+  region: awsconfig.aws_appsync_region,
+  auth: {
+    type: AUTH_TYPE.AWS_IAM,
+    credentials: () => Auth.currentCredentials()
+  }
+})
+
 function pad (num, size) {
   return ('000000000' + num).substr(-size)
 }
@@ -90,8 +104,8 @@ export default {
     } catch (error) {
       console.error('Could not load transcriptions', error)
     }
-    // unwrap the structure that comes back from appsync
     return results.data.listTranscriptions.items.map(item => new Transcription(item))
+    // unwrap the structure that comes back from appsync
   },
 
   /**
@@ -145,17 +159,15 @@ export default {
 
   /** */
   async getTranscription (id, author) {
-    console.log('transcription id', id)
     let [transcription, regions] = await Promise.all([
       API.graphql(graphqlOperation(queries.getTranscription, { id: id, author: author })),
-      API.graphql(graphqlOperation(queries.listRegions, { regionTranscriptionId: id }))
+      API.graphql(graphqlOperation(queries.byTranscription, { transcriptionId: id, limit: 400 }))
     ])
     transcription = transcription.data.getTranscription
-    transcription.regions = regions.data.listRegions.items.map((item) => {
+    transcription.regions = regions.data.byTranscription.items.map((item) => {
       item.text = JSON.parse(item.text)
       return item
     })
-    console.log(transcription.regions)
     return transcription
   },
 
@@ -169,7 +181,7 @@ export default {
       text: JSON.stringify(regionData.text),
       dateLastUpdated: `${+new Date()}`,
       userLastUpdated: (await UserService.getUser()).name,
-      regionTranscriptionId: transcriptionId
+      transcriptionId: transcriptionId
     }
     console.log(input)
     const update = await API.graphql(graphqlOperation(mutations.createRegion, { input: input }))
@@ -188,7 +200,7 @@ export default {
       translation: region.translation,
       dateLastUpdated: `${+new Date()}`,
       userLastUpdated: user.name,
-      regionTranscriptionId: transcriptionId,
+      transcriptionId: transcriptionId,
       expectedVersion: region.version
     }
     const update = await API.graphql(graphqlOperation(mutations.updateRegion, { input: input }))

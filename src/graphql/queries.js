@@ -12,20 +12,6 @@ export const getTranscription = `query GetTranscription($id: ID!) {
     source
     title
     type
-    regions {
-      items {
-        id
-        start
-        end
-        text
-        translation
-        dateLastUpdated
-        userLastUpdated
-        lock
-        version
-      }
-      nextToken
-    }
   }
 }
 `;
@@ -53,9 +39,6 @@ export const listTranscriptions = `query ListTranscriptions(
       source
       title
       type
-      regions {
-        nextToken
-      }
     }
     nextToken
   }
@@ -70,21 +53,7 @@ export const getRegion = `query GetRegion($id: String!) {
     translation
     dateLastUpdated
     userLastUpdated
-    lock
-    transcription {
-      id
-      author
-      coverage
-      dateLastUpdated
-      userLastUpdated
-      length
-      source
-      title
-      type
-      regions {
-        nextToken
-      }
-    }
+    transcriptionId
     version
   }
 }
@@ -111,18 +80,7 @@ export const listRegions = `query ListRegions(
       translation
       dateLastUpdated
       userLastUpdated
-      lock
-      transcription {
-        id
-        author
-        coverage
-        dateLastUpdated
-        userLastUpdated
-        length
-        source
-        title
-        type
-      }
+      transcriptionId
       version
     }
     nextToken
@@ -192,6 +150,35 @@ export const listRegionLocks = `query ListRegionLocks(
       transcriptionId
       deleteTime
       user
+    }
+    nextToken
+  }
+}
+`;
+export const byTranscription = `query ByTranscription(
+  $transcriptionId: String
+  $sortDirection: ModelSortDirection
+  $filter: ModelRegionFilterInput
+  $limit: Int
+  $nextToken: String
+) {
+  byTranscription(
+    transcriptionId: $transcriptionId
+    sortDirection: $sortDirection
+    filter: $filter
+    limit: $limit
+    nextToken: $nextToken
+  ) {
+    items {
+      id
+      start
+      end
+      text
+      translation
+      dateLastUpdated
+      userLastUpdated
+      transcriptionId
+      version
     }
     nextToken
   }

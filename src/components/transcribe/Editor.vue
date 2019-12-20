@@ -2,7 +2,7 @@
   <v-container v-bind:class="{ locked: locked }">
     <v-layout
       class="region-editor-layout"
-      v-bind:class="{ inRegion: isInRegion, review: needsReview}"
+      v-bind:class="{ inRegion: isInRegion, review: needsReview }"
       style="position: relative"
     >
       <span class="region-index">{{ region.index }}</span>
@@ -38,7 +38,10 @@
             <div class="region-options-controls">
               <a v-on:click="deleteRegion">Delete this region</a>
               &nbsp;
-              <span>Version {{ region.version }} by {{ region.userLastUpdated }} -- {{ region.id }}</span>
+              <span
+                >Version {{ region.version }} by {{ region.userLastUpdated }} --
+                {{ region.id }}</span
+              >
             </div>
           </div>
         </div>
@@ -48,38 +51,38 @@
 </template>
 
 <script>
-import Timeout from "smart-timeout";
-import Quill from "quill";
-import QuillCursors from "quill-cursors";
-import utils from "./utils";
-import Lex from "../../services/lexicon";
-import UserService from "../../services/user";
+import Timeout from 'smart-timeout'
+import Quill from 'quill'
+import QuillCursors from 'quill-cursors'
+import utils from './utils'
+import Lex from '../../services/lexicon'
+import UserService from '../../services/user'
 
 /**
  * Register our custom class attributor. This is used to flag a word as
  * a 'known word', when it matches a word in the lexicon.
  */
-const Parchment = Quill.import("parchment");
-let KnownWord = new Parchment.Attributor.Class("known-word", "known-word", {
-  scope: Parchment.Scope.INLINE
-});
+const Parchment = Quill.import('parchment')
+let KnownWord = new Parchment.Attributor.Class('known-word', 'known-word', {
+  scope: Parchment.Scope.INLINE,
+})
 
-Parchment.register(KnownWord);
-Quill.register("modules/cursors", QuillCursors);
+Parchment.register(KnownWord)
+Quill.register('modules/cursors', QuillCursors)
 
-let typingTimer;
-let cursorTimer;
+let typingTimer
+let cursorTimer
 
-let blurFlag = false;
+let blurFlag = false
 
 export default {
   props: [
-    "region",
-    "canEdit",
+    'region',
+    'canEdit',
     // this has the region where the playback head is located
-    "inRegions",
+    'inRegions',
     // true when the user is editing this region
-    "editing"
+    'editing',
   ],
 
   data() {
@@ -88,12 +91,12 @@ export default {
       // hasFocus: false,
       // _regionTranslation: null,
       locked: false,
-      lockUser: "",
+      lockUser: '',
       // used for blur/focus timing between editors in the same region
       blurFlag: false,
       // used to ignore the first 'blur' event
-      firstBlur: true
-    };
+      firstBlur: true,
+    }
   },
 
   watch: {
@@ -104,45 +107,43 @@ export default {
       //   this.unlock();
       //   // this.quillTranslate = null;
       // }
-    }
+    },
   },
 
   computed: {
     isInRegion() {
-      const inRegions = this.$props.inRegions;
-      const regionId = this.$props.region.id;
+      const inRegions = this.$props.inRegions
+      const regionId = this.$props.region.id
       if (inRegions && regionId) {
-        return this.inRegions.indexOf(this.region.id) > -1;
+        return this.inRegions.indexOf(this.region.id) > -1
       }
     },
     // TODO this needs tests
     needsReview() {
-      const doubleQuestion = this.region.text.filter(
-        word => word.insert.indexOf("??") > -1
-      );
+      const doubleQuestion = this.region.text.filter((word) => word.insert.indexOf('??') > -1)
       if (doubleQuestion.length) {
-        return true;
+        return true
       }
-      return false;
-    }
+      return false
+    },
   },
   methods: {
-    lock(lockUser = "unknown") {
-      console.log("This region is locked", this.region.id);
-      this.locked = true;
-      this.$emit("editor-blur", this.region.id, { silent: true });
-      this.lockUser = lockUser;
-      this.quill.disable();
-      this.quillTranslate.disable();
+    lock(lockUser = 'unknown') {
+      console.log('This region is locked', this.region.id)
+      this.locked = true
+      this.$emit('editor-blur', this.region.id, { silent: true })
+      this.lockUser = lockUser
+      this.quill.disable()
+      this.quillTranslate.disable()
     },
     unlock() {
-      console.log("This region is unlocked", this.region.id);
-      this.locked = false;
-      this.lockUser = "";
-      this.quill.enable();
-      this.quillTranslate.enable();
-      this.cursors.clearCursors();
-      this.cursorsTranslate.clearCursors();
+      console.log('This region is unlocked', this.region.id)
+      this.locked = false
+      this.lockUser = ''
+      this.quill.enable()
+      this.quillTranslate.enable()
+      this.cursors.clearCursors()
+      this.cursorsTranslate.clearCursors()
     },
 
     /**
@@ -150,41 +151,41 @@ export default {
      * Turns a 1.398456847365252 float into 0:01.40 time
      */
     normalTime(value) {
-      return utils.floatToMSM(value);
+      return utils.floatToMSM(value)
     },
     /**
      * Handler for when user clicks on the timestamps for this region.
      */
     playRegion() {
-      this.$emit("play-region", this.region.id);
+      this.$emit('play-region', this.region.id)
       if (`#${this.region.id}` !== this.$router.history.current.hash) {
-        this.$router.push({ path: `#${this.region.id}` });
+        this.$router.push({ path: `#${this.region.id}` })
       }
       // keep the editor from losing focus
-      this.maybeFocusBlur({ type: "focus" });
+      this.maybeFocusBlur({ type: 'focus' })
     },
 
     stayFocused() {
-      this.maybeFocusBlur({ type: "focus" });
+      this.maybeFocusBlur({ type: 'focus' })
     },
 
     /**
      *
      */
     deleteRegion() {
-      this.$emit("delete-region", this.region);
+      this.$emit('delete-region', this.region)
     },
     /**
      *
      */
     insertDelta(delta) {
-      this.quill.updateContents(delta);
+      this.quill.updateContents(delta)
     },
     /**
      *
      */
     clearCursors() {
-      this.cursors.clearCursors();
+      this.cursors.clearCursors()
     },
 
     /**
@@ -192,33 +193,29 @@ export default {
      */
     setCursor(data) {
       // console.log('setting cursor', data)
-      if (data.source === "secondary") {
-        this.quillTranslate.setText(data.text || "", "api");
-        this.quillTranslate.formatText(0, 9999999, "color", "gray");
+      if (data.source === 'secondary') {
+        this.quillTranslate.setText(data.text || '', 'api')
+        this.quillTranslate.formatText(0, 9999999, 'color', 'gray')
         // set the cursor
-        const exists = this.cursorsTranslate
-          .cursors()
-          .filter(needle => (needle.id = data.id));
+        const exists = this.cursorsTranslate.cursors().filter((needle) => (needle.id = data.id))
         if (exists.length) {
-          this.cursorsTranslate.createCursor(data.user, data.user, data.color);
+          this.cursorsTranslate.createCursor(data.user, data.user, data.color)
         }
-        this.cursorsTranslate.moveCursor(data.user, data.range);
-        this.cursors.removeCursor(data.user);
-        this.cursors.clearCursors();
+        this.cursorsTranslate.moveCursor(data.user, data.range)
+        this.cursors.removeCursor(data.user)
+        this.cursors.clearCursors()
       } else {
-        this.quill.setContents(data.text, "silent");
+        this.quill.setContents(data.text, 'silent')
         // set the cursor
-        const exists = this.cursors
-          .cursors()
-          .filter(needle => (needle.id = data.id));
+        const exists = this.cursors.cursors().filter((needle) => (needle.id = data.id))
         if (!exists.length) {
-          this.cursors.createCursor(data.user, data.user, data.color);
+          this.cursors.createCursor(data.user, data.user, data.color)
         }
-        this.cursors.moveCursor(data.user, data.range);
-        this.cursorsTranslate.clearCursors();
-        this.cursorsTranslate.removeCursor(data.user);
+        this.cursors.moveCursor(data.user, data.range)
+        this.cursorsTranslate.clearCursors()
+        this.cursorsTranslate.removeCursor(data.user)
       }
-      window.cursors = this.cursors;
+      window.cursors = this.cursors
     },
 
     /**
@@ -228,42 +225,40 @@ export default {
      */
     async invalidateKnownWords() {
       // reset all the 'known-word' format
-      this.quill.formatText(0, 9999, "known-word", false);
+      this.quill.formatText(0, 9999, 'known-word', false)
       // loop through and refresh
-      const knownWords = await Lex.getKnownWords();
+      const knownWords = await Lex.getKnownWords()
       // console.log(`known words: ${knownWords}`)
       // add a space at the beginning to allow 0-index matches
-      const text = this.quill.getText();
-      const matchedWordsIndex = [];
+      const text = this.quill.getText()
+      const matchedWordsIndex = []
       // TODO: we will need to refactor this to break the text down by word and match word-for-word
       // instead of using a regex across the board, we can't match words like `ēkot(a)` with parens
       // right now
       for (let item of knownWords) {
         // check for matches
-        let re = new RegExp(item, "g");
-        let match;
-        let matches = [];
+        let re = new RegExp(item, 'g')
+        let match
+        let matches = []
         while ((match = re.exec(text))) {
           // console.log(`match: ${match}`)
           // TODO: this is icky, find a better way
           // make sure we're matching whole words and not just partials
           // grab the character right after our match to
-          const surroundingCharacters = [" ", "\n", ".", ",", "(", ")"];
+          const surroundingCharacters = [' ', '\n', '.', ',', '(', ')'] 
           const beforeIsSpace =
-            match.index === 0 ||
-            surroundingCharacters.includes(text[match.index - 1]);
-          const afterIsSpace = surroundingCharacters.includes(
-            text[match.index + item.length]
-          );
+            match.index === 0 || surroundingCharacters.includes(text[match.index - 1])
+          const afterIsSpace = surroundingCharacters.includes(text[match.index + item.length])
           if (beforeIsSpace && afterIsSpace) {
-            matches.push(match);
+            matches.push(match)
           }
         }
         for (let match of matches) {
-          this.quill.formatText(match.index, item.length, "known-word", true);
-          matchedWordsIndex.push([match.index, item.length]);
+          this.quill.formatText(match.index, item.length, 'known-word', true)
+          matchedWordsIndex.push([match.index, item.length])
         }
       }
+      console.log(this.quill, this.quill.getContents())
     },
 
     /**
@@ -272,11 +267,9 @@ export default {
      */
     async reportKnownWords(deltas) {
       const known = deltas
-        .filter(
-          item => item.attributes && item.attributes["known-word"] !== undefined
-        )
-        .map(item => item.insert);
-      Lex.addKnownWords(known);
+        .filter((item) => item.attributes && item.attributes['known-word'] !== undefined)
+        .map((item) => item.insert)
+      Lex.addKnownWords(known)
     },
 
     /**
@@ -285,9 +278,9 @@ export default {
     getTokenizedText() {
       return this.quill
         .getText()
-        .replace(/(\r\n|\n|\r)/gm, "")
-        .split(" ")
-        .filter(item => item && item.indexOf("\n") === -1);
+        .replace(/(\r\n|\n|\r)/gm, '')
+        .split(' ')
+        .filter((item) => item && item.indexOf('\n') === -1)
     },
 
     /**
@@ -295,13 +288,18 @@ export default {
      */
     notifyRegionChanged(editor) {
       if (!this.locked) {
-        const ops = this.quill.getContents().ops;
-        this.region.text = ops;
-        this.region.translation = this.quillTranslate.getText();
-        this.$emit("region-text-updated", {
-          id: this.region.id,
-          editor: editor
-        });
+        const ops = this.quill.getContents().ops
+        console.log(this.quill)
+        console.log('ops', ops)
+        this.region.text = ops
+        this.region.translation = this.quillTranslate.getText()
+        setTimeout(() => {
+          this.$emit('region-text-updated', {
+            id: this.region.id,
+            editor: editor,
+            text: ops,
+          })
+        }, 50)
       }
     },
 
@@ -309,28 +307,28 @@ export default {
      * @description Handles changes to the main editor.
      */
     async onEditorTextChange(delta, oldDelta, source) {
-      if (source === "user") {
+      if (source === 'user') {
         // check for breakages
-        this.invalidateKnownWords();
         // notify this editor changed
-        this.notifyRegionChanged("main");
+        this.notifyRegionChanged('main')
+        this.invalidateKnownWords()
       }
     },
 
     async onTranslationTextChange(delta, oldDelta, source) {
-      if (source === "user") {
-        this.notifyRegionChanged("secondary");
-        this.quillTranslate.formatText(0, 9999999, "color", "gray");
+      if (source === 'user') {
+        this.notifyRegionChanged('secondary')
+        this.quillTranslate.formatText(0, 9999999, 'color', 'gray')
       }
     },
 
     async onCursorChange(range, source, text) {
-      this.$emit("region-cursor", {
+      this.$emit('region-cursor', {
         id: this.region.id,
         range,
         source,
-        text
-      });
+        text,
+      })
     },
 
     async onEditorSelectionChange(range, oldRange, source) {
@@ -342,28 +340,28 @@ export default {
             // console.log('User has highlighted', text)
           }
           // throttle the number of cursor updates
-          Timeout.clear(`cursor-change-timeout-main-${this.region.id}`);
+          Timeout.clear(`cursor-change-timeout-main-${this.region.id}`)
           Timeout.set(
             `cursor-change-timeout-main-${this.region.id}`,
             this.onCursorChange,
             100,
             range,
-            "main",
-            this.region.text
-          );
+            'main',
+            this.region.text,
+          )
           // we must delay the focus event to give the other editor's blur
           // event a chance to fire first
           this.$nextTick(() => {
             this.maybeFocusBlur({
-              type: "focus",
-              source: "main"
-            });
-          });
+              type: 'focus',
+              source: 'main',
+            })
+          })
         } else {
           this.maybeFocusBlur({
-            type: "blur",
-            source: "main"
-          });
+            type: 'blur',
+            source: 'main',
+          })
         }
       }
     },
@@ -372,40 +370,40 @@ export default {
      * Binds the editor events to the component.
      */
     async bindEditorEvents() {
-      this.quill.on("text-change", this.onEditorTextChange);
-      this.quill.on("selection-change", this.onEditorSelectionChange);
-      this.quillTranslate.on("text-change", this.onTranslationTextChange);
+      this.quill.on('text-change', this.onEditorTextChange)
+      this.quill.on('selection-change', this.onEditorSelectionChange)
+      this.quillTranslate.on('text-change', this.onTranslationTextChange)
 
       // TODO: move this somewhere we can test it
-      this.quillTranslate.on("selection-change", (range, oldRange, source) => {
+      this.quillTranslate.on('selection-change', (range, oldRange, source) => {
         if (!this.locked) {
           if (range) {
-            Timeout.clear(`cursor-change-timeout-secondary-${this.region.id}`);
+            Timeout.clear(`cursor-change-timeout-secondary-${this.region.id}`)
             Timeout.set(
               `cursor-change-timeout-secondary-${this.region.id}`,
               this.onCursorChange,
               100,
               range,
-              "secondary",
-              this.region.translation
-            );
+              'secondary',
+              this.region.translation,
+            )
 
             // we must delay the focus event to give the other editor's blur
             // event a chance to fire first
             this.$nextTick(() => {
               this.maybeFocusBlur({
-                type: "focus",
-                source: "secondary"
-              });
-            });
+                type: 'focus',
+                source: 'secondary',
+              })
+            })
           } else {
             this.maybeFocusBlur({
-              type: "blur",
-              source: "secondary"
-            });
+              type: 'blur',
+              source: 'secondary',
+            })
           }
         }
-      });
+      })
     },
 
     /**
@@ -417,131 +415,128 @@ export default {
      */
     maybeFocusBlur(event) {
       // can't do anything if we're locked
-      console.log(`!! mayFocusBlur ${this.region.id} (${this.locked})`, event);
+      // console.log(`!! mayFocusBlur ${this.region.id} (${this.locked})`, event);
       if (this.locked) {
-        return;
+        return
       }
-      if (event.type === "blur") {
+      if (event.type === 'blur') {
         // When the editors load they fire off a blur we can't silence.
         if (this.firstBlur) {
-          this.firstBlur = false;
-          return;
+          this.firstBlur = false
+          return
         }
         // console.log('blur called')
-        this.blurFlag = true;
+        this.blurFlag = true
         Timeout.set(
           `blur-timeout-${this.region.id}`,
           () => {
             if (this.blurFlag) {
-              console.log(" --> blur fired");
-              this.$emit("editor-blur", this.region.id);
-              this.blurFlag = false;
+              console.log(' --> blur fired')
+              this.$emit('editor-blur', this.region.id)
+              this.blurFlag = false
             }
           },
           25,
-          this.region.id
-        );
+          this.region.id,
+        )
       } else {
         if (this.blurFlag) {
           // we're within the timeout, do not fire the blur event
-          this.blurFlag = false;
+          this.blurFlag = false
         } else {
           // we're clear, fire the event
           if (!this.editing) {
             // console.log(' --> focus fired')
-            this.$emit("editor-focus", this.region.id);
+            this.$emit('editor-focus', this.region.id)
           }
         }
       }
     },
 
     mountMainEditor() {
-      this.quill = new Quill(
-        this.$el.querySelector("#editor-" + this.region.id),
-        {
-          theme: "snow",
-          formats: ["known-word"],
-          modules: {
-            toolbar: false,
-            cursors: true
-          },
-          readOnly: !this.canEdit
-        }
-      );
-      this.cursors = this.quill.getModule("cursors");
-      this.quill.root.setAttribute("spellcheck", false);
-      this.quill.setContents(this.region.text, "silent");
-      this.quill.blur();
+      this.quill = new Quill(this.$el.querySelector('#editor-' + this.region.id), {
+        theme: 'snow',
+        formats: ['known-word'],
+        modules: {
+          toolbar: false,
+          cursors: true,
+        },
+        readOnly: !this.canEdit,
+      })
+      this.cursors = this.quill.getModule('cursors')
+      this.quill.root.setAttribute('spellcheck', false)
+      this.quill.setContents(this.region.text, 'silent')
+      // this.quill.blur();
     },
 
     mountSecondEditor() {
       // TODO: this needs to clear cursors, etc
       this.quillTranslate = new Quill(
-        this.$el.querySelector("#editor-translate-" + this.region.id),
+        this.$el.querySelector('#editor-translate-' + this.region.id),
         {
-          theme: "snow",
+          theme: 'snow',
           modules: {
             toolbar: false,
-            cursors: true
+            cursors: true,
           },
-          readOnly: !this.canEdit
-        }
-      );
+          readOnly: !this.canEdit,
+        },
+      )
 
-      this.quillTranslate.format("color", "gray");
-      this.quillTranslate.root.setAttribute("spellcheck", false);
+      this.quillTranslate.format('color', 'gray')
+      this.quillTranslate.root.setAttribute('spellcheck', false)
       if (this.region.translation) {
-        this.quillTranslate.insertText(0, this.region.translation.trim());
+        this.quillTranslate.insertText(0, this.region.translation.trim(), 'silent')
       }
-      this.cursorsTranslate = this.quillTranslate.getModule("cursors");
-      this.quillTranslate.formatText(0, 9999999, "color", "gray");
-      this.quillTranslate.blur();
+      this.cursorsTranslate = this.quillTranslate.getModule('cursors')
+      this.quillTranslate.formatText(0, 9999999, 'color', 'gray')
+      // this.quillTranslate.blur();
     },
 
     async realtimeUpdate(region) {
       if (this.editing) {
         // only update start/end times when editing
       } else {
-        console.log("updating with new region");
+        console.log('updating with new region')
         // deal with times
-        this.region.start = region.start;
-        this.region.end = region.end;
+        this.region.start = region.start
+        this.region.end = region.end
         // update text
-        this.region.text = region.text;
-        this.quill.setContents(region.text, "silent");
+        this.region.text = region.text
+        this.quill.setContents(region.text, 'silent')
         // update translation
-        this.translation = region.translation;
-        this.quillTranslate.setText(region.translation || "", "silent");
-        this.quillTranslate.formatText(0, 9999999, "color", "gray");
+        this.translation = region.translation
+        this.quillTranslate.setText(region.translation || '', 'silent')
+        this.quillTranslate.formatText(0, 9999999, 'color', 'gray')
         // update verision
-        this.region.version = region.version;
-        this.region.userLastUpdated = region.userLastUpdated;
-        this.dateLastUpdated = region.dateLastUpdated;
+        this.region.version = region.version
+        this.region.userLastUpdated = region.userLastUpdated
+        this.dateLastUpdated = region.dateLastUpdated
       }
-    }
+    },
   },
 
   mounted() {
-    this.locked = false;
+    this.locked = false
 
-    this.mountMainEditor();
-    this.mountSecondEditor();
+    this.mountMainEditor()
+    this.mountSecondEditor()
 
-    this.reportKnownWords(this.region.text);
+    this.reportKnownWords(this.region.text)
 
     // this.quillTranslate.setText(this.region.translation, 'silent')
-    this.bindEditorEvents();
+    this.bindEditorEvents()
 
     // TODO: remove this, it's just for debugging.
-    window.quill = this.quill;
-    window.cursors = this.cursors;
-    window.quillTranslate = this.quillTranslate;
-    window.cursorsTranslate = this.cursorsTranslate;
+    window.quill = this.quill
+    window.cursors = this.cursors
+    window.quillTranslate = this.quillTranslate
+    window.cursorsTranslate = this.cursorsTranslate
 
     // update the temporary translation value
     // this._regionTranslation = this.region.translation
-  }
-};
+  },
+}
 </script>
 
 <style>
@@ -582,7 +577,7 @@ Yu .edit {
   text-align: right;
 }
 
-[class^="known-word-"] {
+[class^='known-word-'] {
   color: blue;
 }
 .region-options {

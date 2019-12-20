@@ -36,6 +36,13 @@
             class="control-btn"
             ><v-icon>clear</v-icon></v-btn
           >
+          <v-btn
+            flat
+            icon
+            v-on:click="speed = 100"
+            class="control-btn"
+            ><v-icon></v-icon>R</v-btn
+          >
         </v-flex>
 
         <v-flex xs6 class="time main-time">
@@ -211,6 +218,7 @@ export default {
       this.zoom = 30;
     }
     window.surfer = surfer;
+    window.audio = this
   },
   methods: {
     onPlayerSeek: function() {
