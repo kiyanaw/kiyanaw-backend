@@ -4,18 +4,18 @@ type Transcription @model
 {
   id: ID!
   author: String!
-  coverage: Int
+  coverage: Float
   dateLastUpdated: String!
   userLastUpdated: String
   length: Float
   source: String
   title: String!
   type: String!
-  regions: [Region] @connection(name: "TranscriptionRegions")
 }
 
 type Region @model
 @key(fields: ["id"])
+@key(name: "ByTranscription", fields: ["transcriptionId"], queryField: "byTranscription")
 @auth(rules: [{allow: public, provider: iam}])
 @versioned
 {
@@ -26,8 +26,7 @@ type Region @model
   translation: String
   dateLastUpdated: String!
   userLastUpdated: String!
-  lock: String
-  transcription: Transcription! @connection(name: "TranscriptionRegions")
+  transcriptionId: String!
 }
 
 type Cursor @model

@@ -12,20 +12,6 @@ export const onCreateTranscription = `subscription OnCreateTranscription {
     source
     title
     type
-    regions {
-      items {
-        id
-        start
-        end
-        text
-        translation
-        dateLastUpdated
-        userLastUpdated
-        lock
-        version
-      }
-      nextToken
-    }
   }
 }
 `;
@@ -40,20 +26,6 @@ export const onUpdateTranscription = `subscription OnUpdateTranscription {
     source
     title
     type
-    regions {
-      items {
-        id
-        start
-        end
-        text
-        translation
-        dateLastUpdated
-        userLastUpdated
-        lock
-        version
-      }
-      nextToken
-    }
   }
 }
 `;
@@ -68,20 +40,6 @@ export const onDeleteTranscription = `subscription OnDeleteTranscription {
     source
     title
     type
-    regions {
-      items {
-        id
-        start
-        end
-        text
-        translation
-        dateLastUpdated
-        userLastUpdated
-        lock
-        version
-      }
-      nextToken
-    }
   }
 }
 `;
@@ -94,21 +52,7 @@ export const onCreateRegion = `subscription OnCreateRegion {
     translation
     dateLastUpdated
     userLastUpdated
-    lock
-    transcription {
-      id
-      author
-      coverage
-      dateLastUpdated
-      userLastUpdated
-      length
-      source
-      title
-      type
-      regions {
-        nextToken
-      }
-    }
+    transcriptionId
     version
   }
 }
@@ -122,21 +66,7 @@ export const onUpdateRegion = `subscription OnUpdateRegion {
     translation
     dateLastUpdated
     userLastUpdated
-    lock
-    transcription {
-      id
-      author
-      coverage
-      dateLastUpdated
-      userLastUpdated
-      length
-      source
-      title
-      type
-      regions {
-        nextToken
-      }
-    }
+    transcriptionId
     version
   }
 }
@@ -150,21 +80,7 @@ export const onDeleteRegion = `subscription OnDeleteRegion {
     translation
     dateLastUpdated
     userLastUpdated
-    lock
-    transcription {
-      id
-      author
-      coverage
-      dateLastUpdated
-      userLastUpdated
-      length
-      source
-      title
-      type
-      regions {
-        nextToken
-      }
-    }
+    transcriptionId
     version
   }
 }

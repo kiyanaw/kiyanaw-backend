@@ -1,12 +1,12 @@
 {
-  "extends": "standard",
+  "extends": ["standard"],
   "parserOptions": {
     "ecmaVersion": 9,
     "sourceType": "module"
   },
   "overrides": [
     {
-      "files": [ "test/**/*" ],
+      "files": ["test/**/*"],
       "globals": {
         "describe": true,
         "before": true,
@@ -22,10 +22,10 @@
       }
     },
     {
-        "files": ["node_modules/**/*.*", "src/aws-exports.js"],
-        "rules": {
-            "strict": "off"
-        }
+      "files": ["node_modules/**/*.*", "src/aws-exports.js"],
+      "rules": {
+        "strict": "off"
+      }
     }
   ]
 }
