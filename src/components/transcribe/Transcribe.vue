@@ -222,8 +222,6 @@ export default {
     /** */
     onRegionTextUpdated(event) {
       const targetRegion = this.regions.filter((r) => r.id === event.id)[0]
-      // YOU ARE HERE - BINDINGS ARE NOT UPDATING ON REGION.TEXT
-      console.log('target region: ', targetRegion)
       // search for new words
       if (event.editor === 'main') {
         const words = this.$refs[targetRegion.id][0].getTokenizedText()
@@ -244,6 +242,10 @@ export default {
     },
 
     async saveRegion(region, text) {
+      // TODO: region bindings aren't working correctly, pulling
+      // the text from the region directly for now
+      const regionOps = this.$refs[region.id][0].getMainOps()
+      region.text = regionOps
       console.log('saving region', region)
       TranscriptionService.updateRegion(this.transcriptionId, region)
     },

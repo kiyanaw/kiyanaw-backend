@@ -128,6 +128,9 @@ export default {
     },
   },
   methods: {
+    getMainOps() {
+      return this.quill.getContents().ops
+    },
     lock(lockUser = 'unknown') {
       console.log('This region is locked', this.region.id)
       this.locked = true
@@ -258,7 +261,6 @@ export default {
           matchedWordsIndex.push([match.index, item.length])
         }
       }
-      console.log(this.quill, this.quill.getContents())
     },
 
     /**
