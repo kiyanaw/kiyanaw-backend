@@ -27,14 +27,13 @@
       <v-flex xs2 md1>
         <v-icon class="region-lock-icon" v-if="locked">lock</v-icon>
         <div class="region-options-label" v-if="locked">{{ lockUser }}</div>
-        <div class="region-options-label label-translation" v-if="editing">English</div>
-        <!-- <div class="region-options-label label-options" v-if="editing">Options</div> -->
+        <div class="region-options-label label-translation" v-if="editing && canEdit">English</div>
       </v-flex>
 
       <v-flex xs10 md10>
         <div class="region-options-edit">
           <div v-bind:id="'editor-translate-' + region.id"></div>
-          <div v-if="editing">
+          <div v-if="editing & canEdit">
             <div class="region-options-controls">
               <a v-on:click="deleteRegion">Delete this region</a>
               &nbsp;
@@ -248,7 +247,7 @@ export default {
           // TODO: this is icky, find a better way
           // make sure we're matching whole words and not just partials
           // grab the character right after our match to
-          const surroundingCharacters = [' ', '\n', '.', ',', '(', ')'] 
+          const surroundingCharacters = [' ', '\n', '.', ',', '(', ')']
           const beforeIsSpace =
             match.index === 0 || surroundingCharacters.includes(text[match.index - 1])
           const afterIsSpace = surroundingCharacters.includes(text[match.index + item.length])
@@ -372,40 +371,42 @@ export default {
      * Binds the editor events to the component.
      */
     async bindEditorEvents() {
-      this.quill.on('text-change', this.onEditorTextChange)
-      this.quill.on('selection-change', this.onEditorSelectionChange)
-      this.quillTranslate.on('text-change', this.onTranslationTextChange)
+      if (this.canEdit) {
+        this.quill.on('text-change', this.onEditorTextChange)
+        this.quill.on('selection-change', this.onEditorSelectionChange)
+        this.quillTranslate.on('text-change', this.onTranslationTextChange)
 
-      // TODO: move this somewhere we can test it
-      this.quillTranslate.on('selection-change', (range, oldRange, source) => {
-        if (!this.locked) {
-          if (range) {
-            Timeout.clear(`cursor-change-timeout-secondary-${this.region.id}`)
-            Timeout.set(
-              `cursor-change-timeout-secondary-${this.region.id}`,
-              this.onCursorChange,
-              100,
-              range,
-              'secondary',
-              this.region.translation,
-            )
+        // TODO: move this somewhere we can test it
+        this.quillTranslate.on('selection-change', (range, oldRange, source) => {
+          if (!this.locked) {
+            if (range) {
+              Timeout.clear(`cursor-change-timeout-secondary-${this.region.id}`)
+              Timeout.set(
+                `cursor-change-timeout-secondary-${this.region.id}`,
+                this.onCursorChange,
+                100,
+                range,
+                'secondary',
+                this.region.translation,
+              )
 
-            // we must delay the focus event to give the other editor's blur
-            // event a chance to fire first
-            this.$nextTick(() => {
+              // we must delay the focus event to give the other editor's blur
+              // event a chance to fire first
+              this.$nextTick(() => {
+                this.maybeFocusBlur({
+                  type: 'focus',
+                  source: 'secondary',
+                })
+              })
+            } else {
               this.maybeFocusBlur({
-                type: 'focus',
+                type: 'blur',
                 source: 'secondary',
               })
-            })
-          } else {
-            this.maybeFocusBlur({
-              type: 'blur',
-              source: 'secondary',
-            })
+            }
           }
-        }
-      })
+        })
+      }
     },
 
     /**
@@ -418,7 +419,7 @@ export default {
     maybeFocusBlur(event) {
       // can't do anything if we're locked
       // console.log(`!! mayFocusBlur ${this.region.id} (${this.locked})`, event);
-      if (this.locked) {
+      if (this.locked || !this.canEdit) {
         return
       }
       if (event.type === 'blur') {

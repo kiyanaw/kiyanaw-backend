@@ -1,7 +1,12 @@
 import { Auth } from 'aws-amplify'
 
 // import appsync from './appsync'
-import { createCursor, updateCursor, createRegionLock, deleteRegionLock } from '../graphql/mutations'
+import {
+  createCursor,
+  updateCursor,
+  createRegionLock,
+  deleteRegionLock,
+} from '../graphql/mutations'
 import { onUpdateCursor, onCreateRegionLock, onDeleteRegionLock } from '../graphql/subscriptions'
 import { listRegionLocks } from '../graphql/queries'
 import gql from 'graphql-tag'
@@ -17,7 +22,6 @@ const cursorSubscribers = []
 const lockSubscribers = []
 const myLocks = {}
 
-
 export default {
   async getUser() {
     if (!user) {
@@ -25,7 +29,7 @@ export default {
     }
     return {
       name: user.username,
-      email: user.attributes.email
+      email: user.attributes.email,
     }
   },
   async getCredentials() {
@@ -39,22 +43,26 @@ export default {
     // TODO: this works, but it might be better to put the cursor updates on a timer
     // this is going to flood dynamo with a lot of requests
     try {
-      result = await API.graphql(graphqlOperation(updateCursor, {
-        input: {
-          id: details.user,
-          user: details.user,
-          cursor: JSON.stringify(details.cursor)
-        }
-      }))
+      result = await API.graphql(
+        graphqlOperation(updateCursor, {
+          input: {
+            id: details.user,
+            user: details.user,
+            cursor: JSON.stringify(details.cursor),
+          },
+        }),
+      )
     } catch (error) {
       // cursor object probably didn't exist
-      result = await API.graphql(graphqlOperation(createCursor, {
-        input: {
-          id: details.user,
-          user: details.user,
-          cursor: JSON.stringify(details.cursor)
-        }
-      }))
+      result = await API.graphql(
+        graphqlOperation(createCursor, {
+          input: {
+            id: details.user,
+            user: details.user,
+            cursor: JSON.stringify(details.cursor),
+          },
+        }),
+      )
     }
     // console.log('cursor', result)
     return result
@@ -76,8 +84,8 @@ export default {
           }
         },
         error: (error) => {
-          console.error('onUpdateCursor subscription error', error)
-        }
+          console.warn('onUpdateCursor subscription error', error)
+        },
       })
     }
     cursorSubscribers.push(callback)
@@ -97,7 +105,7 @@ export default {
             id: regionId,
             user: user.name,
             deleteTime: Number((+new Date() / 1000).toFixed(0)) + 300, // 5 minutes from now
-            transcriptionId
+            transcriptionId,
           }
           newLock = await API.graphql(graphqlOperation(createRegionLock, { input: input }))
         } catch (error) {
@@ -130,7 +138,9 @@ export default {
     console.log(`unlock called by ${user.name} - ${regionId}`)
     delete myLocks[regionId]
     try {
-      await API.graphql(graphqlOperation(deleteRegionLock, { input: { id: regionId, transcriptionId } }))
+      await API.graphql(
+        graphqlOperation(deleteRegionLock, { input: { id: regionId, transcriptionId } }),
+      )
     } catch (error) {
       console.error(error)
       return false
@@ -155,7 +165,10 @@ export default {
               }
             }
           }
-        }
+        },
+        error: (error) => {
+          console.warn('Could not subscribe to locks', error)
+        },
       })
     }
     if (!deleteLockSubscription) {
@@ -163,7 +176,7 @@ export default {
         next: (lockData) => {
           // console.log('incoming UNlock', lockData)
           const data = lockData.value.data.onDeleteRegionLock
-          const now = Number(+ new Date()) / 1000
+          const now = Number(+new Date()) / 1000
           console.log('incoming UNlock', data)
           // TODO: check TTL on this
           if (data.user !== user.name) {
@@ -175,7 +188,10 @@ export default {
               }
             }
           }
-        }
+        },
+        error: (error) => {
+          console.warn('Could not subscribe to locks', error)
+        },
       })
     }
     lockSubscribers.push(callback)
@@ -183,7 +199,9 @@ export default {
 
   async getRegionLocks(transcriptionId) {
     const user = await this.getUser()
-    const response = await API.graphql(graphqlOperation(listRegionLocks, { input: { transcriptionId: transcriptionId } }))
+    const response = await API.graphql(
+      graphqlOperation(listRegionLocks, { input: { transcriptionId: transcriptionId } }),
+    )
     // console.log('all region locks', response.data)
     if (response.data) {
       const locks = response.data.listRegionLocks.items
@@ -197,5 +215,5 @@ export default {
       return locks //.filter(item => item.user !== user.name)
     }
     return []
-  }
+  },
 }
