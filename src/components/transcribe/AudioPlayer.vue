@@ -136,13 +136,6 @@ export default {
       }
     })
 
-    // surfer.on('seek', function (event) {
-    //   me.currentTime = me.maxTime * event
-    // })
-    surfer.on('seek', function(event) {
-      // here
-    })
-
     /**
      * TODO: there are like 3 'ready' handlers
      */
@@ -174,8 +167,15 @@ export default {
       this.loadingProgress = value
     })
 
-    surfer.on('region-play', function(region) {
-      // no actions just yet
+    surfer.on('region-click', (event) => {
+      // if we are a viewer only, play this region
+      if (!this.canEdit) {
+        // this.$emit('play-region', event.id)
+        // this.playRegion(event.id)
+        setTimeout(() => {
+          this.playRegion(event.id)
+        }, 25)
+      }
     })
 
     /**
