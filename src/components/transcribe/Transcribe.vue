@@ -7,7 +7,7 @@
           v-if="source"
           v-bind:audioFile="source"
           v-bind:peaks="peaks"
-          v-bind:regions="regions"
+          v-bind:regions="sortedRegions"
           v-bind:canEdit="user !== null"
           v-bind:inboundRegion="inboundRegion"
           v-on:region-updated="onUpdateRegion"

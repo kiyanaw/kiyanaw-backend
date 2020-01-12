@@ -266,10 +266,13 @@ export default {
         () => {
           surfer.clearRegions()
           console.log('rendering regions')
-          this.regions.forEach((region) => {
+          this.regions.forEach((region, index) => {
             console.log('rendering region', region.id)
             region.resize = this.canEdit
             region.drag = this.canEdit
+            region.attributes = {
+              label: index,
+            }
             surfer.addRegion(region)
           })
           this.textRegions = this.regions
@@ -353,5 +356,16 @@ export default {
 }
 .control-btn {
   margin-top: 15px;
+}
+
+region.wavesurfer-region:before {
+  content: attr(data-region-label);
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  margin: 5px 5px 0;
+  color: #b6b6b6;
+  font-size: 20px;
+  font-weight: bolder;
 }
 </style>

@@ -596,7 +596,7 @@ Yu .edit {
   right: 10px;
   font-size: 20px;
   font-weight: bolder;
-  color: #a7a7a7;
+  color: #b6b6b6;
 }
 .region-options-label {
   text-transform: uppercase;
