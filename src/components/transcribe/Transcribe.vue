@@ -406,7 +406,7 @@ export default {
           }
         })
         .catch((error) => {
-          console.error(error)
+          console.warn('Unable to get region locks', error)
         })
     },
 

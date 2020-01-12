@@ -1,7 +1,7 @@
-type Transcription @model
-@key(fields: ["id"])
-@auth(rules: [{allow: public, provider: iam, ownerField: "author"}])
-{
+type Transcription
+  @model
+  @key(fields: ["id"])
+  @auth(rules: [{ allow: public, provider: iam, ownerField: "author" }]) {
   id: ID!
   author: String!
   coverage: Float
@@ -13,12 +13,12 @@ type Transcription @model
   type: String!
 }
 
-type Region @model
-@key(fields: ["id"])
-@key(name: "ByTranscription", fields: ["transcriptionId"], queryField: "byTranscription")
-@auth(rules: [{allow: public, provider: iam}])
-@versioned
-{
+type Region
+  @model
+  @key(fields: ["id"])
+  @key(name: "ByTranscription", fields: ["transcriptionId"], queryField: "byTranscription")
+  @auth(rules: [{ allow: public, provider: iam }])
+  @versioned {
   id: String!
   start: Float!
   end: Float!
@@ -29,19 +29,16 @@ type Region @model
   transcriptionId: String!
 }
 
-type Cursor @model
-@key(fields: ["id", "user"])
-@auth(rules: [{allow: public, provider: iam}])
-{
+type Cursor @model @key(fields: ["id", "user"]) @auth(rules: [{ allow: public, provider: iam }]) {
   id: String!
   user: String!
   cursor: String!
 }
 
-type RegionLock @model 
-@key(fields: ["id", "transcriptionId"])
-@auth(rules: [{allow: public, provider: iam}])
-{
+type RegionLock
+  @model
+  @key(fields: ["id", "transcriptionId"])
+  @auth(rules: [{ allow: public, provider: iam }]) {
   id: String!
   transcriptionId: String!
   deleteTime: AWSTimestamp!
