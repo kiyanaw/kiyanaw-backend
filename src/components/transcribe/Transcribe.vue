@@ -1,65 +1,74 @@
 <template>
   <v-container class="the-container">
-    <v-layout row>
-      <v-flex xs12 class="audio-player">
-        <audio-player
-          ref="player"
-          v-if="source"
-          v-bind:audioFile="source"
-          v-bind:peaks="peaks"
-          v-bind:regions="sortedRegions"
-          v-bind:canEdit="user !== null"
-          v-bind:inboundRegion="inboundRegion"
-          v-on:region-updated="onUpdateRegion"
-          v-on:region-in="highlightRegion"
-          v-on:region-out="onBlurRegion"
-        >
-        </audio-player>
-      </v-flex>
-    </v-layout>
+    <div v-if="loading && !error" class="loading">
+      <v-progress-circular :size="70" :width="7" color="purple" indeterminate></v-progress-circular>
+    </div>
+    <div v-if="error" class="load-error">
+      {{ error }}
+    </div>
+    <div v-if="!loading && !error">
+      <v-layout row>
+        <v-flex xs12 class="audio-player">
+          <audio-player
+            ref="player"
+            v-if="source"
+            v-bind:source="source"
+            v-bind:peaks="peaks"
+            v-bind:regions="sortedRegions"
+            v-bind:canEdit="user !== null"
+            v-bind:isVideo="isVideo"
+            v-bind:inboundRegion="inboundRegion"
+            v-on:region-updated="onUpdateRegion"
+            v-on:region-in="highlightRegion"
+            v-on:region-out="onBlurRegion"
+          >
+          </audio-player>
+        </v-flex>
+      </v-layout>
 
-    <v-layout row>
-      <v-flex md1></v-flex>
-      <v-flex xs12 md10>
-        <h3 class="title">{{ title }}</h3>
-      </v-flex>
-      <v-flex md1></v-flex>
-    </v-layout>
+      <v-layout row>
+        <v-flex md1></v-flex>
+        <v-flex xs12 md10>
+          <h3 class="title">{{ title }}</h3>
+        </v-flex>
+        <v-flex md1></v-flex>
+      </v-layout>
 
-    <v-layout row>
-      <v-flex hidden-sm-and-down></v-flex>
-      <v-flex xs12 md10 elevation-1 tEditor scroll-container>
-        <v-container id="scroll-target">
-          <div v-for="region in sortedRegions" v-bind:id="region.id" v-bind:key="region.id">
-            <editor
-              v-if="regions"
-              v-bind:region="region"
-              v-bind:canEdit="user !== null"
-              v-bind:ref="region.id"
-              v-bind:inRegions="inRegions"
-              v-bind:editing="editingRegion === region.id"
-              v-on:editor-focus="onRegionFocus"
-              v-on:editor-blur="onEditorBlur"
-              v-on:play-region="playRegion"
-              v-on:region-text-updated="onRegionTextUpdated"
-              v-on:region-cursor="regionCursor"
-              v-on:delete-region="onDeleteRegion"
-            >
-            </editor>
-            <hr />
-          </div>
-        </v-container>
-      </v-flex>
-      <v-flex hidden-sm-and-down></v-flex>
-    </v-layout>
-    <v-layout>
-      <v-flex xs1></v-flex>
-      <v-flex xs10>
-        <v-btn small color="primary" dark v-if="user !== null" v-on:click="saveData">save</v-btn>
-        <span v-if="saved">saved!</span>
-      </v-flex>
-      <v-flex xs1></v-flex>
-    </v-layout>
+      <v-layout row>
+        <v-flex hidden-sm-and-down></v-flex>
+        <v-flex xs12 md10 elevation-1 tEditor scroll-container>
+          <v-container id="scroll-target">
+            <div v-for="region in sortedRegions" v-bind:id="region.id" v-bind:key="region.id">
+              <editor
+                v-if="regions"
+                v-bind:region="region"
+                v-bind:canEdit="user !== null"
+                v-bind:ref="region.id"
+                v-bind:inRegions="inRegions"
+                v-bind:editing="editingRegion === region.id"
+                v-on:editor-focus="onRegionFocus"
+                v-on:editor-blur="onEditorBlur"
+                v-on:play-region="playRegion"
+                v-on:region-text-updated="onRegionTextUpdated"
+                v-on:region-cursor="regionCursor"
+                v-on:delete-region="onDeleteRegion"
+              >
+              </editor>
+              <hr />
+            </div>
+          </v-container>
+        </v-flex>
+        <v-flex hidden-sm-and-down></v-flex>
+      </v-layout>
+      <v-layout>
+        <v-flex xs1></v-flex>
+        <v-flex xs10>
+          <v-btn small color="primary" dark v-if="user !== null" v-on:click="saveData">save</v-btn>
+          <span v-if="saved">saved!</span>
+        </v-flex>
+        <v-flex xs1></v-flex>
+      </v-layout>
+    </div>
   </v-container>
 </template>
 
@@ -138,6 +147,7 @@ export default {
       // authorId: null,
       source: null,
       peaks: null,
+      isVideo: false,
       regions: null,
       /**
        * @type {String|null}
@@ -153,6 +163,9 @@ export default {
       members: [],
       user: null,
       height: 0,
+      //
+      loading: true,
+      error: null,
     }
   },
 
@@ -320,11 +333,28 @@ export default {
     async load() {
       // TODO: move this to updateDataFromTranscription() for realtime updates
       const data = await TranscriptionService.getTranscription(this.transcriptionId)
+
+      // load peaks
+      let peaks
+      try {
+        const rawPeaks = await fetch(`${data.source}.json`)
+        peaks = await rawPeaks.json()
+      } catch (error) {
+        console.error('Error loading peaks data', error)
+        this.loading = false
+        this.error = `Failed to load peaks for ${data.title}, try again shortly...`
+        return
+      }
+
+      console.log(peaks)
+      this.loading = false
       this.source = data.source
-      this.peaks = data.peaks || null
       this.title = data.title
-      // TODO: move regions to an ADT
+      this.isVideo = data.type.includes('video')
       this.regions = data.regions || []
+      this.peaks = peaks
+
+      // TODO: move regions to an ADT
       // this.authorId = data.authorId
       this.inboundRegion = this.$route.hash.replace('#', '') || null
       this.fixScrollHeight()
@@ -541,5 +571,15 @@ export default {
 }
 .title {
   margin: 0 0 20px 0;
+}
+.loading {
+  text-align: center;
+  margin: 100px;
+}
+.load-error {
+  text-align: center;
+  font-size: 1.5em;
+  padding: 20px;
+  margin-top: 100px;
 }
 </style>

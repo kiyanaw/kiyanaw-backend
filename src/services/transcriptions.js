@@ -127,13 +127,14 @@ export default {
    * Create a new transcription.
    * @param {TranscriptionUpload} data
    */
-  async createTranscription(data) {
+  async createTranscription(data, progressCallback = null) {
     const { file, title } = data
     const timestamp = `${+new Date()}`
     const fileResult = await Storage.put(`${timestamp}-${file.name}`, file, {
       ACL: 'public-read',
       expires: new Date('Wed, 31 Dec 2098 23:59:59 GMT'),
       cacheControl: 'max-age=3600000',
+      progressCallback: progressCallback,
     })
     const key = fileResult.key
     const bucket = EnvService.getUserBucket()
@@ -144,6 +145,10 @@ export default {
       type: file.type,
     })
     return result.data.createTranscription
+  },
+
+  async getPeaksFile(filename) {
+    return Storage.get(filename)
   },
 
   /** */

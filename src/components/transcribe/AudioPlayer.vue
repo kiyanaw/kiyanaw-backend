@@ -7,7 +7,7 @@
         :size="50"
         color="purple"
       ></v-progress-circular>
-      <h5>Loading audio...</h5>
+      <h5>Loading waveform...</h5>
     </div>
     <div v-bind:style="{ visibility: loading ? 'hidden' : 'visible' }">
       <div id="minimap"></div>
@@ -54,6 +54,17 @@
         </v-flex>
       </v-layout>
     </div>
+    <video
+      v-if="isVideo"
+      id="video"
+      preload="auto"
+      title="mp4"
+      controls
+      playsinline
+      webkit-playsinline
+    >
+      <source v-bind:src="source" />
+    </video>
   </div>
 </template>
 
@@ -65,8 +76,12 @@ import MinimapPlugin from 'wavesurfer.js/dist/plugin/wavesurfer.minimap.min.js'
 
 import soundtouch from './lib/soundtouch'
 import utils from './utils'
-// import { setTimeout } from "timers";
 import Timeout from 'smart-timeout'
+
+import 'mediaelement'
+// import { TranscribeService } from 'aws-sdk'
+
+import TranscriptionService from '../../services/transcriptions'
 
 let surfer = null
 // let playingRegionId = null
@@ -81,7 +96,7 @@ export default {
      * The URL of the file to load.
      * TODO: this should be 'media' to accommodate video in the future.
      */
-    'audioFile',
+    'source',
     /**
      * Currently not used.
      * TODO: remove
@@ -100,6 +115,7 @@ export default {
      * Bound array, changes will notify parent components.
      */
     'regions',
+    'isVideo',
   ],
 
   async mounted() {
@@ -111,6 +127,7 @@ export default {
       progressColor: 'purple',
       scrollParent: true,
       backend: 'MediaElement',
+      mediaType: 'video',
       barWidth: 1,
       plugins: [
         RegionPlugin.create({
@@ -194,7 +211,15 @@ export default {
       this.onRegionOut(region.id)
     })
 
-    surfer.load(this.audioFile)
+    // TODO: move peaks loading to Transcribe
+    // TODO: test when peaks data is 404
+
+    if (this.isVideo) {
+      surfer.load(document.querySelector('#video'), this.peaks.data)
+    } else {
+      console.log('load audio', this.isVideo)
+      surfer.load(this.source, this.peaks.data)
+    }
 
     if (this.canEdit && localStorage.zoom) {
       this.zoom = localStorage.zoom
@@ -225,6 +250,9 @@ export default {
         surfer.seekAndCenter(startTime / maxTime)
         // this.$emit('region-in', {id: this.inboundRegion})
         this.onRegionIn(this.inboundRegion)
+      }
+      if (this.isVideo) {
+        document.querySelector('video').style.display = 'block'
       }
     },
     cancelRegion: function() {
@@ -367,5 +395,16 @@ region.wavesurfer-region:before {
   color: #b6b6b6;
   font-size: 20px;
   font-weight: bolder;
+}
+
+video {
+  display: none;
+  position: fixed;
+  bottom: 15px;
+  right: 15px;
+  max-width: 350px;
+  max-height: 350px;
+  z-index: 999999;
+  box-shadow: 0px 0px 6px 0px #888888;
 }
 </style>

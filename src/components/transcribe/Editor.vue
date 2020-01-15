@@ -132,11 +132,18 @@ export default {
     },
     lock(lockUser = 'unknown') {
       console.log('This region is locked', this.region.id)
-      this.locked = true
-      this.$emit('editor-blur', this.region.id, { silent: true })
-      this.lockUser = lockUser
-      this.quill.disable()
-      this.quillTranslate.disable()
+      if (lockUser === 'unknown') {
+        alert(
+          `There was a problem obtaining a region lock on region ${this.region.index}, try again...`,
+        )
+        this.$emit('editor-blur', this.region.id, { silent: true })
+      } else {
+        this.locked = true
+        this.$emit('editor-blur', this.region.id, { silent: true })
+        this.lockUser = lockUser
+        this.quill.disable()
+        this.quillTranslate.disable()
+      }
     },
     unlock() {
       console.log('This region is unlocked', this.region.id)
@@ -552,7 +559,7 @@ export default {
 }
 
 .nonEdit,
-Yu .edit {
+.edit {
   padding: 12px 15px;
 }
 
