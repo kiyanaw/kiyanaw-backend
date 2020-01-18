@@ -128,7 +128,7 @@ export default {
       scrollParent: true,
       backend: 'MediaElement',
       mediaType: 'video',
-      barWidth: 1,
+      barWidth: 1.5,
       plugins: [
         RegionPlugin.create({
           regions: [],

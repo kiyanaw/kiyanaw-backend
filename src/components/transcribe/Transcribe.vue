@@ -346,7 +346,6 @@ export default {
         return
       }
 
-      console.log(peaks)
       this.loading = false
       this.source = data.source
       this.title = data.title
