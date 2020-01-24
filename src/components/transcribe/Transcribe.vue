@@ -1,74 +1,95 @@
 <template>
-  <v-container class="the-container">
-    <div v-if="loading && !error" class="loading">
-      <v-progress-circular :size="70" :width="7" color="purple" indeterminate></v-progress-circular>
-    </div>
-    <div v-if="error" class="load-error">
-      {{ error }}
-    </div>
-    <div v-if="!loading && !error">
-      <v-layout row>
-        <v-flex xs12 class="audio-player">
-          <audio-player
-            ref="player"
-            v-if="source"
-            v-bind:source="source"
-            v-bind:peaks="peaks"
-            v-bind:regions="sortedRegions"
-            v-bind:canEdit="user !== null"
-            v-bind:isVideo="isVideo"
-            v-bind:inboundRegion="inboundRegion"
-            v-on:region-updated="onUpdateRegion"
-            v-on:region-in="highlightRegion"
-            v-on:region-out="onBlurRegion"
-          >
-          </audio-player>
-        </v-flex>
-      </v-layout>
+  <v-container fluid grid-list-md fill-height>
+    <v-layout row wrap>
+      <div v-if="loading && !error" class="loading">
+        <v-progress-circular
+          :size="70"
+          :width="7"
+          color="#305880"
+          indeterminate
+        ></v-progress-circular>
+      </div>
 
-      <v-layout row>
-        <v-flex md1></v-flex>
-        <v-flex xs12 md10>
-          <h3 class="title">{{ title }}</h3>
-        </v-flex>
-        <v-flex md1></v-flex>
-      </v-layout>
+      <div v-if="error" class="load-error">
+        {{ error }}
+      </div>
 
-      <v-layout row>
-        <v-flex hidden-sm-and-down></v-flex>
-        <v-flex xs12 md10 elevation-1 tEditor scroll-container>
-          <v-container id="scroll-target">
-            <div v-for="region in sortedRegions" v-bind:id="region.id" v-bind:key="region.id">
-              <editor
-                v-if="regions"
-                v-bind:region="region"
-                v-bind:canEdit="user !== null"
-                v-bind:ref="region.id"
-                v-bind:inRegions="inRegions"
-                v-bind:editing="editingRegion === region.id"
-                v-on:editor-focus="onRegionFocus"
-                v-on:editor-blur="onEditorBlur"
-                v-on:play-region="playRegion"
-                v-on:region-text-updated="onRegionTextUpdated"
-                v-on:region-cursor="regionCursor"
-                v-on:delete-region="onDeleteRegion"
-              >
-              </editor>
-              <hr />
-            </div>
+      <v-flex v-if="!loading && !error">
+        <v-layout class="audio-container">
+          <v-flex row xs12 class="audio-player">
+            <audio-player
+              ref="player"
+              v-if="source"
+              v-bind:source="source"
+              v-bind:peaks="peaks"
+              v-bind:regions="sortedRegions"
+              v-bind:canEdit="user !== null"
+              v-bind:isVideo="isVideo"
+              v-bind:inboundRegion="inboundRegion"
+              v-on:region-updated="onUpdateRegion"
+              v-on:region-in="highlightRegion"
+              v-on:region-out="onBlurRegion"
+            >
+            </audio-player>
+          </v-flex>
+        </v-layout>
+
+        <v-layout class="title-container">
+          <v-flex row xs12 md12>
+            <h3 class="title">{{ title }}</h3>
+          </v-flex>
+        </v-layout>
+
+        <v-layout
+          row
+          :class="{
+            editor: false,
+            editorNoSide: true,
+          }"
+        >
+          <v-container>
+            <v-flex xs12 md12 elevation-1 tEditor scroll-container>
+              <v-container id="scroll-target">
+                <div v-for="region in sortedRegions" v-bind:id="region.id" v-bind:key="region.id">
+                  <editor
+                    v-if="regions"
+                    v-bind:region="region"
+                    v-bind:canEdit="user !== null"
+                    v-bind:ref="region.id"
+                    v-bind:inRegions="inRegions"
+                    v-bind:editing="editingRegion === region.id"
+                    v-on:editor-focus="onRegionFocus"
+                    v-on:editor-blur="onEditorBlur"
+                    v-on:play-region="playRegion"
+                    v-on:region-text-updated="onRegionTextUpdated"
+                    v-on:region-cursor="regionCursor"
+                    v-on:delete-region="onDeleteRegion"
+                  >
+                  </editor>
+                  <hr />
+                </div>
+              </v-container>
+            </v-flex>
           </v-container>
-        </v-flex>
-        <v-flex hidden-sm-and-down></v-flex>
-      </v-layout>
-      <v-layout>
-        <v-flex xs1></v-flex>
-        <v-flex xs10>
-          <v-btn small color="primary" dark v-if="user !== null" v-on:click="saveData">save</v-btn>
-          <span v-if="saved">saved!</span>
-        </v-flex>
-        <v-flex xs1></v-flex>
-      </v-layout>
-    </div>
+        </v-layout>
+
+        <v-layout v-if="false" row class="editorSideMd">
+          <v-container>
+            <v-tabs v-if="editingRegion" v-model="tab" background-color="grey lighten-2">
+              <v-tab key="one">Comments</v-tab>
+              <v-tab key="two">Details</v-tab>
+              <v-tab-item key="one" background-color="grey lighten-2">
+                Region {{ editingRegion }} comments
+              </v-tab-item>
+              <v-tab-item key="two" background-color="grey lighten-2">
+                Region {{ editingRegion }} details
+              </v-tab-item>
+            </v-tabs>
+            <p v-if="!editingRegion" class="region-details">Select a region to view details...</p>
+          </v-container>
+        </v-layout>
+      </v-flex>
+    </v-layout>
   </v-container>
 </template>
 
@@ -166,6 +187,7 @@ export default {
       //
       loading: true,
       error: null,
+      tab: null,
     }
   },
 
@@ -352,9 +374,6 @@ export default {
       this.isVideo = data.type.includes('video')
       this.regions = data.regions || []
       this.peaks = peaks
-
-      // TODO: move regions to an ADT
-      // this.authorId = data.authorId
       this.inboundRegion = this.$route.hash.replace('#', '') || null
       this.fixScrollHeight()
       this.checkForLockedRegions()
@@ -557,9 +576,8 @@ export default {
 </script>
 
 <style>
-.scroll-container {
-  height: 500px;
-  overflow: auto;
+.loading {
+  width: 100%;
 }
 .time {
   font-family: monospace;
@@ -580,5 +598,46 @@ export default {
   font-size: 1.5em;
   padding: 20px;
   margin-top: 100px;
+}
+.editor,
+.editorNoSide {
+  position: absolute;
+  top: 310px;
+  left: 0;
+  bottom: 0;
+  overflow-y: scroll;
+  padding-top: 5px;
+  border-top: 1px solid grey;
+}
+.editor {
+  right: 360px;
+}
+.editorNoSide {
+  right: 0;
+}
+
+.editorSideMd {
+  position: absolute;
+  top: 310px;
+  bottom: 0;
+  right: 0;
+  background-color: #f0f0f0;
+}
+.editorSideMd {
+  left: calc(100% - 350px);
+}
+
+.audio-container,
+.title-container {
+  margin-left: 15px !important;
+}
+.controls > button {
+  margin-top: 10px;
+}
+.region-details {
+  font-weight: bold;
+  color: #bbb;
+  text-align: center;
+  padding: 10px;
 }
 </style>

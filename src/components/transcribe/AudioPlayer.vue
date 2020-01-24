@@ -1,32 +1,35 @@
 <template>
-  <div>
-    <div id="loading" v-if="loading">
+  <v-layout>
+    <!-- <div class="loading" v-if="loading">
       <v-progress-circular
         v-bind:value="loadingProgress"
         :width="6"
         :size="50"
-        color="purple"
+        color="#305880"
       ></v-progress-circular>
       <h5>Loading waveform...</h5>
-    </div>
-    <div v-bind:style="{ visibility: loading ? 'hidden' : 'visible' }">
+    </div> -->
+
+    <div v-bind:style="{ visibility: loading ? 'hidden' : 'visible' }" class="waveform-container">
       <div id="minimap"></div>
       <div id="waveform" v-on:click="waveformClicked"></div>
       <div id="timeline"></div>
       <div id="controls"></div>
-      <v-layout>
+      <v-layout id="channel-strip">
         <v-flex xs3 class="controls">
-          <v-btn flat icon v-on:click="playPause" class="control-btn">
-            <v-icon v-if="!playing">play_arrow</v-icon>
-            <v-icon v-if="playing">pause</v-icon>
+          <v-btn icon v-on:click="playPause" class="control-btn">
+            <v-icon v-if="!playing">mdi-play-circle</v-icon>
+            <v-icon v-if="playing">mdi-pause</v-icon>
           </v-btn>
-          <v-btn flat icon v-if="canEdit" v-on:click="markRegion" class="control-btn"
-            ><v-icon>content_cut</v-icon></v-btn
+          <v-btn icon v-if="canEdit" v-on:click="markRegion" class="control-btn"
+            ><v-icon>mdi-content-cut</v-icon></v-btn
           >
-          <v-btn flat icon v-on:click="cancelRegion" v-if="currentRegion" class="control-btn"
-            ><v-icon>clear</v-icon></v-btn
+          <v-btn icon v-on:click="cancelRegion" v-if="currentRegion" class="control-btn"
+            ><v-icon>mdi-clear</v-icon></v-btn
           >
-          <v-btn flat icon v-on:click="speed = 100" class="control-btn"><v-icon></v-icon>R</v-btn>
+          <v-btn icon v-on:click="speed = 100" class="control-btn"
+            ><v-icon>mdi-speedometer-medium</v-icon></v-btn
+          >
         </v-flex>
 
         <v-flex xs6 class="time main-time">
@@ -38,17 +41,17 @@
             v-model="zoom"
             max="75"
             min="5"
-            prepend-icon="zoom_in"
+            prepend-icon="mdi-magnify-plus-outline"
             class="slider"
           ></v-slider>
         </v-flex>
 
-        <v-flex md3 hidden-sm-and-down>
+        <v-flex md3 hidden-sm-and-down class="controls">
           <v-slider
             v-model="speed"
             max="150"
             min="50"
-            prepend-icon="directions_run"
+            prepend-icon="mdi-run"
             class="slider"
           ></v-slider>
         </v-flex>
@@ -62,10 +65,13 @@
       controls
       playsinline
       webkit-playsinline
+      :class="{ videoLeft: videoLeft, videoRight: !videoLeft, video: true }"
+      v-on:click="videoLeft = !videoLeft"
     >
       <source v-bind:src="source" />
+      <v-icon>mdi-swap-horizontal</v-icon>
     </video>
-  </div>
+  </v-layout>
 </template>
 
 <script>
@@ -123,8 +129,8 @@ export default {
     this.pendingInboundRegion = this.$props.inboundRegion
     surfer = WaveSurfer.create({
       container: '#waveform',
-      waveColor: 'violet',
-      progressColor: 'purple',
+      waveColor: '#305880',
+      progressColor: '#162738',
       scrollParent: true,
       backend: 'MediaElement',
       mediaType: 'video',
@@ -349,6 +355,8 @@ export default {
       zoom: 35,
       speed: 100,
       playing: false,
+      // track which side of the screen the video is on
+      videoLeft: false,
     }
   },
 }
@@ -377,13 +385,7 @@ export default {
   text-align: center;
 }
 .main-time {
-  margin: 20px 0 0 0;
-  font-size: 1.2em !important;
-}
-.controls {
-}
-.control-btn {
-  margin-top: 15px;
+  font-size: 0.9em !important;
 }
 
 region.wavesurfer-region:before {
@@ -401,10 +403,47 @@ video {
   display: none;
   position: fixed;
   bottom: 15px;
-  right: 15px;
+  /* left: 15px; */
   max-width: 350px;
-  max-height: 350px;
+  max-height: 450px;
   z-index: 999999;
   box-shadow: 0px 0px 6px 0px #888888;
+  cursor: pointer;
+}
+
+.videoRight {
+  right: 15px;
+}
+.videoLeft {
+  left: 15px;
+}
+
+.waveform-container {
+  width: 100%;
+  /* margin-left: 7px !important; */
+}
+div#channel-strip {
+  height: 50px;
+  overflow: hidden;
+  background-color: #f0f0f0;
+  margin-left: -18px;
+  margin-right: -20px;
+  padding-left: 20px;
+  margin-top: 5px;
+}
+
+/**
+ this is all just to get the buttons lined up on the transport
+ */
+#channel-strip > .flex {
+  margin-top: -7px;
+}
+.main-time {
+  margin-top: 13px !important;
+}
+
+.control-btn,
+.slider {
+  margin-top: 12px;
 }
 </style>

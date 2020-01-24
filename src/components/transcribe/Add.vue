@@ -3,15 +3,15 @@
     <v-layout>
       <v-flex xs1></v-flex>
       <v-flex xs10 elevation-1 class="add-container">
-        <h2>Upload audio</h2>
+        <h2>Upload media</h2>
         <v-text-field label="Title" solo v-model="title"> </v-text-field>
 
         <label>
-          Select a file:
+          Select an MP3 or MP4 file:
           <input
             type="file"
             id="file"
-            accept=".mp3, .mp4, .m4v"
+            accept=".mp3, .mp4"
             ref="fileInput"
             class="custom-file-input"
             @change="previewFiles"
