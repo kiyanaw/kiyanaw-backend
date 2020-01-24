@@ -45,6 +45,7 @@
           :class="{
             editor: false,
             editorNoSide: true,
+            editorScroll: true,
           }"
         >
           <v-container>
@@ -192,24 +193,15 @@ export default {
   },
 
   methods: {
-    /**
-     * @description After render, adjust the height of the editor.
-     */
-    fixScrollHeight() {
-      /* This is a mess. Someone please help. */
-      try {
-        const scrollBox = document.querySelector('.scroll-container')
-        const scrollBoxTop = scrollBox.getBoundingClientRect().y
-        const randomFixNumber = 24 // don't ask - I'm just horrible at CSS
-        let newHeight
-        if (this.user) {
-          newHeight = `${window.innerHeight - scrollBoxTop - randomFixNumber - 50}px`
-        } else {
-          newHeight = `${window.innerHeight - scrollBoxTop - randomFixNumber}px`
-        }
-        scrollBox.style.height = newHeight
-      } catch (e) {
-        // pass
+    scrollToEditorTop() {
+      if (!this.inboundRegion) {
+        setTimeout(() => {
+          try {
+            document.querySelector('.editorScroll').scrollTop = 0
+          } catch (e) {
+            console.log(e)
+          }
+        }, 200)
       }
     },
 
@@ -375,7 +367,7 @@ export default {
       this.regions = data.regions || []
       this.peaks = peaks
       this.inboundRegion = this.$route.hash.replace('#', '') || null
-      this.fixScrollHeight()
+      this.scrollToEditorTop()
       this.checkForLockedRegions()
     },
 
@@ -568,7 +560,7 @@ export default {
     //     }
     //   }
     // })
-    this.fixScrollHeight()
+    this.scrollToEditorTop()
     // load up
     this.load()
   },

@@ -65,7 +65,12 @@
       controls
       playsinline
       webkit-playsinline
-      :class="{ videoLeft: videoLeft, videoRight: !videoLeft, video: true }"
+      :class="{
+        videoLeft: videoLeft,
+        videoRight: !videoLeft,
+        video: true,
+        videoSmall: $vuetify.breakpoint.xsAndDown,
+      }"
       v-on:click="videoLeft = !videoLeft"
     >
       <source v-bind:src="source" />
@@ -416,6 +421,11 @@ video {
 }
 .videoLeft {
   left: 15px;
+}
+
+.videoSmall {
+  max-width: 250px !important;
+  max-height: 250px !important;
 }
 
 .waveform-container {
