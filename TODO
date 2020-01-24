@@ -1,56 +1,10 @@
-Morphemes
----
-[✓] rename _id to adId (anlgonquin dictionary ID)
-[✓] mash AD data against AW data and flag the exact matches
-[✓] load up morphemes
+Transcribe
+--- 
 
-User
----
-[✓] auth
-[ ] preferences?
-
-Views
----
-[✓] search for stuff
-[ ] skip and un-skip
-[ ] versions
-
-
-SKIP tag
----
-[ ] can 'skip' a document
-[ ] can view skipped documents
-[ ] can 'unskip' a document (remove tag)
-
-SRO
----
-[ ] can 'verify' SRO -> copies from algSro to sro field
-[ ] can edit SRO, then 'verify' or save?
-[ ] ability to edit morpheme descriptions
-[ ] ability to edit definitions
-[ ] ability to adjust derivation
-
-NOTES
----
-
-
-TAGS
----
-freestyle tags (can't edit system tags)
-skipped - come back to this, show on 'skipped' screen
-
-Deployment
----
-[ ] production env
-[ ] bootstrap data
-
-
-Indexing
----
-[ ] commit new lexc files and have Circle build the new index
-
-Ideas for app
-----
- - ability to 'bookmark' words I'm currently learning
- - bonus points for linked audio
- 
+[ ] saving transcription data (errors, progress)
+[ ] manual unlock - should not unlock regions on blur, have a manual unlock process or expire after so many minutes
+[ ] load up old data
+[ ] put up new videos and audio
+[ ] comments
+[ ] ability to flag data
+[ ] link out words to blue pages

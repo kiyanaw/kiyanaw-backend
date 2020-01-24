@@ -69,7 +69,7 @@
         videoLeft: videoLeft,
         videoRight: !videoLeft,
         video: true,
-        videoSmall: $vuetify.breakpoint.xsAndDown,
+        videoSmall: $vuetify.breakpoint.xsOnly,
       }"
       v-on:click="videoLeft = !videoLeft"
     >
