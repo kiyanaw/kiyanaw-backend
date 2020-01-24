@@ -408,7 +408,6 @@ video {
   display: none;
   position: fixed;
   bottom: 15px;
-  /* left: 15px; */
   max-width: 350px;
   max-height: 450px;
   z-index: 999999;
@@ -430,10 +429,9 @@ video {
 
 .waveform-container {
   width: 100%;
-  /* margin-left: 7px !important; */
 }
 div#channel-strip {
-  height: 50px;
+  height: 40px;
   overflow: hidden;
   background-color: #f0f0f0;
   margin-left: -18px;
@@ -446,14 +444,17 @@ div#channel-strip {
  this is all just to get the buttons lined up on the transport
  */
 #channel-strip > .flex {
-  margin-top: -7px;
+  margin-top: -13px;
 }
 .main-time {
-  margin-top: 13px !important;
+  margin-top: 8px !important;
 }
 
 .control-btn,
 .slider {
   margin-top: 12px;
+}
+.waveform-container {
+  margin-left: 1px;
 }
 </style>

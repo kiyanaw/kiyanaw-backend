@@ -1,6 +1,6 @@
 <template>
   <v-container fluid grid-list-md fill-height>
-    <v-layout row wrap>
+    <v-layout wrap>
       <div v-if="loading && !error" class="loading">
         <v-progress-circular
           :size="70"
@@ -15,8 +15,8 @@
       </div>
 
       <v-flex v-if="!loading && !error">
-        <v-layout class="audio-container">
-          <v-flex row xs12 class="audio-player">
+        <v-layout class="audio-container" :class="{ audioContainerSm: $vuetify.breakpoint.xsOnly }">
+          <v-flex xs12 class="audio-player">
             <audio-player
               ref="player"
               v-if="source"
@@ -576,7 +576,7 @@ export default {
   font-size: x-small;
 }
 .audio-player {
-  height: 250px;
+  height: 223px;
 }
 .title {
   margin: 0 0 20px 0;
@@ -594,12 +594,12 @@ export default {
 .editor,
 .editorNoSide {
   position: absolute;
-  top: 310px;
+  top: 266px;
   left: 0;
   bottom: 0;
   overflow-y: scroll;
   padding-top: 5px;
-  border-top: 1px solid grey;
+  border-top: 1px solid #ccc;
 }
 .editor {
   right: 360px;
@@ -610,7 +610,7 @@ export default {
 
 .editorSideMd {
   position: absolute;
-  top: 310px;
+  top: 266px;
   bottom: 0;
   right: 0;
   background-color: #f0f0f0;
@@ -619,10 +619,15 @@ export default {
   left: calc(100% - 350px);
 }
 
-.audio-container,
-.title-container {
-  margin-left: 15px !important;
+.audio-container {
+  margin: 0 !important;
 }
+.title-container {
+  padding-left: 25px !important;
+  height: 40px;
+  background-color: #dbdbdb;
+}
+
 .controls > button {
   margin-top: 10px;
 }

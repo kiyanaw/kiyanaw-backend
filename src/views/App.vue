@@ -79,15 +79,19 @@ export default {
 </script>
 
 <style>
+html,
+body {
+  overflow: hidden;
+}
 .container {
   padding: 0;
 }
 body {
   height: 100vh;
 }
-.main > div {
+/* .main > div {
   padding-left: 15px;
-}
+} */
 .drawer-left {
   background-color: #305880 !important;
 }
