@@ -1,7 +1,6 @@
-// import {Vue, VueRouter} from 'vue'
 import Vue from 'vue'
 import VueRouter from 'vue-router'
-import './plugins/vuetify'
+import vuetify from './plugins/vuetify'
 import router from './router'
 import store from './store'
 
@@ -17,5 +16,6 @@ Vue.config.productionTip = false
 
 new Vue({
   router,
-  store
+  store,
+  vuetify,
 }).$mount('#app')

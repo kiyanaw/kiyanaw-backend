@@ -1,5 +1,5 @@
 {
-  "extends": ["standard"],
+  "extends": ["prettier"],
   "parserOptions": {
     "ecmaVersion": 9,
     "sourceType": "module"
