@@ -124,7 +124,6 @@ export default {
   async clearOtherUserLocks(transcriptionId, keepLock) {
     const user = await this.getUser()
     const locks = await this.getRegionLocks(transcriptionId)
-    console.log('all locks', locks)
     for (const lock of locks) {
       if (lock.user === user.name && lock.id !== keepLock) {
         console.log(' --> unlocking my other region', lock.id, keepLock)
@@ -212,7 +211,7 @@ export default {
       }
       console.log('my locks', myLocks)
       // TODO: check for nextToken
-      return locks //.filter(item => item.user !== user.name)
+      return locks
     }
     return []
   },

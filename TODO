@@ -2,9 +2,11 @@ Transcribe
 --- 
 
 [x] saving transcription data (errors, progress)
+[x] load up old data
+[ ] Load up Tootoosis tapes
 [ ] manual unlock - should not unlock regions on blur, have a manual unlock process or expire after so many minutes
-[ ] load up old data
 [ ] put up new videos and audio
 [ ] comments
-[ ] ability to flag data
+[ ] ability to flag words
+[ ] identify critical tests
 [ ] link out words to blue pages

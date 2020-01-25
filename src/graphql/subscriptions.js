@@ -9,6 +9,9 @@ export const onCreateTranscription = `subscription OnCreateTranscription {
     dateLastUpdated
     userLastUpdated
     length
+    issues
+    comments
+    tags
     source
     title
     type
@@ -23,6 +26,9 @@ export const onUpdateTranscription = `subscription OnUpdateTranscription {
     dateLastUpdated
     userLastUpdated
     length
+    issues
+    comments
+    tags
     source
     title
     type
@@ -37,6 +43,9 @@ export const onDeleteTranscription = `subscription OnDeleteTranscription {
     dateLastUpdated
     userLastUpdated
     length
+    issues
+    comments
+    tags
     source
     title
     type

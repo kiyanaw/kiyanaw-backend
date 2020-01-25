@@ -302,12 +302,24 @@ export default {
      * Update transcription data.
      */
     async updateTranscription() {
+      // this.regions.map((x) => console.log(this.$refs[x.id].needsReview()))
+
+      const issues = this.regions.filter((region) => {
+        try {
+          return this.$refs[region.id][0].needsReview
+        } catch (e) {
+          return false
+        }
+      })
+      const issueCount = issues.length
+
       const result = await TranscriptionService.updateTranscription({
         id: this.transcriptionId,
         title: this.title,
         source: this.source,
         type: this.type,
         author: this.author,
+        issues: issueCount,
         length: this.$refs.player.maxTime,
         coverage: this.coverage(),
         dateLastUpdated: +new Date(),
@@ -498,7 +510,6 @@ export default {
     /**
      * Pull some parameters out of our URL to determine the doc to load.
      */
-    // this.authorId = this.$route.params.id
     this.transcriptionId = this.$route.params.id
 
     this.listenForRegions()

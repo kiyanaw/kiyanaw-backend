@@ -8,6 +8,9 @@ type Transcription
   dateLastUpdated: String!
   userLastUpdated: String
   length: Float
+  issues: String
+  comments: String
+  tags: String
   source: String
   title: String!
   type: String!

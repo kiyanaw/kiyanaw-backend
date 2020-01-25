@@ -12,6 +12,9 @@ export const createTranscription = `mutation CreateTranscription(
     dateLastUpdated
     userLastUpdated
     length
+    issues
+    comments
+    tags
     source
     title
     type
@@ -29,6 +32,9 @@ export const updateTranscription = `mutation UpdateTranscription(
     dateLastUpdated
     userLastUpdated
     length
+    issues
+    comments
+    tags
     source
     title
     type
@@ -46,6 +52,9 @@ export const deleteTranscription = `mutation DeleteTranscription(
     dateLastUpdated
     userLastUpdated
     length
+    issues
+    comments
+    tags
     source
     title
     type

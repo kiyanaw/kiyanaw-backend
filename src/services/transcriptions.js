@@ -71,6 +71,7 @@ class Transcription {
     this.title = data.title
     this.author = data.author
     this.type = data.type
+    this.issues = Number(data.issues) || 0
     this.source = data.source
     this.coverage = data.coverage || 0
     this.dateLastUpdated = new Date(Number(data.dateLastUpdated))
@@ -162,6 +163,7 @@ export default {
       type: data.type,
       author: user.name,
       userLastUpdated: user.name,
+      issues: 0,
       length: 0,
       coverage: 0,
       id: id,
@@ -316,28 +318,5 @@ export default {
       graphqlOperation(mutations.updateTranscription, { input: data }),
     )
     return update.data.updateTranscription
-
-    // const saved = await API.graphql(graphqlOperation(mutations.updateTranscription, {}))
-    // const params = {
-    //   TableName: transcribeTable,
-    //   Key: {
-    //     theKey: 'transcription',
-    //     author_ID: id
-    //   },
-    //   UpdateExpression: 'set content = :c',
-    //   ExpressionAttributeValues: {
-    //     ':c': content
-    //   }
-    // }
-    // const updated = await new Promise(function (resolve, reject) {
-    //   client.update(params, function (err, data) {
-    //     if (err) {
-    //       reject(err)
-    //     } else {
-    //       resolve(data)
-    //     }
-    //   })
-    // })
-    return true
   },
 }
