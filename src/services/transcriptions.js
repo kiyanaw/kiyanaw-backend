@@ -310,7 +310,13 @@ export default {
   },
 
   /** */
-  async saveTranscription(id) {
+  async updateTranscription(data) {
+    console.log('update transcription data', data)
+    const update = await API.graphql(
+      graphqlOperation(mutations.updateTranscription, { input: data }),
+    )
+    return update.data.updateTranscription
+
     // const saved = await API.graphql(graphqlOperation(mutations.updateTranscription, {}))
     // const params = {
     //   TableName: transcribeTable,

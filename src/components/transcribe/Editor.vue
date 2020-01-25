@@ -297,8 +297,6 @@ export default {
     notifyRegionChanged(editor) {
       if (!this.locked) {
         const ops = this.quill.getContents().ops
-        console.log(this.quill)
-        console.log('ops', ops)
         this.region.text = ops
         this.region.translation = this.quillTranslate.getText()
         setTimeout(() => {
