@@ -269,19 +269,13 @@ export default {
     },
 
     async saveRegion(region, text) {
-      // TODO: region bindings aren't working correctly, pulling
-      // the text from the region directly for now
       const regionOps = this.$refs[region.id][0].getMainOps()
       region.text = regionOps
       console.log('saving region', region)
       TranscriptionService.updateRegion(this.transcriptionId, region)
+      this.updateTranscription()
     },
 
-    // readyUpdate (args) {
-    //   console.log('ready update called', args)
-    // },
-
-    /** */
     regionCursor(data) {
       data.color = cursorColor
       const update = {
@@ -304,29 +298,36 @@ export default {
       return (val * 100).toFixed(1)
     },
 
-    /** don't use this for regions */
-    async saveData() {
-      let regions = this.regions
-      for (let index in regions) {
-        const regionId = regions[index].id
-        const regionText = this.$refs[regionId][0].text
-        const regionTranslation = this.$refs[regionId][0].translation
-        regions[index].text = regionText
-        regions[index].translation = regionTranslation
-      }
-      let result
-      // const result = await TranscriptionService.saveTranscription(this.authorId, {
-      //   title: this.title,
-      //   source: this.source,
-      //   type: 'audio',
-      //   regions: this.sortedRegions,
-      //   length: this.$refs.player.maxTime,
-      //   coverage: this.coverage(),
-      //   dateLastUpdated: +new Date(),
-      //   lastUpdateBy: this.user.name
-      // })
+    /**
+     * Update transcription data.
+     */
+    async updateTranscription() {
+      // this.regions.map((x) => console.log(this.$refs[x.id].needsReview()))
+
+      const issues = this.regions.filter((region) => {
+        try {
+          return this.$refs[region.id][0].needsReview
+        } catch (e) {
+          return false
+        }
+      })
+      const issueCount = issues.length
+
+      const result = await TranscriptionService.updateTranscription({
+        id: this.transcriptionId,
+        title: this.title,
+        source: this.source,
+        type: this.type,
+        author: this.author,
+        issues: issueCount,
+        length: this.$refs.player.maxTime,
+        coverage: this.coverage(),
+        dateLastUpdated: +new Date(),
+        userLastUpdated: this.user.name,
+      })
       if (result) {
         this.saved = true
+        console.log('update transcription result', result)
         setTimeout(() => {
           this.saved = false
         }, 3000)
@@ -363,6 +364,8 @@ export default {
       this.loading = false
       this.source = data.source
       this.title = data.title
+      this.type = data.type
+      this.author = data.author
       this.isVideo = data.type.includes('video')
       this.regions = data.regions || []
       this.peaks = peaks
@@ -507,7 +510,6 @@ export default {
     /**
      * Pull some parameters out of our URL to determine the doc to load.
      */
-    // this.authorId = this.$route.params.id
     this.transcriptionId = this.$route.params.id
 
     this.listenForRegions()

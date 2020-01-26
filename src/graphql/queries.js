@@ -9,6 +9,9 @@ export const getTranscription = `query GetTranscription($id: ID!) {
     dateLastUpdated
     userLastUpdated
     length
+    issues
+    comments
+    tags
     source
     title
     type
@@ -36,6 +39,9 @@ export const listTranscriptions = `query ListTranscriptions(
       dateLastUpdated
       userLastUpdated
       length
+      issues
+      comments
+      tags
       source
       title
       type

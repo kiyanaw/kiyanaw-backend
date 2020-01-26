@@ -304,9 +304,7 @@ export default {
         'render-regions',
         () => {
           surfer.clearRegions()
-          console.log('rendering regions')
           this.regions.forEach((region, index) => {
-            console.log('rendering region', region.id)
             region.resize = this.canEdit
             region.drag = this.canEdit
             region.attributes = {

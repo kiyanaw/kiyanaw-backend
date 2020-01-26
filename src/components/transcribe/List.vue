@@ -19,6 +19,12 @@
             <v-progress-linear v-bind:value="item.coverage" height="3"> </v-progress-linear>
           </template>
 
+          <template v-slot:item.issues="{ item }">
+            <!-- <span :class="{ issues: item.issues > 0 }">{{ item.issues }}</span> -->
+            <v-badge v-if="item.issues > 0" color="red" inline :content="item.issues"></v-badge>
+            <v-badge v-if="item.issues == 0" color="blue" inline content="0"></v-badge>
+          </template>
+
           <template v-slot:item.dateLastUpdated="{ item }">
             {{ timeAgo(item.dateLastUpdated) }} by {{ item.userLastUpdated }}
           </template>
@@ -64,6 +70,7 @@ export default {
         { text: 'Title', value: 'title', width: '40%' },
         { text: 'Length', value: 'length' },
         { text: 'Coverage', value: 'coverage', width: '5%' },
+        { text: 'Issues', value: 'issues', width: '5%' },
         { text: 'Last edit', value: 'dateLastUpdated' },
         { text: 'Type', value: 'type' },
         { text: 'Source', value: 'source' },
@@ -77,6 +84,7 @@ export default {
     async loadTranscriptionList() {
       const currentUser = await UserService.getUser()
       this.list = await TranscriptionService.listTranscriptions(currentUser.name)
+      console.log(this.list)
       this.loading = false
     },
     timeAgo(date) {
@@ -93,5 +101,9 @@ export default {
 .add-transcription-controls {
   text-align: right;
   padding: 15px;
+}
+.issues {
+  color: red;
+  font-weight: bold;
 }
 </style>

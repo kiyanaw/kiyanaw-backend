@@ -1,6 +1,6 @@
 {
     "identityPoolName": "kiyanaw664b231a_identitypool_664b231a",
-    "allowUnauthenticatedIdentities": false,
+    "allowUnauthenticatedIdentities": true,
     "resourceNameTruncated": "kiyana664b231a",
     "userPoolName": "kiyanaw664b231a_userpool_664b231a",
     "autoVerifiedAttributes": [
