@@ -58,6 +58,8 @@ export const onCreateRegion = `subscription OnCreateRegion {
     start
     end
     text
+    issues
+    comments
     translation
     dateLastUpdated
     userLastUpdated
@@ -72,6 +74,8 @@ export const onUpdateRegion = `subscription OnUpdateRegion {
     start
     end
     text
+    issues
+    comments
     translation
     dateLastUpdated
     userLastUpdated
@@ -86,6 +90,8 @@ export const onDeleteRegion = `subscription OnDeleteRegion {
     start
     end
     text
+    issues
+    comments
     translation
     dateLastUpdated
     userLastUpdated

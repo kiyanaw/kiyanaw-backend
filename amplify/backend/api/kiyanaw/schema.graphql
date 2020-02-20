@@ -26,6 +26,8 @@ type Region
   start: Float!
   end: Float!
   text: String!
+  issues: String
+  comments: String
   translation: String
   dateLastUpdated: String!
   userLastUpdated: String!

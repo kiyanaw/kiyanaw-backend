@@ -70,6 +70,8 @@ export const createRegion = `mutation CreateRegion(
     start
     end
     text
+    issues
+    comments
     translation
     dateLastUpdated
     userLastUpdated
@@ -87,6 +89,8 @@ export const updateRegion = `mutation UpdateRegion(
     start
     end
     text
+    issues
+    comments
     translation
     dateLastUpdated
     userLastUpdated
@@ -104,6 +108,8 @@ export const deleteRegion = `mutation DeleteRegion(
     start
     end
     text
+    issues
+    comments
     translation
     dateLastUpdated
     userLastUpdated

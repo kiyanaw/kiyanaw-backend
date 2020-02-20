@@ -182,6 +182,8 @@ export default {
       transcription = transcription.data.getTranscription
       transcription.regions = regions.data.byTranscription.items.map((item) => {
         item.text = JSON.parse(item.text)
+        item.issues = item.issues ? JSON.parse(item.issues) : []
+        item.comments = item.comments ? JSON.parse(item.comments) : []
         return item
       })
       return transcription
@@ -217,6 +219,7 @@ export default {
       start: region.start,
       end: region.end,
       text: JSON.stringify(region.text),
+      issues: JSON.stringify(region.issues),
       translation: region.translation,
       dateLastUpdated: `${+new Date()}`,
       userLastUpdated: user.name,

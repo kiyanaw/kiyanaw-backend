@@ -16,7 +16,7 @@
           </template>
 
           <template v-slot:item.coverage="{ item }">
-            <v-progress-linear v-bind:value="item.coverage" height="3"> </v-progress-linear>
+            <v-progress-linear v-bind:value="item.coverage" height="3"></v-progress-linear>
           </template>
 
           <template v-slot:item.issues="{ item }">
@@ -25,9 +25,9 @@
             <v-badge v-if="item.issues == 0" color="blue" inline content="0"></v-badge>
           </template>
 
-          <template v-slot:item.dateLastUpdated="{ item }">
-            {{ timeAgo(item.dateLastUpdated) }} by {{ item.userLastUpdated }}
-          </template>
+          <template
+            v-slot:item.dateLastUpdated="{ item }"
+          >{{ timeAgo(item.dateLastUpdated) }} by {{ item.userLastUpdated }}</template>
 
           <template v-slot:item.source="{ item }">
             <a :href="item.source" _target="blank">Source</a>
@@ -38,8 +38,8 @@
 
     <v-layout class="add-transcription-controls">
       <v-flex xs12>
-        <v-btn color="primary" outlined href="/transcribe-add/"
-          ><v-icon left>mdi-plus</v-icon>Add new
+        <v-btn color="primary" outlined href="/transcribe-add/">
+          <v-icon left>mdi-plus</v-icon>Add new
         </v-btn>
       </v-flex>
     </v-layout>
@@ -47,11 +47,11 @@
 </template>
 
 <script>
-import TimeAgo from 'javascript-time-ago'
-import en from 'javascript-time-ago/locale/en'
 import TranscriptionService from '../../services/transcriptions'
 import UserService from '../../services/user'
 
+import en from 'javascript-time-ago/locale/en'
+import TimeAgo from 'javascript-time-ago'
 TimeAgo.addLocale(en)
 const timeAgo = new TimeAgo('en-US')
 

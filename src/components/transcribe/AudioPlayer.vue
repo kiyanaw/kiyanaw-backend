@@ -8,52 +8,94 @@
         color="#305880"
       ></v-progress-circular>
       <h5>Loading waveform...</h5>
-    </div> -->
+    </div>-->
 
     <div v-bind:style="{ visibility: loading ? 'hidden' : 'visible' }" class="waveform-container">
-      <div id="minimap"></div>
+      <div id="minimap">
+        <v-layout>
+          <v-flex md6 class="media-title">{{ title }}</v-flex>
+          <v-flex md6 class="main-time">{{ normalTime(currentTime) }} - {{ normalTime(maxTime) }}</v-flex>
+        </v-layout>
+      </div>
       <div id="waveform" v-on:click="waveformClicked"></div>
       <div id="timeline"></div>
       <div id="controls"></div>
       <v-layout id="channel-strip">
-        <v-flex xs3 class="controls">
-          <v-btn icon v-on:click="playPause" class="control-btn">
+        <v-flex xs6 class="controls">
+          <v-btn icon small v-on:click="playPause" class="control-btn">
             <v-icon v-if="!playing">mdi-play-circle</v-icon>
             <v-icon v-if="playing">mdi-pause</v-icon>
           </v-btn>
-          <v-btn icon v-if="canEdit" v-on:click="markRegion" class="control-btn"
-            ><v-icon>mdi-content-cut</v-icon></v-btn
+          <v-btn icon small v-if="canEdit" v-on:click="markRegion" class="control-btn">
+            <v-icon small v-if="!currentRegion">mdi-contain-start</v-icon>
+            <v-icon small v-if="currentRegion">mdi-contain-end</v-icon>
+          </v-btn>
+          <v-btn
+            icon
+            small
+            v-on:click="cancelRegion"
+            v-bind:disabled="!currentRegion"
+            class="control-btn"
           >
-          <v-btn icon v-on:click="cancelRegion" v-if="currentRegion" class="control-btn"
-            ><v-icon>mdi-clear</v-icon></v-btn
+            <v-icon small>mdi-close-circle</v-icon>
+          </v-btn>
+
+          <v-btn icon disabled class="control-btn">|</v-btn>
+
+          <!-- SELECTION CONTROLS -->
+          <v-btn
+            icon
+            v-bind:disabled="!showRegionControls && !showIssueControl"
+            v-on:click="onFlagSelectionClick"
+            class="control-btn"
+            small
           >
-          <v-btn icon v-on:click="speed = 100" class="control-btn"
-            ><v-icon>mdi-speedometer-medium</v-icon></v-btn
+            <v-icon small>mdi-flag-outline</v-icon>
+          </v-btn>
+
+          <v-btn
+            icon
+            v-bind:disabled="!showRegionControls && !showIgnoreControl"
+            v-on:click="onIgnoreSelectionClick"
+            class="control-btn"
+            small
           >
+            <v-icon small>mdi-alphabetical-off</v-icon>
+          </v-btn>
+
+          <v-btn
+            icon
+            v-bind:disabled="!showRegionControls"
+            v-on:click="onClearFormatClick"
+            class="control-btn"
+            small
+          >
+            <v-icon small>mdi-cancel</v-icon>
+          </v-btn>
+
+          <!-- REGION CONTROLS -->
+          <!-- <v-btn icon disabled class="control-btn">|</v-btn> -->
+          <!-- <v-btn icon class="control-btn" small>
+            <v-icon small>mdi-note-outline</v-icon>
+          </v-btn>-->
         </v-flex>
 
-        <v-flex xs6 class="time main-time">
-          <span>{{ normalTime(currentTime) }} - {{ normalTime(maxTime) }}</span>
-        </v-flex>
+        <!-- <v-flex xs6 class="selection-controls">{{ bindButtonsRegion}}</v-flex> -->
 
         <v-flex md3 hidden-sm-and-down>
-          <v-slider
-            v-model="zoom"
-            max="75"
-            min="5"
-            prepend-icon="mdi-magnify-plus-outline"
-            class="slider"
-          ></v-slider>
+          <v-slider v-model="zoom" max="75" min="5" class="slider" condensed>
+            <template v-slot:prepend>
+              <v-icon medium v-on:click="zoom=40">mdi-magnify-plus-outline</v-icon>
+            </template>
+          </v-slider>
         </v-flex>
 
         <v-flex md3 hidden-sm-and-down class="controls">
-          <v-slider
-            v-model="speed"
-            max="150"
-            min="50"
-            prepend-icon="mdi-run"
-            class="slider"
-          ></v-slider>
+          <v-slider v-model="speed" max="150" min="50" class="slider">
+            <template v-slot:prepend>
+              <v-icon medium v-on:click="speed=100">mdi-run</v-icon>
+            </template>
+          </v-slider>
         </v-flex>
       </v-layout>
     </div>
@@ -127,7 +169,28 @@ export default {
      */
     'regions',
     'isVideo',
+    'title',
   ],
+  data() {
+    return {
+      currentTime: 0,
+      maxTime: 0,
+      currentRegion: null,
+      pendingInboundRegion: null,
+      loadingProgress: 0,
+      loading: true,
+      textRegions: {},
+      zoom: 40,
+      speed: 100,
+      playing: false,
+      // track which side of the screen the video is on
+      videoLeft: false,
+      showRegionControls: false,
+      showIgnoreControl: false,
+      showIssueControl: false,
+      issueSelected: false,
+    }
+  },
 
   async mounted() {
     var me = this
@@ -147,12 +210,7 @@ export default {
         TimelinePlugin.create({
           container: '#timeline',
         }),
-        MinimapPlugin.create({
-          container: '#minimap',
-          waveColor: '#777',
-          progressColor: '#222',
-          height: 30,
-        }),
+        // TODO: try the minimap plugin again at some point, wasn't working with peaks data
       ],
     })
 
@@ -222,6 +280,8 @@ export default {
       this.onRegionOut(region.id)
     })
 
+    surfer.on('seek', this.onPlayerSeek)
+
     // TODO: move peaks loading to Transcribe
     // TODO: test when peaks data is 404
 
@@ -241,8 +301,8 @@ export default {
     window.audio = this
   },
   methods: {
-    onPlayerSeek: function() {
-      this.currentTime = me.maxTime * event
+    onPlayerSeek: function(progressPercent) {
+      this.currentTime = this.maxTime * progressPercent
     },
 
     waveformClicked: function() {
@@ -333,6 +393,42 @@ export default {
       ).style.backgroundColor = regionRegularBackground
       this.$emit('region-out', { id: regionName })
     },
+
+    onRegionTextSelection(event) {
+      // we have a selection
+      if (typeof event === 'boolean' && event) {
+        this.showRegionControls = !!event
+        this.showIgnoreControl = !!event
+        this.showIssueControl = !!event
+      } else if (event['issue-needs-help']) {
+        const issue = event['issue-needs-help']
+        this.showRegionControls = false
+        this.showIgnoreControl = false
+        this.showIssueControl = true
+        this.issueSelected = true
+      } else {
+        this.showRegionControls = false
+        this.showIgnoreControl = false
+        this.showIssueControl = false
+        this.issueSelected = false
+      }
+    },
+
+    emitSelectionAction(action, value) {
+      this.$emit('selection-action', action, value)
+    },
+
+    onFlagSelectionClick() {
+      this.emitSelectionAction('flag-selection')
+    },
+
+    onIgnoreSelectionClick() {
+      this.emitSelectionAction('ignore-selection')
+    },
+
+    onClearFormatClick() {
+      this.emitSelectionAction('clear-format')
+    },
   },
   watch: {
     regions(newValue, oldValue) {
@@ -345,22 +441,6 @@ export default {
     speed(newValue, oldValue) {
       surfer.setPlaybackRate(newValue / 100)
     },
-  },
-  data() {
-    return {
-      currentTime: 0,
-      maxTime: 0,
-      currentRegion: null,
-      pendingInboundRegion: null,
-      loadingProgress: 0,
-      loading: true,
-      textRegions: {},
-      zoom: 35,
-      speed: 100,
-      playing: false,
-      // track which side of the screen the video is on
-      videoLeft: false,
-    }
   },
 }
 </script>
@@ -380,6 +460,25 @@ export default {
   border-right: 1px solid #999;
   background-color: #999 !important;
   width: 1px !important;
+}
+#minimap {
+  background-color: #dbdbdb;
+  height: 32px;
+  margin-top: -4px;
+  margin-bottom: 1px;
+  margin-left: -1px;
+  color: #111;
+}
+.media-title {
+  text-transform: uppercase;
+  font-weight: bolder;
+  padding-left: 15px !important;
+}
+.main-time {
+  text-align: right;
+  padding-right: 15px !important;
+  padding-top: 6px !important;
+  font-weight: bolder;
 }
 .slider {
   padding-right: 10px;
@@ -408,7 +507,7 @@ video {
   bottom: 15px;
   max-width: 550px;
   max-height: 450px;
-  z-index: 999999;
+  z-index: 190;
   box-shadow: 0px 0px 6px 0px #888888;
   cursor: pointer;
 }
@@ -443,9 +542,6 @@ div#channel-strip {
  */
 #channel-strip > .flex {
   margin-top: -13px;
-}
-.main-time {
-  margin-top: 8px !important;
 }
 
 .control-btn,

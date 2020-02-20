@@ -10,3 +10,13 @@ Transcribe
 [ ] ability to flag words
 [ ] identify critical tests
 [ ] link out words to blue pages
+
+Reviewing process
+---
+ -> ability to flag issues
+   -> can't understand word
+   -> needs translation
+   -> needs review
+ -> flag as "complete"
+ -> flag "new word"
+ 

@@ -7,9 +7,7 @@
     >
       <v-list-item>
         <v-list-item-content>
-          <v-list-item-title class="title">
-            kiyânaw
-          </v-list-item-title>
+          <v-list-item-title class="title">kiyânaw</v-list-item-title>
         </v-list-item-content>
       </v-list-item>
 
@@ -18,7 +16,7 @@
       <v-list nav v-if="user">
         <v-list-item link href="/transcribe-list/">
           <v-list-item-icon>
-            <v-icon color="white">mdi-fountain-pen</v-icon>
+            <v-icon color="white">mdi-pencil-box</v-icon>
           </v-list-item-icon>
           <v-list-item-content>
             <v-list-item-title>Transcriptions</v-list-item-title>
@@ -95,12 +93,12 @@ body {
 .drawer-left {
   background-color: #305880 !important;
 }
-.v-list-item__title {
+.v-navigation-drawer .v-list-item__title {
   color: #d1e0ee !important;
   text-transform: uppercase;
   font-weight: bold;
 }
-.v-list-item__icon {
+.v-navigation-drawer .v-list-item__icon {
   margin-right: 20px !important;
 }
 .drawer-title {

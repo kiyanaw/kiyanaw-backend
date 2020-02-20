@@ -2,17 +2,10 @@
   <v-container fluid grid-list-md fill-height>
     <v-layout wrap>
       <div v-if="loading && !error" class="loading">
-        <v-progress-circular
-          :size="70"
-          :width="7"
-          color="#305880"
-          indeterminate
-        ></v-progress-circular>
+        <v-progress-circular :size="70" :width="7" color="#305880" indeterminate></v-progress-circular>
       </div>
 
-      <div v-if="error" class="load-error">
-        {{ error }}
-      </div>
+      <div v-if="error" class="load-error">{{ error }}</div>
 
       <v-flex v-if="!loading && !error">
         <v-layout class="audio-container" :class="{ audioContainerSm: $vuetify.breakpoint.xsOnly }">
@@ -20,6 +13,7 @@
             <audio-player
               ref="player"
               v-if="source"
+              v-bind:title="title"
               v-bind:source="source"
               v-bind:peaks="peaks"
               v-bind:regions="sortedRegions"
@@ -29,14 +23,8 @@
               v-on:region-updated="onUpdateRegion"
               v-on:region-in="highlightRegion"
               v-on:region-out="onBlurRegion"
-            >
-            </audio-player>
-          </v-flex>
-        </v-layout>
-
-        <v-layout class="title-container">
-          <v-flex row xs12 md12>
-            <h3 class="title">{{ title }}</h3>
+              v-on:selection-action="onSelectionAction"
+            ></audio-player>
           </v-flex>
         </v-layout>
 
@@ -58,15 +46,16 @@
                     v-bind:canEdit="user !== null"
                     v-bind:ref="region.id"
                     v-bind:inRegions="inRegions"
-                    v-bind:editing="editingRegion === region.id"
+                    v-bind:editing="editingRegionId === region.id"
+                    v-bind:user="user"
                     v-on:editor-focus="onRegionFocus"
                     v-on:editor-blur="onEditorBlur"
                     v-on:play-region="playRegion"
                     v-on:region-text-updated="onRegionTextUpdated"
                     v-on:region-cursor="regionCursor"
+                    v-on:text-selection="onRegionTextSelection"
                     v-on:delete-region="onDeleteRegion"
-                  >
-                  </editor>
+                  ></editor>
                   <hr />
                 </div>
               </v-container>
@@ -76,17 +65,19 @@
 
         <v-layout v-if="false" row class="editorSideMd">
           <v-container>
-            <v-tabs v-if="editingRegion" v-model="tab" background-color="grey lighten-2">
+            <v-tabs v-if="editingRegionId" v-model="tab" background-color="grey lighten-2">
               <v-tab key="one">Comments</v-tab>
               <v-tab key="two">Details</v-tab>
-              <v-tab-item key="one" background-color="grey lighten-2">
-                Region {{ editingRegion }} comments
-              </v-tab-item>
-              <v-tab-item key="two" background-color="grey lighten-2">
-                Region {{ editingRegion }} details
-              </v-tab-item>
+              <v-tab-item
+                key="one"
+                background-color="grey lighten-2"
+              >Region {{ editingRegionId }} comments</v-tab-item>
+              <v-tab-item
+                key="two"
+                background-color="grey lighten-2"
+              >Region {{ editingRegionId }} details</v-tab-item>
             </v-tabs>
-            <p v-if="!editingRegion" class="region-details">Select a region to view details...</p>
+            <p v-if="!editingRegionId" class="region-details">Select a region to view details...</p>
           </v-container>
         </v-layout>
       </v-flex>
@@ -174,9 +165,9 @@ export default {
       /**
        * @type {String|null}
        * @default null
-       * @description Name of the region currently being edited, `null` otherwise.
+       * @description Id of the region currently being edited, `null` otherwise.
        */
-      editingRegion: null,
+      editingRegionId: null,
       inboundRegion: null,
       inRegions: [],
       title: '',
@@ -208,8 +199,8 @@ export default {
     /** */
     onEditorBlur(regionId, { silent = false } = {}) {
       // only clear the editing region if we focus away from any editor
-      if (regionId === this.editingRegion) {
-        this.editingRegion = null
+      if (regionId === this.editingRegionId) {
+        this.editingRegionId = null
       }
       // only unlock the region if we're the editor that has the lock
       if (!silent) {
@@ -230,8 +221,8 @@ export default {
      * @param {String} regionId Name of the current region being edited.
      */
     onRegionFocus(regionId) {
-      // setting the editingRegion activates that region's editor
-      this.editingRegion = regionId
+      // setting the editingRegionId activates that region's editor
+      this.editingRegionId = regionId
       for (let index in this.regions) {
         this.regions[index].activeRegion = regionId
       }
@@ -271,7 +262,7 @@ export default {
     async saveRegion(region, text) {
       const regionOps = this.$refs[region.id][0].getMainOps()
       region.text = regionOps
-      console.log('saving region', region)
+      region.issues = this.$refs[region.id][0].issues || '[]'
       TranscriptionService.updateRegion(this.transcriptionId, region)
       this.updateTranscription()
     },
@@ -285,6 +276,18 @@ export default {
       UserService.sendCursor(update).catch((e) => {
         console.log(e)
       })
+    },
+
+    onRegionTextSelection(event) {
+      if (this.$refs.player) {
+        this.$refs.player.onRegionTextSelection(event)
+      }
+    },
+
+    onSelectionAction(action, value) {
+      if (this.$refs[this.editingRegionId]) {
+        this.$refs[this.editingRegionId][0].onSelectionAction(action, value)
+      }
     },
 
     /** */
@@ -304,14 +307,25 @@ export default {
     async updateTranscription() {
       // this.regions.map((x) => console.log(this.$refs[x.id].needsReview()))
 
-      const issues = this.regions.filter((region) => {
-        try {
-          return this.$refs[region.id][0].needsReview
-        } catch (e) {
-          return false
-        }
-      })
-      const issueCount = issues.length
+      // const issues = this.regions.filter((region) => {
+      //   console.log('check region ')
+      //   try {
+      //     console.log('number of issues', region.id, this.$refs[region.id][0].getIssueCount())
+      //     return this.$refs[region.id][0].needsReview
+      //   } catch (e) {
+      //     console.log('error getting issues', e)
+      //     return false
+      //   }
+      // })
+      // const issueCountold = issues.length
+      let issueCount
+      try {
+        issueCount = this.regions
+          .map((region) => this.$refs[region.id][0].getIssueCount())
+          .reduce((a, b) => a + b)
+      } catch (e) {
+        console.warn(`Counldn't get issue count for regions ${e.message}`)
+      }
 
       const result = await TranscriptionService.updateTranscription({
         id: this.transcriptionId,
@@ -540,9 +554,9 @@ export default {
     // document.addEventListener('keyup', (evt) => {
     //   // TODO: this might work better in Editor, blur the cursor at the same time
     //   if (evt.keyCode === 27) {
-    //     this.editingRegion = null
+    //     this.editingRegionId = null
     //   }
-    //   if (!this.editingRegion) {
+    //   if (!this.editingRegionId) {
     //     // play/pause on space bar
     //     if (evt.keyCode === 32) {
     //       try {
@@ -596,7 +610,7 @@ export default {
 .editor,
 .editorNoSide {
   position: absolute;
-  top: 266px;
+  top: 226px;
   left: 0;
   bottom: 0;
   overflow-y: scroll;
@@ -623,11 +637,6 @@ export default {
 
 .audio-container {
   margin: 0 !important;
-}
-.title-container {
-  padding-left: 25px !important;
-  height: 40px;
-  background-color: #dbdbdb;
 }
 
 .controls > button {

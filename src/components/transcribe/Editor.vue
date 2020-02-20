@@ -1,5 +1,5 @@
 <template>
-  <v-container v-bind:class="{ locked: locked }">
+  <v-container v-bind:class="{ locked: locked }" style="padding-top:3px;">
     <v-layout
       class="region-editor-layout"
       v-bind:class="{ inRegion: isInRegion, review: needsReview }"
@@ -25,7 +25,7 @@
 
     <v-layout class="region-options-layout" v-on:click="stayFocused">
       <v-flex xs2 md1>
-        <v-icon class="region-lock-icon" v-if="locked">lock</v-icon>
+        <v-icon class="region-lock-icon" v-if="locked">mdi-lock</v-icon>
         <div class="region-options-label" v-if="locked">{{ lockUser }}</div>
         <div class="region-options-label label-translation" v-if="editing && canEdit">English</div>
       </v-flex>
@@ -37,15 +37,178 @@
             <div class="region-options-controls">
               <a v-on:click="deleteRegion">Delete this region</a>
               &nbsp;
-              <span
-                >Version {{ region.version }} by {{ region.userLastUpdated }} --
-                {{ region.id }}</span
-              >
+              <span>
+                Version {{ region.version }} by {{ region.userLastUpdated }} --
+                {{ region.id }}
+              </span>
+              <!-- <v-badge small color="error" content="2" overlap>
+                <v-btn icon small>
+                  <v-icon small>mdi-flag-outline</v-icon>
+                </v-btn>
+              </v-badge>-->
             </div>
           </div>
         </div>
       </v-flex>
     </v-layout>
+
+    <v-dialog v-model="dialog" persistent max-width="60%">
+      <v-card>
+        <v-tabs vertical v-model="activeTab">
+          <v-tab :key="0">
+            <v-icon left>mdi-flag-outline</v-icon>&nbsp;&nbsp;Issues&nbsp;&nbsp;&nbsp;&nbsp;
+          </v-tab>
+          <v-tab :disabled="!currentSelectionText" :key="1">
+            <v-icon left>mdi-flag-plus-outline</v-icon>New issue
+          </v-tab>
+
+          <!-- ISSUE DETAILS -->
+          <v-tab-item>
+            <v-layout v-if="selectedIssue">
+              <v-list width="100%">
+                <v-subheader>
+                  <a v-on:click="selectedIssue = null">&larr; Back to issues</a>
+                </v-subheader>
+                <v-list-item>
+                  <v-list-item-avatar>
+                    <v-icon color="error" v-if="!selectedIssue.resolved" large>mdi-alert-circle</v-icon>
+                    <v-icon color="success" v-if="selectedIssue.resolved" large>mdi-check-circle</v-icon>
+                  </v-list-item-avatar>
+
+                  <v-list-item-content>
+                    <v-list-item-title>
+                      <span :class="'issue-' + selectedIssue.issueType">{{ selectedIssue.text }}</span>
+                    </v-list-item-title>
+                    <v-list-item-subtitle>
+                      <v-chip small>{{ selectedIssue.type}}</v-chip>
+                      {{ timeAgo(new Date(Number(selectedIssue.createdAt))) }} by {{ selectedIssue.owner }}
+                      (index: {{ selectedIssue.index }})
+                    </v-list-item-subtitle>
+                  </v-list-item-content>
+
+                  <v-list-item-action>
+                    <v-btn
+                      class="ma-2"
+                      rounded
+                      small
+                      outlined
+                      v-on:click="resolveIssue"
+                      :color="selectedIssue.resolved ? 'error' : 'success'"
+                    >
+                      <v-icon v-if="!selectedIssue.resolved" left>mdi-checkbox-marked-circle</v-icon>
+                      <span v-if="!selectedIssue.resolved">Resolve</span>
+
+                      <v-icon v-if="selectedIssue.resolved" left>mdi-checkbox-marked-circle</v-icon>
+                      <span v-if="selectedIssue.resolved">Unresolve</span>
+                    </v-btn>
+                  </v-list-item-action>
+                </v-list-item>
+
+                <v-list-item>
+                  <v-subheader>COMMENTS</v-subheader>
+                </v-list-item>
+
+                <!-- COMMENT INPUT -->
+                <v-list-item>
+                  <v-text-field outlined dense v-model="newIssueCommentText" label="Add a comment">
+                    <template slot="append-outer">
+                      <v-btn
+                        outlined
+                        rounded
+                        small
+                        color="primary"
+                        v-on:click="addIssueComment"
+                      >Submit</v-btn>
+                    </template>
+                  </v-text-field>
+                </v-list-item>
+
+                <!-- COMMENTS -->
+                <v-layout class="comments-list-container">
+                  <v-list dense width="100%" class="comments-list">
+                    <v-list-item v-for="comment of orderedIssueComments" :key="comment.createdAt">
+                      <v-list-item-icon>
+                        <v-icon v-if="user.name === comment.owner" color="primary">mdi-comment</v-icon>
+                        <v-icon v-if="user.name !== comment.owner" color="primary">mdi-comment</v-icon>
+                      </v-list-item-icon>
+                      <v-list-item-content>
+                        <v-list-item-title>{{ comment.comment }}</v-list-item-title>
+                        <v-list-item-subtitle>{{ timeAgo(new Date(Number(comment.createdAt))) }} by {{ comment.owner }}</v-list-item-subtitle>
+                      </v-list-item-content>
+                    </v-list-item>
+                  </v-list>
+                </v-layout>
+              </v-list>
+            </v-layout>
+
+            <!-- ISSUE LIST -->
+            <v-layout v-if="!selectedIssue">
+              <v-list width="100%">
+                <v-list-item>
+                  <h4>{{ issues.length }} issues</h4>
+                </v-list-item>
+                <v-list-item two-line v-for="issue in issues" :key="issue.id">
+                  <v-list-item-content>
+                    <v-list-item-title>
+                      <v-chip class="ma-2" :color="issue.resolved ? 'success' : 'error'" small>
+                        <v-avatar left>
+                          <v-icon v-if="!issue.resolved" small>mdi-alert-circle</v-icon>
+                          <v-icon v-if="issue.resolved" small>mdi-check-circle</v-icon>
+                        </v-avatar>
+                        {{ issue.type }}
+                      </v-chip>
+                      <a v-on:click="selectedIssue=issue">
+                        <span v-bind:class="'issue-' + issue.issueType">{{ issue.text }}</span>
+                        {{ timeAgo(new Date(Number(issue.createdAt))) }} by {{ issue.owner }}
+                      </a>
+                      <span class="comment-count">
+                        <v-icon small>mdi-comment</v-icon>
+                        {{ issue.comments.length }}
+                        <v-btn icon small dark color="error" v-on:click="deleteIssue(issue.id)">
+                          <v-icon small color="error">mdi-delete</v-icon>
+                        </v-btn>
+                      </span>
+                    </v-list-item-title>
+                  </v-list-item-content>
+                </v-list-item>
+              </v-list>
+            </v-layout>
+          </v-tab-item>
+
+          <v-tab-item>
+            <v-text-field label="Selection" readonly :value="currentSelectionText"></v-text-field>
+            <v-select
+              chips
+              :items="['needs-help', 'indexing', 'new-word']"
+              ref="issueType"
+              label="Issue type"
+            ></v-select>
+            <v-textarea ref="issueComment" solo label="Comments"></v-textarea>
+          </v-tab-item>
+        </v-tabs>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn
+            color="blue darken-1"
+            v-if="!currentSelectionText"
+            text
+            @click="dialog = false"
+          >Close</v-btn>
+          <v-btn
+            color="blue darken-1"
+            v-if="currentSelectionText"
+            text
+            @click="dialog = false"
+          >Cancel</v-btn>
+          <v-btn
+            color="blue darken-1"
+            v-if="currentSelectionText"
+            text
+            @click="onSubmitIssue"
+          >Submit</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
 
@@ -57,6 +220,11 @@ import utils from './utils'
 import Lex from '../../services/lexicon'
 import UserService from '../../services/user'
 
+import en from 'javascript-time-ago/locale/en'
+import TimeAgo from 'javascript-time-ago'
+TimeAgo.addLocale(en)
+const timeAgo = new TimeAgo('en-US')
+
 /**
  * Register our custom class attributor. This is used to flag a word as
  * a 'known word', when it matches a word in the lexicon.
@@ -65,14 +233,32 @@ const Parchment = Quill.import('parchment')
 let KnownWord = new Parchment.Attributor.Class('known-word', 'known-word', {
   scope: Parchment.Scope.INLINE,
 })
+let IgnoreWord = new Parchment.Attributor.Class('ignore-word', 'ignore-word', {
+  scope: Parchment.Scope.INLINE,
+})
+let IssueNeedsHelp = new Parchment.Attributor.Class('issue-needs-help', 'issue-needs-help', {
+  scope: Parchment.Scope.INLINE,
+})
+let IssueIndexing = new Parchment.Attributor.Class('issue-indexing', 'issue-indexing', {
+  scope: Parchment.Scope.INLINE,
+})
+let IssueNewWord = new Parchment.Attributor.Class('issue-new-word', 'issue-new-word', {
+  scope: Parchment.Scope.INLINE,
+})
 
 Parchment.register(KnownWord)
+Parchment.register(IgnoreWord)
+Parchment.register(IssueNeedsHelp)
+Parchment.register(IssueIndexing)
+Parchment.register(IssueNewWord)
 Quill.register('modules/cursors', QuillCursors)
 
 let typingTimer
 let cursorTimer
 
 let blurFlag = false
+const ISSUES_TAB = 0
+const NEW_ISSUE_TAB = 1
 
 export default {
   props: [
@@ -82,6 +268,7 @@ export default {
     'inRegions',
     // true when the user is editing this region
     'editing',
+    'user',
   ],
 
   data() {
@@ -95,18 +282,17 @@ export default {
       blurFlag: false,
       // used to ignore the first 'blur' event
       firstBlur: true,
+      dialog: false,
+      currentSelection: null,
+      lastSelection: null, // needed for issue creation
+      currentSelectionText: '',
+      //
+      activeTab: ISSUES_TAB,
+      //
+      issues: [],
+      selectedIssue: null,
+      newIssueCommentText: '',
     }
-  },
-
-  watch: {
-    editing(newValue, oldValue) {
-      // if (newValue) {
-      // console.log(`Editing - ${this.region.id} - ${newValue}`)
-      // } else {
-      //   this.unlock();
-      //   // this.quillTranslate = null;
-      // }
-    },
   },
 
   computed: {
@@ -117,13 +303,41 @@ export default {
         return this.inRegions.indexOf(this.region.id) > -1
       }
     },
-    // TODO this needs tests
     needsReview() {
       const doubleQuestion = this.region.text.filter((word) => word.insert.indexOf('??') > -1)
       if (doubleQuestion.length) {
         return true
       }
       return false
+    },
+
+    orderedIssueComments() {
+      if (this.selectedIssue) {
+        return this.selectedIssue.comments.sort(function(a, b) {
+          var keyA = a.createdAt,
+            keyB = b.createdAt
+          // Compare the 2 dates
+          if (keyA < keyB) return 1
+          if (keyA > keyB) return -1
+          return 0
+        })
+      } else {
+        return []
+      }
+    },
+    getIssueCount() {
+      let count = 0
+      const ops = this.getMainOps()
+      ops.forEach((op) => {
+        if (op.attributes) {
+          Object.keys(op.attributes).forEach((key) => {
+            if (key && key.startsWith('issue')) {
+              count = count + 1
+            }
+          })
+        }
+      })
+      return count
     },
   },
   methods: {
@@ -300,6 +514,8 @@ export default {
         this.region.text = ops
         this.region.translation = this.quillTranslate.getText()
         setTimeout(() => {
+          // check if the issue text has changed.
+          this.updateIssueText()
           this.$emit('region-text-updated', {
             id: this.region.id,
             editor: editor,
@@ -337,13 +553,163 @@ export default {
       })
     },
 
+    async onSubmitIssue() {
+      let issueType = this.$refs.issueType.selectedItems
+      const problemText = this.currentSelectionText
+
+      if (issueType.length === 0) {
+        return
+      }
+      issueType = issueType[0]
+      const created = `${+new Date()}`
+      const owner = this.user.name
+
+      // new issue
+      const issue = {
+        id: `issue-${issueType}-${created}`,
+        type: issueType,
+        createdAt: created,
+        resolved: false,
+        owner,
+        text: problemText,
+        comments: [],
+      }
+
+      const comment = this.$refs.issueComment.lazyValue
+        ? this.$refs.issueComment.lazyValue.trim()
+        : null
+      if (comment) {
+        issue.comments.push({
+          comment,
+          createdAt: created,
+          owner,
+        })
+      }
+
+      this.quill.formatText(
+        this.lastSelection.index,
+        this.lastSelection.length,
+        `issue-${issueType}`,
+        issue.id,
+      )
+
+      // save the issue
+      this.issues.push(issue)
+      this.dialog = false
+
+      // notify of changes
+      this.onIssuesUpdated()
+    },
+
+    addIssueComment() {
+      const comment = this.newIssueCommentText
+      if (!comment) {
+        return
+      }
+      this.selectedIssue.comments.push({
+        comment,
+        createdAt: `${+new Date()}`,
+        owner: this.user.name,
+      })
+      this.newIssueCommentText = ''
+      this.onIssuesUpdated()
+    },
+
+    clearIssueForm() {
+      // this.$refs.issueType.selectedItems = []
+    },
+
+    resolveIssue() {
+      // selectedIssue.resolved = !selectedIssue.resolved
+      this.selectedIssue.resolved = !this.selectedIssue.resolved
+      const issue = this.selectedIssue
+      const issueType = `issue-${issue.type}`
+      console.log('selected issue', issueType)
+      if (this.selectedIssue.resolved) {
+        // remove the formatting in the editor
+        // console.log('issue type', issue.type)
+        this.quill.formatText(issue.index, issue.text.length, issueType, false)
+      } else {
+        this.quill.formatText(issue.index, issue.text.length, issueType, issue.id)
+      }
+      this.onIssuesUpdated()
+    },
+
+    deleteIssue(id) {
+      console.log('delete issue', id)
+      const deleteIssue = confirm('Delete this issue forever?')
+      if (deleteIssue) {
+        this.issues = this.issues.filter((issue) => issue.id !== id)
+        this.onIssuesUpdated()
+      }
+    },
+
+    // used to trigger a save for issues
+    onIssuesUpdated() {
+      this.notifyRegionChanged('main')
+    },
+
+    /**
+     * We clicked one of the region action buttons, now we need to deal with it.
+     */
+    onSelectionAction(action, value) {
+      const formats = this.quill.getFormat(this.currentSelection)
+      if (action === 'flag-selection') {
+        console.log('formats under selection', formats)
+        // check for format under cursor
+        const formatsKeys = Object.keys(formats)
+        if (formatsKeys.length) {
+          const firstIssueKey = formatsKeys.shift()
+          const firstIssueId = formats[firstIssueKey]
+          // show the under the selection
+          const selectedIssue = this.issues.filter((item) => item.id === firstIssueId).pop()
+
+          this.selectedIssue = selectedIssue
+          this.activeTab = ISSUES_TAB
+          this.dialog = true
+        } else if (this.currentSelection.length) {
+          // we have a selection, create a new issue
+          this.activeTab = NEW_ISSUE_TAB
+          this.dialog = true
+        } else {
+          // we just have the cursor somewhere, show issue list
+          this.selectedIssue = null
+          this.activeTab = ISSUES_TAB
+          this.dialog = true
+        }
+        // this.clearIssueForm()
+      } else if (action === 'ignore-selection') {
+        this.quill.formatText(
+          this.currentSelection.index,
+          this.currentSelection.length,
+          'ignore-word',
+          !formats['ignore-word'],
+        )
+      }
+    },
+
     async onEditorSelectionChange(range, oldRange, source) {
+      window.quill = this.quill
+      // save selections for future use
       if (!this.locked) {
+        this.currentSelection = range
         if (range) {
+          this.lastSelection = range
           if (range.length === 0) {
-            // console.log('User cursor is on', range.index)
+            this.currentSelectionText = ''
+            // just a cursor, check for format
+            // const [leaf, offset] = this.quill.getLeaf(range.index)
+
+            const format = this.quill.getFormat(range)
+            // if there are any issues in this region, enable the button
+            if (this.issues.length) {
+              this.$emit('text-selection', { 'issue-needs-help': true })
+            } else {
+              this.$emit('text-selection', false)
+            }
           } else {
-            // console.log('User has highlighted', text)
+            this.currentSelectionText = this.quill.getText(range.index, range.length)
+            this.$emit('text-selection', true)
           }
           // throttle the number of cursor updates
           Timeout.clear(`cursor-change-timeout-main-${this.region.id}`)
@@ -368,7 +734,33 @@ export default {
             type: 'blur',
             source: 'main',
           })
+          // we've lost focus, shut the buttons off
+          this.$emit('text-selection', false)
         }
+      }
+    },
+
+    updateIssueText() {
+      const contents = this.quill.getContents()
+      let index = 0
+      for (const leaf of contents.ops) {
+        if (leaf.attributes) {
+          const issueKey = Object.keys(leaf.attributes)
+            .filter((key) => key.startsWith('issue'))
+            .pop()
+          // if (leaf.attributes && leaf.attributes['issue-needs-help']) {
+          if (issueKey) {
+            console.log('index of issue', index)
+            const issueId = leaf.attributes[issueKey]
+            const text = leaf.insert
+            const issue = this.issues.filter((item) => item.id === issueId).pop()
+            if (issue) {
+              issue.text = text
+              issue.index = index
+            }
+          }
+        }
+        index = index + leaf.insert.length
       }
     },
 
@@ -428,25 +820,26 @@ export default {
         return
       }
       if (event.type === 'blur') {
+        // TODO: manually blur
         // When the editors load they fire off a blur we can't silence.
-        if (this.firstBlur) {
-          this.firstBlur = false
-          return
-        }
-        // console.log('blur called')
-        this.blurFlag = true
-        Timeout.set(
-          `blur-timeout-${this.region.id}`,
-          () => {
-            if (this.blurFlag) {
-              console.log(' --> blur fired')
-              this.$emit('editor-blur', this.region.id)
-              this.blurFlag = false
-            }
-          },
-          25,
-          this.region.id,
-        )
+        // if (this.firstBlur) {
+        //   this.firstBlur = false
+        //   return
+        // }
+        // // console.log('blur called')
+        // this.blurFlag = true
+        // Timeout.set(
+        //   `blur-timeout-${this.region.id}`,
+        //   () => {
+        //     if (this.blurFlag) {
+        //       console.log(' --> blur fired')
+        //       this.$emit('editor-blur', this.region.id)
+        //       this.blurFlag = false
+        //     }
+        //   },
+        //   25,
+        //   this.region.id,
+        // )
       } else {
         if (this.blurFlag) {
           // we're within the timeout, do not fire the blur event
@@ -456,6 +849,7 @@ export default {
           if (!this.editing) {
             // console.log(' --> focus fired')
             this.$emit('editor-focus', this.region.id)
+            window.editor = this
           }
         }
       }
@@ -464,7 +858,13 @@ export default {
     mountMainEditor() {
       this.quill = new Quill(this.$el.querySelector('#editor-' + this.region.id), {
         theme: 'snow',
-        formats: ['known-word'],
+        formats: [
+          'known-word',
+          'ignore-word',
+          'issue-needs-help',
+          'issue-indexing',
+          'issue-new-word',
+        ],
         modules: {
           toolbar: false,
           cursors: true,
@@ -522,6 +922,9 @@ export default {
         this.dateLastUpdated = region.dateLastUpdated
       }
     },
+    timeAgo(date) {
+      return timeAgo.format(date)
+    },
   },
 
   mounted() {
@@ -534,6 +937,9 @@ export default {
 
     // this.quillTranslate.setText(this.region.translation, 'silent')
     this.bindEditorEvents()
+
+    // grab issues
+    this.issues = this.region.issues
 
     // TODO: remove this, it's just for debugging.
     window.quill = this.quill
@@ -585,9 +991,6 @@ export default {
   text-align: right;
 }
 
-[class^='known-word-'] {
-  color: blue;
-}
 .region-options {
   margin-left: 14px;
   color: grey;
@@ -637,5 +1040,66 @@ export default {
 }
 .region-lock-icon {
   margin: 10px;
+}
+.v-tabs-items {
+  padding-right: 15px;
+}
+.v-tabs--vertical {
+  height: 450px;
+}
+
+.v-dialog {
+  overflow: hidden;
+}
+
+.v-dialog .v-list-item__content {
+  padding: 0;
+}
+.v-dialog .v-list-item__content,
+.v-dialog .v-list-item--two-line {
+  min-height: 30px;
+}
+
+.comments-list-container {
+  top: 215px;
+  position: absolute;
+  bottom: -220px;
+  overflow: auto;
+  width: 100%;
+}
+
+.comment-count {
+  position: absolute;
+  right: 15px;
+  top: 5px;
+  font-size: 0.8em;
+}
+
+[class^='known-word-'] {
+  color: blue;
+}
+
+[class^='ignore-word'] {
+  color: #777;
+  font-style: italic;
+}
+
+[class^='issue-needs-help'] {
+  background-color: #ffe6e6;
+}
+
+[class^='issue-indexing'] {
+  background-color: #fff9e6;
+}
+
+[class^='issue-new'] {
+  background-color: #e6f3ff;
+}
+
+[class^='issue']::before {
+  content: '[';
+}
+[class^='issue']::after {
+  content: ']';
 }
 </style>
