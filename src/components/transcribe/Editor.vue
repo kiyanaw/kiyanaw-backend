@@ -1,6 +1,7 @@
 <template>
   <v-container v-bind:class="{ locked: locked }" style="padding-top:3px;">
     <v-layout
+      v-if="!region.isNote"
       class="region-editor-layout"
       v-bind:class="{ inRegion: isInRegion, review: needsReview }"
       style="position: relative"
@@ -23,17 +24,27 @@
       <v-flex md1 xs1></v-flex>
     </v-layout>
 
-    <v-layout class="region-options-layout" v-on:click="stayFocused">
+    <v-layout
+      class="region-options-layout"
+      v-bind:class="{isNote: region.isNote}"
+      v-on:click="stayFocused"
+    >
       <v-flex xs2 md1>
         <v-icon class="region-lock-icon" v-if="locked">mdi-lock</v-icon>
         <div class="region-options-label" v-if="locked">{{ lockUser }}</div>
-        <div class="region-options-label label-translation" v-if="editing && canEdit">English</div>
+        <div
+          class="region-options-label label-translation"
+          v-if="editing && canEdit & !region.isNote"
+        >English</div>
+        <div class="region-options-label label-note" v-if="region.isNote">
+          <v-icon color="#dbd9ce">mdi-note-outline</v-icon>
+        </div>
       </v-flex>
 
       <v-flex xs10 md10>
         <div class="region-options-edit">
           <div v-bind:id="'editor-translate-' + region.id"></div>
-          <div v-if="editing & canEdit">
+          <div v-if="editing & canEdit & !region.isNote">
             <div class="region-options-controls">
               <a v-on:click="deleteRegion">Delete this region</a>
               &nbsp;
@@ -41,11 +52,7 @@
                 Version {{ region.version }} by {{ region.userLastUpdated }} --
                 {{ region.id }}
               </span>
-              <!-- <v-badge small color="error" content="2" overlap>
-                <v-btn icon small>
-                  <v-icon small>mdi-flag-outline</v-icon>
-                </v-btn>
-              </v-badge>-->
+              note: {{ region.isNote }}
             </div>
           </div>
         </div>
@@ -510,7 +517,12 @@ export default {
      */
     notifyRegionChanged(editor) {
       if (!this.locked) {
-        const ops = this.quill.getContents().ops
+        let ops
+        if (!this.region.isNote) {
+          ops = this.quill.getContents().ops
+        } else {
+          ops = []
+        }
         this.region.text = ops
         this.region.translation = this.quillTranslate.getText()
         setTimeout(() => {
@@ -741,6 +753,9 @@ export default {
     },
 
     updateIssueText() {
+      if (this.region.isNote) {
+        return
+      }
       const contents = this.quill.getContents()
       let index = 0
       for (const leaf of contents.ops) {
@@ -769,8 +784,10 @@ export default {
      */
     async bindEditorEvents() {
       if (this.canEdit) {
-        this.quill.on('text-change', this.onEditorTextChange)
-        this.quill.on('selection-change', this.onEditorSelectionChange)
+        if (!this.region.isNote) {
+          this.quill.on('text-change', this.onEditorTextChange)
+          this.quill.on('selection-change', this.onEditorSelectionChange)
+        }
         this.quillTranslate.on('text-change', this.onTranslationTextChange)
 
         // TODO: move this somewhere we can test it
@@ -807,11 +824,7 @@ export default {
     },
 
     /**
-     * If we jump from main -> secondary editor, we don't want to fire the 'blur'
-     * event because we're not done yet. Only fire the event if we get a 'blur'
-     * event without an immediate 'focus' event.
-     *
-     * TODO: test this
+     * TODO: this may be irrelevant now that we manually blur
      */
     maybeFocusBlur(event) {
       // can't do anything if we're locked
@@ -930,12 +943,13 @@ export default {
   mounted() {
     this.locked = false
 
-    this.mountMainEditor()
+    if (!this.region.isNote) {
+      this.mountMainEditor()
+    }
     this.mountSecondEditor()
 
     this.reportKnownWords(this.region.text)
 
-    // this.quillTranslate.setText(this.region.translation, 'silent')
     this.bindEditorEvents()
 
     // grab issues
@@ -998,6 +1012,9 @@ export default {
 .region-options-layout {
   background-color: #f5f5f5;
 }
+.isNote {
+  background-color: #fcfaf0;
+}
 .region-index {
   position: absolute;
   top: 7px;
@@ -1015,6 +1032,9 @@ export default {
 
 .label-translation {
   margin: 23px 0px 24px 8px;
+}
+.label-note {
+  margin: 14px 0px 24px 18px;
 }
 
 .label-options {

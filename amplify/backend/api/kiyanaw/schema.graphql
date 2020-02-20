@@ -27,6 +27,7 @@ type Region
   end: Float!
   text: String!
   issues: String
+  isNote: Boolean
   comments: String
   translation: String
   dateLastUpdated: String!

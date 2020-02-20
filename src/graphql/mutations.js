@@ -71,6 +71,7 @@ export const createRegion = `mutation CreateRegion(
     end
     text
     issues
+    isNote
     comments
     translation
     dateLastUpdated
@@ -90,6 +91,7 @@ export const updateRegion = `mutation UpdateRegion(
     end
     text
     issues
+    isNote
     comments
     translation
     dateLastUpdated
@@ -109,6 +111,7 @@ export const deleteRegion = `mutation DeleteRegion(
     end
     text
     issues
+    isNote
     comments
     translation
     dateLastUpdated

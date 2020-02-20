@@ -184,6 +184,7 @@ export default {
         item.text = JSON.parse(item.text)
         item.issues = item.issues ? JSON.parse(item.issues) : []
         item.comments = item.comments ? JSON.parse(item.comments) : []
+        item.isNote = !!item.isNote
         return item
       })
       return transcription
@@ -221,6 +222,7 @@ export default {
       text: JSON.stringify(region.text),
       issues: JSON.stringify(region.issues),
       translation: region.translation,
+      isNote: !!region.isNote,
       dateLastUpdated: `${+new Date()}`,
       userLastUpdated: user.name,
       transcriptionId: transcriptionId,

@@ -40,6 +40,16 @@
             <v-icon small>mdi-close-circle</v-icon>
           </v-btn>
 
+          <v-btn
+            icon
+            small
+            v-on:click="onToggleRegionType"
+            v-bind:disabled="!editingRegionId"
+            class="control-btn"
+          >
+            <v-icon small>mdi-note-outline</v-icon>
+          </v-btn>
+
           <v-btn icon disabled class="control-btn">|</v-btn>
 
           <!-- SELECTION CONTROLS -->
@@ -170,6 +180,7 @@ export default {
     'regions',
     'isVideo',
     'title',
+    'editingRegionId',
   ],
   data() {
     return {
@@ -186,6 +197,7 @@ export default {
       // track which side of the screen the video is on
       videoLeft: false,
       showRegionControls: false,
+      showNoteControls: false,
       showIgnoreControl: false,
       showIssueControl: false,
       issueSelected: false,
@@ -301,6 +313,9 @@ export default {
     window.audio = this
   },
   methods: {
+    onToggleRegionType: function() {
+      this.$emit('toggle-region-type')
+    },
     onPlayerSeek: function(progressPercent) {
       this.currentTime = this.maxTime * progressPercent
     },
@@ -365,12 +380,14 @@ export default {
         () => {
           surfer.clearRegions()
           this.regions.forEach((region, index) => {
-            region.resize = this.canEdit
-            region.drag = this.canEdit
-            region.attributes = {
-              label: index,
+            if (!region.isNote) {
+              region.resize = this.canEdit
+              region.drag = this.canEdit
+              region.attributes = {
+                label: index,
+              }
+              surfer.addRegion(region)
             }
-            surfer.addRegion(region)
           })
           this.textRegions = this.regions
         },

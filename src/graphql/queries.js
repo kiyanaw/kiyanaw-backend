@@ -57,6 +57,7 @@ export const getRegion = `query GetRegion($id: String!) {
     end
     text
     issues
+    isNote
     comments
     translation
     dateLastUpdated
@@ -86,6 +87,7 @@ export const listRegions = `query ListRegions(
       end
       text
       issues
+      isNote
       comments
       translation
       dateLastUpdated
@@ -185,6 +187,7 @@ export const byTranscription = `query ByTranscription(
       end
       text
       issues
+      isNote
       comments
       translation
       dateLastUpdated

@@ -20,10 +20,12 @@
               v-bind:canEdit="user !== null"
               v-bind:isVideo="isVideo"
               v-bind:inboundRegion="inboundRegion"
+              v-bind:editingRegionId="editingRegionId"
               v-on:region-updated="onUpdateRegion"
               v-on:region-in="highlightRegion"
               v-on:region-out="onBlurRegion"
               v-on:selection-action="onSelectionAction"
+              v-on:toggle-region-type="onToggleRegionType"
             ></audio-player>
           </v-flex>
         </v-layout>
@@ -184,6 +186,19 @@ export default {
   },
 
   methods: {
+    onToggleRegionType() {
+      if (this.editingRegionId) {
+        let targetRegion = this.regions.filter((needle) => needle.id === this.editingRegionId)
+
+        if (targetRegion.length) {
+          targetRegion[0].isNote = !targetRegion[0].isNote
+          this.$refs.player.renderRegions()
+
+          this.saveRegion(targetRegion[0])
+        }
+      }
+    },
+
     scrollToEditorTop() {
       if (!this.inboundRegion) {
         setTimeout(() => {
@@ -259,10 +274,13 @@ export default {
       }
     },
 
-    async saveRegion(region, text) {
-      const regionOps = this.$refs[region.id][0].getMainOps()
-      region.text = regionOps
-      region.issues = this.$refs[region.id][0].issues || '[]'
+    async saveRegion(region) {
+      console.log(region)
+      if (!region.isNote) {
+        const regionOps = this.$refs[region.id][0].getMainOps()
+        region.text = regionOps
+        region.issues = this.$refs[region.id][0].issues || '[]'
+      }
       TranscriptionService.updateRegion(this.transcriptionId, region)
       this.updateTranscription()
     },
@@ -305,23 +323,16 @@ export default {
      * Update transcription data.
      */
     async updateTranscription() {
-      // this.regions.map((x) => console.log(this.$refs[x.id].needsReview()))
-
-      // const issues = this.regions.filter((region) => {
-      //   console.log('check region ')
-      //   try {
-      //     console.log('number of issues', region.id, this.$refs[region.id][0].getIssueCount())
-      //     return this.$refs[region.id][0].needsReview
-      //   } catch (e) {
-      //     console.log('error getting issues', e)
-      //     return false
-      //   }
-      // })
-      // const issueCountold = issues.length
       let issueCount
       try {
         issueCount = this.regions
-          .map((region) => this.$refs[region.id][0].getIssueCount())
+          .map((region) => {
+            try {
+              this.$refs[region.id][0].getIssueCount()
+            } catch (e) {
+              return 0
+            }
+          })
           .reduce((a, b) => a + b)
       } catch (e) {
         console.warn(`Counldn't get issue count for regions ${e.message}`)
@@ -614,7 +625,7 @@ export default {
   left: 0;
   bottom: 0;
   overflow-y: scroll;
-  padding-top: 5px;
+  padding-top: 0px;
   border-top: 1px solid #ccc;
 }
 .editor {

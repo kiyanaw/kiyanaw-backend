@@ -59,6 +59,7 @@ export const onCreateRegion = `subscription OnCreateRegion {
     end
     text
     issues
+    isNote
     comments
     translation
     dateLastUpdated
@@ -75,6 +76,7 @@ export const onUpdateRegion = `subscription OnUpdateRegion {
     end
     text
     issues
+    isNote
     comments
     translation
     dateLastUpdated
@@ -91,6 +93,7 @@ export const onDeleteRegion = `subscription OnDeleteRegion {
     end
     text
     issues
+    isNote
     comments
     translation
     dateLastUpdated
