@@ -187,7 +187,7 @@ export default {
 
   methods: {
     onToggleRegionType() {
-      if (this.editingRegionId) {
+      if (this.editingRegionId && confirm('Change region type?')) {
         let targetRegion = this.regions.filter((needle) => needle.id === this.editingRegionId)
 
         if (targetRegion.length) {
@@ -328,8 +328,9 @@ export default {
         issueCount = this.regions
           .map((region) => {
             try {
-              this.$refs[region.id][0].getIssueCount()
+              return this.$refs[region.id][0].getIssueCount()
             } catch (e) {
+              console.log(e)
               return 0
             }
           })
@@ -337,6 +338,8 @@ export default {
       } catch (e) {
         console.warn(`Counldn't get issue count for regions ${e.message}`)
       }
+
+      console.log('issue count', issueCount)
 
       const result = await TranscriptionService.updateTranscription({
         id: this.transcriptionId,

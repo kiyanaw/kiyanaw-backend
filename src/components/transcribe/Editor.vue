@@ -332,6 +332,8 @@ export default {
         return []
       }
     },
+  },
+  methods: {
     getIssueCount() {
       let count = 0
       const ops = this.getMainOps()
@@ -344,10 +346,9 @@ export default {
           })
         }
       })
+      console.log('issues', count)
       return count
     },
-  },
-  methods: {
     getMainOps() {
       return this.quill.getContents().ops
     },
