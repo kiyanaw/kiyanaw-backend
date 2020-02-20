@@ -362,7 +362,9 @@ export default {
         this.locked = true
         this.$emit('editor-blur', this.region.id, { silent: true })
         this.lockUser = lockUser
-        this.quill.disable()
+        if (!this.region.isNote) {
+          this.quill.disable()
+        }
         this.quillTranslate.disable()
       }
     },
@@ -370,7 +372,9 @@ export default {
       console.log('This region is unlocked', this.region.id)
       this.locked = false
       this.lockUser = ''
-      this.quill.enable()
+      if (!this.region.isNote) {
+        this.quill.enable()
+      }
       this.quillTranslate.enable()
       this.cursors.clearCursors()
       this.cursorsTranslate.clearCursors()
@@ -454,6 +458,9 @@ export default {
      * that they are discarded as 'known'.
      */
     async invalidateKnownWords() {
+      if (this.region.isNote) {
+        return
+      }
       // reset all the 'known-word' format
       this.quill.formatText(0, 9999, 'known-word', false)
       // loop through and refresh
