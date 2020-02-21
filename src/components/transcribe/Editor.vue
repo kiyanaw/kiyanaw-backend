@@ -350,7 +350,11 @@ export default {
       return count
     },
     getMainOps() {
-      return this.quill.getContents().ops
+      let ops = []
+      try {
+        ops = this.quill.getContents().ops
+      } catch (e) {}
+      return ops
     },
     lock(lockUser = 'unknown') {
       console.log('This region is locked', this.region.id)

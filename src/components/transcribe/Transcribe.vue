@@ -187,9 +187,19 @@ export default {
 
   methods: {
     onToggleRegionType() {
-      if (this.editingRegionId && confirm('Change region type?')) {
-        let targetRegion = this.regions.filter((needle) => needle.id === this.editingRegionId)
+      let targetRegion = this.regions.filter((needle) => needle.id === this.editingRegionId)
 
+      let regionText = ''
+      try {
+        regionText = this.$refs[targetRegion[0].id][0].quill.getText().trim()
+      } catch (e) {}
+
+      if (regionText.length > 0) {
+        alert('Cannot convert non-empty region to note!')
+        return
+      }
+
+      if (this.editingRegionId && confirm('Change region type?')) {
         if (targetRegion.length) {
           targetRegion[0].isNote = !targetRegion[0].isNote
           this.$refs.player.renderRegions()
@@ -441,6 +451,7 @@ export default {
           end: regionUpdate.end,
           id: regionUpdate.id,
           text: [],
+          issues: [],
         }
         this.regions.push(regionData)
         window.data = regionData
