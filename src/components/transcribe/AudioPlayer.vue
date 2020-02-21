@@ -249,8 +249,13 @@ export default {
       surfer.enableDragSelection({ slop: 5 })
     }
 
+    let regionsRendered = false
     surfer.on('ready', () => {
-      this.loadIsReady()
+      // for some reason wavesurfer fires the loaded event like 100 times
+      if (!regionsRendered) {
+        this.loadIsReady()
+        regionsRendered = true
+      }
     })
 
     surfer.on('play', () => {
@@ -300,7 +305,6 @@ export default {
     if (this.isVideo) {
       surfer.load(document.querySelector('#video'), this.peaks.data)
     } else {
-      console.log('load audio', this.isVideo)
       surfer.load(this.source, this.peaks.data)
     }
 
@@ -374,10 +378,11 @@ export default {
       surfer.regions.list[regionId].play()
     },
     renderRegions() {
+      console.log('audio render regions')
       Timeout.clear('render-regions')
       Timeout.set(
         'render-regions',
-        () => {
+        async () => {
           surfer.clearRegions()
           this.regions.forEach((region, index) => {
             if (!region.isNote) {
