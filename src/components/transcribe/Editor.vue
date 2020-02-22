@@ -335,18 +335,19 @@ export default {
   },
   methods: {
     getIssueCount() {
-      let count = 0
-      const ops = this.getMainOps()
-      ops.forEach((op) => {
-        if (op.attributes) {
-          Object.keys(op.attributes).forEach((key) => {
-            if (key && key.startsWith('issue')) {
-              count = count + 1
-            }
-          })
-        }
-      })
-      return count
+      // let count = 0
+      // const ops = this.getMainOps()
+      // ops.forEach((op) => {
+      //   if (op.attributes) {
+      //     Object.keys(op.attributes).forEach((key) => {
+      //       if (key && key.startsWith('issue')) {
+      //         count = count + 1
+      //       }
+      //     })
+      //   }
+      // })
+      return this.issues.filter((issue) => !issue.resolved).length
+      // return count
     },
     getMainOps() {
       let ops = []
