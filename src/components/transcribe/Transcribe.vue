@@ -26,6 +26,7 @@
               v-on:region-out="onBlurRegion"
               v-on:selection-action="onSelectionAction"
               v-on:toggle-region-type="onToggleRegionType"
+              v-on:edit-title="onEditTranscriptionDetails"
             ></audio-player>
           </v-flex>
         </v-layout>
@@ -84,6 +85,22 @@
         </v-layout>
       </v-flex>
     </v-layout>
+
+    <v-dialog v-model="dialog" persistent max-width="60%">
+      <v-card>
+        <v-card-title>Transcription details</v-card-title>
+        <v-card-text>
+          <v-text-field v-model="title" label="Title" required></v-text-field>
+          <v-text-field v-model="comments" label="Notes"></v-text-field>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn color="blue darken-1" text @click="dialog = false">Cancel</v-btn>
+          <v-btn color="blue darken-1" text @click="onUpdateTranscriptionDetails">Submit</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+    <v-snackbar v-model="saved" color="success darken-1">Saved!</v-snackbar>
   </v-container>
 </template>
 
@@ -173,6 +190,7 @@ export default {
       inboundRegion: null,
       inRegions: [],
       title: '',
+      comments: '',
       // authorId: null,
       saved: false,
       members: [],
@@ -182,10 +200,19 @@ export default {
       loading: true,
       error: null,
       tab: null,
+      dialog: false,
+      saved: false,
     }
   },
 
   methods: {
+    onEditTranscriptionDetails() {
+      this.dialog = true
+    },
+    onUpdateTranscriptionDetails() {
+      this.dialog = false
+      this.updateTranscription()
+    },
     onToggleRegionType() {
       let targetRegion = this.regions.filter((needle) => needle.id === this.editingRegionId)
 
@@ -354,6 +381,7 @@ export default {
       const result = await TranscriptionService.updateTranscription({
         id: this.transcriptionId,
         title: this.title,
+        comments: this.comments,
         source: this.source,
         type: this.type,
         author: this.author,
@@ -368,7 +396,7 @@ export default {
         console.log('update transcription result', result)
         setTimeout(() => {
           this.saved = false
-        }, 3000)
+        }, 2500)
       }
     },
 
@@ -402,6 +430,7 @@ export default {
       this.loading = false
       this.source = data.source
       this.title = data.title
+      this.comments = data.comments
       this.type = data.type
       this.author = data.author
       this.isVideo = data.type.includes('video')

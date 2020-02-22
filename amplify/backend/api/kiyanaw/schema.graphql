@@ -1,6 +1,7 @@
 type Transcription
   @model
   @key(fields: ["id"])
+  @key(name: "ByTitle", fields: ["title"], queryField: "byTitle")
   @auth(rules: [{ allow: public, provider: iam, ownerField: "author" }]) {
   id: ID!
   author: String!

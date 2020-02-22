@@ -13,7 +13,10 @@
     <div v-bind:style="{ visibility: loading ? 'hidden' : 'visible' }" class="waveform-container">
       <div id="minimap">
         <v-layout>
-          <v-flex md6 class="media-title">{{ title }}</v-flex>
+          <v-flex md6 class="media-title">
+            <a v-if="canEdit" v-on:click="onEditTitle">{{ title }}</a>
+            <span v-if="!canEdit">{{ title }}</span>
+          </v-flex>
           <v-flex md6 class="main-time">{{ normalTime(currentTime) }} - {{ normalTime(maxTime) }}</v-flex>
         </v-layout>
       </div>
@@ -317,6 +320,9 @@ export default {
     window.audio = this
   },
   methods: {
+    onEditTitle() {
+      this.$emit('edit-title')
+    },
     onToggleRegionType: function() {
       this.$emit('toggle-region-type')
     },

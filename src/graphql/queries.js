@@ -167,6 +167,38 @@ export const listRegionLocks = `query ListRegionLocks(
   }
 }
 `;
+export const byTitle = `query ByTitle(
+  $title: String
+  $sortDirection: ModelSortDirection
+  $filter: ModelTranscriptionFilterInput
+  $limit: Int
+  $nextToken: String
+) {
+  byTitle(
+    title: $title
+    sortDirection: $sortDirection
+    filter: $filter
+    limit: $limit
+    nextToken: $nextToken
+  ) {
+    items {
+      id
+      author
+      coverage
+      dateLastUpdated
+      userLastUpdated
+      length
+      issues
+      comments
+      tags
+      source
+      title
+      type
+    }
+    nextToken
+  }
+}
+`;
 export const byTranscription = `query ByTranscription(
   $transcriptionId: String
   $sortDirection: ModelSortDirection

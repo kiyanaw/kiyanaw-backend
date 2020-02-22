@@ -346,7 +346,6 @@ export default {
           })
         }
       })
-      console.log('issues', count)
       return count
     },
     getMainOps() {

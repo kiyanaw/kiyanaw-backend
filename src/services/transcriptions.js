@@ -100,6 +100,13 @@ class Transcription {
   }
 }
 
+function sortByTitle(a, b) {
+  if (a.title > b.title) return 1
+  if (b.title > a.title) return -1
+
+  return 0
+}
+
 export default {
   /**
    * Get a list of transcriptions.
@@ -109,11 +116,14 @@ export default {
   async listTranscriptions(user) {
     let results = []
     try {
-      results = await API.graphql(graphqlOperation(queries.listTranscriptions))
+      results = await API.graphql(graphqlOperation(queries.listTranscriptions, { limit: 100 }))
+      console.log(results)
     } catch (error) {
       console.error('Could not load transcriptions', error)
     }
-    return results.data.listTranscriptions.items.map((item) => new Transcription(item))
+
+    results = results.data.listTranscriptions.items
+    return results.map((item) => new Transcription(item)).sort(sortByTitle)
     // unwrap the structure that comes back from appsync
   },
 
