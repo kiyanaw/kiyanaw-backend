@@ -7,7 +7,7 @@
           class="elevation-1"
           :headers="headers"
           :items="list"
-          :items-per-page="25"
+          :items-per-page="15"
           :loading="loading"
           ref="table"
         >
