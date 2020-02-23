@@ -240,11 +240,11 @@ export default {
     /**
      * TODO: there are like 3 'ready' handlers
      */
-    surfer.on('ready', function(event) {
+    surfer.on('ready', (event) => {
       me.maxTime = surfer.backend.getDuration()
-      me.regions.forEach(function(region) {
-        surfer.addRegion(region)
-      })
+      // me.regions.forEach(function(region) {
+      //   surfer.addRegion(region)
+      // })
       me.textRegions = me.regions
     })
 
@@ -323,9 +323,11 @@ export default {
     onEditTitle() {
       this.$emit('edit-title')
     },
+
     onToggleRegionType: function() {
       this.$emit('toggle-region-type')
     },
+
     onPlayerSeek: function(progressPercent) {
       this.currentTime = this.maxTime * progressPercent
     },
@@ -337,6 +339,7 @@ export default {
         this.pendingInboundRegion = null
       }
     },
+
     loadIsReady: function() {
       this.loading = false
       this.renderRegions()
@@ -351,9 +354,11 @@ export default {
         document.querySelector('video').style.display = 'block'
       }
     },
+
     cancelRegion: function() {
       this.currentRegion = null
     },
+
     playPause: function() {
       // check if there's an inbound region we need to play, otherwise just play
       if (this.pendingInboundRegion) {
@@ -363,6 +368,7 @@ export default {
         surfer.playPause()
       }
     },
+
     markRegion: function() {
       if (this.currentRegion) {
         const regionData = {
@@ -377,33 +383,51 @@ export default {
         this.currentRegion = surfer.getCurrentTime()
       }
     },
+
     normalTime: function(value) {
       return utils.floatToMSM(value)
     },
+
     playRegion(regionId) {
       surfer.regions.list[regionId].play()
     },
+
     renderRegions() {
       console.log('audio render regions')
-      Timeout.clear('render-regions')
-      Timeout.set(
-        'render-regions',
-        async () => {
-          surfer.clearRegions()
-          this.regions.forEach((region, index) => {
-            if (!region.isNote) {
-              region.resize = this.canEdit
-              region.drag = this.canEdit
-              region.attributes = {
-                label: index,
-              }
-              surfer.addRegion(region)
-            }
-          })
-          this.textRegions = this.regions
-        },
-        50,
-      )
+      // Timeout.clear('render-regions')
+      // Timeout.set(
+      //   'render-regions',
+      //   async () => {
+      surfer.clearRegions()
+
+      let realIndex = 1
+      for (const region of this.regions) {
+        if (region && !region.isNote) {
+          region.resize = this.canEdit
+          region.drag = this.canEdit
+          region.attributes = {
+            label: realIndex,
+          }
+          surfer.addRegion(region)
+          realIndex = realIndex + 1
+        }
+      }
+
+      // this.regions.forEach((region, index) => {
+      //   if (!region.isNote) {
+      //     region.resize = this.canEdit
+      //     region.drag = this.canEdit
+      //     region.attributes = {
+      //       label: index,
+      //     }
+      //     surfer.addRegion(region)
+      //   }
+      // })
+      this.textRegions = this.regions
+
+      //   },
+      //   50,
+      // )
     },
 
     /** */
@@ -460,7 +484,7 @@ export default {
   },
   watch: {
     regions(newValue, oldValue) {
-      this.renderRegions(newValue)
+      // this.renderRegions(newValue)
     },
     zoom(newValue, oldValue) {
       surfer.zoom(newValue)

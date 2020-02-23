@@ -155,9 +155,13 @@ export default {
       if (this.regions) {
         // use .slice() to copy the array and prevent modifying the original
         const sorted = this.regions.slice().sort((a, b) => (a.start > b.start ? 1 : -1))
+        let realIndex = 1
         // add an index for visual aide
         for (const index in sorted) {
-          sorted[index].index = index
+          if (!sorted[index].isNote) {
+            sorted[index].index = realIndex
+            realIndex = realIndex + 1
+          }
         }
         return sorted
       } else {
@@ -213,6 +217,7 @@ export default {
       this.dialog = false
       this.updateTranscription()
     },
+
     onToggleRegionType() {
       let targetRegion = this.regions.filter((needle) => needle.id === this.editingRegionId)
 
@@ -226,7 +231,7 @@ export default {
         return
       }
 
-      if (this.editingRegionId && confirm('Change region type?')) {
+      if (this.editingRegionId) {
         if (targetRegion.length) {
           targetRegion[0].isNote = !targetRegion[0].isNote
           this.$refs.player.renderRegions()
@@ -289,7 +294,6 @@ export default {
       })
     },
 
-    /** */
     onRegionTextUpdated(event) {
       const targetRegion = this.regions.filter((r) => r.id === event.id)[0]
       // search for new words
@@ -298,6 +302,7 @@ export default {
         Timeout.clear('word-search-timer')
         Timeout.set('word-search-timer', this.searchForNewWords, SEARCH_INTERVAL, words)
       }
+
       // set a timer to save this region
       Timeout.clear(`save-region-${event.id}-timer`)
       Timeout.set(`save-region-${event.id}-timer`, this.saveRegion, SAVE_INTERVAL, targetRegion)
@@ -305,14 +310,15 @@ export default {
 
     async searchForNewWords(words) {
       await Lex.wordSearch(words)
-      for (let region of this.regions) {
-        // trigger update for all editors
-        this.$refs[region.id][0].invalidateKnownWords()
-      }
+      // TODO: disabling this for now, it locks up the editors for a minute if there
+      // are a large number of regions
+      // for (let region of this.regions) {
+      //   // trigger update for all editors
+      //   this.$refs[region.id][0].invalidateKnownWords()
+      // }
     },
 
     async saveRegion(region) {
-      console.log(region)
       if (!region.isNote) {
         const regionOps = this.$refs[region.id][0].getMainOps()
         region.text = regionOps
@@ -456,12 +462,16 @@ export default {
 
     /** */
     onDeleteRegion(region) {
-      this.removeLocalRegion(region)
-      TranscriptionService.deleteRegion(this.transcriptionId, region)
+      if (confirm('Delete this region?')) {
+        this.removeLocalRegion(region)
+        TranscriptionService.deleteRegion(this.transcriptionId, region)
+      }
     },
 
-    removeLocalRegion(region) {
+    async removeLocalRegion(region) {
       this.regions = this.regions.filter((r) => r.id !== region.id)
+      await new Promise((resolve) => setTimeout(resolve, 50))
+      this.$refs.player.renderRegions()
     },
 
     /**
@@ -481,6 +491,7 @@ export default {
           id: regionUpdate.id,
           text: [],
           issues: [],
+          isNote: false,
         }
         this.regions.push(regionData)
         window.data = regionData
@@ -524,7 +535,7 @@ export default {
     async listenForRegions() {
       TranscriptionService.listenForRegions((actionType, region) => {
         if (actionType === 'created') {
-          console.log('Creating region!', region, this.regionIds)
+          console.log('Creating region!', region)
           if (!this.regionIds.includes(region.id)) {
             this.regions.push(region)
           }
