@@ -43,12 +43,12 @@ export default {
       const result = await TranscriptionService.createTranscription(
         {
           file: this.inputFile,
-          title: this.title,
+          title: this.title
         },
         (progress) => {
           this.progress = (progress.loaded / progress.total) * 100
           // console.log(progress)
-        },
+        }
       )
       if (result) {
         this.$router.push({ path: `/transcribe-edit/${result.id}` })
@@ -57,12 +57,12 @@ export default {
     previewFiles(evt) {
       this.inputFile = this.$refs.fileInput.files[0]
       console.log(this.inputFile)
-    },
+    }
   },
   computed: {
     disableUpload() {
       return this.inputFile === null || this.title === null || this.title === ''
-    },
+    }
   },
   data() {
     return {
@@ -70,9 +70,9 @@ export default {
       options: {},
       inputFile: null,
       title: null,
-      progress: 0,
+      progress: 0
     }
-  },
+  }
 }
 </script>
 

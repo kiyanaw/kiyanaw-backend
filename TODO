@@ -1,22 +1,28 @@
 Transcribe
 --- 
-
+[ ] Try adjusting the pixel ratio on mobile for better performance
+[ ] Remove M4V from upload options
+[ ] ffmpeg videos automatically
+[ ] replace video/audio with upload
+[ ] CloudFront for assets
 [x] saving transcription data (errors, progress)
 [x] load up old data
-[ ] Load up Tootoosis tapes
-[ ] manual unlock - should not unlock regions on blur, have a manual unlock process or expire after so many minutes
+[x] Load up Tootoosis tapes
+[x] manual unlock - should not unlock regions on blur, have a manual unlock process or expire after so many minutes
 [ ] put up new videos and audio
-[ ] comments
-[ ] ability to flag words
+[x] comments
+[x] ability to flag words
 [ ] identify critical tests
 [ ] link out words to blue pages
+[ ] load nouns
+[ ] permissions
+[ ] BUG - known words doesn't not update right away
 
-Reviewing process
----
- -> ability to flag issues
-   -> can't understand word
-   -> needs translation
-   -> needs review
- -> flag as "complete"
- -> flag "new word"
- 
+https://kiyanawb9b0a37496e34efd8156e27ad4220e33-prod.s3.amazonaws.com/public/1582613716600-iT_wokoskohow%C4%ABsak_H264.mp4
+
+
+cache control max-age=3600000
+expires Wed, 31 Dec 2098 23:59:59 GMT
+content type binary/octet-stream; charset=UTF-8
+
+ffmpeg -i in.mp4 -b:v 1000000 out.mp4

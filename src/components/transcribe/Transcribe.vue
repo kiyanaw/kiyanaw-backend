@@ -2,7 +2,12 @@
   <v-container fluid grid-list-md fill-height>
     <v-layout wrap>
       <div v-if="loading && !error" class="loading">
-        <v-progress-circular :size="70" :width="7" color="#305880" indeterminate></v-progress-circular>
+        <v-progress-circular
+          :size="70"
+          :width="7"
+          color="#305880"
+          indeterminate
+        ></v-progress-circular>
       </div>
 
       <div v-if="error" class="load-error">{{ error }}</div>
@@ -36,7 +41,7 @@
           :class="{
             editor: false,
             editorNoSide: true,
-            editorScroll: true,
+            editorScroll: true
           }"
         >
           <v-container>
@@ -71,14 +76,12 @@
             <v-tabs v-if="editingRegionId" v-model="tab" background-color="grey lighten-2">
               <v-tab key="one">Comments</v-tab>
               <v-tab key="two">Details</v-tab>
-              <v-tab-item
-                key="one"
-                background-color="grey lighten-2"
-              >Region {{ editingRegionId }} comments</v-tab-item>
-              <v-tab-item
-                key="two"
-                background-color="grey lighten-2"
-              >Region {{ editingRegionId }} details</v-tab-item>
+              <v-tab-item key="one" background-color="grey lighten-2"
+                >Region {{ editingRegionId }} comments</v-tab-item
+              >
+              <v-tab-item key="two" background-color="grey lighten-2"
+                >Region {{ editingRegionId }} details</v-tab-item
+              >
             </v-tabs>
             <p v-if="!editingRegionId" class="region-details">Select a region to view details...</p>
           </v-container>
@@ -143,7 +146,7 @@ const SAVE_INTERVAL = 5000
 export default {
   components: {
     AudioPlayer,
-    Editor,
+    Editor
   },
 
   computed: {
@@ -171,7 +174,7 @@ export default {
 
     regionIds() {
       return this.regions.map((region) => region.id)
-    },
+    }
   },
 
   data() {
@@ -205,7 +208,7 @@ export default {
       error: null,
       tab: null,
       dialog: false,
-      saved: false,
+      saved: false
     }
   },
 
@@ -332,7 +335,7 @@ export default {
       data.color = cursorColor
       const update = {
         cursor: data,
-        user: `${this.user.name}`,
+        user: `${this.user.name}`
       }
       UserService.sendCursor(update).catch((e) => {
         console.log(e)
@@ -395,7 +398,7 @@ export default {
         length: this.$refs.player.maxTime,
         coverage: this.coverage(),
         dateLastUpdated: +new Date(),
-        userLastUpdated: this.user.name,
+        userLastUpdated: this.user.name
       })
       if (result) {
         this.saved = true
@@ -491,7 +494,7 @@ export default {
           id: regionUpdate.id,
           text: [],
           issues: [],
-          isNote: false,
+          isNote: false
         }
         this.regions.push(regionData)
         window.data = regionData
@@ -507,7 +510,7 @@ export default {
           targetRegion.start = regionUpdate.start
           targetRegion.end = regionUpdate.end
           TranscriptionService.updateRegion(this.transcriptionId, targetRegion).catch(function(
-            error,
+            error
           ) {
             console.error('Failed to update region', error)
           })
@@ -573,7 +576,7 @@ export default {
           }
         }
       }).catch((err) => {})
-    },
+    }
   },
   /**
    * Mount point for this component.
@@ -644,7 +647,7 @@ export default {
     this.scrollToEditorTop()
     // load up
     this.load()
-  },
+  }
 }
 </script>
 

@@ -7,7 +7,7 @@ const client = new elasticsearch.Client({
 })
 
 class Inflection {
-  constructor (item) {
+  constructor(item) {
     // this.data = item._source
     this._id = item._id
     this.type = item.type
@@ -28,24 +28,26 @@ let unknownWords = []
 let strippedWordMap = {}
 
 class Lex {
-
-  getWordsNotKnown (words) {
-    return words.filter(word => knownWords.indexOf(word) === -1).filter(word => unknownWords.indexOf(word) === -1)
+  getWordsNotKnown(words) {
+    return words
+      .filter((word) => knownWords.indexOf(word) === -1)
+      .filter((word) => unknownWords.indexOf(word) === -1)
   }
 
-  replaceMacrons (word) {
-    word = word.replace(/ā/g, 'â')
+  replaceMacrons(word) {
+    word = word
+      .replace(/ā/g, 'â')
       .replace(/ē/g, 'ê')
       .replace(/ī/g, 'î')
       .replace(/ō/g, 'ô')
     return word
   }
 
-  fixKaKi (word) {
+  fixKaKi(word) {
     word = word.replace('kâ-')
   }
 
-  stripWords (words) {
+  stripWords(words) {
     let strippedWords = []
     for (let word of words) {
       let stripped = this.replaceMacrons(word)
@@ -63,7 +65,10 @@ class Lex {
         stripped = stripped.replace('ê-kî-', 'ê-')
       }
       if (stripped.indexOf('-') > -1) {
-        stripped = stripped.split('-').filter(bit => preverbs.indexOf(bit) === -1).join('-')
+        stripped = stripped
+          .split('-')
+          .filter((bit) => preverbs.indexOf(bit) === -1)
+          .join('-')
       }
       // save to the map
       strippedWordMap[stripped] = word
@@ -78,7 +83,7 @@ class Lex {
    * Search the index for matches to the given words, keeping track of the matched and unmatched.
    * TODO: test this!!
    */
-  async wordSearch (words, callback) {
+  async wordSearch(words, callback) {
     console.log(`Got search terms: ${words}`)
     // pull preverbs and macrons out of the search terms
     const strippedWords = this.stripWords(words)
@@ -100,10 +105,10 @@ class Lex {
       }
       // console.log(JSON.stringify(query))
       const raw = await client.search(query)
-      const resultWords = raw.hits.hits.map(word => word._source.inflected)
+      const resultWords = raw.hits.hits.map((word) => word._source.inflected)
       // console.log(`got results: ${resultWords}`)
       // loop through the stripped word map and match any results
-      const matchedStrippedWords = resultWords.map(result => strippedWordMap[result])
+      const matchedStrippedWords = resultWords.map((result) => strippedWordMap[result])
       knownWords = knownWords.concat(resultWords)
       knownWords = knownWords.concat(matchedStrippedWords)
       // keep track of the stuff we don't need to search for again
@@ -126,14 +131,14 @@ class Lex {
   /**
    * Allow modules to report words that are known already (probably from saved data)
    */
-  async addKnownWords (words) {
+  async addKnownWords(words) {
     knownWords = knownWords.concat(words)
   }
   /**
    * Return the list of known words
    */
-  async getKnownWords () {
-    return knownWords.filter(item => item && item.length)
+  async getKnownWords() {
+    return knownWords.filter((item) => item && item.length)
   }
 }
 

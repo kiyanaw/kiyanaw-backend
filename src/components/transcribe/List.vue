@@ -25,9 +25,9 @@
             <v-badge v-if="item.issues == 0" color="blue" inline content="0"></v-badge>
           </template>
 
-          <template
-            v-slot:item.dateLastUpdated="{ item }"
-          >{{ timeAgo(item.dateLastUpdated) }} by {{ item.userLastUpdated }}</template>
+          <template v-slot:item.dateLastUpdated="{ item }"
+            >{{ timeAgo(item.dateLastUpdated) }} by {{ item.userLastUpdated }}</template
+          >
 
           <template v-slot:item.source="{ item }">
             <a :href="item.source" _target="blank">Source</a>
@@ -73,8 +73,8 @@ export default {
         { text: 'Issues', value: 'issues', width: '5%' },
         { text: 'Last edit', value: 'dateLastUpdated' },
         { text: 'Type', value: 'type' },
-        { text: 'Source', value: 'source' },
-      ],
+        { text: 'Source', value: 'source' }
+      ]
     }
   },
   methods: {
@@ -89,8 +89,8 @@ export default {
     },
     timeAgo(date) {
       return timeAgo.format(date)
-    },
-  },
+    }
+  }
 }
 </script>
 

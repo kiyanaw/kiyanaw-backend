@@ -58,11 +58,11 @@ export default {
     },
     goToTranscribe() {
       this.$router.push('/transcribe-list')
-    },
+    }
   },
   data() {
     return {
-      user: null,
+      user: null
     }
   },
   async mounted() {
@@ -72,7 +72,7 @@ export default {
       console.warn('Error getting user on mount', error)
       this.user = null
     }
-  },
+  }
 }
 </script>
 

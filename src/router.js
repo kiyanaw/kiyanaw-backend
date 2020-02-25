@@ -35,26 +35,28 @@ const router = new VueRouter({
 })
 
 router.beforeResolve((to, from, next) => {
-  if (to.matched.some(record => record.meta.requiresAuth)) {
-    Vue.prototype.$Amplify.Auth.currentAuthenticatedUser().then((data) => {
-      if (data && data.signInUserSession) {
-        // set the Pusher auth string
-        const environmentName = EnvService.getEnvironmentName()
-        if (Vue.prototype.$pusher) {
-          let authEndpoint = Vue.prototype.$pusher.config.authEndpoint
-          authEndpoint = authEndpoint.replace('{env}', environmentName)
-          authEndpoint = authEndpoint.replace('{user}', data.username)
-          Vue.prototype.$pusher.config.authEndpoint = authEndpoint
+  if (to.matched.some((record) => record.meta.requiresAuth)) {
+    Vue.prototype.$Amplify.Auth.currentAuthenticatedUser()
+      .then((data) => {
+        if (data && data.signInUserSession) {
+          // set the Pusher auth string
+          const environmentName = EnvService.getEnvironmentName()
+          if (Vue.prototype.$pusher) {
+            let authEndpoint = Vue.prototype.$pusher.config.authEndpoint
+            authEndpoint = authEndpoint.replace('{env}', environmentName)
+            authEndpoint = authEndpoint.replace('{user}', data.username)
+            Vue.prototype.$pusher.config.authEndpoint = authEndpoint
+          }
+          return next()
+        } else {
+          next({ path: '/signin' })
         }
-        return next()
-      } else {
+      })
+      .catch((error) => {
+        console.warn(error)
+        // likely not authenticated
         next({ path: '/signin' })
-      }
-    }).catch((error) => {
-      console.warn(error)
-      // likely not authenticated
-      next({ path: '/signin' })
-    })
+      })
   } else {
     next()
   }

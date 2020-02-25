@@ -6,7 +6,7 @@ import awsconfig from '../aws-exports'
 let client
 
 export default {
-  getClient () {
+  getClient() {
     if (!client) {
       client = new AWSAppSyncClient({
         url: awsconfig.aws_appsync_graphqlEndpoint,

@@ -26,7 +26,7 @@
 
     <v-layout
       class="region-options-layout"
-      v-bind:class="{isNote: region.isNote}"
+      v-bind:class="{ isNote: region.isNote }"
       v-on:click="stayFocused"
     >
       <v-flex xs2 md1>
@@ -35,7 +35,9 @@
         <div
           class="region-options-label label-translation"
           v-if="editing && canEdit & !region.isNote"
-        >English</div>
+        >
+          English
+        </div>
         <div class="region-options-label label-note" v-if="region.isNote">
           <v-icon color="#dbd9ce">mdi-note-outline</v-icon>
         </div>
@@ -78,18 +80,24 @@
                 </v-subheader>
                 <v-list-item>
                   <v-list-item-avatar>
-                    <v-icon color="error" v-if="!selectedIssue.resolved" large>mdi-alert-circle</v-icon>
-                    <v-icon color="success" v-if="selectedIssue.resolved" large>mdi-check-circle</v-icon>
+                    <v-icon color="error" v-if="!selectedIssue.resolved" large
+                      >mdi-alert-circle</v-icon
+                    >
+                    <v-icon color="success" v-if="selectedIssue.resolved" large
+                      >mdi-check-circle</v-icon
+                    >
                   </v-list-item-avatar>
 
                   <v-list-item-content>
                     <v-list-item-title>
-                      <span :class="'issue-' + selectedIssue.issueType">{{ selectedIssue.text }}</span>
+                      <span :class="'issue-' + selectedIssue.issueType">{{
+                        selectedIssue.text
+                      }}</span>
                     </v-list-item-title>
                     <v-list-item-subtitle>
-                      <v-chip small>{{ selectedIssue.type}}</v-chip>
-                      {{ timeAgo(new Date(Number(selectedIssue.createdAt))) }} by {{ selectedIssue.owner }}
-                      (index: {{ selectedIssue.index }})
+                      <v-chip small>{{ selectedIssue.type }}</v-chip>
+                      {{ timeAgo(new Date(Number(selectedIssue.createdAt))) }} by
+                      {{ selectedIssue.owner }} (index: {{ selectedIssue.index }})
                     </v-list-item-subtitle>
                   </v-list-item-content>
 
@@ -102,7 +110,9 @@
                       v-on:click="resolveIssue"
                       :color="selectedIssue.resolved ? 'error' : 'success'"
                     >
-                      <v-icon v-if="!selectedIssue.resolved" left>mdi-checkbox-marked-circle</v-icon>
+                      <v-icon v-if="!selectedIssue.resolved" left
+                        >mdi-checkbox-marked-circle</v-icon
+                      >
                       <span v-if="!selectedIssue.resolved">Resolve</span>
 
                       <v-icon v-if="selectedIssue.resolved" left>mdi-checkbox-marked-circle</v-icon>
@@ -119,13 +129,9 @@
                 <v-list-item>
                   <v-text-field outlined dense v-model="newIssueCommentText" label="Add a comment">
                     <template slot="append-outer">
-                      <v-btn
-                        outlined
-                        rounded
-                        small
-                        color="primary"
-                        v-on:click="addIssueComment"
-                      >Submit</v-btn>
+                      <v-btn outlined rounded small color="primary" v-on:click="addIssueComment"
+                        >Submit</v-btn
+                      >
                     </template>
                   </v-text-field>
                 </v-list-item>
@@ -135,12 +141,19 @@
                   <v-list dense width="100%" class="comments-list">
                     <v-list-item v-for="comment of orderedIssueComments" :key="comment.createdAt">
                       <v-list-item-icon>
-                        <v-icon v-if="user.name === comment.owner" color="primary">mdi-comment</v-icon>
-                        <v-icon v-if="user.name !== comment.owner" color="primary">mdi-comment</v-icon>
+                        <v-icon v-if="user.name === comment.owner" color="primary"
+                          >mdi-comment</v-icon
+                        >
+                        <v-icon v-if="user.name !== comment.owner" color="primary"
+                          >mdi-comment</v-icon
+                        >
                       </v-list-item-icon>
                       <v-list-item-content>
                         <v-list-item-title>{{ comment.comment }}</v-list-item-title>
-                        <v-list-item-subtitle>{{ timeAgo(new Date(Number(comment.createdAt))) }} by {{ comment.owner }}</v-list-item-subtitle>
+                        <v-list-item-subtitle
+                          >{{ timeAgo(new Date(Number(comment.createdAt))) }} by
+                          {{ comment.owner }}</v-list-item-subtitle
+                        >
                       </v-list-item-content>
                     </v-list-item>
                   </v-list>
@@ -164,7 +177,7 @@
                         </v-avatar>
                         {{ issue.type }}
                       </v-chip>
-                      <a v-on:click="selectedIssue=issue">
+                      <a v-on:click="selectedIssue = issue">
                         <span v-bind:class="'issue-' + issue.issueType">{{ issue.text }}</span>
                         {{ timeAgo(new Date(Number(issue.createdAt))) }} by {{ issue.owner }}
                       </a>
@@ -195,24 +208,15 @@
         </v-tabs>
         <v-card-actions>
           <v-spacer></v-spacer>
-          <v-btn
-            color="blue darken-1"
-            v-if="!currentSelectionText"
-            text
-            @click="dialog = false"
-          >Close</v-btn>
-          <v-btn
-            color="blue darken-1"
-            v-if="currentSelectionText"
-            text
-            @click="dialog = false"
-          >Cancel</v-btn>
-          <v-btn
-            color="blue darken-1"
-            v-if="currentSelectionText"
-            text
-            @click="onSubmitIssue"
-          >Submit</v-btn>
+          <v-btn color="blue darken-1" v-if="!currentSelectionText" text @click="dialog = false"
+            >Close</v-btn
+          >
+          <v-btn color="blue darken-1" v-if="currentSelectionText" text @click="dialog = false"
+            >Cancel</v-btn
+          >
+          <v-btn color="blue darken-1" v-if="currentSelectionText" text @click="onSubmitIssue"
+            >Submit</v-btn
+          >
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -238,19 +242,19 @@ const timeAgo = new TimeAgo('en-US')
  */
 const Parchment = Quill.import('parchment')
 let KnownWord = new Parchment.Attributor.Class('known-word', 'known-word', {
-  scope: Parchment.Scope.INLINE,
+  scope: Parchment.Scope.INLINE
 })
 let IgnoreWord = new Parchment.Attributor.Class('ignore-word', 'ignore-word', {
-  scope: Parchment.Scope.INLINE,
+  scope: Parchment.Scope.INLINE
 })
 let IssueNeedsHelp = new Parchment.Attributor.Class('issue-needs-help', 'issue-needs-help', {
-  scope: Parchment.Scope.INLINE,
+  scope: Parchment.Scope.INLINE
 })
 let IssueIndexing = new Parchment.Attributor.Class('issue-indexing', 'issue-indexing', {
-  scope: Parchment.Scope.INLINE,
+  scope: Parchment.Scope.INLINE
 })
 let IssueNewWord = new Parchment.Attributor.Class('issue-new-word', 'issue-new-word', {
-  scope: Parchment.Scope.INLINE,
+  scope: Parchment.Scope.INLINE
 })
 
 Parchment.register(KnownWord)
@@ -275,7 +279,7 @@ export default {
     'inRegions',
     // true when the user is editing this region
     'editing',
-    'user',
+    'user'
   ],
 
   data() {
@@ -298,7 +302,7 @@ export default {
       //
       issues: [],
       selectedIssue: null,
-      newIssueCommentText: '',
+      newIssueCommentText: ''
     }
   },
 
@@ -331,7 +335,7 @@ export default {
       } else {
         return []
       }
-    },
+    }
   },
   methods: {
     getIssueCount() {
@@ -360,7 +364,7 @@ export default {
       console.log('This region is locked', this.region.id)
       if (lockUser === 'unknown') {
         alert(
-          `There was a problem obtaining a region lock on region ${this.region.index}, try again...`,
+          `There was a problem obtaining a region lock on region ${this.region.index}, try again...`
         )
         this.$emit('editor-blur', this.region.id, { silent: true })
       } else {
@@ -543,7 +547,7 @@ export default {
           this.$emit('region-text-updated', {
             id: this.region.id,
             editor: editor,
-            text: ops,
+            text: ops
           })
         }, 50)
       }
@@ -573,7 +577,7 @@ export default {
         id: this.region.id,
         range,
         source,
-        text,
+        text
       })
     },
 
@@ -596,7 +600,7 @@ export default {
         resolved: false,
         owner,
         text: problemText,
-        comments: [],
+        comments: []
       }
 
       const comment = this.$refs.issueComment.lazyValue
@@ -606,7 +610,7 @@ export default {
         issue.comments.push({
           comment,
           createdAt: created,
-          owner,
+          owner
         })
       }
 
@@ -614,7 +618,7 @@ export default {
         this.lastSelection.index,
         this.lastSelection.length,
         `issue-${issueType}`,
-        issue.id,
+        issue.id
       )
 
       // save the issue
@@ -633,7 +637,7 @@ export default {
       this.selectedIssue.comments.push({
         comment,
         createdAt: `${+new Date()}`,
-        owner: this.user.name,
+        owner: this.user.name
       })
       this.newIssueCommentText = ''
       this.onIssuesUpdated()
@@ -707,7 +711,7 @@ export default {
           this.currentSelection.index,
           this.currentSelection.length,
           'ignore-word',
-          !formats['ignore-word'],
+          !formats['ignore-word']
         )
       }
     },
@@ -743,20 +747,20 @@ export default {
             100,
             range,
             'main',
-            this.region.text,
+            this.region.text
           )
           // we must delay the focus event to give the other editor's blur
           // event a chance to fire first
           this.$nextTick(() => {
             this.maybeFocusBlur({
               type: 'focus',
-              source: 'main',
+              source: 'main'
             })
           })
         } else {
           this.maybeFocusBlur({
             type: 'blur',
-            source: 'main',
+            source: 'main'
           })
           // we've lost focus, shut the buttons off
           this.$emit('text-selection', false)
@@ -813,7 +817,7 @@ export default {
                 100,
                 range,
                 'secondary',
-                this.region.translation,
+                this.region.translation
               )
 
               // we must delay the focus event to give the other editor's blur
@@ -821,13 +825,13 @@ export default {
               this.$nextTick(() => {
                 this.maybeFocusBlur({
                   type: 'focus',
-                  source: 'secondary',
+                  source: 'secondary'
                 })
               })
             } else {
               this.maybeFocusBlur({
                 type: 'blur',
-                source: 'secondary',
+                source: 'secondary'
               })
             }
           }
@@ -888,13 +892,13 @@ export default {
           'ignore-word',
           'issue-needs-help',
           'issue-indexing',
-          'issue-new-word',
+          'issue-new-word'
         ],
         modules: {
           toolbar: false,
-          cursors: true,
+          cursors: true
         },
-        readOnly: !this.canEdit,
+        readOnly: !this.canEdit
       })
       this.cursors = this.quill.getModule('cursors')
       this.quill.root.setAttribute('spellcheck', false)
@@ -910,10 +914,10 @@ export default {
           theme: 'snow',
           modules: {
             toolbar: false,
-            cursors: true,
+            cursors: true
           },
-          readOnly: !this.canEdit,
-        },
+          readOnly: !this.canEdit
+        }
       )
 
       this.quillTranslate.format('color', 'gray')
@@ -949,7 +953,7 @@ export default {
     },
     timeAgo(date) {
       return timeAgo.format(date)
-    },
+    }
   },
 
   mounted() {
@@ -975,7 +979,7 @@ export default {
 
     // update the temporary translation value
     // this._regionTranslation = this.region.translation
-  },
+  }
 }
 </script>
 

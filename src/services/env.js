@@ -10,7 +10,7 @@ export default {
   getRegion() {
     return awsExports.aws_content_delivery_bucket_region
   },
-  getUserBucket () {
+  getUserBucket() {
     return awsExports.aws_user_files_s3_bucket
   }
 }

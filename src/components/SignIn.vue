@@ -31,13 +31,13 @@ EventBus.$on('signOut', () => {
 
 export default {
   computed: {
-    signedIn () {
+    signedIn() {
       return this.$store.state.signedIn
     }
   },
-  created () {
+  created() {
     this.findUser()
-    AmplifyEventBus.$on('authState', info => {
+    AmplifyEventBus.$on('authState', (info) => {
       if (info === 'signedIn') {
         this.findUser()
       } else {
@@ -46,14 +46,14 @@ export default {
       }
     })
   },
-  data () {
+  data() {
     return {
       // signedIn: false
     }
   },
   methods: {
     ...mapActions(['setUser', 'setSignedIn']),
-    async findUser () {
+    async findUser() {
       try {
         const user = await Auth.currentAuthenticatedUser()
         this.setSignedIn(true)

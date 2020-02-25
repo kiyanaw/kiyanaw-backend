@@ -17,7 +17,9 @@
             <a v-if="canEdit" v-on:click="onEditTitle">{{ title }}</a>
             <span v-if="!canEdit">{{ title }}</span>
           </v-flex>
-          <v-flex md6 class="main-time">{{ normalTime(currentTime) }} - {{ normalTime(maxTime) }}</v-flex>
+          <v-flex md6 class="main-time"
+            >{{ normalTime(currentTime) }} - {{ normalTime(maxTime) }}</v-flex
+          >
         </v-layout>
       </div>
       <div id="waveform" v-on:click="waveformClicked"></div>
@@ -98,7 +100,7 @@
         <v-flex md3 hidden-sm-and-down>
           <v-slider v-model="zoom" max="75" min="5" class="slider" condensed>
             <template v-slot:prepend>
-              <v-icon medium v-on:click="zoom=40">mdi-magnify-plus-outline</v-icon>
+              <v-icon medium v-on:click="zoom = 40">mdi-magnify-plus-outline</v-icon>
             </template>
           </v-slider>
         </v-flex>
@@ -106,7 +108,7 @@
         <v-flex md3 hidden-sm-and-down class="controls">
           <v-slider v-model="speed" max="150" min="50" class="slider">
             <template v-slot:prepend>
-              <v-icon medium v-on:click="speed=100">mdi-run</v-icon>
+              <v-icon medium v-on:click="speed = 100">mdi-run</v-icon>
             </template>
           </v-slider>
         </v-flex>
@@ -124,7 +126,7 @@
         videoLeft: videoLeft,
         videoRight: !videoLeft,
         video: true,
-        videoSmall: $vuetify.breakpoint.xsOnly,
+        videoSmall: $vuetify.breakpoint.xsOnly
       }"
       v-on:click="videoLeft = !videoLeft"
     >
@@ -183,7 +185,7 @@ export default {
     'regions',
     'isVideo',
     'title',
-    'editingRegionId',
+    'editingRegionId'
   ],
   data() {
     return {
@@ -203,7 +205,7 @@ export default {
       showNoteControls: false,
       showIgnoreControl: false,
       showIssueControl: false,
-      issueSelected: false,
+      issueSelected: false
     }
   },
 
@@ -220,13 +222,13 @@ export default {
       barWidth: 1.5,
       plugins: [
         RegionPlugin.create({
-          regions: [],
+          regions: []
         }),
         TimelinePlugin.create({
-          container: '#timeline',
-        }),
+          container: '#timeline'
+        })
         // TODO: try the minimap plugin again at some point, wasn't working with peaks data
-      ],
+      ]
     })
 
     surfer.on('audioprocess', (event) => {
@@ -374,7 +376,7 @@ export default {
         const regionData = {
           id: `wavesurfer_${+new Date()}`,
           start: this.currentRegion,
-          end: surfer.getCurrentTime(),
+          end: surfer.getCurrentTime()
         }
         surfer.addRegion(regionData)
         this.$emit('region-updated', regionData)
@@ -406,7 +408,7 @@ export default {
           region.resize = this.canEdit
           region.drag = this.canEdit
           region.attributes = {
-            label: realIndex,
+            label: realIndex
           }
           surfer.addRegion(region)
           realIndex = realIndex + 1
@@ -433,7 +435,7 @@ export default {
     /** */
     onRegionIn(regionName) {
       document.querySelector(
-        `[data-id="${regionName}"]`,
+        `[data-id="${regionName}"]`
       ).style.backgroundColor = regionHighlightedBackground
       this.$emit('region-in', { id: regionName })
     },
@@ -441,7 +443,7 @@ export default {
     /** */
     onRegionOut(regionName) {
       document.querySelector(
-        `[data-id="${regionName}"]`,
+        `[data-id="${regionName}"]`
       ).style.backgroundColor = regionRegularBackground
       this.$emit('region-out', { id: regionName })
     },
@@ -480,7 +482,7 @@ export default {
 
     onClearFormatClick() {
       this.emitSelectionAction('clear-format')
-    },
+    }
   },
   watch: {
     regions(newValue, oldValue) {
@@ -492,8 +494,8 @@ export default {
     },
     speed(newValue, oldValue) {
       surfer.setPlaybackRate(newValue / 100)
-    },
-  },
+    }
+  }
 }
 </script>
 

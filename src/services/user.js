@@ -1,16 +1,13 @@
 import { Auth } from 'aws-amplify'
 
-// import appsync from './appsync'
 import {
   createCursor,
   updateCursor,
   createRegionLock,
-  deleteRegionLock,
+  deleteRegionLock
 } from '../graphql/mutations'
 import { onUpdateCursor, onCreateRegionLock, onDeleteRegionLock } from '../graphql/subscriptions'
 import { listRegionLocks } from '../graphql/queries'
-import gql from 'graphql-tag'
-import { ConsoleLogger } from '@aws-amplify/core'
 
 import { API, graphqlOperation, Storage } from 'aws-amplify'
 
@@ -27,9 +24,11 @@ export default {
     if (!user) {
       user = await Auth.currentAuthenticatedUser({ bypassCache: false })
     }
+    console.log('Auth user')
+    console.log(user)
     return {
       name: user.username,
-      email: user.attributes.email,
+      email: user.attributes.email
     }
   },
   async getCredentials() {
@@ -48,9 +47,9 @@ export default {
           input: {
             id: details.user,
             user: details.user,
-            cursor: JSON.stringify(details.cursor),
-          },
-        }),
+            cursor: JSON.stringify(details.cursor)
+          }
+        })
       )
     } catch (error) {
       // cursor object probably didn't exist
@@ -59,9 +58,9 @@ export default {
           input: {
             id: details.user,
             user: details.user,
-            cursor: JSON.stringify(details.cursor),
-          },
-        }),
+            cursor: JSON.stringify(details.cursor)
+          }
+        })
       )
     }
     // console.log('cursor', result)
@@ -85,7 +84,7 @@ export default {
         },
         error: (error) => {
           console.warn('onUpdateCursor subscription error', error)
-        },
+        }
       })
     }
     cursorSubscribers.push(callback)
@@ -105,7 +104,7 @@ export default {
             id: regionId,
             user: user.name,
             deleteTime: Number((+new Date() / 1000).toFixed(0)) + 300, // 5 minutes from now
-            transcriptionId,
+            transcriptionId
           }
           newLock = await API.graphql(graphqlOperation(createRegionLock, { input: input }))
         } catch (error) {
@@ -138,7 +137,7 @@ export default {
     delete myLocks[regionId]
     try {
       await API.graphql(
-        graphqlOperation(deleteRegionLock, { input: { id: regionId, transcriptionId } }),
+        graphqlOperation(deleteRegionLock, { input: { id: regionId, transcriptionId } })
       )
     } catch (error) {
       console.error(error)
@@ -167,7 +166,7 @@ export default {
         },
         error: (error) => {
           console.warn('Could not subscribe to locks', error)
-        },
+        }
       })
     }
     if (!deleteLockSubscription) {
@@ -190,7 +189,7 @@ export default {
         },
         error: (error) => {
           console.warn('Could not subscribe to locks', error)
-        },
+        }
       })
     }
     lockSubscribers.push(callback)
@@ -199,7 +198,7 @@ export default {
   async getRegionLocks(transcriptionId) {
     const user = await this.getUser()
     const response = await API.graphql(
-      graphqlOperation(listRegionLocks, { input: { transcriptionId: transcriptionId } }),
+      graphqlOperation(listRegionLocks, { input: { transcriptionId: transcriptionId } })
     )
     // console.log('all region locks', response.data)
     if (response.data) {
@@ -214,5 +213,5 @@ export default {
       return locks
     }
     return []
-  },
+  }
 }

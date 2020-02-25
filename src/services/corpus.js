@@ -13,7 +13,7 @@ const client = new elasticsearch.Client({
  */
 class Word {
   /* TODO: document params */
-  constructor (item) {
+  constructor(item) {
     const data = item._source
     this._id = item._id
     this.definition = data.algDefinition
@@ -24,17 +24,16 @@ class Word {
 }
 
 /* TODO: document params */
-const unpackWord = async function (doc) {
+const unpackWord = async function(doc) {
   return new Word(doc)
 }
 /**
  * @description Retrieve a list of 'unverified' words
  */
-const getUnverified = async function (page = null, term = null) {
-
+const getUnverified = async function(page = null, term = null) {
   let termQuery = null
   if (term) {
-    termQuery = {must: {wildcard: {algSro: term}}}
+    termQuery = { must: { wildcard: { algSro: term } } }
   }
   let query = {
     index: 'words',
@@ -43,8 +42,8 @@ const getUnverified = async function (page = null, term = null) {
       query: {
         bool: {
           // don't grab any document that has a 'skipped' flag
-          must_not: { term: { tags: "skipped" } },
-          filter: { bool: { must_not: { exists: { field: "sro" } } } },
+          must_not: { term: { tags: 'skipped' } },
+          filter: { bool: { must_not: { exists: { field: 'sro' } } } },
           ...termQuery
         }
       }
@@ -57,29 +56,29 @@ const getUnverified = async function (page = null, term = null) {
     }
   }
   const raw = await client.search(query)
-  const unpacked = await Promise.all(raw.hits.hits.map(item => unpackWord(item)))
-  return {words: unpacked, total: raw.hits.total}
+  const unpacked = await Promise.all(raw.hits.hits.map((item) => unpackWord(item)))
+  return { words: unpacked, total: raw.hits.total }
 }
 /**
  * todo
  */
-const getNextUnverified = async function (id) {
+const getNextUnverified = async function(id) {
   if (id) {
-    return unpackWord(await client.get({id: id, index: 'words', type: 'item'}))
+    return unpackWord(await client.get({ id: id, index: 'words', type: 'item' }))
   } else {
-    return getUnverified({from: 0, size: 1})
+    return getUnverified({ from: 0, size: 1 })
   }
 }
 
 /**
  * Get morphemes
- * @param {*} page 
- * @param {*} term 
+ * @param {*} page
+ * @param {*} term
  */
-const getMorphemes = async function (page = null, term = null) {
+const getMorphemes = async function(page = null, term = null) {
   let termQuery = {}
   if (term) {
-    termQuery = {must: {wildcard: {sro: term}}}
+    termQuery = { must: { wildcard: { sro: term } } }
   }
   let query = {
     index: 'morphemes',
@@ -99,8 +98,8 @@ const getMorphemes = async function (page = null, term = null) {
     }
   }
   const raw = await client.search(query)
-  const unpacked = await Promise.all(raw.hits.hits.map(item => unpackWord(item)))
-  return {words: unpacked, total: raw.hits.total}
+  const unpacked = await Promise.all(raw.hits.hits.map((item) => unpackWord(item)))
+  return { words: unpacked, total: raw.hits.total }
 }
 
 export default {
