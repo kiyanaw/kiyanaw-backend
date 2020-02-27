@@ -13,12 +13,12 @@
     <div v-bind:style="{ visibility: loading ? 'hidden' : 'visible' }" class="waveform-container">
       <div id="minimap">
         <v-layout>
-          <v-flex md6 class="media-title">
+          <v-flex md6 xs6 class="media-title">
             <a v-if="canEdit" v-on:click="onEditTitle">{{ title }}</a>
             <span v-if="!canEdit">{{ title }}</span>
           </v-flex>
-          <v-flex md6 class="main-time"
-            >{{ normalTime(currentTime) }} - {{ normalTime(maxTime) }}</v-flex
+          <v-flex md6 xs6 class="main-time"
+            >{{ normalTime(currentTime) }}/{{ normalTime(maxTime) }}</v-flex
           >
         </v-layout>
       </div>
@@ -219,7 +219,7 @@ export default {
       scrollParent: true,
       backend: 'MediaElement',
       mediaType: 'video',
-      barWidth: 1.5,
+      barWidth: 2,
       plugins: [
         RegionPlugin.create({
           regions: []
@@ -527,6 +527,9 @@ export default {
   text-transform: uppercase;
   font-weight: bolder;
   padding-left: 15px !important;
+  height: 32px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .main-time {
   text-align: right;
@@ -575,7 +578,7 @@ video {
 
 .videoSmall {
   max-width: 250px !important;
-  max-height: 250px !important;
+  max-height: 200px !important;
 }
 
 .waveform-container {

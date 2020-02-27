@@ -3,6 +3,7 @@ import VueRouter from 'vue-router'
 import vuetify from './plugins/vuetify'
 import router from './router'
 import store from './store'
+import 'babel-polyfill'
 
 import Amplify, * as AmplifyModules from 'aws-amplify'
 import { AmplifyPlugin } from 'aws-amplify-vue'

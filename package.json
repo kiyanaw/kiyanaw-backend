@@ -19,6 +19,7 @@
     "aws-amplify": "^1.1.22",
     "aws-amplify-vue": "^0.2.7",
     "aws-appsync": "^2.0.1",
+    "babel-polyfill": "^6.26.0",
     "cheerio": "^1.0.0-rc.3",
     "cors": "^2.8.5",
     "cree-sro-syllabics": "^2019.5.5",
