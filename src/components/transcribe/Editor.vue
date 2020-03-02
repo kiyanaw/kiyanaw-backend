@@ -279,7 +279,8 @@ export default {
     'inRegions',
     // true when the user is editing this region
     'editing',
-    'user'
+    'user',
+    'transcriptionId'
   ],
 
   data() {
@@ -402,7 +403,8 @@ export default {
     playRegion() {
       this.$emit('play-region', this.region.id)
       if (`#${this.region.id}` !== this.$router.history.current.hash) {
-        this.$router.push({ path: `#${this.region.id}` })
+        // this.$router.push({ path: `#${this.region.id}` })
+        this.$router.push({ path: `/transcribe-edit/${this.transcriptionId}/${this.region.id}` })
       }
       // keep the editor from losing focus
       this.maybeFocusBlur({ type: 'focus' })

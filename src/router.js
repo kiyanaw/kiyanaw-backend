@@ -28,7 +28,8 @@ const router = new VueRouter({
         { path: 'signin', component: SignIn },
         { path: 'transcribe-list', component: TranscribeList, meta: { requiresAuth: true } },
         { path: 'transcribe-add', component: TranscribeAdd, meta: { requiresAuth: true } },
-        { path: 'transcribe-edit/:id', component: TranscribeEdit }
+        { path: 'transcribe-edit/:id', component: TranscribeEdit },
+        { path: 'transcribe-edit/:id/:region', component: TranscribeEdit }
       ]
     }
   ]

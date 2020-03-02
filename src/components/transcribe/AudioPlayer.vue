@@ -355,6 +355,7 @@ export default {
       if (this.isVideo) {
         document.querySelector('video').style.display = 'block'
       }
+      this.$emit('waveform-ready')
     },
 
     cancelRegion: function() {

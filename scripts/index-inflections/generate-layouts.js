@@ -1,7 +1,6 @@
-
 /**
  * This file takes the `full layout` files from langtech and puts them in JSON
- * format so we can process verbs based on 
+ * format so we can process verbs based on
  */
 const fs = require('fs')
 const path = require('path')
@@ -11,7 +10,10 @@ const paradigms = {}
 
 // build out VAI layout csv to JSON file
 function buildParadigmTemplatesForType(verbType) {
-  const verbLayouts = fs.readFileSync(path.join(__dirname, 'layouts', `verb-${verbType}-full.layout`), 'utf-8')
+  const verbLayouts = fs.readFileSync(
+    path.join(__dirname, 'layouts', `verb-${verbType}-full.layout`),
+    'utf-8'
+  )
   const type = 'Verb'
 
   // transform `ai` to `VAI`
@@ -45,7 +47,10 @@ function buildParadigmTemplatesForType(verbType) {
       const hasPronoun = part1.startsWith('"')
 
       if (hasTempusHeader) {
-        tempusHeader = part2.replace(/"/g, '').replace('TENSE', '').toLowerCase()
+        tempusHeader = part2
+          .replace(/"/g, '')
+          .replace('TENSE', '')
+          .toLowerCase()
         tempusHeader = (tempusHeader.charAt(0).toUpperCase() + tempusHeader.slice(1)).trim()
         // we have a new tempus header, reset the mode headers
         modeAHeader = ''
@@ -53,11 +58,17 @@ function buildParadigmTemplatesForType(verbType) {
       }
 
       if (hasModeAHeader) {
-        modeAHeader = part2.replace(/"/g, '').replace(':', '').trim()
+        modeAHeader = part2
+          .replace(/"/g, '')
+          .replace(':', '')
+          .trim()
       }
 
       if (hasModeBHeader) {
-        modeBHeader = part3.replace(/"/g, '').replace(':', '').trim()
+        modeBHeader = part3
+          .replace(/"/g, '')
+          .replace(':', '')
+          .trim()
       }
 
       if (hasPronoun && !hasModeAHeader) {
@@ -109,7 +120,7 @@ function buildParadigmTemplates() {
 }
 
 buildParadigmTemplates()
-console.log(Object.keys(paradigms))
+// console.log(Object.keys(paradigms))
 
 module.exports = {
   buildParadigmTemplatesForType,

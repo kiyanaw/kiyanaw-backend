@@ -1,7 +1,7 @@
 <template>
   <v-container fluid grid-list-md fill-height>
     <v-layout wrap>
-      <div v-if="loading && !error" class="loading">
+      <div v-if="(loading || waveformLoading) && !error" class="loading">
         <v-progress-circular
           :size="70"
           :width="7"
@@ -12,7 +12,7 @@
 
       <div v-if="error" class="load-error">{{ error }}</div>
 
-      <v-flex v-if="!loading && !error">
+      <v-flex v-if="!(loading && waveformLoading) && !error">
         <v-layout class="audio-container" :class="{ audioContainerSm: $vuetify.breakpoint.xsOnly }">
           <v-flex xs12 class="audio-player">
             <audio-player
@@ -32,6 +32,7 @@
               v-on:selection-action="onSelectionAction"
               v-on:toggle-region-type="onToggleRegionType"
               v-on:edit-title="onEditTranscriptionDetails"
+              v-on:waveform-ready="waveformLoading = false"
             ></audio-player>
           </v-flex>
         </v-layout>
@@ -55,6 +56,7 @@
                     v-bind:ref="region.id"
                     v-bind:inRegions="inRegions"
                     v-bind:editing="editingRegionId === region.id"
+                    v-bind:transcriptionId="transcriptionId"
                     v-bind:user="user"
                     v-on:editor-focus="onRegionFocus"
                     v-on:editor-blur="onEditorBlur"
@@ -205,6 +207,7 @@ export default {
       height: 0,
       //
       loading: true,
+      waveformLoading: true,
       error: null,
       tab: null,
       dialog: false,
@@ -445,7 +448,9 @@ export default {
       this.isVideo = data.type.includes('video')
       this.regions = data.regions || []
       this.peaks = peaks
-      this.inboundRegion = this.$route.hash.replace('#', '') || null
+
+      // this.inboundRegion = this.$route.hash.replace('#', '') || null
+
       this.scrollToEditorTop()
       this.checkForLockedRegions()
     },
@@ -593,6 +598,7 @@ export default {
      * Pull some parameters out of our URL to determine the doc to load.
      */
     this.transcriptionId = this.$route.params.id
+    this.inboundRegion = this.$route.params.region || null
 
     this.listenForRegions()
     this.listenForLockedRegions()

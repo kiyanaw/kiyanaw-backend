@@ -5,5 +5,5 @@ You're going to need:
  - verb_stems.lexc from lang tech, put it in ./cree-words
  - crk-normative-generator.hfstol, put it in this directory
 
- Run `node inflect-verbs.js`
+
  
