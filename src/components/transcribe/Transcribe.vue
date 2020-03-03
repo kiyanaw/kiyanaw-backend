@@ -54,7 +54,6 @@
                     v-bind:region="region"
                     v-bind:canEdit="user !== null"
                     v-bind:ref="region.id"
-                    v-bind:inRegions="inRegions"
                     v-bind:editing="editingRegionId === region.id"
                     v-bind:transcriptionId="transcriptionId"
                     v-bind:user="user"
@@ -414,10 +413,18 @@ export default {
 
     /** */
     highlightRegion(region) {
-      this.inRegions = [region.id]
+      // this.inRegions = [region.id]
+      this.currentRegionSheet.innerHTML = `#${region.id} {background-color: #edfcff;}`
       this.$nextTick(() => {
         document.getElementById(region.id).scrollIntoView()
       })
+    },
+
+    /**
+     * @description Triggered when a region is no longer being edited
+     */
+    onBlurRegion(region) {
+      this.currentRegionSheet.innerHTML = '.foo {}'
     },
 
     /**
@@ -453,14 +460,6 @@ export default {
 
       this.scrollToEditorTop()
       this.checkForLockedRegions()
-    },
-
-    /**
-     * @description Triggered when a region is no longer being edited
-     */
-    onBlurRegion(region) {
-      this.inRegions = this.inRegions.filter((r) => r !== region.id)
-      // TODO: unlock region
     },
 
     /** */
@@ -616,6 +615,11 @@ export default {
     }).catch((e) => {
       console.warn('Cursor listen error', e)
     })
+
+    // maintain a dynamic little style sheet for highlighting regions (less expensive
+    // to let the browser manage the style than in vue)
+    this.currentRegionSheet = document.createElement('style')
+    document.body.appendChild(this.currentRegionSheet)
 
     /**
      * Get a list of the current locked regions.
