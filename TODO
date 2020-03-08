@@ -1,7 +1,10 @@
 Transcribe
 --- 
-[ ] og tags for FB/et al (for a transcription)
+[x] og tags for FB/et al (for a transcription)
 [ ] IE11 page
+[ ] lock waveform regions in place
+[ ] instead of a 'region' page, have an 'issue' page that would be just the same, but could take anon input/comments on the issue
+[ ] how do we demarkate phrases? like ewako anima or 'residential schools' kâ-kanawêyimihcik awâsisak
 
 
 [ ] BUG - known words doesn't not update right away

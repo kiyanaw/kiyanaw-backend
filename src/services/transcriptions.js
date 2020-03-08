@@ -74,6 +74,7 @@ class Transcription {
     this.coverage = data.coverage || 0
     this.dateLastUpdated = new Date(Number(data.dateLastUpdated))
     this.userLastUpdated = data.userLastUpdated
+    this.contributors = data.contributors ? JSON.parse(data.contributors) : []
   }
 
   // class Region {
@@ -175,7 +176,8 @@ export default {
       length: 0,
       coverage: 0,
       id: id,
-      dateLastUpdated: +new Date()
+      dateLastUpdated: +new Date(),
+      contributors: '[]'
     }
     return API.graphql(graphqlOperation(mutations.createTranscription, { input: input }))
   },

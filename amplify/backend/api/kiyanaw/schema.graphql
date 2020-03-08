@@ -15,6 +15,7 @@ type Transcription
   source: String
   title: String!
   type: String!
+  contributors: String
 }
 
 type Region

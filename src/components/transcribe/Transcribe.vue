@@ -210,7 +210,8 @@ export default {
       error: null,
       tab: null,
       dialog: false,
-      saved: false
+      saved: false,
+      contributors: []
     }
   },
 
@@ -400,7 +401,8 @@ export default {
         length: this.$refs.player.maxTime,
         coverage: this.coverage(),
         dateLastUpdated: +new Date(),
-        userLastUpdated: this.user.name
+        userLastUpdated: this.user.name,
+        contributors: JSON.stringify(this.contributors)
       })
       if (result) {
         this.saved = true
@@ -455,6 +457,13 @@ export default {
       this.isVideo = data.type.includes('video')
       this.regions = data.regions || []
       this.peaks = peaks
+      this.contributors = data.contributors
+
+      // check that the author is in the list of contributors
+      const authorUser = this.contributors.filter((item) => item.name === this.user.name)
+      if (!authorUser.length) {
+        this.contributors.push(this.authorUser)
+      }
 
       // this.inboundRegion = this.$route.hash.replace('#', '') || null
 
