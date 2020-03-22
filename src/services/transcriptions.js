@@ -189,7 +189,7 @@ export default {
         API.graphql(graphqlOperation(queries.getTranscription, { id: id, author: author })),
         API.graphql(graphqlOperation(queries.byTranscription, { transcriptionId: id, limit: 400 }))
       ])
-      transcription = transcription.data.getTranscription
+      transcription = new Transcription(transcription.data.getTranscription)
       transcription.regions = regions.data.byTranscription.items.map((item) => {
         item.text = JSON.parse(item.text)
         item.issues = item.issues ? JSON.parse(item.issues) : []

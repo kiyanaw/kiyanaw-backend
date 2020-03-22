@@ -18,6 +18,7 @@ export const createTranscription = `mutation CreateTranscription(
     source
     title
     type
+    contributors
   }
 }
 `;
@@ -38,6 +39,7 @@ export const updateTranscription = `mutation UpdateTranscription(
     source
     title
     type
+    contributors
   }
 }
 `;
@@ -58,6 +60,7 @@ export const deleteTranscription = `mutation DeleteTranscription(
     source
     title
     type
+    contributors
   }
 }
 `;

@@ -15,6 +15,7 @@ export const getTranscription = `query GetTranscription($id: ID!) {
     source
     title
     type
+    contributors
   }
 }
 `;
@@ -45,6 +46,7 @@ export const listTranscriptions = `query ListTranscriptions(
       source
       title
       type
+      contributors
     }
     nextToken
   }
@@ -194,6 +196,7 @@ export const byTitle = `query ByTitle(
       source
       title
       type
+      contributors
     }
     nextToken
   }

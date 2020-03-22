@@ -462,8 +462,10 @@ export default {
       // check that the author is in the list of contributors
       const authorUser = this.contributors.filter((item) => item.name === this.user.name)
       if (!authorUser.length) {
-        this.contributors.push(this.authorUser)
+        console.log('adding user to contributors')
+        this.contributors.push(this.user)
       }
+      console.log('contributors', this.contributors)
 
       // this.inboundRegion = this.$route.hash.replace('#', '') || null
 

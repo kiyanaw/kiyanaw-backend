@@ -15,6 +15,7 @@ export const onCreateTranscription = `subscription OnCreateTranscription {
     source
     title
     type
+    contributors
   }
 }
 `;
@@ -32,6 +33,7 @@ export const onUpdateTranscription = `subscription OnUpdateTranscription {
     source
     title
     type
+    contributors
   }
 }
 `;
@@ -49,6 +51,7 @@ export const onDeleteTranscription = `subscription OnDeleteTranscription {
     source
     title
     type
+    contributors
   }
 }
 `;
