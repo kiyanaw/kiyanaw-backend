@@ -32,6 +32,9 @@
         "categories": {
             "auth": {
                 "kiyanaw664b231a": {}
+            },
+            "function": {
+                "notifyRegionChanges": {}
             }
         }
     }

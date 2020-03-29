@@ -149,7 +149,9 @@
                         >
                       </v-list-item-icon>
                       <v-list-item-content>
-                        <v-list-item-title>{{ comment.comment }}</v-list-item-title>
+                        <v-list-item-title class="issue-comment">{{
+                          comment.comment
+                        }}</v-list-item-title>
                         <v-list-item-subtitle
                           >{{ timeAgo(new Date(Number(comment.createdAt))) }} by
                           {{ comment.owner }}</v-list-item-subtitle
@@ -1083,7 +1085,7 @@ export default {
   padding-right: 15px;
 }
 .v-tabs--vertical {
-  height: 450px;
+  height: 650px;
 }
 
 .v-dialog {
@@ -1111,6 +1113,16 @@ export default {
   right: 15px;
   top: 5px;
   font-size: 0.8em;
+}
+
+.comments-list .v-list-item__icon {
+  margin-right: 8px !important;
+}
+
+.issue-comment {
+  white-space: normal !important;
+  font-weight: normal !important;
+  margin-right: 70px;
 }
 
 [class^='known-word-'] {
