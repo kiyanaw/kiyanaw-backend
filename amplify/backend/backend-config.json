@@ -31,5 +31,12 @@
 				}
 			}
 		}
+	},
+	"function": {
+		"notifyRegionChanges": {
+			"service": "Lambda",
+			"providerPlugin": "awscloudformation",
+			"build": true
+		}
 	}
 }

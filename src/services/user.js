@@ -24,8 +24,6 @@ export default {
     if (!user) {
       user = await Auth.currentAuthenticatedUser({ bypassCache: false })
     }
-    console.log('Auth user')
-    console.log(user)
     return {
       name: user.username,
       email: user.attributes.email
