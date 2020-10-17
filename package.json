@@ -17,7 +17,7 @@
     "@babel/plugin-proposal-object-rest-spread": "^7.8.3",
     "amplify": "0.0.11",
     "aws-amplify": "^1.1.22",
-    "aws-amplify-vue": "^0.2.7",
+    "aws-amplify-vue": "^0.2.17",
     "aws-appsync": "^2.0.1",
     "babel-polyfill": "^6.26.0",
     "cheerio": "^1.0.0-rc.3",

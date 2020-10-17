@@ -119,7 +119,7 @@ function buildParadigmTemplates() {
   return paradigms
 }
 
-buildParadigmTemplates()
+console.log(JSON.stringify(buildParadigmTemplates()))
 // console.log(Object.keys(paradigms))
 
 module.exports = {

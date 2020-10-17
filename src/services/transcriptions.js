@@ -1,5 +1,4 @@
-// import AWS from 'aws-sdk'
-// import { Storage } from 'aws-amplify'
+
 import UUID from 'uuid'
 import { API, graphqlOperation, Storage } from 'aws-amplify'
 
@@ -9,19 +8,6 @@ import * as subscriptions from '../graphql/subscriptions'
 
 import EnvService from '../services/env'
 import UserService from './user'
-
-import AWSAppSyncClient, { AUTH_TYPE } from 'aws-appsync'
-import Amplify, { Auth } from 'aws-amplify'
-import awsconfig from '../aws-exports'
-
-const client = new AWSAppSyncClient({
-  url: awsconfig.aws_appsync_graphqlEndpoint,
-  region: awsconfig.aws_appsync_region,
-  auth: {
-    type: AUTH_TYPE.AWS_IAM,
-    credentials: () => Auth.currentCredentials()
-  }
-})
 
 function pad(num, size) {
   return ('000000000' + num).substr(-size)
