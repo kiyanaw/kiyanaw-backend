@@ -1,8 +1,5 @@
 <template>
-  <v-container
-    :class="{ locked: locked }"
-    style="padding-top:3px;"
-  >
+  <v-container :class="{ locked: locked }" style="padding-top: 3px">
     <v-layout
       v-if="!region.isNote"
       class="region-editor-layout"
@@ -10,52 +7,27 @@
       style="position: relative"
     >
       <span class="region-index">{{ region.index }}</span>
-      <v-flex
-        xs2
-        md1
-        @click="playRegion"
-      >
+      <v-flex xs2 md1 @click="playRegion">
         <div class="timestamps">
           <span class="time region-start">{{ normalTime(region.start) }}</span>
-          <br>
+          <br />
           <span class="time region-end">{{ normalTime(region.end) }}</span>
         </div>
       </v-flex>
 
-      <v-flex
-        xs9
-        md10
-      >
+      <v-flex xs9 md10>
         <div>
           <div :id="'editor-' + region.id" />
         </div>
       </v-flex>
 
-      <v-flex
-        md1
-        xs1
-      />
+      <v-flex md1 xs1 />
     </v-layout>
 
-    <v-layout
-      class="region-options-layout"
-      :class="{ isNote: region.isNote }"
-      @click="stayFocused"
-    >
-      <v-flex
-        xs2
-        md1
-      >
-        <v-icon
-          v-if="locked"
-          class="region-lock-icon"
-        >
-          mdi-lock
-        </v-icon>
-        <div
-          v-if="locked"
-          class="region-options-label"
-        >
+    <v-layout class="region-options-layout" :class="{ isNote: region.isNote }" @click="stayFocused">
+      <v-flex xs2 md1>
+        <v-icon v-if="locked" class="region-lock-icon"> mdi-lock </v-icon>
+        <div v-if="locked" class="region-options-label">
           {{ lockUser }}
         </div>
         <div
@@ -64,20 +36,12 @@
         >
           English
         </div>
-        <div
-          v-if="region.isNote"
-          class="region-options-label label-note"
-        >
-          <v-icon color="#dbd9ce">
-            mdi-note-outline
-          </v-icon>
+        <div v-if="region.isNote" class="region-options-label label-note">
+          <v-icon color="#dbd9ce"> mdi-note-outline </v-icon>
         </div>
       </v-flex>
 
-      <v-flex
-        xs10
-        md10
-      >
+      <v-flex xs10 md10>
         <div class="region-options-edit">
           <div :id="'editor-translate-' + region.id" />
           <div v-if="editing & canEdit & !region.isNote">
@@ -95,28 +59,14 @@
       </v-flex>
     </v-layout>
 
-    <v-dialog
-      v-model="dialog"
-      persistent
-      max-width="60%"
-    >
+    <v-dialog v-model="dialog" persistent max-width="60%">
       <v-card>
-        <v-tabs
-          v-model="activeTab"
-          vertical
-        >
+        <v-tabs v-model="activeTab" vertical>
           <v-tab :key="0">
-            <v-icon left>
-              mdi-flag-outline
-            </v-icon>&nbsp;&nbsp;Issues&nbsp;&nbsp;&nbsp;&nbsp;
+            <v-icon left> mdi-flag-outline </v-icon>&nbsp;&nbsp;Issues&nbsp;&nbsp;&nbsp;&nbsp;
           </v-tab>
-          <v-tab
-            :key="1"
-            :disabled="!currentSelectionText"
-          >
-            <v-icon left>
-              mdi-flag-plus-outline
-            </v-icon>New issue
+          <v-tab :key="1" :disabled="!currentSelectionText">
+            <v-icon left> mdi-flag-plus-outline </v-icon>New issue
           </v-tab>
 
           <!-- ISSUE DETAILS -->
@@ -128,18 +78,10 @@
                 </v-subheader>
                 <v-list-item>
                   <v-list-item-avatar>
-                    <v-icon
-                      v-if="!selectedIssue.resolved"
-                      color="error"
-                      large
-                    >
+                    <v-icon v-if="!selectedIssue.resolved" color="error" large>
                       mdi-alert-circle
                     </v-icon>
-                    <v-icon
-                      v-if="selectedIssue.resolved"
-                      color="success"
-                      large
-                    >
+                    <v-icon v-if="selectedIssue.resolved" color="success" large>
                       mdi-check-circle
                     </v-icon>
                   </v-list-item-avatar>
@@ -168,18 +110,12 @@
                       :color="selectedIssue.resolved ? 'error' : 'success'"
                       @click="resolveIssue"
                     >
-                      <v-icon
-                        v-if="!selectedIssue.resolved"
-                        left
-                      >
+                      <v-icon v-if="!selectedIssue.resolved" left>
                         mdi-checkbox-marked-circle
                       </v-icon>
                       <span v-if="!selectedIssue.resolved">Resolve</span>
 
-                      <v-icon
-                        v-if="selectedIssue.resolved"
-                        left
-                      >
+                      <v-icon v-if="selectedIssue.resolved" left>
                         mdi-checkbox-marked-circle
                       </v-icon>
                       <span v-if="selectedIssue.resolved">Unresolve</span>
@@ -193,20 +129,9 @@
 
                 <!-- COMMENT INPUT -->
                 <v-list-item>
-                  <v-text-field
-                    v-model="newIssueCommentText"
-                    outlined
-                    dense
-                    label="Add a comment"
-                  >
+                  <v-text-field v-model="newIssueCommentText" outlined dense label="Add a comment">
                     <template slot="append-outer">
-                      <v-btn
-                        outlined
-                        rounded
-                        small
-                        color="primary"
-                        @click="addIssueComment"
-                      >
+                      <v-btn outlined rounded small color="primary" @click="addIssueComment">
                         Submit
                       </v-btn>
                     </template>
@@ -215,34 +140,19 @@
 
                 <!-- COMMENTS -->
                 <v-layout class="comments-list-container">
-                  <v-list
-                    dense
-                    width="100%"
-                    class="comments-list"
-                  >
-                    <v-list-item
-                      v-for="comment of orderedIssueComments"
-                      :key="comment.createdAt"
-                    >
+                  <v-list dense width="100%" class="comments-list">
+                    <v-list-item v-for="comment of orderedIssueComments" :key="comment.createdAt">
                       <v-list-item-icon>
-                        <v-icon
-                          v-if="user.name === comment.owner"
-                          color="primary"
-                        >
+                        <v-icon v-if="user.name === comment.owner" color="primary">
                           mdi-comment
                         </v-icon>
-                        <v-icon
-                          v-if="user.name !== comment.owner"
-                          color="primary"
-                        >
+                        <v-icon v-if="user.name !== comment.owner" color="primary">
                           mdi-comment
                         </v-icon>
                       </v-list-item-icon>
                       <v-list-item-content>
                         <v-list-item-title class="issue-comment">
-                          {{
-                            comment.comment
-                          }}
+                          {{ comment.comment }}
                         </v-list-item-title>
                         <v-list-item-subtitle>
                           {{ timeAgo(new Date(Number(comment.createdAt))) }} by
@@ -261,31 +171,13 @@
                 <v-list-item>
                   <h4>{{ issues.length }} issues</h4>
                 </v-list-item>
-                <v-list-item
-                  v-for="issue in issues"
-                  :key="issue.id"
-                  two-line
-                >
+                <v-list-item v-for="issue in issues" :key="issue.id" two-line>
                   <v-list-item-content>
                     <v-list-item-title>
-                      <v-chip
-                        class="ma-2"
-                        :color="issue.resolved ? 'success' : 'error'"
-                        small
-                      >
+                      <v-chip class="ma-2" :color="issue.resolved ? 'success' : 'error'" small>
                         <v-avatar left>
-                          <v-icon
-                            v-if="!issue.resolved"
-                            small
-                          >
-                            mdi-alert-circle
-                          </v-icon>
-                          <v-icon
-                            v-if="issue.resolved"
-                            small
-                          >
-                            mdi-check-circle
-                          </v-icon>
+                          <v-icon v-if="!issue.resolved" small> mdi-alert-circle </v-icon>
+                          <v-icon v-if="issue.resolved" small> mdi-check-circle </v-icon>
                         </v-avatar>
                         {{ issue.type }}
                       </v-chip>
@@ -296,17 +188,8 @@
                       <span class="comment-count">
                         <v-icon small>mdi-comment</v-icon>
                         {{ issue.comments.length }}
-                        <v-btn
-                          icon
-                          small
-                          dark
-                          color="error"
-                          @click="deleteIssue(issue.id)"
-                        >
-                          <v-icon
-                            small
-                            color="error"
-                          >mdi-delete</v-icon>
+                        <v-btn icon small dark color="error" @click="deleteIssue(issue.id)">
+                          <v-icon small color="error">mdi-delete</v-icon>
                         </v-btn>
                       </span>
                     </v-list-item-title>
@@ -317,48 +200,25 @@
           </v-tab-item>
 
           <v-tab-item>
-            <v-text-field
-              label="Selection"
-              readonly
-              :value="currentSelectionText"
-            />
+            <v-text-field label="Selection" readonly :value="currentSelectionText" />
             <v-select
               ref="issueType"
               chips
               :items="['needs-help', 'indexing', 'new-word']"
               label="Issue type"
             />
-            <v-textarea
-              ref="issueComment"
-              solo
-              label="Comments"
-            />
+            <v-textarea ref="issueComment" solo label="Comments" />
           </v-tab-item>
         </v-tabs>
         <v-card-actions>
           <v-spacer />
-          <v-btn
-            v-if="!currentSelectionText"
-            color="blue darken-1"
-            text
-            @click="dialog = false"
-          >
+          <v-btn v-if="!currentSelectionText" color="blue darken-1" text @click="dialog = false">
             Close
           </v-btn>
-          <v-btn
-            v-if="currentSelectionText"
-            color="blue darken-1"
-            text
-            @click="dialog = false"
-          >
+          <v-btn v-if="currentSelectionText" color="blue darken-1" text @click="dialog = false">
             Cancel
           </v-btn>
-          <v-btn
-            v-if="currentSelectionText"
-            color="blue darken-1"
-            text
-            @click="onSubmitIssue"
-          >
+          <v-btn v-if="currentSelectionText" color="blue darken-1" text @click="onSubmitIssue">
             Submit
           </v-btn>
         </v-card-actions>
@@ -482,7 +342,7 @@ export default {
      */
     orderedIssueComments() {
       if (this.selectedIssue) {
-        return this.selectedIssue.comments.sort(function(a, b) {
+        return this.selectedIssue.comments.sort(function (a, b) {
           var keyA = a.createdAt,
             keyB = b.createdAt
           // Compare the 2 dates
@@ -745,7 +605,7 @@ export default {
      * @description Handles changes to the main editor.
      */
     async onEditorTextChange(delta, oldDelta, source) {
-      console.log('region change', this.region.id, delta, oldDelta, source)
+      // console.log('region change', this.region.id, delta, oldDelta, source)
       if (source === 'user') {
         // check for breakages
         // notify this editor changed
@@ -1141,7 +1001,10 @@ export default {
       }
     },
     timeAgo(date) {
-      return timeAgo.format(date)
+      if (date instanceof Date && !isNaN(date)) {
+        return timeAgo.format(date)
+      }
+      return ''
     },
   },
 }

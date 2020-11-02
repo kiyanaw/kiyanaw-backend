@@ -5,75 +5,85 @@ const { VueLoaderPlugin } = require('vue-loader')
 var MiniCssExtractPlugin = require('mini-css-extract-plugin')
 const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin
 
-
 module.exports = {
-  entry: [
-    './src/components/Editor.vue'
-  ],
+  // entry: ['./src/components/Editor.vue'],
+  entry: './src/main.js',
   output: {
     path: path.resolve(__dirname, './dist'),
     publicPath: '/dist/',
-    filename: 'build.js'
+    filename: 'build.js',
   },
   resolve: {
     alias: {
-      'vue$': 'vue/dist/vue.esm.js',
-      '@': path.resolve(__dirname, 'src')
-    }
+      vue$: 'vue/dist/vue.esm.js',
+      '@': path.resolve(__dirname, 'src'),
+    },
   },
   module: {
     rules: [
       {
         test: /\.vue$/,
-        loader: 'vue-loader'
+        loader: 'vue-loader',
       },
       {
         test: /\.js$/,
         loader: 'babel-loader',
-        exclude: /node_modules/
+        exclude: /node_modules/,
       },
       {
         test: /\.(png|jpg|gif|svg)$/,
         loader: 'file-loader',
         options: {
-          name: '[name].[ext]?[hash]'
-        }
+          name: '[name].[ext]?[hash]',
+        },
       },
       {
         test: /\.css$/,
         use: [
-          process.env.NODE_ENV !== 'production'
-            ? 'vue-style-loader'
-            : MiniCssExtractPlugin.loader,
-          'css-loader'
-        ]
+          process.env.NODE_ENV !== 'production' ? 'vue-style-loader' : MiniCssExtractPlugin.loader,
+          'css-loader',
+        ],
       },
       {
         test: /\.styl(us)?$/,
+        use: ['vue-style-loader', 'css-loader', 'stylus-loader'],
+      },
+      {
+        test: /\.s(c|a)ss$/,
         use: [
           'vue-style-loader',
           'css-loader',
-          'stylus-loader'
-        ]
-      }
-    ]
+          {
+            loader: 'sass-loader',
+            // Requires sass-loader@^8.0.0
+            options: {
+              implementation: require('sass'),
+              sassOptions: {
+                fiber: require('fibers'),
+                indentedSyntax: true, // optional
+              },
+            },
+          },
+        ],
+      },
+    ],
   },
   devServer: {
     historyApiFallback: true,
-    noInfo: true
+    noInfo: true,
   },
   performance: {
-    hints: false
+    hints: false,
   },
   devtool: '#eval-source-map',
   // devtool: 'inline-source-map',
   plugins: [
     new VueLoaderPlugin(),
     new MiniCssExtractPlugin({
-      filename: 'style.css'
-    })
+      filename: 'style.css',
+    }),
     // new BundleAnalyzerPlugin()
-  ]
+  ],
 }
 
 if (process.env.NODE_ENV === 'test') {

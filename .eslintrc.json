@@ -8,6 +8,9 @@
     "plugin:prettier-vue/recommended",
     "prettier/vue"
   ],
+  "env": {
+    "node": true
+  },
   "parserOptions": {
     "ecmaVersion": 9,
     "sourceType": "module"

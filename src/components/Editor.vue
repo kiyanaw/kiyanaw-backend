@@ -6,24 +6,15 @@
           <v-toolbar flat>
             <v-list>
               <v-list-tile>
-                <v-list-tile-title class="title">
-                  morphemes
-                </v-list-tile-title>
+                <v-list-tile-title class="title"> morphemes </v-list-tile-title>
               </v-list-tile>
             </v-list>
           </v-toolbar>
 
           <v-divider />
 
-          <v-list
-            dense
-            class="pt-0"
-          >
-            <v-list-tile
-              v-for="item in items"
-              :key="item.title"
-              :to="{path: item.url}"
-            >
+          <v-list dense class="pt-0">
+            <v-list-tile v-for="item in items" :key="item.title" :to="{ path: item.url }">
               <v-list-tile-action>
                 <v-icon>{{ item.icon }}</v-icon>
               </v-list-tile-action>
@@ -44,10 +35,9 @@
 </template>
 
 <script>
-
 export default {
   name: 'Editor',
-  data () {
+  data() {
     return {
       items: [
         { title: 'Morphemes', icon: 'widgets', url: '/edit/morphemes' },
@@ -55,18 +45,18 @@ export default {
         { title: 'Pending', icon: 'search', url: '/edit' },
         { title: 'Skipped', icon: 'outlined_flag', url: '/skipped' },
         { title: 'Starred', icon: 'star', url: '/skipped' },
-        { title: 'Next unverified', icon: 'create', url: '/next-unverified' }
+        { title: 'Next unverified', icon: 'create', url: '/next-unverified' },
       ],
       nav: (event) => {
         console.log(event.target)
-      }
+      },
     }
   },
   computed: {
-    env () {
+    env() {
       return process.env
-    }
-  }
+    },
+  },
 }
 </script>
 

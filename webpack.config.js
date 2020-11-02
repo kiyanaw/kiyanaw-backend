@@ -9,42 +9,42 @@ module.exports = {
   output: {
     path: path.resolve(__dirname, './dist'),
     publicPath: '/dist/',
-    filename: 'build.js'
+    filename: 'build.js',
   },
   resolve: {
     alias: {
       vue$: 'vue/dist/vue.esm.js',
-      '@': path.resolve(__dirname, 'src')
-    }
+      '@': path.resolve(__dirname, 'src'),
+    },
   },
   module: {
     rules: [
       {
         test: /\.vue$/,
-        loader: 'vue-loader'
+        loader: 'vue-loader',
       },
       {
         test: /\.js$/,
         loader: 'babel-loader',
-        exclude: /node_modules/
+        exclude: /node_modules/,
       },
       {
         test: /\.(png|jpg|gif|svg)$/,
         loader: 'file-loader',
         options: {
-          name: '[name].[ext]?[hash]'
-        }
+          name: '[name].[ext]?[hash]',
+        },
       },
       {
         test: /\.css$/,
         use: [
           process.env.NODE_ENV !== 'production' ? 'vue-style-loader' : MiniCssExtractPlugin.loader,
-          'css-loader'
-        ]
+          'css-loader',
+        ],
       },
       {
         test: /\.styl(us)?$/,
-        use: ['vue-style-loader', 'css-loader', 'stylus-loader']
+        use: ['vue-style-loader', 'css-loader', 'stylus-loader'],
       },
       {
         test: /\.s(c|a)ss$/,
@@ -58,28 +58,28 @@ module.exports = {
               implementation: require('sass'),
               sassOptions: {
                 fiber: require('fibers'),
-                indentedSyntax: true // optional
-              }
-            }
-          }
-        ]
-      }
-    ]
+                indentedSyntax: true, // optional
+              },
+            },
+          },
+        ],
+      },
+    ],
   },
   devServer: {
     historyApiFallback: true,
-    noInfo: true
+    noInfo: true,
   },
   performance: {
-    hints: false
+    hints: false,
   },
   devtool: '#eval-source-map',
   plugins: [
     new VueLoaderPlugin(),
     new MiniCssExtractPlugin({
-      filename: 'style.css'
-    })
-  ]
+      filename: 'style.css',
+    }),
+  ],
 }
 
 if (process.env.NODE_ENV === 'test') {
