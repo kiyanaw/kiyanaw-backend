@@ -9,7 +9,7 @@ const SET_SIGNED_IN = 'SET_SIGNED_IN'
 export default new Vuex.Store({
   state: {
     user: null,
-    signedIn: false
+    signedIn: false,
   },
   mutations: {
     [SET_USER]: (state, user) => {
@@ -17,7 +17,7 @@ export default new Vuex.Store({
     },
     [SET_SIGNED_IN]: (state, signedIn) => {
       state.signedIn = signedIn
-    }
+    },
   },
   actions: {
     setUser: (context, user) => {
@@ -25,6 +25,6 @@ export default new Vuex.Store({
     },
     setSignedIn: (context, signedIn) => {
       context.commit(SET_SIGNED_IN, signedIn)
-    }
-  }
+    },
+  },
 })
