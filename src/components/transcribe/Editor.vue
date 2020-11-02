@@ -164,7 +164,7 @@
             </v-layout>
 
             <!-- ISSUE LIST -->
-            <v-layout v-if="!selectedIssue">
+            <v-layout v-if="!selectedIssue && issues">
               <v-list width="100%">
                 <v-list-item>
                   <h4>{{ issues.length }} issues</h4>
@@ -244,19 +244,19 @@ const timeAgo = new TimeAgo('en-US')
  */
 const Parchment = Quill.import('parchment')
 let KnownWord = new Parchment.Attributor.Class('known-word', 'known-word', {
-  scope: Parchment.Scope.INLINE
+  scope: Parchment.Scope.INLINE,
 })
 let IgnoreWord = new Parchment.Attributor.Class('ignore-word', 'ignore-word', {
-  scope: Parchment.Scope.INLINE
+  scope: Parchment.Scope.INLINE,
 })
 let IssueNeedsHelp = new Parchment.Attributor.Class('issue-needs-help', 'issue-needs-help', {
-  scope: Parchment.Scope.INLINE
+  scope: Parchment.Scope.INLINE,
 })
 let IssueIndexing = new Parchment.Attributor.Class('issue-indexing', 'issue-indexing', {
-  scope: Parchment.Scope.INLINE
+  scope: Parchment.Scope.INLINE,
 })
 let IssueNewWord = new Parchment.Attributor.Class('issue-new-word', 'issue-new-word', {
-  scope: Parchment.Scope.INLINE
+  scope: Parchment.Scope.INLINE,
 })
 
 Parchment.register(KnownWord)
@@ -282,7 +282,7 @@ export default {
     // true when the user is editing this region
     'editing',
     'user',
-    'transcriptionId'
+    'transcriptionId',
   ],
 
   data() {
@@ -305,18 +305,27 @@ export default {
       //
       issues: [],
       selectedIssue: null,
-      newIssueCommentText: ''
+      newIssueCommentText: '',
     }
   },
 
   computed: {
+    /**
+     * TODO: possibly not used
+     */
     isInRegion() {
-      const inRegions = this.$props.inRegions
-      const regionId = this.$props.region.id
-      if (inRegions && regionId) {
-        return this.inRegions.indexOf(this.region.id) > -1
-      }
+      // const inRegions = this.$props.inRegions
+      // const regionId = this.$props.region.id
+      // console.log('isInRegion', inRegions, regionId)
+      // if (inRegions && regionId) {
+      //   return this.inRegions.indexOf(this.region.id) > -1
+      // }
     },
+
+    /**
+     * ✓ TESTED
+     * @description Return true when the current editor has '??' in the text.
+     */
     needsReview() {
       const doubleQuestion = this.region.text.filter((word) => word.insert.indexOf('??') > -1)
       if (doubleQuestion.length) {
@@ -325,6 +334,10 @@ export default {
       return false
     },
 
+    /**
+     * ✓ TESTED
+     * @description Puts comments for the selected issue in order, newest at the top.
+     */
     orderedIssueComments() {
       if (this.selectedIssue) {
         return this.selectedIssue.comments.sort(function(a, b) {
@@ -338,36 +351,38 @@ export default {
       } else {
         return []
       }
-    }
+    },
   },
+
   methods: {
+    /**
+     * ✓ TESTED
+     * @description Returns the count of the number of issues for this region.
+     */
     getIssueCount() {
-      // let count = 0
-      // const ops = this.getMainOps()
-      // ops.forEach((op) => {
-      //   if (op.attributes) {
-      //     Object.keys(op.attributes).forEach((key) => {
-      //       if (key && key.startsWith('issue')) {
-      //         count = count + 1
-      //       }
-      //     })
-      //   }
-      // })
       return this.issues.filter((issue) => !issue.resolved).length
-      // return count
     },
-    getMainOps() {
-      let ops = []
-      try {
-        ops = this.quill.getContents().ops
-      } catch (e) {}
-      return ops
-    },
+
+    /**
+     * TODO: pretty sure this is not used
+     */
+    // getMainOps() {
+    //   let ops = []
+    //   try {
+    //     ops = this.quill.getContents().ops
+    //   } catch (e) {}
+    //   return ops
+    // },
+
+    /**
+     *
+     * @description Locks a region for a given user.
+     */
     lock(lockUser = 'unknown') {
       console.log('This region is locked', this.region.id)
       if (lockUser === 'unknown') {
         alert(
-          `There was a problem obtaining a region lock on region ${this.region.index}, try again...`
+          `There was a problem obtaining a region lock on region ${this.region.index}, try again...`,
         )
         this.$emit('editor-blur', this.region.id, { silent: true })
       } else {
@@ -380,6 +395,7 @@ export default {
         this.quillTranslate.disable()
       }
     },
+
     unlock() {
       console.log('This region is unlocked', this.region.id)
       this.locked = false
@@ -551,16 +567,18 @@ export default {
           this.$emit('region-text-updated', {
             id: this.region.id,
             editor: editor,
-            text: ops
+            text: ops,
           })
         }, 50)
       }
     },
 
     /**
+     * ✓ TESTED
      * @description Handles changes to the main editor.
      */
     async onEditorTextChange(delta, oldDelta, source) {
+      console.log('region change', this.region.id, delta, oldDelta, source)
       if (source === 'user') {
         // check for breakages
         // notify this editor changed
@@ -581,7 +599,7 @@ export default {
         id: this.region.id,
         range,
         source,
-        text
+        text,
       })
     },
 
@@ -604,7 +622,7 @@ export default {
         resolved: false,
         owner,
         text: problemText,
-        comments: []
+        comments: [],
       }
 
       const comment = this.$refs.issueComment.lazyValue
@@ -614,7 +632,7 @@ export default {
         issue.comments.push({
           comment,
           createdAt: created,
-          owner
+          owner,
         })
       }
 
@@ -622,7 +640,7 @@ export default {
         this.lastSelection.index,
         this.lastSelection.length,
         `issue-${issueType}`,
-        issue.id
+        issue.id,
       )
 
       // save the issue
@@ -641,15 +659,15 @@ export default {
       this.selectedIssue.comments.push({
         comment,
         createdAt: `${+new Date()}`,
-        owner: this.user.name
+        owner: this.user.name,
       })
       this.newIssueCommentText = ''
       this.onIssuesUpdated()
     },
 
-    clearIssueForm() {
-      // this.$refs.issueType.selectedItems = []
-    },
+    // clearIssueForm() {
+    //   // this.$refs.issueType.selectedItems = []
+    // },
 
     resolveIssue() {
       // selectedIssue.resolved = !selectedIssue.resolved
@@ -715,7 +733,7 @@ export default {
           this.currentSelection.index,
           this.currentSelection.length,
           'ignore-word',
-          !formats['ignore-word']
+          !formats['ignore-word'],
         )
       }
     },
@@ -751,20 +769,20 @@ export default {
             100,
             range,
             'main',
-            this.region.text
+            this.region.text,
           )
           // we must delay the focus event to give the other editor's blur
           // event a chance to fire first
           this.$nextTick(() => {
             this.maybeFocusBlur({
               type: 'focus',
-              source: 'main'
+              source: 'main',
             })
           })
         } else {
           this.maybeFocusBlur({
             type: 'blur',
-            source: 'main'
+            source: 'main',
           })
           // we've lost focus, shut the buttons off
           this.$emit('text-selection', false)
@@ -821,7 +839,7 @@ export default {
                 100,
                 range,
                 'secondary',
-                this.region.translation
+                this.region.translation,
               )
 
               // we must delay the focus event to give the other editor's blur
@@ -829,13 +847,13 @@ export default {
               this.$nextTick(() => {
                 this.maybeFocusBlur({
                   type: 'focus',
-                  source: 'secondary'
+                  source: 'secondary',
                 })
               })
             } else {
               this.maybeFocusBlur({
                 type: 'blur',
-                source: 'secondary'
+                source: 'secondary',
               })
             }
           }
@@ -896,13 +914,13 @@ export default {
           'ignore-word',
           'issue-needs-help',
           'issue-indexing',
-          'issue-new-word'
+          'issue-new-word',
         ],
         modules: {
           toolbar: false,
-          cursors: true
+          cursors: true,
         },
-        readOnly: !this.canEdit
+        readOnly: !this.canEdit,
       })
       this.cursors = this.quill.getModule('cursors')
       this.quill.root.setAttribute('spellcheck', false)
@@ -918,10 +936,10 @@ export default {
           theme: 'snow',
           modules: {
             toolbar: false,
-            cursors: true
+            cursors: true,
           },
-          readOnly: !this.canEdit
-        }
+          readOnly: !this.canEdit,
+        },
       )
 
       this.quillTranslate.format('color', 'gray')
@@ -957,7 +975,7 @@ export default {
     },
     timeAgo(date) {
       return timeAgo.format(date)
-    }
+    },
   },
 
   mounted() {
@@ -983,7 +1001,7 @@ export default {
 
     // update the temporary translation value
     // this._regionTranslation = this.region.translation
-  }
+  },
 }
 </script>
 
