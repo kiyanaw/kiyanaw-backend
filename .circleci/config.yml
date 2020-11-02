@@ -1,19 +1,27 @@
-# version: 2
-# jobs:
-#   run_tests:
-#     docker:
-#       - image: circleci/node:8.16.0-stretch
-#     steps:
-#       - checkout
-#       - run:
-#           name: Install kiyânaw deps
-#           command: npm install
-#       - run:
-#           name: Run mocha tests
-#           command: npm run test
+version: 2
+npm_cache_key: &npm_cache_key node-v12-dependency-cache-{{ checksum "package-lock.json" }}
+jobs:
+  test-browser:
+    docker:
+      - image: circleci/node:12-buster-browsers
+    steps:
+      - checkout
+      - restore_cache:
+          key: *npm_cache_key
+      - run:
+          name: Install dependencies
+          command: npm install
+      - save_cache:
+          key: *npm_cache_key
+          paths:
+            - node_modules
+      - run:
+          name: Run Karma
+          command: npm run karma
+workflows:
+  version: 2
+  build_and_test:
+    jobs:
+      - test-browser
+      # TODO: GI tests
 
-# workflows:
-#   version: 2
-#   build_and_test:
-#     jobs:
-#       - run_tests
