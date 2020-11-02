@@ -1,17 +1,23 @@
 <template>
-  <v-container grid-list-md text-xs-center>
-    <v-layout row wrap>
-      <v-flex xs3></v-flex>
+  <v-container
+    grid-list-md
+    text-xs-center
+  >
+    <v-layout
+      row
+      wrap
+    >
+      <v-flex xs3 />
       <v-flex xs3>
         <v-spacer />
         <div>
-          <amplify-authenticator v-if="!signedIn"></amplify-authenticator>
+          <amplify-authenticator v-if="!signedIn" />
         </div>
         <div>
-          <amplify-sign-out v-if="signedIn"></amplify-sign-out>
+          <amplify-sign-out v-if="signedIn" />
         </div>
       </v-flex>
-      <v-flex xs3></v-flex>
+      <v-flex xs3 />
     </v-layout>
   </v-container>
 </template>
@@ -30,11 +36,16 @@ EventBus.$on('signOut', () => {
 })
 
 export default {
+  data() {
+    return {
+      // signedIn: false
+    }
+  },
   computed: {
     signedIn() {
       return this.$store.state.signedIn
     }
-  },
+  }, 
   created() {
     this.findUser()
     AmplifyEventBus.$on('authState', (info) => {
@@ -45,11 +56,6 @@ export default {
         this.setSignedIn(false)
       }
     })
-  },
-  data() {
-    return {
-      // signedIn: false
-    }
   },
   methods: {
     ...mapActions(['setUser', 'setSignedIn']),

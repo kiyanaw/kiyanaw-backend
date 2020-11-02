@@ -1,36 +1,59 @@
 <template>
   <v-container>
     <v-layout>
-      <v-flex xs12 class="list-container">
-        <h2 class="main-title">Transcriptions</h2>
+      <v-flex
+        xs12
+        class="list-container"
+      >
+        <h2 class="main-title">
+          Transcriptions
+        </h2>
         <v-data-table
+          ref="table"
           class="elevation-1"
           :headers="headers"
           :items="list"
           :items-per-page="15"
           :loading="loading"
-          ref="table"
         >
           <template v-slot:item.title="{ item }">
-            <a :href="item.url">{{ item.title }}</a>
+            <a :href="item.url">{{ item.title }}</a> 
           </template>
 
           <template v-slot:item.coverage="{ item }">
-            <v-progress-linear v-bind:value="item.coverage" height="3"></v-progress-linear>
+            <v-progress-linear
+              :value="item.coverage"
+              height="3"
+            />
           </template>
 
           <template v-slot:item.issues="{ item }">
             <!-- <span :class="{ issues: item.issues > 0 }">{{ item.issues }}</span> -->
-            <v-badge v-if="item.issues > 0" color="red" inline :content="item.issues"></v-badge>
-            <v-badge v-if="item.issues == 0" color="blue" inline content="0"></v-badge>
+            <v-badge
+              v-if="item.issues > 0"
+              color="red"
+              inline
+              :content="item.issues"
+            />
+            <v-badge
+              v-if="item.issues == 0"
+              color="blue"
+              inline
+              content="0"
+            />
           </template>
 
-          <template v-slot:item.dateLastUpdated="{ item }"
-            >{{ timeAgo(item.dateLastUpdated) }} by {{ item.userLastUpdated }}</template
+          <template
+            v-slot:item.dateLastUpdated="{ item }"
           >
+            {{ timeAgo(item.dateLastUpdated) }} by {{ item.userLastUpdated }}
+          </template>
 
           <template v-slot:item.source="{ item }">
-            <a :href="item.source" _target="blank">Source</a>
+            <a
+              :href="item.source"
+              _target="blank"
+            >Source</a>
           </template>
         </v-data-table>
       </v-flex>
@@ -38,8 +61,14 @@
 
     <v-layout class="add-transcription-controls">
       <v-flex xs12>
-        <v-btn color="primary" outlined href="/transcribe-add/">
-          <v-icon left>mdi-plus</v-icon>Add new
+        <v-btn
+          color="primary"
+          outlined
+          href="/transcribe-add/"
+        >
+          <v-icon left>
+            mdi-plus
+          </v-icon>Add new
         </v-btn>
       </v-flex>
     </v-layout>
@@ -51,17 +80,11 @@ import TranscriptionService from '../../services/transcriptions'
 import UserService from '../../services/user'
 
 import en from 'javascript-time-ago/locale/en'
-import TimeAgo from 'javascript-time-ago'
+import TimeAgo from 'javascript-time-ago' 
 TimeAgo.addLocale(en)
 const timeAgo = new TimeAgo('en-US')
 
 export default {
-  mounted() {
-    this.loadTranscriptionList()
-    // this is a hack, fix it
-    // this.$refs.table.defaultPagination.rowsPerPage = 25
-    window.list = this
-  },
   data() {
     return {
       list: [],
@@ -77,6 +100,12 @@ export default {
       ]
     }
   },
+  mounted() {
+    this.loadTranscriptionList()
+    // this is a hack, fix it
+    // this.$refs.table.defaultPagination.rowsPerPage = 25
+    window.list = this
+  },
   methods: {
     /**
      * Load a list of transcriptions.
@@ -88,8 +117,8 @@ export default {
       this.loading = false
     },
     timeAgo(date) {
-      return timeAgo.format(date)
-    }
+      return timeAgo.format(date) 
+    }   
   }
 }
 </script>
@@ -107,3 +136,4 @@ export default {
   font-weight: bold;
 }
 </style>
+     

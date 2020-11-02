@@ -1,39 +1,57 @@
 <template>
-  <v-container fluid grid-list-md fill-height>
+  <v-container
+    fluid
+    grid-list-md
+    fill-height
+  >
     <v-layout wrap>
-      <div v-if="(loading || waveformLoading) && !error" class="loading">
+      <div
+        v-if="(loading || waveformLoading) && !error"
+        class="loading"
+      >
         <v-progress-circular
           :size="70"
           :width="7"
           color="#305880"
           indeterminate
-        ></v-progress-circular>
+        />
       </div>
 
-      <div v-if="error" class="load-error">{{ error }}</div>
+      <div
+        v-if="error"
+        class="load-error"
+      >
+        {{ error }}
+      </div>
 
       <v-flex v-if="!(loading && waveformLoading) && !error">
-        <v-layout class="audio-container" :class="{ audioContainerSm: $vuetify.breakpoint.xsOnly }">
-          <v-flex xs12 class="audio-player">
+        <v-layout
+          class="audio-container"
+          :class="{ audioContainerSm: $vuetify.breakpoint.xsOnly }"
+        >
+          <v-flex
+            xs12
+            class="audio-player"
+          >
             <audio-player
-              ref="player"
               v-if="source"
-              v-bind:title="title"
-              v-bind:source="source"
-              v-bind:peaks="peaks"
-              v-bind:regions="sortedRegions"
-              v-bind:canEdit="user !== null"
-              v-bind:isVideo="isVideo"
-              v-bind:inboundRegion="inboundRegion"
-              v-bind:editingRegionId="editingRegionId"
-              v-on:region-updated="onUpdateRegion"
-              v-on:region-in="highlightRegion"
-              v-on:region-out="onBlurRegion"
-              v-on:selection-action="onSelectionAction"
-              v-on:toggle-region-type="onToggleRegionType"
-              v-on:edit-title="onEditTranscriptionDetails"
-              v-on:waveform-ready="waveformLoading = false"
-            ></audio-player>
+              ref="player"
+              :title="title"
+              :source="source"
+              :peaks="peaks"
+              :regions="sortedRegions"
+              :can-edit="user !== null"
+              :is-video="isVideo"
+              :inbound-region="inboundRegion"
+              :editing-region-id="editingRegionId"
+              @region-updated="onUpdateRegion"
+              @region-in="highlightRegion"
+              @region-out="onBlurRegion"
+              @selection-action="onSelectionAction"
+              @toggle-region-type="onToggleRegionType"
+              @edit-title="onEditTranscriptionDetails"
+              @waveform-ready="waveformLoading = false"
+            />
           </v-flex>
         </v-layout>
 
@@ -46,65 +64,126 @@
           }"
         >
           <v-container>
-            <v-flex xs12 md12 elevation-1 tEditor scroll-container>
+            <v-flex
+              xs12
+              md12
+              elevation-1
+              t-editor
+              scroll-container
+            >
               <v-container id="scroll-target">
-                <div v-for="region in sortedRegions" v-bind:id="region.id" v-bind:key="region.id">
+                <div
+                  v-for="region in sortedRegions"
+                  :id="region.id"
+                  :key="region.id"
+                >
                   <editor
                     v-if="regions"
-                    v-bind:region="region"
-                    v-bind:canEdit="user !== null"
-                    v-bind:ref="region.id"
-                    v-bind:editing="editingRegionId === region.id"
-                    v-bind:transcriptionId="transcriptionId"
-                    v-bind:user="user"
-                    v-on:editor-focus="onRegionFocus"
-                    v-on:editor-blur="onEditorBlur"
-                    v-on:play-region="playRegion"
-                    v-on:region-text-updated="onRegionTextUpdated"
-                    v-on:region-cursor="regionCursor"
-                    v-on:text-selection="onRegionTextSelection"
-                    v-on:delete-region="onDeleteRegion"
-                  ></editor>
-                  <hr />
+                    :ref="region.id"
+                    :region="region"
+                    :can-edit="user !== null"
+                    :editing="editingRegionId === region.id"
+                    :transcription-id="transcriptionId"
+                    :user="user"
+                    @editor-focus="onRegionFocus"
+                    @editor-blur="onEditorBlur"
+                    @play-region="playRegion"
+                    @region-text-updated="onRegionTextUpdated"
+                    @region-cursor="regionCursor"
+                    @text-selection="onRegionTextSelection"
+                    @delete-region="onDeleteRegion"
+                  />
+                  <hr>
                 </div>
               </v-container>
             </v-flex>
           </v-container>
         </v-layout>
 
-        <v-layout v-if="false" row class="editorSideMd">
+        <v-layout
+          v-if="false"
+          row
+          class="editorSideMd"
+        >
           <v-container>
-            <v-tabs v-if="editingRegionId" v-model="tab" background-color="grey lighten-2">
-              <v-tab key="one">Comments</v-tab>
-              <v-tab key="two">Details</v-tab>
-              <v-tab-item key="one" background-color="grey lighten-2"
-                >Region {{ editingRegionId }} comments</v-tab-item
+            <v-tabs
+              v-if="editingRegionId"
+              v-model="tab"
+              background-color="grey lighten-2"
+            >
+              <v-tab key="one">
+                Comments
+              </v-tab>
+              <v-tab key="two">
+                Details
+              </v-tab>
+              <v-tab-item
+                key="one"
+                background-color="grey lighten-2"
               >
-              <v-tab-item key="two" background-color="grey lighten-2"
-                >Region {{ editingRegionId }} details</v-tab-item
+                Region {{ editingRegionId }} comments
+              </v-tab-item>
+              <v-tab-item
+                key="two"
+                background-color="grey lighten-2"
               >
+                Region {{ editingRegionId }} details
+              </v-tab-item>
             </v-tabs>
-            <p v-if="!editingRegionId" class="region-details">Select a region to view details...</p>
+            <p
+              v-if="!editingRegionId"
+              class="region-details"
+            >
+              Select a region to view details...
+            </p>
           </v-container>
         </v-layout>
       </v-flex>
     </v-layout>
 
-    <v-dialog v-model="dialog" persistent max-width="60%">
+    <v-dialog
+      v-model="dialog"
+      persistent
+      max-width="60%"
+    >
       <v-card>
         <v-card-title>Transcription details</v-card-title>
         <v-card-text>
-          <v-text-field v-model="title" label="Title" required></v-text-field>
-          <v-text-field v-model="comments" label="Notes"></v-text-field>
+          <v-text-field
+            v-model="title"
+            label="Title"
+            required
+          />
+          <v-text-field
+            v-model="comments"
+            label="Notes"
+          />
         </v-card-text>
         <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn color="blue darken-1" text @click="dialog = false">Cancel</v-btn>
-          <v-btn color="blue darken-1" text @click="onUpdateTranscriptionDetails">Submit</v-btn>
+          <v-spacer />
+          <v-btn
+            color="blue darken-1"
+            text
+            @click="dialog = false"
+          >
+            Cancel
+          </v-btn>
+          <v-btn
+            color="blue darken-1"
+            text
+            @click="onUpdateTranscriptionDetails"
+          >
+            Submit
+          </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
-    <v-snackbar v-model="saved" color="success darken-1">Saved!</v-snackbar>
+    <v-snackbar
+      v-model="saved"
+      color="success darken-1"
+    >
+      Saved!
+    </v-snackbar>
   </v-container>
 </template>
 
@@ -133,7 +212,7 @@ function getColor() {
 }
 
 // this is the local user's cursor color
-const cursorColor = `${getColor()}`
+const cursorColor = `${getColor()}` 
 // keep track of this cursor
 let myCursor
 let inboundRegion = null
@@ -148,34 +227,6 @@ export default {
   components: {
     AudioPlayer,
     Editor
-  },
-
-  computed: {
-    /**
-     * @description Returns a list of regions in order of the start time.
-     * @returns {Array<object>} List of regions in order of start time.
-     */
-    sortedRegions() {
-      if (this.regions) {
-        // use .slice() to copy the array and prevent modifying the original
-        const sorted = this.regions.slice().sort((a, b) => (a.start > b.start ? 1 : -1))
-        let realIndex = 1
-        // add an index for visual aide
-        for (const index in sorted) {
-          if (!sorted[index].isNote) {
-            sorted[index].index = realIndex
-            realIndex = realIndex + 1
-          }
-        }
-        return sorted
-      } else {
-        return []
-      }
-    },
-
-    regionIds() {
-      return this.regions.map((region) => region.id)
-    }
   },
 
   data() {
@@ -210,9 +261,112 @@ export default {
       error: null,
       tab: null,
       dialog: false,
-      saved: false,
       contributors: []
     }
+  },
+
+  computed: {
+    /**
+     * @description Returns a list of regions in order of the start time.
+     * @returns {Array<object>} List of regions in order of start time.
+     */
+    sortedRegions() {
+      if (this.regions) {
+        // use .slice() to copy the array and prevent modifying the original
+        const sorted = this.regions.slice().sort((a, b) => (a.start > b.start ? 1 : -1))
+        let realIndex = 1
+        // add an index for visual aide
+        for (const index in sorted) {
+          if (!sorted[index].isNote) {
+            sorted[index].index = realIndex
+            realIndex = realIndex + 1
+          }
+        }
+        return sorted
+      } else {
+        return []
+      }
+    },
+
+    regionIds() {
+      return this.regions.map((region) => region.id)
+    }
+  },
+  /**
+   * Mount point for this component.
+   */
+  async mounted() {
+    try {
+      this.user = await UserService.getUser()
+    } catch (error) {
+      console.warn(error)
+      this.user = null
+    }
+
+    /**
+     * Pull some parameters out of our URL to determine the doc to load.
+     */
+    this.transcriptionId = this.$route.params.id
+    this.inboundRegion = this.$route.params.region || null
+
+    this.listenForRegions()
+    this.listenForLockedRegions()
+
+    /**
+     * Set up a subscription for new cursor changes.
+     */
+    UserService.listenForCursor((data) => {
+      if (data.user !== this.user.name) {
+        // only try to set cursors for local regions
+        if (this.$refs[data.cursor.id] && this.$refs[data.cursor.id][0]) {
+          this.$refs[data.cursor.id][0].setCursor({ user: data.user, ...data.cursor })
+        }
+      }
+    }).catch((e) => {
+      console.warn('Cursor listen error', e)
+    })
+
+    // maintain a dynamic little style sheet for highlighting regions (less expensive
+    // to let the browser manage the style than in vue)
+    this.currentRegionSheet = document.createElement('style')
+    document.body.appendChild(this.currentRegionSheet)
+
+    /**
+     * Get a list of the current locked regions.
+     */
+    // TODO: managing locked regions should probably happen outside of the regions
+
+    /**
+     * Listen for <space> event (and others) to interact with the waveform.
+     */
+    // document.addEventListener('keyup', (evt) => {
+    //   // TODO: this might work better in Editor, blur the cursor at the same time
+    //   if (evt.keyCode === 27) {
+    //     this.editingRegionId = null
+    //   }
+    //   if (!this.editingRegionId) {
+    //     // play/pause on space bar
+    //     if (evt.keyCode === 32) {
+    //       try {
+    //         let canPlay = true
+    //         for (let region of this.regions) {
+    //           if (this.$refs[region.id][0].hasFocus) {
+    //             canPlay = false
+    //           }
+    //         }
+    //         if (canPlay) {
+    //           this.$refs.player.playPause()
+    //         }
+
+    //       } catch (e) {
+    //         console.error(e)
+    //       }
+    //     }
+    //   }
+    // })
+    this.scrollToEditorTop()
+    // load up
+    this.load()
   },
 
   methods: {
@@ -592,82 +746,6 @@ export default {
         }
       }).catch((err) => {})
     }
-  },
-  /**
-   * Mount point for this component.
-   */
-  async mounted() {
-    try {
-      this.user = await UserService.getUser()
-    } catch (error) {
-      console.warn(error)
-      this.user = null
-    }
-
-    /**
-     * Pull some parameters out of our URL to determine the doc to load.
-     */
-    this.transcriptionId = this.$route.params.id
-    this.inboundRegion = this.$route.params.region || null
-
-    this.listenForRegions()
-    this.listenForLockedRegions()
-
-    /**
-     * Set up a subscription for new cursor changes.
-     */
-    UserService.listenForCursor((data) => {
-      if (data.user !== this.user.name) {
-        // only try to set cursors for local regions
-        if (this.$refs[data.cursor.id] && this.$refs[data.cursor.id][0]) {
-          this.$refs[data.cursor.id][0].setCursor({ user: data.user, ...data.cursor })
-        }
-      }
-    }).catch((e) => {
-      console.warn('Cursor listen error', e)
-    })
-
-    // maintain a dynamic little style sheet for highlighting regions (less expensive
-    // to let the browser manage the style than in vue)
-    this.currentRegionSheet = document.createElement('style')
-    document.body.appendChild(this.currentRegionSheet)
-
-    /**
-     * Get a list of the current locked regions.
-     */
-    // TODO: managing locked regions should probably happen outside of the regions
-
-    /**
-     * Listen for <space> event (and others) to interact with the waveform.
-     */
-    // document.addEventListener('keyup', (evt) => {
-    //   // TODO: this might work better in Editor, blur the cursor at the same time
-    //   if (evt.keyCode === 27) {
-    //     this.editingRegionId = null
-    //   }
-    //   if (!this.editingRegionId) {
-    //     // play/pause on space bar
-    //     if (evt.keyCode === 32) {
-    //       try {
-    //         let canPlay = true
-    //         for (let region of this.regions) {
-    //           if (this.$refs[region.id][0].hasFocus) {
-    //             canPlay = false
-    //           }
-    //         }
-    //         if (canPlay) {
-    //           this.$refs.player.playPause()
-    //         }
-
-    //       } catch (e) {
-    //         console.error(e)
-    //       }
-    //     }
-    //   }
-    // })
-    this.scrollToEditorTop()
-    // load up
-    this.load()
   }
 }
 </script>

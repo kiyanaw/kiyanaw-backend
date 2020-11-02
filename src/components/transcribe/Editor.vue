@@ -1,54 +1,88 @@
 <template>
-  <v-container v-bind:class="{ locked: locked }" style="padding-top:3px;">
+  <v-container
+    :class="{ locked: locked }"
+    style="padding-top:3px;"
+  >
     <v-layout
       v-if="!region.isNote"
       class="region-editor-layout"
-      v-bind:class="{ inRegion: isInRegion, review: needsReview }"
+      :class="{ inRegion: isInRegion, review: needsReview }"
       style="position: relative"
     >
       <span class="region-index">{{ region.index }}</span>
-      <v-flex xs2 md1 v-on:click="playRegion">
+      <v-flex
+        xs2
+        md1
+        @click="playRegion"
+      >
         <div class="timestamps">
           <span class="time region-start">{{ normalTime(region.start) }}</span>
-          <br />
+          <br>
           <span class="time region-end">{{ normalTime(region.end) }}</span>
         </div>
       </v-flex>
 
-      <v-flex xs9 md10>
+      <v-flex
+        xs9
+        md10
+      >
         <div>
-          <div v-bind:id="'editor-' + region.id"></div>
+          <div :id="'editor-' + region.id" />
         </div>
       </v-flex>
 
-      <v-flex md1 xs1></v-flex>
+      <v-flex
+        md1
+        xs1
+      />
     </v-layout>
 
     <v-layout
       class="region-options-layout"
-      v-bind:class="{ isNote: region.isNote }"
-      v-on:click="stayFocused"
+      :class="{ isNote: region.isNote }"
+      @click="stayFocused"
     >
-      <v-flex xs2 md1>
-        <v-icon class="region-lock-icon" v-if="locked">mdi-lock</v-icon>
-        <div class="region-options-label" v-if="locked">{{ lockUser }}</div>
+      <v-flex
+        xs2
+        md1
+      >
+        <v-icon
+          v-if="locked"
+          class="region-lock-icon"
+        >
+          mdi-lock
+        </v-icon>
         <div
-          class="region-options-label label-translation"
+          v-if="locked"
+          class="region-options-label"
+        >
+          {{ lockUser }}
+        </div>
+        <div
           v-if="editing && canEdit & !region.isNote"
+          class="region-options-label label-translation"
         >
           English
         </div>
-        <div class="region-options-label label-note" v-if="region.isNote">
-          <v-icon color="#dbd9ce">mdi-note-outline</v-icon>
+        <div
+          v-if="region.isNote"
+          class="region-options-label label-note"
+        >
+          <v-icon color="#dbd9ce">
+            mdi-note-outline
+          </v-icon>
         </div>
       </v-flex>
 
-      <v-flex xs10 md10>
+      <v-flex
+        xs10
+        md10
+      >
         <div class="region-options-edit">
-          <div v-bind:id="'editor-translate-' + region.id"></div>
+          <div :id="'editor-translate-' + region.id" />
           <div v-if="editing & canEdit & !region.isNote">
             <div class="region-options-controls">
-              <a v-on:click="deleteRegion">Delete this region</a>
+              <a @click="deleteRegion">Delete this region</a>
               &nbsp;
               <span>
                 Version {{ region.version }} by {{ region.userLastUpdated }} --
@@ -61,14 +95,28 @@
       </v-flex>
     </v-layout>
 
-    <v-dialog v-model="dialog" persistent max-width="60%">
+    <v-dialog
+      v-model="dialog"
+      persistent
+      max-width="60%"
+    >
       <v-card>
-        <v-tabs vertical v-model="activeTab">
+        <v-tabs
+          v-model="activeTab"
+          vertical
+        >
           <v-tab :key="0">
-            <v-icon left>mdi-flag-outline</v-icon>&nbsp;&nbsp;Issues&nbsp;&nbsp;&nbsp;&nbsp;
+            <v-icon left>
+              mdi-flag-outline
+            </v-icon>&nbsp;&nbsp;Issues&nbsp;&nbsp;&nbsp;&nbsp;
           </v-tab>
-          <v-tab :disabled="!currentSelectionText" :key="1">
-            <v-icon left>mdi-flag-plus-outline</v-icon>New issue
+          <v-tab
+            :key="1"
+            :disabled="!currentSelectionText"
+          >
+            <v-icon left>
+              mdi-flag-plus-outline
+            </v-icon>New issue
           </v-tab>
 
           <!-- ISSUE DETAILS -->
@@ -76,16 +124,24 @@
             <v-layout v-if="selectedIssue">
               <v-list width="100%">
                 <v-subheader>
-                  <a v-on:click="selectedIssue = null">&larr; Back to issues</a>
+                  <a @click="selectedIssue = null">&larr; Back to issues</a>
                 </v-subheader>
                 <v-list-item>
                   <v-list-item-avatar>
-                    <v-icon color="error" v-if="!selectedIssue.resolved" large
-                      >mdi-alert-circle</v-icon
+                    <v-icon
+                      v-if="!selectedIssue.resolved"
+                      color="error"
+                      large
                     >
-                    <v-icon color="success" v-if="selectedIssue.resolved" large
-                      >mdi-check-circle</v-icon
+                      mdi-alert-circle
+                    </v-icon>
+                    <v-icon
+                      v-if="selectedIssue.resolved"
+                      color="success"
+                      large
                     >
+                      mdi-check-circle
+                    </v-icon>
                   </v-list-item-avatar>
 
                   <v-list-item-content>
@@ -95,7 +151,9 @@
                       }}</span>
                     </v-list-item-title>
                     <v-list-item-subtitle>
-                      <v-chip small>{{ selectedIssue.type }}</v-chip>
+                      <v-chip small>
+                        {{ selectedIssue.type }}
+                      </v-chip>
                       {{ timeAgo(new Date(Number(selectedIssue.createdAt))) }} by
                       {{ selectedIssue.owner }} (index: {{ selectedIssue.index }})
                     </v-list-item-subtitle>
@@ -107,15 +165,23 @@
                       rounded
                       small
                       outlined
-                      v-on:click="resolveIssue"
                       :color="selectedIssue.resolved ? 'error' : 'success'"
+                      @click="resolveIssue"
                     >
-                      <v-icon v-if="!selectedIssue.resolved" left
-                        >mdi-checkbox-marked-circle</v-icon
+                      <v-icon
+                        v-if="!selectedIssue.resolved"
+                        left
                       >
+                        mdi-checkbox-marked-circle
+                      </v-icon>
                       <span v-if="!selectedIssue.resolved">Resolve</span>
 
-                      <v-icon v-if="selectedIssue.resolved" left>mdi-checkbox-marked-circle</v-icon>
+                      <v-icon
+                        v-if="selectedIssue.resolved"
+                        left
+                      >
+                        mdi-checkbox-marked-circle
+                      </v-icon>
                       <span v-if="selectedIssue.resolved">Unresolve</span>
                     </v-btn>
                   </v-list-item-action>
@@ -127,35 +193,61 @@
 
                 <!-- COMMENT INPUT -->
                 <v-list-item>
-                  <v-text-field outlined dense v-model="newIssueCommentText" label="Add a comment">
+                  <v-text-field
+                    v-model="newIssueCommentText"
+                    outlined
+                    dense
+                    label="Add a comment"
+                  >
                     <template slot="append-outer">
-                      <v-btn outlined rounded small color="primary" v-on:click="addIssueComment"
-                        >Submit</v-btn
+                      <v-btn
+                        outlined
+                        rounded
+                        small
+                        color="primary"
+                        @click="addIssueComment"
                       >
+                        Submit
+                      </v-btn>
                     </template>
                   </v-text-field>
                 </v-list-item>
 
                 <!-- COMMENTS -->
                 <v-layout class="comments-list-container">
-                  <v-list dense width="100%" class="comments-list">
-                    <v-list-item v-for="comment of orderedIssueComments" :key="comment.createdAt">
+                  <v-list
+                    dense
+                    width="100%"
+                    class="comments-list"
+                  >
+                    <v-list-item
+                      v-for="comment of orderedIssueComments"
+                      :key="comment.createdAt"
+                    >
                       <v-list-item-icon>
-                        <v-icon v-if="user.name === comment.owner" color="primary"
-                          >mdi-comment</v-icon
+                        <v-icon
+                          v-if="user.name === comment.owner"
+                          color="primary"
                         >
-                        <v-icon v-if="user.name !== comment.owner" color="primary"
-                          >mdi-comment</v-icon
+                          mdi-comment
+                        </v-icon>
+                        <v-icon
+                          v-if="user.name !== comment.owner"
+                          color="primary"
                         >
+                          mdi-comment
+                        </v-icon>
                       </v-list-item-icon>
                       <v-list-item-content>
-                        <v-list-item-title class="issue-comment">{{
-                          comment.comment
-                        }}</v-list-item-title>
-                        <v-list-item-subtitle
-                          >{{ timeAgo(new Date(Number(comment.createdAt))) }} by
-                          {{ comment.owner }}</v-list-item-subtitle
-                        >
+                        <v-list-item-title class="issue-comment">
+                          {{
+                            comment.comment
+                          }}
+                        </v-list-item-title>
+                        <v-list-item-subtitle>
+                          {{ timeAgo(new Date(Number(comment.createdAt))) }} by
+                          {{ comment.owner }}
+                        </v-list-item-subtitle>
                       </v-list-item-content>
                     </v-list-item>
                   </v-list>
@@ -169,25 +261,52 @@
                 <v-list-item>
                   <h4>{{ issues.length }} issues</h4>
                 </v-list-item>
-                <v-list-item two-line v-for="issue in issues" :key="issue.id">
+                <v-list-item
+                  v-for="issue in issues"
+                  :key="issue.id"
+                  two-line
+                >
                   <v-list-item-content>
                     <v-list-item-title>
-                      <v-chip class="ma-2" :color="issue.resolved ? 'success' : 'error'" small>
+                      <v-chip
+                        class="ma-2"
+                        :color="issue.resolved ? 'success' : 'error'"
+                        small
+                      >
                         <v-avatar left>
-                          <v-icon v-if="!issue.resolved" small>mdi-alert-circle</v-icon>
-                          <v-icon v-if="issue.resolved" small>mdi-check-circle</v-icon>
+                          <v-icon
+                            v-if="!issue.resolved"
+                            small
+                          >
+                            mdi-alert-circle
+                          </v-icon>
+                          <v-icon
+                            v-if="issue.resolved"
+                            small
+                          >
+                            mdi-check-circle
+                          </v-icon>
                         </v-avatar>
                         {{ issue.type }}
                       </v-chip>
-                      <a v-on:click="selectedIssue = issue">
-                        <span v-bind:class="'issue-' + issue.issueType">{{ issue.text }}</span>
+                      <a @click="selectedIssue = issue">
+                        <span :class="'issue-' + issue.issueType">{{ issue.text }}</span>
                         {{ timeAgo(new Date(Number(issue.createdAt))) }} by {{ issue.owner }}
                       </a>
                       <span class="comment-count">
                         <v-icon small>mdi-comment</v-icon>
                         {{ issue.comments.length }}
-                        <v-btn icon small dark color="error" v-on:click="deleteIssue(issue.id)">
-                          <v-icon small color="error">mdi-delete</v-icon>
+                        <v-btn
+                          icon
+                          small
+                          dark
+                          color="error"
+                          @click="deleteIssue(issue.id)"
+                        >
+                          <v-icon
+                            small
+                            color="error"
+                          >mdi-delete</v-icon>
                         </v-btn>
                       </span>
                     </v-list-item-title>
@@ -198,27 +317,50 @@
           </v-tab-item>
 
           <v-tab-item>
-            <v-text-field label="Selection" readonly :value="currentSelectionText"></v-text-field>
+            <v-text-field
+              label="Selection"
+              readonly
+              :value="currentSelectionText"
+            />
             <v-select
+              ref="issueType"
               chips
               :items="['needs-help', 'indexing', 'new-word']"
-              ref="issueType"
               label="Issue type"
-            ></v-select>
-            <v-textarea ref="issueComment" solo label="Comments"></v-textarea>
+            />
+            <v-textarea
+              ref="issueComment"
+              solo
+              label="Comments"
+            />
           </v-tab-item>
         </v-tabs>
         <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn color="blue darken-1" v-if="!currentSelectionText" text @click="dialog = false"
-            >Close</v-btn
+          <v-spacer />
+          <v-btn
+            v-if="!currentSelectionText"
+            color="blue darken-1"
+            text
+            @click="dialog = false"
           >
-          <v-btn color="blue darken-1" v-if="currentSelectionText" text @click="dialog = false"
-            >Cancel</v-btn
+            Close
+          </v-btn>
+          <v-btn
+            v-if="currentSelectionText"
+            color="blue darken-1"
+            text
+            @click="dialog = false"
           >
-          <v-btn color="blue darken-1" v-if="currentSelectionText" text @click="onSubmitIssue"
-            >Submit</v-btn
+            Cancel
+          </v-btn>
+          <v-btn
+            v-if="currentSelectionText"
+            color="blue darken-1"
+            text
+            @click="onSubmitIssue"
           >
+            Submit
+          </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -352,6 +494,31 @@ export default {
         return []
       }
     },
+  },
+
+  mounted() {
+    this.locked = false
+
+    if (!this.region.isNote) {
+      this.mountMainEditor()
+    }
+    this.mountSecondEditor()
+
+    this.reportKnownWords(this.region.text)
+
+    this.bindEditorEvents()
+
+    // grab issues
+    this.issues = this.region.issues
+
+    // TODO: remove this, it's just for debugging.
+    window.quill = this.quill
+    window.cursors = this.cursors
+    window.quillTranslate = this.quillTranslate
+    window.cursorsTranslate = this.cursorsTranslate
+
+    // update the temporary translation value
+    // this._regionTranslation = this.region.translation
   },
 
   methods: {
@@ -976,31 +1143,6 @@ export default {
     timeAgo(date) {
       return timeAgo.format(date)
     },
-  },
-
-  mounted() {
-    this.locked = false
-
-    if (!this.region.isNote) {
-      this.mountMainEditor()
-    }
-    this.mountSecondEditor()
-
-    this.reportKnownWords(this.region.text)
-
-    this.bindEditorEvents()
-
-    // grab issues
-    this.issues = this.region.issues
-
-    // TODO: remove this, it's just for debugging.
-    window.quill = this.quill
-    window.cursors = this.cursors
-    window.quillTranslate = this.quillTranslate
-    window.cursorsTranslate = this.cursorsTranslate
-
-    // update the temporary translation value
-    // this._regionTranslation = this.region.translation
   },
 }
 </script>

@@ -1,39 +1,49 @@
-<template>    
-
+<template>
   <v-layout row>
     <v-flex xs6>
       <div class="morpheme-editor">
-        <div v-if="error" class="error">
+        <div
+          v-if="error"
+          class="error"
+        >
           {{ error }}
         </div>
 
-        <div class="loading" v-if="loading">
+        <div
+          v-if="loading"
+          class="loading"
+        >
           Loading...
         </div>
 
         <div v-if="word">
           <h1>Edit word</h1>
-          <v-text-field v-model="word.roman" label="SRO"></v-text-field>
-          <v-text-field v-model="word.definition" label="Description"></v-text-field>
+          <v-text-field
+            v-model="word.roman"
+            label="SRO"
+          />
+          <v-text-field
+            v-model="word.definition"
+            label="Description"
+          />
 
-          <v-spacer></v-spacer>
+          <v-spacer />
 
           <h2>derivation</h2>
           <p>
             <span v-for="morpheme in word.derivation">
-              <a>{{ morpheme }}</a>&nbsp;
+              <a>{{ morpheme }}</a>&nbsp; 
             </span>
           </p>
-
         </div>
-        <v-textarea label="Comments"></v-textarea>
-        <v-btn color="success">Save</v-btn><v-btn>Cancel</v-btn>
+        <v-textarea label="Comments" />
+        <v-btn color="success">
+          Save
+        </v-btn><v-btn>Cancel</v-btn>
       </div>
-
     </v-flex>
     <v-flex xs6>
-      <morpheme-search></morpheme-search>
-
+      <morpheme-search />
     </v-flex>
   </v-layout>
 </template>
@@ -42,7 +52,10 @@
 import corpus from '../services/corpus.js'
 import MorphemeSearch from './MorphemeSearch.vue'
 
-export default {
+export default { 
+  components: {
+    MorphemeSearch   
+  },
   // https://router.vuejs.org/guide/advanced/data-fetching.html#fetching-after-navigation
   data () {
     return {
@@ -68,9 +81,6 @@ export default {
         this.loading = false
       }
     }
-  },
-  components: {
-    MorphemeSearch
   }
 }
 </script>

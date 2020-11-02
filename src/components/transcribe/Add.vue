@@ -1,34 +1,46 @@
 <template>
   <v-container>
     <v-layout>
-      <v-flex xs1></v-flex>
-      <v-flex xs10 elevation-1 class="add-container">
+      <v-flex xs1 />
+      <v-flex
+        xs10
+        elevation-1
+        class="add-container"
+      >
         <h2>Upload media</h2>
-        <v-text-field label="Title" solo v-model="title"> </v-text-field>
+        <v-text-field
+          v-model="title"
+          label="Title"
+          solo
+        />
 
         <label>
           Select an MP3 or MP4 file:
           <input
-            type="file"
             id="file"
-            accept=".mp3, .mp4"
             ref="fileInput"
+            type="file"
+            accept=".mp3, .mp4"
             class="custom-file-input"
             @change="previewFiles"
-          />
+          >
         </label>
-        <br />
-        <br />
-        <v-btn small v-on:click="uploadFile" v-bind:disabled="disableUpload || loading">
+        <br>
+        <br>
+        <v-btn
+          small
+          :disabled="disableUpload || loading"
+          @click="uploadFile"
+        >
           Upload
         </v-btn>
         <v-progress-circular
           v-if="loading"
-          v-bind:value="progress"
+          :value="progress"
           color="purple"
-        ></v-progress-circular>
+        />
       </v-flex>
-      <v-flex xs1></v-flex>
+      <v-flex xs1 />
     </v-layout>
   </v-container>
 </template>
@@ -37,6 +49,20 @@
 import TranscriptionService from '../../services/transcriptions'
 
 export default {
+  data() {
+    return {
+      loading: false,
+      options: {},
+      inputFile: null,
+      title: null,
+      progress: 0
+    }
+  },
+  computed: {
+    disableUpload() {
+      return this.inputFile === null || this.title === null || this.title === ''
+    }
+  },
   methods: {
     async uploadFile() {
       this.loading = true
@@ -57,20 +83,6 @@ export default {
     previewFiles(evt) {
       this.inputFile = this.$refs.fileInput.files[0]
       console.log(this.inputFile)
-    }
-  },
-  computed: {
-    disableUpload() {
-      return this.inputFile === null || this.title === null || this.title === ''
-    }
-  },
-  data() {
-    return {
-      loading: false,
-      options: {},
-      inputFile: null,
-      title: null,
-      progress: 0
     }
   }
 }

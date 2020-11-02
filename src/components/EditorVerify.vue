@@ -1,36 +1,43 @@
 <template>    
   <div>
-
     <v-toolbar flat>
       <v-container class="tools">
-          <v-text-field
-            label="Search"
-            prepend-icon="search"
-            v-model="searchValue"
-          ></v-text-field>
+        <v-text-field
+          v-model="searchValue"
+          label="Search"
+          prepend-icon="search"
+        />
       </v-container>
     </v-toolbar>
 
-    <div v-if="error" class="error">
+    <div
+      v-if="error"
+      class="error"
+    >
       {{ error }}
     </div>
 
     <v-data-table
-        class="elevation-1"
-        :headers="headers"
-        :items="words"
-        :loading="loading"
-        :pagination.sync="pagination"
-        :rows-per-page-items="pagination.rowsPerPageItems"
-        :total-items="pagination.totalItems">
+      class="elevation-1"
+      :headers="headers"
+      :items="words"
+      :loading="loading"
+      :pagination.sync="pagination"
+      :rows-per-page-items="pagination.rowsPerPageItems"
+      :total-items="pagination.totalItems"
+    >
       <template v-slot:items="props">
-        <td><a v-on:click="editWord" v-bind:id="props.item._id">{{ props.item.roman }}</a></td>
+        <td>
+          <a
+            :id="props.item._id"
+            @click="editWord"
+          >{{ props.item.roman }}</a>
+        </td>
         <td>{{ props.item.derivation }}</td>
         <td>{{ props.item.definition }}</td>
         <td>{{ props.item.type }}</td>
       </template>
     </v-data-table>
-
   </div>
 </template>
 
@@ -60,9 +67,6 @@ export default {
       searchValue: ''
     }
   },
-  created () {
-    this.getUnverified()
-  },
   watch: {
     pagination: {
       handler () {
@@ -83,6 +87,9 @@ export default {
           })
       }
     }
+  },
+  created () {
+    this.getUnverified()
   },
   methods: {
     // data binding from https://codepen.io/paulpv/pen/zWPKao
