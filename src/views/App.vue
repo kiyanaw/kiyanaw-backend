@@ -13,7 +13,7 @@
 
       <v-divider></v-divider>
 
-      <v-list nav v-if="user">
+      <v-list v-if="user" nav>
         <v-list-item link href="/transcribe-list/">
           <v-list-item-icon>
             <v-icon color="white">mdi-pencil-box</v-icon>
@@ -26,12 +26,12 @@
 
       <v-divider></v-divider>
       <v-list nav>
-        <v-list-item link v-on:click="signOut" v-if="user">
+        <v-list-item v-if="user" link @click="signOut">
           <v-list-item-content>
-            <v-btn outlined color="warning">Sign out</v-btn>
+            <v-btn outlined data-test="sign-out-sidebar" color="warning">Sign out</v-btn>
           </v-list-item-content>
         </v-list-item>
-        <v-list-item link v-on:click="signOut" v-if="!user">
+        <v-list-item v-if="!user" link @click="signOut">
           <v-list-item-content>
             <v-btn outlined color="warning" href="/sign-in/">Sign in</v-btn>
           </v-list-item-content>
@@ -51,18 +51,9 @@ import UserService from '../services/user'
 export default {
   name: 'App',
   components: {},
-  methods: {
-    signOut() {
-      console.log('sign out clicked')
-      EventBus.$emit('signOut')
-    },
-    goToTranscribe() {
-      this.$router.push('/transcribe-list')
-    }
-  },
   data() {
     return {
-      user: null
+      user: null,
     }
   },
   async mounted() {
@@ -72,7 +63,16 @@ export default {
       console.warn('Error getting user on mount', error)
       this.user = null
     }
-  }
+  },
+  methods: {
+    signOut() {
+      console.log('sign out clicked')
+      EventBus.$emit('signOut')
+    },
+    goToTranscribe() {
+      this.$router.push('/transcribe-list')
+    },
+  },
 }
 </script>
 

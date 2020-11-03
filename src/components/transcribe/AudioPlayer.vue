@@ -10,86 +10,40 @@
       <h5>Loading waveform...</h5>
     </div>-->
 
-    <div
-      :style="{ visibility: loading ? 'hidden' : 'visible' }"
-      class="waveform-container"
-    >
+    <div :style="{ visibility: loading ? 'hidden' : 'visible' }" class="waveform-container">
       <div id="minimap">
         <v-layout>
-          <v-flex
-            md6
-            xs6
-            class="media-title"
-          >
-            <a
-              v-if="canEdit"
-              @click="onEditTitle"
-            >{{ title }}</a>
+          <v-flex md6 xs6 class="media-title">
+            <a v-if="canEdit" @click="onEditTitle">{{ title }}</a>
             <span v-if="!canEdit">{{ title }}</span>
           </v-flex>
-          <v-flex
-            md6
-            xs6
-            class="main-time"
-          >
+          <v-flex md6 xs6 class="main-time">
             {{ normalTime(currentTime) }}/{{ normalTime(maxTime) }}
           </v-flex>
         </v-layout>
       </div>
-      <div
-        id="waveform"
-        @click="waveformClicked"
-      />
+      <div id="waveform" @click="waveformClicked" />
       <div id="timeline" />
       <div id="controls" />
       <v-layout id="channel-strip">
-        <v-flex
-          xs6
-          class="controls"
-        >
-          <v-btn
-            icon
-            small
-            class="control-btn"
-            @click="playPause"
-          >
-            <v-icon v-if="!playing">
-              mdi-play-circle
-            </v-icon>
-            <v-icon v-if="playing">
-              mdi-pause
-            </v-icon>
+        <v-flex xs6 class="controls">
+          <v-btn icon small class="control-btn" data-testId="play-button" @click="playPause">
+            <v-icon v-if="!playing"> mdi-play-circle </v-icon>
+            <v-icon v-if="playing"> mdi-pause </v-icon>
           </v-btn>
           <v-btn
             v-if="canEdit"
             icon
             small
             class="control-btn"
+            data-testId="mark-region"
             @click="markRegion"
           >
-            <v-icon
-              v-if="!currentRegion"
-              small
-            >
-              mdi-contain-start
-            </v-icon>
-            <v-icon
-              v-if="currentRegion"
-              small
-            >
-              mdi-contain-end
-            </v-icon>
+            <v-icon v-if="!currentRegion" small> mdi-contain-start </v-icon>
+            <v-icon v-if="currentRegion" small> mdi-contain-end </v-icon>
           </v-btn>
-          <v-btn
-            icon
-            small
-            :disabled="!currentRegion"
-            class="control-btn"
-            @click="cancelRegion"
-          >
-            <v-icon small>
-              mdi-close-circle
-            </v-icon>
+          <v-btn icon small :disabled="!currentRegion" class="control-btn" @click="cancelRegion">
+            <v-icon small> mdi-close-circle </v-icon>
           </v-btn>
 
           <v-btn
@@ -99,18 +53,10 @@
             class="control-btn"
             @click="onToggleRegionType"
           >
-            <v-icon small>
-              mdi-note-outline
-            </v-icon>
+            <v-icon small> mdi-note-outline </v-icon>
           </v-btn>
 
-          <v-btn
-            icon
-            disabled
-            class="control-btn"
-          >
-            |
-          </v-btn>
+          <v-btn icon disabled class="control-btn"> | </v-btn>
 
           <!-- SELECTION CONTROLS -->
           <v-btn
@@ -120,9 +66,7 @@
             small
             @click="onFlagSelectionClick"
           >
-            <v-icon small>
-              mdi-flag-outline
-            </v-icon>
+            <v-icon small> mdi-flag-outline </v-icon>
           </v-btn>
 
           <v-btn
@@ -132,9 +76,7 @@
             small
             @click="onIgnoreSelectionClick"
           >
-            <v-icon small>
-              mdi-alphabetical-off
-            </v-icon>
+            <v-icon small> mdi-alphabetical-off </v-icon>
           </v-btn>
 
           <v-btn
@@ -144,9 +86,7 @@
             small
             @click="onClearFormatClick"
           >
-            <v-icon small>
-              mdi-cancel
-            </v-icon>
+            <v-icon small> mdi-cancel </v-icon>
           </v-btn>
 
           <!-- REGION CONTROLS -->
@@ -158,46 +98,18 @@
 
         <!-- <v-flex xs6 class="selection-controls">{{ bindButtonsRegion}}</v-flex> -->
 
-        <v-flex
-          md3
-          hidden-sm-and-down
-        >
-          <v-slider
-            v-model="zoom"
-            max="75"
-            min="5"
-            class="slider"
-            condensed
-          >
+        <v-flex md3 hidden-sm-and-down>
+          <v-slider v-model="zoom" max="75" min="5" class="slider" condensed>
             <template v-slot:prepend>
-              <v-icon
-                medium
-                @click="zoom = 40"
-              >
-                mdi-magnify-plus-outline
-              </v-icon>
+              <v-icon medium @click="zoom = 40"> mdi-magnify-plus-outline </v-icon>
             </template>
           </v-slider>
         </v-flex>
 
-        <v-flex
-          md3
-          hidden-sm-and-down
-          class="controls"
-        >
-          <v-slider
-            v-model="speed"
-            max="150"
-            min="50"
-            class="slider"
-          >
+        <v-flex md3 hidden-sm-and-down class="controls">
+          <v-slider v-model="speed" max="150" min="50" class="slider">
             <template v-slot:prepend>
-              <v-icon
-                medium
-                @click="speed = 100"
-              >
-                mdi-run
-              </v-icon>
+              <v-icon medium @click="speed = 100"> mdi-run </v-icon>
             </template>
           </v-slider>
         </v-flex>
@@ -215,11 +127,11 @@
         videoLeft: videoLeft,
         videoRight: !videoLeft,
         video: true,
-        videoSmall: $vuetify.breakpoint.xsOnly
+        videoSmall: $vuetify.breakpoint.xsOnly,
       }"
       @click="videoLeft = !videoLeft"
     >
-      <source :src="source">
+      <source :src="source" />
       <v-icon>mdi-swap-horizontal</v-icon>
     </video>
   </v-layout>
@@ -229,16 +141,16 @@
 import WaveSurfer from 'wavesurfer.js'
 import RegionPlugin from 'wavesurfer.js/dist/plugin/wavesurfer.regions.min.js'
 import TimelinePlugin from 'wavesurfer.js/dist/plugin/wavesurfer.timeline.min.js'
-import MinimapPlugin from 'wavesurfer.js/dist/plugin/wavesurfer.minimap.min.js'
+// import MinimapPlugin from 'wavesurfer.js/dist/plugin/wavesurfer.minimap.min.js'
 
-import soundtouch from './lib/soundtouch'
+// import soundtouch from './lib/soundtouch'
 import utils from './utils'
-import Timeout from 'smart-timeout'
+// import Timeout from 'smart-timeout'
 
 import 'mediaelement'
 // import { TranscribeService } from 'aws-sdk'
 
-import TranscriptionService from '../../services/transcriptions'
+// import TranscriptionService from '../../services/transcriptions'
 
 let surfer = null
 // let playingRegionId = null
@@ -274,7 +186,7 @@ export default {
     'regions',
     'isVideo',
     'title',
-    'editingRegionId'
+    'editingRegionId',
   ],
   data() {
     return {
@@ -294,20 +206,20 @@ export default {
       showNoteControls: false,
       showIgnoreControl: false,
       showIssueControl: false,
-      issueSelected: false
+      issueSelected: false,
     }
   },
   watch: {
-    regions(newValue, oldValue) {
-      // this.renderRegions(newValue)
-    },
-    zoom(newValue, oldValue) {
+    // regions(newValue, oldValue) {
+    //   // this.renderRegions(newValue)
+    // },
+    zoom(newValue) {
       surfer.zoom(newValue)
       localStorage.zoom = newValue
     },
-    speed(newValue, oldValue) {
+    speed(newValue) {
       surfer.setPlaybackRate(newValue / 100)
-    }
+    },
   },
 
   async mounted() {
@@ -323,13 +235,13 @@ export default {
       barWidth: 2,
       plugins: [
         RegionPlugin.create({
-          regions: []
+          regions: [],
         }),
         TimelinePlugin.create({
-          container: '#timeline'
-        })
+          container: '#timeline',
+        }),
         // TODO: try the minimap plugin again at some point, wasn't working with peaks data
-      ]
+      ],
     })
 
     surfer.on('audioprocess', (event) => {
@@ -343,7 +255,7 @@ export default {
     /**
      * TODO: there are like 3 'ready' handlers
      */
-    surfer.on('ready', (event) => {
+    surfer.on('ready', () => {
       me.maxTime = surfer.backend.getDuration()
       // me.regions.forEach(function(region) {
       //   surfer.addRegion(region)
@@ -390,7 +302,7 @@ export default {
     /**
      * This event fires when both a region is created, and when it is updated.
      */
-    surfer.on('region-update-end', function(event) {
+    surfer.on('region-update-end', function (event) {
       me.$emit('region-updated', event)
     })
 
@@ -427,15 +339,15 @@ export default {
       this.$emit('edit-title')
     },
 
-    onToggleRegionType: function() {
+    onToggleRegionType: function () {
       this.$emit('toggle-region-type')
     },
 
-    onPlayerSeek: function(progressPercent) {
+    onPlayerSeek: function (progressPercent) {
       this.currentTime = this.maxTime * progressPercent
     },
 
-    waveformClicked: function() {
+    waveformClicked: function () {
       // clear out any pending region if we click somewhere in the waveform
       if (this.pendingInboundRegion) {
         this.onRegionOut(this.pendingInboundRegion)
@@ -443,7 +355,7 @@ export default {
       }
     },
 
-    loadIsReady: function() {
+    loadIsReady: function () {
       this.loading = false
       this.renderRegions()
       if (this.inboundRegion) {
@@ -459,11 +371,11 @@ export default {
       this.$emit('waveform-ready')
     },
 
-    cancelRegion: function() {
+    cancelRegion: function () {
       this.currentRegion = null
     },
 
-    playPause: function() {
+    playPause: function () {
       // check if there's an inbound region we need to play, otherwise just play
       if (this.pendingInboundRegion) {
         this.playRegion(this.pendingInboundRegion)
@@ -473,12 +385,12 @@ export default {
       }
     },
 
-    markRegion: function() {
+    markRegion: function () {
       if (this.currentRegion) {
         const regionData = {
           id: `wavesurfer_${+new Date()}`,
           start: this.currentRegion,
-          end: surfer.getCurrentTime()
+          end: surfer.getCurrentTime(),
         }
         surfer.addRegion(regionData)
         this.$emit('region-updated', regionData)
@@ -488,7 +400,7 @@ export default {
       }
     },
 
-    normalTime: function(value) {
+    normalTime: function (value) {
       return utils.floatToMSM(value)
     },
 
@@ -510,7 +422,7 @@ export default {
           region.resize = this.canEdit
           region.drag = this.canEdit
           region.attributes = {
-            label: realIndex
+            label: realIndex,
           }
           surfer.addRegion(region)
           realIndex = realIndex + 1
@@ -537,7 +449,7 @@ export default {
     /** */
     onRegionIn(regionName) {
       document.querySelector(
-        `[data-id="${regionName}"]`
+        `[data-id="${regionName}"]`,
       ).style.backgroundColor = regionHighlightedBackground
       this.$emit('region-in', { id: regionName })
     },
@@ -545,7 +457,7 @@ export default {
     /** */
     onRegionOut(regionName) {
       document.querySelector(
-        `[data-id="${regionName}"]`
+        `[data-id="${regionName}"]`,
       ).style.backgroundColor = regionRegularBackground
       this.$emit('region-out', { id: regionName })
     },
@@ -557,7 +469,7 @@ export default {
         this.showIgnoreControl = !!event
         this.showIssueControl = !!event
       } else if (event['issue-needs-help']) {
-        const issue = event['issue-needs-help']
+        // const issue = event['issue-needs-help']
         this.showRegionControls = false
         this.showIgnoreControl = false
         this.showIssueControl = true
@@ -584,8 +496,8 @@ export default {
 
     onClearFormatClick() {
       this.emitSelectionAction('clear-format')
-    }
-  }
+    },
+  },
 }
 </script>
 

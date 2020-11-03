@@ -233,7 +233,7 @@ import Quill from 'quill'
 import QuillCursors from 'quill-cursors'
 import utils from './utils'
 import Lex from '../../services/lexicon'
-import UserService from '../../services/user'
+// import UserService from '../../services/user'
 
 import en from 'javascript-time-ago/locale/en'
 import TimeAgo from 'javascript-time-ago'
@@ -268,10 +268,10 @@ Parchment.register(IssueIndexing)
 Parchment.register(IssueNewWord)
 Quill.register('modules/cursors', QuillCursors)
 
-let typingTimer
-let cursorTimer
+// let typingTimer
+// let cursorTimer
 
-let blurFlag = false
+// let blurFlag = false
 const ISSUES_TAB = 0
 const NEW_ISSUE_TAB = 1
 
@@ -322,6 +322,7 @@ export default {
       // if (inRegions && regionId) {
       //   return this.inRegions.indexOf(this.region.id) > -1
       // }
+      return null
     },
 
     /**
@@ -342,12 +343,10 @@ export default {
      */
     orderedIssueComments() {
       if (this.selectedIssue) {
-        return this.selectedIssue.comments.sort(function (a, b) {
-          var keyA = a.createdAt,
-            keyB = b.createdAt
-          // Compare the 2 dates
-          if (keyA < keyB) return 1
-          if (keyA > keyB) return -1
+        const comments = this.selectedIssue.comments
+        return comments.sort((a, b) => {
+          if (a.createdAt < b.createdAt) return 1
+          if (a.createdAt > b.createdAt) return -1
           return 0
         })
       } else {
@@ -729,7 +728,7 @@ export default {
     /**
      * We clicked one of the region action buttons, now we need to deal with it.
      */
-    onSelectionAction(action, value) {
+    onSelectionAction(action) {
       const formats = this.quill.getFormat(this.currentSelection)
       if (action === 'flag-selection') {
         console.log('formats under selection', formats)
@@ -765,7 +764,7 @@ export default {
       }
     },
 
-    async onEditorSelectionChange(range, oldRange, source) {
+    async onEditorSelectionChange(range) {
       window.quill = this.quill
       // save selections for future use
       if (!this.locked) {
@@ -777,7 +776,7 @@ export default {
             // just a cursor, check for format
             // const [leaf, offset] = this.quill.getLeaf(range.index)
 
-            const format = this.quill.getFormat(range)
+            // const format = this.quill.getFormat(range)
             // if there are any issues in this region, enable the button
             if (this.issues.length) {
               this.$emit('text-selection', { 'issue-needs-help': true })
@@ -856,7 +855,7 @@ export default {
         this.quillTranslate.on('text-change', this.onTranslationTextChange)
 
         // TODO: move this somewhere we can test it
-        this.quillTranslate.on('selection-change', (range, oldRange, source) => {
+        this.quillTranslate.on('selection-change', (range) => {
           if (!this.locked) {
             if (range) {
               Timeout.clear(`cursor-change-timeout-secondary-${this.region.id}`)
