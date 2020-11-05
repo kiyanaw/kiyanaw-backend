@@ -26,14 +26,14 @@
 
       <v-divider></v-divider>
       <v-list nav>
-        <v-list-item v-if="user" link @click="signOut">
+        <v-list-item v-if="signedIn" link @click="signOut">
           <v-list-item-content>
-            <v-btn outlined data-test="sign-out-sidebar" color="warning">Sign out</v-btn>
+            <v-btn outlined data-test="sign-out-sidebard" color="warning">Sign out</v-btn>
           </v-list-item-content>
         </v-list-item>
-        <v-list-item v-if="!user" link @click="signOut">
+        <v-list-item v-if="!signedIn" link @click="signOut">
           <v-list-item-content>
-            <v-btn outlined color="warning" href="/sign-in/">Sign in</v-btn>
+            <v-btn outlined color="warning" href="/signin/">Sign in</v-btn>
           </v-list-item-content>
         </v-list-item>
       </v-list>
@@ -45,32 +45,23 @@
 </template>
 
 <script>
-import { EventBus } from '../event-bus.js'
-import UserService from '../services/user'
+import { mapGetters, mapActions } from 'vuex'
 
 export default {
   name: 'App',
   components: {},
-  data() {
-    return {
-      user: null,
-    }
+  computed: {
+    ...mapGetters(['user', 'signedIn']),
   },
   async mounted() {
-    try {
-      this.user = await UserService.getUser()
-    } catch (error) {
-      console.warn('Error getting user on mount', error)
-      this.user = null
-    }
+    this.getUser()
   },
+
   methods: {
+    ...mapActions(['getUser', 'setUser']),
+
     signOut() {
-      console.log('sign out clicked')
-      EventBus.$emit('signOut')
-    },
-    goToTranscribe() {
-      this.$router.push('/transcribe-list')
+      this.$router.push('/signin')
     },
   },
 }
@@ -87,20 +78,21 @@ body {
 body {
   height: 100vh;
 }
-/* .main > div {
-  padding-left: 15px;
-} */
+
 .drawer-left {
   background-color: #305880 !important;
 }
+
 .v-navigation-drawer .v-list-item__title {
   color: #d1e0ee !important;
   text-transform: uppercase;
   font-weight: bold;
 }
+
 .v-navigation-drawer .v-list-item__icon {
   margin-right: 20px !important;
 }
+
 .drawer-title {
   color: white;
   text-shadow: 1px 1px black;

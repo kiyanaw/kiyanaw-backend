@@ -83,8 +83,8 @@ export default {
      */
     async loadTranscriptionList() {
       const currentUser = await UserService.getUser()
+      console.log('currentUser', currentUser)
       this.list = await TranscriptionService.listTranscriptions(currentUser.name)
-      console.log(this.list)
       this.loading = false
     },
     timeAgo(date) {

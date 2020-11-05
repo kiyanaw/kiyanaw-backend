@@ -1,12 +1,6 @@
 <template>
-  <v-container
-    grid-list-md
-    text-xs-center
-  >
-    <v-layout
-      row
-      wrap
-    >
+  <v-container grid-list-md text-xs-center>
+    <v-layout row wrap>
       <v-flex xs3 />
       <v-flex xs3>
         <v-spacer />
@@ -23,52 +17,26 @@
 </template>
 
 <script>
-import { Auth } from 'aws-amplify'
 import { AmplifyEventBus } from 'aws-amplify-vue'
-import { mapActions } from 'vuex'
-
-import { EventBus } from '../event-bus.js'
-import Router from '../router.js'
-
-EventBus.$on('signOut', () => {
-  Auth.signOut()
-  Router.push('/signin')
-})
+import { mapGetters, mapActions } from 'vuex'
 
 export default {
-  data() {
-    return {
-      // signedIn: false
-    }
-  },
   computed: {
-    signedIn() {
-      return this.$store.state.signedIn
-    }
-  }, 
-  created() {
-    this.findUser()
+    ...mapGetters(['user', 'signedIn']),
+  },
+
+  mounted() {
     AmplifyEventBus.$on('authState', (info) => {
       if (info === 'signedIn') {
-        this.findUser()
+        this.getUser()
+        this.$router.push('/transcribe-list')
       } else {
-        // this.signedIn = false
-        this.setSignedIn(false)
+        this.setUser(null)
       }
     })
   },
   methods: {
-    ...mapActions(['setUser', 'setSignedIn']),
-    async findUser() {
-      try {
-        const user = await Auth.currentAuthenticatedUser()
-        this.setSignedIn(true)
-        this.setUser(user)
-        this.$router.push('/transcribe-list')
-      } catch (error) {
-        this.setSignedIn(false)
-      }
-    }
-  }
+    ...mapActions(['getUser', 'setUser']),
+  },
 }
 </script>

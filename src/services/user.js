@@ -4,12 +4,12 @@ import {
   createCursor,
   updateCursor,
   createRegionLock,
-  deleteRegionLock
+  deleteRegionLock,
 } from '../graphql/mutations'
 import { onUpdateCursor, onCreateRegionLock, onDeleteRegionLock } from '../graphql/subscriptions'
 import { listRegionLocks } from '../graphql/queries'
 
-import { API, graphqlOperation, Storage } from 'aws-amplify'
+import { API, graphqlOperation } from 'aws-amplify'
 
 let user
 let cursorSubscription = null
@@ -26,9 +26,14 @@ export default {
     }
     return {
       name: user.username,
-      email: user.attributes.email
+      email: user.attributes.email,
     }
   },
+
+  async flush() {
+    Auth.signOut()
+  },
+
   async getCredentials() {
     return Auth.currentCredentials()
   },
@@ -45,9 +50,9 @@ export default {
           input: {
             id: details.user,
             user: details.user,
-            cursor: JSON.stringify(details.cursor)
-          }
-        })
+            cursor: JSON.stringify(details.cursor),
+          },
+        }),
       )
     } catch (error) {
       // cursor object probably didn't exist
@@ -56,9 +61,9 @@ export default {
           input: {
             id: details.user,
             user: details.user,
-            cursor: JSON.stringify(details.cursor)
-          }
-        })
+            cursor: JSON.stringify(details.cursor),
+          },
+        }),
       )
     }
     // console.log('cursor', result)
@@ -82,7 +87,7 @@ export default {
         },
         error: (error) => {
           console.warn('onUpdateCursor subscription error', error)
-        }
+        },
       })
     }
     cursorSubscribers.push(callback)
@@ -93,7 +98,6 @@ export default {
     // if we don't have a lock already, attempt one
     if (!myLocks[regionId]) {
       const user = await this.getUser()
-      let newLock
       if (Object.keys(myLocks).includes(regionId)) {
         return true
       } else {
@@ -102,9 +106,9 @@ export default {
             id: regionId,
             user: user.name,
             deleteTime: Number((+new Date() / 1000).toFixed(0)) + 300, // 5 minutes from now
-            transcriptionId
+            transcriptionId,
           }
-          newLock = await API.graphql(graphqlOperation(createRegionLock, { input: input }))
+          await API.graphql(graphqlOperation(createRegionLock, { input: input }))
         } catch (error) {
           console.error(error)
           delete myLocks[regionId]
@@ -135,7 +139,7 @@ export default {
     delete myLocks[regionId]
     try {
       await API.graphql(
-        graphqlOperation(deleteRegionLock, { input: { id: regionId, transcriptionId } })
+        graphqlOperation(deleteRegionLock, { input: { id: regionId, transcriptionId } }),
       )
     } catch (error) {
       console.error(error)
@@ -164,7 +168,7 @@ export default {
         },
         error: (error) => {
           console.warn('Could not subscribe to locks', error)
-        }
+        },
       })
     }
     if (!deleteLockSubscription) {
@@ -172,7 +176,7 @@ export default {
         next: (lockData) => {
           // console.log('incoming UNlock', lockData)
           const data = lockData.value.data.onDeleteRegionLock
-          const now = Number(+new Date()) / 1000
+          // const now = Number(+new Date()) / 1000
           console.log('incoming UNlock', data)
           // TODO: check TTL on this
           if (data.user !== user.name) {
@@ -187,7 +191,7 @@ export default {
         },
         error: (error) => {
           console.warn('Could not subscribe to locks', error)
-        }
+        },
       })
     }
     lockSubscribers.push(callback)
@@ -196,7 +200,7 @@ export default {
   async getRegionLocks(transcriptionId) {
     const user = await this.getUser()
     const response = await API.graphql(
-      graphqlOperation(listRegionLocks, { input: { transcriptionId: transcriptionId } })
+      graphqlOperation(listRegionLocks, { input: { transcriptionId: transcriptionId } }),
     )
     // console.log('all region locks', response.data)
     if (response.data) {
@@ -211,5 +215,5 @@ export default {
       return locks
     }
     return []
-  }
+  },
 }

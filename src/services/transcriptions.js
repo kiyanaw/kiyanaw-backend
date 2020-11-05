@@ -1,4 +1,3 @@
-
 import UUID from 'uuid'
 import { API, graphqlOperation, Storage } from 'aws-amplify'
 
@@ -31,9 +30,9 @@ function floatToMSM(value) {
   return `${minutes}:${pad(seconds, 2)}.${millis || '00'}`
 }
 
-let createRegionSubscription = null
-let updateRegionSubscription = null
-let deleteRegionSubscription = null
+// let createRegionSubscription = null
+// let updateRegionSubscription = null
+// let deleteRegionSubscription = null
 const regionSubscribers = []
 
 /**
@@ -49,7 +48,7 @@ const regionSubscribers = []
  */
 class Transcription {
   constructor(data) {
-    console.log(data)
+    // console.log(data)
     this.id = data.id
     this.data = data
     this.title = data.title
@@ -98,11 +97,11 @@ export default {
    * @param {string} user Currently unused.
    * @returns {Promise<Array<Transcription>>}
    */
-  async listTranscriptions(user) {
+  async listTranscriptions() {
     let results = []
     try {
       results = await API.graphql(graphqlOperation(queries.listTranscriptions, { limit: 100 }))
-      console.log(results)
+      // console.log(results)
     } catch (error) {
       console.error('Could not load transcriptions', error)
     }
@@ -130,7 +129,7 @@ export default {
       ACL: 'public-read',
       expires: new Date('Wed, 31 Dec 2098 23:59:59 GMT'),
       cacheControl: 'max-age=3600000',
-      progressCallback: progressCallback
+      progressCallback: progressCallback,
     })
     const key = fileResult.key
     const bucket = EnvService.getUserBucket()
@@ -138,7 +137,7 @@ export default {
     const result = await this.createDocument({
       title,
       source,
-      type: file.type
+      type: file.type,
     })
     return result.data.createTranscription
   },
@@ -163,7 +162,7 @@ export default {
       coverage: 0,
       id: id,
       dateLastUpdated: +new Date(),
-      contributors: '[]'
+      contributors: '[]',
     }
     return API.graphql(graphqlOperation(mutations.createTranscription, { input: input }))
   },
@@ -173,7 +172,7 @@ export default {
     try {
       let [transcription, regions] = await Promise.all([
         API.graphql(graphqlOperation(queries.getTranscription, { id: id, author: author })),
-        API.graphql(graphqlOperation(queries.byTranscription, { transcriptionId: id, limit: 400 }))
+        API.graphql(graphqlOperation(queries.byTranscription, { transcriptionId: id, limit: 400 })),
       ])
       transcription = new Transcription(transcription.data.getTranscription)
       transcription.regions = regions.data.byTranscription.items.map((item) => {
@@ -200,7 +199,7 @@ export default {
       text: JSON.stringify(regionData.text),
       dateLastUpdated: `${+new Date()}`,
       userLastUpdated: (await UserService.getUser()).name,
-      transcriptionId: transcriptionId
+      transcriptionId: transcriptionId,
     }
     console.log(input)
     const update = await API.graphql(graphqlOperation(mutations.createRegion, { input: input }))
@@ -222,7 +221,7 @@ export default {
       dateLastUpdated: `${+new Date()}`,
       userLastUpdated: user.name,
       transcriptionId: transcriptionId,
-      expectedVersion: region.version
+      expectedVersion: region.version,
     }
     const update = await API.graphql(graphqlOperation(mutations.updateRegion, { input: input }))
     region.version = region.version + 1
@@ -235,9 +234,9 @@ export default {
       graphqlOperation(mutations.deleteRegion, {
         input: {
           id: region.id,
-          expectedVersion: region.version
-        }
-      })
+          expectedVersion: region.version,
+        },
+      }),
     )
     return true
   },
@@ -246,7 +245,7 @@ export default {
     const user = await UserService.getUser()
     if (!this.createRegionSubscription) {
       this.createRegionSubscription = API.graphql(
-        graphqlOperation(subscriptions.onCreateRegion)
+        graphqlOperation(subscriptions.onCreateRegion),
       ).subscribe({
         next: (lockData) => {
           const data = lockData.value.data.onCreateRegion
@@ -262,12 +261,12 @@ export default {
         },
         error: (error) => {
           console.warn('Unable to listen for region create', error)
-        }
+        },
       })
     }
     if (!this.updateRegionSubscription) {
       this.updateRegionsbsupdateRegionSubscription = API.graphql(
-        graphqlOperation(subscriptions.onUpdateRegion)
+        graphqlOperation(subscriptions.onUpdateRegion),
       ).subscribe({
         next: (lockData) => {
           const data = lockData.value.data.onUpdateRegion
@@ -284,12 +283,12 @@ export default {
         },
         error: (error) => {
           console.warn('Unable to listen for region update', error)
-        }
+        },
       })
     }
     if (!this.deleteRegionSubscription) {
       this.updateRegionsbsdeleteRegionSubscription = API.graphql(
-        graphqlOperation(subscriptions.onDeleteRegion)
+        graphqlOperation(subscriptions.onDeleteRegion),
       ).subscribe({
         next: (lockData) => {
           const data = lockData.value.data.onDeleteRegion
@@ -306,7 +305,7 @@ export default {
         },
         error: (error) => {
           console.warn('Unable to listen for region delete', error)
-        }
+        },
       })
     }
     regionSubscribers.push(callback)
@@ -316,8 +315,8 @@ export default {
   async updateTranscription(data) {
     console.log('update transcription data', data)
     const update = await API.graphql(
-      graphqlOperation(mutations.updateTranscription, { input: data })
+      graphqlOperation(mutations.updateTranscription, { input: data }),
     )
     return update.data.updateTranscription
-  }
+  },
 }
