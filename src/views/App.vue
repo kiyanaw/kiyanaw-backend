@@ -28,7 +28,7 @@
       <v-list nav>
         <v-list-item v-if="signedIn" link @click="signOut">
           <v-list-item-content>
-            <v-btn outlined data-test="sign-out-sidebard" color="warning">Sign out</v-btn>
+            <v-btn outlined data-test="sign-out-sidebar" color="warning">Sign out</v-btn>
           </v-list-item-content>
         </v-list-item>
         <v-list-item v-if="!signedIn" link @click="signOut">
