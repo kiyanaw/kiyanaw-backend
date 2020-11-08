@@ -13,6 +13,7 @@ export const getTranscription = `query GetTranscription($id: ID!) {
     comments
     tags
     source
+    index
     title
     type
     contributors
@@ -44,6 +45,7 @@ export const listTranscriptions = `query ListTranscriptions(
       comments
       tags
       source
+      index
       title
       type
       contributors
@@ -194,6 +196,7 @@ export const byTitle = `query ByTitle(
       comments
       tags
       source
+      index
       title
       type
       contributors

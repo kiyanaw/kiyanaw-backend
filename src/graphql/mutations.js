@@ -16,6 +16,7 @@ export const createTranscription = `mutation CreateTranscription(
     comments
     tags
     source
+    index
     title
     type
     contributors
@@ -37,6 +38,7 @@ export const updateTranscription = `mutation UpdateTranscription(
     comments
     tags
     source
+    index
     title
     type
     contributors
@@ -58,6 +60,7 @@ export const deleteTranscription = `mutation DeleteTranscription(
     comments
     tags
     source
+    index
     title
     type
     contributors

@@ -33,10 +33,11 @@
       }
     },
     {
-      "files": ["node_modules/**/*.*", "src/aws-exports.js"],
+      "files": ["node_modules/**/*.*"],
       "rules": {
         "strict": "off"
       }
     }
-  ]
+  ],
+  "ignorePatterns": ["src/aws-exports.js", "node_modules/**/*.*"]
 }

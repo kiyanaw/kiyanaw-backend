@@ -13,6 +13,7 @@ export const onCreateTranscription = `subscription OnCreateTranscription {
     comments
     tags
     source
+    index
     title
     type
     contributors
@@ -31,6 +32,7 @@ export const onUpdateTranscription = `subscription OnUpdateTranscription {
     comments
     tags
     source
+    index
     title
     type
     contributors
@@ -49,6 +51,7 @@ export const onDeleteTranscription = `subscription OnDeleteTranscription {
     comments
     tags
     source
+    index
     title
     type
     contributors

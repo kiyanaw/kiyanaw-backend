@@ -24,7 +24,14 @@
 			"providerPlugin": "awscloudformation",
 			"output": {
 				"authConfig": {
-					"additionalAuthenticationProviders": [],
+					"additionalAuthenticationProviders": [
+						{
+							"authenticationType": "AMAZON_COGNITO_USER_POOLS",
+							"userPoolConfig": {
+								"userPoolId": "authkiyanaw664b231a"
+							}
+						}
+					],
 					"defaultAuthentication": {
 						"authenticationType": "AWS_IAM"
 					}
