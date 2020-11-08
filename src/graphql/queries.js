@@ -1,59 +1,6 @@
 /* eslint-disable */
 // this is an auto generated file. This will be overwritten
 
-export const getTranscription = `query GetTranscription($id: ID!) {
-  getTranscription(id: $id) {
-    id
-    author
-    coverage
-    dateLastUpdated
-    userLastUpdated
-    length
-    issues
-    comments
-    tags
-    source
-    index
-    title
-    type
-    contributors
-  }
-}
-`;
-export const listTranscriptions = `query ListTranscriptions(
-  $id: ID
-  $filter: ModelTranscriptionFilterInput
-  $limit: Int
-  $nextToken: String
-  $sortDirection: ModelSortDirection
-) {
-  listTranscriptions(
-    id: $id
-    filter: $filter
-    limit: $limit
-    nextToken: $nextToken
-    sortDirection: $sortDirection
-  ) {
-    items {
-      id
-      author
-      coverage
-      dateLastUpdated
-      userLastUpdated
-      length
-      issues
-      comments
-      tags
-      source
-      index
-      title
-      type
-      contributors
-    }
-    nextToken
-  }
-}
-`;
 export const getRegion = `query GetRegion($id: String!) {
   getRegion(id: $id) {
     id
@@ -171,6 +118,91 @@ export const listRegionLocks = `query ListRegionLocks(
   }
 }
 `;
+export const byTranscription = `query ByTranscription(
+  $transcriptionId: String
+  $sortDirection: ModelSortDirection
+  $filter: ModelRegionFilterInput
+  $limit: Int
+  $nextToken: String
+) {
+  byTranscription(
+    transcriptionId: $transcriptionId
+    sortDirection: $sortDirection
+    filter: $filter
+    limit: $limit
+    nextToken: $nextToken
+  ) {
+    items {
+      id
+      start
+      end
+      text
+      issues
+      isNote
+      comments
+      translation
+      dateLastUpdated
+      userLastUpdated
+      transcriptionId
+      version
+    }
+    nextToken
+  }
+}
+`;
+export const getTranscription = `query GetTranscription($id: ID!) {
+  getTranscription(id: $id) {
+    id
+    author
+    coverage
+    dateLastUpdated
+    userLastUpdated
+    length
+    issues
+    comments
+    tags
+    source
+    index
+    title
+    type
+    contributors
+  }
+}
+`;
+export const listTranscriptions = `query ListTranscriptions(
+  $id: ID
+  $filter: ModelTranscriptionFilterInput
+  $limit: Int
+  $nextToken: String
+  $sortDirection: ModelSortDirection
+) {
+  listTranscriptions(
+    id: $id
+    filter: $filter
+    limit: $limit
+    nextToken: $nextToken
+    sortDirection: $sortDirection
+  ) {
+    items {
+      id
+      author
+      coverage
+      dateLastUpdated
+      userLastUpdated
+      length
+      issues
+      comments
+      tags
+      source
+      index
+      title
+      type
+      contributors
+    }
+    nextToken
+  }
+}
+`;
 export const byTitle = `query ByTitle(
   $title: String
   $sortDirection: ModelSortDirection
@@ -205,15 +237,17 @@ export const byTitle = `query ByTitle(
   }
 }
 `;
-export const byTranscription = `query ByTranscription(
-  $transcriptionId: String
+export const byOwnerUpdated = `query ByOwnerUpdated(
+  $author: String
+  $dateLastUpdated: ModelStringKeyConditionInput
   $sortDirection: ModelSortDirection
-  $filter: ModelRegionFilterInput
+  $filter: ModelTranscriptionFilterInput
   $limit: Int
   $nextToken: String
 ) {
-  byTranscription(
-    transcriptionId: $transcriptionId
+  byOwnerUpdated(
+    author: $author
+    dateLastUpdated: $dateLastUpdated
     sortDirection: $sortDirection
     filter: $filter
     limit: $limit
@@ -221,17 +255,55 @@ export const byTranscription = `query ByTranscription(
   ) {
     items {
       id
-      start
-      end
-      text
-      issues
-      isNote
-      comments
-      translation
+      author
+      coverage
       dateLastUpdated
       userLastUpdated
-      transcriptionId
-      version
+      length
+      issues
+      comments
+      tags
+      source
+      index
+      title
+      type
+      contributors
+    }
+    nextToken
+  }
+}
+`;
+export const byContributorsUpdated = `query ByContributorsUpdated(
+  $contributors: String
+  $dateLastUpdated: ModelStringKeyConditionInput
+  $sortDirection: ModelSortDirection
+  $filter: ModelTranscriptionFilterInput
+  $limit: Int
+  $nextToken: String
+) {
+  byContributorsUpdated(
+    contributors: $contributors
+    dateLastUpdated: $dateLastUpdated
+    sortDirection: $sortDirection
+    filter: $filter
+    limit: $limit
+    nextToken: $nextToken
+  ) {
+    items {
+      id
+      author
+      coverage
+      dateLastUpdated
+      userLastUpdated
+      length
+      issues
+      comments
+      tags
+      source
+      index
+      title
+      type
+      contributors
     }
     nextToken
   }

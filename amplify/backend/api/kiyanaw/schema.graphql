@@ -2,13 +2,19 @@ type Transcription
   @model
   @key(fields: ["id"])
   @key(name: "ByTitle", fields: ["title"], queryField: "byTitle")
-  # @key(name: "ByOwnerUpdated", fields: ["author", "dateLastUpdated"], queryField: "byOwnerUpdated")
+  @key(name: "ByOwnerUpdated", fields: ["author", "dateLastUpdated"], queryField: "byOwnerUpdated")
+  @key(
+    name: "ByContributorsUpdated"
+    fields: ["contributors", "dateLastUpdated"]
+    queryField: "byContributorsUpdated"
+  )
   @auth(
     rules: [
-      # { allow: owner, operations: [create, read, update, delete], ownerField: "author" }
-      # { allow: groups, groups: ["Admin"], operations: [create, read, update, delete] }
-      # { allow: groups, groups: ["everyone"], operations: [read]}
-      { allow: public, provider: iam, operations: [read] }
+      { allow: owner, operations: [create, read, update, delete], ownerField: "author" }
+      { allow: owner, operations: [create, read, update], ownerField: "contributors" }
+      { allow: groups, groups: ["Admin"], operations: [create, read, update, delete] }
+      { allow: groups, groups: ["everyone"] }
+      { allow: public, provider: iam }
     ]
   ) {
   id: ID!
@@ -24,7 +30,7 @@ type Transcription
   index: String
   title: String!
   type: String!
-  contributors: String
+  contributors: [String]
 }
 
 type Region

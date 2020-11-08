@@ -52,6 +52,7 @@ export default {
             user: details.user,
             cursor: JSON.stringify(details.cursor),
           },
+          authMode: 'AWS_IAM',
         }),
       )
     } catch (error) {
@@ -63,6 +64,7 @@ export default {
             user: details.user,
             cursor: JSON.stringify(details.cursor),
           },
+          authMode: 'AWS_IAM',
         }),
       )
     }
@@ -73,7 +75,9 @@ export default {
   async listenForCursor(callback) {
     // let up a listener, if we don't have one already
     if (!cursorSubscription) {
-      cursorSubscription = API.graphql(graphqlOperation(onUpdateCursor)).subscribe({
+      cursorSubscription = API.graphql(graphqlOperation(onUpdateCursor), {
+        authMode: 'AWS_IAM',
+      }).subscribe({
         next: (data) => {
           // console.log('cursor data', data.value.data.onUpdateCursor)
           const cursorData = data.value.data.onUpdateCursor
@@ -108,7 +112,9 @@ export default {
             deleteTime: Number((+new Date() / 1000).toFixed(0)) + 300, // 5 minutes from now
             transcriptionId,
           }
-          await API.graphql(graphqlOperation(createRegionLock, { input: input }))
+          await API.graphql(graphqlOperation(createRegionLock, { input: input }), {
+            authMode: 'AWS_IAM',
+          })
         } catch (error) {
           console.error(error)
           delete myLocks[regionId]
@@ -140,6 +146,7 @@ export default {
     try {
       await API.graphql(
         graphqlOperation(deleteRegionLock, { input: { id: regionId, transcriptionId } }),
+        { authMode: 'AWS_IAM' },
       )
     } catch (error) {
       console.error(error)
@@ -151,7 +158,9 @@ export default {
   async listenForLock(callback) {
     const user = await this.getUser()
     if (!createLockSubscription) {
-      createLockSubscription = API.graphql(graphqlOperation(onCreateRegionLock)).subscribe({
+      createLockSubscription = API.graphql(graphqlOperation(onCreateRegionLock), {
+        authMode: 'AWS_IAM',
+      }).subscribe({
         next: (lockData) => {
           const data = lockData.value.data.onCreateRegionLock
           console.log('incoming lock', data.user)
@@ -172,7 +181,9 @@ export default {
       })
     }
     if (!deleteLockSubscription) {
-      deleteLockSubscription = API.graphql(graphqlOperation(onDeleteRegionLock)).subscribe({
+      deleteLockSubscription = API.graphql(graphqlOperation(onDeleteRegionLock), {
+        authMode: 'AWS_IAM',
+      }).subscribe({
         next: (lockData) => {
           // console.log('incoming UNlock', lockData)
           const data = lockData.value.data.onDeleteRegionLock
@@ -200,7 +211,11 @@ export default {
   async getRegionLocks(transcriptionId) {
     const user = await this.getUser()
     const response = await API.graphql(
-      graphqlOperation(listRegionLocks, { input: { transcriptionId: transcriptionId } }),
+      graphqlOperation(
+        listRegionLocks,
+        { input: { transcriptionId: transcriptionId } },
+        { authMode: 'AWS_IAM' },
+      ),
     )
     // console.log('all region locks', response.data)
     if (response.data) {

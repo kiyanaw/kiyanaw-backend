@@ -1,38 +1,17 @@
 <template>
-  <v-container
-    fluid
-    grid-list-md
-    fill-height
-  >
+  <v-container fluid grid-list-md fill-height>
     <v-layout wrap>
-      <div
-        v-if="(loading || waveformLoading) && !error"
-        class="loading"
-      >
-        <v-progress-circular
-          :size="70"
-          :width="7"
-          color="#305880"
-          indeterminate
-        />
+      <div v-if="(loading || waveformLoading) && !error" class="loading">
+        <v-progress-circular :size="70" :width="7" color="#305880" indeterminate />
       </div>
 
-      <div
-        v-if="error"
-        class="load-error"
-      >
+      <div v-if="error" class="load-error">
         {{ error }}
       </div>
 
       <v-flex v-if="!(loading && waveformLoading) && !error">
-        <v-layout
-          class="audio-container"
-          :class="{ audioContainerSm: $vuetify.breakpoint.xsOnly }"
-        >
-          <v-flex
-            xs12
-            class="audio-player"
-          >
+        <v-layout class="audio-container" :class="{ audioContainerSm: $vuetify.breakpoint.xsOnly }">
+          <v-flex xs12 class="audio-player">
             <audio-player
               v-if="source"
               ref="player"
@@ -60,23 +39,13 @@
           :class="{
             editor: false,
             editorNoSide: true,
-            editorScroll: true
+            editorScroll: true,
           }"
         >
           <v-container>
-            <v-flex
-              xs12
-              md12
-              elevation-1
-              t-editor
-              scroll-container
-            >
+            <v-flex xs12 md12 elevation-1 t-editor scroll-container>
               <v-container id="scroll-target">
-                <div
-                  v-for="region in sortedRegions"
-                  :id="region.id"
-                  :key="region.id"
-                >
+                <div v-for="region in sortedRegions" :id="region.id" :key="region.id">
                   <editor
                     v-if="regions"
                     :ref="region.id"
@@ -93,97 +62,46 @@
                     @text-selection="onRegionTextSelection"
                     @delete-region="onDeleteRegion"
                   />
-                  <hr>
+                  <hr />
                 </div>
               </v-container>
             </v-flex>
           </v-container>
         </v-layout>
 
-        <v-layout
-          v-if="false"
-          row
-          class="editorSideMd"
-        >
+        <v-layout v-if="false" row class="editorSideMd">
           <v-container>
-            <v-tabs
-              v-if="editingRegionId"
-              v-model="tab"
-              background-color="grey lighten-2"
-            >
-              <v-tab key="one">
-                Comments
-              </v-tab>
-              <v-tab key="two">
-                Details
-              </v-tab>
-              <v-tab-item
-                key="one"
-                background-color="grey lighten-2"
-              >
+            <v-tabs v-if="editingRegionId" v-model="tab" background-color="grey lighten-2">
+              <v-tab key="one"> Comments </v-tab>
+              <v-tab key="two"> Details </v-tab>
+              <v-tab-item key="one" background-color="grey lighten-2">
                 Region {{ editingRegionId }} comments
               </v-tab-item>
-              <v-tab-item
-                key="two"
-                background-color="grey lighten-2"
-              >
+              <v-tab-item key="two" background-color="grey lighten-2">
                 Region {{ editingRegionId }} details
               </v-tab-item>
             </v-tabs>
-            <p
-              v-if="!editingRegionId"
-              class="region-details"
-            >
-              Select a region to view details...
-            </p>
+            <p v-if="!editingRegionId" class="region-details">Select a region to view details...</p>
           </v-container>
         </v-layout>
       </v-flex>
     </v-layout>
 
-    <v-dialog
-      v-model="dialog"
-      persistent
-      max-width="60%"
-    >
+    <v-dialog v-model="dialog" persistent max-width="60%">
       <v-card>
         <v-card-title>Transcription details</v-card-title>
         <v-card-text>
-          <v-text-field
-            v-model="title"
-            label="Title"
-            required
-          />
-          <v-text-field
-            v-model="comments"
-            label="Notes"
-          />
+          <v-text-field v-model="title" label="Title" required />
+          <v-text-field v-model="comments" label="Notes" />
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn
-            color="blue darken-1"
-            text
-            @click="dialog = false"
-          >
-            Cancel
-          </v-btn>
-          <v-btn
-            color="blue darken-1"
-            text
-            @click="onUpdateTranscriptionDetails"
-          >
-            Submit
-          </v-btn>
+          <v-btn color="blue darken-1" text @click="dialog = false"> Cancel </v-btn>
+          <v-btn color="blue darken-1" text @click="onUpdateTranscriptionDetails"> Submit </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
-    <v-snackbar
-      v-model="saved"
-      color="success darken-1"
-    >
-      Saved!
-    </v-snackbar>
+    <v-snackbar v-model="saved" color="success darken-1"> Saved! </v-snackbar>
   </v-container>
 </template>
 
@@ -212,7 +130,7 @@ function getColor() {
 }
 
 // this is the local user's cursor color
-const cursorColor = `${getColor()}` 
+const cursorColor = `${getColor()}`
 // keep track of this cursor
 let myCursor
 let inboundRegion = null
@@ -226,7 +144,7 @@ const SAVE_INTERVAL = 5000
 export default {
   components: {
     AudioPlayer,
-    Editor
+    Editor,
   },
 
   data() {
@@ -261,7 +179,7 @@ export default {
       error: null,
       tab: null,
       dialog: false,
-      contributors: []
+      contributors: [],
     }
   },
 
@@ -290,7 +208,7 @@ export default {
 
     regionIds() {
       return this.regions.map((region) => region.id)
-    }
+    },
   },
   /**
    * Mount point for this component.
@@ -480,6 +398,8 @@ export default {
 
     async saveRegion(region) {
       if (!region.isNote) {
+        window.foo = this
+        console.log('regionId', region.id)
         const regionOps = this.$refs[region.id][0].getMainOps()
         region.text = regionOps
         region.issues = this.$refs[region.id][0].issues || '[]'
@@ -492,7 +412,7 @@ export default {
       data.color = cursorColor
       const update = {
         cursor: data,
-        user: `${this.user.name}`
+        user: `${this.user.name}`,
       }
       UserService.sendCursor(update).catch((e) => {
         console.log(e)
@@ -556,7 +476,8 @@ export default {
         coverage: this.coverage(),
         dateLastUpdated: +new Date(),
         userLastUpdated: this.user.name,
-        contributors: JSON.stringify(this.contributors)
+        // TODO: fixme
+        // contributors: this.contributors,
       })
       if (result) {
         this.saved = true
@@ -663,12 +584,12 @@ export default {
           id: regionUpdate.id,
           text: [],
           issues: [],
-          isNote: false
+          isNote: false,
         }
         this.regions.push(regionData)
         window.data = regionData
         // save the new region
-        TranscriptionService.createRegion(this.transcriptionId, regionData).catch(function(error) {
+        TranscriptionService.createRegion(this.transcriptionId, regionData).catch(function (error) {
           console.error('Failed to create region', error)
         })
       } else {
@@ -678,8 +599,8 @@ export default {
           targetRegion = targetRegion[0]
           targetRegion.start = regionUpdate.start
           targetRegion.end = regionUpdate.end
-          TranscriptionService.updateRegion(this.transcriptionId, targetRegion).catch(function(
-            error
+          TranscriptionService.updateRegion(this.transcriptionId, targetRegion).catch(function (
+            error,
           ) {
             console.error('Failed to update region', error)
           })
@@ -745,8 +666,8 @@ export default {
           }
         }
       }).catch((err) => {})
-    }
-  }
+    },
+  },
 }
 </script>
 

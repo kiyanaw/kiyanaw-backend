@@ -390,15 +390,17 @@ export default {
     },
 
     /**
-     * TODO: pretty sure this is not used
+     * This is accessed externally for saving transcription details.
      */
-    // getMainOps() {
-    //   let ops = []
-    //   try {
-    //     ops = this.quill.getContents().ops
-    //   } catch (e) {}
-    //   return ops
-    // },
+    getMainOps() {
+      let ops = []
+      try {
+        ops = this.quill.getContents().ops
+      } catch (e) {
+        // not used
+      }
+      return ops
+    },
 
     /**
      *

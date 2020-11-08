@@ -48,7 +48,6 @@
 
 <script>
 import TranscriptionService from '../../services/transcriptions'
-import UserService from '../../services/user'
 
 import en from 'javascript-time-ago/locale/en'
 import TimeAgo from 'javascript-time-ago'
@@ -82,9 +81,9 @@ export default {
      * Load a list of transcriptions.
      */
     async loadTranscriptionList() {
-      const currentUser = await UserService.getUser()
-      console.log('currentUser', currentUser)
-      this.list = await TranscriptionService.listTranscriptions(currentUser.name)
+      this.list = await TranscriptionService.listTranscriptions()
+      // this.contribList = await TranscriptionService.listSharedTranscriptions()
+
       this.loading = false
     },
     timeAgo(date) {

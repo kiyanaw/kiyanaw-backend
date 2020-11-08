@@ -1,72 +1,6 @@
 /* eslint-disable */
 // this is an auto generated file. This will be overwritten
 
-export const createTranscription = `mutation CreateTranscription(
-  $input: CreateTranscriptionInput!
-  $condition: ModelTranscriptionConditionInput
-) {
-  createTranscription(input: $input, condition: $condition) {
-    id
-    author
-    coverage
-    dateLastUpdated
-    userLastUpdated
-    length
-    issues
-    comments
-    tags
-    source
-    index
-    title
-    type
-    contributors
-  }
-}
-`;
-export const updateTranscription = `mutation UpdateTranscription(
-  $input: UpdateTranscriptionInput!
-  $condition: ModelTranscriptionConditionInput
-) {
-  updateTranscription(input: $input, condition: $condition) {
-    id
-    author
-    coverage
-    dateLastUpdated
-    userLastUpdated
-    length
-    issues
-    comments
-    tags
-    source
-    index
-    title
-    type
-    contributors
-  }
-}
-`;
-export const deleteTranscription = `mutation DeleteTranscription(
-  $input: DeleteTranscriptionInput!
-  $condition: ModelTranscriptionConditionInput
-) {
-  deleteTranscription(input: $input, condition: $condition) {
-    id
-    author
-    coverage
-    dateLastUpdated
-    userLastUpdated
-    length
-    issues
-    comments
-    tags
-    source
-    index
-    title
-    type
-    contributors
-  }
-}
-`;
 export const createRegion = `mutation CreateRegion(
   $input: CreateRegionInput!
   $condition: ModelRegionConditionInput
@@ -193,6 +127,72 @@ export const deleteRegionLock = `mutation DeleteRegionLock(
     transcriptionId
     deleteTime
     user
+  }
+}
+`;
+export const createTranscription = `mutation CreateTranscription(
+  $input: CreateTranscriptionInput!
+  $condition: ModelTranscriptionConditionInput
+) {
+  createTranscription(input: $input, condition: $condition) {
+    id
+    author
+    coverage
+    dateLastUpdated
+    userLastUpdated
+    length
+    issues
+    comments
+    tags
+    source
+    index
+    title
+    type
+    contributors
+  }
+}
+`;
+export const updateTranscription = `mutation UpdateTranscription(
+  $input: UpdateTranscriptionInput!
+  $condition: ModelTranscriptionConditionInput
+) {
+  updateTranscription(input: $input, condition: $condition) {
+    id
+    author
+    coverage
+    dateLastUpdated
+    userLastUpdated
+    length
+    issues
+    comments
+    tags
+    source
+    index
+    title
+    type
+    contributors
+  }
+}
+`;
+export const deleteTranscription = `mutation DeleteTranscription(
+  $input: DeleteTranscriptionInput!
+  $condition: ModelTranscriptionConditionInput
+) {
+  deleteTranscription(input: $input, condition: $condition) {
+    id
+    author
+    coverage
+    dateLastUpdated
+    userLastUpdated
+    length
+    issues
+    comments
+    tags
+    source
+    index
+    title
+    type
+    contributors
   }
 }
 `;

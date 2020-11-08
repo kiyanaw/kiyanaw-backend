@@ -59,7 +59,7 @@ class Transcription {
     this.coverage = data.coverage || 0
     this.dateLastUpdated = new Date(Number(data.dateLastUpdated))
     this.userLastUpdated = data.userLastUpdated
-    this.contributors = data.contributors ? JSON.parse(data.contributors) : []
+    this.contributors = data.contributors || []
   }
 
   // class Region {
@@ -84,12 +84,12 @@ class Transcription {
   }
 }
 
-function sortByTitle(a, b) {
-  if (a.title > b.title) return 1
-  if (b.title > a.title) return -1
+// function sortByTitle(a, b) {
+//   if (a.title > b.title) return 1
+//   if (b.title > a.title) return -1
 
-  return 0
-}
+//   return 0
+// }
 
 export default {
   /**
@@ -97,6 +97,7 @@ export default {
    * @param {string} user Currently unused.
    * @returns {Promise<Array<Transcription>>}
    */
+  // TODO: test me!
   async listTranscriptions() {
     let results = []
     try {
@@ -107,7 +108,7 @@ export default {
     }
 
     results = results.data.listTranscriptions.items
-    return results.map((item) => new Transcription(item)).sort(sortByTitle)
+    return results.map((item) => new Transcription(item))
     // unwrap the structure that comes back from appsync
   },
 
@@ -202,7 +203,9 @@ export default {
       transcriptionId: transcriptionId,
     }
     console.log(input)
-    const update = await API.graphql(graphqlOperation(mutations.createRegion, { input: input }))
+    const update = await API.graphql(graphqlOperation(mutations.createRegion, { input: input }), {
+      authMode: 'AWS_IAM',
+    })
     regionData.version = 1
     return update.data.createRegion
   },
@@ -223,7 +226,9 @@ export default {
       transcriptionId: transcriptionId,
       expectedVersion: region.version,
     }
-    const update = await API.graphql(graphqlOperation(mutations.updateRegion, { input: input }))
+    const update = await API.graphql(graphqlOperation(mutations.updateRegion, { input: input }), {
+      authMode: 'AWS_IAM',
+    })
     region.version = region.version + 1
     return update.data.updateRegion
   },
@@ -231,12 +236,16 @@ export default {
   async deleteRegion(transcriptionId, region) {
     console.log('deleting region', transcriptionId, region.id)
     await API.graphql(
-      graphqlOperation(mutations.deleteRegion, {
-        input: {
-          id: region.id,
-          expectedVersion: region.version,
+      graphqlOperation(
+        mutations.deleteRegion,
+        {
+          input: {
+            id: region.id,
+            expectedVersion: region.version,
+          },
         },
-      }),
+        { authMode: 'AWS_IAM' },
+      ),
     )
     return true
   },
@@ -244,9 +253,9 @@ export default {
   async listenForRegions(callback) {
     const user = await UserService.getUser()
     if (!this.createRegionSubscription) {
-      this.createRegionSubscription = API.graphql(
-        graphqlOperation(subscriptions.onCreateRegion),
-      ).subscribe({
+      this.createRegionSubscription = API.graphql(graphqlOperation(subscriptions.onCreateRegion), {
+        authMode: 'AWS_IAM',
+      }).subscribe({
         next: (lockData) => {
           const data = lockData.value.data.onCreateRegion
           // console.log('incoming region', data, user)
@@ -267,6 +276,7 @@ export default {
     if (!this.updateRegionSubscription) {
       this.updateRegionsbsupdateRegionSubscription = API.graphql(
         graphqlOperation(subscriptions.onUpdateRegion),
+        { authMode: 'AWS_IAM' },
       ).subscribe({
         next: (lockData) => {
           const data = lockData.value.data.onUpdateRegion
@@ -289,6 +299,7 @@ export default {
     if (!this.deleteRegionSubscription) {
       this.updateRegionsbsdeleteRegionSubscription = API.graphql(
         graphqlOperation(subscriptions.onDeleteRegion),
+        { authMode: 'AWS_IAM' },
       ).subscribe({
         next: (lockData) => {
           const data = lockData.value.data.onDeleteRegion
@@ -316,6 +327,7 @@ export default {
     console.log('update transcription data', data)
     const update = await API.graphql(
       graphqlOperation(mutations.updateTranscription, { input: data }),
+      { authMode: 'AWS_IAM' },
     )
     return update.data.updateTranscription
   },
