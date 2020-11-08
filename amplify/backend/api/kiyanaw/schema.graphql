@@ -3,11 +3,11 @@ type Transcription
   @key(fields: ["id"])
   @key(name: "ByTitle", fields: ["title"], queryField: "byTitle")
   @key(name: "ByOwnerUpdated", fields: ["author", "dateLastUpdated"], queryField: "byOwnerUpdated")
-  @key(
-    name: "ByContributorsUpdated"
-    fields: ["contributors", "dateLastUpdated"]
-    queryField: "byContributorsUpdated"
-  )
+  # @key(
+  #   name: "ByContributorsUpdated"
+  #   fields: ["contributors", "dateLastUpdated"]
+  #   queryField: "byContributorsUpdated"
+  # )
   @auth(
     rules: [
       { allow: owner, operations: [create, read, update, delete], ownerField: "author" }
@@ -30,7 +30,7 @@ type Transcription
   index: String
   title: String!
   type: String!
-  contributors: [String]
+  contributors: String
 }
 
 type Region

@@ -273,39 +273,3 @@ export const byOwnerUpdated = `query ByOwnerUpdated(
   }
 }
 `;
-export const byContributorsUpdated = `query ByContributorsUpdated(
-  $contributors: String
-  $dateLastUpdated: ModelStringKeyConditionInput
-  $sortDirection: ModelSortDirection
-  $filter: ModelTranscriptionFilterInput
-  $limit: Int
-  $nextToken: String
-) {
-  byContributorsUpdated(
-    contributors: $contributors
-    dateLastUpdated: $dateLastUpdated
-    sortDirection: $sortDirection
-    filter: $filter
-    limit: $limit
-    nextToken: $nextToken
-  ) {
-    items {
-      id
-      author
-      coverage
-      dateLastUpdated
-      userLastUpdated
-      length
-      issues
-      comments
-      tags
-      source
-      index
-      title
-      type
-      contributors
-    }
-    nextToken
-  }
-}
-`;
