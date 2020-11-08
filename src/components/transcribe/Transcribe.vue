@@ -484,7 +484,7 @@ export default {
         console.log('update transcription result', result)
         setTimeout(() => {
           this.saved = false
-        }, 2500)
+        }, 5000)
       }
     },
 
