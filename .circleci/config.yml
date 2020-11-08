@@ -21,7 +21,6 @@ jobs:
           name: Run Karma
           command: npm run karma
   integration-tests:
-    executor: docker
     steps:
       - ghostinspector/execute-suite:
           id: 59f33e968ba4c50f26eab519
