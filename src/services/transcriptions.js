@@ -98,6 +98,7 @@ export default {
    * @returns {Promise<Array<Transcription>>}
    */
   // TODO: test me!
+  // TODO: want these ordered by lastUpdated
   async listTranscriptions() {
     let results = []
     try {
