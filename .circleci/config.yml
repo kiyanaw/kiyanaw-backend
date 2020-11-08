@@ -1,4 +1,4 @@
-version: 2
+version: 2.1
 npm_cache_key: &npm_cache_key node-v12-dependency-cache-{{ checksum "package-lock.json" }}
 orbs:
   ghostinspector: ghostinspector/test-runner@1.0.2
