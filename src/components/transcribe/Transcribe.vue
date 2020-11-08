@@ -101,7 +101,13 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
-    <v-snackbar v-model="saved" color="success darken-1"> Saved! </v-snackbar>
+    <v-snackbar
+      v-model="saved"
+      color="success darken-1"
+      data-test="transcription-saved-confirmation"
+    >
+      Saved!
+    </v-snackbar>
   </v-container>
 </template>
 
