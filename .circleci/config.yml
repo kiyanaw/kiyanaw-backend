@@ -26,7 +26,6 @@ jobs:
           id: 59f33e968ba4c50f26eab519
           wait: true
 workflows:
-  version: 2
   build_and_test:
     jobs:
       - test-browser
