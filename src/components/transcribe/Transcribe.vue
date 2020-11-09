@@ -90,7 +90,7 @@
     <v-dialog v-model="dialog" persistent max-width="60%">
       <v-card>
         <v-card-title>Transcription details</v-card-title>
-        <v-card-subtitle>{{ author }}</v-card-subtitle>
+        <v-card-subtitle>by {{ author }}</v-card-subtitle>
         <v-card-text>
           <v-text-field v-model="title" label="Title" required />
           <v-text-field v-model="comments" label="Notes" />
@@ -483,7 +483,7 @@ export default {
         dateLastUpdated: +new Date(),
         userLastUpdated: this.user.name,
         // TODO: fixme
-        // contributors: this.contributors,
+        contributors: this.contributors,
       })
       if (result) {
         this.saved = true
@@ -538,7 +538,8 @@ export default {
       this.isVideo = data.type.includes('video')
       this.regions = data.regions || []
       this.peaks = peaks
-      this.contributors = data.contributors
+      console.log('contributors', data.contributors)
+      this.contributors = data.contributors || []
 
       // check that the author is in the list of contributors
       const authorUser = this.contributors.filter((item) => item.name === this.user.name)

@@ -48,7 +48,6 @@ const regionSubscribers = []
  */
 class Transcription {
   constructor(data) {
-    // console.log(data)
     this.id = data.id
     this.data = data
     this.title = data.title
@@ -164,7 +163,7 @@ export default {
       coverage: 0,
       id: id,
       dateLastUpdated: +new Date(),
-      contributors: '[]',
+      contributors: [],
     }
     return API.graphql(graphqlOperation(mutations.createTranscription, { input: input }))
   },
@@ -203,9 +202,9 @@ export default {
       userLastUpdated: (await UserService.getUser()).name,
       transcriptionId: transcriptionId,
     }
-    console.log(input)
+
     const update = await API.graphql(graphqlOperation(mutations.createRegion, { input: input }), {
-      authMode: 'AWS_IAM',
+      // authMode: 'AWS_IAM',
     })
     regionData.version = 1
     return update.data.createRegion
@@ -227,7 +226,7 @@ export default {
       expectedVersion: region.version,
     }
     const update = await API.graphql(graphqlOperation(mutations.updateRegion, { input: input }), {
-      authMode: 'AWS_IAM',
+      // authMode: 'AWS_IAM',
     })
     region.version = region.version + 1
     return update.data.updateRegion
