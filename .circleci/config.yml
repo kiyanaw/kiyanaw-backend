@@ -35,7 +35,8 @@ jobs:
           fail_only: 'true'
 
   integration-tests:
-    executor: docker
+    docker:
+      - image: circleci/node:lts
     steps:
       - ghostinspector/execute-suite:
           id: 59f33e968ba4c50f26eab519
