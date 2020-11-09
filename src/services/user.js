@@ -133,15 +133,12 @@ export default {
     const locks = await this.getRegionLocks(transcriptionId)
     for (const lock of locks) {
       if (lock.user === user.name && lock.id !== keepLock) {
-        console.log(' --> unlocking my other region', lock.id, keepLock)
         this.unlockRegion(transcriptionId, lock.id)
       }
     }
   },
 
   async unlockRegion(transcriptionId, regionId) {
-    const user = await this.getUser()
-    console.log(`unlock called by ${user.name} - ${regionId}`)
     delete myLocks[regionId]
     try {
       await API.graphql(
@@ -163,11 +160,8 @@ export default {
       }).subscribe({
         next: (lockData) => {
           const data = lockData.value.data.onCreateRegionLock
-          console.log('incoming lock', data.user)
           if (data && data.user !== user.name) {
-            console.log(`data.user ${data.user} !== ${user.name}`)
             data.action = 'created'
-            // console.log('Region locked by another user: ', data)
             for (const subscriber of lockSubscribers) {
               if (user.name !== data.user) {
                 subscriber(data)
@@ -188,11 +182,9 @@ export default {
           // console.log('incoming UNlock', lockData)
           const data = lockData.value.data.onDeleteRegionLock
           // const now = Number(+new Date()) / 1000
-          console.log('incoming UNlock', data)
           // TODO: check TTL on this
           if (data.user !== user.name) {
             data.action = 'deleted'
-            // console.log('Region UNlocked by another user: ', data)
             for (const subscriber of lockSubscribers) {
               if (user.name !== data.user) {
                 subscriber(data)
@@ -225,7 +217,6 @@ export default {
           myLocks[lock.id] = true
         }
       }
-      console.log('my locks', myLocks)
       // TODO: check for nextToken
       return locks
     }

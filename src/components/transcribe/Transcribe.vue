@@ -90,6 +90,7 @@
     <v-dialog v-model="dialog" persistent max-width="60%">
       <v-card>
         <v-card-title>Transcription details</v-card-title>
+        <v-card-subtitle>{{ author }}</v-card-subtitle>
         <v-card-text>
           <v-text-field v-model="title" label="Title" required />
           <v-text-field v-model="comments" label="Notes" />
@@ -117,7 +118,7 @@ import Timeout from 'smart-timeout'
 import AudioPlayer from './AudioPlayer.vue'
 import Editor from './Editor.vue'
 import TranscriptionService from '../../services/transcriptions'
-import EnvService from '../../services/env'
+// import EnvService from '../../services/env'
 import UserService from '../../services/user'
 import Lex from '../../services/lexicon'
 
@@ -138,11 +139,11 @@ function getColor() {
 // this is the local user's cursor color
 const cursorColor = `${getColor()}`
 // keep track of this cursor
-let myCursor
-let inboundRegion = null
+// let myCursor
+// let inboundRegion = null
 
 // used to throttle updates
-let regionUpdateTimer
+// let regionUpdateTimer
 // only send updates after a pause
 const SEARCH_INTERVAL = 1500
 const SAVE_INTERVAL = 5000
@@ -174,7 +175,7 @@ export default {
       inRegions: [],
       title: '',
       comments: '',
-      // authorId: null,
+      author: '',
       saved: false,
       members: [],
       user: null,
@@ -308,7 +309,9 @@ export default {
       let regionText = ''
       try {
         regionText = this.$refs[targetRegion[0].id][0].quill.getText().trim()
-      } catch (e) {}
+      } catch (e) {
+        // not used
+      }
 
       if (regionText.length > 0) {
         alert('Cannot convert non-empty region to note!')
@@ -331,7 +334,7 @@ export default {
           try {
             document.querySelector('.editorScroll').scrollTop = 0
           } catch (e) {
-            console.log(e)
+            // unused
           }
         }, 200)
       }
@@ -405,7 +408,6 @@ export default {
     async saveRegion(region) {
       if (!region.isNote) {
         window.foo = this
-        console.log('regionId', region.id)
         const regionOps = this.$refs[region.id][0].getMainOps()
         region.text = regionOps
         region.issues = this.$refs[region.id][0].issues || '[]'
@@ -468,8 +470,6 @@ export default {
         console.warn(`Counldn't get issue count for regions ${e.message}`)
       }
 
-      console.log('issue count', issueCount)
-
       const result = await TranscriptionService.updateTranscription({
         id: this.transcriptionId,
         title: this.title,
@@ -487,10 +487,10 @@ export default {
       })
       if (result) {
         this.saved = true
-        console.log('update transcription result', result)
         setTimeout(() => {
           this.saved = false
         }, 5000)
+        console.log('Transcription saved')
       }
     },
 
@@ -506,7 +506,7 @@ export default {
     /**
      * @description Triggered when a region is no longer being edited
      */
-    onBlurRegion(region) {
+    onBlurRegion() {
       this.currentRegionSheet.innerHTML = '.foo {}'
     },
 
@@ -543,10 +543,8 @@ export default {
       // check that the author is in the list of contributors
       const authorUser = this.contributors.filter((item) => item.name === this.user.name)
       if (!authorUser.length) {
-        console.log('adding user to contributors')
         this.contributors.push(this.user)
       }
-      console.log('contributors', this.contributors)
 
       // this.inboundRegion = this.$route.hash.replace('#', '') || null
 
@@ -671,7 +669,9 @@ export default {
             this.$refs[data.id][0].unlock()
           }
         }
-      }).catch((err) => {})
+      }).catch((error) => {
+        console.warn('Unable to listen for lock', error)
+      })
     },
   },
 }

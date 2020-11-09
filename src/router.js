@@ -9,8 +9,6 @@ import TranscribeList from './components/transcribe/List.vue'
 import TranscribeAdd from './components/transcribe/Add.vue'
 import RenderedWord from './components/rendered/Index.vue'
 
-import store from './store/index'
-
 const router = new VueRouter({
   mode: 'history',
   routes: [
@@ -31,11 +29,9 @@ const router = new VueRouter({
 })
 
 router.beforeResolve((to, from, next) => {
-  console.log('store', Object.keys(store))
   if (to.matched.some((record) => record.meta.requiresAuth)) {
     Vue.prototype.$Amplify.Auth.currentAuthenticatedUser()
       .then((data) => {
-        console.log('data', data)
         if (data && data.signInUserSession) {
           return next()
         } else {

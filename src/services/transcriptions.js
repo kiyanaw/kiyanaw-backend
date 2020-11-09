@@ -212,7 +212,6 @@ export default {
   },
 
   async updateRegion(transcriptionId, region) {
-    console.log('save region data', region)
     const user = await UserService.getUser()
     const input = {
       id: region.id,
@@ -325,10 +324,8 @@ export default {
 
   /** */
   async updateTranscription(data) {
-    console.log('update transcription data', data)
     const update = await API.graphql(
       graphqlOperation(mutations.updateTranscription, { input: data }),
-      { authMode: 'AWS_IAM' },
     )
     return update.data.updateTranscription
   },

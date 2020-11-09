@@ -831,7 +831,7 @@ export default {
             .pop()
           // if (leaf.attributes && leaf.attributes['issue-needs-help']) {
           if (issueKey) {
-            console.log('index of issue', index)
+            // console.log('index of issue', index)
             const issueId = leaf.attributes[issueKey]
             const text = leaf.insert
             const issue = this.issues.filter((item) => item.id === issueId).pop()

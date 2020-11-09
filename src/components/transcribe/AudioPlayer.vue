@@ -409,8 +409,6 @@ export default {
     },
 
     renderRegions() {
-      console.log('audio render regions')
-      // Timeout.clear('render-regions')
       // Timeout.set(
       //   'render-regions',
       //   async () => {
