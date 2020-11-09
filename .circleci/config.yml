@@ -1,7 +1,17 @@
 version: 2.1
+
 npm_cache_key: &npm_cache_key node-v12-dependency-cache-{{ checksum "package-lock.json" }}
+
 orbs:
   ghostinspector: ghostinspector/test-runner@1.0.2
+  slack: circleci/slack@2.2.0
+
+references:
+  notifications: &notifications
+    include_project_field: true
+    include_job_number_field: true
+    include_visit_job_action: true
+
 jobs:
   test-browser:
     docker:
@@ -20,12 +30,20 @@ jobs:
       - run:
           name: Run Karma
           command: npm run karma
+      - slack/status:
+          <<: *notifications
+          fail_only: 'true'
+
   integration-tests:
     executor: docker
     steps:
       - ghostinspector/execute-suite:
           id: 59f33e968ba4c50f26eab519
           wait: true
+      - slack/status:
+          <<: *notifications
+          fail_only: 'true'
+
 workflows:
   build_and_test:
     jobs:
