@@ -288,8 +288,4 @@ describe('-> known words', function () {
   it('should mark known words against punctuation like `foo.`')
   it('should mark known words with puntuation in the middle like `fo(o)`')
   it('should unmark a known word that is split `ap art`')
-
-  it('should pass', async function () {
-    assert.ok(false)
-  })
 })
