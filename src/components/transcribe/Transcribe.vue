@@ -439,10 +439,12 @@ export default {
       }
     },
 
-    /** */
+    /**
+     * TODO: test me
+     */
     coverage() {
       let val = 0
-      if (this.$refs.player && this.regions) {
+      if (this.$refs.player && this.regions && this.regions.length) {
         const regionCoverage = this.regions.map((x) => x.end - x.start).reduce((x, y) => x + y)
         const totalLength = this.$refs.player.maxTime
         val = regionCoverage / totalLength

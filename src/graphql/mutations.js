@@ -1,6 +1,72 @@
 /* eslint-disable */
 // this is an auto generated file. This will be overwritten
 
+export const createTranscription = `mutation CreateTranscription(
+  $input: CreateTranscriptionInput!
+  $condition: ModelTranscriptionConditionInput
+) {
+  createTranscription(input: $input, condition: $condition) {
+    id
+    author
+    coverage
+    dateLastUpdated
+    userLastUpdated
+    length
+    issues
+    comments
+    tags
+    source
+    index
+    title
+    type
+    contributors
+  }
+}
+`;
+export const updateTranscription = `mutation UpdateTranscription(
+  $input: UpdateTranscriptionInput!
+  $condition: ModelTranscriptionConditionInput
+) {
+  updateTranscription(input: $input, condition: $condition) {
+    id
+    author
+    coverage
+    dateLastUpdated
+    userLastUpdated
+    length
+    issues
+    comments
+    tags
+    source
+    index
+    title
+    type
+    contributors
+  }
+}
+`;
+export const deleteTranscription = `mutation DeleteTranscription(
+  $input: DeleteTranscriptionInput!
+  $condition: ModelTranscriptionConditionInput
+) {
+  deleteTranscription(input: $input, condition: $condition) {
+    id
+    author
+    coverage
+    dateLastUpdated
+    userLastUpdated
+    length
+    issues
+    comments
+    tags
+    source
+    index
+    title
+    type
+    contributors
+  }
+}
+`;
 export const createRegion = `mutation CreateRegion(
   $input: CreateRegionInput!
   $condition: ModelRegionConditionInput
@@ -130,69 +196,30 @@ export const deleteRegionLock = `mutation DeleteRegionLock(
   }
 }
 `;
-export const createTranscription = `mutation CreateTranscription(
-  $input: CreateTranscriptionInput!
-  $condition: ModelTranscriptionConditionInput
+export const createProfile = `mutation CreateProfile(
+  $input: CreateProfileInput!
+  $condition: ModelProfileConditionInput
 ) {
-  createTranscription(input: $input, condition: $condition) {
-    id
-    author
-    coverage
-    dateLastUpdated
-    userLastUpdated
-    length
-    issues
-    comments
-    tags
-    source
-    index
-    title
-    type
-    contributors
+  createProfile(input: $input, condition: $condition) {
+    email
   }
 }
 `;
-export const updateTranscription = `mutation UpdateTranscription(
-  $input: UpdateTranscriptionInput!
-  $condition: ModelTranscriptionConditionInput
+export const updateProfile = `mutation UpdateProfile(
+  $input: UpdateProfileInput!
+  $condition: ModelProfileConditionInput
 ) {
-  updateTranscription(input: $input, condition: $condition) {
-    id
-    author
-    coverage
-    dateLastUpdated
-    userLastUpdated
-    length
-    issues
-    comments
-    tags
-    source
-    index
-    title
-    type
-    contributors
+  updateProfile(input: $input, condition: $condition) {
+    email
   }
 }
 `;
-export const deleteTranscription = `mutation DeleteTranscription(
-  $input: DeleteTranscriptionInput!
-  $condition: ModelTranscriptionConditionInput
+export const deleteProfile = `mutation DeleteProfile(
+  $input: DeleteProfileInput!
+  $condition: ModelProfileConditionInput
 ) {
-  deleteTranscription(input: $input, condition: $condition) {
-    id
-    author
-    coverage
-    dateLastUpdated
-    userLastUpdated
-    length
-    issues
-    comments
-    tags
-    source
-    index
-    title
-    type
-    contributors
+  deleteProfile(input: $input, condition: $condition) {
+    email
   }
 }
 `;

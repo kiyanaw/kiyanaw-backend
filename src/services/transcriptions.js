@@ -169,11 +169,14 @@ export default {
   },
 
   /** */
-  async getTranscription(id, author) {
+  async getTranscription(id) {
     try {
       let [transcription, regions] = await Promise.all([
-        API.graphql(graphqlOperation(queries.getTranscription, { id: id, author: author })),
-        API.graphql(graphqlOperation(queries.byTranscription, { transcriptionId: id, limit: 400 })),
+        API.graphql(graphqlOperation(queries.getTranscription, { id: id })),
+        API.graphql(
+          graphqlOperation(queries.byTranscription, { transcriptionId: id, limit: 400 }),
+          'AWS_IAM',
+        ),
       ])
       transcription = new Transcription(transcription.data.getTranscription)
       transcription.regions = regions.data.byTranscription.items.map((item) => {

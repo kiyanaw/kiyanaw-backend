@@ -1,6 +1,59 @@
 /* eslint-disable */
 // this is an auto generated file. This will be overwritten
 
+export const getTranscription = `query GetTranscription($id: ID!) {
+  getTranscription(id: $id) {
+    id
+    author
+    coverage
+    dateLastUpdated
+    userLastUpdated
+    length
+    issues
+    comments
+    tags
+    source
+    index
+    title
+    type
+    contributors
+  }
+}
+`;
+export const listTranscriptions = `query ListTranscriptions(
+  $id: ID
+  $filter: ModelTranscriptionFilterInput
+  $limit: Int
+  $nextToken: String
+  $sortDirection: ModelSortDirection
+) {
+  listTranscriptions(
+    id: $id
+    filter: $filter
+    limit: $limit
+    nextToken: $nextToken
+    sortDirection: $sortDirection
+  ) {
+    items {
+      id
+      author
+      coverage
+      dateLastUpdated
+      userLastUpdated
+      length
+      issues
+      comments
+      tags
+      source
+      index
+      title
+      type
+      contributors
+    }
+    nextToken
+  }
+}
+`;
 export const getRegion = `query GetRegion($id: String!) {
   getRegion(id: $id) {
     id
@@ -118,86 +171,28 @@ export const listRegionLocks = `query ListRegionLocks(
   }
 }
 `;
-export const byTranscription = `query ByTranscription(
-  $transcriptionId: String
-  $sortDirection: ModelSortDirection
-  $filter: ModelRegionFilterInput
-  $limit: Int
-  $nextToken: String
-) {
-  byTranscription(
-    transcriptionId: $transcriptionId
-    sortDirection: $sortDirection
-    filter: $filter
-    limit: $limit
-    nextToken: $nextToken
-  ) {
-    items {
-      id
-      start
-      end
-      text
-      issues
-      isNote
-      comments
-      translation
-      dateLastUpdated
-      userLastUpdated
-      transcriptionId
-      version
-    }
-    nextToken
+export const getProfile = `query GetProfile($email: ID!) {
+  getProfile(email: $email) {
+    email
   }
 }
 `;
-export const getTranscription = `query GetTranscription($id: ID!) {
-  getTranscription(id: $id) {
-    id
-    author
-    coverage
-    dateLastUpdated
-    userLastUpdated
-    length
-    issues
-    comments
-    tags
-    source
-    index
-    title
-    type
-    contributors
-  }
-}
-`;
-export const listTranscriptions = `query ListTranscriptions(
-  $id: ID
-  $filter: ModelTranscriptionFilterInput
+export const listProfiles = `query ListProfiles(
+  $email: ID
+  $filter: ModelProfileFilterInput
   $limit: Int
   $nextToken: String
   $sortDirection: ModelSortDirection
 ) {
-  listTranscriptions(
-    id: $id
+  listProfiles(
+    email: $email
     filter: $filter
     limit: $limit
     nextToken: $nextToken
     sortDirection: $sortDirection
   ) {
     items {
-      id
-      author
-      coverage
-      dateLastUpdated
-      userLastUpdated
-      length
-      issues
-      comments
-      tags
-      source
-      index
-      title
-      type
-      contributors
+      email
     }
     nextToken
   }
@@ -268,6 +263,38 @@ export const byOwnerUpdated = `query ByOwnerUpdated(
       title
       type
       contributors
+    }
+    nextToken
+  }
+}
+`;
+export const byTranscription = `query ByTranscription(
+  $transcriptionId: String
+  $sortDirection: ModelSortDirection
+  $filter: ModelRegionFilterInput
+  $limit: Int
+  $nextToken: String
+) {
+  byTranscription(
+    transcriptionId: $transcriptionId
+    sortDirection: $sortDirection
+    filter: $filter
+    limit: $limit
+    nextToken: $nextToken
+  ) {
+    items {
+      id
+      start
+      end
+      text
+      issues
+      isNote
+      comments
+      translation
+      dateLastUpdated
+      userLastUpdated
+      transcriptionId
+      version
     }
     nextToken
   }

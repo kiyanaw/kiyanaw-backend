@@ -1,6 +1,63 @@
 /* eslint-disable */
 // this is an auto generated file. This will be overwritten
 
+export const onCreateTranscription = `subscription OnCreateTranscription {
+  onCreateTranscription {
+    id
+    author
+    coverage
+    dateLastUpdated
+    userLastUpdated
+    length
+    issues
+    comments
+    tags
+    source
+    index
+    title
+    type
+    contributors
+  }
+}
+`;
+export const onUpdateTranscription = `subscription OnUpdateTranscription {
+  onUpdateTranscription {
+    id
+    author
+    coverage
+    dateLastUpdated
+    userLastUpdated
+    length
+    issues
+    comments
+    tags
+    source
+    index
+    title
+    type
+    contributors
+  }
+}
+`;
+export const onDeleteTranscription = `subscription OnDeleteTranscription {
+  onDeleteTranscription {
+    id
+    author
+    coverage
+    dateLastUpdated
+    userLastUpdated
+    length
+    issues
+    comments
+    tags
+    source
+    index
+    title
+    type
+    contributors
+  }
+}
+`;
 export const onCreateRegion = `subscription OnCreateRegion {
   onCreateRegion {
     id
@@ -103,60 +160,21 @@ export const onDeleteRegionLock = `subscription OnDeleteRegionLock {
   }
 }
 `;
-export const onCreateTranscription = `subscription OnCreateTranscription($author: String, $contributors: String) {
-  onCreateTranscription(author: $author, contributors: $contributors) {
-    id
-    author
-    coverage
-    dateLastUpdated
-    userLastUpdated
-    length
-    issues
-    comments
-    tags
-    source
-    index
-    title
-    type
-    contributors
+export const onCreateProfile = `subscription OnCreateProfile {
+  onCreateProfile {
+    email
   }
 }
 `;
-export const onUpdateTranscription = `subscription OnUpdateTranscription($author: String, $contributors: String) {
-  onUpdateTranscription(author: $author, contributors: $contributors) {
-    id
-    author
-    coverage
-    dateLastUpdated
-    userLastUpdated
-    length
-    issues
-    comments
-    tags
-    source
-    index
-    title
-    type
-    contributors
+export const onUpdateProfile = `subscription OnUpdateProfile {
+  onUpdateProfile {
+    email
   }
 }
 `;
-export const onDeleteTranscription = `subscription OnDeleteTranscription($author: String) {
-  onDeleteTranscription(author: $author) {
-    id
-    author
-    coverage
-    dateLastUpdated
-    userLastUpdated
-    length
-    issues
-    comments
-    tags
-    source
-    index
-    title
-    type
-    contributors
+export const onDeleteProfile = `subscription OnDeleteProfile {
+  onDeleteProfile {
+    email
   }
 }
 `;
