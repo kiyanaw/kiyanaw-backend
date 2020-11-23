@@ -27,7 +27,7 @@ type Transcription
   index: String
   title: String!
   type: String!
-  contributors: [String]
+  contributors: String
 }
 
 type Region
