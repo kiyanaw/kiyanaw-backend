@@ -1,24 +1,29 @@
 import elasticsearch from 'elasticsearch'
+import Timeout from 'smart-timeout'
+
+import logging from '../logging'
 import preverbs from './preverbs'
+
+const logger = new logging.Logger('Lexicon')
 
 const client = new elasticsearch.Client({
   // host: 'http://localhost:9200/'
-  host: 'https://search-kiyanaw-dev-grohpnfdchux2gvdyytpdpqr5m.us-east-1.es.amazonaws.com'
+  host: 'https://search-kiyanaw-dev-grohpnfdchux2gvdyytpdpqr5m.us-east-1.es.amazonaws.com',
 })
 
-class Inflection {
-  constructor(item) {
-    // this.data = item._source
-    this._id = item._id
-    this.type = item.type
-    this.sro = item.sro
-    this.actor = item.actor
-    this.goal = item.goal
-    this.mode = item.mode
-    this.tempus = item.tempus
-    this.english = item.english
-  }
-}
+// class Inflection {
+//   constructor(item) {
+//     // this.data = item._source
+//     this._id = item._id
+//     this.type = item.type
+//     this.sro = item.sro
+//     this.actor = item.actor
+//     this.goal = item.goal
+//     this.mode = item.mode
+//     this.tempus = item.tempus
+//     this.english = item.english
+//   }
+// }
 
 // Words we have found previously
 let knownWords = []
@@ -35,17 +40,13 @@ class Lex {
   }
 
   replaceMacrons(word) {
-    word = word
-      .replace(/ā/g, 'â')
-      .replace(/ē/g, 'ê')
-      .replace(/ī/g, 'î')
-      .replace(/ō/g, 'ô')
+    word = word.replace(/ā/g, 'â').replace(/ē/g, 'ê').replace(/ī/g, 'î').replace(/ō/g, 'ô')
     return word
   }
 
-  fixKaKi(word) {
-    word = word.replace('kâ-')
-  }
+  // fixKaKi(word) {
+  //   word = word.replace('kâ-')
+  // }
 
   stripWords(words) {
     let strippedWords = []
@@ -84,7 +85,7 @@ class Lex {
    * TODO: test this!!
    */
   async wordSearch(words, callback) {
-    console.log(`Got search terms: ${words}`)
+    logger.log(`Got search terms: ${words}`)
     // pull preverbs and macrons out of the search terms
     const strippedWords = this.stripWords(words)
     // now that the words are stripped, match against known words one more time
@@ -101,7 +102,7 @@ class Lex {
       let query = {
         index: 'inflected',
         type: '_doc',
-        body: { query: { bool: { filter: { terms: { inflected: onlySearchFor } } } } }
+        body: { query: { bool: { filter: { terms: { inflected: onlySearchFor } } } } },
       }
       // console.log(JSON.stringify(query))
       const raw = await client.search(query)
@@ -131,13 +132,22 @@ class Lex {
   /**
    * Allow modules to report words that are known already (probably from saved data)
    */
-  async addKnownWords(words) {
-    knownWords = knownWords.concat(words)
+  addKnownWords(words) {
+    knownWords = Array.from(new Set(knownWords.concat(words)))
+
+    Timeout.clear('report-known-words-timer')
+    Timeout.set(
+      'report-known-words-timer',
+      () => {
+        logger.info('Reported known words', knownWords)
+      },
+      1000,
+    )
   }
   /**
    * Return the list of known words
    */
-  async getKnownWords() {
+  getKnownWords() {
     return knownWords.filter((item) => item && item.length)
   }
 }

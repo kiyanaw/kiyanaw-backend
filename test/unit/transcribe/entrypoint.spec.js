@@ -5,6 +5,7 @@ Vue.default.use(Vuetify)
 
 describe('App', function () {
   // bring in the tests
-  require('./spec/editor.spec')
+  // require('./spec/editor.spec')
   // require('./spec/transcribe.spec')
+  require('./spec/region-form.spec')
 })

@@ -7,7 +7,7 @@
           ref="table"
           class="elevation-1"
           :headers="headers"
-          :items="list"
+          :items="transcriptions"
           :items-per-page="15"
           :loading="loading"
         >
@@ -18,9 +18,7 @@
           <template v-slot:item.coverage="{ item }">
             <v-progress-linear :value="item.coverage" height="3" />
           </template>
-
           <template v-slot:item.issues="{ item }">
-            <!-- <span :class="{ issues: item.issues > 0 }">{{ item.issues }}</span> -->
             <v-badge v-if="item.issues > 0" color="red" inline :content="item.issues" />
             <v-badge v-if="item.issues == 0" color="blue" inline content="0" />
           </template>
@@ -32,6 +30,8 @@
           <template v-slot:item.source="{ item }">
             <a :href="item.source" _target="blank">Source</a>
           </template>
+          <!-- d
+-->
         </v-data-table>
       </v-flex>
     </v-layout>
@@ -47,7 +47,8 @@
 </template>
 
 <script>
-import TranscriptionService from '../../services/transcriptions'
+import { mapActions, mapGetters } from 'vuex'
+// import TranscriptionService from '../../services/transcriptions'
 
 import en from 'javascript-time-ago/locale/en'
 import TimeAgo from 'javascript-time-ago'
@@ -57,8 +58,8 @@ const timeAgo = new TimeAgo('en-US')
 export default {
   data() {
     return {
-      list: [],
       loading: true,
+
       headers: [
         { text: 'Title', value: 'title', width: '40%' },
         { text: 'Length', value: 'length' },
@@ -71,23 +72,23 @@ export default {
     }
   },
   mounted() {
-    this.loadTranscriptionList()
+    this.loadTranscriptions()
     // this is a hack, fix it
     // this.$refs.table.defaultPagination.rowsPerPage = 25
-    window.list = this
+  },
+  computed: {
+    ...mapGetters(['transcriptions']),
   },
   methods: {
-    /**
-     * Load a list of transcriptions.
-     */
-    async loadTranscriptionList() {
-      this.list = await TranscriptionService.listTranscriptions()
-      // this.contribList = await TranscriptionService.listSharedTranscriptions()
+    ...mapActions(['loadTranscriptions']),
 
-      this.loading = false
-    },
     timeAgo(date) {
-      return timeAgo.format(date)
+      return timeAgo.format(new Date(Number(date)))
+    },
+  },
+  watch: {
+    transcriptions() {
+      this.loading = !this.transcriptions.length
     },
   },
 }

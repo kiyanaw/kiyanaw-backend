@@ -1,21 +1,10 @@
 <template>
   <v-layout>
-    <!-- <div class="loading" v-if="loading">
-      <v-progress-circular
-        v-bind:value="loadingProgress"
-        :width="6"
-        :size="50"
-        color="#305880"
-      ></v-progress-circular>
-      <h5>Loading waveform...</h5>
-    </div>-->
-
     <div :style="{ visibility: loading ? 'hidden' : 'visible' }" class="waveform-container">
       <div id="minimap">
         <v-layout>
           <v-flex md6 xs6 class="media-title">
-            <a v-if="canEdit" @click="onEditTitle">{{ title }}</a>
-            <span v-if="!canEdit">{{ title }}</span>
+            <span>{{ transcription.title }} ({{ transcription.dateLastUpdated }})</span>
           </v-flex>
           <v-flex md6 xs6 class="main-time">
             {{ normalTime(currentTime) }}/{{ normalTime(maxTime) }}
@@ -143,6 +132,8 @@ import RegionPlugin from 'wavesurfer.js/dist/plugin/wavesurfer.regions.min.js'
 import TimelinePlugin from 'wavesurfer.js/dist/plugin/wavesurfer.timeline.min.js'
 // import MinimapPlugin from 'wavesurfer.js/dist/plugin/wavesurfer.minimap.min.js'
 
+import { mapGetters } from 'vuex'
+
 // import soundtouch from './lib/soundtouch'
 import utils from './utils'
 // import Timeout from 'smart-timeout'
@@ -209,6 +200,11 @@ export default {
       issueSelected: false,
     }
   },
+
+  computed: {
+    ...mapGetters(['transcription']),
+  },
+
   watch: {
     // regions(newValue, oldValue) {
     //   // this.renderRegions(newValue)
@@ -243,6 +239,7 @@ export default {
         // TODO: try the minimap plugin again at some point, wasn't working with peaks data
       ],
     })
+    // console.log('surfer', surfer)
 
     surfer.on('audioprocess', (event) => {
       const currentTime = event.toFixed(3) // 0.109
@@ -335,10 +332,6 @@ export default {
     window.audio = this
   },
   methods: {
-    onEditTitle() {
-      this.$emit('edit-title')
-    },
-
     onToggleRegionType: function () {
       this.$emit('toggle-region-type')
     },

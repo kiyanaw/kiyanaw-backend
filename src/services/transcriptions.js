@@ -8,6 +8,9 @@ import * as subscriptions from '../graphql/subscriptions'
 import EnvService from '../services/env'
 import UserService from './user'
 
+import logging from '../logging'
+const logger = new logging.Logger('Transcription Service')
+
 function pad(num, size) {
   return ('000000000' + num).substr(-size)
 }
@@ -46,6 +49,7 @@ const regionSubscribers = []
 /**
  * @description Interface to the transcription document.
  */
+// TODO: move this object into the store instead of the service
 class Transcription {
   constructor(data) {
     this.id = data.id
@@ -56,39 +60,33 @@ class Transcription {
     this.issues = Number(data.issues) || 0
     this.source = data.source
     this.coverage = data.coverage || 0
-    this.dateLastUpdated = new Date(Number(data.dateLastUpdated))
+    this.dateLastUpdated = data.dateLastUpdated
     this.userLastUpdated = data.userLastUpdated
     this.contributors = data.contributors || []
+
+    console.log('dateLastUpdated', data.dateLastUpdated)
   }
 
-  // class Region {
-  //   constructor (data) {
-  //     this.id = data.id
-  //     this.
-  //   }
-  // }
   /**
    * Provide the URL to edit the transcription.
    * @returns {string}
    */
   get url() {
-    return '/transcribe-edit/' + this.data.id
+    return '/transcribe-edit/' + this.id
   }
   /**
    * Provide the length of the transcription audio in MM:SS
    * @returns {string}
    */
   get length() {
-    return String(floatToMSM(this.data.length)).split('.')[0]
+    try {
+      const length = String(floatToMSM(this._data.length)).split('.')[0]
+      return length
+    } catch (error) {
+      return '0'
+    }
   }
 }
-
-// function sortByTitle(a, b) {
-//   if (a.title > b.title) return 1
-//   if (b.title > a.title) return -1
-
-//   return 0
-// }
 
 export default {
   /**
@@ -108,6 +106,7 @@ export default {
     }
 
     results = results.data.listTranscriptions.items
+
     return results.map((item) => new Transcription(item))
     // unwrap the structure that comes back from appsync
   },
@@ -206,9 +205,7 @@ export default {
       transcriptionId: transcriptionId,
     }
 
-    const update = await API.graphql(graphqlOperation(mutations.createRegion, { input: input }), {
-      // authMode: 'AWS_IAM',
-    })
+    const update = await API.graphql(graphqlOperation(mutations.createRegion, { input: input }))
     regionData.version = 1
     return update.data.createRegion
   },
@@ -228,9 +225,8 @@ export default {
       transcriptionId: transcriptionId,
       expectedVersion: region.version,
     }
-    const update = await API.graphql(graphqlOperation(mutations.updateRegion, { input: input }), {
-      // authMode: 'AWS_IAM',
-    })
+    logger.debug('update region input', input)
+    const update = await API.graphql(graphqlOperation(mutations.updateRegion, { input: input }))
     region.version = region.version + 1
     return update.data.updateRegion
   },
@@ -326,6 +322,7 @@ export default {
 
   /** */
   async updateTranscription(data) {
+    logger.debug('saving transcription', data)
     const update = await API.graphql(
       graphqlOperation(mutations.updateTranscription, { input: data }),
     )
