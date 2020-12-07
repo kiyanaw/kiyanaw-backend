@@ -16,13 +16,21 @@ async function wait(time = 5) {
   })
 }
 
-describe.only('components/Transcribe', function () {
+describe.only('components/RegionForm', function () {
   let getters
   let store
 
   beforeEach(() => {
     getters = {
-      selectedRegion: () => {},
+      selectedRegion: () => {
+        return {}
+      },
+      locks: () => {
+        return {}
+      },
+      selectedIssue: () => {
+        return {}
+      },
     }
     store = new Vuex.Store({
       getters,

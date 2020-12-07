@@ -76,6 +76,8 @@ const actions = {
 
     // tweak the transcription for saving
     const transcription = { ...store.getters.transcription }
+    // TODO: after transcription class is moved to store, move these methods
+    delete transcription.data
     delete transcription.regions
 
     logger.info('Save transcription triggered', transcription)

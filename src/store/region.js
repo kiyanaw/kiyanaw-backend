@@ -16,10 +16,14 @@ const state = {
   regions: [],
   // The currently-selected region
   selectedRegion: null,
+  selectedIssue: null,
   locks: {},
 }
 
 const getters = {
+  selectedIssue(context) {
+    return context.selectedIssue
+  },
   selectedRegion(context) {
     return context.selectedRegion
   },
@@ -50,8 +54,18 @@ const actions = {
     store.dispatch('saveRegion', region)
   },
 
+  updateSelectedIssue(store, update) {
+    logger.debug('selectedIssue updated', update)
+    store.commit('UPDATE_SELECTED_ISSUE', update)
+  },
+
+  setSelectedIssue(store, issue) {
+    logger.debug('setSelectedIssue', issue)
+    store.commit('SET_SELECTED_ISSUE', issue)
+  },
+
   getLockedRegions(store) {
-    logger.info('Getting all locks')
+    logger.debug('Getting all locks')
 
     const transcriptionId = store.getters.transcription.id
     UserService.getRegionLocks(transcriptionId)
@@ -154,7 +168,6 @@ const actions = {
 
 const mutations = {
   SET_LOCK(context, update) {
-    // const assigned = Object.assign(context.locks, update)
     logger.info('Setting lock', update)
     if (update.data) {
       Vue.set(context.locks, update.key, update.data)
@@ -167,6 +180,10 @@ const mutations = {
     Vue.set(context, 'regions', regions)
   },
 
+  SET_SELECTED_ISSUE(context, issue) {
+    Vue.set(context, 'selectedIssue', issue)
+  },
+
   SET_SELECTED_REGION(context, region) {
     Vue.set(context, 'selectedRegion', region)
   },
@@ -176,6 +193,27 @@ const mutations = {
     const index = context.regions.findIndex((item) => item.id === update.id)
     const whole = Object.assign(item, update.update)
     Vue.set(context.regions, index, whole)
+  },
+
+  UPDATE_SELECTED_ISSUE(context, update) {
+    // first update is necessary for selectedIssue
+    const issue = context.selectedIssue
+    const whole = Object.assign({}, issue, update)
+    Vue.set(context, 'selectedIssue', whole)
+
+    // second update is necessary for issue list
+    const allIssues = context.selectedRegion.issues
+    Vue.set(
+      context.selectedRegion,
+      'issues',
+      allIssues.map((item) => {
+        if (item.id === issue.id) {
+          return whole
+        } else {
+          return item
+        }
+      }),
+    )
   },
 }
 

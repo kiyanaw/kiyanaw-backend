@@ -63,8 +63,6 @@ class Transcription {
     this.dateLastUpdated = data.dateLastUpdated
     this.userLastUpdated = data.userLastUpdated
     this.contributors = data.contributors || []
-
-    console.log('dateLastUpdated', data.dateLastUpdated)
   }
 
   /**

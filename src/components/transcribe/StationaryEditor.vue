@@ -10,20 +10,21 @@
       </v-tab-item>
 
       <v-tab-item :transition="false" :reverse-transition="false" class="tab-panel">
-        <region-form></region-form>
+        <region-form @create-issue="activeTab = 2"></region-form>
       </v-tab-item>
 
       <v-tab-item :transition="false" :reverse-transition="false" class="tab-panel">
-        <div>bar</div>
+        <issues-form></issues-form>
       </v-tab-item>
     </v-tabs>
   </div>
 </template>
 
 <script>
-import { mapGetters } from 'vuex'
+import { mapActions, mapGetters } from 'vuex'
 import TranscriptionForm from './TranscriptionForm.vue'
 import RegionForm from './RegionForm.vue'
+import IssuesForm from './IssuesForm.vue'
 
 const tabs = {
   Transcription: 0,
@@ -32,10 +33,10 @@ const tabs = {
 }
 
 export default {
-  components: { RegionForm, TranscriptionForm },
+  components: { IssuesForm, RegionForm, TranscriptionForm },
 
   computed: {
-    ...mapGetters(['selectedRegion']),
+    ...mapGetters(['selectedRegion', 'selectedIssue']),
 
     regionIndex() {
       return this.selectedRegion ? this.selectedRegion.index : ''
@@ -48,7 +49,28 @@ export default {
     }
   },
 
+  methods: {
+    ...mapActions(['setSelectedIssue']),
+
+    // onNewIssue(issue) {
+
+    // },
+  },
+
   watch: {
+    activeTab(newValue) {
+      if (this.selectedIssue && !this.selectedIssue.id && newValue !== tabs.Issues) {
+        if (confirm('Discard new issue?')) {
+          this.setSelectedIssue(null)
+        } else {
+          console.log('go back to issues tab')
+          this.$nextTick(() => {
+            this.activeTab = tabs.Issues
+          })
+        }
+      }
+    },
+
     selectedRegion(newRegion) {
       if (newRegion) {
         this.activeTab = tabs.Region

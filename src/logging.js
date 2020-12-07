@@ -1,21 +1,27 @@
+const envLogging = process.env.NODE_LOGGING
+
+console.log('process env', process.env)
+
+const doLog = envLogging === 'off' ? false : true
+
 const Logger = function (namespace) {
   const name = namespace || '<unset>'
   this.info = function () {
     /* eslint-disable no-undef */
-    console.log('[INFO]', name, ':', ...arguments)
+    doLog && console.log('[INFO]', name, ':', ...arguments)
   }
   // alias of 'info' for drop-in support
   this.log = function () {
-    console.log('[INFO]', name, ':', ...arguments)
+    doLog && console.log('[INFO]', name, ':', ...arguments)
   }
   this.warn = function () {
-    console.warn('[WARN]', name, ':', ...arguments)
+    doLog && console.warn('[WARN]', name, ':', ...arguments)
   }
   this.error = function () {
-    console.error('[ERROR]', name, ':', ...arguments)
+    doLog && console.error('[ERROR]', name, ':', ...arguments)
   }
   this.debug = function () {
-    console.debug('[DEBUG]', name, ':', ...arguments)
+    doLog && console.debug('[DEBUG]', name, ':', ...arguments)
   }
   return this
 }

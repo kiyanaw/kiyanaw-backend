@@ -8,13 +8,13 @@ module.exports = function (config) {
 
     preprocessors: {
       'src/**/*.js': ['webpack', 'sourcemap'],
-      '**/*.spec.js': ['webpack', 'sourcemap']
+      '**/*.spec.js': ['webpack', 'sourcemap'],
     },
 
     webpack: webpackConfig,
 
     reporters: ['spec'],
 
-    browsers: ['ChromeHeadless']
+    browsers: ['ChromeHeadless'],
   })
 }

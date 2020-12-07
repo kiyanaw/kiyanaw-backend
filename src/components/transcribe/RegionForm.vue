@@ -7,14 +7,26 @@
         <v-btn small icon>
           <v-icon> mdi-play-circle </v-icon>
         </v-btn>
+
+        <v-btn
+          icon
+          small
+          :disabled="regionIsLocked && !regionIsLockedByMe"
+          @click="onToggleRegionType"
+        >
+          <v-icon small> mdi-note-outline </v-icon>
+        </v-btn>
         <v-btn small icon @click="onLock">
           <v-icon small v-if="!regionIsLocked">mdi-lock-open-outline</v-icon>
           <v-icon small v-if="regionIsLocked" color="black">mdi-lock</v-icon>
         </v-btn>
+        <v-btn small icon :disabled="!selectedRange" @click="onCreateIssue">
+          <v-icon small> mdi-flag-outline </v-icon>
+        </v-btn>
       </v-toolbar>
       <rte
         class="rte main-editor-container"
-        ref="main"
+        ref="mainEditor"
         mode="main"
         :text="regionText"
         :disabled="regionIsLocked && !regionIsLockedByMe"
@@ -23,11 +35,12 @@
         @focus="onFocusDelayed"
         @blur="onBlur"
         @selection="onMainEditorSelection"
+        v-if="!region.isNote"
       ></rte>
 
       <rte
         class="rte translation-editor-container"
-        ref="secondary"
+        ref="secondaryEditor"
         mode="secondary"
         :text="regionTranslation"
         :disabled="regionIsLocked && !regionIsLockedByMe"
@@ -68,7 +81,11 @@ const logger = new logging.Logger('Region Form')
 export default {
   components: { rte: RTE },
   computed: {
-    ...mapGetters(['locks', 'selectedRegion', 'user']),
+    ...mapGetters(['locks', 'selectedIssue', 'selectedRegion', 'user']),
+
+    issues() {
+      return this.selectedRegion.issues || []
+    },
 
     region() {
       return this.selectedRegion
@@ -106,16 +123,79 @@ export default {
     },
   },
 
+  data() {
+    return {
+      currentSelection: null,
+      selectedRange: null,
+    }
+  },
+
   mounted() {},
 
   watch: {
     locks(newValue) {
       logger.info('Lock changed', newValue)
     },
+
+    selectedIssue(newIssue) {
+      logger.info('Selected issue updated', newIssue)
+      // an update here would mean that issues have changed, or there are incoming. If the id is
+      // null, this would be newly-created
+      if (newIssue && newIssue.id) {
+        // const issues = this.selectedRegion.issues
+        // this.$refs.mainEditor.clearIssues()
+        // for (const issue of issues) {
+        //   if (!issue.resolved) {
+        //     this.$refs.mainEditor.applyIssue(issue.type, issue.index, issue.text.length)
+        //   }
+        // }
+      }
+    },
+
+    issues(newValue) {
+      console.log('issues changed', newValue)
+
+      this.$refs.mainEditor.validateIssues(newValue)
+
+      // if (newValue.length > oldValue.length) {
+      //   console.log('new issue')
+      //   // there is a new issue
+      //   const newIssue = newValue.filter((item) => !oldValue.includes(item))
+      //   if (newIssue.length) {
+      //     this.$refs.mainEditor.addIssue(newIssue)
+      //   }
+      // } else if (oldValue.length > newValue.length) {
+      //   console.log('deleted issue')
+      //   // an issue was deleted
+      //   const missingIssue = oldValue.filter((item) => !newValue.includes(item))
+      //   if (missingIssue.length) {
+      //     this.$refs.mainEditor.removeIssue(missingIssue)
+      //   }
+      // }
+    },
   },
 
   methods: {
-    ...mapActions(['checkForLockedRegions', 'lockRegion', 'updateRegion', 'unlockRegion']),
+    ...mapActions([
+      'checkForLockedRegions',
+      'lockRegion',
+      'setSelectedIssue',
+      'updateRegion',
+      'unlockRegion',
+    ]),
+
+    onCreateIssue() {
+      this.setSelectedIssue({
+        id: null,
+        type: 'needs-help',
+        createdAt: +new Date(),
+        index: this.selectedRange.index,
+        text: this.selectedRange.text,
+        comments: [],
+        owner: this.user.name,
+      })
+      this.$emit('create-issue')
+    },
 
     onLock() {
       if (this.regionIsLocked) {
@@ -156,20 +236,38 @@ export default {
       this.attemptRegionLock()
     },
 
+    /**
+     * This is disabled for now, we'll just keep the region locked until another region is selected.
+     */
     onBlur() {
-      logger.debug('Blur')
+      //logger.debug('Blur')
       // Delay the unlock request in case we just switched editors
-      Timeout.set('unlock-region-timer', this.unlockRegion, 50)
+      // Timeout.set('unlock-region-timer', this.unlockRegion, 50)
     },
 
     onMainEditorSelection(range) {
-      logger.info('Main editor selection', range)
+      // logger.info('Main editor selection', range)
+      if (range && range.length) {
+        logger.info('length!')
+        this.selectedRange = range
+      } else {
+        this.selectedRange = null
+      }
     },
 
     onSecondaryEditorContentChange(contents) {
       const text = contents.map((item) => item.insert).join('')
       logger.debug('translation changed', text)
       this.updateRegion({ translation: text })
+    },
+
+    onToggleRegionType() {
+      const existingTextLength = this.selectedRegion.text.map((item) => item.insert).join('').length
+      if (existingTextLength) {
+        alert('Cannot convert non-empty region to note!')
+        return
+      }
+      this.updateRegion({ isNote: !this.selectedRegion.isNote })
     },
 
     attemptRegionLock() {
@@ -271,10 +369,6 @@ export default {
         }
       }
     },
-
-    // unlockRegion() {
-    //   logger.warn('Unlocking region', this.selectedRegion.id)
-    // },
   },
 }
 </script>

@@ -201,7 +201,7 @@ export default {
     this.inboundRegion = this.$route.params.region || null
     this.$store.dispatch('setSelectedRegion', this.inboundRegion)
 
-    // this.listenForRegions()
+    // this.listenForRegions()onToggleRegionType
     // this.listenForLockedRegions()
 
     /**
@@ -226,31 +226,13 @@ export default {
     /**
      * Listen for <space> event (and others) to interact with the waveform.
      */
-    // document.addEventListener('keyup', (evt) => {
-    //   console.log('key up',)
-    //   // TODO: this might work better in Editor, blur the cursor at the same time
-    //   if (evt.keyCode === 27) {
-    //     this.editingRegionId = null
-    //   }
-    //   if (!this.editingRegionId) {
-    //     // play/pause on space bar
-    //     if (evt.keyCode === 32) {
-    //       try {
-    //         let canPlay = true
-    //         for (let region of this.regions) {
-    //           if (this.$refs[region.id][0].hasFocus) {
-    //             canPlay = false
-    //           }
-    //         }
-    //         if (canPlay) {
-    //           this.$refs.player.playPause()
-    //         }
-    //       } catch (e) {
-    //         console.error(e)
-    //       }
-    //     }
+    // document.addEventListener('keyup', (event) => {
+    //   // play/pause on space bar
+    //   if (event.keyCode === 32) {
+    //     this.$refs.player.playPause()
     //   }
     // })
+
     this.scrollToEditorTop()
     // load up
     this.load()

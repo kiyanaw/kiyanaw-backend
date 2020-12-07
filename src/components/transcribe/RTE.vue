@@ -44,7 +44,7 @@ const formats = {
 export default {
   props: ['disabled', 'mode', 'text'],
   mounted() {
-    logger.info('editor mounted', this.mode)
+    logger.debug('editor mounted', this.mode)
     this.editor = null
 
     const element = this.$el.querySelector('#editor-' + this.mode)
@@ -89,6 +89,8 @@ export default {
         logger.debug('Selection change', this.mode, range)
         if (range) {
           this.$emit('focus')
+          // tack on the text for this event
+          range.text = this.editor.getText(range.index, range.length)
           this.$emit('selection', range)
         } else {
           this.$emit('blur')
@@ -125,7 +127,55 @@ export default {
      */
     emitChangeEvent(event) {
       const contents = this.editor.getContents().ops
+      // console.log('contents', contents)
       this.$emit(event, contents)
+    },
+
+    validateIssues(issues) {
+      const contents = this.editor.getContents().ops
+      const existingIds = contents
+        .map((item) =>
+          Object.values(item.attributes || {}).filter((value) => value.startsWith('issue')),
+        )
+        .flat()
+
+      // incoming issues
+      const newIssues = issues
+        .filter((issue) => !issue.resolved)
+        .filter((issue) => !existingIds.includes(issue.id))
+
+      for (const issue of newIssues) {
+        this.addIssue(issue)
+      }
+
+      // deleted or resolved issues
+      const goodIssueIds = issues.filter((issue) => !issue.resolved).map((issue) => issue.id)
+      const deleted = existingIds.filter((id) => !goodIssueIds.includes(id))
+      for (const issueId of deleted) {
+        this.removeIssue(issueId)
+      }
+    },
+
+    addIssue(issue) {
+      logger.info('Adding issue', issue)
+      // creates the class .issue-needs-help-1234567890
+      this.editor.formatText(issue.index, issue.text.length, `issue-${issue.type}`, issue.id)
+      this.emitChangeEvent('change-format')
+    },
+
+    removeIssue(issueId) {
+      logger.info('removing issueId', issueId)
+      const issueType = issueId.split('-').slice(0, -1).join('-')
+      const contents = this.editor.getContents().ops
+      let index = 0
+      for (const leaf of contents) {
+        if (leaf.attributes && Object.values(leaf.attributes).includes(issueId)) {
+          this.editor.formatText(index, leaf.insert.length, issueType, false)
+          break
+        }
+        index += leaf.insert.length
+      }
+      this.emitChangeEvent('change-format')
     },
   },
 
@@ -147,6 +197,7 @@ export default {
      * A hook to change the editor text only when the region changes.
      */
     selectedRegion() {
+      logger.info('selectionRegion changed!')
       this.setContents(this.text)
     },
   },

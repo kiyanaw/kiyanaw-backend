@@ -35,20 +35,10 @@
             <v-icon small> mdi-close-circle </v-icon>
           </v-btn>
 
-          <v-btn
-            icon
-            small
-            :disabled="!editingRegionId"
-            class="control-btn"
-            @click="onToggleRegionType"
-          >
-            <v-icon small> mdi-note-outline </v-icon>
-          </v-btn>
-
           <v-btn icon disabled class="control-btn"> | </v-btn>
 
           <!-- SELECTION CONTROLS -->
-          <v-btn
+          <!-- <v-btn
             icon
             :disabled="!showRegionControls && !showIssueControl"
             class="control-btn"
@@ -56,8 +46,8 @@
             @click="onFlagSelectionClick"
           >
             <v-icon small> mdi-flag-outline </v-icon>
-          </v-btn>
-
+          </v-btn> -->
+          <!-- 
           <v-btn
             icon
             :disabled="!showRegionControls && !showIgnoreControl"
@@ -76,7 +66,7 @@
             @click="onClearFormatClick"
           >
             <v-icon small> mdi-cancel </v-icon>
-          </v-btn>
+          </v-btn> -->
 
           <!-- REGION CONTROLS -->
           <!-- <v-btn icon disabled class="control-btn">|</v-btn> -->
@@ -221,6 +211,7 @@ export default {
   async mounted() {
     var me = this
     this.pendingInboundRegion = this.$props.inboundRegion
+
     surfer = WaveSurfer.create({
       container: '#waveform',
       waveColor: '#305880',
@@ -331,6 +322,7 @@ export default {
     window.surfer = surfer
     window.audio = this
   },
+
   methods: {
     onToggleRegionType: function () {
       this.$emit('toggle-region-type')
