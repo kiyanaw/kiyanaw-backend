@@ -77,7 +77,6 @@ import TranscriptionService from '../../services/transcriptions'
 
 import RegionPartial from './RegionPartial.vue'
 import UserService from '../../services/user'
-import Lex from '../../services/lexicon'
 
 import { setTimeout } from 'timers'
 import { mapActions, mapGetters } from 'vuex'
@@ -359,7 +358,7 @@ export default {
       // TODO: history between regions
     },
 
-    onUpdateRegion(regionUpdate) {
+    onUpdateRegion() {
       console.log('TODO: need to update region from audio player')
     },
   },
