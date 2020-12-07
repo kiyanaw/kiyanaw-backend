@@ -16,7 +16,7 @@ async function wait(time = 5) {
   })
 }
 
-describe.only('components/RegionForm', function () {
+describe('components/RegionForm', function () {
   let getters
   let store
 

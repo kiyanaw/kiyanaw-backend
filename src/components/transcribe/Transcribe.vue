@@ -26,8 +26,6 @@
               @region-updated="onUpdateRegion"
               @region-in="onPlaybackRegionIn"
               @region-out="onPlaybackRegionOut"
-              @selection-action="onSelectionAction"
-              @toggle-region-type="onToggleRegionType"
               @waveform-ready="waveformLoading = false"
             />
           </v-flex>
@@ -201,7 +199,7 @@ export default {
     this.inboundRegion = this.$route.params.region || null
     this.$store.dispatch('setSelectedRegion', this.inboundRegion)
 
-    // this.listenForRegions()onToggleRegionType
+    // this.listenForRegions()
     // this.listenForLockedRegions()
 
     /**
@@ -241,35 +239,6 @@ export default {
   methods: {
     ...mapActions(['getLockedRegions', 'setSelectedRegion', 'setTranscription']),
 
-    // onRegionClick(ev) {
-    //   console.log('a region was clicked', ev)
-    // },
-
-    onToggleRegionType() {
-      let targetRegion = this.regions.filter((needle) => needle.id === this.editingRegionId)
-
-      let regionText = ''
-      try {
-        regionText = this.$refs[targetRegion[0].id][0].quill.getText().trim()
-      } catch (e) {
-        // not used
-      }
-
-      if (regionText.length > 0) {
-        alert('Cannot convert non-empty region to note!')
-        return
-      }
-
-      if (this.editingRegionId) {
-        if (targetRegion.length) {
-          targetRegion[0].isNote = !targetRegion[0].isNote
-          this.$refs.player.renderRegions()
-
-          this.saveRegion(targetRegion[0])
-        }
-      }
-    },
-
     scrollToEditorTop() {
       if (!this.inboundRegion) {
         setTimeout(() => {
@@ -282,83 +251,6 @@ export default {
       }
     },
 
-    /** */
-    // onEditorBlur(regionId, { silent = false } = {}) {
-    //   // only clear the editing region if we focus away from any editor
-    //   if (regionId === this.editingRegionId) {
-    //     this.editingRegionId = null
-    //   }
-    //   // only unlock the region if we're the editor that has the lock
-    //   if (!silent) {
-    //     console.log(' !!!! Unlocking region from blur', regionId)
-    //     UserService.unlockRegion(this.transcriptionId, regionId)
-    //       .then(() => {
-    //         // console.log('region unlocked', regionId)
-    //       })
-    //       .catch((error) => {
-    //         console.log('could not unlock region', error)
-    //       })
-    //   }
-    // },
-
-    /**
-     * @description Triggered when a region editor is activated. Notifies all regions with the
-     * current regionId being edited.
-     * @param {String} regionId Name of the current region being edited.
-     */
-    // onRegionFocus(regionId) {
-    //   // setting the editingRegionId activates that region's editor
-    //   this.editingRegionId = regionId
-    //   for (let index in this.regions) {
-    //     this.regions[index].activeRegion = regionId
-    //   }
-    //   UserService.lockRegion(this.transcriptionId, regionId).then((haveLock) => {
-    //     // console.log('We have lock:', haveLock)
-    //     if (!haveLock) {
-    //       if (this.$refs[regionId] && this.$refs[regionId][0]) {
-    //         // Someone else has the lock on this region
-    //         this.$refs[regionId][0].lock()
-    //       }
-    //     }
-    //   })
-    // },
-
-    // onRegionTextUpdated(event) {
-    //   const targetRegion = this.regions.filter((r) => r.id === event.id)[0]
-    //   // search for new words
-    //   if (event.editor === 'main') {
-    //     const words = this.$refs[targetRegion.id][0].getTokenizedText()
-    //     Timeout.clear('word-search-timer')
-    //     Timeout.set('word-search-timer', this.searchForNewWords, SEARCH_INTERVAL, words)
-    //   }
-
-    //   // set a timer to save this region
-    //   Timeout.clear(`save-region-${event.id}-timer`)
-    //   Timeout.set(`save-region-${event.id}-timer`, this.saveRegion, SAVE_INTERVAL, targetRegion)
-    // },
-
-    async searchForNewWords(words) {
-      await Lex.wordSearch(words)
-      // TODO: disabling this for now, it locks up the editors for a minute if there
-      // are a large number of regions
-      // for (let region of this.regions) {
-      //   // trigger update for all editors
-      //   this.$refs[region.id][0].invalidateKnownWords()
-      // }
-    },
-
-    async saveRegion(region) {
-      console.log('old save region', region)
-      // if (!region.isNote) {
-      //   window.foo = this
-      //   const regionOps = this.$refs[region.id][0].getMainOps()
-      //   region.text = regionOps
-      //   region.issues = this.$refs[region.id][0].issues || '[]'
-      // }
-      // TranscriptionService.updateRegion(this.transcriptionId, region)
-      // this.updateTranscription()
-    },
-
     regionCursor(data) {
       data.color = cursorColor
       const update = {
@@ -368,18 +260,6 @@ export default {
       UserService.sendCursor(update).catch((e) => {
         console.log(e)
       })
-    },
-
-    // onRegionTextSelection(event) {
-    //   if (this.$refs.player) {
-    //     this.$refs.player.onRegionTextSelection(event)
-    //   }
-    // },
-
-    onSelectionAction(action, value) {
-      if (this.$refs[this.editingRegionId]) {
-        this.$refs[this.editingRegionId][0].onSelectionAction(action, value)
-      }
     },
 
     /**
@@ -396,55 +276,10 @@ export default {
     },
 
     /**
-     * Update transcription data.
-     */
-    async updateTranscription() {
-      let issueCount
-      try {
-        issueCount = this.regions
-          .map((region) => {
-            try {
-              return this.$refs[region.id][0].getIssueCount()
-            } catch (e) {
-              console.log(e)
-              return 0
-            }
-          })
-          .reduce((a, b) => a + b)
-      } catch (e) {
-        console.warn(`Counldn't get issue count for regions ${e.message}`)
-      }
-
-      console.log('issue count', issueCount)
-
-      // const result = await TranscriptionService.updateTranscription({
-      //   id: this.transcriptionId,
-      //   title: this.title,
-      //   comments: this.comments,
-      //   source: this.source,
-      //   type: this.type,
-      //   author: this.author,
-      //   issues: issueCount,
-      //   length: this.$refs.player.maxTime,
-      //   coverage: this.coverage(),
-      //   dateLastUpdated: +new Date(),
-      //   userLastUpdated: this.user.name,
-      //   // TODO: fixme
-      //   contributors: this.contributors,
-      // })
-      // if (result) {
-      //   this.saved = true
-      //   setTimeout(() => {
-      //     this.saved = false
-      //   }, 5000)
-      //   console.log('Transcription saved')
-      // }
-    },
-
-    /**
      * Handler for the playback head entering a region.
      */
     onPlaybackRegionIn(region) {
+      console.log('TODO: highlight region should be moved')
       // this.inRegions = [region.id]
       this.currentRegionSheet.innerHTML = `#${region.id} {background-color: #edfcff;}`
       this.$nextTick(() => {
@@ -524,105 +359,9 @@ export default {
       // TODO: history between regions
     },
 
-    /** */
-    onDeleteRegion(region) {
-      if (confirm('Delete this region?')) {
-        this.removeLocalRegion(region)
-        TranscriptionService.deleteRegion(this.transcriptionId, region)
-      }
-    },
-
-    async removeLocalRegion(region) {
-      this.regions = this.regions.filter((r) => r.id !== region.id)
-      await new Promise((resolve) => setTimeout(resolve, 50))
-      this.$refs.player.renderRegions()
-    },
-
-    /**
-     * @description Handle region changes. If the `region` provided already
-     * exists, update it with the new details, otherwise, create the region.
-     * @param {object} region The new region details to update with.
-     * @param {string} region.id The id of the region being updated.
-     * @param {number} region.start The timestamp of the region start point.
-     * @param {number} region.end The timestamp of the region end point.
-     */
     onUpdateRegion(regionUpdate) {
-      const regionIds = this.regions.map((item) => item.id)
-      if (regionIds.indexOf(regionUpdate.id) === -1) {
-        const regionData = {
-          start: regionUpdate.start,
-          end: regionUpdate.end,
-          id: regionUpdate.id,
-          text: [],
-          issues: [],
-          isNote: false,
-        }
-        this.regions.push(regionData)
-        window.data = regionData
-        // save the new region
-        TranscriptionService.createRegion(this.transcriptionId, regionData).catch(function (error) {
-          console.error('Failed to create region', error)
-        })
-      } else {
-        let targetRegion = this.regions.filter((needle) => needle.id === regionUpdate.id)
-        if (targetRegion.length) {
-          // update bound data
-          targetRegion = targetRegion[0]
-          targetRegion.start = regionUpdate.start
-          targetRegion.end = regionUpdate.end
-          TranscriptionService.updateRegion(this.transcriptionId, targetRegion).catch(function (
-            error,
-          ) {
-            console.error('Failed to update region', error)
-          })
-        }
-      }
+      console.log('TODO: need to update region from audio player')
     },
-
-    // async listenForRegions() {
-    //   TranscriptionService.listenForRegions((actionType, region) => {
-    //     if (actionType === 'created') {
-    //       console.log('Creating region!', region)
-    //       if (!this.regionIds.includes(region.id)) {
-    //         this.regions.push(region)
-    //       }
-    //     }
-    //     if (actionType === 'updated') {
-    //       if (this.regionIds.includes(region.id)) {
-    //         // update the editor (unobtrusively)
-    //         if (this.$refs[region.id] && this.$refs[region.id][0]) {
-    //           this.$refs[region.id][0].realtimeUpdate(region)
-    //           // update times for the player
-    //           const targetRegion = this.regions.filter((r) => r.id === region.id)[0]
-    //           targetRegion.start = region.start
-    //           targetRegion.end = region.end
-    //           this.$refs.player.renderRegions()
-    //         }
-    //       }
-    //     }
-    //     if (actionType === 'deleted') {
-    //       this.removeLocalRegion(region)
-    //     }
-    //   })
-    // },
-
-    // async listenForLockedRegions() {
-    //   // listen for locked regions
-    //   UserService.listenForLock((data) => {
-    //     if (this.$refs[data.id] && this.$refs[data.id][0]) {
-    //       console.log(' ** region lock listener', data)
-    //       if (data.action === 'created') {
-    //         // console.log(' --> create')
-    //         this.$refs[data.id][0].lock(data.user)
-    //       } else if (data.action === 'deleted') {
-    //         // console.log(' --> delete')
-    //         this.$refs[data.id][0].unlock()
-    //       }
-    //     }
-    //   }).catch((error) => {
-    //     console.warn('Unable to listen for lock', error)
-    //   })
-    // },
   },
 }
 </script>
