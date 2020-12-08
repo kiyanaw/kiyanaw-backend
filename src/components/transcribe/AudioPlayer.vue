@@ -344,11 +344,15 @@ export default {
       this.loading = false
       this.renderRegions()
       if (this.inboundRegion) {
-        const startTime = surfer.regions.list[this.inboundRegion].start
-        const maxTime = this.maxTime
-        surfer.seekAndCenter(startTime / maxTime)
-        // this.$emit('region-in', {id: this.inboundRegion})
-        this.onRegionIn(this.inboundRegion)
+        try {
+          const startTime = surfer.regions.list[this.inboundRegion].start
+          const maxTime = this.maxTime
+          surfer.seekAndCenter(startTime / maxTime)
+          // this.$emit('region-in', {id: this.inboundRegion})
+          this.onRegionIn(this.inboundRegion)
+        } catch (e) {
+          // unused
+        }
       }
       if (this.isVideo) {
         document.querySelector('video').style.display = 'block'

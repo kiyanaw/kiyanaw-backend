@@ -84,7 +84,10 @@ export default {
     ...mapGetters(['locks', 'selectedIssue', 'selectedRegion', 'user']),
 
     issues() {
-      return this.selectedRegion.issues || []
+      if (this.selectedRegion) {
+        return this.selectedRegion.issues || []
+      }
+      return []
     },
 
     region() {
@@ -137,41 +140,33 @@ export default {
       logger.info('Lock changed', newValue)
     },
 
-    selectedIssue(newIssue) {
-      logger.info('Selected issue updated', newIssue)
-      // an update here would mean that issues have changed, or there are incoming. If the id is
-      // null, this would be newly-created
-      if (newIssue && newIssue.id) {
-        // const issues = this.selectedRegion.issues
-        // this.$refs.mainEditor.clearIssues()
-        // for (const issue of issues) {
-        //   if (!issue.resolved) {
-        //     this.$refs.mainEditor.applyIssue(issue.type, issue.index, issue.text.length)
-        //   }
-        // }
+    issues(newValue) {
+      if (!this.selectedRegion.isNote) {
+        Timeout.clear('invalidate-issues-timer')
+        Timeout.set(
+          'invalidate-issues-timer',
+          () => {
+            /**
+             * Issue invalidation *must* be delayed so that the editor contents can first.
+             */
+            this.$refs.mainEditor.validateIssues(newValue)
+          },
+          25,
+        )
       }
     },
 
-    issues(newValue) {
-      console.log('issues changed', newValue)
-
-      this.$refs.mainEditor.validateIssues(newValue)
-
-      // if (newValue.length > oldValue.length) {
-      //   console.log('new issue')
-      //   // there is a new issue
-      //   const newIssue = newValue.filter((item) => !oldValue.includes(item))
-      //   if (newIssue.length) {
-      //     this.$refs.mainEditor.addIssue(newIssue)
-      //   }
-      // } else if (oldValue.length > newValue.length) {
-      //   console.log('deleted issue')
-      //   // an issue was deleted
-      //   const missingIssue = oldValue.filter((item) => !newValue.includes(item))
-      //   if (missingIssue.length) {
-      //     this.$refs.mainEditor.removeIssue(missingIssue)
-      //   }
-      // }
+    selectedRegion(region) {
+      logger.info('setting text for both editors', region.translation)
+      /**
+       * Micro-delay to allow editors to mount the first time.
+       */
+      setTimeout(() => {
+        if (!region.isNote) {
+          this.$refs.mainEditor.setContents(region.text)
+        }
+        this.$refs.secondaryEditor.setContents(region.translation)
+      }, 10)
     },
   },
 

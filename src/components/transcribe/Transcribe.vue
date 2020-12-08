@@ -131,7 +131,7 @@ export default {
       inboundRegion: null,
       inRegions: [],
       title: '',
-      comments: '',
+      // comments: '',
       author: '',
       members: [],
       user: null,
@@ -319,7 +319,7 @@ export default {
       this.loading = false
       this.source = data.source
       this.title = data.title
-      this.comments = data.comments
+      // this.comments = data.comments
       this.type = data.type
       this.author = data.author
       this.isVideo = data.type.includes('video')
@@ -348,8 +348,11 @@ export default {
     playSpecificRegion(regionId) {
       // TODO: should this be set in the editor?
       this.setSelectedRegion(regionId)
-      this.$refs.player.playRegion(regionId)
-      // Set the history in the URL to link to this region
+
+      if (!this.selectedRegion.isNote) {
+        this.$refs.player.playRegion(regionId)
+        // Set the history in the URL to link to this region
+      }
       const newRoute = `/transcribe-edit/${this.transcriptionId}/${regionId}`
       if (this.$router.history.current.path !== newRoute) {
         this.$router.push({ path: newRoute })

@@ -55,6 +55,7 @@ class Transcription {
     this.id = data.id
     this.data = data
     this.title = data.title
+    this.comments = data.comments
     this.author = data.author
     this.type = data.type
     this.issues = Number(data.issues) || 0

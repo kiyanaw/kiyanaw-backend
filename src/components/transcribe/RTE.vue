@@ -104,6 +104,9 @@ export default {
     },
 
     setContents(value) {
+      if (!Array.isArray(value)) {
+        value = [{ insert: value }]
+      }
       try {
         this.editor.setContents(value, 'silent')
       } catch (error) {
@@ -196,10 +199,10 @@ export default {
     /**
      * A hook to change the editor text only when the region changes.
      */
-    selectedRegion() {
-      logger.info('selectionRegion changed!')
-      this.setContents(this.text)
-    },
+    // selectedRegion() {
+    //   logger.info('selectionRegion changed!', this.text)
+    //   this.setContents(this.selectedRegion.text)
+    // },
   },
 }
 </script>

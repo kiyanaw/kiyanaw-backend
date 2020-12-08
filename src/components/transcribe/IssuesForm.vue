@@ -161,7 +161,10 @@ export default {
     ...mapGetters(['selectedRegion', 'selectedIssue', 'user']),
 
     issues() {
-      return this.selectedRegion.issues || []
+      if (this.selectedRegion) {
+        return this.selectedRegion.issues || []
+      }
+      return []
     },
 
     orderedIssueComments() {

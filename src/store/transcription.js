@@ -49,7 +49,7 @@ const actions = {
    * Region updates happen in their own store, but saving happens here
    */
   saveRegion(store, region) {
-    logger.debug('save region triggered', store, region)
+    logger.debug('save region triggered', store, region.id)
 
     Timeout.clear('save-region-timer')
     Timeout.set(
@@ -76,6 +76,9 @@ const actions = {
 
     // tweak the transcription for saving
     const transcription = { ...store.getters.transcription }
+
+    console.log('saving transcription', transcription)
+
     // TODO: after transcription class is moved to store, move these methods
     delete transcription.data
     delete transcription.regions

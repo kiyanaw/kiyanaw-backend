@@ -185,6 +185,9 @@ const mutations = {
   },
 
   SET_SELECTED_REGION(context, region) {
+    if (region) {
+      console.log('SETTING selected region', region.id, region.text)
+    }
     Vue.set(context, 'selectedRegion', region)
   },
 
