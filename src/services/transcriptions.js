@@ -52,6 +52,7 @@ const regionSubscribers = []
 // TODO: move this object into the store instead of the service
 class Transcription {
   constructor(data) {
+    console.log('transcription', data.length)
     this.id = data.id
     this.data = data
     this.title = data.title
@@ -79,9 +80,10 @@ class Transcription {
    */
   get length() {
     try {
-      const length = String(floatToMSM(this._data.length)).split('.')[0]
+      const length = String(floatToMSM(this.data.length)).split('.')[0]
       return length
     } catch (error) {
+      logger.warn('Error parsing length', error)
       return '0'
     }
   }

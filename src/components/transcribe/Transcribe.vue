@@ -129,7 +129,7 @@ export default {
        */
       editingRegionId: null,
       inboundRegion: null,
-      inRegions: [],
+      // inRegions: [],
       title: '',
       // comments: '',
       author: '',
