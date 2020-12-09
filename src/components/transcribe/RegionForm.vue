@@ -23,6 +23,9 @@
         <v-btn small icon :disabled="!selectedRange" @click="onCreateIssue">
           <v-icon small> mdi-flag-outline </v-icon>
         </v-btn>
+        <v-btn small icon @click="onDeleteRegion">
+          <v-icon small> mdi-delete-forever </v-icon>
+        </v-btn>
       </v-toolbar>
       <rte
         class="rte main-editor-container"
@@ -141,7 +144,7 @@ export default {
     },
 
     issues(newValue) {
-      if (!this.selectedRegion.isNote) {
+      if (this.selectedIssue && !this.selectedRegion.isNote) {
         Timeout.clear('invalidate-issues-timer')
         Timeout.set(
           'invalidate-issues-timer',
@@ -157,22 +160,25 @@ export default {
     },
 
     selectedRegion(region) {
-      logger.info('setting text for both editors', region.translation)
-      /**
-       * Micro-delay to allow editors to mount the first time.
-       */
-      setTimeout(() => {
-        if (!region.isNote) {
-          this.$refs.mainEditor.setContents(region.text)
-        }
-        this.$refs.secondaryEditor.setContents(region.translation)
-      }, 10)
+      if (region) {
+        logger.info('setting text for both editors', region.translation)
+        /**
+         * Micro-delay to allow editors to mount the first time.
+         */
+        setTimeout(() => {
+          if (!region.isNote) {
+            this.$refs.mainEditor.setContents(region.text)
+          }
+          this.$refs.secondaryEditor.setContents(region.translation)
+        }, 10)
+      }
     },
   },
 
   methods: {
     ...mapActions([
       'checkForLockedRegions',
+      'deleteRegion',
       'lockRegion',
       'setSelectedIssue',
       'updateRegion',
@@ -190,6 +196,12 @@ export default {
         owner: this.user.name,
       })
       this.$emit('create-issue')
+    },
+
+    onDeleteRegion() {
+      if (confirm('Delete selected region?')) {
+        this.deleteRegion()
+      }
     },
 
     onLock() {

@@ -37,10 +37,53 @@ const getters = {
 }
 
 const actions = {
+  createRegion(store, region) {
+    const regions = store.getters.regions
+    regions.push(region)
+    store.dispatch('setRegions', regions)
+
+    store.dispatch('updateTranscription', { regions })
+
+    const transcriptionId = store.getters.transcription.id
+    transcriptionService
+      .createRegion(transcriptionId, region)
+      .catch(function (error) {
+        console.error('Failed to create region', error)
+      })
+      .then(() => {
+        store.dispatch('setSaved', true)
+      })
+  },
+
+  deleteRegion(store) {
+    const transcriptionId = store.getters.transcription.id
+    const region = store.getters.selectedRegion
+
+    const regions = store.getters.regions.filter((item) => item.id != region.id)
+    store.dispatch('setRegions', regions)
+    store.dispatch('setSelectedRegion', null)
+
+    transcriptionService
+      .deleteRegion(transcriptionId, region)
+      .catch((error) => {
+        console.error(error)
+        logger.error('Failed to delete region', region.id)
+        // TODO: pop region back into list?
+      })
+      .then(() => {
+        store.dispatch('setSaved', true)
+      })
+  },
+
   loadTranscriptions(store) {
     transcriptionService.listTranscriptions().then((results) => {
       logger.info('Got transcriptions', results)
       store.commit('SET_TRANSCRIPTIONS', results)
+    })
+
+    transcriptionService.listenForRegions((type, data) => {
+      // store.dispatch()
+      logger.info('Realtime region update', type, data)
     })
   },
 
@@ -67,7 +110,7 @@ const actions = {
 
         store.dispatch('saveTranscription')
       },
-      5000,
+      2000,
     )
   },
 
@@ -125,7 +168,7 @@ const actions = {
       () => {
         store.dispatch('saveTranscription')
       },
-      3000,
+      2000,
     )
   },
 }
@@ -142,10 +185,6 @@ const mutations = {
   SET_TRANSCRIPTIONS(context, transcriptions) {
     Vue.set(context, 'transcriptions', transcriptions)
   },
-
-  // TOUCH_TRANSCRIPTION_UPDATED_DATE(context) {
-  //   context.transcription.dateLastUpdated = +new Date()
-  // },
 
   UPDATE_TRANSCRIPTION(context, update) {
     const updated = Object.assign(context.transcription, update)

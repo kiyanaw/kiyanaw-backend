@@ -52,7 +52,6 @@ const regionSubscribers = []
 // TODO: move this object into the store instead of the service
 class Transcription {
   constructor(data) {
-    console.log('transcription', data.length)
     this.id = data.id
     this.data = data
     this.title = data.title
@@ -252,9 +251,9 @@ export default {
   async listenForRegions(callback) {
     const user = await UserService.getUser()
     if (!this.createRegionSubscription) {
-      this.createRegionSubscription = API.graphql(graphqlOperation(subscriptions.onCreateRegion), {
-        authMode: 'AWS_IAM',
-      }).subscribe({
+      this.createRegionSubscription = API.graphql(
+        graphqlOperation(subscriptions.onCreateRegion),
+      ).subscribe({
         next: (lockData) => {
           const data = lockData.value.data.onCreateRegion
           // console.log('incoming region', data, user)
@@ -273,9 +272,8 @@ export default {
       })
     }
     if (!this.updateRegionSubscription) {
-      this.updateRegionsbsupdateRegionSubscription = API.graphql(
+      this.updateRegionSubscription = API.graphql(
         graphqlOperation(subscriptions.onUpdateRegion),
-        { authMode: 'AWS_IAM' },
       ).subscribe({
         next: (lockData) => {
           const data = lockData.value.data.onUpdateRegion
@@ -296,9 +294,8 @@ export default {
       })
     }
     if (!this.deleteRegionSubscription) {
-      this.updateRegionsbsdeleteRegionSubscription = API.graphql(
+      this.deleteRegionSubscription = API.graphql(
         graphqlOperation(subscriptions.onDeleteRegion),
-        { authMode: 'AWS_IAM' },
       ).subscribe({
         next: (lockData) => {
           const data = lockData.value.data.onDeleteRegion

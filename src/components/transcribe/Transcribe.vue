@@ -23,7 +23,7 @@
               :is-video="isVideo"
               :inbound-region="inboundRegion"
               :editing-region-id="editingRegionId"
-              @region-updated="onUpdateRegion"
+              @region-updated="onAudioPlayerUpdateRegion"
               @region-in="onPlaybackRegionIn"
               @region-out="onPlaybackRegionOut"
               @waveform-ready="waveformLoading = false"
@@ -236,7 +236,14 @@ export default {
   },
 
   methods: {
-    ...mapActions(['getLockedRegions', 'setSelectedRegion', 'setTranscription']),
+    ...mapActions([
+      'createRegion',
+      'getLockedRegions',
+      'setRegions',
+      'setSelectedRegion',
+      'setTranscription',
+      'updateRegionById',
+    ]),
 
     scrollToEditorTop() {
       if (!this.inboundRegion) {
@@ -361,8 +368,28 @@ export default {
       // TODO: history between regions
     },
 
-    onUpdateRegion() {
-      console.log('TODO: need to update region from audio player')
+    onAudioPlayerUpdateRegion(regionUpdate) {
+      const regionIds = this.regions.map((item) => item.id)
+      if (regionIds.indexOf(regionUpdate.id) === -1) {
+        const regionData = {
+          start: regionUpdate.start,
+          end: regionUpdate.end,
+          id: regionUpdate.id,
+          text: [],
+          issues: [],
+          isNote: false,
+        }
+
+        this.createRegion(regionData)
+      } else {
+        this.updateRegionById({
+          id: regionUpdate.id,
+          update: {
+            start: regionUpdate.start,
+            end: regionUpdate.end,
+          },
+        })
+      }
     },
   },
 }

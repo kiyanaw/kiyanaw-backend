@@ -28,8 +28,22 @@ const getters = {
     return context.selectedRegion
   },
   regions(context) {
-    // TODO: wrap this in a class
-    return context.regions
+    // TODO: wrap regions in a class
+    if (context.regions) {
+      // use .slice() to copy the array and prevent modifying the original
+      const sorted = context.regions.slice().sort((a, b) => (a.start > b.start ? 1 : -1))
+      let realIndex = 1
+      // add an index for visual aide
+      for (const index in sorted) {
+        if (!sorted[index].isNote) {
+          sorted[index].index = realIndex
+          realIndex = realIndex + 1
+        }
+      }
+      return sorted
+    } else {
+      return []
+    }
   },
   locks(context) {
     return context.locks
@@ -42,8 +56,17 @@ const getters = {
 }
 
 const actions = {
+  updateRegionById(store, update) {
+    logger.info('Updating region by Id', update)
+    store.commit('UPDATE_REGION', update)
+
+    const region = store.getters.selectedRegion
+    store.dispatch('saveRegion', region)
+  },
+
   /**
-   * Trigger region updates.
+   * Trigger region updates for the selected region.
+   * TODO: this is ambiguous and confused with non-specific region updates - fix it.
    */
   updateRegion(store, update) {
     logger.debug('region updated', store, update)
@@ -162,6 +185,9 @@ const actions = {
    */
   setSelectedRegion(store, regionId) {
     const region = store.getters.transcriptionRegionById(regionId)
+
+    logger.info('setting selected region', region)
+
     store.commit('SET_SELECTED_REGION', region)
   },
 }
@@ -192,6 +218,7 @@ const mutations = {
   },
 
   UPDATE_REGION(context, update) {
+    console.log(update)
     const item = context.regions.find((item) => item.id === update.id)
     const index = context.regions.findIndex((item) => item.id === update.id)
     const whole = Object.assign(item, update.update)

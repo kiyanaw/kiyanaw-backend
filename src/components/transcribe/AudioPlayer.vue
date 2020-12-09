@@ -36,46 +36,7 @@
           </v-btn>
 
           <v-btn icon disabled class="control-btn"> | </v-btn>
-
-          <!-- SELECTION CONTROLS -->
-          <!-- <v-btn
-            icon
-            :disabled="!showRegionControls && !showIssueControl"
-            class="control-btn"
-            small
-            @click="onFlagSelectionClick"
-          >
-            <v-icon small> mdi-flag-outline </v-icon>
-          </v-btn> -->
-          <!-- 
-          <v-btn
-            icon
-            :disabled="!showRegionControls && !showIgnoreControl"
-            class="control-btn"
-            small
-            @click="onIgnoreSelectionClick"
-          >
-            <v-icon small> mdi-alphabetical-off </v-icon>
-          </v-btn>
-
-          <v-btn
-            icon
-            :disabled="!showRegionControls"
-            class="control-btn"
-            small
-            @click="onClearFormatClick"
-          >
-            <v-icon small> mdi-cancel </v-icon>
-          </v-btn> -->
-
-          <!-- REGION CONTROLS -->
-          <!-- <v-btn icon disabled class="control-btn">|</v-btn> -->
-          <!-- <v-btn icon class="control-btn" small>
-            <v-icon small>mdi-note-outline</v-icon>
-          </v-btn>-->
         </v-flex>
-
-        <!-- <v-flex xs6 class="selection-controls">{{ bindButtonsRegion}}</v-flex> -->
 
         <v-flex md3 hidden-sm-and-down>
           <v-slider v-model="zoom" max="75" min="5" class="slider" condensed>
@@ -164,7 +125,7 @@ export default {
     /**
      * Bound array, changes will notify parent components.
      */
-    'regions',
+    // 'regions',
     'isVideo',
     'title',
     'editingRegionId',
@@ -192,13 +153,14 @@ export default {
   },
 
   computed: {
-    ...mapGetters(['transcription']),
+    ...mapGetters(['regions', 'transcription']),
   },
 
   watch: {
-    // regions(newValue, oldValue) {
-    //   // this.renderRegions(newValue)
-    // },
+    regions() {
+      this.renderRegions()
+    },
+
     zoom(newValue) {
       surfer.zoom(newValue)
       localStorage.zoom = newValue
@@ -443,9 +405,10 @@ export default {
 
     /** */
     onRegionOut(regionName) {
-      document.querySelector(
-        `[data-id="${regionName}"]`,
-      ).style.backgroundColor = regionRegularBackground
+      const element = document.querySelector(`[data-id="${regionName}"]`)
+      if (element) {
+        element.style.backgroundColor = regionRegularBackground
+      }
       this.$emit('region-out', { id: regionName })
     },
 
