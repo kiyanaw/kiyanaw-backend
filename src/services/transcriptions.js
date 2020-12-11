@@ -173,7 +173,7 @@ export default {
       let [transcription, regions] = await Promise.all([
         API.graphql(graphqlOperation(queries.getTranscription, { id: id })),
         API.graphql(
-          graphqlOperation(queries.byTranscription, { transcriptionId: id, limit: 400 }),
+          graphqlOperation(queries.byTranscription, { transcriptionId: id, limit: 2500 }),
           'AWS_IAM',
         ),
       ])
