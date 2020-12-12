@@ -1,5 +1,5 @@
 <template>
-  <div class="region" :id="source.id" @click="dispatch">
+  <div class="region" :class="'region-' + source.displayIndex" :id="source.id" @click="dispatch">
     <div v-if="!source.isNote" class="region-text">
       <div class="timestamps">
         <span class="time region-start">{{ $options.normalTime(source.start) }}</span>
