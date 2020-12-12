@@ -157,8 +157,11 @@ export default {
   },
 
   watch: {
-    regions() {
-      this.renderRegions()
+    regions: {
+      deep: true,
+      handler() {
+        this.renderRegions()
+      },
     },
 
     zoom(newValue) {
@@ -360,39 +363,20 @@ export default {
     },
 
     renderRegions() {
-      // Timeout.set(
-      //   'render-regions',
-      //   async () => {
       surfer.clearRegions()
 
-      let realIndex = 1
       for (const region of this.regions) {
         if (region && !region.isNote) {
           region.resize = this.canEdit
           region.drag = this.canEdit
           region.attributes = {
-            label: realIndex,
+            label: region.displayIndex,
           }
           surfer.addRegion(region)
-          realIndex = realIndex + 1
         }
       }
 
-      // this.regions.forEach((region, index) => {
-      //   if (!region.isNote) {
-      //     region.resize = this.canEdit
-      //     region.drag = this.canEdit
-      //     region.attributes = {
-      //       label: index,
-      //     }
-      //     surfer.addRegion(region)
-      //   }
-      // })
       this.textRegions = this.regions
-
-      //   },
-      //   50,
-      // )
     },
 
     /** */

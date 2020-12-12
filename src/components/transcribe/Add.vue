@@ -2,17 +2,9 @@
   <v-container>
     <v-layout>
       <v-flex xs1 />
-      <v-flex
-        xs10
-        elevation-1
-        class="add-container"
-      >
+      <v-flex xs10 elevation-1 class="add-container">
         <h2>Upload media</h2>
-        <v-text-field
-          v-model="title"
-          label="Title"
-          solo
-        />
+        <v-text-field v-model="title" label="Title" solo />
 
         <label>
           Select an MP3 or MP4 file:
@@ -23,22 +15,12 @@
             accept=".mp3, .mp4"
             class="custom-file-input"
             @change="previewFiles"
-          >
+          />
         </label>
-        <br>
-        <br>
-        <v-btn
-          small
-          :disabled="disableUpload || loading"
-          @click="uploadFile"
-        >
-          Upload
-        </v-btn>
-        <v-progress-circular
-          v-if="loading"
-          :value="progress"
-          color="purple"
-        />
+        <br />
+        <br />
+        <v-btn small :disabled="disableUpload || loading" @click="uploadFile"> Upload </v-btn>
+        <v-progress-circular v-if="loading" :value="progress" color="purple" />
       </v-flex>
       <v-flex xs1 />
     </v-layout>
@@ -55,13 +37,13 @@ export default {
       options: {},
       inputFile: null,
       title: null,
-      progress: 0
+      progress: 0,
     }
   },
   computed: {
     disableUpload() {
       return this.inputFile === null || this.title === null || this.title === ''
-    }
+    },
   },
   methods: {
     async uploadFile() {
@@ -69,22 +51,22 @@ export default {
       const result = await TranscriptionService.createTranscription(
         {
           file: this.inputFile,
-          title: this.title
+          title: this.title,
         },
         (progress) => {
           this.progress = (progress.loaded / progress.total) * 100
           // console.log(progress)
-        }
+        },
       )
       if (result) {
         this.$router.push({ path: `/transcribe-edit/${result.id}` })
       }
     },
-    previewFiles(evt) {
+    previewFiles() {
       this.inputFile = this.$refs.fileInput.files[0]
       console.log(this.inputFile)
-    }
-  }
+    },
+  },
 }
 </script>
 

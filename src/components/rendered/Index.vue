@@ -179,7 +179,7 @@ export default {
   },
   mounted() {
     // TODO: fix me
-    window.addEventListener('load', function(event) {
+    window.addEventListener('load', function () {
       // If I set the color in the style sheet, it affects every component :S
       document.body.style.backgroundColor = '#abe4ff'
     })

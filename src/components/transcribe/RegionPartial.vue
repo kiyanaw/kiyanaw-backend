@@ -1,43 +1,46 @@
-<template functional>
-  <div class="region">
-    <div v-if="!props.data.isNote" class="region-text">
+<template>
+  <div class="region" :id="source.id" @click="dispatch">
+    <div v-if="!source.isNote" class="region-text">
       <div class="timestamps">
-        <span class="time region-start">{{ $options.normalTime(props.data.start) }}</span>
+        <span class="time region-start">{{ $options.normalTime(source.start) }}</span>
         <br />
-        <span class="time region-end">{{ $options.normalTime(props.data.end) }}</span>
+        <span class="time region-end">{{ $options.normalTime(source.end) }}</span>
       </div>
-      <div v-html="$options.html(props.data)"></div>
-      <span class="region-index">{{ props.data.index }}</span>
+      <div v-html="html(source)"></div>
+      <span class="region-index">{{ source.displayIndex }}</span>
     </div>
-    <div class="region-translation" :class="{ isNote: props.data.isNote }">
-      {{ $options.translationHtml(props.data) }}
+
+    <div class="region-translation" :class="{ isNote: source.isNote }">
+      {{ $options.translationHtml(source) }}
     </div>
-    <div class="region-lock-label" v-if="props.locked">
-      <span :class="{ other: !props.lockedByMe, me: props.lockedByMe }">locked</span>
+
+    <div class="region-lock-label" v-if="locked">
+      <span :class="{ other: !lockedByMe, me: lockedByMe }">locked</span>
     </div>
   </div>
 </template>
 
 <script>
+import { mapGetters } from 'vuex'
 import utils from './utils'
 
 export default {
-  props: ['data', 'locked', 'lockedByMe'],
+  props: ['index', 'source'],
 
-  html(data) {
-    return data.text
-      .map((item) => {
-        let classes = []
-        if (item.attributes) {
-          classes = Object.keys(item.attributes)
-        }
-        if (classes.length) {
-          return `<span class="${classes.join(' ')}">${item.insert}</span>`
-        } else {
-          return item.insert || ''
-        }
-      })
-      .join('')
+  computed: {
+    ...mapGetters(['lockedRegionNames', 'locks', 'user']),
+
+    locked() {
+      return this.locks[this.source.id]
+        ? this.locks[this.source.id].user === this.user.name
+          ? true
+          : false
+        : false
+    },
+
+    lockedByMe() {
+      return this.lockedRegionNames.includes(this.source.id)
+    },
   },
 
   normalTime(value) {
@@ -46,6 +49,32 @@ export default {
 
   translationHtml(data) {
     return data.translation
+  },
+
+  methods: {
+    html(source) {
+      const out = source.text
+        .map((item) => {
+          let classes = []
+          if (item.attributes) {
+            classes = Object.keys(item.attributes)
+          }
+          const content = item.insert || ''
+          if (classes.length) {
+            return `<span class="${classes.join(' ')}">${content}</span>`
+          } else {
+            return content
+          }
+        })
+        .join('')
+
+      return `${out}`
+    },
+    dispatch() {
+      // this is a hack around the virual list thing
+      const parentList = this.$parent.$parent
+      parentList.$emit.apply(parentList, ['region-click', this.source.id, this.index])
+    },
   },
 }
 </script>

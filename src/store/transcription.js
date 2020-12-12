@@ -21,16 +21,6 @@ const getters = {
     return context.transcriptions
   },
 
-  transcriptionRegionById(context) {
-    return (regionId) => {
-      if (context.transcription) {
-        return context.transcription.regions.filter((region) => region.id === regionId).pop()
-      } else {
-        return null
-      }
-    }
-  },
-
   saved(context) {
     return context.saved
   },
@@ -119,8 +109,6 @@ const actions = {
 
     // tweak the transcription for saving
     const transcription = { ...store.getters.transcription }
-
-    console.log('saving transcription', transcription)
 
     // TODO: after transcription class is moved to store, move these methods
     delete transcription.data

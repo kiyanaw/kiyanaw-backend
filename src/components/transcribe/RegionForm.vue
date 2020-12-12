@@ -102,7 +102,7 @@ export default {
     },
 
     regionTranslation() {
-      return [{ insert: this.region.translation }]
+      return [{ insert: this.selectedRegion.translation }]
     },
 
     regionIsLocked() {
@@ -283,8 +283,8 @@ export default {
           if (!result) {
             logger.warn('Region lock failed')
             alert('Unable to lock region, try again shortly')
-            this.$refs.main.blur()
-            this.$refs.secondary.blur()
+            this.$refs.mainEditor.blur()
+            this.$refs.secondaryEditor.blur()
           }
         })
       }
@@ -366,13 +366,13 @@ export default {
       const matches = Object.keys(wordMap).filter((needle) => knownWords.includes(needle))
 
       if (matches.length) {
-        this.$refs.main.clearKnownWords()
+        this.$refs.mainEditor.clearKnownWords()
         // notify main editor to adjust formatting
         for (const match of matches) {
           logger.info('Applying match', match)
           const index = wordMap[match].index
           const length = wordMap[match].length
-          this.$refs.main.applyKnownWord(index, length)
+          this.$refs.mainEditor.applyKnownWord(index, length)
         }
       }
     },

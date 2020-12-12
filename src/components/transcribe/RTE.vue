@@ -8,6 +8,7 @@
 import Quill from 'quill'
 import QuillCursors from 'quill-cursors'
 import { mapGetters } from 'vuex'
+import Timeout from 'smart-timeout'
 
 import logging from '../../logging'
 const logger = new logging.Logger('RTE')
@@ -44,7 +45,7 @@ const formats = {
 export default {
   props: ['disabled', 'mode', 'text'],
   mounted() {
-    logger.debug('editor mounted', this.mode)
+    logger.debug('Editor mounted', this.mode)
     this.editor = null
 
     const element = this.$el.querySelector('#editor-' + this.mode)
@@ -79,8 +80,16 @@ export default {
     onChange(delta, oldDelta, source) {
       // Only emit user changes
       if (source === 'user') {
-        logger.debug('contents changed', delta)
-        this.emitChangeEvent('change-content')
+        // throttle updates a little
+        Timeout.clear('rte-change-timeout')
+        Timeout.set(
+          'rte-change-timeout',
+          () => {
+            logger.debug('contents changed', delta)
+            this.emitChangeEvent('change-content')
+          },
+          100,
+        )
       }
     },
 
@@ -130,7 +139,6 @@ export default {
      */
     emitChangeEvent(event) {
       const contents = this.editor.getContents().ops
-      // console.log('contents', contents)
       this.$emit(event, contents)
     },
 

@@ -14,6 +14,7 @@ const unlockQueue = []
 
 const state = {
   regions: [],
+  regionMap: {},
   // The currently-selected region
   selectedRegion: null,
   selectedIssue: null,
@@ -27,23 +28,11 @@ const getters = {
   selectedRegion(context) {
     return context.selectedRegion
   },
+  regionMap(context) {
+    return context.regionMap
+  },
   regions(context) {
-    // TODO: wrap regions in a class
-    if (context.regions) {
-      // use .slice() to copy the array and prevent modifying the original
-      const sorted = context.regions.slice().sort((a, b) => (a.start > b.start ? 1 : -1))
-      let realIndex = 1
-      // add an index for visual aide
-      for (const index in sorted) {
-        if (!sorted[index].isNote) {
-          sorted[index].index = realIndex
-          realIndex = realIndex + 1
-        }
-      }
-      return sorted
-    } else {
-      return []
-    }
+    return Object.values(context.regionMap)
   },
   locks(context) {
     return context.locks
@@ -53,30 +42,21 @@ const getters = {
     logger.log('Getting Lock keys', keys, context.locks)
     return keys
   },
+  regionById(context) {
+    return (regionId) => {
+      if (context.regionMap) {
+        // return context.transcription.regions.filter((region) => region.id === regionId).pop()
+        return Object.values(context.regionMap)
+          .filter((region) => region.id === regionId)
+          .pop()
+      } else {
+        return null
+      }
+    }
+  },
 }
 
 const actions = {
-  updateRegionById(store, update) {
-    logger.info('Updating region by Id', update)
-    store.commit('UPDATE_REGION', update)
-
-    const region = store.getters.selectedRegion
-    store.dispatch('saveRegion', region)
-  },
-
-  /**
-   * Trigger region updates for the selected region.
-   * TODO: this is ambiguous and confused with non-specific region updates - fix it.
-   */
-  updateRegion(store, update) {
-    logger.debug('region updated', store, update)
-    const regionId = store.getters.selectedRegion.id
-    store.commit('UPDATE_REGION', { id: regionId, update })
-
-    const region = store.getters.selectedRegion
-    store.dispatch('saveRegion', region)
-  },
-
   updateSelectedIssue(store, update) {
     logger.debug('selectedIssue updated', update)
     store.commit('UPDATE_SELECTED_ISSUE', update)
@@ -169,6 +149,28 @@ const actions = {
    * Regions for the current transcription.
    */
   setRegions(store, regions) {
+    const map = {}
+    let displayIndex = 1
+    regions
+      .slice()
+      .sort((a, b) => (a.start > b.start ? 1 : -1))
+      .map((item, index) => {
+        const out = {
+          ...item,
+          index,
+          displayIndex,
+        }
+        if (!item.isNote) {
+          displayIndex++
+        }
+        return out
+      })
+      .forEach((item) => {
+        map[`${item.index}-${item.id}`] = item
+      })
+
+    store.commit('SET_REGION_MAP', map)
+
     store.commit('SET_REGIONS', regions)
 
     // asynchronously, report known words to the lexicon
@@ -184,11 +186,32 @@ const actions = {
    * Accepts regionId and sets the selectedRegion (using the current transcription).
    */
   setSelectedRegion(store, regionId) {
-    const region = store.getters.transcriptionRegionById(regionId)
+    const region = store.getters.regionById(regionId)
 
     logger.info('setting selected region', region)
 
     store.commit('SET_SELECTED_REGION', region)
+  },
+
+  updateRegionById(store, update) {
+    logger.info('Updating region by Id', update)
+    store.commit('UPDATE_REGION', update)
+
+    const region = store.getters.selectedRegion
+    store.dispatch('saveRegion', region)
+  },
+
+  /**
+   * Trigger region updates for the selected region.
+   * TODO: this is ambiguous and confused with non-specific region updates - fix it.
+   */
+  updateRegion(store, update) {
+    logger.debug('region updated', store, update)
+    // const regionId = store.getters.selectedRegion.id
+    const region = store.getters.selectedRegion
+    store.commit('UPDATE_REGION', { region, update })
+
+    store.dispatch('saveRegion', region)
   },
 }
 
@@ -206,23 +229,27 @@ const mutations = {
     Vue.set(context, 'regions', regions)
   },
 
+  SET_REGION_MAP(context, map) {
+    Vue.set(context, 'regionMap', map)
+  },
+
   SET_SELECTED_ISSUE(context, issue) {
     Vue.set(context, 'selectedIssue', issue)
   },
 
   SET_SELECTED_REGION(context, region) {
-    if (region) {
-      console.log('SETTING selected region', region.id, region.text)
-    }
+    // if (region) {
+    //   console.log('SETTING selected region', region.id, region.text)
+    // }
     Vue.set(context, 'selectedRegion', region)
   },
 
   UPDATE_REGION(context, update) {
-    console.log(update)
-    const item = context.regions.find((item) => item.id === update.id)
-    const index = context.regions.findIndex((item) => item.id === update.id)
-    const whole = Object.assign(item, update.update)
-    Vue.set(context.regions, index, whole)
+    const region = update.region
+    const id = `${region.index}-${region.id}`
+    const existing = context.regionMap[id]
+    const whole = Object.assign(existing, update.update)
+    Vue.set(context.regionMap, id, whole)
   },
 
   UPDATE_SELECTED_ISSUE(context, update) {

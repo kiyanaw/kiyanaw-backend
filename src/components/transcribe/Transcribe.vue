@@ -18,7 +18,7 @@
               :title="title"
               :source="source"
               :peaks="peaks"
-              :regions="sortedRegions"
+              :regions="regions"
               :can-edit="user !== null"
               :is-video="isVideo"
               :inbound-region="inboundRegion"
@@ -37,23 +37,15 @@
           </v-container>
         </v-layout>
 
-        <v-layout row class="editorSideMd" style="overflow-y: scroll">
-          <v-container>
-            <div
-              v-for="region in sortedRegions"
-              :id="region.id"
-              :key="region.id"
-              @click="playSpecificRegion(region.id)"
-            >
-              <region-partial
-                :data="region"
-                :locked="lockedRegionNames.includes(region.id)"
-                :lockedByMe="
-                  locks[region.id] ? (locks[region.id].user === user.name ? true : false) : false
-                "
-              ></region-partial>
-            </div>
-          </v-container>
+        <v-layout row class="editorSideMd">
+          <virtual-list
+            style="height: 360px; overflow-y: auto; width: 100%; height: 100%"
+            ref="regionList"
+            :data-key="'id'"
+            :data-sources="regions"
+            :data-component="itemComponent"
+            @region-click="playSpecificRegion"
+          />
         </v-layout>
       </v-flex>
     </v-layout>
@@ -69,7 +61,7 @@
 </template>
 
 <script>
-// import Timeout from 'smart-timeout'
+import VirtualList from 'vue-virtual-scroll-list'
 import AudioPlayer from './AudioPlayer.vue'
 
 import StationaryEditor from './StationaryEditor.vue'
@@ -99,18 +91,11 @@ const cursorColor = `${getColor()}`
 // let myCursor
 // let inboundRegion = null
 
-// used to throttle updates
-// let regionUpdateTimer
-// only send updates after a pause
-// const SEARCH_INTERVAL = 1500
-// const SAVE_INTERVAL = 5000
-
 export default {
   components: {
     AudioPlayer,
-    // Editor,
-    RegionPartial,
     StationaryEditor,
+    VirtualList,
   },
 
   data() {
@@ -129,9 +114,7 @@ export default {
        */
       editingRegionId: null,
       inboundRegion: null,
-      // inRegions: [],
       title: '',
-      // comments: '',
       author: '',
       members: [],
       user: null,
@@ -142,43 +125,14 @@ export default {
       error: null,
       tab: null,
       contributors: [],
+
+      itemComponent: RegionPartial,
+      itemScrollIndex: 0,
     }
   },
 
   computed: {
-    ...mapGetters([
-      'lockedRegionNames',
-      'locks',
-      'regions',
-      'saved',
-      'selectedRegion',
-      'transcription',
-    ]),
-    /**
-     * @description Returns a list of regions in order of the start time.
-     * @returns {Array<object>} List of regions in order of start time.
-     */
-    sortedRegions() {
-      if (this.regions) {
-        // use .slice() to copy the array and prevent modifying the original
-        const sorted = this.regions.slice().sort((a, b) => (a.start > b.start ? 1 : -1))
-        let realIndex = 1
-        // add an index for visual aide
-        for (const index in sorted) {
-          if (!sorted[index].isNote) {
-            sorted[index].index = realIndex
-            realIndex = realIndex + 1
-          }
-        }
-        return sorted
-      } else {
-        return []
-      }
-    },
-
-    regionIds() {
-      return this.regions.map((region) => region.id)
-    },
+    ...mapGetters(['regionById', 'regions', 'saved', 'selectedRegion', 'transcription']),
   },
   /**
    * Mount point for this component.
@@ -197,9 +151,6 @@ export default {
     this.transcriptionId = this.$route.params.id
     this.inboundRegion = this.$route.params.region || null
     this.$store.dispatch('setSelectedRegion', this.inboundRegion)
-
-    // this.listenForRegions()
-    // this.listenForLockedRegions()
 
     /**
      * Set up a subscription for new cursor changes.
@@ -284,15 +235,17 @@ export default {
     /**
      * Handler for the playback head entering a region.
      */
-    onPlaybackRegionIn(region) {
-      console.log('TODO: highlight region should be moved')
-      // this.inRegions = [region.id]
-      this.currentRegionSheet.innerHTML = `#${region.id} {background-color: #edfcff;}`
-      this.$nextTick(() => {
-        document.getElementById(region.id).scrollIntoView()
-      })
+    onPlaybackRegionIn(partRegion) {
+      // const region = this.regions.filter((item) => item.id === partRegion.id).shift()
+      const region = this.regionById(partRegion.id)
 
-      this.$store.dispatch('setSelectedRegion', region.id)
+      console.log('region index', region.indesx)
+
+      this.currentRegionSheet.innerHTML = `#${partRegion.id} {background-color: #edfcff;}`
+      this.$refs.regionList.scrollToIndex(region.index)
+      this.$store.dispatch('setSelectedRegion', partRegion.id)
+
+      this.itemScrollIndex = 0
     },
 
     /**
@@ -330,8 +283,6 @@ export default {
       this.type = data.type
       this.author = data.author
       this.isVideo = data.type.includes('video')
-      // this.regions = data.regions || []
-      // console.log('this.regions', this.regions)
       this.peaks = peaks
       // console.log('contributors', data.contributors)
       this.contributors = data.contributors || []
@@ -352,8 +303,10 @@ export default {
     /**
      * Handle click from the region list, play the region specified.
      */
-    playSpecificRegion(regionId) {
-      // TODO: should this be set in the editor?
+    playSpecificRegion(regionId, index) {
+      // set so we can scroll the virtual list to the specific index
+      this.itemScrollIndex = index
+
       this.setSelectedRegion(regionId)
 
       if (!this.selectedRegion.isNote) {
