@@ -1,5 +1,5 @@
 <template>
-  <div class="region" :class="'region-' + source.displayIndex" :id="source.id" @click="dispatch">
+  <div class="region" :class="classObject" :id="source.id" @click="dispatch">
     <div v-if="!source.isNote" class="region-text">
       <div class="timestamps">
         <span class="time region-start">{{ $options.normalTime(source.start) }}</span>
@@ -29,6 +29,13 @@ export default {
 
   computed: {
     ...mapGetters(['lockedRegionNames', 'locks', 'user']),
+
+    classObject() {
+      return {
+        ['region-index-' + this.index]: true,
+        ['region-display-index-' + this.source.displayIndex]: this.source.isNote ? false : true,
+      }
+    },
 
     locked() {
       return this.locks[this.source.id]
