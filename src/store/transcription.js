@@ -93,6 +93,7 @@ const actions = {
           .updateRegion(store.getters.transcription.id, region)
           .then(() => {
             logger.info('Region saved!')
+            store.dispatch('setSaved', true)
           })
           .catch((error) => {
             logger.error('Error saving region', region, error)
