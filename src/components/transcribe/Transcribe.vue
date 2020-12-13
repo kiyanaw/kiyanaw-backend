@@ -44,6 +44,7 @@
             :data-key="'id'"
             :data-sources="regions"
             :data-component="itemComponent"
+            :estimate-size="regions.length"
             @region-click="playSpecificRegion"
           />
         </v-layout>
