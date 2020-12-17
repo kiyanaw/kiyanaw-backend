@@ -1,7 +1,7 @@
 <template>
   <v-form ref="form">
-    <v-text-field v-model="title" label="Title"></v-text-field>
-    <v-text-field v-model="comments" label="Comments"></v-text-field>
+    <v-text-field v-model="title" :disabled="!user" label="Title"></v-text-field>
+    <v-text-field v-model="comments" :disabled="!user" label="Comments"></v-text-field>
     <v-text-field v-model="lastUpdated" disabled label="Last updated"></v-text-field>
     <v-text-field v-model="regionCount" disabled label="Total regions"></v-text-field>
     <v-text-field v-model="regionCoverage" disabled label="Region coverage"></v-text-field>
@@ -12,8 +12,11 @@
 </template>
 
 <script>
+import { mapGetters } from 'vuex'
+
 export default {
   computed: {
+    ...mapGetters(['user']),
     comments: {
       get() {
         return this.$store.getters.transcription.comments

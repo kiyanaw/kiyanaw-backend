@@ -4,26 +4,26 @@
 
     <div v-if="region">
       <v-toolbar dense flat>
-        <v-btn small icon>
+        <v-btn small icon @click="onPlayRegion">
           <v-icon> mdi-play-circle </v-icon>
         </v-btn>
 
         <v-btn
           icon
           small
-          :disabled="regionIsLocked && !regionIsLockedByMe"
+          :disabled="(regionIsLocked && !regionIsLockedByMe) || !user"
           @click="onToggleRegionType"
         >
           <v-icon small> mdi-note-outline </v-icon>
         </v-btn>
-        <v-btn small icon @click="onLock">
+        <v-btn small icon @click="onLock" :disabled="!user">
           <v-icon small v-if="!regionIsLocked">mdi-lock-open-outline</v-icon>
           <v-icon small v-if="regionIsLocked" color="black">mdi-lock</v-icon>
         </v-btn>
-        <v-btn small icon :disabled="!selectedRange" @click="onCreateIssue">
+        <v-btn small icon :disabled="!selectedRange || !user" @click="onCreateIssue">
           <v-icon small> mdi-flag-outline </v-icon>
         </v-btn>
-        <v-btn small icon @click="onDeleteRegion">
+        <v-btn small icon @click="onDeleteRegion" :disabled="!user">
           <v-icon small> mdi-delete-forever </v-icon>
         </v-btn>
       </v-toolbar>
@@ -32,7 +32,7 @@
         ref="mainEditor"
         mode="main"
         :text="regionText"
-        :disabled="regionIsLocked && !regionIsLockedByMe"
+        :disabled="(regionIsLocked && !regionIsLockedByMe) || !user"
         @change-content="onMainEditorContentChange"
         @change-format="onMainEditorFormatChange"
         @focus="onFocusDelayed"
@@ -46,7 +46,7 @@
         ref="secondaryEditor"
         mode="secondary"
         :text="regionTranslation"
-        :disabled="regionIsLocked && !regionIsLockedByMe"
+        :disabled="(regionIsLocked && !regionIsLockedByMe) || !user"
         @change-content="onSecondaryEditorContentChange"
         @focus="onFocusDelayed"
         @blur="onBlur"
@@ -136,7 +136,9 @@ export default {
     }
   },
 
-  mounted() {},
+  // mounted() {
+  //   console.log('user', this.user)
+  // },
 
   watch: {
     locks(newValue) {
@@ -250,6 +252,10 @@ export default {
       //logger.debug('Blur')
       // Delay the unlock request in case we just switched editors
       // Timeout.set('unlock-region-timer', this.unlockRegion, 50)
+    },
+
+    onPlayRegion() {
+      this.$emit('play-region', this.selectedRegion.id)
     },
 
     onMainEditorSelection(range) {

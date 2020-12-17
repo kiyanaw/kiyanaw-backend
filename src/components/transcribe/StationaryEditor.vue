@@ -8,7 +8,7 @@
         <v-icon left small> mdi-pencil-box </v-icon>Region #{{ regionIndex }}</v-tab
       >
       <v-tab :key="2" class="issues-tab">
-        <v-icon left small> mdi-flag-outline </v-icon>Issues</v-tab
+        <v-icon left small> mdi-flag-outline </v-icon>Issues{{ currentIssueCount }}</v-tab
       >
 
       <v-tab-item :transition="false" :reverse-transition="false" class="tab-panel">
@@ -16,7 +16,7 @@
       </v-tab-item>
 
       <v-tab-item :transition="false" :reverse-transition="false" class="tab-panel">
-        <region-form @create-issue="activeTab = 2"></region-form>
+        <region-form @create-issue="activeTab = 2" @play-region="onPlayRegion"></region-form>
       </v-tab-item>
 
       <v-tab-item :transition="false" :reverse-transition="false" class="tab-panel">
@@ -44,6 +44,13 @@ export default {
   computed: {
     ...mapGetters(['selectedRegion', 'selectedIssue']),
 
+    currentIssueCount() {
+      if (this.selectedRegion & this.selectedRegion.issues) {
+        return this.selectedRegion.issues.length ? ` (${this.selectedRegion.issues.length})` : ''
+      }
+      return ''
+    },
+
     regionIndex() {
       return this.selectedRegion ? this.selectedRegion.index : ''
     },
@@ -58,9 +65,10 @@ export default {
   methods: {
     ...mapActions(['setSelectedIssue']),
 
-    // onNewIssue(issue) {
-
-    // },
+    // pass-through for the region form to trigger region play
+    onPlayRegion(regionId) {
+      this.$emit('play-region', regionId)
+    },
   },
 
   watch: {

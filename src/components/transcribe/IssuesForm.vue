@@ -68,6 +68,7 @@
               rounded
               small
               outlined
+              :disabled="!user"
               :color="selectedIssue.resolved ? 'error' : 'success'"
               @click="resolveIssue"
             >
@@ -80,7 +81,15 @@
           </v-list-item-action>
 
           <v-list-item-action>
-            <v-btn class="ma-2" rounded small outlined color="red" @click="onDeleteIssue">
+            <v-btn
+              class="ma-2"
+              rounded
+              small
+              outlined
+              color="red"
+              @click="onDeleteIssue"
+              :disabled="!user"
+            >
               <v-icon left>mdi-delete-circle </v-icon>
               <!-- <span v-if="!selectedIssue.resolved">Delete</span> -->
             </v-btn>
@@ -93,9 +102,22 @@
 
         <!-- COMMENT INPUT -->
         <v-list-item>
-          <v-text-field v-model="newIssueCommentText" outlined dense label="Add a comment">
+          <v-text-field
+            v-model="newIssueCommentText"
+            :disabled="!user"
+            outlined
+            dense
+            label="Add a comment"
+          >
             <template slot="append-outer">
-              <v-btn outlined rounded small color="primary" @click="addIssueComment">
+              <v-btn
+                outlined
+                rounded
+                small
+                color="primary"
+                @click="addIssueComment"
+                :disabled="!user"
+              >
                 Submit
               </v-btn>
             </template>
@@ -107,8 +129,7 @@
           <v-list dense width="100%" class="comments-list">
             <v-list-item v-for="comment of orderedIssueComments" :key="comment.createdAt">
               <v-list-item-icon>
-                <v-icon v-if="user.name === comment.owner" color="primary"> mdi-comment </v-icon>
-                <v-icon v-if="user.name !== comment.owner" color="primary"> mdi-comment </v-icon>
+                <v-icon color="primary"> mdi-comment </v-icon>
               </v-list-item-icon>
               <v-list-item-content>
                 <v-list-item-title class="issue-comment">

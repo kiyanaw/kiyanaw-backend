@@ -33,7 +33,7 @@
 
         <v-layout row class="editor editorNoSide editorScroll">
           <v-container>
-            <stationary-editor></stationary-editor>
+            <stationary-editor @play-region="triggerAudioPlayer"></stationary-editor>
           </v-container>
         </v-layout>
 
@@ -301,6 +301,10 @@ export default {
       this.getLockedRegions()
     },
 
+    triggerAudioPlayer(regionId) {
+      this.$refs.player.playRegion(regionId)
+    },
+
     /**
      * Handle click from the region list, play the region specified.
      */
@@ -311,7 +315,7 @@ export default {
       this.setSelectedRegion(regionId)
 
       if (!this.selectedRegion.isNote) {
-        this.$refs.player.playRegion(regionId)
+        this.triggerAudioPlayer(regionId)
         // Set the history in the URL to link to this region
       }
       const newRoute = `/transcribe-edit/${this.transcriptionId}/${regionId}`
@@ -437,10 +441,10 @@ export default {
   background-color: #e6f3ff;
 }
 
-[class^='issue']::before {
+[class^='issue-']::before {
   content: '[';
 }
-[class^='issue']::after {
+[class^='issue-']::after {
   content: ']';
 }
 </style>
