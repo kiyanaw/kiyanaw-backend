@@ -6,7 +6,7 @@
         <br />
         <span class="time region-end">{{ $options.normalTime(source.end) }}</span>
       </div>
-      <div v-html="html(source)"></div>
+      <div class="region-source" v-html="html(source)"></div>
       <span class="region-index">{{ source.displayIndex }}</span>
     </div>
 
@@ -105,7 +105,7 @@ export default {
 
 .region-text,
 .region-translation {
-  padding: 15px 25px 15px 75px;
+  padding: 15px 25px 15px 70px;
   min-height: 50px;
 }
 
@@ -137,5 +137,9 @@ export default {
 }
 .region-lock-label > .me {
   color: green;
+}
+
+.region-source {
+  padding-right: 15px;
 }
 </style>

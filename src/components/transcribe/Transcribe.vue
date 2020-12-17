@@ -31,13 +31,17 @@
           </v-flex>
         </v-layout>
 
-        <v-layout row class="editor editorNoSide editorScroll">
+        <v-layout
+          row
+          class="editor editorNoSide editorScroll"
+          :class="{ hideEditor: $vuetify.breakpoint.xsOnly }"
+        >
           <v-container>
             <stationary-editor @play-region="triggerAudioPlayer"></stationary-editor>
           </v-container>
         </v-layout>
 
-        <v-layout row class="editorSideMd">
+        <v-layout row class="editorSideMd" :class="{ editorSideSm: $vuetify.breakpoint.xsOnly }">
           <virtual-list
             style="height: 360px; overflow-y: auto; width: 100%; height: 100%"
             ref="regionList"
@@ -399,6 +403,13 @@ export default {
 }
 .editorSideMd {
   left: calc(100% - 50%);
+}
+.editorSideSm {
+  left: 0;
+}
+
+.hideEditor {
+  display: none;
 }
 
 .audio-container {
