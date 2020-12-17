@@ -4,7 +4,7 @@
       <div id="minimap">
         <v-layout>
           <v-flex md6 xs6 class="media-title">
-            <span>{{ transcription.title }} ({{ transcription.dateLastUpdated }})</span>
+            <span>{{ transcription.title }}</span>
           </v-flex>
           <v-flex md6 xs6 class="main-time">
             {{ normalTime(currentTime) }}/{{ normalTime(maxTime) }}

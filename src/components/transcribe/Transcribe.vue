@@ -31,11 +31,7 @@
           </v-flex>
         </v-layout>
 
-        <v-layout
-          row
-          class="editor editorNoSide editorScroll"
-          :class="{ hideEditor: $vuetify.breakpoint.xsOnly }"
-        >
+        <v-layout row class="editor editorNoSide editorScroll">
           <v-container>
             <stationary-editor @play-region="triggerAudioPlayer"></stationary-editor>
           </v-container>

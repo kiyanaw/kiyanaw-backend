@@ -45,7 +45,7 @@ export default {
     ...mapGetters(['selectedRegion', 'selectedIssue']),
 
     currentIssueCount() {
-      if (this.selectedRegion & this.selectedRegion.issues) {
+      if (this.selectedRegion && this.selectedRegion.issues) {
         return this.selectedRegion.issues.length ? ` (${this.selectedRegion.issues.length})` : ''
       }
       return ''
