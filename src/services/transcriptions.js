@@ -206,7 +206,7 @@ export default {
     }
 
     const update = await API.graphql(graphqlOperation(mutations.createRegion, { input: input }))
-    regionData.version = 1
+    // regionData.version = 1
     return update.data.createRegion
   },
 
@@ -232,7 +232,7 @@ export default {
   },
 
   async deleteRegion(transcriptionId, region) {
-    console.log('deleting region', transcriptionId, region.id)
+    console.log('deleting region', transcriptionId, region.id, region.version)
     await API.graphql(
       graphqlOperation(
         mutations.deleteRegion,

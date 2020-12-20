@@ -29,7 +29,7 @@ const getters = {
 const actions = {
   createRegion(store, region) {
     const regions = store.getters.regions
-    regions.push(region)
+    regions.push({ ...region, version: 1 })
     store.dispatch('setRegions', regions)
 
     store.dispatch('updateTranscription', { regions })
@@ -57,6 +57,7 @@ const actions = {
       .deleteRegion(transcriptionId, region)
       .catch((error) => {
         console.error(error)
+        alert('Failed to delete region, refresh and try again.')
         logger.error('Failed to delete region', region.id)
         // TODO: pop region back into list?
       })
@@ -97,6 +98,7 @@ const actions = {
           })
           .catch((error) => {
             logger.error('Error saving region', region, error)
+            alert('Error saving that region, change the region to try again')
           })
 
         store.dispatch('saveTranscription')

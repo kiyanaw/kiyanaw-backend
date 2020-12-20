@@ -132,6 +132,7 @@ export default {
   ],
   data() {
     return {
+      // TODO: figure out what items we're not using
       currentTime: 0,
       maxTime: 0,
       currentRegion: null,
@@ -220,15 +221,6 @@ export default {
       surfer.enableDragSelection({ slop: 5 })
     }
 
-    let regionsRendered = false
-    surfer.on('ready', () => {
-      // for some reason wavesurfer fires the loaded event like 100 times
-      if (!regionsRendered) {
-        this.loadIsReady()
-        regionsRendered = true
-      }
-    })
-
     surfer.on('play', () => {
       this.playing = true
     })
@@ -255,8 +247,8 @@ export default {
     /**
      * This event fires when both a region is created, and when it is updated.
      */
-    surfer.on('region-update-end', function (event) {
-      me.$emit('region-updated', event)
+    surfer.on('region-update-end', (event) => {
+      this.$emit('region-updated', event)
     })
 
     /** */
@@ -270,6 +262,14 @@ export default {
 
     surfer.on('seek', this.onPlayerSeek)
 
+    let regionsRendered = false
+    surfer.on('ready', () => {
+      // for some reason wavesurfer fires the loaded event like 100 times
+      if (!regionsRendered) {
+        this.loadIsReady()
+        regionsRendered = true
+      }
+    })
     // TODO: move peaks loading to Transcribe
     // TODO: test when peaks data is 404
 
@@ -365,7 +365,9 @@ export default {
     renderRegions() {
       surfer.clearRegions()
 
-      for (const region of this.regions) {
+      for (const original of this.regions) {
+        // make a copy of the original so we don't trigger futher updates
+        const region = { ...original }
         if (region && !region.isNote) {
           region.resize = this.canEdit
           region.drag = this.canEdit
