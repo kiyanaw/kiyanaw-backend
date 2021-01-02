@@ -89,6 +89,7 @@
               color="red"
               @click="onDeleteIssue"
               :disabled="!user"
+              data-test="deleteIssueButton"
             >
               <v-icon left>mdi-delete-circle </v-icon>
               <!-- <span v-if="!selectedIssue.resolved">Delete</span> -->
