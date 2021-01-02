@@ -159,8 +159,22 @@
       <v-textarea ref="issueComment" solo v-model="newIssueCommentText" label="Comments" />
       <v-card-actions>
         <v-spacer />
-        <v-btn color="blue darken-1" text @click="onCancelNewIssue"> Cancel </v-btn>
-        <v-btn color="blue darken-1" text @click="onSubmitNewIssue"> Submit </v-btn>
+        <v-btn
+          color="blue darken-1"
+          text
+          @click="onCancelNewIssue"
+          data-test="cancelNewIssueButton"
+        >
+          Cancel
+        </v-btn>
+        <v-btn
+          color="blue darken-1"
+          text
+          @click="onSubmitNewIssue"
+          data-test="submitNewIssueButton"
+        >
+          Submit
+        </v-btn>
       </v-card-actions>
     </v-form>
   </div>

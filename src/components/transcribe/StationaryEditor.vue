@@ -1,13 +1,13 @@
 <template>
   <div class="stationary-editor">
     <v-tabs v-model="activeTab" :height="35">
-      <v-tab :key="0" class="transcription-tab">
+      <v-tab :key="0" class="transcription-tab" data-test="transcriptionTabButton">
         <v-icon left small> mdi-information-outline </v-icon>Transcription</v-tab
       >
-      <v-tab :key="1" class="region-tab">
+      <v-tab :key="1" class="region-tab" data-test="regionTabButton">
         <v-icon left small> mdi-pencil-box </v-icon>Region #{{ regionIndex }}</v-tab
       >
-      <v-tab :key="2" class="issues-tab">
+      <v-tab :key="2" class="issues-tab" data-test="issuesTabButton">
         <v-icon left small> mdi-flag-outline </v-icon>Issues{{ currentIssueCount }}</v-tab
       >
 

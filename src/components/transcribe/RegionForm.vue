@@ -4,7 +4,7 @@
 
     <div v-if="region">
       <v-toolbar dense flat>
-        <v-btn small icon @click="onPlayRegion">
+        <v-btn small icon @click="onPlayRegion" data-test="regionPlayButton">
           <v-icon> mdi-play-circle </v-icon>
         </v-btn>
 
@@ -13,17 +13,24 @@
           small
           :disabled="(regionIsLocked && !regionIsLockedByMe) || !user"
           @click="onToggleRegionType"
+          data-test="regionNoteButton"
         >
           <v-icon small> mdi-note-outline </v-icon>
         </v-btn>
-        <v-btn small icon @click="onLock" :disabled="!user">
+        <v-btn small icon @click="onLock" :disabled="!user" data-test="regionLockButton">
           <v-icon small v-if="!regionIsLocked">mdi-lock-open-outline</v-icon>
           <v-icon small v-if="regionIsLocked" color="black">mdi-lock</v-icon>
         </v-btn>
-        <v-btn small icon :disabled="!selectedRange || !user" @click="onCreateIssue">
+        <v-btn
+          small
+          icon
+          :disabled="!selectedRange || !user"
+          @click="onCreateIssue"
+          data-test="regionIssueButton"
+        >
           <v-icon small> mdi-flag-outline </v-icon>
         </v-btn>
-        <v-btn small icon @click="onDeleteRegion" :disabled="!user">
+        <v-btn small icon @click="onDeleteRegion" :disabled="!user" data-test="regionDeleteButton">
           <v-icon small> mdi-delete-forever </v-icon>
         </v-btn>
       </v-toolbar>
