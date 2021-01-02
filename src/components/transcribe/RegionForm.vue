@@ -146,17 +146,18 @@ export default {
     },
 
     issues(newValue) {
-      if (this.selectedIssue && !this.selectedRegion.isNote) {
+      // TODO: why did I have selectedIssue in here??
+      if (!this.selectedRegion.isNote) {
+        /**
+         * Issue invalidation *must* be delayed so that the editor contents can update first.
+         */
         Timeout.clear('invalidate-issues-timer')
         Timeout.set(
           'invalidate-issues-timer',
           () => {
-            /**
-             * Issue invalidation *must* be delayed so that the editor contents can first.
-             */
-            this.$refs.mainEditor.validateIssues(newValue)
+            this.doTriggerIssueInvalidation(newValue)
           },
-          25,
+          5,
         )
       }
     },
@@ -320,6 +321,13 @@ export default {
         },
         2000,
       )
+    },
+
+    /**
+     * Wrapper for testing, calls the invalidate method on the main editor.
+     */
+    doTriggerIssueInvalidation(newValue) {
+      this.$refs.mainEditor.validateIssues(newValue)
     },
 
     /**

@@ -32,6 +32,9 @@ const getters = {
     return context.regionMap
   },
   regions(context) {
+    console.log('!!!! regions have updated')
+    // const copy = JSON.parse(JSON.stringify(context.regionMap))
+    // return Object.values(copy)
     return Object.values(context.regionMap)
   },
   locks(context) {

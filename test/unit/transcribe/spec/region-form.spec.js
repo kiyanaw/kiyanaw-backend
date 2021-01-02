@@ -19,11 +19,12 @@ async function wait(time = 5) {
 describe('components/RegionForm', function () {
   let getters
   let store
+  let state
 
   beforeEach(() => {
     getters = {
-      selectedRegion: () => {
-        return {}
+      selectedRegion: (context) => {
+        return context.selectedRegion
       },
       locks: () => {
         return {}
@@ -31,9 +32,18 @@ describe('components/RegionForm', function () {
       selectedIssue: () => {
         return {}
       },
+      user: () => {
+        return {}
+      },
+    }
+    state = {
+      selectedRegion: {
+        issues: [],
+      },
     }
     store = new Vuex.Store({
       getters,
+      state,
     })
   })
 
@@ -61,6 +71,33 @@ describe('components/RegionForm', function () {
         kīhikāw: { original: 'kīhikāw?]', length: 9, index: 18 },
       }
       assert.deepEqual(result, expected)
+    })
+  })
+
+  describe('watch -> issues()', function () {
+    it('should trigger issue invalidation when not note', async function () {
+      const wrapper = shallowMount(RegionForm, { store, localVue })
+      const rendered = wrapper.vm
+
+      const invalidateStub = this.sandbox.stub(rendered, 'doTriggerIssueInvalidation')
+
+      state.selectedRegion.issues = [{ some: 'issue' }]
+
+      await new Promise((resolve) => setTimeout(resolve, 10))
+      assert.equal(invalidateStub.callCount, 1)
+    })
+
+    it('should NOT trigger issue invalidation when note', async function () {
+      state.selectedRegion.isNote = true
+      const wrapper = shallowMount(RegionForm, { store, localVue })
+      const rendered = wrapper.vm
+
+      const invalidateStub = this.sandbox.stub(rendered, 'doTriggerIssueInvalidation')
+
+      state.selectedRegion.issues = [{ some: 'issue' }]
+
+      await new Promise((resolve) => setTimeout(resolve, 10))
+      assert.equal(invalidateStub.callCount, 0)
     })
   })
 })
