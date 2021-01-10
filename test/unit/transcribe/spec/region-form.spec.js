@@ -83,7 +83,7 @@ describe('components/RegionForm', function () {
 
       state.selectedRegion.issues = [{ some: 'issue' }]
 
-      await new Promise((resolve) => setTimeout(resolve, 10))
+      await new Promise((resolve) => setTimeout(resolve, 20))
       assert.equal(invalidateStub.callCount, 1)
     })
 
@@ -98,6 +98,24 @@ describe('components/RegionForm', function () {
 
       await new Promise((resolve) => setTimeout(resolve, 10))
       assert.equal(invalidateStub.callCount, 0)
+    })
+  })
+
+  describe('watch -> selectedRegion()', function () {
+    it('should invalidate issues AFTER region updates', async function () {
+      const wrapper = shallowMount(RegionForm, { store, localVue })
+      const rendered = wrapper.vm
+
+      const invalidateStub = this.sandbox.stub(rendered, 'doTriggerIssueInvalidation')
+      const setContentsStub = this.sandbox.stub(rendered, 'doSetEditorsContents')
+
+      state.selectedRegion = { issues: [{ some: 'issue' }] }
+
+      await new Promise((resolve) => setTimeout(resolve, 25))
+      assert.equal(invalidateStub.callCount, 1)
+      assert.equal(setContentsStub.callCount, 1)
+
+      sinon.assert.callOrder(setContentsStub, invalidateStub)
     })
   })
 })

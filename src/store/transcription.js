@@ -103,7 +103,7 @@ const actions = {
 
         store.dispatch('saveTranscription')
       },
-      2000,
+      5000,
     )
   },
 

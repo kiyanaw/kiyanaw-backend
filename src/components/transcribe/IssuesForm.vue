@@ -87,6 +87,7 @@
               small
               outlined
               color="red"
+              data-test="deleteIssueButton"
               @click="onDeleteIssue"
               :disabled="!user"
             >
