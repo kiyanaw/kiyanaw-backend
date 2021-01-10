@@ -86,6 +86,13 @@ import RTE from './RTE.vue'
 import Lexicon from '../../services/lexicon'
 import logging from '../../logging'
 
+/**
+ * NOTE: the invalidate issues timing *must* be greater than the
+ * set contents timing, or issues will be overridden.
+ */
+const SET_CONTENTS_TIMING = 10
+const INVALIDATE_ISSUES_TIMING = SET_CONTENTS_TIMING + 5
+
 const logger = new logging.Logger('Region Form')
 
 export default {
@@ -143,28 +150,20 @@ export default {
     }
   },
 
-  // mounted() {
-  //   console.log('user', this.user)
-  // },
-
   watch: {
     locks(newValue) {
       logger.info('Lock changed', newValue)
     },
 
     issues(newValue) {
-      // TODO: why did I have selectedIssue in here??
       if (!this.selectedRegion.isNote) {
-        /**
-         * Issue invalidation *must* be delayed so that the editor contents can update first.
-         */
         Timeout.clear('invalidate-issues-timer')
         Timeout.set(
           'invalidate-issues-timer',
           () => {
             this.doTriggerIssueInvalidation(newValue)
           },
-          5,
+          INVALIDATE_ISSUES_TIMING,
         )
       }
     },
@@ -176,11 +175,8 @@ export default {
          * Micro-delay to allow editors to mount the first time.
          */
         setTimeout(() => {
-          if (!region.isNote) {
-            this.$refs.mainEditor.setContents(region.text)
-          }
-          this.$refs.secondaryEditor.setContents(region.translation)
-        }, 10)
+          this.doSetEditorsContents(region)
+        }, SET_CONTENTS_TIMING)
       }
     },
   },
@@ -328,6 +324,16 @@ export default {
         },
         2000,
       )
+    },
+
+    /**
+     * Wrapper for testing, sets the main editor contents.
+     */
+    doSetEditorsContents(region) {
+      if (!region.isNote) {
+        this.$refs.mainEditor.setContents(region.text)
+      }
+      this.$refs.secondaryEditor.setContents(region.translation)
     },
 
     /**
