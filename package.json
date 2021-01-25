@@ -9,6 +9,7 @@
     "test-watch": "NODE_ENV=test mochapack --watch --webpack-config webpack.config.js --require test/unit/setup.js test/unit/**/*.spec.js",
     "karma": "NODE_ENV=test karma start --single-run",
     "karma-watch": "NODE_ENV=test karma start",
+    "karma-brave": "NODE_LOGGING=off NODE_ENV=test karma start --browsers Brave",
     "lint": "vue-cli-service lint",
     "test:unit": "vue-cli-service test:unit",
     "unit": "vue-cli-service test:unit"
@@ -74,6 +75,7 @@
     "jsdom": "^15.1.1",
     "jsdom-global": "^3.0.2",
     "karma": "^5.2.3",
+    "karma-brave-launcher": "^1.0.0",
     "karma-chrome-launcher": "^2.2.0",
     "karma-mocha": "^2.0.1",
     "karma-sourcemap-loader": "^0.3.8",

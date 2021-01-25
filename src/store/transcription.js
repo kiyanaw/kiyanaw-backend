@@ -83,28 +83,31 @@ const actions = {
    * Region updates happen in their own store, but saving happens here
    */
   saveRegion(store, region) {
-    logger.debug('save region triggered', store, region.id)
+    if (store.getters.signedIn) {
+      logger.debug('save region triggered', store, region)
 
-    Timeout.clear('save-region-timer')
-    Timeout.set(
-      'save-region-timer',
-      () => {
-        logger.info('Save region triggered', region)
-        transcriptionService
-          .updateRegion(store.getters.transcription.id, region)
-          .then(() => {
-            logger.info('Region saved!')
-            store.dispatch('setSaved', true)
-          })
-          .catch((error) => {
-            logger.error('Error saving region', region, error)
-            alert('Error saving that region, change the region to try again')
-          })
-
-        store.dispatch('saveTranscription')
-      },
-      5000,
-    )
+      Timeout.clear('save-region-timer')
+      Timeout.set(
+        'save-region-timer',
+        () => {
+          logger.info('Save region triggered', region)
+          transcriptionService
+            .updateRegion(store.getters.transcription.id, region)
+            .then(() => {
+              logger.info('Region saved!')
+              store.dispatch('setSaved', true)
+            })
+            .catch((error) => {
+              logger.error('Error saving region', region, error)
+              alert('Error saving that region, change the region to try again')
+            })
+          store.dispatch('saveTranscription')
+        },
+        5000,
+      )
+    } else {
+      console.log('Unable to save, user not authenticated')
+    }
   },
 
   saveTranscription(store) {

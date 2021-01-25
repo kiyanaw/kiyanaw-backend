@@ -246,7 +246,6 @@ export default {
       issue.comments = []
       const newDate = `${+new Date()}`
       issue.id = `issue-${issue.type}-${newDate}`
-      console.log('new issue comment text', this.newIssueCommentText)
       if (this.newIssueCommentText.length) {
         logger.info('adding issue comment')
         issue.comments.push({

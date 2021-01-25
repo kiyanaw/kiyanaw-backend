@@ -55,7 +55,6 @@ export default {
         },
         (progress) => {
           this.progress = (progress.loaded / progress.total) * 100
-          // console.log(progress)
         },
       )
       if (result) {
@@ -64,7 +63,6 @@ export default {
     },
     previewFiles() {
       this.inputFile = this.$refs.fileInput.files[0]
-      console.log(this.inputFile)
     },
   },
 }

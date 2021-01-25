@@ -47,8 +47,8 @@ const getters = {
   },
   regionById(context) {
     return (regionId) => {
+      console.log('byId', regionId, context.regionMap)
       if (context.regionMap) {
-        // return context.transcription.regions.filter((region) => region.id === regionId).pop()
         return Object.values(context.regionMap)
           .filter((region) => region.id === regionId)
           .pop()
@@ -196,25 +196,35 @@ const actions = {
     store.commit('SET_SELECTED_REGION', region)
   },
 
-  updateRegionById(store, update) {
-    logger.info('Updating region by Id', update)
-    store.commit('UPDATE_REGION', update)
+  /**
+   * TODO: this `input` differs from updateRegion
+   */
+  updateRegionById(store, input) {
+    const update = input.update
+    logger.info('Updating region by Id', update.start)
+    const region = store.getters.regionById(input.id)
+    store.commit('UPDATE_REGION', { region, update })
 
-    const region = store.getters.selectedRegion
-    store.dispatch('saveRegion', region)
+    // now that the update has fired, grab the region again
+    const updated = store.getters.regionById(input.id)
+    store.dispatch('saveRegion', updated)
   },
 
   /**
    * Trigger region updates for the selected region.
    * TODO: this is ambiguous and confused with non-specific region updates - fix it.
+   * TODO: this update takes update object {id, start, end} differs from updateRegionById
    */
   updateRegion(store, update) {
-    logger.debug('region updated', store, update)
-    // const regionId = store.getters.selectedRegion.id
+    logger.debug('region updated', update)
+
     const region = store.getters.selectedRegion
     store.commit('UPDATE_REGION', { region, update })
 
-    store.dispatch('saveRegion', region)
+    // now that the update has fired, grab the region again
+    const updated = store.getters.regionById(region.id)
+    console.log('updated', updated)
+    store.dispatch('saveRegion', updated)
   },
 }
 
@@ -245,6 +255,7 @@ const mutations = {
   },
 
   UPDATE_REGION(context, update) {
+    console.log('update', update)
     const region = update.region
     const id = `${region.index}-${region.id}`
     const existing = context.regionMap[id]

@@ -103,7 +103,6 @@ export default {
       }
     },
     editWord (event) {
-      console.log(event.target.id)
       const id = event.target.id
       this.$router.push(`/edit/${id}`)
     }
