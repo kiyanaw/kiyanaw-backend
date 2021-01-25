@@ -148,7 +148,6 @@ export default {
 
   /** */
   async createDocument(data) {
-    console.log('input data', data)
     const user = await UserService.getUser()
     const id = UUID.v1().split('-')[0]
     const input = {
@@ -194,7 +193,6 @@ export default {
 
   /** */
   async createRegion(transcriptionId, regionData) {
-    console.log('create region', regionData)
     const input = {
       id: regionData.id,
       start: regionData.start,
@@ -232,7 +230,6 @@ export default {
   },
 
   async deleteRegion(transcriptionId, region) {
-    console.log('deleting region', transcriptionId, region.id, region.version)
     await API.graphql(
       graphqlOperation(
         mutations.deleteRegion,

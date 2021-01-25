@@ -166,8 +166,12 @@ export default {
     },
 
     zoom(newValue) {
-      surfer.zoom(newValue)
-      localStorage.zoom = newValue
+      try {
+        surfer.zoom(newValue)
+        localStorage.zoom = newValue
+      } catch (e) {
+        console.warn(e)
+      }
     },
     speed(newValue) {
       surfer.setPlaybackRate(newValue / 100)
@@ -178,114 +182,118 @@ export default {
     var me = this
     this.pendingInboundRegion = this.$props.inboundRegion
 
-    surfer = WaveSurfer.create({
-      container: '#waveform',
-      waveColor: '#305880',
-      progressColor: '#162738',
-      scrollParent: true,
-      backend: 'MediaElement',
-      mediaType: 'video',
-      barWidth: 2,
-      plugins: [
-        RegionPlugin.create({
-          regions: [],
-        }),
-        TimelinePlugin.create({
-          container: '#timeline',
-        }),
-        // TODO: try the minimap plugin again at some point, wasn't working with peaks data
-      ],
-    })
-    // console.log('surfer', surfer)
-
-    surfer.on('audioprocess', (event) => {
-      const currentTime = event.toFixed(3) // 0.109
-      if (currentTime !== cacheTime) {
-        this.currentTime = currentTime
-        cacheTime = currentTime
-      }
-    })
-
-    /**
-     * TODO: there are like 3 'ready' handlers
-     */
-    surfer.on('ready', () => {
-      me.maxTime = surfer.backend.getDuration()
-      // me.regions.forEach(function(region) {
-      //   surfer.addRegion(region)
-      // })
-      me.textRegions = me.regions
-    })
-
-    if (this.canEdit) {
-      surfer.enableDragSelection({ slop: 5 })
+    try {
+      surfer = WaveSurfer.create({
+        container: '#waveform',
+        waveColor: '#305880',
+        progressColor: '#162738',
+        scrollParent: true,
+        backend: 'MediaElement',
+        mediaType: 'video',
+        barWidth: 2,
+        plugins: [
+          RegionPlugin.create({
+            regions: [],
+          }),
+          TimelinePlugin.create({
+            container: '#timeline',
+          }),
+          // TODO: try the minimap plugin again at some point, wasn't working with peaks data
+        ],
+      })
+    } catch (error) {
+      console.error('Could not mount wavesurfer', error.message)
     }
 
-    surfer.on('play', () => {
-      this.playing = true
-    })
+    // in the test suite, there is a lot of noise because there is no media element.
+    if (surfer) {
+      surfer.on('audioprocess', (event) => {
+        const currentTime = event.toFixed(3) // 0.109
+        if (currentTime !== cacheTime) {
+          this.currentTime = currentTime
+          cacheTime = currentTime
+        }
+      })
 
-    surfer.on('pause', () => {
-      this.playing = false
-    })
+      /**
+       * TODO: there are like 3 'ready' handlers
+       */
+      surfer.on('ready', () => {
+        me.maxTime = surfer.backend.getDuration()
+        me.textRegions = me.regions
+      })
 
-    surfer.on('loading', (value) => {
-      this.loadingProgress = value
-    })
-
-    surfer.on('region-click', (event) => {
-      // if we are a viewer only, play this region
-      if (!this.canEdit) {
-        // this.$emit('play-region', event.id)
-        // this.playRegion(event.id)
-        setTimeout(() => {
-          this.playRegion(event.id)
-        }, 25)
+      if (this.canEdit) {
+        surfer.enableDragSelection({ slop: 5 })
       }
-    })
 
-    /**
-     * This event fires when both a region is created, and when it is updated.
-     */
-    surfer.on('region-update-end', (event) => {
-      this.$emit('region-updated', event)
-    })
+      surfer.on('play', () => {
+        this.playing = true
+      })
 
-    /** */
-    surfer.on('region-in', (region) => {
-      this.onRegionIn(region.id)
-    })
+      surfer.on('pause', () => {
+        this.playing = false
+      })
 
-    surfer.on('region-out', (region) => {
-      this.onRegionOut(region.id)
-    })
+      surfer.on('loading', (value) => {
+        this.loadingProgress = value
+      })
 
-    surfer.on('seek', this.onPlayerSeek)
+      surfer.on('region-click', (event) => {
+        // if we are a viewer only, play this region
+        if (!this.canEdit) {
+          // this.$emit('play-region', event.id)
+          // this.playRegion(event.id)
+          setTimeout(() => {
+            this.playRegion(event.id)
+          }, 25)
+        }
+      })
 
-    let regionsRendered = false
-    surfer.on('ready', () => {
-      // for some reason wavesurfer fires the loaded event like 100 times
-      if (!regionsRendered) {
-        this.loadIsReady()
-        regionsRendered = true
+      /**
+       * This event fires when both a region is created, and when it is updated.
+       */
+      surfer.on('region-update-end', (event) => {
+        // this.$emit('region-updated', event)
+        this.onRegionUpdate(event)
+      })
+
+      /** */
+      surfer.on('region-in', (region) => {
+        this.onRegionIn(region.id)
+      })
+
+      surfer.on('region-out', (region) => {
+        this.onRegionOut(region.id)
+      })
+
+      surfer.on('seek', this.onPlayerSeek)
+
+      let regionsRendered = false
+      surfer.on('ready', () => {
+        // for some reason wavesurfer fires the loaded event like 100 times
+        if (!regionsRendered) {
+          this.loadIsReady()
+          regionsRendered = true
+        }
+      })
+      // TODO: move peaks loading to Transcribe
+      // TODO: test when peaks data is 404
+
+      if (this.isVideo) {
+        surfer.load(document.querySelector('#video'), this.peaks.data)
+      } else {
+        surfer.load(this.source, this.peaks.data)
       }
-    })
-    // TODO: move peaks loading to Transcribe
-    // TODO: test when peaks data is 404
 
-    if (this.isVideo) {
-      surfer.load(document.querySelector('#video'), this.peaks.data)
-    } else {
-      surfer.load(this.source, this.peaks.data)
+      if (this.canEdit && localStorage.zoom) {
+        this.zoom = localStorage.zoom
+      } else {
+        this.zoom = 30
+      }
+      window.surfer = surfer
+      window.audio = this
     }
-
-    if (this.canEdit && localStorage.zoom) {
-      this.zoom = localStorage.zoom
-    } else {
-      this.zoom = 30
-    }
-    window.surfer = surfer
-    window.audio = this
   },
 
   methods: {
@@ -373,6 +381,8 @@ export default {
           region.drag = this.canEdit
           region.attributes = {
             label: region.displayIndex,
+            index: region.index,
+            displayIndex: region.displayIndex,
           }
           surfer.addRegion(region)
         }
@@ -418,21 +428,30 @@ export default {
       }
     },
 
-    emitSelectionAction(action, value) {
-      this.$emit('selection-action', action, value)
+    onRegionUpdate(event) {
+      this.$emit('region-updated', {
+        id: event.id,
+        start: event.start,
+        end: event.end,
+        index: event.attributes.index,
+      })
     },
 
-    onFlagSelectionClick() {
-      this.emitSelectionAction('flag-selection')
-    },
+    // emitSelectionAction(action, value) {
+    //   this.$emit('selection-action', action, value)
+    // },
 
-    onIgnoreSelectionClick() {
-      this.emitSelectionAction('ignore-selection')
-    },
+    // onFlagSelectionClick() {
+    //   this.emitSelectionAction('flag-selection')
+    // },
 
-    onClearFormatClick() {
-      this.emitSelectionAction('clear-format')
-    },
+    // onIgnoreSelectionClick() {
+    //   this.emitSelectionAction('ignore-selection')
+    // },
+
+    // onClearFormatClick() {
+    //   this.emitSelectionAction('clear-format')
+    // },
   },
 }
 </script>

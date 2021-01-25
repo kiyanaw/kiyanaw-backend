@@ -318,7 +318,6 @@ export default {
     isInRegion() {
       // const inRegions = this.$props.inRegions
       // const regionId = this.$props.region.id
-      // console.log('isInRegion', inRegions, regionId)
       // if (inRegions && regionId) {
       //   return this.inRegions.indexOf(this.region.id) > -1
       // }
@@ -407,7 +406,6 @@ export default {
      * @description Locks a region for a given user.
      */
     lock(lockUser = 'unknown') {
-      console.log('This region is locked', this.region.id)
       if (lockUser === 'unknown') {
         alert(
           `There was a problem obtaining a region lock on region ${this.region.index}, try again...`,
@@ -425,7 +423,6 @@ export default {
     },
 
     unlock() {
-      console.log('This region is unlocked', this.region.id)
       this.locked = false
       this.lockUser = ''
       if (!this.region.isNote) {
@@ -483,7 +480,6 @@ export default {
      * If we are receiving cursor updates they are in another region.
      */
     setCursor(data) {
-      // console.log('setting cursor', data)
       if (data.source === 'secondary') {
         this.quillTranslate.setText(data.text || '', 'api')
         this.quillTranslate.formatText(0, 9999999, 'color', 'gray')
@@ -522,7 +518,6 @@ export default {
       this.quill.formatText(0, 9999, 'known-word', false)
       // loop through and refresh
       const knownWords = await Lex.getKnownWords()
-      // console.log(`known words: ${knownWords}`)
       // add a space at the beginning to allow 0-index matches
       const text = this.quill.getText()
       const matchedWordsIndex = []
@@ -535,7 +530,6 @@ export default {
         let match
         let matches = []
         while ((match = re.exec(text))) {
-          // console.log(`match: ${match}`)
           // TODO: this is icky, find a better way
           // make sure we're matching whole words and not just partials
           // grab the character right after our match to
@@ -606,7 +600,6 @@ export default {
      * @description Handles changes to the main editor.
      */
     async onEditorTextChange(delta, oldDelta, source) {
-      // console.log('region change', this.region.id, delta, oldDelta, source)
       if (source === 'user') {
         // check for breakages
         // notify this editor changed
@@ -702,10 +695,8 @@ export default {
       this.selectedIssue.resolved = !this.selectedIssue.resolved
       const issue = this.selectedIssue
       const issueType = `issue-${issue.type}`
-      console.log('selected issue', issueType)
       if (this.selectedIssue.resolved) {
         // remove the formatting in the editor
-        // console.log('issue type', issue.type)
         this.quill.formatText(issue.index, issue.text.length, issueType, false)
       } else {
         this.quill.formatText(issue.index, issue.text.length, issueType, issue.id)
@@ -714,7 +705,6 @@ export default {
     },
 
     deleteIssue(id) {
-      console.log('delete issue', id)
       const deleteIssue = confirm('Delete this issue forever?')
       if (deleteIssue) {
         this.issues = this.issues.filter((issue) => issue.id !== id)
@@ -733,7 +723,6 @@ export default {
     onSelectionAction(action) {
       const formats = this.quill.getFormat(this.currentSelection)
       if (action === 'flag-selection') {
-        console.log('formats under selection', formats)
         // check for format under cursor
         const formatsKeys = Object.keys(formats)
         if (formatsKeys.length) {
@@ -831,7 +820,6 @@ export default {
             .pop()
           // if (leaf.attributes && leaf.attributes['issue-needs-help']) {
           if (issueKey) {
-            // console.log('index of issue', index)
             const issueId = leaf.attributes[issueKey]
             const text = leaf.insert
             const issue = this.issues.filter((item) => item.id === issueId).pop()
@@ -894,7 +882,6 @@ export default {
      */
     maybeFocusBlur(event) {
       // can't do anything if we're locked
-      // console.log(`!! mayFocusBlur ${this.region.id} (${this.locked})`, event);
       if (this.locked || !this.canEdit) {
         return
       }
@@ -905,13 +892,11 @@ export default {
         //   this.firstBlur = false
         //   return
         // }
-        // // console.log('blur called')
         // this.blurFlag = true
         // Timeout.set(
         //   `blur-timeout-${this.region.id}`,
         //   () => {
         //     if (this.blurFlag) {
-        //       console.log(' --> blur fired')
         //       this.$emit('editor-blur', this.region.id)
         //       this.blurFlag = false
         //     }
@@ -926,7 +911,6 @@ export default {
         } else {
           // we're clear, fire the event
           if (!this.editing) {
-            // console.log(' --> focus fired')
             this.$emit('editor-focus', this.region.id)
             window.editor = this
           }
@@ -984,7 +968,6 @@ export default {
       if (this.editing) {
         // only update start/end times when editing
       } else {
-        console.log('updating with new region')
         // deal with times
         this.region.start = region.start
         this.region.end = region.end

@@ -48,7 +48,7 @@ export default {
         { title: 'Next unverified', icon: 'create', url: '/next-unverified' },
       ],
       nav: (event) => {
-        console.log(event.target)
+        // console.log(event.target)
       },
     }
   },
