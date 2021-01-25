@@ -216,13 +216,14 @@ const actions = {
    * TODO: this update takes update object {id, start, end} differs from updateRegionById
    */
   updateRegion(store, update) {
-    // logger.debug('region updated', store, update)
+    logger.debug('region updated', update)
 
     const region = store.getters.selectedRegion
     store.commit('UPDATE_REGION', { region, update })
 
     // now that the update has fired, grab the region again
-    const updated = store.getters.regionById(update.id)
+    const updated = store.getters.regionById(region.id)
+    console.log('updated', updated)
     store.dispatch('saveRegion', updated)
   },
 }

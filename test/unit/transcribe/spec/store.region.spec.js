@@ -70,7 +70,7 @@ describe('Mutations -> region', function () {
       region.actions.setSelectedRegion(store, 'foo')
 
       // trigger the update
-      region.actions.updateRegion(store, {id: 'foo', start: 3, end: 5, index: 1 })
+      region.actions.updateRegion(store, {start: 3, end: 5})
       assert.strictEqual(dispatchStub.callCount, 1)
 
       // make sure the saveRegion event was dispatched appropriately
@@ -81,7 +81,7 @@ describe('Mutations -> region', function () {
         id: 'foo',
         start: 3,
         end: 5,
-        index: 1,
+        index: 0,
         text: [],
         displayIndex: 1,
       })
