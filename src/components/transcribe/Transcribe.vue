@@ -240,7 +240,7 @@ export default {
       // const region = this.regions.filter((item) => item.id === partRegion.id).shift()
       const region = this.regionById(partRegion.id)
 
-      console.log('region index', region.indesx)
+      console.log('region index', region.index)
 
       this.currentRegionSheet.innerHTML = `#${partRegion.id} {background-color: #edfcff;}`
       this.$refs.regionList.scrollToIndex(region.index)

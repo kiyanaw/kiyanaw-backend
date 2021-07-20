@@ -263,9 +263,7 @@ export default {
     },
 
     onMainEditorSelection(range) {
-      // logger.info('Main editor selection', range)
       if (range && range.length) {
-        logger.info('length!')
         this.selectedRange = range
       } else {
         this.selectedRange = null

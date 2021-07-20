@@ -52,7 +52,7 @@ export default {
     },
 
     regionIndex() {
-      return this.selectedRegion ? this.selectedRegion.index : ''
+      return this.selectedRegion ? this.selectedRegion.displayIndex : ''
     },
   },
 
