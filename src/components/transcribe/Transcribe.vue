@@ -216,7 +216,7 @@ export default {
         user: `${this.user.name}`,
       }
       UserService.sendCursor(update).catch((e) => {
-        console.log(e)
+        // console.log(e)
       })
     },
 
@@ -239,8 +239,6 @@ export default {
     onPlaybackRegionIn(partRegion) {
       // const region = this.regions.filter((item) => item.id === partRegion.id).shift()
       const region = this.regionById(partRegion.id)
-
-      console.log('region index', region.index)
 
       this.currentRegionSheet.innerHTML = `#${partRegion.id} {background-color: #edfcff;}`
       this.$refs.regionList.scrollToIndex(region.index)
@@ -285,7 +283,6 @@ export default {
       this.author = data.author
       this.isVideo = data.type.includes('video')
       this.peaks = peaks
-      // console.log('contributors', data.contributors)
       this.contributors = data.contributors || []
 
       // TODO: fix contributors
@@ -342,10 +339,7 @@ export default {
       } else {
         this.updateRegionById({
           id: regionUpdate.id,
-          update: {
-            start: regionUpdate.start,
-            end: regionUpdate.end,
-          },
+          update: regionUpdate,
         })
       }
     },
