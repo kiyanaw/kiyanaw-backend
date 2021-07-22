@@ -259,7 +259,7 @@ describe('components/RTE', function () {
         { attributes: { 'issue-needs-help': 'issue-needs-help-1234567890' }, insert: 'simple' },
         { insert: ' line of text\n' },
       ]
-      console.log(JSON.stringify(events['change-format'][0][0]))
+      // console.log(JSON.stringify(events['change-format'][0][0]))
       assert.deepEqual(events['change-format'][0][0], expected)
     })
 
@@ -331,6 +331,29 @@ describe('components/RTE', function () {
       //   kīhikāw: { original: 'kīhikāw?]', length: 9, index: 18 },
       // }
       // assert.deepEqual(result, expected)
+    })
+  })
+
+  describe('maybeAddASpaceAtTheEnd()', function () {
+    it('should add a space after an issue', function () {
+      const wrapper = shallowMount(RTE, {
+        store,
+        localVue,
+        propsData: {
+          text: [
+            { insert: 'This is an ' },
+            { attributes: { 'issue-needs-help': 'issue-needs-help-1234567890' }, insert: 'issue' },
+          ],
+        },
+      })
+      const rendered = wrapper.vm
+
+      // trigger change
+      rendered.onChange(null, null, 'user')
+
+      // pull out the last delta and verify there's a space before the newline
+      const contents = rendered.editor.getContents().ops
+      assert.strictEqual(contents.pop().insert, ' \n')
     })
   })
 })
