@@ -8,4 +8,4 @@ jobs:
     container: ghostinspector/cli
     steps:
       - name: test
-        run: --help
+        run: which ghost-inspector
