@@ -7,5 +7,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: mikeal/npx@master
-      - run: npx ghost-inspector --help
-
+        args: ghost-inspector --help
