@@ -128,6 +128,17 @@ export default {
       this.editor.formatText(0, 9999, 'known-word', false)
     },
 
+    ignoreWord() {
+      this.editor.format('ignore-word', true)
+      this.emitChangeEvent('change-format')
+    },
+
+    clearFormat() {
+      const range = this.editor.getSelection()
+      this.editor.removeFormat(range.index, range.length)
+      this.emitChangeEvent('change-format')
+    },
+
     applyKnownWord(index, length) {
       this.editor.formatText(index, length, 'known-word', true)
       // trigger change for save
