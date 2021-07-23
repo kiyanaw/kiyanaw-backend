@@ -5,7 +5,7 @@ on: push
 jobs:
   build:
     runs-on: ubuntu-latest
+    container: ghostinspector/cli
     steps:
-      - uses: ghostinspector/cli
-        with:
-          args: --help
+      - name: test
+        run: --help
