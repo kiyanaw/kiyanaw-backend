@@ -7,4 +7,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: mikeal/npx@master
-        args: ghost-inspector --help
+        with:
+          args: ghost-inspector --help
