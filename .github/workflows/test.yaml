@@ -6,6 +6,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: mikeal/npx@master
+      - uses: ghostinspector/cli
         with:
-          args: ghost-inspector --help
+          args: --help
