@@ -216,7 +216,7 @@ export default {
         user: `${this.user.name}`,
       }
       UserService.sendCursor(update).catch((e) => {
-        // console.log(e)
+        console.log(e)
       })
     },
 
@@ -421,31 +421,31 @@ export default {
 }
 
 /* Classes for words/issues */
-[class^='known-word'] {
+span[class*='known-word'] {
   color: blue;
 }
 
-[class^='ignore-word'] {
+span[class*='ignore-word'] {
   color: #777;
   font-style: italic;
 }
 
-[class^='issue-needs-help'] {
+span[class*='issue-needs-help'] {
   background-color: #ffe6e6;
 }
 
-[class^='issue-indexing'] {
+span[class*='issue-indexing'] {
   background-color: #fff9e6;
 }
 
-[class^='issue-new'] {
+span[class*='issue-new'] {
   background-color: #e6f3ff;
 }
 
-[class^='issue-']::before {
+span[class*='issue-']::before {
   content: '[';
 }
-[class^='issue-']::after {
+span[class*='issue-']::after {
   content: ']';
 }
 </style>

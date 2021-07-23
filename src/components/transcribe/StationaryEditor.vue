@@ -77,7 +77,6 @@ export default {
         if (confirm('Discard new issue?')) {
           this.setSelectedIssue(null)
         } else {
-          console.log('go back to issues tab')
           this.$nextTick(() => {
             this.activeTab = tabs.Issues
           })

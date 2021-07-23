@@ -157,6 +157,7 @@ export default {
      */
     emitChangeEvent(event) {
       const contents = this.editor.getContents().ops
+      // this.$emit(`${event}-foo`, contents)
       this.$emit(event, contents)
     },
 
