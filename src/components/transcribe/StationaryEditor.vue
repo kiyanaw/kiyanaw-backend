@@ -52,7 +52,7 @@ export default {
     },
 
     regionIndex() {
-      return this.selectedRegion ? this.selectedRegion.index : ''
+      return this.selectedRegion ? this.selectedRegion.displayIndex : ''
     },
   },
 
@@ -77,7 +77,6 @@ export default {
         if (confirm('Discard new issue?')) {
           this.setSelectedIssue(null)
         } else {
-          console.log('go back to issues tab')
           this.$nextTick(() => {
             this.activeTab = tabs.Issues
           })

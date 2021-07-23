@@ -4,6 +4,7 @@
 
     <div v-if="region">
       <v-toolbar dense flat>
+
         <v-btn small icon @click="onPlayRegion" data-test="regionPlayButton">
           <v-icon> mdi-play-circle </v-icon>
         </v-btn>
@@ -17,10 +18,12 @@
         >
           <v-icon small> mdi-note-outline </v-icon>
         </v-btn>
+
         <v-btn small icon @click="onLock" :disabled="!user" data-test="regionLockButton">
           <v-icon small v-if="!regionIsLocked">mdi-lock-open-outline</v-icon>
           <v-icon small v-if="regionIsLocked" color="black">mdi-lock</v-icon>
         </v-btn>
+
         <v-btn
           small
           icon
@@ -30,9 +33,31 @@
         >
           <v-icon small> mdi-flag-outline </v-icon>
         </v-btn>
+
+        <v-btn
+          small
+          icon
+          :disabled="!selectedRange || !user"
+          @click="onIgnoreWord"
+          data-test="ignoreWordButton"
+        >
+          <v-icon small> mdi-format-strikethrough-variant </v-icon>
+        </v-btn>
+
+        <v-btn
+          small
+          icon
+          :disabled="!selectedRange || !user"
+          @click="onClearFormat"
+          data-test="clearFormatButton"
+        >
+          <v-icon small> mdi-cancel </v-icon>
+        </v-btn>
+
         <v-btn small icon @click="onDeleteRegion" :disabled="!user" data-test="regionDeleteButton">
           <v-icon small> mdi-delete-forever </v-icon>
         </v-btn>
+
       </v-toolbar>
       <rte
         class="rte main-editor-container"
@@ -204,6 +229,14 @@ export default {
       this.$emit('create-issue')
     },
 
+    onIgnoreWord() {
+      this.$refs.mainEditor.ignoreWord()
+    },
+
+    onClearFormat() {
+      this.$refs.mainEditor.clearFormat()
+    },
+
     onDeleteRegion() {
       if (confirm('Delete selected region?')) {
         this.deleteRegion()
@@ -263,9 +296,7 @@ export default {
     },
 
     onMainEditorSelection(range) {
-      // logger.info('Main editor selection', range)
       if (range && range.length) {
-        logger.info('length!')
         this.selectedRange = range
       } else {
         this.selectedRange = null

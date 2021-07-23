@@ -47,7 +47,7 @@ const getters = {
   },
   regionById(context) {
     return (regionId) => {
-      console.log('byId', regionId, context.regionMap)
+      // console.log('byId', regionId, context.regionMap)
       if (context.regionMap) {
         return Object.values(context.regionMap)
           .filter((region) => region.id === regionId)
@@ -223,7 +223,7 @@ const actions = {
 
     // now that the update has fired, grab the region again
     const updated = store.getters.regionById(region.id)
-    console.log('updated', updated)
+    // console.log('updated', updated)
     store.dispatch('saveRegion', updated)
   },
 }
@@ -255,7 +255,6 @@ const mutations = {
   },
 
   UPDATE_REGION(context, update) {
-    console.log('update', update)
     const region = update.region
     const id = `${region.index}-${region.id}`
     const existing = context.regionMap[id]

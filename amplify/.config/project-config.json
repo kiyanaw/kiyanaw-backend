@@ -1,7 +1,4 @@
 {
-  "providers": [
-    "awscloudformation"
-  ],
   "projectName": "kiyanaw",
   "version": "3.0",
   "frontend": "javascript",
@@ -13,5 +10,8 @@
       "BuildCommand": "npm run-script build",
       "StartCommand": "npm run-script serve"
     }
-  }
+  },
+  "providers": [
+    "awscloudformation"
+  ]
 }

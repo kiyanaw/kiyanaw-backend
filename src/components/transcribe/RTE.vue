@@ -80,12 +80,13 @@ export default {
     onChange(delta, oldDelta, source) {
       // Only emit user changes
       if (source === 'user') {
+        this.maybeAddASpaceAtTheEnd()
+
         // throttle updates a little
         Timeout.clear('rte-change-timeout')
         Timeout.set(
           'rte-change-timeout',
           () => {
-            logger.debug('contents changed', delta)
             this.emitChangeEvent('change-content')
           },
           100,
@@ -127,6 +128,17 @@ export default {
       this.editor.formatText(0, 9999, 'known-word', false)
     },
 
+    ignoreWord() {
+      this.editor.format('ignore-word', true)
+      this.emitChangeEvent('change-format')
+    },
+
+    clearFormat() {
+      const range = this.editor.getSelection()
+      this.editor.removeFormat(range.index, range.length)
+      this.emitChangeEvent('change-format')
+    },
+
     applyKnownWord(index, length) {
       this.editor.formatText(index, length, 'known-word', true)
       // trigger change for save
@@ -135,10 +147,28 @@ export default {
     },
 
     /**
+     * Checks the editor to see if there is a space at the end of the text, adds one if not. This is
+     * to allow for typing at the end of the text outside of any existing formatting.
+     */
+    maybeAddASpaceAtTheEnd() {        
+      // check to see if there is a space at the end of the text
+      const contents = this.editor.getText()
+      const characters = contents.split('')
+      characters.pop() // remove the newline
+      const lastItemIndex = characters.length
+      const lastItem = characters.pop()
+      if (lastItem !== ' ') {
+        this.editor.insertText(lastItemIndex, ' ', 'api')
+        this.editor.removeFormat(lastItemIndex, lastItemIndex + 1, 'api')
+      } 
+    },
+
+    /**
      * Will signal that the editor has changed and needs to be saved.
      */
     emitChangeEvent(event) {
       const contents = this.editor.getContents().ops
+      // this.$emit(`${event}-foo`, contents)
       this.$emit(event, contents)
     },
 
