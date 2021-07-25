@@ -67,7 +67,11 @@ const actions = {
   },
 
   loadTranscriptions(store) {
-    transcriptionService.listTranscriptions().then((results) => {
+    // transcriptionService.listTranscriptions().then((results) => {
+    //   logger.info('Got transcriptions', results)
+    //   store.commit('SET_TRANSCRIPTIONS', results)
+    // })
+    transcriptionService.listTranscriptionsForUser().then((results) => {
       logger.info('Got transcriptions', results)
       store.commit('SET_TRANSCRIPTIONS', results)
     })

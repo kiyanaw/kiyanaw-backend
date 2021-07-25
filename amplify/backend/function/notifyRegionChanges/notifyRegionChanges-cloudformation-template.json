@@ -63,7 +63,7 @@
         "Timeout": "25",
         "Code": {
           "S3Bucket": "amplify-kiyanaw-prod-214643-deployment",
-          "S3Key": "amplify-builds/notifyRegionChanges-62687373386358766d62-build.zip"
+          "S3Key": "amplify-builds/notifyRegionChanges-7364625863515679474d-build.zip"
         }
       }
     },

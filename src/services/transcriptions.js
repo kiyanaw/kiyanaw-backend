@@ -111,6 +111,22 @@ export default {
     // unwrap the structure that comes back from appsync
   },
 
+  async listTranscriptionsForUser() {
+    const user = await UserService.getUser()
+    let results = []
+    try {
+      results = await API.graphql(graphqlOperation(queries.byOwnerUpdated, { author: user.name, limit: 100 }))
+      // console.log(results)
+    } catch (error) {
+      console.error('Could not load transcriptions', error)
+    }
+
+    results = results.data.byOwnerUpdated.items
+
+    return results.map((item) => new Transcription(item))
+    // unwrap the structure that comes back from appsync
+  },
+
   /**
    * @typedef {Object} TranscriptionUpload
    * @property {Object} data
