@@ -96,20 +96,20 @@ export default {
    */
   // TODO: test me!
   // TODO: want these ordered by lastUpdated
-  async listTranscriptions() {
-    let results = []
-    try {
-      results = await API.graphql(graphqlOperation(queries.listTranscriptions, { limit: 100 }))
-      // console.log(results)
-    } catch (error) {
-      console.error('Could not load transcriptions', error)
-    }
+  // async listTranscriptions() {
+  //   let results = []
+  //   try {
+  //     results = await API.graphql(graphqlOperation(queries.listTranscriptions, { limit: 100 }))
+  //     // console.log(results)
+  //   } catch (error) {
+  //     console.error('Could not load transcriptions', error)
+  //   }
 
-    results = results.data.listTranscriptions.items
+  //   results = results.data.listTranscriptions.items
 
-    return results.map((item) => new Transcription(item))
-    // unwrap the structure that comes back from appsync
-  },
+  //   return results.map((item) => new Transcription(item))
+  //   // unwrap the structure that comes back from appsync
+  // },
 
   async listTranscriptionsForUser() {
     const user = await UserService.getUser()
@@ -118,7 +118,7 @@ export default {
       results = await API.graphql(graphqlOperation(queries.byOwnerUpdated, { author: user.name, limit: 100 }))
       // console.log(results)
     } catch (error) {
-      console.error('Could not load transcriptions', error)
+      console.error('Could not load transcriptions', error)d
     }
 
     results = results.data.byOwnerUpdated.items
