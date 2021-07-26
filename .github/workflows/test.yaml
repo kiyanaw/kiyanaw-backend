@@ -3,9 +3,16 @@ name: NPM test
 on: push
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
-    container: ghostinspector/cli
     steps:
-      - name: test
-        run: ghost-inspector --help
+      - uses: actions/checkout@v2
+      - name: deploy to staging
+        run: npm run deploy
+
+      - name: execute Ghost Inspector suite
+        uses: docker://ghostinspector/cli
+        run: |
+          ghost-inspector suite execute ${{ secrets.GI_SUITE }} \
+            --apiKey ${{ secrets.GI_API_KEY }} \
+            --startUrl https://google.com
