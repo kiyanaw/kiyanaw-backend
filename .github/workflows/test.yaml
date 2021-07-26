@@ -12,7 +12,7 @@ jobs:
 
       - name: execute Ghost Inspector suite
         uses: docker://ghostinspector/cli
-        run: |
-          ghost-inspector suite execute ${{ secrets.GI_SUITE }} \
+        with:
+          args: suite execute ${{ secrets.GI_SUITE }} \
             --apiKey ${{ secrets.GI_API_KEY }} \
             --startUrl https://google.com
