@@ -11,4 +11,5 @@ jobs:
         with:
           args: suite execute ${{ secrets.GI_SUITE }} \
             --apiKey ${{ secrets.GI_API_KEY }} \
-            --startUrl https://google.com
+            --startUrl https://google.com \
+            --errorOnFail
