@@ -6,10 +6,6 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: deploy to staging
-        run: npm run deploy
-
       - name: execute Ghost Inspector suite
         uses: docker://ghostinspector/cli
         with:
