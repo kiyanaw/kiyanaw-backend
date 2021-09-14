@@ -6,7 +6,7 @@
 
 <script>
 import Quill from 'quill'
-import QuillCursors from 'quill-cursors'
+// import QuillCursors from 'quill-cursors'
 import { mapGetters } from 'vuex'
 import Timeout from 'smart-timeout'
 
@@ -35,7 +35,7 @@ Parchment.register(IgnoreWord)
 Parchment.register(IssueNeedsHelp)
 Parchment.register(IssueIndexing)
 Parchment.register(IssueNewWord)
-Quill.register('modules/cursors', QuillCursors)
+// Quill.register('modules/cursors', QuillCursors)
 
 const formats = {
   main: ['known-word', 'ignore-word', 'issue-needs-help', 'issue-indexing', 'issue-new-word'],
@@ -45,7 +45,7 @@ const formats = {
 export default {
   props: ['disabled', 'mode', 'text'],
   mounted() {
-    logger.debug('Editor mounted', this.mode)
+    logger.info('Editor mounted', this.mode, this.disabled)
     this.editor = null
 
     const element = this.$el.querySelector('#editor-' + this.mode)
@@ -55,12 +55,12 @@ export default {
         formats: formats[this.mode],
         modules: {
           toolbar: false,
-          cursors: true,
+          // cursors: true,
         },
         readOnly: false,
       })
 
-      this.cursors = this.editor.getModule('cursors')
+      // this.cursors = this.editor.getModule('cursors')
       this.editor.root.setAttribute('spellcheck', false)
       this.setContents(this.text)
 
@@ -114,6 +114,8 @@ export default {
     },
 
     setContents(value) {
+      // don't let null values in
+      value = value || ''
       if (!Array.isArray(value)) {
         value = [{ insert: value }]
       }
@@ -150,7 +152,7 @@ export default {
      * Checks the editor to see if there is a space at the end of the text, adds one if not. This is
      * to allow for typing at the end of the text outside of any existing formatting.
      */
-    maybeAddASpaceAtTheEnd() {        
+    maybeAddASpaceAtTheEnd() {
       // check to see if there is a space at the end of the text
       const contents = this.editor.getText()
       const characters = contents.split('')
@@ -160,7 +162,7 @@ export default {
       if (lastItem !== ' ') {
         this.editor.insertText(lastItemIndex, ' ', 'api')
         this.editor.removeFormat(lastItemIndex, lastItemIndex + 1, 'api')
-      } 
+      }
     },
 
     /**

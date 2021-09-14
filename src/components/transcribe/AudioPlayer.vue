@@ -519,8 +519,8 @@ video {
   display: none;
   position: fixed;
   bottom: 15px;
-  max-width: 550px;
-  max-height: 450px;
+  max-width: 350px;
+  max-height: 350px;
   z-index: 190;
   box-shadow: 0px 0px 6px 0px #888888;
   cursor: pointer;

@@ -4,7 +4,6 @@
 
     <div v-if="region">
       <v-toolbar dense flat>
-
         <v-btn small icon @click="onPlayRegion" data-test="regionPlayButton">
           <v-icon> mdi-play-circle </v-icon>
         </v-btn>
@@ -57,7 +56,6 @@
         <v-btn small icon @click="onDeleteRegion" :disabled="!user" data-test="regionDeleteButton">
           <v-icon small> mdi-delete-forever </v-icon>
         </v-btn>
-
       </v-toolbar>
       <rte
         class="rte main-editor-container"

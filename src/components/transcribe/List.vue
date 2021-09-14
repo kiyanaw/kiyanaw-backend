@@ -3,13 +3,23 @@
     <v-layout>
       <v-flex xs12 class="list-container">
         <h2 class="main-title">Transcriptions</h2>
+        <v-card-title>
+          <v-text-field
+            v-model="search"
+            append-icon="mdi-magnify"
+            label="Search"
+            single-line
+            hide-details
+          ></v-text-field>
+        </v-card-title>
         <v-data-table
           ref="table"
           class="elevation-1"
           :headers="headers"
           :items="transcriptions"
-          :items-per-page="15"
+          :items-per-page="10"
           :loading="loading"
+          :search="search"
         >
           <template v-slot:item.title="{ item }">
             <a :href="item.url">{{ item.title }}</a>
@@ -69,6 +79,7 @@ export default {
         { text: 'Type', value: 'type' },
         { text: 'Source', value: 'source' },
       ],
+      search: '',
     }
   },
   mounted() {
