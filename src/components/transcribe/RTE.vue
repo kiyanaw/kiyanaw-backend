@@ -119,7 +119,10 @@ export default {
       if (!Array.isArray(value)) {
         value = [{ insert: value }]
       }
+      // filter out nulls (fixing bad data)
+      value = value.filter((item) => !!item.insert)
       try {
+        logger.info('setting contents', this.mode, value)
         this.editor.setContents(value, 'silent')
       } catch (error) {
         logger.warn('Unable to set text contents:', error.message)
