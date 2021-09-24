@@ -1,4 +1,3 @@
-import elasticsearch from 'elasticsearch'
 import Timeout from 'smart-timeout'
 
 import logging from '../logging'
@@ -6,10 +5,28 @@ import preverbs from './preverbs'
 
 const logger = new logging.Logger('Lexicon')
 
-const client = new elasticsearch.Client({
-  // host: 'http://localhost:9200/'
-  host: 'https://search-kiyanaw-dev-grohpnfdchux2gvdyytpdpqr5m.us-east-1.es.amazonaws.com',
-})
+class Client {
+  constructor(endpoint) {
+    this.endpoint = endpoint
+  }
+
+  async search(data) {
+    console.log('data', data)
+    const url = `${this.endpoint}/bulk-lookup`
+    // const response = await axios({ url, data })
+    let response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json;charset=utf-8',
+      },
+      body: JSON.stringify(data),
+    })
+    const result = await response.json()
+    return result
+  }
+}
+
+const client = new Client('https://icagc4x2ok.execute-api.us-east-1.amazonaws.com')
 
 // class Inflection {
 //   constructor(item) {
@@ -96,17 +113,18 @@ class Lex {
     }
     // remove any words we already "know"
     const onlySearchFor = this.getWordsNotKnown(strippedWords)
-    // console.log(`searching for: ${onlySearchFor}`)
+
     // build the query
     if (onlySearchFor.length) {
-      let query = {
-        index: 'inflected',
-        type: '_doc',
-        body: { query: { bool: { filter: { terms: { inflected: onlySearchFor } } } } },
-      }
-      // console.log(JSON.stringify(query))
-      const raw = await client.search(query)
-      const resultWords = raw.hits.hits.map((word) => word._source.inflected)
+      const raw = await client.search(onlySearchFor)
+      const resultWords = Object.entries(raw)
+        .map((items) => {
+          if (items[1].length) {
+            return items[0]
+          }
+        })
+        .filter(Boolean)
+      console.log('result words', resultWords)
       // console.log(`got results: ${resultWords}`)
       // loop through the stripped word map and match any results
       const matchedStrippedWords = resultWords.map((result) => strippedWordMap[result])
