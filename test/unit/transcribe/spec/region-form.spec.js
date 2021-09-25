@@ -5,6 +5,7 @@ import { shallowMount, createLocalVue } from '@vue/test-utils'
 import Vuex from 'vuex'
 
 import RegionForm from '@/components/transcribe/RegionForm.vue'
+import Lexicon from '@/services/lexicon'
 
 const localVue = createLocalVue()
 localVue.use(Vuex)
@@ -16,7 +17,7 @@ async function wait(time = 5) {
   })
 }
 
-describe('components/RegionForm', function () {
+describe.only('components/RegionForm', function () {
   let getters
   let store
   let state
@@ -51,13 +52,15 @@ describe('components/RegionForm', function () {
     this.sandbox = sinon.createSandbox()
   })
 
-  after(async function () {
+  afterEach(async function () {
     await wait()
     this.sandbox.restore()
   })
 
   describe('getTextMapFromDeltas()', function () {
-    it('should parse deltas')
+    it('should parse deltas', async function () {
+      // TODO
+    })
 
     it('should scrub brackets [] and return proper result', async function () {
       const wrapper = shallowMount(RegionForm, { store, localVue })
@@ -71,6 +74,87 @@ describe('components/RegionForm', function () {
         kīhikāw: { original: 'kīhikāw?]', length: 9, index: 18 },
       }
       assert.deepEqual(result, expected)
+    })
+
+    it('should handle multiples of the same word', async function () {
+      const wrapper = shallowMount(RegionForm, { store, localVue })
+
+      const rendered = wrapper.vm
+      const deltas = [{ insert: 'ana awa êwako awa \n' }]
+      const result = rendered.getTextMapFromDeltas(deltas)
+
+      const expected = {
+        ana: { original: 'ana', length: 3, index: 0 },
+        awa: [
+          { original: 'awa', length: 3, index: 4 },
+          { original: 'awa', length: 3, index: 14 },
+        ],
+        êwako: { original: 'êwako', length: 5, index: 8 },
+      }
+      assert.deepEqual(result, expected)
+    })
+  })
+
+  describe.only('applyKnownWords()', function () {
+    it('should apply [foo, bar]', async function () {
+      // set up the region
+      store.state.selectedRegion = {
+        text: [{ insert: 'foo' }, { insert: ' ' }, { insert: 'bar' }, { insert: ' \n' }],
+      }
+
+      const wrapper = shallowMount(RegionForm, { store, localVue })
+      const rendered = wrapper.vm
+
+      // mock the return value for known words
+      this.sandbox.stub(Lexicon, 'getKnownWords').returns(['foo', 'bar'])
+
+      const clearStub = this.sandbox.stub(rendered, 'editorClearKnownWords')
+      const applyStub = this.sandbox.stub(rendered, 'editorApplyKnownWords')
+
+      await rendered.applyKnownWords()
+
+      assert.ok(clearStub.called)
+      // applies two known words
+      assert.equal(applyStub.callCount, 2)
+      // applies foo
+      assert.deepEqual(applyStub.args[0], [0, 3])
+      // applies bar
+      assert.deepEqual(applyStub.args[1], [4, 3])
+    })
+
+    it('should apply duplicate [foo, bar, foo]', async function () {
+      // set up the region
+      store.state.selectedRegion = {
+        text: [
+          { insert: 'foo' },
+          { insert: ' ' },
+          { insert: 'bar' },
+          { insert: ' ' },
+          { insert: 'foo' },
+          { insert: ' \n' },
+        ],
+      }
+
+      const wrapper = shallowMount(RegionForm, { store, localVue })
+      const rendered = wrapper.vm
+
+      // mock the return value for known words
+      this.sandbox.stub(Lexicon, 'getKnownWords').returns(['foo', 'bar'])
+
+      const clearStub = this.sandbox.stub(rendered, 'editorClearKnownWords')
+      const applyStub = this.sandbox.stub(rendered, 'editorApplyKnownWords')
+
+      await rendered.applyKnownWords()
+
+      assert.ok(clearStub.called)
+      // applies two known words
+      assert.equal(applyStub.callCount, 3)
+      // applies foo
+      assert.deepEqual(applyStub.args[0], [0, 3])
+      // applies foo again
+      assert.deepEqual(applyStub.args[1], [8, 3])
+      // applies bar
+      assert.deepEqual(applyStub.args[2], [4, 3])
     })
   })
 

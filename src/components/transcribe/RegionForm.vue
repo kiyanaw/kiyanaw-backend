@@ -351,7 +351,7 @@ export default {
 
           Lexicon.wordSearch(difference, this.applyKnownWords)
         },
-        2000,
+        200,
       )
     },
 
@@ -396,17 +396,30 @@ export default {
       }
 
       // 'this i[s] some, text'
-      const original = text
+      let original = text
       const map = {}
       const parts = text.trim().split(' ')
       for (const part of parts) {
         const index = original.indexOf(part)
         const clean = part.replace(/,|\[|\]|\.|\?|\n|\r| |\(|\)/gi, '')
-        map[clean] = {
-          original: part,
-          length: part.length,
-          index,
+        if (map[clean] && map[clean].length) {
+          map[clean] = [{ ...map[clean] }]
+          map[clean].push({
+            original: part,
+            length: part.length,
+            index,
+          })
+        } else {
+          map[clean] = {
+            original: part,
+            length: part.length,
+            index,
+          }
         }
+
+        // replace original ocurrance to handle duplicates
+        const filler = new Array(part.length + 1).join('-')
+        original = original.replace(part, filler)
       }
 
       return map
@@ -422,15 +435,28 @@ export default {
       const matches = Object.keys(wordMap).filter((needle) => knownWords.includes(needle))
 
       if (matches.length) {
-        this.$refs.mainEditor.clearKnownWords()
+        this.editorClearKnownWords()
         // notify main editor to adjust formatting
         for (const match of matches) {
-          logger.info('Applying match', match)
-          const index = wordMap[match].index
-          const length = wordMap[match].length
-          this.$refs.mainEditor.applyKnownWord(index, length)
+          let bits = wordMap[match]
+          if (!Array.isArray(bits)) {
+            bits = [bits]
+          }
+          logger.info('Applying match', match, bits)
+          bits.forEach((bit) => {
+            this.editorApplyKnownWords(bit.index, bit.length)
+          })
         }
       }
+    },
+
+    // wrapper for testing
+    editorClearKnownWords() {
+      this.$refs.mainEditor.clearKnownWords()
+    },
+    // wrapper for testing
+    editorApplyKnownWords(index, length) {
+      this.$refs.mainEditor.applyKnownWord(index, length)
     },
   },
 }
