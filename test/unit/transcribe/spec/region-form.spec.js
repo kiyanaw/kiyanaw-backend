@@ -109,7 +109,7 @@ describe('components/RegionForm', function () {
     })
   })
 
-  describe.only('applyKnownWords()', function () {
+  describe('applyKnownWords()', function () {
     it('should apply [foo, bar]', async function () {
       // set up the region
       store.state.selectedRegion = {
