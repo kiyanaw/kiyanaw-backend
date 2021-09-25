@@ -401,7 +401,7 @@ export default {
       const parts = text.trim().split(' ')
       for (const part of parts) {
         const index = original.indexOf(part)
-        const clean = part.replace(/,|\[|\]|\.|\?|\n|\r| |\(|\)/gi, '')
+        const clean = part.replace(/,|\[|\]|\.|\?|\n|\r| |\(|\)|\"/gi, '')
         if (map[clean] && map[clean].length) {
           map[clean] = [{ ...map[clean] }]
           map[clean].push({

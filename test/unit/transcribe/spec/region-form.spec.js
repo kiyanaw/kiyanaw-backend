@@ -17,7 +17,7 @@ async function wait(time = 5) {
   })
 }
 
-describe.only('components/RegionForm', function () {
+describe('components/RegionForm', function () {
   let getters
   let store
   let state
@@ -72,6 +72,20 @@ describe.only('components/RegionForm', function () {
       const expected = {
         'kā-miyo-kīsikwiw': { original: '[kā-miyo-kīsikwiw', length: 17, index: 0 },
         kīhikāw: { original: 'kīhikāw?]', length: 9, index: 18 },
+      }
+      assert.deepEqual(result, expected)
+    })
+
+    it('should scrub brackets double-quotes and return proper result', async function () {
+      const wrapper = shallowMount(RegionForm, { store, localVue })
+
+      const rendered = wrapper.vm
+      const deltas = [{ insert: '"kā-miyo-kīsikwiw kīhikāw" \n' }]
+      const result = rendered.getTextMapFromDeltas(deltas)
+
+      const expected = {
+        'kā-miyo-kīsikwiw': { original: '"kā-miyo-kīsikwiw', length: 17, index: 0 },
+        kīhikāw: { original: 'kīhikāw"', length: 8, index: 18 },
       }
       assert.deepEqual(result, expected)
     })
