@@ -66,9 +66,7 @@ export default {
       this.$emit('close')
     },
     onLookup() {
-      console.log('search', this.search)
       Lexicon.lookup(this.search).then((results) => {
-        console.log('sapir results', { ...results })
         this.results = results
       })
     },

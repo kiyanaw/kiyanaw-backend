@@ -43,12 +43,17 @@ let Suggestion = new Parchment.Attributor.Class('suggestion', 'suggestion', {
   scope: Parchment.Scope.INLINE,
 })
 
+let SuggestionKnown = new Parchment.Attributor.Class('suggestion-known', 'suggestion-known', {
+  scope: Parchment.Scope.INLINE,
+})
+
 Parchment.register(KnownWord)
 Parchment.register(IgnoreWord)
 Parchment.register(IssueNeedsHelp)
 Parchment.register(IssueIndexing)
 Parchment.register(IssueNewWord)
 Parchment.register(Suggestion)
+Parchment.register(SuggestionKnown)
 // Quill.register('modules/cursors', QuillCursors)
 
 const formats = {
@@ -59,6 +64,7 @@ const formats = {
     'issue-indexing',
     'issue-new-word',
     'suggestion',
+    'suggestion-known',
   ],
   secondary: [],
 }
@@ -192,8 +198,17 @@ export default {
       this.editor.formatText(index, length, 'known-word', true)
       this.editor.formatText(index, length, 'suggestion', false)
       // trigger change for save
-      logger.debug('formatting changed')
+      logger.debug('apply known word', index, length)
       this.emitChangeEvent('change-format')
+    },
+
+    applyKnownHint(index, length) {
+      logger.debug('applying known hint', index, length)
+      // check for known-word
+      const currentFormat = this.editor.getFormat(index, length)
+      if (Object.keys(currentFormat).indexOf('known-word') === -1) {
+        this.editor.formatText(index, length, 'suggestion-known', true)
+      }
     },
 
     applySuggestion(index, length) {
@@ -283,6 +298,7 @@ export default {
       contents = contents.map((item) => {
         if (item.attributes) {
           delete item.attributes.suggestion
+          delete item.attributes['suggestion-known']
         }
         return item
       })

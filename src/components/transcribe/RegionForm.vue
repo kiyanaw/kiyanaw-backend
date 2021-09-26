@@ -198,10 +198,7 @@ export default {
          */
         setTimeout(() => {
           this.doSetEditorsContents(region)
-          this.applySuggestions()
-          // TODO: fire off "known words" check as suggestions here also
-          // this.checkForKnownWords()
-          // ^^ this triggers a save, even if we check for locked region
+          this.checkForKnownWords()
         }, SET_CONTENTS_TIMING)
       }
     },
@@ -353,9 +350,7 @@ export default {
           logger.info('Words to search for', difference)
 
           Lexicon.wordSearch(difference, () => {
-            // if (this.regionLockedByMe) {
             this.applyKnownWords()
-            // }
             this.applySuggestions()
           })
         },
@@ -445,7 +440,14 @@ export default {
       const matches = Object.keys(wordMap).filter((needle) => knownWords.includes(needle))
 
       if (matches.length) {
-        this.editorClearKnownWords()
+        let applyFunc
+        if (!this.regionIsLockedByMe) {
+          // hint known word
+          applyFunc = this.editorApplyKnownHint
+        } else {
+          this.editorClearKnownWords()
+          applyFunc = this.editorApplyKnownWords
+        }
         // notify main editor to adjust formatting
         for (const match of matches) {
           let bits = wordMap[match]
@@ -454,7 +456,8 @@ export default {
           }
           logger.debug('Applying match', match, bits)
           bits.forEach((bit) => {
-            this.editorApplyKnownWords(bit.index, bit.length)
+            // either highlight known words, or apply hints
+            applyFunc(bit.index, bit.length)
           })
         }
       }
@@ -499,6 +502,10 @@ export default {
     // wrapper for testing
     editorApplyKnownWords(index, length) {
       this.$refs.mainEditor.applyKnownWord(index, length)
+    },
+    // wrapper for testing
+    editorApplyKnownHint(index, length) {
+      this.$refs.mainEditor.applyKnownHint(index, length)
     },
     // wrapper for testing
     editorApplySuggestion(index, length) {

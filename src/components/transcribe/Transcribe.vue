@@ -462,6 +462,10 @@ span[class*='issue-']::after {
 }
 span[class*='suggestion-'] {
   text-decoration-line: underline;
+  text-decoration-color: #ffdea8;
+}
+span[class*='suggestion-known'] {
+  text-decoration-line: underline;
   text-decoration-color: #a8e2ff;
 }
 </style>
