@@ -71,7 +71,6 @@ import TranscriptionService from '../../services/transcriptions'
 import RegionPartial from './RegionPartial.vue'
 import UserService from '../../services/user'
 
-import { setTimeout } from 'timers'
 import { mapActions, mapGetters } from 'vuex'
 
 import logging from '../../logging'
@@ -184,7 +183,6 @@ export default {
     //   }
     // })
 
-    this.scrollToEditorTop()
     // load up
     this.load()
   },
@@ -198,18 +196,6 @@ export default {
       'setTranscription',
       'updateRegionById',
     ]),
-
-    scrollToEditorTop() {
-      if (!this.inboundRegion) {
-        setTimeout(() => {
-          try {
-            document.querySelector('.editorScroll').scrollTop = 0
-          } catch (e) {
-            // unused
-          }
-        }, 200)
-      }
-    },
 
     regionCursor(data) {
       data.color = cursorColor
@@ -243,6 +229,18 @@ export default {
 
       this.currentRegionSheet.innerHTML = `#${partRegion.id} {background-color: #edfcff;}`
       this.$refs.regionList.scrollToIndex(region.index)
+
+      /**
+       * Fix issue where incoming region doesn't properly scroll
+       * to the top of the region list.
+       */
+      setTimeout(() => {
+        try {
+          document.querySelector(`#${partRegion.id}`).scrollIntoView()
+        } catch (error) {
+          logger.debug('Unable to scroll to region', error)
+        }
+      }, 15)
 
       this.itemScrollIndex = 0
     },
@@ -295,9 +293,6 @@ export default {
       // set the inbound region, if any
       logger.info('setting inbound region', this.inboundRegion)
       this.$store.dispatch('setSelectedRegion', this.inboundRegion)
-
-      // heh, what does this do? 😅
-      this.scrollToEditorTop()
 
       // Request all locked regions on load
       this.getLockedRegions()
