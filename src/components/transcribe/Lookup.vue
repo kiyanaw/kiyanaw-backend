@@ -1,15 +1,13 @@
 <template>
-  <v-dialog v-model="dialog" persistent scrollable max-width="600px">
+  <v-dialog v-model="lookup" persistent scrollable max-width="600px">
     <v-card>
-      <!-- <v-card-title>
-        <span class="text-h5">Looker upper</span>
-      </v-card-title> -->
       <v-card-text>
         <v-container>
           <v-row>
             <v-col cols="12">
               <v-text-field
-                label="Search for..."
+                label="Press <enter> to search..."
+                ref="lookup"
                 v-model="search"
                 @change="onLookup"
               ></v-text-field>
@@ -43,17 +41,25 @@
 import Lexicon from '@/services/lexicon'
 
 export default {
-  props: ['dialog'],
+  props: ['lookup'],
+  watch: {
+    lookup: {
+      immediate: true,
+      handler(newValue) {
+        if (newValue) {
+          setTimeout(() => {
+            console.log(this.$refs.lookup)
+            this.$refs.lookup.focus()
+          }, 20)
+        }
+      },
+    },
+  },
   data() {
     return {
       search: '',
       results: [],
     }
-  },
-  watch: {
-    dialog(newValue) {
-      console.log('lookup changed', newValue)
-    },
   },
   methods: {
     onClose() {

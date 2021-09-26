@@ -1,44 +1,44 @@
 {
-  "dev": {
-    "awscloudformation": {
-      "AuthRoleName": "amplify-kiyanaw-dev-02717-authRole",
-      "UnauthRoleArn": "arn:aws:iam::494185203413:role/amplify-kiyanaw-dev-02717-unauthRole",
-      "AuthRoleArn": "arn:aws:iam::494185203413:role/amplify-kiyanaw-dev-02717-authRole",
-      "Region": "us-east-1",
-      "DeploymentBucketName": "amplify-kiyanaw-dev-02717-deployment",
-      "UnauthRoleName": "amplify-kiyanaw-dev-02717-unauthRole",
-      "StackName": "amplify-kiyanaw-dev-02717",
-      "StackId": "arn:aws:cloudformation:us-east-1:494185203413:stack/amplify-kiyanaw-dev-02717/b94caea0-10ef-11ea-97d1-122d883fe268",
-      "AmplifyAppId": "d2vcnct5kwl6za"
+    "dev": {
+        "awscloudformation": {
+            "AuthRoleName": "amplify-kiyanaw-dev-02717-authRole",
+            "UnauthRoleArn": "arn:aws:iam::494185203413:role/amplify-kiyanaw-dev-02717-unauthRole",
+            "AuthRoleArn": "arn:aws:iam::494185203413:role/amplify-kiyanaw-dev-02717-authRole",
+            "Region": "us-east-1",
+            "DeploymentBucketName": "amplify-kiyanaw-dev-02717-deployment",
+            "UnauthRoleName": "amplify-kiyanaw-dev-02717-unauthRole",
+            "StackName": "amplify-kiyanaw-dev-02717",
+            "StackId": "arn:aws:cloudformation:us-east-1:494185203413:stack/amplify-kiyanaw-dev-02717/b94caea0-10ef-11ea-97d1-122d883fe268",
+            "AmplifyAppId": "d2vcnct5kwl6za"
+        },
+        "categories": {
+            "auth": {
+                "kiyanaw664b231a": {}
+            },
+            "function": {
+                "notifyRegionChanges": {}
+            }
+        }
     },
-    "categories": {
-      "auth": {
-        "kiyanaw664b231a": {}
-      },
-      "function": {
-        "notifyRegionChanges": {}
-      }
+    "prod": {
+        "awscloudformation": {
+            "AuthRoleName": "amplify-kiyanaw-prod-214643-authRole",
+            "UnauthRoleArn": "arn:aws:iam::494185203413:role/amplify-kiyanaw-prod-214643-unauthRole",
+            "AuthRoleArn": "arn:aws:iam::494185203413:role/amplify-kiyanaw-prod-214643-authRole",
+            "Region": "us-east-1",
+            "DeploymentBucketName": "amplify-kiyanaw-prod-214643-deployment",
+            "UnauthRoleName": "amplify-kiyanaw-prod-214643-unauthRole",
+            "StackName": "amplify-kiyanaw-prod-214643",
+            "StackId": "arn:aws:cloudformation:us-east-1:494185203413:stack/amplify-kiyanaw-prod-214643/f3637870-1d6b-11ea-a8a7-0ef7f3f34731",
+            "AmplifyAppId": "d2vcnct5kwl6za"
+        },
+        "categories": {
+            "auth": {
+                "kiyanaw664b231a": {}
+            },
+            "function": {
+                "notifyRegionChanges": {}
+            }
+        }
     }
-  },
-  "prod": {
-    "awscloudformation": {
-      "AuthRoleName": "amplify-kiyanaw-prod-214643-authRole",
-      "UnauthRoleArn": "arn:aws:iam::494185203413:role/amplify-kiyanaw-prod-214643-unauthRole",
-      "AuthRoleArn": "arn:aws:iam::494185203413:role/amplify-kiyanaw-prod-214643-authRole",
-      "Region": "us-east-1",
-      "DeploymentBucketName": "amplify-kiyanaw-prod-214643-deployment",
-      "UnauthRoleName": "amplify-kiyanaw-prod-214643-unauthRole",
-      "StackName": "amplify-kiyanaw-prod-214643",
-      "StackId": "arn:aws:cloudformation:us-east-1:494185203413:stack/amplify-kiyanaw-prod-214643/f3637870-1d6b-11ea-a8a7-0ef7f3f34731",
-      "AmplifyAppId": "d2vcnct5kwl6za"
-    },
-    "categories": {
-      "auth": {
-        "kiyanaw664b231a": {}
-      },
-      "function": {
-        "notifyRegionChanges": {}
-      }
-    }
-  }
 }

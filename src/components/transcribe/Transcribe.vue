@@ -9,7 +9,7 @@
         {{ error }}
       </div>
 
-      <lookup v-if="lookup" :dialog="lookup" @close="lookup = !lookup"></lookup>
+      <lookup v-if="lookup" :lookup="lookup" @close="lookup = !lookup"></lookup>
 
       <v-flex v-if="!(loading && waveformLoading) && !error">
         <v-layout class="audio-container" :class="{ audioContainerSm: $vuetify.breakpoint.xsOnly }">
