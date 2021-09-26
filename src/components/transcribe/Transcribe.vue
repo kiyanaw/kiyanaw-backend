@@ -74,6 +74,9 @@ import UserService from '../../services/user'
 import { setTimeout } from 'timers'
 import { mapActions, mapGetters } from 'vuex'
 
+import logging from '../../logging'
+const logger = new logging.Logger('Transcribe')
+
 function getColor() {
   return (
     'hsl(' +
@@ -151,6 +154,7 @@ export default {
      */
     this.transcriptionId = this.$route.params.id
     this.inboundRegion = this.$route.params.region || null
+    logger.info('setting inbound region', this.inboundRegion)
     this.$store.dispatch('setSelectedRegion', this.inboundRegion)
 
     /**
@@ -237,12 +241,10 @@ export default {
      * Handler for the playback head entering a region.
      */
     onPlaybackRegionIn(partRegion) {
-      // const region = this.regions.filter((item) => item.id === partRegion.id).shift()
       const region = this.regionById(partRegion.id)
 
       this.currentRegionSheet.innerHTML = `#${partRegion.id} {background-color: #edfcff;}`
       this.$refs.regionList.scrollToIndex(region.index)
-      this.$store.dispatch('setSelectedRegion', partRegion.id)
 
       this.itemScrollIndex = 0
     },

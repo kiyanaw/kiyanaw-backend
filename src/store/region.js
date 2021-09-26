@@ -32,9 +32,6 @@ const getters = {
     return context.regionMap
   },
   regions(context) {
-    console.log('!!!! regions have updated')
-    // const copy = JSON.parse(JSON.stringify(context.regionMap))
-    // return Object.values(copy)
     return Object.values(context.regionMap)
   },
   locks(context) {
@@ -42,7 +39,7 @@ const getters = {
   },
   lockedRegionNames(context) {
     const keys = Object.keys(context.locks)
-    logger.log('Getting Lock keys', keys, context.locks)
+    logger.debug('Getting Lock keys', keys, context.locks)
     return keys
   },
   regionById(context) {
@@ -77,7 +74,7 @@ const actions = {
     UserService.getRegionLocks(transcriptionId)
       .then((locks) => {
         for (const lock of locks) {
-          logger.info('Incoming lock for region', lock.id, lock)
+          logger.debug('Incoming lock for region', lock.id, lock)
           store.commit('SET_LOCK', { key: lock.id, data: lock })
 
           // check for our locks, push to unlock queue if any
@@ -91,7 +88,7 @@ const actions = {
       })
 
     UserService.listenForLock((update) => {
-      console.log('got realtime lock 1', update)
+      logger.debug('got realtime lock 1', update)
       store.dispatch('realtimeLockUpdate', update)
     })
   },
@@ -127,7 +124,7 @@ const actions = {
   },
 
   processUnlockQueue() {
-    logger.info(`Processing unlock queue, ${unlockQueue.length} items`)
+    logger.debug(`Processing unlock queue, ${unlockQueue.length} items`)
     while (unlockQueue.length) {
       const unlock = unlockQueue.pop()
       unlock()
@@ -139,7 +136,7 @@ const actions = {
   },
 
   pushToUnlockQueue(store, item) {
-    logger.info('Pushing item to unlock queue', item, store)
+    logger.debug('Pushing item to unlock queue', item, store)
     unlockQueue.push(() => {
       logger.info(`Unlock for region ${item.id} triggered`)
       UserService.unlockRegion(item.transcriptionId, item.id).then((result) => {
@@ -190,9 +187,7 @@ const actions = {
    */
   setSelectedRegion(store, regionId) {
     const region = store.getters.regionById(regionId)
-
-    logger.info('setting selected region', region)
-
+    logger.info('setting selected region', regionId)
     store.commit('SET_SELECTED_REGION', region)
   },
 
@@ -230,7 +225,7 @@ const actions = {
 
 const mutations = {
   SET_LOCK(context, update) {
-    logger.info('Setting lock', update)
+    logger.info('Setting lock', update.key)
     if (update.data) {
       Vue.set(context.locks, update.key, update.data)
     } else {

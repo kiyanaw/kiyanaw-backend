@@ -109,7 +109,7 @@ export default {
       transcriptionId,
     }
     try {
-      logger.info('lockRegion input', input)
+      logger.debug('lockRegion input', input)
       await API.graphql(graphqlOperation(createRegionLock, { input: input }))
     } catch (error) {
       logger.error(error)

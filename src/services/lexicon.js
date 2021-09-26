@@ -93,14 +93,14 @@ class Lex {
           }
         })
         .filter(Boolean)
-      console.log('result words', resultWords)
+      logger.info('result words', resultWords)
 
       suggestions = {
         ...suggestions,
         ...raw._suggestions,
       }
-      console.log('suggestions', suggestions)
-      // console.log(`got results: ${resultWords}`)
+      logger.info('suggestions', suggestions)
+
       // loop through the stripped word map and match any results
       const matchedStrippedWords = resultWords.map((result) => strippedWordMap[result])
       knownWords = knownWords.concat(resultWords)
@@ -108,7 +108,7 @@ class Lex {
       // keep track of the stuff we don't need to search for again
       // unknownWords = unknownWords.concat(words.filter(word => resultWords.indexOf(word) === -1))
     } else {
-      console.log('Nothing to search for.')
+      logger.debug('Nothing to search for.')
     }
     // push any mapped words into the knownWords
     for (const known of knownWords) {

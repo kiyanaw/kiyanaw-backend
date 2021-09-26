@@ -108,6 +108,7 @@ import Timeout from 'smart-timeout'
 import RTE from './RTE.vue'
 import Lexicon from '../../services/lexicon'
 import logging from '../../logging'
+const logger = new logging.Logger('Region Form')
 
 /**
  * NOTE: the invalidate issues timing *must* be greater than the
@@ -115,8 +116,6 @@ import logging from '../../logging'
  */
 const SET_CONTENTS_TIMING = 10
 const INVALIDATE_ISSUES_TIMING = SET_CONTENTS_TIMING + 5
-
-const logger = new logging.Logger('Region Form')
 
 export default {
   components: { rte: RTE },
@@ -175,7 +174,7 @@ export default {
 
   watch: {
     locks(newValue) {
-      logger.info('Lock changed', newValue)
+      logger.debug('Lock changed', newValue)
     },
 
     issues(newValue) {
@@ -193,7 +192,7 @@ export default {
 
     selectedRegion(region) {
       if (region) {
-        logger.info('setting text for both editors', region.translation)
+        logger.debug('setting text for both editors', region.translation)
         /**
          * Micro-delay to allow editors to mount the first time.
          */
@@ -201,6 +200,8 @@ export default {
           this.doSetEditorsContents(region)
           this.applySuggestions()
           // TODO: fire off "known words" check as suggestions here also
+          // this.checkForKnownWords()
+          // ^^ this triggers a save, even if we check for locked region
         }, SET_CONTENTS_TIMING)
       }
     },
@@ -352,7 +353,9 @@ export default {
           logger.info('Words to search for', difference)
 
           Lexicon.wordSearch(difference, () => {
+            // if (this.regionLockedByMe) {
             this.applyKnownWords()
+            // }
             this.applySuggestions()
           })
         },
@@ -407,8 +410,10 @@ export default {
       for (const part of parts) {
         const index = original.indexOf(part)
         const clean = part.replace(/,|\[|\]|\.|\?|\n|\r| |\(|\)|"/gi, '')
-        if (map[clean] && map[clean].length) {
-          map[clean] = [{ ...map[clean] }]
+        if (map[clean]) {
+          if (!Array.isArray(map[clean])) {
+            map[clean] = [{ ...map[clean] }]
+          }
           map[clean].push({
             original: part,
             length: part.length,
@@ -447,7 +452,7 @@ export default {
           if (!Array.isArray(bits)) {
             bits = [bits]
           }
-          logger.info('Applying match', match, bits)
+          logger.debug('Applying match', match, bits)
           bits.forEach((bit) => {
             this.editorApplyKnownWords(bit.index, bit.length)
           })
@@ -473,7 +478,7 @@ export default {
           if (!Array.isArray(bits)) {
             bits = [bits]
           }
-          logger.info('Applying match', match, bits)
+          logger.info('Applying suggestion', match, bits)
           bits.forEach((bit) => {
             this.editorApplySuggestion(bit.index, bit.length)
           })

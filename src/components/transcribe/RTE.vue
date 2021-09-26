@@ -158,7 +158,7 @@ export default {
       // filter out nulls (fixing bad data)
       value = value.filter((item) => !!item.insert)
       try {
-        logger.info('setting contents', this.mode, value)
+        logger.debug('setting contents', this.mode, value)
         this.editor.setContents(value, 'silent')
       } catch (error) {
         logger.warn('Unable to set text contents:', error.message)
@@ -197,30 +197,31 @@ export default {
     },
 
     applySuggestion(index, length) {
-      console.log('applying suggestion', index, length)
+      logger.debug('applying suggestion', index, length)
       this.editor.formatText(index, length, 'suggestion', true)
     },
 
     setSuggestions(suggestions) {
-      console.log('set suggestions', suggestions)
+      logger.debug('set suggestions', suggestions)
       this.suggestions = suggestions
     },
 
     checkForSuggestions(range) {
-      console.log('checking for suggestions', range)
+      logger.debug('checking for suggestions', range)
       const [blot] = this.editor.getLeaf(range.index)
+      logger.debug('blot', blot)
       if (blot.domNode instanceof HTMLBRElement) {
         return
       }
       const text = Lexicon.replaceMacrons(blot.text)
       const cleanText = text.replace(/[.,()]/g, '')
-      console.log('leaf', blot, text)
+      logger.debug('leaf', blot, text)
       const index = this.editor.getIndex(blot)
-      console.log('suggestions', index)
+      logger.debug('suggestions', Object.keys(this.suggestions))
+      logger.debug('cleanText', cleanText)
 
       if (Object.keys(this.suggestions).indexOf(cleanText) > -1) {
-        console.log('we have suggstions!')
-
+        logger.debug('we have suggstions!')
         this.editor.setSelection(index, text.length, 'api')
         this.suggestionRange = { index, length: text.length }
 
@@ -228,13 +229,13 @@ export default {
           index,
           length: text.length,
         })
-        console.log('bounds', targetWordBounds)
+        logger.debug('bounds', targetWordBounds)
         this.x = Number(targetWordBounds.left)
         this.y = Number(targetWordBounds.top + 25)
         this.showMenu = false
         this.currentSuggestions = this.suggestions[cleanText]
         this.$nextTick(() => {
-          console.log('showing the menu')
+          logger.debug('showing the menu')
           this.showMenu = true
         })
       }
@@ -251,7 +252,6 @@ export default {
 
     onSuggestion(event) {
       const newText = event.target.innerText
-      console.log('suggestionRange', this.suggestionRange)
       this.editor.deleteText(this.suggestionRange.index, this.suggestionRange.length, 'api')
       this.editor.insertText(this.suggestionRange.index, newText, 'api')
       this.emitChangeEvent('change-content')

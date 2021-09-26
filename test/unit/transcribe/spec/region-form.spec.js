@@ -107,6 +107,31 @@ describe('components/RegionForm', function () {
       }
       assert.deepEqual(result, expected)
     })
+
+    it('should handle many multiples of the same word', async function () {
+      const wrapper = shallowMount(RegionForm, { store, localVue })
+
+      const rendered = wrapper.vm
+      const deltas = [
+        { insert: ' ana ' },
+        { insert: 'oma' },
+        {
+          insert: ' ana awa ana \n',
+        },
+      ]
+      const result = rendered.getTextMapFromDeltas(deltas)
+
+      const expected = {
+        ana: [
+          { original: 'ana', length: 3, index: 1 },
+          { original: 'ana', length: 3, index: 9 },
+          { original: 'ana', length: 3, index: 17 },
+        ],
+        oma: { original: 'oma', length: 3, index: 5 },
+        awa: { original: 'awa', length: 3, index: 13 },
+      }
+      assert.deepEqual(result, expected)
+    })
   })
 
   describe('applyKnownWords()', function () {
