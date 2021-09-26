@@ -176,6 +176,12 @@ export default {
     speed(newValue) {
       surfer.setPlaybackRate(newValue / 100)
     },
+    inboundRegion(newValue) {
+      // player has been initiated elsewhere, clear pending inbound region
+      if (newValue === null) {
+        this.pendingInboundRegion = null
+      }
+    },
   },
 
   async mounted() {

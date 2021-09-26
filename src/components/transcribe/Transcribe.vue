@@ -154,8 +154,6 @@ export default {
      */
     this.transcriptionId = this.$route.params.id
     this.inboundRegion = this.$route.params.region || null
-    logger.info('setting inbound region', this.inboundRegion)
-    this.$store.dispatch('setSelectedRegion', this.inboundRegion)
 
     /**
      * Set up a subscription for new cursor changes.
@@ -294,6 +292,11 @@ export default {
       //   this.contributors.push(this.user)
       // }
 
+      // set the inbound region, if any
+      logger.info('setting inbound region', this.inboundRegion)
+      this.$store.dispatch('setSelectedRegion', this.inboundRegion)
+
+      // heh, what does this do? 😅
       this.scrollToEditorTop()
 
       // Request all locked regions on load
@@ -310,6 +313,9 @@ export default {
     playSpecificRegion(regionId, index) {
       // set so we can scroll the virtual list to the specific index
       this.itemScrollIndex = index
+
+      // clear inbound region to fix play button
+      this.inboundRegion = null
 
       this.setSelectedRegion(regionId)
 
