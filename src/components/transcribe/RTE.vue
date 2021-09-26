@@ -1,5 +1,12 @@
 <template>
   <div>
+    <v-menu v-model="showMenu" :position-x="x" :position-y="y" absolute offset-y>
+      <v-list dense>
+        <v-list-item v-for="(item, index) in sortedSuggestions" :key="index" @click="onSuggestion">
+          <v-list-item-title>{{ item }}</v-list-item-title>
+        </v-list-item>
+      </v-list>
+    </v-menu>
     <div :id="'editor-' + mode" :class="'editor-' + mode"></div>
   </div>
 </template>
@@ -11,6 +18,8 @@ import { mapGetters } from 'vuex'
 import Timeout from 'smart-timeout'
 
 import logging from '../../logging'
+import Lexicon from '@/services/lexicon'
+
 const logger = new logging.Logger('RTE')
 
 const Parchment = Quill.import('parchment')
@@ -30,25 +39,50 @@ let IssueNewWord = new Parchment.Attributor.Class('issue-new-word', 'issue-new-w
   scope: Parchment.Scope.INLINE,
 })
 
+let Suggestion = new Parchment.Attributor.Class('suggestion', 'suggestion', {
+  scope: Parchment.Scope.INLINE,
+})
+
 Parchment.register(KnownWord)
 Parchment.register(IgnoreWord)
 Parchment.register(IssueNeedsHelp)
 Parchment.register(IssueIndexing)
 Parchment.register(IssueNewWord)
+Parchment.register(Suggestion)
 // Quill.register('modules/cursors', QuillCursors)
 
 const formats = {
-  main: ['known-word', 'ignore-word', 'issue-needs-help', 'issue-indexing', 'issue-new-word'],
+  main: [
+    'known-word',
+    'ignore-word',
+    'issue-needs-help',
+    'issue-indexing',
+    'issue-new-word',
+    'suggestion',
+  ],
   secondary: [],
 }
 
 export default {
   props: ['disabled', 'mode', 'text'],
+  data() {
+    return {
+      showMenu: true,
+      x: 0,
+      y: 0,
+      suggestions: {},
+      currentSuggestions: ['one'],
+      suggestionRange: null,
+    }
+  },
   mounted() {
     logger.info('Editor mounted', this.mode, this.disabled)
     this.editor = null
+    // toggle context menu once to fix first click bug
+    this.showMenu = false
 
     const element = this.$el.querySelector('#editor-' + this.mode)
+    this.element = element
     if (!this.editor) {
       this.editor = new Quill(element, {
         theme: 'snow',
@@ -102,6 +136,8 @@ export default {
           // tack on the text for this event
           range.text = this.editor.getText(range.index, range.length)
           this.$emit('selection', range)
+
+          this.checkForSuggestions(range)
         } else {
           this.$emit('blur')
         }
@@ -127,10 +163,18 @@ export default {
       } catch (error) {
         logger.warn('Unable to set text contents:', error.message)
       }
+      // clear out suggestions
+      this.suggestions = {}
+      this.currentSuggestions = []
+      this.suggestionRange = null
     },
 
     clearKnownWords() {
       this.editor.formatText(0, 9999, 'known-word', false)
+    },
+
+    clearSuggestions() {
+      this.editor.formatText(0, 9999, 'suggestions', false)
     },
 
     ignoreWord() {
@@ -146,9 +190,66 @@ export default {
 
     applyKnownWord(index, length) {
       this.editor.formatText(index, length, 'known-word', true)
+      this.editor.formatText(index, length, 'suggestion', false)
       // trigger change for save
       logger.debug('formatting changed')
       this.emitChangeEvent('change-format')
+    },
+
+    applySuggestion(index, length) {
+      console.log('applying suggestion', index, length)
+      this.editor.formatText(index, length, 'suggestion', true)
+    },
+
+    setSuggestions(suggestions) {
+      console.log('set suggestions', suggestions)
+      this.suggestions = suggestions
+    },
+
+    checkForSuggestions(range) {
+      console.log('checking for suggestions', range)
+      const [blot] = this.editor.getLeaf(range.index)
+      const text = Lexicon.replaceMacrons(blot.text)
+      console.log('leaf', blot, text)
+      const index = this.editor.getIndex(blot)
+      console.log('suggestions', index)
+      if (Object.keys(this.suggestions).indexOf(text) > -1) {
+        console.log('we have suggstions!')
+
+        this.editor.setSelection(index, text.length, 'api')
+        this.suggestionRange = { index, length: text.length }
+
+        const targetWordBounds = this.getBounds({
+          index,
+          length: text.length,
+        })
+        console.log('bounds', targetWordBounds)
+        this.x = Number(targetWordBounds.left)
+        this.y = Number(targetWordBounds.top + 25)
+        this.showMenu = false
+        this.currentSuggestions = this.suggestions[text]
+        this.$nextTick(() => {
+          console.log('showing the menu')
+          this.showMenu = true
+        })
+      }
+    },
+
+    getBounds(range) {
+      const editorBounds = this.element.getBoundingClientRect()
+      const rangeBounds = this.editor.getBounds(range)
+      return {
+        top: editorBounds.top + rangeBounds.top,
+        left: editorBounds.left + rangeBounds.left,
+      }
+    },
+
+    onSuggestion(event) {
+      const newText = event.target.innerText
+      console.log('suggestionRange', this.suggestionRange)
+      this.editor.deleteText(this.suggestionRange.index, this.suggestionRange.length, 'api')
+      this.editor.insertText(this.suggestionRange.index, newText, 'api')
+      this.emitChangeEvent('change-content')
     },
 
     /**
@@ -172,8 +273,14 @@ export default {
      * Will signal that the editor has changed and needs to be saved.
      */
     emitChangeEvent(event) {
-      const contents = this.editor.getContents().ops
-      // this.$emit(`${event}-foo`, contents)
+      let contents = this.editor.getContents().ops
+      // strip out any 'suggestion' markup
+      contents = contents.map((item) => {
+        if (item.attributes) {
+          delete item.attributes.suggestion
+        }
+        return item
+      })
       this.$emit(event, contents)
     },
 
@@ -227,6 +334,9 @@ export default {
 
   computed: {
     ...mapGetters(['selectedRegion']),
+    sortedSuggestions() {
+      return this.currentSuggestions.sort()
+    },
   },
 
   watch: {

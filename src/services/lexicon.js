@@ -1,7 +1,6 @@
 import Timeout from 'smart-timeout'
 
 import logging from '../logging'
-import preverbs from './preverbs'
 
 const logger = new logging.Logger('Lexicon')
 
@@ -11,7 +10,6 @@ class Client {
   }
 
   async search(data) {
-    console.log('data', data)
     const url = `${this.endpoint}/bulk-lookup`
     // const response = await axios({ url, data })
     let response = await fetch(url, {
@@ -28,26 +26,14 @@ class Client {
 
 const client = new Client('https://icagc4x2ok.execute-api.us-east-1.amazonaws.com')
 
-// class Inflection {
-//   constructor(item) {
-//     // this.data = item._source
-//     this._id = item._id
-//     this.type = item.type
-//     this.sro = item.sro
-//     this.actor = item.actor
-//     this.goal = item.goal
-//     this.mode = item.mode
-//     this.tempus = item.tempus
-//     this.english = item.english
-//   }
-// }
-
 // Words we have found previously
 let knownWords = []
 // Words we searched for but didn't find
 let unknownWords = []
 // words we've pulled preverbs out of but need to keep track of
 let strippedWordMap = {}
+//
+let suggestions = {}
 
 class Lex {
   getWordsNotKnown(words) {
@@ -71,23 +57,6 @@ class Lex {
       let stripped = this.replaceMacrons(word)
       // strip out special characters
       stripped = stripped.replace(/[.,()]/g, '')
-      // TODO: fix this total hack - fuzz all conjunct types to ê- to make
-      // matching easier. Maybe we should only index ê-?
-      if (stripped.indexOf('kâ-kî-') > -1) {
-        stripped = stripped.replace('kâ-kî-', 'ê-')
-      }
-      if (stripped.indexOf('kâ-') > -1) {
-        stripped = stripped.replace('kâ-', 'ê-')
-      }
-      if (stripped.indexOf('ê-kî-') > -1) {
-        stripped = stripped.replace('ê-kî-', 'ê-')
-      }
-      if (stripped.indexOf('-') > -1) {
-        stripped = stripped
-          .split('-')
-          .filter((bit) => preverbs.indexOf(bit) === -1)
-          .join('-')
-      }
       // save to the map
       strippedWordMap[stripped] = word
       strippedWords.push(stripped)
@@ -125,6 +94,12 @@ class Lex {
         })
         .filter(Boolean)
       console.log('result words', resultWords)
+
+      suggestions = {
+        ...suggestions,
+        ...raw._suggestions,
+      }
+      console.log('suggestions', suggestions)
       // console.log(`got results: ${resultWords}`)
       // loop through the stripped word map and match any results
       const matchedStrippedWords = resultWords.map((result) => strippedWordMap[result])
@@ -167,6 +142,10 @@ class Lex {
    */
   getKnownWords() {
     return knownWords.filter((item) => item && item.length)
+  }
+
+  getSuggestions() {
+    return suggestions
   }
 }
 

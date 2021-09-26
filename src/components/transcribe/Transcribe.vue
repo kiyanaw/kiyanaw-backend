@@ -448,4 +448,8 @@ span[class*='issue-']::before {
 span[class*='issue-']::after {
   content: ']';
 }
+span[class*='suggestion-'] {
+  text-decoration-line: underline;
+  text-decoration-color: #a8e2ff;
+}
 </style>

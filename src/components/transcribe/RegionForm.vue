@@ -199,6 +199,8 @@ export default {
          */
         setTimeout(() => {
           this.doSetEditorsContents(region)
+          this.applySuggestions()
+          // TODO: fire off "known words" check as suggestions here also
         }, SET_CONTENTS_TIMING)
       }
     },
@@ -349,9 +351,12 @@ export default {
           const difference = words.filter((needle) => !knownWords.includes(needle))
           logger.info('Words to search for', difference)
 
-          Lexicon.wordSearch(difference, this.applyKnownWords)
+          Lexicon.wordSearch(difference, () => {
+            this.applyKnownWords()
+            this.applySuggestions()
+          })
         },
-        200,
+        750,
       )
     },
 
@@ -449,14 +454,53 @@ export default {
         }
       }
     },
+    /**
+     * Apply known words from the Lexicon to the current editor.
+     */
+    async applySuggestions() {
+      // check for words to search
+      const suggestionMap = Lexicon.getSuggestions()
+      const suggestions = Object.keys(suggestionMap)
+      const wordMap = this.getTextMapFromDeltas(this.selectedRegion.text)
+      const matches = Object.keys(wordMap).filter((needle) =>
+        suggestions.includes(Lexicon.replaceMacrons(needle)),
+      )
+      if (matches.length) {
+        this.editorClearSuggestions()
+        // notify main editor to adjust formatting
+        for (const match of matches) {
+          let bits = wordMap[match]
+          if (!Array.isArray(bits)) {
+            bits = [bits]
+          }
+          logger.info('Applying match', match, bits)
+          bits.forEach((bit) => {
+            this.editorApplySuggestion(bit.index, bit.length)
+          })
+        }
+        this.editorSetSuggestions(suggestionMap)
+      }
+    },
 
     // wrapper for testing
     editorClearKnownWords() {
       this.$refs.mainEditor.clearKnownWords()
     },
     // wrapper for testing
+    editorClearSuggestions() {
+      this.$refs.mainEditor.clearSuggestions()
+    },
+    // wrapper for testing
     editorApplyKnownWords(index, length) {
       this.$refs.mainEditor.applyKnownWord(index, length)
+    },
+    // wrapper for testing
+    editorApplySuggestion(index, length) {
+      this.$refs.mainEditor.applySuggestion(index, length)
+    },
+
+    editorSetSuggestions(suggestions) {
+      this.$refs.mainEditor.setSuggestions(suggestions)
     },
   },
 }
