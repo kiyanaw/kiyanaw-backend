@@ -209,6 +209,9 @@ export default {
     checkForSuggestions(range) {
       console.log('checking for suggestions', range)
       const [blot] = this.editor.getLeaf(range.index)
+      if (blot.domNode instanceof HTMLBRElement) {
+        return
+      }
       const text = Lexicon.replaceMacrons(blot.text)
       const cleanText = text.replace(/[.,()]/g, '')
       console.log('leaf', blot, text)
