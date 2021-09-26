@@ -210,10 +210,12 @@ export default {
       console.log('checking for suggestions', range)
       const [blot] = this.editor.getLeaf(range.index)
       const text = Lexicon.replaceMacrons(blot.text)
+      const cleanText = text.replace(/[.,()]/g, '')
       console.log('leaf', blot, text)
       const index = this.editor.getIndex(blot)
       console.log('suggestions', index)
-      if (Object.keys(this.suggestions).indexOf(text) > -1) {
+
+      if (Object.keys(this.suggestions).indexOf(cleanText) > -1) {
         console.log('we have suggstions!')
 
         this.editor.setSelection(index, text.length, 'api')
@@ -227,7 +229,7 @@ export default {
         this.x = Number(targetWordBounds.left)
         this.y = Number(targetWordBounds.top + 25)
         this.showMenu = false
-        this.currentSuggestions = this.suggestions[text]
+        this.currentSuggestions = this.suggestions[cleanText]
         this.$nextTick(() => {
           console.log('showing the menu')
           this.showMenu = true
