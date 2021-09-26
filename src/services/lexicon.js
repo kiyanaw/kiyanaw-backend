@@ -5,8 +5,9 @@ import logging from '../logging'
 const logger = new logging.Logger('Lexicon')
 
 class Client {
-  constructor(endpoint) {
-    this.endpoint = endpoint
+  constructor() {
+    this.endpoint = 'https://icagc4x2ok.execute-api.us-east-1.amazonaws.com'
+    this.sapirEndpoint = 'https://itwewina.altlab.app/click-in-text'
   }
 
   async search(data) {
@@ -22,9 +23,18 @@ class Client {
     const result = await response.json()
     return result
   }
+
+  async sapir(term) {
+    const url = `${this.sapirEndpoint}/?q=${term}`
+    let response = await fetch(url, {
+      method: 'GET',
+    })
+    response = await response.json()
+    return response.results
+  }
 }
 
-const client = new Client('https://icagc4x2ok.execute-api.us-east-1.amazonaws.com')
+const client = new Client()
 
 // Words we have found previously
 let knownWords = []
@@ -146,6 +156,10 @@ class Lex {
 
   getSuggestions() {
     return suggestions
+  }
+
+  async lookup(term) {
+    return client.sapir(term)
   }
 }
 

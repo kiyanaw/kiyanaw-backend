@@ -36,6 +36,10 @@
           </v-btn>
 
           <v-btn icon disabled class="control-btn"> | </v-btn>
+
+          <v-btn icon small class="control-btn" @click="onLookup">
+            <v-icon small> mdi-card-search </v-icon>
+          </v-btn>
         </v-flex>
 
         <v-flex md3 hidden-sm-and-down>
@@ -441,6 +445,10 @@ export default {
         end: event.end,
         index: event.attributes.index,
       })
+    },
+
+    onLookup() {
+      this.$emit('lookup')
     },
 
     // emitSelectionAction(action, value) {

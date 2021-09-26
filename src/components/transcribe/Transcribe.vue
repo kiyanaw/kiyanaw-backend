@@ -9,6 +9,8 @@
         {{ error }}
       </div>
 
+      <lookup v-if="lookup" :dialog="lookup" @close="lookup = !lookup"></lookup>
+
       <v-flex v-if="!(loading && waveformLoading) && !error">
         <v-layout class="audio-container" :class="{ audioContainerSm: $vuetify.breakpoint.xsOnly }">
           <v-flex xs12 class="audio-player">
@@ -27,6 +29,7 @@
               @region-in="onPlaybackRegionIn"
               @region-out="onPlaybackRegionOut"
               @waveform-ready="waveformLoading = false"
+              @lookup="lookup = !lookup"
             />
           </v-flex>
         </v-layout>
@@ -71,6 +74,8 @@ import TranscriptionService from '../../services/transcriptions'
 import RegionPartial from './RegionPartial.vue'
 import UserService from '../../services/user'
 
+import Lookup from './Lookup'
+
 import { mapActions, mapGetters } from 'vuex'
 
 import logging from '../../logging'
@@ -99,6 +104,7 @@ export default {
     AudioPlayer,
     StationaryEditor,
     VirtualList,
+    Lookup,
   },
 
   data() {
@@ -131,6 +137,9 @@ export default {
 
       itemComponent: RegionPartial,
       itemScrollIndex: 0,
+
+      // show lookup dialog
+      lookup: false,
     }
   },
 

@@ -463,6 +463,7 @@ export default {
      * Apply known words from the Lexicon to the current editor.
      */
     async applySuggestions() {
+      logger.info('checking for suggestions')
       // check for words to search
       const suggestionMap = Lexicon.getSuggestions()
       const suggestions = Object.keys(suggestionMap)
