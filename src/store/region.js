@@ -180,6 +180,8 @@ const actions = {
         .map((item) => item.insert)
       Lexicon.addKnownWords(known)
     })
+
+    window.regions = regions
   },
 
   /**
@@ -211,7 +213,7 @@ const actions = {
    * TODO: this update takes update object {id, start, end} differs from updateRegionById
    */
   updateRegion(store, update) {
-    logger.info('region updated', update)
+    logger.debug('region updated', update)
 
     const region = store.getters.selectedRegion
     store.commit('UPDATE_REGION', { region, update })

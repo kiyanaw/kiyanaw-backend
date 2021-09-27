@@ -115,7 +115,7 @@ const logger = new logging.Logger('Region Form')
  * set contents timing, or issues will be overridden.
  */
 const SET_CONTENTS_TIMING = 25
-const INVALIDATE_ISSUES_TIMING = SET_CONTENTS_TIMING + 25
+const INVALIDATE_ISSUES_TIMING = SET_CONTENTS_TIMING + 250
 
 export default {
   components: { rte: RTE },
