@@ -207,7 +207,7 @@ export default {
       // check for known-word
       const currentFormat = this.editor.getFormat(index, length)
       if (Object.keys(currentFormat).indexOf('known-word') === -1) {
-        this.editor.formatText(index, length, 'suggestion-known', true)
+        this.editor.formatText(index, length, 'suggestion-known', true, 'silent')
       }
     },
 
@@ -215,7 +215,7 @@ export default {
       logger.debug('applying suggestion', index, length)
       const currentFormat = this.editor.getFormat(index, length)
       if (Object.keys(currentFormat).indexOf('ignore-word') === -1) {
-        this.editor.formatText(index, length, 'suggestion', true)
+        this.editor.formatText(index, length, 'suggestion', true, 'silent')
       }
     },
 

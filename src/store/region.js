@@ -94,7 +94,7 @@ const actions = {
   },
 
   realtimeLockUpdate(store, update) {
-    logger.info('Got realtime lock update', update.action, update)
+    logger.debug('Got realtime lock update', update.action, update)
     if (update.action === 'created') {
       store.commit('SET_LOCK', { key: update.id, data: update })
     } else {
@@ -103,7 +103,7 @@ const actions = {
   },
 
   lockRegion(store, callback) {
-    logger.info('Region lock requested')
+    logger.debug('Region lock requested')
     // store.commit('SET_LOCK', regionId, true)
     const regionId = store.getters.selectedRegion.id
     const transcriptionId = store.getters.transcription.id
@@ -138,9 +138,9 @@ const actions = {
   pushToUnlockQueue(store, item) {
     logger.debug('Pushing item to unlock queue', item, store)
     unlockQueue.push(() => {
-      logger.info(`Unlock for region ${item.id} triggered`)
+      logger.debug(`Unlock for region ${item.id} triggered`)
       UserService.unlockRegion(item.transcriptionId, item.id).then((result) => {
-        logger.info(`Region ${item.id} unlocked: ${result}`)
+        logger.debug(`Region ${item.id} unlocked: ${result}`)
       })
     })
   },
@@ -211,7 +211,7 @@ const actions = {
    * TODO: this update takes update object {id, start, end} differs from updateRegionById
    */
   updateRegion(store, update) {
-    logger.debug('region updated', update)
+    logger.info('region updated', update)
 
     const region = store.getters.selectedRegion
     store.commit('UPDATE_REGION', { region, update })
@@ -225,7 +225,7 @@ const actions = {
 
 const mutations = {
   SET_LOCK(context, update) {
-    logger.info('Setting lock', update.key)
+    logger.debug('Setting lock', update.key)
     if (update.data) {
       Vue.set(context.locks, update.key, update.data)
     } else {

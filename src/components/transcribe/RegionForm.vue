@@ -198,7 +198,7 @@ export default {
          */
         setTimeout(() => {
           this.doSetEditorsContents(region)
-          this.checkForKnownWords()
+          this.checkForKnownWords(false)
         }, SET_CONTENTS_TIMING)
       }
     },
@@ -262,7 +262,7 @@ export default {
       this.updateRegion({ text: contents })
 
       // additionally check for known words
-      this.checkForKnownWords()
+      this.checkForKnownWords(true)
     },
 
     /**
@@ -332,7 +332,7 @@ export default {
     /**
      * Quickly apply known words to the current region, then do a search on anything left over.
      */
-    checkForKnownWords() {
+    checkForKnownWords(doUpdate = false) {
       // clear out any typing changes
       this.applyKnownWords()
 
@@ -342,15 +342,15 @@ export default {
         'check-known-words-timer',
         () => {
           const words = Object.keys(this.getTextMapFromDeltas(this.selectedRegion.text))
-          logger.info('Words to check', words)
+          logger.debug('Words to check', words)
 
           // find the words we want to search for
           const knownWords = Lexicon.getKnownWords()
           const difference = words.filter((needle) => !knownWords.includes(needle))
-          logger.info('Words to search for', difference)
+          logger.debug('Words to search for', difference)
 
           Lexicon.wordSearch(difference, () => {
-            this.applyKnownWords()
+            this.applyKnownWords(doUpdate)
             this.applySuggestions()
           })
         },
@@ -433,7 +433,7 @@ export default {
     /**
      * Apply known words from the Lexicon to the current editor.
      */
-    async applyKnownWords() {
+    async applyKnownWords(doUpdate = false) {
       // check for words to search
       const knownWords = Lexicon.getKnownWords()
       const wordMap = this.getTextMapFromDeltas(this.selectedRegion.text)
@@ -441,7 +441,7 @@ export default {
 
       if (matches.length) {
         let applyFunc
-        if (!this.regionIsLockedByMe) {
+        if (!doUpdate) {
           // hint known word
           applyFunc = this.editorApplyKnownHint
         } else {
@@ -466,7 +466,7 @@ export default {
      * Apply known words from the Lexicon to the current editor.
      */
     async applySuggestions() {
-      logger.info('checking for suggestions')
+      logger.debug('checking for suggestions')
       // check for words to search
       const suggestionMap = Lexicon.getSuggestions()
       const suggestions = Object.keys(suggestionMap)
@@ -482,7 +482,7 @@ export default {
           if (!Array.isArray(bits)) {
             bits = [bits]
           }
-          logger.info('Applying suggestion', match, bits)
+          logger.debug('Applying suggestion', match, bits)
           bits.forEach((bit) => {
             this.editorApplySuggestion(bit.index, bit.length)
           })

@@ -81,7 +81,7 @@ class Lex {
    * TODO: test this!!
    */
   async wordSearch(words, callback) {
-    logger.log(`Got search terms: ${words}`)
+    logger.debug(`Got search terms: ${words}`)
     // pull preverbs and macrons out of the search terms
     const strippedWords = this.stripWords(words)
     // now that the words are stripped, match against known words one more time
@@ -103,13 +103,13 @@ class Lex {
           }
         })
         .filter(Boolean)
-      logger.info('result words', resultWords)
+      logger.debug('result words', resultWords)
 
       suggestions = {
         ...suggestions,
         ...raw._suggestions,
       }
-      logger.info('suggestions', suggestions)
+      logger.debug('suggestions', suggestions)
 
       // loop through the stripped word map and match any results
       const matchedStrippedWords = resultWords.map((result) => strippedWordMap[result])
