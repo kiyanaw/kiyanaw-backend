@@ -40,7 +40,7 @@
           @click="onIgnoreWord"
           data-test="ignoreWordButton"
         >
-          <v-icon small> mdi-format-strikethrough-variant </v-icon>
+          <v-icon small> mdi-eye-off </v-icon>
         </v-btn>
 
         <v-btn

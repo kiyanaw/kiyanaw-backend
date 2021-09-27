@@ -213,7 +213,10 @@ export default {
 
     applySuggestion(index, length) {
       logger.debug('applying suggestion', index, length)
-      this.editor.formatText(index, length, 'suggestion', true)
+      const currentFormat = this.editor.getFormat(index, length)
+      if (Object.keys(currentFormat).indexOf('ignore-word') === -1) {
+        this.editor.formatText(index, length, 'suggestion', true)
+      }
     },
 
     setSuggestions(suggestions) {
