@@ -439,7 +439,6 @@ span[class*='known-word'] {
 
 span[class*='ignore-word'] {
   color: #777;
-  font-style: italic;
 }
 
 span[class*='issue-needs-help'] {
