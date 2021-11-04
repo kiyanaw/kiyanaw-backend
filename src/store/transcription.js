@@ -101,7 +101,8 @@ const actions = {
               logger.error('Error saving region', region, error)
               alert('Error saving that region, change the region to try again')
             })
-          store.dispatch('saveTranscription')
+          // mark the last saved user on the transcription here
+          store.dispatch('updateTranscription', { userLastUpdated: region.userLastUpdated })
         },
         5000,
       )
@@ -162,7 +163,7 @@ const actions = {
       () => {
         store.dispatch('saveTranscription')
       },
-      2000,
+      500,
     )
   },
 }

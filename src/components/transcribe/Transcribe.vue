@@ -453,12 +453,12 @@ span[class*='issue-new'] {
   background-color: #e6f3ff;
 }
 
-span[class*='issue-']::before {
+/* span[class*='issue-']::before {
   content: '[';
 }
 span[class*='issue-']::after {
   content: ']';
-}
+} */
 span[class*='suggestion-'] {
   text-decoration-line: underline;
   text-decoration-color: #ffdea8;

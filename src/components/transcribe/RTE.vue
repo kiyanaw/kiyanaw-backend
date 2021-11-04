@@ -239,8 +239,7 @@ export default {
       logger.debug('cleanText', cleanText)
 
       if (Object.keys(this.suggestions).indexOf(cleanText) > -1) {
-        logger.debug('we have suggstions!')
-        this.editor.setSelection(index, text.length, 'api')
+        logger.debug('we have suggestions!')
         this.suggestionRange = { index, length: text.length }
 
         const targetWordBounds = this.getBounds({
