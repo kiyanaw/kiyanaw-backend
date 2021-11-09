@@ -134,7 +134,7 @@ describe('components/RegionForm', function () {
     })
   })
 
-  describe('applyKnownWords()', function () {
+  describe('applyKnownWords() - doUpdate=true', function () {
     it('should apply [foo, bar]', async function () {
       // set up the region
       store.state.selectedRegion = {
@@ -149,9 +149,11 @@ describe('components/RegionForm', function () {
 
       const clearStub = this.sandbox.stub(rendered, 'editorClearKnownWords')
       const applyStub = this.sandbox.stub(rendered, 'editorApplyKnownWords')
+      const hintStub = this.sandbox.stub(rendered, 'editorApplyKnownHint')
 
-      await rendered.applyKnownWords()
+      await rendered.applyKnownWords(true)
 
+      assert.ok(!hintStub.called)
       assert.ok(clearStub.called)
       // applies two known words
       assert.equal(applyStub.callCount, 2)
@@ -182,9 +184,11 @@ describe('components/RegionForm', function () {
 
       const clearStub = this.sandbox.stub(rendered, 'editorClearKnownWords')
       const applyStub = this.sandbox.stub(rendered, 'editorApplyKnownWords')
+      const hintStub = this.sandbox.stub(rendered, 'editorApplyKnownHint')
 
-      await rendered.applyKnownWords()
+      await rendered.applyKnownWords(true)
 
+      assert.ok(!hintStub.called)
       assert.ok(clearStub.called)
       // applies two known words
       assert.equal(applyStub.callCount, 3)
@@ -206,7 +210,8 @@ describe('components/RegionForm', function () {
 
       state.selectedRegion.issues = [{ some: 'issue' }]
 
-      await new Promise((resolve) => setTimeout(resolve, 20))
+      // INVALIDATE_ISSUES_TIMING IS 250
+      await new Promise((resolve) => setTimeout(resolve, 350))
       assert.equal(invalidateStub.callCount, 1)
     })
 
@@ -234,7 +239,7 @@ describe('components/RegionForm', function () {
 
       state.selectedRegion = { issues: [{ some: 'issue' }] }
 
-      await new Promise((resolve) => setTimeout(resolve, 25))
+      await new Promise((resolve) => setTimeout(resolve, 350))
       assert.equal(invalidateStub.callCount, 1)
       assert.equal(setContentsStub.callCount, 1)
 
