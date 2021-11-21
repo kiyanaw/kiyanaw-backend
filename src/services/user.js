@@ -23,14 +23,28 @@ const lockSubscribers = []
 const myLocks = {}
 
 export default {
+  /**
+   * Check that the current user has a Profile created, if not, create one.
+   *
+   */
+  async checkUserProfile(user) {
+    // const existing = await API.graphqlOperation
+  },
+
+  /**
+   * Get the currenlty-authenticated user.
+   * @returns {Object}
+   */
   async getUser() {
     if (!user) {
       user = await Auth.currentAuthenticatedUser({ bypassCache: false })
     }
-    return {
+    const out = {
       name: user.username,
       email: user.attributes.email,
     }
+    console.log('current user', out)
+    return out
   },
 
   async flush() {

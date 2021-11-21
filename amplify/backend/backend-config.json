@@ -1,42 +1,77 @@
 {
-	"hosting": {
-		"S3AndCloudFront": {
-			"service": "S3AndCloudFront",
-			"providerPlugin": "awscloudformation"
-		}
-	},
-	"auth": {
-		"kiyanaw664b231a": {
-			"service": "Cognito",
-			"providerPlugin": "awscloudformation",
-			"dependsOn": []
-		}
-	},
-	"storage": {
-		"transcriptions": {
-			"service": "S3",
-			"providerPlugin": "awscloudformation"
-		}
-	},
-	"api": {
-		"kiyanaw": {
-			"service": "AppSync",
-			"providerPlugin": "awscloudformation",
-			"output": {
-				"authConfig": {
-					"additionalAuthenticationProviders": [],
-					"defaultAuthentication": {
-						"authenticationType": "AWS_IAM"
-					}
-				}
-			}
-		}
-	},
-	"function": {
-		"notifyRegionChanges": {
-			"service": "Lambda",
-			"providerPlugin": "awscloudformation",
-			"build": true
-		}
-	}
+  "hosting": {
+    "S3AndCloudFront": {
+      "service": "S3AndCloudFront",
+      "providerPlugin": "awscloudformation"
+    }
+  },
+  "auth": {
+    "kiyanaw664b231a": {
+      "service": "Cognito",
+      "providerPlugin": "awscloudformation",
+      "dependsOn": []
+    }
+  },
+  "storage": {
+    "transcriptions": {
+      "service": "S3",
+      "providerPlugin": "awscloudformation"
+    }
+  },
+  "api": {
+    "kiyanaw": {
+      "service": "AppSync",
+      "providerPlugin": "awscloudformation",
+      "output": {
+        "authConfig": {
+          "additionalAuthenticationProviders": [],
+          "defaultAuthentication": {
+            "authenticationType": "AWS_IAM"
+          }
+        }
+      }
+    },
+    "AdminQueries": {
+      "service": "API Gateway",
+      "providerPlugin": "awscloudformation",
+      "dependsOn": [
+        {
+          "category": "auth",
+          "resourceName": "kiyanaw664b231a",
+          "attributes": [
+            "UserPoolId"
+          ]
+        },
+        {
+          "category": "function",
+          "resourceName": "AdminQueriesde45ee3d",
+          "attributes": [
+            "Arn",
+            "Name"
+          ]
+        }
+      ]
+    }
+  },
+  "function": {
+    "notifyRegionChanges": {
+      "service": "Lambda",
+      "providerPlugin": "awscloudformation",
+      "build": true
+    },
+    "AdminQueriesde45ee3d": {
+      "service": "Lambda",
+      "providerPlugin": "awscloudformation",
+      "build": true,
+      "dependsOn": [
+        {
+          "category": "auth",
+          "resourceName": "kiyanaw664b231a",
+          "attributes": [
+            "UserPoolId"
+          ]
+        }
+      ]
+    }
+  }
 }

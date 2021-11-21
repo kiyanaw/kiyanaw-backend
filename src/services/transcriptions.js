@@ -115,10 +115,12 @@ export default {
     const user = await UserService.getUser()
     let results = []
     try {
-      results = await API.graphql(graphqlOperation(queries.byOwnerUpdated, { author: user.name, limit: 100 }))
+      results = await API.graphql(
+        graphqlOperation(queries.byOwnerUpdated, { author: user.name, limit: 100 }),
+      )
       // console.log(results)
     } catch (error) {
-      console.error('Could not load transcriptions', error)d
+      console.error('Could not load transcriptions', error)
     }
 
     results = results.data.byOwnerUpdated.items
