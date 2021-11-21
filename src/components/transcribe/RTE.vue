@@ -1,16 +1,25 @@
 <template>
   <div>
+    <v-menu v-model="showMenu" :position-x="x" :position-y="y" absolute offset-y>
+      <v-list dense>
+        <v-list-item v-for="(item, index) in sortedSuggestions" :key="index" @click="onSuggestion">
+          <v-list-item-title>{{ item }}</v-list-item-title>
+        </v-list-item>
+      </v-list>
+    </v-menu>
     <div :id="'editor-' + mode" :class="'editor-' + mode"></div>
   </div>
 </template>
 
 <script>
 import Quill from 'quill'
-import QuillCursors from 'quill-cursors'
+// import QuillCursors from 'quill-cursors'
 import { mapGetters } from 'vuex'
 import Timeout from 'smart-timeout'
 
 import logging from '../../logging'
+import Lexicon from '@/services/lexicon'
+
 const logger = new logging.Logger('RTE')
 
 const Parchment = Quill.import('parchment')
@@ -30,37 +39,68 @@ let IssueNewWord = new Parchment.Attributor.Class('issue-new-word', 'issue-new-w
   scope: Parchment.Scope.INLINE,
 })
 
+let Suggestion = new Parchment.Attributor.Class('suggestion', 'suggestion', {
+  scope: Parchment.Scope.INLINE,
+})
+
+let SuggestionKnown = new Parchment.Attributor.Class('suggestion-known', 'suggestion-known', {
+  scope: Parchment.Scope.INLINE,
+})
+
 Parchment.register(KnownWord)
 Parchment.register(IgnoreWord)
 Parchment.register(IssueNeedsHelp)
 Parchment.register(IssueIndexing)
 Parchment.register(IssueNewWord)
-Quill.register('modules/cursors', QuillCursors)
+Parchment.register(Suggestion)
+Parchment.register(SuggestionKnown)
+// Quill.register('modules/cursors', QuillCursors)
 
 const formats = {
-  main: ['known-word', 'ignore-word', 'issue-needs-help', 'issue-indexing', 'issue-new-word'],
+  main: [
+    'known-word',
+    'ignore-word',
+    'issue-needs-help',
+    'issue-indexing',
+    'issue-new-word',
+    'suggestion',
+    'suggestion-known',
+  ],
   secondary: [],
 }
 
 export default {
   props: ['disabled', 'mode', 'text'],
+  data() {
+    return {
+      showMenu: true,
+      x: 0,
+      y: 0,
+      suggestions: {},
+      currentSuggestions: ['one'],
+      suggestionRange: null,
+    }
+  },
   mounted() {
-    logger.debug('Editor mounted', this.mode)
+    logger.info('Editor mounted', this.mode, this.disabled)
     this.editor = null
+    // toggle context menu once to fix first click bug
+    this.showMenu = false
 
     const element = this.$el.querySelector('#editor-' + this.mode)
+    this.element = element
     if (!this.editor) {
       this.editor = new Quill(element, {
         theme: 'snow',
         formats: formats[this.mode],
         modules: {
           toolbar: false,
-          cursors: true,
+          // cursors: true,
         },
         readOnly: false,
       })
 
-      this.cursors = this.editor.getModule('cursors')
+      // this.cursors = this.editor.getModule('cursors')
       this.editor.root.setAttribute('spellcheck', false)
       this.setContents(this.text)
 
@@ -102,6 +142,8 @@ export default {
           // tack on the text for this event
           range.text = this.editor.getText(range.index, range.length)
           this.$emit('selection', range)
+
+          this.checkForSuggestions(range)
         } else {
           this.$emit('blur')
         }
@@ -114,18 +156,31 @@ export default {
     },
 
     setContents(value) {
+      // don't let null values in
+      value = value || ''
       if (!Array.isArray(value)) {
         value = [{ insert: value }]
       }
+      // filter out nulls (fixing bad data)
+      value = value.filter((item) => !!item.insert)
       try {
+        logger.debug('setting contents', this.mode, value)
         this.editor.setContents(value, 'silent')
       } catch (error) {
         logger.warn('Unable to set text contents:', error.message)
       }
+      // clear out suggestions
+      this.suggestions = {}
+      this.currentSuggestions = []
+      this.suggestionRange = null
     },
 
     clearKnownWords() {
       this.editor.formatText(0, 9999, 'known-word', false)
+    },
+
+    clearSuggestions() {
+      this.editor.formatText(0, 9999, 'suggestions', false)
     },
 
     ignoreWord() {
@@ -141,16 +196,89 @@ export default {
 
     applyKnownWord(index, length) {
       this.editor.formatText(index, length, 'known-word', true)
+      this.editor.formatText(index, length, 'suggestion', false)
       // trigger change for save
-      logger.debug('formatting changed')
+      logger.debug('apply known word', index, length)
       this.emitChangeEvent('change-format')
+    },
+
+    applyKnownHint(index, length) {
+      logger.debug('applying known hint', index, length)
+      // check for known-word
+      const currentFormat = this.editor.getFormat(index, length)
+      if (Object.keys(currentFormat).indexOf('known-word') === -1) {
+        this.editor.formatText(index, length, 'suggestion-known', true, 'silent')
+      }
+    },
+
+    applySuggestion(index, length) {
+      logger.debug('applying suggestion', index, length)
+      const currentFormat = this.editor.getFormat(index, length)
+      if (Object.keys(currentFormat).indexOf('ignore-word') === -1) {
+        this.editor.formatText(index, length, 'suggestion', true, 'silent')
+      }
+    },
+
+    setSuggestions(suggestions) {
+      logger.debug('set suggestions', suggestions)
+      this.suggestions = suggestions
+    },
+
+    checkForSuggestions(range) {
+      logger.debug('checking for suggestions', range)
+      const [blot] = this.editor.getLeaf(range.index)
+      logger.debug('blot', blot)
+      if (blot.domNode instanceof HTMLBRElement) {
+        return
+      }
+      const text = Lexicon.replaceMacrons(blot.text)
+      const cleanText = text.replace(/[.,()]/g, '')
+      logger.debug('leaf', blot, text)
+      const index = this.editor.getIndex(blot)
+      logger.debug('suggestions', Object.keys(this.suggestions))
+      logger.debug('cleanText', cleanText)
+
+      if (Object.keys(this.suggestions).indexOf(cleanText) > -1) {
+        logger.debug('we have suggestions!')
+        this.suggestionRange = { index, length: text.length }
+
+        const targetWordBounds = this.getBounds({
+          index,
+          length: text.length,
+        })
+        logger.debug('bounds', targetWordBounds)
+        this.x = Number(targetWordBounds.left)
+        this.y = Number(targetWordBounds.top + 25)
+        this.showMenu = false
+        this.currentSuggestions = this.suggestions[cleanText]
+        this.$nextTick(() => {
+          logger.debug('showing the menu')
+          this.showMenu = true
+        })
+      }
+    },
+
+    getBounds(range) {
+      const editorBounds = this.element.getBoundingClientRect()
+      const rangeBounds = this.editor.getBounds(range)
+      return {
+        top: editorBounds.top + rangeBounds.top,
+        left: editorBounds.left + rangeBounds.left,
+      }
+    },
+
+    onSuggestion(event) {
+      const newText = event.target.innerText
+      this.editor.deleteText(this.suggestionRange.index, this.suggestionRange.length, 'api')
+      this.editor.insertText(this.suggestionRange.index, newText, 'api')
+      this.emitChangeEvent('change-content')
     },
 
     /**
      * Checks the editor to see if there is a space at the end of the text, adds one if not. This is
      * to allow for typing at the end of the text outside of any existing formatting.
      */
-    maybeAddASpaceAtTheEnd() {        
+    maybeAddASpaceAtTheEnd() {
       // check to see if there is a space at the end of the text
       const contents = this.editor.getText()
       const characters = contents.split('')
@@ -160,15 +288,22 @@ export default {
       if (lastItem !== ' ') {
         this.editor.insertText(lastItemIndex, ' ', 'api')
         this.editor.removeFormat(lastItemIndex, lastItemIndex + 1, 'api')
-      } 
+      }
     },
 
     /**
      * Will signal that the editor has changed and needs to be saved.
      */
     emitChangeEvent(event) {
-      const contents = this.editor.getContents().ops
-      // this.$emit(`${event}-foo`, contents)
+      let contents = this.editor.getContents().ops
+      // strip out any 'suggestion' markup
+      contents = contents.map((item) => {
+        if (item.attributes) {
+          delete item.attributes.suggestion
+          delete item.attributes['suggestion-known']
+        }
+        return item
+      })
       this.$emit(event, contents)
     },
 
@@ -222,6 +357,9 @@ export default {
 
   computed: {
     ...mapGetters(['selectedRegion']),
+    sortedSuggestions() {
+      return this.currentSuggestions.sort()
+    },
   },
 
   watch: {

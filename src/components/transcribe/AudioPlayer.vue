@@ -36,6 +36,10 @@
           </v-btn>
 
           <v-btn icon disabled class="control-btn"> | </v-btn>
+
+          <v-btn icon small class="control-btn" @click="onLookup">
+            <v-icon small> mdi-card-search </v-icon>
+          </v-btn>
         </v-flex>
 
         <v-flex md3 hidden-sm-and-down>
@@ -175,6 +179,12 @@ export default {
     },
     speed(newValue) {
       surfer.setPlaybackRate(newValue / 100)
+    },
+    inboundRegion(newValue) {
+      // player has been initiated elsewhere, clear pending inbound region
+      if (newValue === null) {
+        this.pendingInboundRegion = null
+      }
     },
   },
 
@@ -437,6 +447,10 @@ export default {
       })
     },
 
+    onLookup() {
+      this.$emit('lookup')
+    },
+
     // emitSelectionAction(action, value) {
     //   this.$emit('selection-action', action, value)
     // },
@@ -519,8 +533,8 @@ video {
   display: none;
   position: fixed;
   bottom: 15px;
-  max-width: 550px;
-  max-height: 450px;
+  max-width: 350px;
+  max-height: 350px;
   z-index: 190;
   box-shadow: 0px 0px 6px 0px #888888;
   cursor: pointer;

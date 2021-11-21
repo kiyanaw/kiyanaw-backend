@@ -1,7 +1,5 @@
 const envLogging = process.env.NODE_LOGGING
 
-console.log('process env', process.env)
-
 const doLog = envLogging === 'off' ? false : true
 
 const Logger = function (namespace) {

@@ -9,6 +9,8 @@
         {{ error }}
       </div>
 
+      <lookup v-if="lookup" :lookup="lookup" @close="lookup = !lookup"></lookup>
+
       <v-flex v-if="!(loading && waveformLoading) && !error">
         <v-layout class="audio-container" :class="{ audioContainerSm: $vuetify.breakpoint.xsOnly }">
           <v-flex xs12 class="audio-player">
@@ -27,6 +29,7 @@
               @region-in="onPlaybackRegionIn"
               @region-out="onPlaybackRegionOut"
               @waveform-ready="waveformLoading = false"
+              @lookup="lookup = !lookup"
             />
           </v-flex>
         </v-layout>
@@ -71,8 +74,12 @@ import TranscriptionService from '../../services/transcriptions'
 import RegionPartial from './RegionPartial.vue'
 import UserService from '../../services/user'
 
-import { setTimeout } from 'timers'
+import Lookup from './Lookup'
+
 import { mapActions, mapGetters } from 'vuex'
+
+import logging from '../../logging'
+const logger = new logging.Logger('Transcribe')
 
 function getColor() {
   return (
@@ -97,6 +104,7 @@ export default {
     AudioPlayer,
     StationaryEditor,
     VirtualList,
+    Lookup,
   },
 
   data() {
@@ -129,6 +137,9 @@ export default {
 
       itemComponent: RegionPartial,
       itemScrollIndex: 0,
+
+      // show lookup dialog
+      lookup: false,
     }
   },
 
@@ -151,7 +162,6 @@ export default {
      */
     this.transcriptionId = this.$route.params.id
     this.inboundRegion = this.$route.params.region || null
-    this.$store.dispatch('setSelectedRegion', this.inboundRegion)
 
     /**
      * Set up a subscription for new cursor changes.
@@ -182,7 +192,6 @@ export default {
     //   }
     // })
 
-    this.scrollToEditorTop()
     // load up
     this.load()
   },
@@ -196,18 +205,6 @@ export default {
       'setTranscription',
       'updateRegionById',
     ]),
-
-    scrollToEditorTop() {
-      if (!this.inboundRegion) {
-        setTimeout(() => {
-          try {
-            document.querySelector('.editorScroll').scrollTop = 0
-          } catch (e) {
-            // unused
-          }
-        }, 200)
-      }
-    },
 
     regionCursor(data) {
       data.color = cursorColor
@@ -237,12 +234,22 @@ export default {
      * Handler for the playback head entering a region.
      */
     onPlaybackRegionIn(partRegion) {
-      // const region = this.regions.filter((item) => item.id === partRegion.id).shift()
       const region = this.regionById(partRegion.id)
 
       this.currentRegionSheet.innerHTML = `#${partRegion.id} {background-color: #edfcff;}`
       this.$refs.regionList.scrollToIndex(region.index)
-      this.$store.dispatch('setSelectedRegion', partRegion.id)
+
+      /**
+       * Fix issue where incoming region doesn't properly scroll
+       * to the top of the region list.
+       */
+      setTimeout(() => {
+        try {
+          document.querySelector(`#${partRegion.id}`).scrollIntoView()
+        } catch (error) {
+          logger.debug('Unable to scroll to region', error)
+        }
+      }, 15)
 
       this.itemScrollIndex = 0
     },
@@ -292,7 +299,9 @@ export default {
       //   this.contributors.push(this.user)
       // }
 
-      this.scrollToEditorTop()
+      // set the inbound region, if any
+      logger.info('setting inbound region', this.inboundRegion)
+      this.$store.dispatch('setSelectedRegion', this.inboundRegion)
 
       // Request all locked regions on load
       this.getLockedRegions()
@@ -308,6 +317,9 @@ export default {
     playSpecificRegion(regionId, index) {
       // set so we can scroll the virtual list to the specific index
       this.itemScrollIndex = index
+
+      // clear inbound region to fix play button
+      this.inboundRegion = null
 
       this.setSelectedRegion(regionId)
 
@@ -427,7 +439,6 @@ span[class*='known-word'] {
 
 span[class*='ignore-word'] {
   color: #777;
-  font-style: italic;
 }
 
 span[class*='issue-needs-help'] {
@@ -442,10 +453,18 @@ span[class*='issue-new'] {
   background-color: #e6f3ff;
 }
 
-span[class*='issue-']::before {
+/* span[class*='issue-']::before {
   content: '[';
 }
 span[class*='issue-']::after {
   content: ']';
+} */
+span[class*='suggestion-'] {
+  text-decoration-line: underline;
+  text-decoration-color: #ffdea8;
+}
+span[class*='suggestion-known'] {
+  text-decoration-line: underline;
+  text-decoration-color: #a8e2ff;
 }
 </style>

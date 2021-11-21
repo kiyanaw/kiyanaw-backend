@@ -17,7 +17,7 @@
           class="elevation-1"
           :headers="headers"
           :items="transcriptions"
-          :items-per-page="15"
+          :items-per-page="10"
           :loading="loading"
           :search="search"
         >
@@ -79,6 +79,7 @@ export default {
         { text: 'Type', value: 'type' },
         { text: 'Source', value: 'source' },
       ],
+      search: '',
     }
   },
   mounted() {

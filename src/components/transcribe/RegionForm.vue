@@ -4,7 +4,6 @@
 
     <div v-if="region">
       <v-toolbar dense flat>
-
         <v-btn small icon @click="onPlayRegion" data-test="regionPlayButton">
           <v-icon> mdi-play-circle </v-icon>
         </v-btn>
@@ -41,7 +40,7 @@
           @click="onIgnoreWord"
           data-test="ignoreWordButton"
         >
-          <v-icon small> mdi-format-strikethrough-variant </v-icon>
+          <v-icon small> mdi-eye-off </v-icon>
         </v-btn>
 
         <v-btn
@@ -57,7 +56,6 @@
         <v-btn small icon @click="onDeleteRegion" :disabled="!user" data-test="regionDeleteButton">
           <v-icon small> mdi-delete-forever </v-icon>
         </v-btn>
-
       </v-toolbar>
       <rte
         class="rte main-editor-container"
@@ -110,15 +108,14 @@ import Timeout from 'smart-timeout'
 import RTE from './RTE.vue'
 import Lexicon from '../../services/lexicon'
 import logging from '../../logging'
+const logger = new logging.Logger('Region Form')
 
 /**
  * NOTE: the invalidate issues timing *must* be greater than the
  * set contents timing, or issues will be overridden.
  */
-const SET_CONTENTS_TIMING = 10
-const INVALIDATE_ISSUES_TIMING = SET_CONTENTS_TIMING + 5
-
-const logger = new logging.Logger('Region Form')
+const SET_CONTENTS_TIMING = 25
+const INVALIDATE_ISSUES_TIMING = SET_CONTENTS_TIMING + 250
 
 export default {
   components: { rte: RTE },
@@ -177,7 +174,7 @@ export default {
 
   watch: {
     locks(newValue) {
-      logger.info('Lock changed', newValue)
+      logger.debug('Lock changed', newValue)
     },
 
     issues(newValue) {
@@ -195,12 +192,13 @@ export default {
 
     selectedRegion(region) {
       if (region) {
-        logger.info('setting text for both editors', region.translation)
+        logger.debug('setting text for both editors', region.translation)
         /**
          * Micro-delay to allow editors to mount the first time.
          */
         setTimeout(() => {
           this.doSetEditorsContents(region)
+          this.checkForKnownWords(false)
         }, SET_CONTENTS_TIMING)
       }
     },
@@ -264,7 +262,7 @@ export default {
       this.updateRegion({ text: contents })
 
       // additionally check for known words
-      this.checkForKnownWords()
+      this.checkForKnownWords(true)
     },
 
     /**
@@ -334,7 +332,7 @@ export default {
     /**
      * Quickly apply known words to the current region, then do a search on anything left over.
      */
-    checkForKnownWords() {
+    checkForKnownWords(doUpdate = false) {
       // clear out any typing changes
       this.applyKnownWords()
 
@@ -344,16 +342,19 @@ export default {
         'check-known-words-timer',
         () => {
           const words = Object.keys(this.getTextMapFromDeltas(this.selectedRegion.text))
-          logger.info('Words to check', words)
+          logger.debug('Words to check', words)
 
           // find the words we want to search for
           const knownWords = Lexicon.getKnownWords()
           const difference = words.filter((needle) => !knownWords.includes(needle))
-          logger.info('Words to search for', difference)
+          logger.debug('Words to search for', difference)
 
-          Lexicon.wordSearch(difference, this.applyKnownWords)
+          Lexicon.wordSearch(difference, () => {
+            this.applyKnownWords(doUpdate)
+            this.applySuggestions()
+          })
         },
-        2000,
+        750,
       )
     },
 
@@ -398,17 +399,32 @@ export default {
       }
 
       // 'this i[s] some, text'
-      const original = text
+      let original = text
       const map = {}
       const parts = text.trim().split(' ')
       for (const part of parts) {
         const index = original.indexOf(part)
-        const clean = part.replace(/,|\[|\]|\.|\?|\n|\r| |\(|\)/gi, '')
-        map[clean] = {
-          original: part,
-          length: part.length,
-          index,
+        const clean = part.replace(/,|\[|\]|\.|\?|\n|\r| |\(|\)|"/gi, '')
+        if (map[clean]) {
+          if (!Array.isArray(map[clean])) {
+            map[clean] = [{ ...map[clean] }]
+          }
+          map[clean].push({
+            original: part,
+            length: part.length,
+            index,
+          })
+        } else {
+          map[clean] = {
+            original: part,
+            length: part.length,
+            index,
+          }
         }
+
+        // replace original ocurrance to handle duplicates
+        const filler = new Array(part.length + 1).join('-')
+        original = original.replace(part, filler)
       }
 
       return map
@@ -417,22 +433,87 @@ export default {
     /**
      * Apply known words from the Lexicon to the current editor.
      */
-    async applyKnownWords() {
+    async applyKnownWords(doUpdate = false) {
       // check for words to search
       const knownWords = Lexicon.getKnownWords()
       const wordMap = this.getTextMapFromDeltas(this.selectedRegion.text)
       const matches = Object.keys(wordMap).filter((needle) => knownWords.includes(needle))
 
       if (matches.length) {
-        this.$refs.mainEditor.clearKnownWords()
+        let applyFunc
+        if (!doUpdate) {
+          // hint known word
+          applyFunc = this.editorApplyKnownHint
+        } else {
+          this.editorClearKnownWords()
+          applyFunc = this.editorApplyKnownWords
+        }
         // notify main editor to adjust formatting
         for (const match of matches) {
-          logger.info('Applying match', match)
-          const index = wordMap[match].index
-          const length = wordMap[match].length
-          this.$refs.mainEditor.applyKnownWord(index, length)
+          let bits = wordMap[match]
+          if (!Array.isArray(bits)) {
+            bits = [bits]
+          }
+          logger.debug('Applying match', match, bits)
+          bits.forEach((bit) => {
+            // either highlight known words, or apply hints
+            applyFunc(bit.index, bit.length)
+          })
         }
       }
+    },
+    /**
+     * Apply known words from the Lexicon to the current editor.
+     */
+    async applySuggestions() {
+      logger.debug('checking for suggestions')
+      // check for words to search
+      const suggestionMap = Lexicon.getSuggestions()
+      const suggestions = Object.keys(suggestionMap)
+      const wordMap = this.getTextMapFromDeltas(this.selectedRegion.text)
+      const matches = Object.keys(wordMap).filter((needle) =>
+        suggestions.includes(Lexicon.replaceMacrons(needle)),
+      )
+      if (matches.length) {
+        this.editorClearSuggestions()
+        // notify main editor to adjust formatting
+        for (const match of matches) {
+          let bits = wordMap[match]
+          if (!Array.isArray(bits)) {
+            bits = [bits]
+          }
+          logger.debug('Applying suggestion', match, bits)
+          bits.forEach((bit) => {
+            this.editorApplySuggestion(bit.index, bit.length)
+          })
+        }
+        this.editorSetSuggestions(suggestionMap)
+      }
+    },
+
+    // wrapper for testing
+    editorClearKnownWords() {
+      this.$refs.mainEditor.clearKnownWords()
+    },
+    // wrapper for testing
+    editorClearSuggestions() {
+      this.$refs.mainEditor.clearSuggestions()
+    },
+    // wrapper for testing
+    editorApplyKnownWords(index, length) {
+      this.$refs.mainEditor.applyKnownWord(index, length)
+    },
+    // wrapper for testing
+    editorApplyKnownHint(index, length) {
+      this.$refs.mainEditor.applyKnownHint(index, length)
+    },
+    // wrapper for testing
+    editorApplySuggestion(index, length) {
+      this.$refs.mainEditor.applySuggestion(index, length)
+    },
+
+    editorSetSuggestions(suggestions) {
+      this.$refs.mainEditor.setSuggestions(suggestions)
     },
   },
 }

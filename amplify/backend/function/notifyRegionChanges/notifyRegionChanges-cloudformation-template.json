@@ -4,6 +4,12 @@
   "Parameters": {
     "env": {
       "Type": "String"
+    },
+    "deploymentBucketName": {
+      "Type": "String"
+    },
+    "s3Key": {
+      "Type": "String"
     }
   },
   "Conditions": {
@@ -62,8 +68,12 @@
         "Runtime": "nodejs10.x",
         "Timeout": "25",
         "Code": {
-          "S3Bucket": "amplify-kiyanaw-prod-214643-deployment",
-          "S3Key": "amplify-builds/notifyRegionChanges-62687373386358766d62-build.zip"
+          "S3Bucket": {
+            "Ref": "deploymentBucketName"
+          },
+          "S3Key": {
+            "Ref": "s3Key"
+          }
         }
       }
     },
