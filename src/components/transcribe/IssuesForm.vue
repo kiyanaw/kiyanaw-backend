@@ -68,7 +68,7 @@
               rounded
               small
               outlined
-              :disabled="!user"
+              :disabled="disableInputs"
               :color="selectedIssue.resolved ? 'error' : 'success'"
               @click="resolveIssue"
             >
@@ -89,7 +89,7 @@
               color="red"
               data-test="deleteIssueButton"
               @click="onDeleteIssue"
-              :disabled="!user"
+              :disabled="disableInputs"
             >
               <v-icon left>mdi-delete-circle </v-icon>
               <!-- <span v-if="!selectedIssue.resolved">Delete</span> -->
@@ -105,7 +105,7 @@
         <v-list-item>
           <v-text-field
             v-model="newIssueCommentText"
-            :disabled="!user"
+            :disabled="disableInputs"
             outlined
             dense
             label="Add a comment"
@@ -117,7 +117,7 @@
                 small
                 color="primary"
                 @click="addIssueComment"
-                :disabled="!user"
+                :disabled="disableInputs"
               >
                 Submit
               </v-btn>
@@ -194,7 +194,15 @@ const logger = new logging.Logger('Issues Form')
 
 export default {
   computed: {
-    ...mapGetters(['selectedRegion', 'selectedIssue', 'user']),
+    ...mapGetters(['selectedRegion', 'selectedIssue', 'transcription', 'user']),
+
+    disableInputs() {
+      if (this.user) {
+        return !this.transcription.editors.includes(this.user.name)
+      } else {
+        return true
+      }
+    },
 
     issues() {
       if (this.selectedRegion) {

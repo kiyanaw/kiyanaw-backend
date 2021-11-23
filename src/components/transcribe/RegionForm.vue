@@ -11,14 +11,14 @@
         <v-btn
           icon
           small
-          :disabled="(regionIsLocked && !regionIsLockedByMe) || !user"
+          :disabled="(regionIsLocked && !regionIsLockedByMe) || disableInputs"
           @click="onToggleRegionType"
           data-test="regionNoteButton"
         >
           <v-icon small> mdi-note-outline </v-icon>
         </v-btn>
 
-        <v-btn small icon @click="onLock" :disabled="!user" data-test="regionLockButton">
+        <v-btn small icon @click="onLock" :disabled="disableInputs" data-test="regionLockButton">
           <v-icon small v-if="!regionIsLocked">mdi-lock-open-outline</v-icon>
           <v-icon small v-if="regionIsLocked" color="black">mdi-lock</v-icon>
         </v-btn>
@@ -26,7 +26,7 @@
         <v-btn
           small
           icon
-          :disabled="!selectedRange || !user"
+          :disabled="!selectedRange || disableInputs"
           @click="onCreateIssue"
           data-test="regionIssueButton"
         >
@@ -36,7 +36,7 @@
         <v-btn
           small
           icon
-          :disabled="!selectedRange || !user"
+          :disabled="!selectedRange || disableInputs"
           @click="onIgnoreWord"
           data-test="ignoreWordButton"
         >
@@ -46,14 +46,20 @@
         <v-btn
           small
           icon
-          :disabled="!selectedRange || !user"
+          :disabled="!selectedRange || disableInputs"
           @click="onClearFormat"
           data-test="clearFormatButton"
         >
           <v-icon small> mdi-cancel </v-icon>
         </v-btn>
 
-        <v-btn small icon @click="onDeleteRegion" :disabled="!user" data-test="regionDeleteButton">
+        <v-btn
+          small
+          icon
+          @click="onDeleteRegion"
+          :disabled="disableInputs"
+          data-test="regionDeleteButton"
+        >
           <v-icon small> mdi-delete-forever </v-icon>
         </v-btn>
       </v-toolbar>
@@ -62,7 +68,7 @@
         ref="mainEditor"
         mode="main"
         :text="regionText"
-        :disabled="(regionIsLocked && !regionIsLockedByMe) || !user"
+        :disabled="(regionIsLocked && !regionIsLockedByMe) || disableInputs"
         @change-content="onMainEditorContentChange"
         @change-format="onMainEditorFormatChange"
         @focus="onFocusDelayed"
@@ -76,7 +82,7 @@
         ref="secondaryEditor"
         mode="secondary"
         :text="regionTranslation"
-        :disabled="(regionIsLocked && !regionIsLockedByMe) || !user"
+        :disabled="(regionIsLocked && !regionIsLockedByMe) || disableInputs"
         @change-content="onSecondaryEditorContentChange"
         @focus="onFocusDelayed"
         @blur="onBlur"
@@ -120,8 +126,19 @@ const INVALIDATE_ISSUES_TIMING = SET_CONTENTS_TIMING + 250
 export default {
   components: { rte: RTE },
   computed: {
-    ...mapGetters(['locks', 'selectedIssue', 'selectedRegion', 'user']),
+    ...mapGetters(['locks', 'selectedIssue', 'selectedRegion', 'transcription', 'user']),
 
+    /**
+     * Disable inputs if not EDITOR
+     */
+    disableInputs() {
+      if (this.user) {
+        // console.log('editors', this.transcription.editors)
+        return !this.transcription.editors.includes(this.user.name)
+      } else {
+        return true
+      }
+    },
     issues() {
       if (this.selectedRegion) {
         return this.selectedRegion.issues || []

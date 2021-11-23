@@ -133,7 +133,6 @@ export default {
       waveformLoading: true,
       error: null,
       tab: null,
-      contributors: [],
 
       itemComponent: RegionPartial,
       itemScrollIndex: 0,
@@ -267,44 +266,44 @@ export default {
     async load() {
       // TODO: move to loading through VueX
       const data = await TranscriptionService.getTranscription(this.transcriptionId)
-      this.setTranscription(data)
 
-      // legacy
-      let peaks
-      try {
-        const rawPeaks = await fetch(`${data.source}.json`)
-        peaks = await rawPeaks.json()
-      } catch (error) {
-        console.error('Error loading peaks data', error)
+      // TODO: check if private transcription
+      if (data) {
+        this.setTranscription(data)
+
+        // legacy
+        let peaks
+        try {
+          const rawPeaks = await fetch(`${data.source}.json`)
+          peaks = await rawPeaks.json()
+        } catch (error) {
+          console.error('Error loading peaks data', error)
+          this.loading = false
+          this.error = `Failed to load peaks for ${data.title}, try again shortly...`
+          return
+        }
+
+        // TODO: bind this to the data store
         this.loading = false
-        this.error = `Failed to load peaks for ${data.title}, try again shortly...`
-        return
+        this.source = data.source
+        this.title = data.title
+        // this.comments = data.comments
+        this.type = data.type
+        this.author = data.author
+        this.isVideo = data.type.includes('video')
+        this.peaks = peaks
+
+        // set the inbound region, if any
+        logger.info('setting inbound region', this.inboundRegion)
+        this.$store.dispatch('setSelectedRegion', this.inboundRegion)
+
+        // Request all locked regions on load
+        this.getLockedRegions()
+      } else {
+        // no transcription
+        this.loading = false
+        this.error = 'Transcription not found'
       }
-
-      // TODO: bind this to the data store
-      this.loading = false
-      this.source = data.source
-      this.title = data.title
-      // this.comments = data.comments
-      this.type = data.type
-      this.author = data.author
-      this.isVideo = data.type.includes('video')
-      this.peaks = peaks
-      this.contributors = data.contributors || []
-
-      // TODO: fix contributors
-      // check that the author is in the list of contributors
-      // const authorUser = this.contributors.filter((item) => item.name === this.user.name)
-      // if (!authorUser.length) {
-      //   this.contributors.push(this.user)
-      // }
-
-      // set the inbound region, if any
-      logger.info('setting inbound region', this.inboundRegion)
-      this.$store.dispatch('setSelectedRegion', this.inboundRegion)
-
-      // Request all locked regions on load
-      this.getLockedRegions()
     },
 
     triggerAudioPlayer(regionId) {

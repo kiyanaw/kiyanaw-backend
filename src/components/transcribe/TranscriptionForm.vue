@@ -69,6 +69,9 @@ export default {
   computed: {
     ...mapGetters(['user', 'profiles']),
 
+    /**
+     * Disable inputs if not AUTHOR
+     */
     disableInputs: {
       get() {
         if (this.user) {
