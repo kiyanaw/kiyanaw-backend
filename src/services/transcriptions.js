@@ -206,6 +206,7 @@ export default {
           'AWS_IAM',
         ),
       ])
+
       transcription = new Transcription(transcription.data.getTranscription)
       transcription.regions = regions.data.byTranscription.items.map((item) => {
         item.text = JSON.parse(item.text)

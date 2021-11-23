@@ -1,7 +1,7 @@
 <template>
   <v-form ref="form">
-    <v-text-field v-model="title" :disabled="!user" label="Title"></v-text-field>
-    <v-text-field v-model="comments" :disabled="!user" label="Comments"></v-text-field>
+    <v-text-field v-model="title" :disabled="disableInputs" label="Title"></v-text-field>
+    <v-text-field v-model="comments" :disabled="disableInputs" label="Comments"></v-text-field>
     <v-text-field v-model="lastUpdated" disabled label="Last updated"></v-text-field>
     <v-text-field v-model="regionCount" disabled label="Total regions"></v-text-field>
     <!-- <v-text-field v-model="regionCoverage" disabled label="Region coverage"></v-text-field>
@@ -11,6 +11,7 @@
     <v-combobox
       v-model="currentEditors"
       :items="otherProfiles"
+      :disabled="disableInputs"
       label="Editors"
       chips
       hide-selected
@@ -68,6 +69,15 @@ export default {
   computed: {
     ...mapGetters(['user', 'profiles']),
 
+    disableInputs: {
+      get() {
+        if (this.user) {
+          return this.user.name !== this.author
+        } else {
+          return true
+        }
+      },
+    },
     otherProfiles: {
       get() {
         if (this.user) {
