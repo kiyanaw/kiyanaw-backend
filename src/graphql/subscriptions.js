@@ -17,7 +17,8 @@ export const onCreateTranscription = /* GraphQL */ `
       index
       title
       type
-      contributors
+      isPrivate
+      analyzer
       editor {
         items {
           id
@@ -49,7 +50,8 @@ export const onUpdateTranscription = /* GraphQL */ `
       index
       title
       type
-      contributors
+      isPrivate
+      analyzer
       editor {
         items {
           id
@@ -81,7 +83,8 @@ export const onDeleteTranscription = /* GraphQL */ `
       index
       title
       type
-      contributors
+      isPrivate
+      analyzer
       editor {
         items {
           id
@@ -306,7 +309,8 @@ export const onCreateTranscriptionEditor = /* GraphQL */ `
         index
         title
         type
-        contributors
+        isPrivate
+        analyzer
         editor {
           nextToken
         }
@@ -347,7 +351,8 @@ export const onUpdateTranscriptionEditor = /* GraphQL */ `
         index
         title
         type
-        contributors
+        isPrivate
+        analyzer
         editor {
           nextToken
         }
@@ -388,7 +393,8 @@ export const onDeleteTranscriptionEditor = /* GraphQL */ `
         index
         title
         type
-        contributors
+        isPrivate
+        analyzer
         editor {
           nextToken
         }

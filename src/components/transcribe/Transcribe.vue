@@ -149,6 +149,7 @@ export default {
    * Mount point for this component.
    */
   async mounted() {
+    // TODO: load this from store
     try {
       this.user = await UserService.getUser()
     } catch (error) {
@@ -267,8 +268,14 @@ export default {
       // TODO: move to loading through VueX
       const data = await TranscriptionService.getTranscription(this.transcriptionId)
 
-      // TODO: check if private transcription
-      if (data) {
+      // If a transcription is 'Private' only allow author and editors
+      let canAccess = true
+      if (data.isPrivate) {
+        if (!data.editors.includes(this.user.name)) {
+          canAccess = false
+        }
+      }
+      if (data && canAccess) {
         this.setTranscription(data)
 
         // legacy
@@ -302,7 +309,7 @@ export default {
       } else {
         // no transcription
         this.loading = false
-        this.error = 'Transcription not found'
+        this.error = 'Transcription not found 🤷'
       }
     },
 

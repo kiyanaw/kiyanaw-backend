@@ -9,6 +9,11 @@
     <!-- <v-text-field v-model="wordCount" disabled label="Word count"></v-text-field>
     <v-text-field v-model="knownWordCount" disabled label="Known word count"></v-text-field> -->
     <v-combobox
+      v-model="accessLevel"
+      :items="['Enable', 'Disable']"
+      label="Public read access"
+    ></v-combobox>
+    <v-combobox
       v-model="currentEditors"
       :items="otherProfiles"
       :disabled="disableInputs"
@@ -69,6 +74,22 @@ export default {
   computed: {
     ...mapGetters(['user', 'profiles']),
 
+    accessLevel: {
+      get() {
+        if (this.$store.getters.transciption) {
+          return this.$store.getters.transciption.isPrivate ? 'Disable' : 'Enable'
+        }
+        return 'Enable'
+      },
+      set(value) {
+        console.log('access changed', value)
+        if (value === 'Disable') {
+          this.$store.dispatch('updateTranscription', { isPrivate: true })
+        } else {
+          this.$store.dispatch('updateTranscription', { isPrivate: false })
+        }
+      },
+    },
     /**
      * Disable inputs if not AUTHOR
      */

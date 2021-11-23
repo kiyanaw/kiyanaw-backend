@@ -61,6 +61,8 @@ class Transcription {
     this.issues = Number(data.issues) || 0
     this.source = data.source
     this.coverage = data.coverage || 0
+    this.isPrivate = data.isPrivate || false
+    this.analyzer = data.analyzer === null ? null : data.analyzer || 'crk'
     this.dateLastUpdated = data.dateLastUpdated
     this.userLastUpdated = data.userLastUpdated
     if (data.editor && data.editor.items) {

@@ -19,7 +19,8 @@ type Transcription
   index: String
   title: String!
   type: String!
-  contributors: String
+  isPrivate: Boolean
+  analyzer: String
   editor: [TranscriptionEditor] @connection(keyName: "byTranscription", fields: ["id"])
 }
 
