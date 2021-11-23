@@ -3,16 +3,8 @@ type Transcription
   @key(fields: ["id"])
   @key(name: "ByTitle", fields: ["title"], queryField: "byTitle")
   @key(name: "ByOwnerUpdated", fields: ["author", "dateLastUpdated"], queryField: "byOwnerUpdated")
-  # @key(
-  #   name: "ByContributorsUpdated"
-  #   fields: ["contributors", "dateLastUpdated"]
-  #   queryField: "byContributorsUpdated"
-  # )
   @auth(
-    rules: [
-      { allow: private, provider: iam }
-      { allow: public, provider: iam, operations: [read] }
-    ]
+    rules: [{ allow: private, provider: iam }, { allow: public, provider: iam, operations: [read] }]
   ) {
   id: ID!
   author: String!
@@ -28,16 +20,16 @@ type Transcription
   title: String!
   type: String!
   contributors: String
+  editor: [TranscriptionEditor] @connection(keyName: "byTranscription", fields: ["id"])
 }
 
 type Region
   @model
   @key(fields: ["id"])
   @key(name: "ByTranscription", fields: ["transcriptionId"], queryField: "byTranscription")
-  @auth(rules: [
-    { allow: private, provider: iam }
-    { allow: public, provider: iam, operations: [read] }
-  ])
+  @auth(
+    rules: [{ allow: private, provider: iam }, { allow: public, provider: iam, operations: [read] }]
+  )
   @versioned {
   id: String!
   start: Float!
@@ -52,8 +44,12 @@ type Region
   transcriptionId: String!
 }
 
-type Cursor @model @key(fields: ["id", "user"]) @auth(rules: [      { allow: private, provider: iam }
-      { allow: public, provider: iam, operations: [read] }]) {
+type Cursor
+  @model
+  @key(fields: ["id", "user"])
+  @auth(
+    rules: [{ allow: private, provider: iam }, { allow: public, provider: iam, operations: [read] }]
+  ) {
   id: String!
   user: String!
   cursor: String!
@@ -62,15 +58,38 @@ type Cursor @model @key(fields: ["id", "user"]) @auth(rules: [      { allow: pri
 type RegionLock
   @model
   @key(fields: ["id", "transcriptionId"])
-  @auth(rules: [      { allow: private, provider: iam }
-      { allow: public, provider: iam, operations: [read] }]) {
+  @auth(
+    rules: [{ allow: private, provider: iam }, { allow: public, provider: iam, operations: [read] }]
+  ) {
   id: String!
   transcriptionId: String!
   deleteTime: AWSTimestamp!
   user: String!
 }
 
-type Profile @model @key(fields: ["email"]) @auth(rules: [      { allow: private, provider: iam }
-      { allow: public, provider: iam, operations: [read] }]) {
+type Editor
+  @model
+  @key(fields: ["username"])
+  @auth(
+    rules: [{ allow: private, provider: iam }, { allow: public, provider: iam, operations: [read] }]
+  ) {
   email: ID!
+  username: ID!
+  transcriptions: [TranscriptionEditor] @connection(keyName: "byEditor", fields: ["username"])
+}
+
+# Intermediary table to join editors to transcriptions
+type TranscriptionEditor
+  @model(queries: null)
+  @key(fields: ["id"])
+  @key(name: "byTranscription", fields: ["transcriptionId", "username"])
+  @key(name: "byEditor", fields: ["username", "transcriptionId"])
+  @auth(
+    rules: [{ allow: private, provider: iam }, { allow: public, provider: iam, operations: [read] }]
+  ) {
+  id: ID!
+  transcriptionId: ID!
+  username: ID!
+  transcription: Transcription! @connection(fields: ["transcriptionId"])
+  editor: Editor! @connection(fields: ["username"])
 }

@@ -6,6 +6,7 @@ import userService from '../services/user'
 const state = {
   signedIn: false,
   user: null,
+  profiles: [],
 }
 
 const getters = {
@@ -14,6 +15,9 @@ const getters = {
   },
   signedIn(context) {
     return context.signedIn
+  },
+  profiles(context) {
+    return context.profiles
   },
 }
 
@@ -33,11 +37,19 @@ const actions = {
     store.commit('SET_SIGNED_IN', signedIn)
   },
 
+  setProfiles(store, profiles) {
+    store.commit('SET_PROFILES', profiles)
+  },
+
   async getUser(store) {
     // don't block
     userService.getUser().then((user) => {
       if (user) {
         store.dispatch('setUser', user)
+        // TODO: get/set user profile
+        userService.getProfile().catch((error) => {
+          console.error('Error checking for user profile', error)
+        })
       }
     })
   },
@@ -49,6 +61,9 @@ const mutations = {
   },
   SET_SIGNED_IN(context, signedIn) {
     Vue.set(context, 'signedIn', signedIn)
+  },
+  SET_PROFILES(context, profiles) {
+    Vue.set(context, 'profiles', profiles)
   },
 }
 

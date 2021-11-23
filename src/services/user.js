@@ -2,17 +2,58 @@ import { Auth } from 'aws-amplify'
 
 import {
   createCursor,
+  createEditor,
+  createTranscriptionEditor,
   updateCursor,
+  deleteTranscriptionEditor,
   createRegionLock,
   deleteRegionLock,
 } from '../graphql/mutations'
 import { onUpdateCursor, onCreateRegionLock, onDeleteRegionLock } from '../graphql/subscriptions'
-import { listRegionLocks } from '../graphql/queries'
+import { listRegionLocks, listEditors } from '../graphql/queries'
 
 import { API, graphqlOperation } from 'aws-amplify'
 import logging from '../logging'
 
 const logger = new logging.Logger('User Service')
+
+// TODO: migrate dateLastUpdated to updatedAt
+export const getEditorWithTranscriptions = /* GraphQL */ `
+  query GetEditor($username: ID!) {
+    getEditor(username: $username) {
+      email
+      username
+      transcriptions {
+        items {
+          id
+          transcriptionId
+          username
+          createdAt
+          updatedAt
+          transcription {
+            id
+            author
+            title
+            coverage
+            dateLastUpdated
+            userLastUpdated
+            length
+            issues
+            comments
+            tags
+            source
+            index
+            title
+            type
+          }
+        }
+        nextToken
+      }
+      createdAt
+      updatedAt
+    }
+  }
+`
 
 let user
 let cursorSubscription = null
@@ -31,6 +72,66 @@ export default {
       name: user.username,
       email: user.attributes.email,
     }
+  },
+
+  /**
+   * NOTE: as a result of the way profiles work, a user will have to log in at least once in order
+   * to be available as an editor for other transcriptions.
+   */
+  async getProfile() {
+    const user = await this.getUser()
+    const response = await API.graphql(
+      graphqlOperation(getEditorWithTranscriptions, { username: user.name }),
+    )
+    console.log('response', response)
+    const existing = response.data.getEditor
+    console.log('existing profile', existing)
+
+    if (!existing) {
+      // TODO: this should return a newly-created profile
+      console.warn(`Profile does not exist for ${user.name}, creating...`)
+      const created = await API.graphql(
+        graphqlOperation(createEditor, { input: { username: user.name, email: user.email } }),
+      )
+      console.log('Profile created for user', created)
+    }
+    return existing
+  },
+
+  /**
+   *
+   */
+  async listProfiles() {
+    const response = await API.graphql(graphqlOperation(listEditors))
+    return response.data.listEditors.items.map((item) => ({
+      username: item.username,
+      email: item.email,
+    }))
+  },
+
+  /**
+   * TODO: this might belong on the transcription service?
+   */
+  async addTranscriptionEditor(transcriptionId, username) {
+    if (!username) {
+      const user = await this.getUser()
+      username = user.name
+    }
+    const input = {
+      username,
+      transcriptionId,
+    }
+    console.log('inputs', input)
+    await API.graphql(
+      graphqlOperation(createTranscriptionEditor, {
+        input,
+      }),
+    )
+  },
+
+  async removeTranscriptionEditor(id) {
+    console.log('removing editor', id)
+    await API.graphql(graphqlOperation(deleteTranscriptionEditor, { input: { id } }))
   },
 
   async flush() {

@@ -58,7 +58,7 @@
 
 <script>
 import { mapActions, mapGetters } from 'vuex'
-// import TranscriptionService from '../../services/transcriptions'
+import TranscriptionService from '../../services/transcriptions'
 
 import en from 'javascript-time-ago/locale/en'
 import TimeAgo from 'javascript-time-ago'
@@ -71,21 +71,23 @@ export default {
       loading: true,
       search: '',
       headers: [
-        { text: 'Title', value: 'title', width: '40%' },
+        { text: 'Title', value: 'title', width: '30%' },
+        { text: 'Owner', value: 'author', width: '5%' },
         { text: 'Length', value: 'length' },
-        { text: 'Coverage', value: 'coverage', width: '5%' },
-        { text: 'Issues', value: 'issues', width: '5%' },
+        { text: '', value: 'coverage', width: '5%' },
+        { text: '', value: 'issues', width: '5%' },
         { text: 'Last edit', value: 'dateLastUpdated' },
         { text: 'Type', value: 'type' },
         { text: 'Source', value: 'source' },
       ],
-      search: '',
     }
   },
   mounted() {
     this.loadTranscriptions()
     // this is a hack, fix it
     // this.$refs.table.defaultPagination.rowsPerPage = 25
+
+    window.transcriptionService = TranscriptionService
   },
   computed: {
     ...mapGetters(['transcriptions']),

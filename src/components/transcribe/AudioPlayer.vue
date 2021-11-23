@@ -94,9 +94,6 @@ import utils from './utils'
 // import Timeout from 'smart-timeout'
 
 import 'mediaelement'
-// import { TranscribeService } from 'aws-sdk'
-
-// import TranscriptionService from '../../services/transcriptions'
 
 let surfer = null
 // let playingRegionId = null

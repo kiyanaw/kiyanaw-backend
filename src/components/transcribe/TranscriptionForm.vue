@@ -4,19 +4,92 @@
     <v-text-field v-model="comments" :disabled="!user" label="Comments"></v-text-field>
     <v-text-field v-model="lastUpdated" disabled label="Last updated"></v-text-field>
     <v-text-field v-model="regionCount" disabled label="Total regions"></v-text-field>
-    <v-text-field v-model="regionCoverage" disabled label="Region coverage"></v-text-field>
-    <v-text-field v-model="issueCount" disabled label="Total issues"></v-text-field>
-    <v-text-field v-model="wordCount" disabled label="Word count"></v-text-field>
-    <v-text-field v-model="knownWordCount" disabled label="Known word count"></v-text-field>
+    <!-- <v-text-field v-model="regionCoverage" disabled label="Region coverage"></v-text-field>
+    <v-text-field v-model="issueCount" disabled label="Total issues"></v-text-field> -->
+    <!-- <v-text-field v-model="wordCount" disabled label="Word count"></v-text-field>
+    <v-text-field v-model="knownWordCount" disabled label="Known word count"></v-text-field> -->
+    <v-combobox
+      v-model="currentEditors"
+      :items="otherProfiles"
+      label="Editors"
+      chips
+      hide-selected
+      multiple
+      deletable-chips
+      @change="onEditorChange"
+    >
+    </v-combobox>
   </v-form>
 </template>
 
 <script>
-import { mapGetters } from 'vuex'
+import { mapActions, mapGetters } from 'vuex'
+
+import UserService from '../../services/user'
 
 export default {
+  data() {
+    return {
+      currentEditors: [],
+    }
+  },
+  mounted() {
+    this.listProfiles()
+    this.currentEditors = this.editors
+  },
+  methods: {
+    ...mapActions(['setProfiles', 'addEditor', 'removeEditor']),
+
+    listProfiles() {
+      UserService.listProfiles().then((results) => {
+        this.setProfiles(results)
+      })
+    },
+
+    onEditorChange(value) {
+      if (!value.includes(this.author)) {
+        // don't delete the owner
+        this.currentEditors.unshift(this.author)
+      } else {
+        if (value.length > this.editors.length) {
+          // user was added
+          const newEditor = value.filter((item) => !this.editors.includes(item)).pop()
+          console.log('add user', newEditor)
+          this.addEditor(newEditor)
+        } else {
+          // user was removed
+          const staleEditor = this.editors.filter((item) => !value.includes(item)).pop()
+          console.log('remove user', staleEditor)
+          this.removeEditor(staleEditor)
+        }
+      }
+    },
+  },
   computed: {
-    ...mapGetters(['user']),
+    ...mapGetters(['user', 'profiles']),
+
+    otherProfiles: {
+      get() {
+        if (this.user) {
+          const username = this.user.name
+          return this.profiles
+            .filter((item) => item.username !== username)
+            .map((item) => item.username)
+        }
+        return []
+      },
+    },
+    author: {
+      get() {
+        return this.$store.getters.transcription.author
+      },
+    },
+    editors: {
+      get() {
+        return this.$store.getters.transcription.editors
+      },
+    },
+
     comments: {
       get() {
         return this.$store.getters.transcription.comments

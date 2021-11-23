@@ -68,12 +68,8 @@
         "Runtime": "nodejs10.x",
         "Timeout": "25",
         "Code": {
-          "S3Bucket": {
-            "Ref": "deploymentBucketName"
-          },
-          "S3Key": {
-            "Ref": "s3Key"
-          }
+          "S3Bucket": "amplify-kiyanaw-dev-02717-deployment",
+          "S3Key": "amplify-builds/notifyRegionChanges-7364625863515679474d-build.zip"
         }
       }
     },

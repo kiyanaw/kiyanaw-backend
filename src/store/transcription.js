@@ -3,6 +3,8 @@ import Timeout from 'smart-timeout'
 
 // TODO: incorporate this
 import transcriptionService from '../services/transcriptions'
+import userService from '../services/user'
+
 import logging from '../logging'
 const logger = new logging.Logger('Transcription Store')
 
@@ -78,6 +80,28 @@ const actions = {
     })
   },
 
+  addEditor(store, username) {
+    const transcription = store.getters.transcription
+    userService
+      .addTranscriptionEditor(transcription.id, username)
+      .catch((error) => console.error('Unable to add editor', error))
+
+    store.dispatch('updateTranscription', { editors: [...transcription.editors, username] })
+  },
+
+  removeEditor(store, username) {
+    const transcription = store.getters.transcription
+    const dbRecord = transcription.editorsDb.filter((item) => item.username === username).pop()
+    console.log('db record', dbRecord)
+
+    userService
+      .removeTranscriptionEditor(dbRecord.id)
+      .catch((error) => console.error('Unable to remove editor', error))
+
+    const update = transcription.editors.filter((item) => !item === username)
+    store.dispatch('updateTranscription', { editors: [...update] })
+  },
+
   /**
    * SAVE ACTIONS
    * Region updates happen in their own store, but saving happens here
@@ -120,6 +144,8 @@ const actions = {
     // TODO: after transcription class is moved to store, move these methods
     delete transcription.data
     delete transcription.regions
+    delete transcription.editors
+    delete transcription.editorsDb
 
     logger.info('Save transcription triggered', transcription)
     transcriptionService

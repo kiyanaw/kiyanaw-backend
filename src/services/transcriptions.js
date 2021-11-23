@@ -63,7 +63,11 @@ class Transcription {
     this.coverage = data.coverage || 0
     this.dateLastUpdated = data.dateLastUpdated
     this.userLastUpdated = data.userLastUpdated
-    this.contributors = data.contributors || []
+    if (data.editor && data.editor.items) {
+      this.editors = data.editor.items.map((item) => item.username)
+      // need this so we have the ids of the editors for add/remove
+      this.editorsDb = data.editor.items
+    }
   }
 
   /**
@@ -89,6 +93,29 @@ class Transcription {
 }
 
 export default {
+  async addInitialEditors() {
+    const transcriptions = await this.oldListTransciptions()
+    for (const item of transcriptions) {
+      console.log(`Adding editor ${item.author} for ${item.id}`)
+      try {
+        await UserService.addTranscriptionEditor(item.id, item.author)
+      } catch (error) {
+        console.error(error)
+      }
+    }
+  },
+
+  async oldListTransciptions() {
+    let results = []
+    try {
+      results = await API.graphql(graphqlOperation(queries.listTranscriptions, { limit: 100 }))
+      // console.log(results)
+    } catch (error) {
+      console.error('Could not load transcriptions', error)
+    }
+    results = results.data.listTranscriptions.items
+    return results
+  },
   /**
    * Get a list of transcriptions.
    * @param {string} user Currently unused.
@@ -97,18 +124,16 @@ export default {
   // TODO: test me!
   // TODO: want these ordered by lastUpdated
   async listTranscriptions() {
-    let results = []
-    try {
-      results = await API.graphql(graphqlOperation(queries.listTranscriptions, { limit: 100 }))
-      // console.log(results)
-    } catch (error) {
-      console.error('Could not load transcriptions', error)
+    // transcriptions are attached to the user profile
+    const profile = await UserService.getProfile()
+    console.log('transcriptions', profile.transcriptions)
+    let transcriptions = []
+    if (profile.transcriptions.items) {
+      transcriptions = profile.transcriptions.items.map(
+        (item) => new Transcription(item.transcription),
+      )
     }
-
-    results = results.data.listTranscriptions.items
-
-    return results.map((item) => new Transcription(item))
-    // unwrap the structure that comes back from appsync
+    return transcriptions
   },
 
   /**
@@ -139,7 +164,12 @@ export default {
       source,
       type: file.type,
     })
-    return result.data.createTranscription
+    const transcription = result.data.createTranscription
+
+    // create link to editor
+    await UserService.addTranscriptionEditor(transcription.id)
+
+    return transcription
   },
 
   async getPeaksFile(filename) {
