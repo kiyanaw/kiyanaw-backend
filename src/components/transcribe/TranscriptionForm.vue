@@ -10,11 +10,13 @@
     <v-text-field v-model="knownWordCount" disabled label="Known word count"></v-text-field> -->
     <v-combobox
       v-model="accessLevel"
+      :disabled="disableInputs"
       :items="['Enable', 'Disable']"
       label="Public read access"
     ></v-combobox>
     <v-combobox
       v-model="analyzerEnabled"
+      :disabled="disableInputs"
       :items="['Enable', 'Disable']"
       label="Analyzer"
     ></v-combobox>
