@@ -74,7 +74,7 @@ import TranscriptionService from '../../services/transcriptions'
 import RegionPartial from './RegionPartial.vue'
 import UserService from '../../services/user'
 
-import Lookup from './Lookup'
+import Lookup from './Lookup.vue'
 
 import { mapActions, mapGetters } from 'vuex'
 
