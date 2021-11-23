@@ -14,6 +14,11 @@
       label="Public read access"
     ></v-combobox>
     <v-combobox
+      v-model="analyzerEnabled"
+      :items="['Enable', 'Disable']"
+      label="Analyzer"
+    ></v-combobox>
+    <v-combobox
       v-model="currentEditors"
       :items="otherProfiles"
       :disabled="disableInputs"
@@ -72,7 +77,7 @@ export default {
     },
   },
   computed: {
-    ...mapGetters(['user', 'profiles']),
+    ...mapGetters(['user', 'profiles', 'transcription']),
 
     accessLevel: {
       get() {
@@ -82,7 +87,6 @@ export default {
         return 'Enable'
       },
       set(value) {
-        console.log('access changed', value)
         if (value === 'Disable') {
           this.$store.dispatch('updateTranscription', { isPrivate: true })
         } else {
@@ -90,6 +94,20 @@ export default {
         }
       },
     },
+
+    analyzerEnabled: {
+      get() {
+        return this.$store.getters.transcription.disableAnalyzer ? 'Disable' : 'Enable'
+      },
+      set(value) {
+        if (value === 'Disable') {
+          this.$store.dispatch('updateTranscription', { disableAnalyzer: true })
+        } else {
+          this.$store.dispatch('updateTranscription', { disableAnalyzer: false })
+        }
+      },
+    },
+
     /**
      * Disable inputs if not AUTHOR
      */

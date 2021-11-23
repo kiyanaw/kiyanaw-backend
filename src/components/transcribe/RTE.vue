@@ -70,7 +70,7 @@ const formats = {
 }
 
 export default {
-  props: ['disabled', 'mode', 'text'],
+  props: ['disabled', 'mode', 'text', 'analyze'],
   data() {
     return {
       showMenu: true,
@@ -86,6 +86,10 @@ export default {
     this.editor = null
     // toggle context menu once to fix first click bug
     this.showMenu = false
+
+    if (!this.analyze) {
+      formats.main = formats.main.filter((item) => !item.startsWith('known'))
+    }
 
     const element = this.$el.querySelector('#editor-' + this.mode)
     this.element = element
@@ -195,6 +199,9 @@ export default {
     },
 
     applyKnownWord(index, length) {
+      if (!this.analyze) {
+        return
+      }
       this.editor.formatText(index, length, 'known-word', true)
       this.editor.formatText(index, length, 'suggestion', false)
       // trigger change for save
@@ -203,6 +210,9 @@ export default {
     },
 
     applyKnownHint(index, length) {
+      if (!this.analyze) {
+        return
+      }
       logger.debug('applying known hint', index, length)
       // check for known-word
       const currentFormat = this.editor.getFormat(index, length)
@@ -212,6 +222,9 @@ export default {
     },
 
     applySuggestion(index, length) {
+      if (!this.analyze) {
+        return
+      }
       logger.debug('applying suggestion', index, length)
       const currentFormat = this.editor.getFormat(index, length)
       if (Object.keys(currentFormat).indexOf('ignore-word') === -1) {
@@ -225,6 +238,9 @@ export default {
     },
 
     checkForSuggestions(range) {
+      if (!this.analyze) {
+        return
+      }
       logger.debug('checking for suggestions', range)
       const [blot] = this.editor.getLeaf(range.index)
       logger.debug('blot', blot)

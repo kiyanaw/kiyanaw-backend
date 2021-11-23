@@ -20,7 +20,7 @@ type Transcription
   title: String!
   type: String!
   isPrivate: Boolean
-  analyzer: String
+  disableAnalyzer: Boolean
   editor: [TranscriptionEditor] @connection(keyName: "byTranscription", fields: ["id"])
 }
 

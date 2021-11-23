@@ -18,7 +18,7 @@ export const getTranscription = /* GraphQL */ `
       title
       type
       isPrivate
-      analyzer
+      disableAnalyzer
       editor {
         items {
           id
@@ -64,7 +64,7 @@ export const listTranscriptions = /* GraphQL */ `
         title
         type
         isPrivate
-        analyzer
+        disableAnalyzer
         editor {
           nextToken
         }
@@ -288,7 +288,7 @@ export const byTitle = /* GraphQL */ `
         title
         type
         isPrivate
-        analyzer
+        disableAnalyzer
         editor {
           nextToken
         }
@@ -331,7 +331,7 @@ export const byOwnerUpdated = /* GraphQL */ `
         title
         type
         isPrivate
-        analyzer
+        disableAnalyzer
         editor {
           nextToken
         }

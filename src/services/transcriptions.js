@@ -62,7 +62,8 @@ class Transcription {
     this.source = data.source
     this.coverage = data.coverage || 0
     this.isPrivate = data.isPrivate || false
-    this.analyzer = data.analyzer === null ? null : data.analyzer || 'crk'
+    this.disableAnalyzer = !!data.disableAnalyzer
+
     this.dateLastUpdated = data.dateLastUpdated
     this.userLastUpdated = data.userLastUpdated
     if (data.editor && data.editor.items) {

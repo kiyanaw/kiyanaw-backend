@@ -67,6 +67,7 @@
         class="rte main-editor-container"
         ref="mainEditor"
         mode="main"
+        :analyze="!transcription.disableAnalyzer"
         :text="regionText"
         :disabled="(regionIsLocked && !regionIsLockedByMe) || disableInputs"
         @change-content="onMainEditorContentChange"
@@ -350,6 +351,9 @@ export default {
      * Quickly apply known words to the current region, then do a search on anything left over.
      */
     checkForKnownWords(doUpdate = false) {
+      if (!this.transcription.disableAnalyzer) {
+        return
+      }
       // clear out any typing changes
       this.applyKnownWords()
 

@@ -28,7 +28,7 @@ export default {
   props: ['index', 'source'],
 
   computed: {
-    ...mapGetters(['lockedRegionNames', 'locks', 'user']),
+    ...mapGetters(['lockedRegionNames', 'locks', 'user', 'transcription']),
 
     classObject() {
       return {
@@ -66,6 +66,13 @@ export default {
           if (item.attributes) {
             classes = Object.keys(item.attributes)
           }
+
+          if (this.transcription.disableAnalyzer) {
+            classes = classes.filter((item) => !item.startsWith('known'))
+          }
+          // console.log('disable analyzer', this.transcription.disableAnalyzer)
+          // console.log('classes', classes)
+
           const content = item.insert || ''
           if (classes.length) {
             return `<span class="${classes.join(' ')}">${content}</span>`
