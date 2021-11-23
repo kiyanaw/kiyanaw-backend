@@ -37,7 +37,7 @@ export default {
       }
     },
 
-    locked() {
+    lockedByMe() {
       return this.locks[this.source.id]
         ? this.locks[this.source.id].user === this.user.name
           ? true
@@ -45,7 +45,7 @@ export default {
         : false
     },
 
-    lockedByMe() {
+    locked() {
       return this.lockedRegionNames.includes(this.source.id)
     },
   },

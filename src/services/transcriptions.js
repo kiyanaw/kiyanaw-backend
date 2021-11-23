@@ -194,7 +194,8 @@ export default {
       coverage: 0,
       id: id,
       dateLastUpdated: +new Date(),
-      contributors: [],
+      disableAnalyzer: false,
+      isPrivate: false,
     }
     return API.graphql(graphqlOperation(mutations.createTranscription, { input: input }))
   },

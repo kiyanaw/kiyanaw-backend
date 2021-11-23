@@ -83,6 +83,7 @@ export default {
   },
   mounted() {
     logger.info('Editor mounted', this.mode, this.disabled)
+    logger.info('Analyzer enabled', this.analyze)
     this.editor = null
     // toggle context menu once to fix first click bug
     this.showMenu = false

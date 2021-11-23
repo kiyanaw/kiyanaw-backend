@@ -134,7 +134,6 @@ export default {
      */
     disableInputs() {
       if (this.user) {
-        // console.log('editors', this.transcription.editors)
         return !this.transcription.editors.includes(this.user.name)
       } else {
         return true
@@ -351,7 +350,7 @@ export default {
      * Quickly apply known words to the current region, then do a search on anything left over.
      */
     checkForKnownWords(doUpdate = false) {
-      if (!this.transcription.disableAnalyzer) {
+      if (this.transcription.disableAnalyzer) {
         return
       }
       // clear out any typing changes
