@@ -49,6 +49,8 @@ export default {
   mounted() {
     this.listProfiles()
     this.currentEditors = this.editors
+
+    window.api = this
   },
   methods: {
     ...mapActions(['setProfiles', 'addEditor', 'removeEditor']),
@@ -76,6 +78,11 @@ export default {
           this.removeEditor(staleEditor)
         }
       }
+    },
+
+    async setAuthor(username) {
+      await this.$store.dispatch('updateTranscription', { author: username })
+      await UserService.addTranscriptionEditor(this.transcription.id, username)
     },
   },
   computed: {
