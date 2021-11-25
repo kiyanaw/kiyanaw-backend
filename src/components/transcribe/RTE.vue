@@ -77,7 +77,7 @@ export default {
       x: 0,
       y: 0,
       suggestions: {},
-      currentSuggestions: ['one'],
+      currentSuggestions: [],
       suggestionRange: null,
     }
   },
@@ -85,6 +85,7 @@ export default {
     logger.info('Editor mounted', this.mode, this.disabled)
     logger.info('Analyzer enabled', this.analyze)
     this.editor = null
+
     // toggle context menu once to fix first click bug
     this.showMenu = false
 
@@ -140,6 +141,7 @@ export default {
     },
 
     onSelection(range) {
+      console.debug('onselection', range)
       if (!this.disabled) {
         logger.debug('Selection change', this.mode, range)
         if (range) {
@@ -176,7 +178,7 @@ export default {
       }
       // clear out suggestions
       this.suggestions = {}
-      this.currentSuggestions = []
+      this.currentSuggestions = ['one', 'three']
       this.suggestionRange = null
     },
 
@@ -226,7 +228,7 @@ export default {
       if (!this.analyze) {
         return
       }
-      logger.debug('applying suggestion', index, length)
+      logger.info('applying suggestion', index, length)
       const currentFormat = this.editor.getFormat(index, length)
       if (Object.keys(currentFormat).indexOf('ignore-word') === -1) {
         this.editor.formatText(index, length, 'suggestion', true, 'silent')
@@ -242,6 +244,7 @@ export default {
       if (!this.analyze) {
         return
       }
+
       logger.debug('checking for suggestions', range)
       const [blot] = this.editor.getLeaf(range.index)
       logger.debug('blot', blot)
@@ -268,10 +271,10 @@ export default {
         this.y = Number(targetWordBounds.top + 25)
         this.showMenu = false
         this.currentSuggestions = this.suggestions[cleanText]
-        this.$nextTick(() => {
-          logger.debug('showing the menu')
+        setTimeout(() => {
           this.showMenu = true
-        })
+          logger.debug('showing the menu', this.showMenu)
+        }, 30)
       }
     },
 
