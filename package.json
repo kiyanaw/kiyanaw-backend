@@ -49,6 +49,7 @@
     "vuetify-upload-button": "^1.2.2",
     "vuex": "^3.5.1",
     "wavesurfer.js": "^4.2.0",
+    "webpack-visualizer-plugin": "^0.1.11",
     "yargs-parser": "^18.1.2"
   },
   "devDependencies": {

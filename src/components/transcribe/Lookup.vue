@@ -15,7 +15,8 @@
           </v-row>
         </v-container>
 
-        <v-subheader v-if="!results.length">No results</v-subheader>
+        <v-progress-linear v-if="searching" indeterminate></v-progress-linear>
+        <v-subheader v-if="!results.length && !searching">No results</v-subheader>
 
         <v-card v-for="item in results" v-bind:key="item.title">
           <v-card-title
@@ -58,6 +59,7 @@ export default {
   data() {
     return {
       search: '',
+      searching: false,
       results: [],
     }
   },
