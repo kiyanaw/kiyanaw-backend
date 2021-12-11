@@ -20,6 +20,8 @@
           :items-per-page="10"
           :loading="loading"
           :search="search"
+          :sort-by="'dateLastUpdated'"
+          :sort-desc="true"
         >
           <template v-slot:item.title="{ item }">
             <a :href="item.url">{{ item.title }}</a>
