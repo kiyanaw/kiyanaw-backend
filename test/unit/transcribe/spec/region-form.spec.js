@@ -33,6 +33,9 @@ describe('components/RegionForm', function () {
       selectedIssue: () => {
         return {}
       },
+      transcription: (context) => {
+        return context.transcription
+      },
       user: () => {
         return {}
       },
@@ -41,6 +44,7 @@ describe('components/RegionForm', function () {
       selectedRegion: {
         issues: [],
       },
+      transcription: { editors: [] },
     }
     store = new Vuex.Store({
       getters,
@@ -58,10 +62,6 @@ describe('components/RegionForm', function () {
   })
 
   describe('getTextMapFromDeltas()', function () {
-    it('should parse deltas', async function () {
-      // TODO
-    })
-
     it('should scrub brackets [] and return proper result', async function () {
       const wrapper = shallowMount(RegionForm, { store, localVue })
 
@@ -198,6 +198,105 @@ describe('components/RegionForm', function () {
       assert.deepEqual(applyStub.args[1], [8, 3])
       // applies bar
       assert.deepEqual(applyStub.args[2], [4, 3])
+    })
+
+    it('should do clear known words when no matches', async function () {
+      // set up the region
+      store.state.selectedRegion = {
+        text: [{ insert: 'foo' }, { insert: ' ' }, { insert: 'bar' }, { insert: ' \n' }],
+      }
+
+      const wrapper = shallowMount(RegionForm, { store, localVue })
+      const rendered = wrapper.vm
+
+      // mock the return value for known words
+      this.sandbox.stub(Lexicon, 'getKnownWords').returns([])
+
+      const clearStub = this.sandbox.stub(rendered, 'editorClearKnownWords')
+      const applyStub = this.sandbox.stub(rendered, 'editorApplyKnownWords')
+      const hintStub = this.sandbox.stub(rendered, 'editorApplyKnownHint')
+
+      await rendered.applyKnownWords(true)
+
+      assert.ok(!hintStub.called)
+      assert.ok(clearStub.called)
+      // applies zero known words
+      assert.equal(applyStub.callCount, 0)
+      assert.equal(clearStub.callCount, 1)
+    })
+  })
+
+  describe('applyKnownWords() - doUpdate=false', function () {
+    it('should apply hints', async function () {
+      // set up the region
+      store.state.selectedRegion = {
+        text: [{ insert: 'foo' }, { insert: ' ' }, { insert: 'bar' }, { insert: ' \n' }],
+      }
+
+      const wrapper = shallowMount(RegionForm, { store, localVue })
+      const rendered = wrapper.vm
+
+      // mock the return value for known words
+      this.sandbox.stub(Lexicon, 'getKnownWords').returns(['foo', 'bar'])
+
+      const clearStub = this.sandbox.stub(rendered, 'editorClearKnownWords')
+      const applyStub = this.sandbox.stub(rendered, 'editorApplyKnownWords')
+      const hintStub = this.sandbox.stub(rendered, 'editorApplyKnownHint')
+
+      await rendered.applyKnownWords(false)
+
+      assert.ok(!applyStub.called)
+      assert.ok(!clearStub.called)
+      // applies two known words
+      assert.ok(hintStub.callCount, 2)
+      // applies foo
+      assert.deepEqual(hintStub.args[0], [0, 3])
+      // applies bar
+      assert.deepEqual(hintStub.args[1], [4, 3])
+    })
+  })
+
+  describe('checkForKnownWords()', function () {
+    it('should do nothing if analysis is diabled', async function () {
+      store.state.transcription.disableAnalyzer = true
+
+      const wrapper = shallowMount(RegionForm, { store, localVue })
+      const rendered = wrapper.vm
+      // mock the return value for known words
+      const knownStub = this.sandbox.stub(rendered, 'applyKnownWords')
+
+      rendered.checkForKnownWords()
+
+      assert.ok(!knownStub.called)
+    })
+
+    it('should apply known words immediately, then search after timer', async function () {
+      const clock = sinon.useFakeTimers()
+      store.state.selectedRegion = {
+        text: [{ insert: 'foo' }, { insert: ' ' }, { insert: 'bar' }, { insert: ' \n' }],
+      }
+      const wrapper = shallowMount(RegionForm, { store, localVue })
+      const rendered = wrapper.vm
+      // mock the return value for known words
+      const knownStub = this.sandbox.stub(rendered, 'applyKnownWords')
+
+      const existingStub = this.sandbox.stub(Lexicon, 'getKnownWords').returns(['foo'])
+      const searchStub = this.sandbox.stub(Lexicon, 'wordSearch')
+
+      rendered.checkForKnownWords()
+
+      assert.ok(knownStub.called)
+      assert.ok(!existingStub.called)
+      assert.ok(!searchStub.called)
+
+      await clock.tick(1000)
+
+      assert.equal(existingStub.called, true)
+      assert.deepEqual(searchStub.args[0][0], ['bar'])
+
+      assert.ok(searchStub.called)
+
+      clock.restore()
     })
   })
 

@@ -114,11 +114,11 @@ const actions = {
       Timeout.set(
         'save-region-timer',
         () => {
-          logger.info('Save region triggered', region)
+          logger.debug('Save region triggered', region)
           transcriptionService
             .updateRegion(store.getters.transcription.id, region)
             .then(() => {
-              logger.info('Region saved!')
+              logger.debug('Region saved!')
               store.dispatch('setSaved', true)
             })
             .catch((error) => {
@@ -131,7 +131,7 @@ const actions = {
         5000,
       )
     } else {
-      console.log('Unable to save, user not authenticated')
+      logger.info('Unable to save, user not authenticated')
     }
   },
 
@@ -147,11 +147,11 @@ const actions = {
     delete transcription.editors
     delete transcription.editorsDb
 
-    logger.info('Save transcription triggered', transcription)
+    logger.debug('Save transcription triggered', transcription)
     transcriptionService
       .updateTranscription(transcription)
       .then(() => {
-        logger.info('Transcription saved!')
+        logger.debug('Transcription saved!')
         store.dispatch('setSaved', true)
       })
       .catch((error) => {

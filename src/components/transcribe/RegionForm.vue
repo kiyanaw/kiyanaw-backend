@@ -350,11 +350,12 @@ export default {
      * Quickly apply known words to the current region, then do a search on anything left over.
      */
     checkForKnownWords(doUpdate = false) {
+      logger.info(`Checking for known words in editor, (doUpdate: ${doUpdate})`)
       if (this.transcription.disableAnalyzer) {
         return
       }
       // clear out any typing changes
-      this.applyKnownWords()
+      this.applyKnownWords(doUpdate)
 
       // throttle word checking
       Timeout.clear('check-known-words-timer')
@@ -376,6 +377,43 @@ export default {
         },
         750,
       )
+    },
+
+    /**
+     * Apply known words from the Lexicon to the current editor.
+     */
+    async applyKnownWords(doUpdate = false) {
+      logger.info(`applyKnownWords, (doUpdate: ${doUpdate})`)
+      // check for words to search
+      const knownWords = Lexicon.getKnownWords()
+      const wordMap = this.getTextMapFromDeltas(this.selectedRegion.text)
+      const matches = Object.keys(wordMap).filter((needle) => knownWords.includes(needle))
+
+      if (matches.length) {
+        let applyFunc
+        if (!doUpdate) {
+          // hint known word
+          applyFunc = this.editorApplyKnownHint
+        } else {
+          logger.info('Should! clear known words')
+          this.editorClearKnownWords()
+          applyFunc = this.editorApplyKnownWords
+        }
+        // notify main editor to adjust formatting
+        for (const match of matches) {
+          let bits = wordMap[match]
+          if (!Array.isArray(bits)) {
+            bits = [bits]
+          }
+          logger.debug('Applying match', match, bits)
+          bits.forEach((bit) => {
+            // either highlight known words, or apply hints
+            applyFunc(bit.index, bit.length)
+          })
+        }
+      } else {
+        this.editorClearKnownWords()
+      }
     },
 
     /**
@@ -450,38 +488,6 @@ export default {
       return map
     },
 
-    /**
-     * Apply known words from the Lexicon to the current editor.
-     */
-    async applyKnownWords(doUpdate = false) {
-      // check for words to search
-      const knownWords = Lexicon.getKnownWords()
-      const wordMap = this.getTextMapFromDeltas(this.selectedRegion.text)
-      const matches = Object.keys(wordMap).filter((needle) => knownWords.includes(needle))
-
-      if (matches.length) {
-        let applyFunc
-        if (!doUpdate) {
-          // hint known word
-          applyFunc = this.editorApplyKnownHint
-        } else {
-          this.editorClearKnownWords()
-          applyFunc = this.editorApplyKnownWords
-        }
-        // notify main editor to adjust formatting
-        for (const match of matches) {
-          let bits = wordMap[match]
-          if (!Array.isArray(bits)) {
-            bits = [bits]
-          }
-          logger.debug('Applying match', match, bits)
-          bits.forEach((bit) => {
-            // either highlight known words, or apply hints
-            applyFunc(bit.index, bit.length)
-          })
-        }
-      }
-    },
     /**
      * Apply known words from the Lexicon to the current editor.
      */

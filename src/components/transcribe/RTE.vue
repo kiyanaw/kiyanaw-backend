@@ -82,8 +82,8 @@ export default {
     }
   },
   mounted() {
-    logger.info('Editor mounted', this.mode, this.disabled)
-    logger.info('Analyzer enabled', this.analyze)
+    logger.debug('Editor mounted', this.mode, this.disabled)
+    logger.debug('Analyzer enabled', this.analyze)
     this.editor = null
 
     // toggle context menu once to fix first click bug
@@ -126,6 +126,7 @@ export default {
     onChange(delta, oldDelta, source) {
       // Only emit user changes
       if (source === 'user') {
+        logger.info('user change')
         this.maybeAddASpaceAtTheEnd()
 
         // throttle updates a little
@@ -141,7 +142,7 @@ export default {
     },
 
     onSelection(range) {
-      console.debug('onselection', range)
+      logger.debug('onselection', range)
       if (!this.disabled) {
         logger.debug('Selection change', this.mode, range)
         if (range) {
@@ -183,10 +184,12 @@ export default {
     },
 
     clearKnownWords() {
+      logger.info('clear known words')
       this.editor.formatText(0, 9999, 'known-word', false)
     },
 
     clearSuggestions() {
+      logger.info('clear suggestions')
       this.editor.formatText(0, 9999, 'suggestions', false)
     },
 
@@ -208,7 +211,7 @@ export default {
       this.editor.formatText(index, length, 'known-word', true)
       this.editor.formatText(index, length, 'suggestion', false)
       // trigger change for save
-      logger.debug('apply known word', index, length)
+      logger.info('apply known word', index, length)
       this.emitChangeEvent('change-format')
     },
 
@@ -278,6 +281,9 @@ export default {
       }
     },
 
+    /**
+     * Helper to figure out where to render the dropdown for suggestions.
+     */
     getBounds(range) {
       const editorBounds = this.element.getBoundingClientRect()
       const rangeBounds = this.editor.getBounds(range)
@@ -391,14 +397,6 @@ export default {
         this.editor.enable()
       }
     },
-
-    /**
-     * A hook to change the editor text only when the region changes.
-     */
-    // selectedRegion() {
-    //   logger.info('selectionRegion changed!', this.text)
-    //   this.setContents(this.selectedRegion.text)
-    // },
   },
 }
 </script>
