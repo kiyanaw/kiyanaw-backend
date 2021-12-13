@@ -118,7 +118,7 @@ const actions = {
           transcriptionService
             .updateRegion(store.getters.transcription.id, region)
             .then(() => {
-              logger.debug('Region saved!')
+              logger.log('Region saved!')
               store.dispatch('setSaved', true)
             })
             .catch((error) => {
@@ -128,7 +128,7 @@ const actions = {
           // mark the last saved user on the transcription here
           store.dispatch('updateTranscription', { userLastUpdated: region.userLastUpdated })
         },
-        5000,
+        1250,
       )
     } else {
       logger.info('Unable to save, user not authenticated')

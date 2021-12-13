@@ -1,6 +1,13 @@
+import elasticsearch from 'elasticsearch'
+import httpAwsEs from 'http-aws-es'
+
 import Timeout from 'smart-timeout'
 
 import logging from '../logging'
+
+// TODO: inject this
+import AWS from 'aws-sdk'
+import { Auth } from 'aws-amplify'
 
 const logger = new logging.Logger('Lexicon')
 
@@ -8,6 +15,18 @@ class Client {
   constructor() {
     this.endpoint = 'https://icagc4x2ok.execute-api.us-east-1.amazonaws.com'
     this.sapirEndpoint = 'https://itwewina.altlab.app/click-in-text'
+
+    Auth.currentCredentials().then((credentials) => {
+      console.log('credentials', credentials)
+      this.esClient = elasticsearch.Client({
+        host:
+          'https://search-indexregiondata-lqatyzsxiuhepcfidwldyiebh4.us-east-1.es.amazonaws.com',
+        connectionClass: httpAwsEs,
+        awsConfig: new AWS.Config({ region: 'us-east-1', credentials }),
+      })
+
+      window.es = this.esClient
+    })
   }
 
   async search(data) {

@@ -3,6 +3,7 @@ import VueRouter from 'vue-router'
 
 // views
 import App from './views/App.vue'
+import StatsHome from './components/rendered/StatsHome.vue'
 import SignIn from './components/SignIn.vue'
 import TranscribeEdit from './components/transcribe/Transcribe.vue'
 import TranscribeList from './components/transcribe/List.vue'
@@ -13,6 +14,7 @@ const router = new VueRouter({
   mode: 'history',
   routes: [
     { path: '/crk/:word', component: RenderedWord },
+    { path: '/home', component: StatsHome },
     {
       path: '/',
       redirect: '/transcribe-list',

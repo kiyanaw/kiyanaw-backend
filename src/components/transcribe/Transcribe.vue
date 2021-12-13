@@ -192,6 +192,8 @@ export default {
     //   }
     // })
 
+    window.transcribe = this
+
     // load up
     this.load()
   },
@@ -205,6 +207,21 @@ export default {
       'setTranscription',
       'updateRegionById',
     ]),
+
+    // async index() {
+    //   let count = 1
+    //   for (const region of this.regions) {
+    //     if (region.text.length) {
+    //       const newCreated = region.createdAt.split('.')[0] + '.001Z'
+    //       console.log(`Updating ${region.id}`)
+    //       this.updateRegionById({ id: region.id, update: { createdAt: newCreated } })
+    //       await new Promise((resolve) => setTimeout(resolve, 550))
+    //       console.log(` - ${count} of ${this.regions.length}`)
+    //       count = count + 1
+    //     }
+    //   }
+    //   console.log('Done.')
+    // },
 
     regionCursor(data) {
       data.color = cursorColor
