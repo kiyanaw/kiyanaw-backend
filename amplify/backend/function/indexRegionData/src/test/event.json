@@ -1,0 +1,105 @@
+{
+  "Records": [
+    {
+      "eventID": "54d466d5ed9742659e38f62336e7287c",
+      "eventName": "MODIFY",
+      "eventVersion": "1.1",
+      "eventSource": "aws:dynamodb",
+      "awsRegion": "us-east-1",
+      "dynamodb": {
+        "ApproximateCreationDateTime": 1639337585,
+        "Keys": {
+          "id": {
+            "S": "wavesurfer_1638155505292"
+          }
+        },
+        "NewImage": {
+          "dateLastUpdated": {
+            "S": "1639337584504"
+          },
+          "__typename": {
+            "S": "Region"
+          },
+          "transcriptionId": {
+            "S": "3af0aaf0"
+          },
+          "start": {
+            "N": "129.67816727240208"
+          },
+          "issues": {
+            "S": "[]"
+          },
+          "version": {
+            "N": "10"
+          },
+          "userLastUpdated": {
+            "S": "aaronfay"
+          },
+          "createdAt": {
+            "S": "2021-11-29T03:11:45.532Z"
+          },
+          "end": {
+            "N": "134.05866"
+          },
+          "isNote": {
+            "BOOL": false
+          },
+          "id": {
+            "S": "wavesurfer_1638155505292"
+          },
+          "text": {
+            "S": "[{\"attributes\":{\"known-word\":\"true\"},\"insert\":\"mitoni\"},{\"insert\":\" ?? \"},{\"attributes\":{\"known-word\":\"true\"},\"insert\":\"êtikwê\"},{\"insert\":\" \"},{\"attributes\":{\"known-word\":\"true\"},\"insert\":\"ê-itahtopiponêyân\"},{\"insert\":\" \"},{\"attributes\":{\"known-word\":\"true\"},\"insert\":\"êkwa\"},{\"insert\":\" \"},{\"attributes\":{},\"insert\":\"kâ-kî-pê-isikawiyân?\"},{\"insert\":\"  \\n\"}]"
+          },
+          "updatedAt": {
+            "S": "2021-12-12T19:33:04.879Z"
+          }
+        },
+        "OldImage": {
+          "dateLastUpdated": {
+            "S": "1639257014854"
+          },
+          "__typename": {
+            "S": "Region"
+          },
+          "transcriptionId": {
+            "S": "3af0aaf0"
+          },
+          "start": {
+            "N": "129.67816727240208"
+          },
+          "issues": {
+            "S": "[]"
+          },
+          "version": {
+            "N": "9"
+          },
+          "userLastUpdated": {
+            "S": "aaronfay"
+          },
+          "createdAt": {
+            "S": "2021-11-29T03:11:45.532Z"
+          },
+          "end": {
+            "N": "134.05866"
+          },
+          "isNote": {
+            "BOOL": false
+          },
+          "id": {
+            "S": "wavesurfer_1638155505292"
+          },
+          "text": {
+            "S": "[{\"attributes\":{\"known-word\":\"true\"},\"insert\":\"mitoni\"},{\"insert\":\" ?? \"},{\"attributes\":{\"known-word\":\"true\"},\"insert\":\"êtikwê\"},{\"insert\":\" \"},{\"attributes\":{\"known-word\":\"true\"},\"insert\":\"ê-itahtopiponêyân\"},{\"insert\":\" \"},{\"attributes\":{\"known-word\":\"true\"},\"insert\":\"êkwa\"},{\"insert\":\" \"},{\"attributes\":{},\"insert\":\"kâ-kî-pê-isikawiyân?\"},{\"insert\":\" \\n\"}]"
+          },
+          "updatedAt": {
+            "S": "2021-12-11T21:10:15.299Z"
+          }
+        },
+        "SequenceNumber": "3340672800000000056830741666",
+        "SizeBytes": 1235,
+        "StreamViewType": "NEW_AND_OLD_IMAGES"
+      },
+      "eventSourceARN": "arn:aws:dynamodb:us-east-1:494185203413:table/Region-2f6oi2uymzaunf4rb564agznt4-prod/stream/2020-01-11T03:18:07.844"
+    }
+  ]
+}
