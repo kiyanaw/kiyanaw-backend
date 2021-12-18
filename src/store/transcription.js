@@ -147,7 +147,31 @@ const actions = {
     delete transcription.editors
     delete transcription.editorsDb
 
+    /**
+     * Calculate issue count
+     */
+    const issueCount = store.getters.regions
+      .filter((item) => item.issues.length)
+      .map((item) => item.issues)
+      .flat()
+      .filter((item) => !item.resolved).length
+    transcription.issues = `${issueCount}`
+
+    /**
+     * Calculate coverage
+     */
+    const coverage = Number(
+      (
+        (store.getters.regions.filter((item) => item.text.length).length /
+          store.getters.regions.filter((item) => !item.isNote).length) *
+        100
+      ).toFixed(2),
+    )
+    transcription.coverage = coverage
+
     logger.debug('Save transcription triggered', transcription)
+    logger.info('Transcription issue count', transcription.issues)
+    logger.info('Transcription coverage', transcription.coverage)
     transcriptionService
       .updateTranscription(transcription)
       .then(() => {
