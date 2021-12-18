@@ -1,5 +1,6 @@
-import Vue from 'vue'
 import VueRouter from 'vue-router'
+
+import UserService from './services/user'
 
 // views
 import App from './views/App.vue'
@@ -32,17 +33,11 @@ const router = new VueRouter({
 
 router.beforeResolve((to, from, next) => {
   if (to.matched.some((record) => record.meta.requiresAuth)) {
-    Vue.prototype.$Amplify.Auth.currentAuthenticatedUser()
-      .then((data) => {
-        if (data && data.signInUserSession) {
-          return next()
-        } else {
-          next({ path: '/signin' })
-        }
+    UserService.getUser()
+      .then(() => {
+        return next()
       })
-      .catch((error) => {
-        console.warn(error)
-        // likely not authenticated
+      .catch(() => {
         next({ path: '/signin' })
       })
   } else {
