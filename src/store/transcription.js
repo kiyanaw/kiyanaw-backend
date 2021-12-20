@@ -169,6 +169,11 @@ const actions = {
     )
     transcription.coverage = coverage
 
+    /**
+     * Set userLastUpdated
+     */
+    transcription.userLastUpdated = store.getters.user.name
+
     logger.debug('Save transcription triggered', transcription)
     logger.info('Transcription issue count', transcription.issues)
     logger.info('Transcription coverage', transcription.coverage)
