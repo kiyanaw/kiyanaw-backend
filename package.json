@@ -15,7 +15,6 @@
     "unit": "vue-cli-service test:unit"
   },
   "dependencies": {
-    "-": "^0.0.1",
     "@aws-amplify/ui-components": "^1.9.6",
     "@babel/plugin-proposal-object-rest-spread": "^7.12.1",
     "@hapi/hoek": "^9.0.3",
