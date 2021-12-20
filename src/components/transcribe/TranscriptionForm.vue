@@ -10,11 +10,13 @@
     <v-text-field v-model="knownWordCount" disabled label="Known word count"></v-text-field> -->
     <v-combobox
       v-model="accessLevel"
+      :disabled="disableInputs"
       :items="['Enable', 'Disable']"
       label="Public read access"
     ></v-combobox>
     <v-combobox
       v-model="analyzerEnabled"
+      :disabled="disableInputs"
       :items="['Enable', 'Disable']"
       label="Analyzer"
     ></v-combobox>
@@ -47,6 +49,8 @@ export default {
   mounted() {
     this.listProfiles()
     this.currentEditors = this.editors
+
+    window.api = this
   },
   methods: {
     ...mapActions(['setProfiles', 'addEditor', 'removeEditor']),
@@ -74,6 +78,11 @@ export default {
           this.removeEditor(staleEditor)
         }
       }
+    },
+
+    async setAuthor(username) {
+      await this.$store.dispatch('updateTranscription', { author: username })
+      await UserService.addTranscriptionEditor(this.transcription.id, username)
     },
   },
   computed: {

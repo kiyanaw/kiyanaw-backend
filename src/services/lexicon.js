@@ -1,6 +1,13 @@
+import elasticsearch from 'elasticsearch'
+import httpAwsEs from 'http-aws-es'
+
 import Timeout from 'smart-timeout'
 
 import logging from '../logging'
+
+// TODO: inject this
+import AWS from 'aws-sdk'
+import { Auth } from 'aws-amplify'
 
 const logger = new logging.Logger('Lexicon')
 
@@ -8,6 +15,19 @@ class Client {
   constructor() {
     this.endpoint = 'https://icagc4x2ok.execute-api.us-east-1.amazonaws.com'
     this.sapirEndpoint = 'https://itwewina.altlab.app/click-in-text'
+
+    // Auth.currentCredentials().then((credentials) => {
+    //   console.log('credentials', credentials)
+    //   this.esClient = elasticsearch.Client({
+    //     host:
+    //       'https://search-indexregiondata-lqatyzsxiuhepcfidwldyiebh4.us-east-1.es.amazonaws.com',
+    //     connectionClass: httpAwsEs,
+    //     awsConfig: new AWS.Config({ region: 'us-east-1', credentials }),
+    //   })
+
+    // window.es = this.esClient
+    // window.foo = this
+    // })
   }
 
   async search(data) {
@@ -31,6 +51,57 @@ class Client {
     })
     response = await response.json()
     return response.results
+  }
+
+  async setEsClient() {
+    if (!this.esClient) {
+      const credentials = await Auth.currentCredentials()
+      this.esClient = elasticsearch.Client({
+        host:
+          'https://search-indexregiondata-lqatyzsxiuhepcfidwldyiebh4.us-east-1.es.amazonaws.com',
+        connectionClass: httpAwsEs,
+        awsConfig: new AWS.Config({ region: 'us-east-1', credentials }),
+      })
+    }
+  }
+
+  async getWordTypeCount() {
+    await this.setEsClient()
+    const query = {
+      size: 0,
+      index: 'knownwords',
+      body: {
+        aggs: {
+          wordTypeCount: {
+            terms: { field: 'wordClass', size: 50 },
+          },
+        },
+      },
+    }
+    const results = await this.esClient.search(query)
+    return results.aggregations.wordTypeCount.buckets
+  }
+
+  async getLemmaCount(type = 'V', max = 20) {
+    await this.setEsClient()
+    const query = {
+      size: 0,
+      index: 'knownwords',
+      body: {
+        aggs: {
+          lemmaCount: {
+            filter: { term: { wordType: type } },
+            aggs: {
+              lemma: {
+                terms: { field: 'lemma', size: max },
+              },
+            },
+          },
+        },
+      },
+    }
+    const results = await this.esClient.search(query)
+    return results.aggregations.lemmaCount.lemma.buckets
   }
 }
 
@@ -160,6 +231,18 @@ class Lex {
 
   async lookup(term) {
     return client.sapir(term)
+  }
+
+  async getWordTypeCount() {
+    return client.getWordTypeCount()
+  }
+
+  async getVerbLemmaCount() {
+    return client.getLemmaCount('V')
+  }
+
+  async getNounLemmaCount() {
+    return client.getLemmaCount('N')
   }
 }
 

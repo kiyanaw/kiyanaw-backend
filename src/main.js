@@ -4,16 +4,19 @@ import vuetify from './plugins/vuetify'
 import router from './router'
 import store from './store/index'
 import 'babel-polyfill'
-// import VueMeta from 'vue-meta'
 
-import Amplify, * as AmplifyModules from 'aws-amplify'
-import { AmplifyPlugin } from 'aws-amplify-vue'
-import awsmobile from './aws-exports'
+import Amplify from 'aws-amplify'
+import aws_exports from './aws-exports'
+import { applyPolyfills, defineCustomElements } from '@aws-amplify/ui-components/loader'
 
-Amplify.configure(awsmobile)
-Vue.use(AmplifyPlugin, AmplifyModules)
+Amplify.configure(aws_exports)
+applyPolyfills().then(() => {
+  defineCustomElements(window)
+})
+
+Vue.config.ignoredElements = [/amplify-\w*/]
+
 Vue.use(VueRouter)
-// Vue.use(VueMeta)
 
 Vue.config.productionTip = false
 

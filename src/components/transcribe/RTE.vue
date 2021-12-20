@@ -77,14 +77,15 @@ export default {
       x: 0,
       y: 0,
       suggestions: {},
-      currentSuggestions: ['one'],
+      currentSuggestions: [],
       suggestionRange: null,
     }
   },
   mounted() {
-    logger.info('Editor mounted', this.mode, this.disabled)
-    logger.info('Analyzer enabled', this.analyze)
+    logger.debug('Editor mounted', this.mode, this.disabled)
+    logger.debug('Analyzer enabled', this.analyze)
     this.editor = null
+
     // toggle context menu once to fix first click bug
     this.showMenu = false
 
@@ -125,6 +126,7 @@ export default {
     onChange(delta, oldDelta, source) {
       // Only emit user changes
       if (source === 'user') {
+        logger.info('user change')
         this.maybeAddASpaceAtTheEnd()
 
         // throttle updates a little
@@ -140,6 +142,7 @@ export default {
     },
 
     onSelection(range) {
+      logger.debug('onselection', range)
       if (!this.disabled) {
         logger.debug('Selection change', this.mode, range)
         if (range) {
@@ -176,15 +179,17 @@ export default {
       }
       // clear out suggestions
       this.suggestions = {}
-      this.currentSuggestions = []
+      this.currentSuggestions = ['one', 'three']
       this.suggestionRange = null
     },
 
     clearKnownWords() {
+      logger.info('clear known words')
       this.editor.formatText(0, 9999, 'known-word', false)
     },
 
     clearSuggestions() {
+      logger.info('clear suggestions')
       this.editor.formatText(0, 9999, 'suggestions', false)
     },
 
@@ -206,7 +211,7 @@ export default {
       this.editor.formatText(index, length, 'known-word', true)
       this.editor.formatText(index, length, 'suggestion', false)
       // trigger change for save
-      logger.debug('apply known word', index, length)
+      logger.info('apply known word', index, length)
       this.emitChangeEvent('change-format')
     },
 
@@ -226,7 +231,7 @@ export default {
       if (!this.analyze) {
         return
       }
-      logger.debug('applying suggestion', index, length)
+      logger.info('applying suggestion', index, length)
       const currentFormat = this.editor.getFormat(index, length)
       if (Object.keys(currentFormat).indexOf('ignore-word') === -1) {
         this.editor.formatText(index, length, 'suggestion', true, 'silent')
@@ -242,6 +247,7 @@ export default {
       if (!this.analyze) {
         return
       }
+
       logger.debug('checking for suggestions', range)
       const [blot] = this.editor.getLeaf(range.index)
       logger.debug('blot', blot)
@@ -268,13 +274,16 @@ export default {
         this.y = Number(targetWordBounds.top + 25)
         this.showMenu = false
         this.currentSuggestions = this.suggestions[cleanText]
-        this.$nextTick(() => {
-          logger.debug('showing the menu')
+        setTimeout(() => {
           this.showMenu = true
-        })
+          logger.debug('showing the menu', this.showMenu)
+        }, 30)
       }
     },
 
+    /**
+     * Helper to figure out where to render the dropdown for suggestions.
+     */
     getBounds(range) {
       const editorBounds = this.element.getBoundingClientRect()
       const rangeBounds = this.editor.getBounds(range)
@@ -388,14 +397,6 @@ export default {
         this.editor.enable()
       }
     },
-
-    /**
-     * A hook to change the editor text only when the region changes.
-     */
-    // selectedRegion() {
-    //   logger.info('selectionRegion changed!', this.text)
-    //   this.setContents(this.selectedRegion.text)
-    // },
   },
 }
 </script>

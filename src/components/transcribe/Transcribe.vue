@@ -192,6 +192,8 @@ export default {
     //   }
     // })
 
+    window.transcribe = this
+
     // load up
     this.load()
   },
@@ -206,6 +208,22 @@ export default {
       'updateRegionById',
     ]),
 
+    async index() {
+      const slice = this.regions.slice(1201, 1301)
+      let count = 1
+      for (const region of slice) {
+        if (region.text.length) {
+          const newCreated = region.createdAt.split('.')[0] + '.001Z'
+          console.log(`Updating ${region.id}`)
+          this.updateRegionById({ id: region.id, update: { createdAt: newCreated } })
+          await new Promise((resolve) => setTimeout(resolve, 550))
+          console.log(` - ${count} of ${slice.length}`)
+          count = count + 1
+        }
+      }
+      console.log('Done.')
+    },
+
     regionCursor(data) {
       data.color = cursorColor
       const update = {
@@ -218,7 +236,7 @@ export default {
     },
 
     /**
-     * TODO: test me
+     * TODO: remove this, it has moved to the store.
      */
     coverage() {
       let val = 0

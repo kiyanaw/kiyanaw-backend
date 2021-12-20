@@ -198,7 +198,7 @@ const actions = {
    */
   updateRegionById(store, input) {
     const update = input.update
-    logger.info('Updating region by Id', update.start)
+    logger.info('Updating region by Id', update.id)
     const region = store.getters.regionById(input.id)
     store.commit('UPDATE_REGION', { region, update })
 

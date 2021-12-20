@@ -20,6 +20,8 @@
           :items-per-page="10"
           :loading="loading"
           :search="search"
+          :sort-by="'dateLastUpdated'"
+          :sort-desc="true"
         >
           <template v-slot:item.title="{ item }">
             <a :href="item.url">{{ item.title }}</a>
@@ -58,7 +60,6 @@
 
 <script>
 import { mapActions, mapGetters } from 'vuex'
-import TranscriptionService from '../../services/transcriptions'
 
 import en from 'javascript-time-ago/locale/en'
 import TimeAgo from 'javascript-time-ago'
@@ -84,10 +85,6 @@ export default {
   },
   mounted() {
     this.loadTranscriptions()
-    // this is a hack, fix it
-    // this.$refs.table.defaultPagination.rowsPerPage = 25
-
-    window.transcriptionService = TranscriptionService
   },
   computed: {
     ...mapGetters(['transcriptions']),

@@ -17,7 +17,7 @@
 </template>
 
 <script>
-import { AmplifyEventBus } from 'aws-amplify-vue'
+import { AuthState, onAuthUIStateChange } from '@aws-amplify/ui-components'
 import { mapGetters, mapActions } from 'vuex'
 
 export default {
@@ -26,17 +26,22 @@ export default {
   },
 
   mounted() {
-    AmplifyEventBus.$on('authState', (info) => {
-      if (info === 'signedIn') {
+    onAuthUIStateChange((nextAuthState, authData) => {
+      console.log('state changed', nextAuthState, authData)
+      if (nextAuthState === AuthState.SignedIn) {
+        console.log('user successfully signed in!')
+        console.log('user data: ', authData)
         this.getUser()
-        this.$router.push('/transcribe-list')
-      } else {
-        this.setUser(null)
+        this.$router.push('/')
+      }
+      if (!authData) {
+        console.log('user is not signed in...')
+        this.setSignedIn(false)
       }
     })
   },
   methods: {
-    ...mapActions(['getUser', 'setUser']),
+    ...mapActions(['getUser', 'setSignedIn']),
   },
 }
 </script>

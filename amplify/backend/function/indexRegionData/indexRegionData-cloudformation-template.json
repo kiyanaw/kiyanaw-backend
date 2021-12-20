@@ -1,14 +1,13 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "Lambda resource stack creation using Amplify CLI",
+  "Description": "Lambda Function resource stack creation using Amplify CLI",
   "Parameters": {
+    "CloudWatchRule": {
+      "Type": "String",
+      "Default": "NONE",
+      "Description": " Schedule Expression"
+    },
     "env": {
-      "Type": "String"
-    },
-    "deploymentBucketName": {
-      "Type": "String"
-    },
-    "s3Key": {
       "Type": "String"
     }
   },
@@ -34,12 +33,12 @@
         "FunctionName": {
           "Fn::If": [
             "ShouldNotCreateEnvResources",
-            "notifyRegionChanges",
+            "indexRegionData",
             {
               "Fn::Join": [
                 "",
                 [
-                  "notifyRegionChanges",
+                  "indexRegionData",
                   "-",
                   {
                     "Ref": "env"
@@ -65,11 +64,12 @@
             "Arn"
           ]
         },
-        "Runtime": "nodejs10.x",
+        "Runtime": "nodejs12.x",
+        "Layers": [],
         "Timeout": "25",
         "Code": {
           "S3Bucket": "amplify-kiyanaw-dev-02717-deployment",
-          "S3Key": "amplify-builds/notifyRegionChanges-5a734e55685446625873-build.zip"
+          "S3Key": "amplify-builds/indexRegionData-5a2b456b4b657668362f-build.zip"
         }
       }
     },
@@ -79,12 +79,12 @@
         "RoleName": {
           "Fn::If": [
             "ShouldNotCreateEnvResources",
-            "kiyanawLambdaRoleb46b8309",
+            "kiyanawLambdaRolebf3e5ddd",
             {
               "Fn::Join": [
                 "",
                 [
-                  "kiyanawLambdaRoleb46b8309",
+                  "kiyanawLambdaRolebf3e5ddd",
                   "-",
                   {
                     "Ref": "env"

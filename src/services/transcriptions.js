@@ -96,29 +96,6 @@ class Transcription {
 }
 
 export default {
-  async addInitialEditors() {
-    const transcriptions = await this.oldListTransciptions()
-    for (const item of transcriptions) {
-      console.log(`Adding editor ${item.author} for ${item.id}`)
-      try {
-        await UserService.addTranscriptionEditor(item.id, item.author)
-      } catch (error) {
-        console.error(error)
-      }
-    }
-  },
-
-  async oldListTransciptions() {
-    let results = []
-    try {
-      results = await API.graphql(graphqlOperation(queries.listTranscriptions, { limit: 100 }))
-      // console.log(results)
-    } catch (error) {
-      console.error('Could not load transcriptions', error)
-    }
-    results = results.data.listTranscriptions.items
-    return results
-  },
   /**
    * Get a list of transcriptions.
    * @param {string} user Currently unused.

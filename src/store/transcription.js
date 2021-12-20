@@ -114,11 +114,11 @@ const actions = {
       Timeout.set(
         'save-region-timer',
         () => {
-          logger.info('Save region triggered', region)
+          logger.debug('Save region triggered', region)
           transcriptionService
             .updateRegion(store.getters.transcription.id, region)
             .then(() => {
-              logger.info('Region saved!')
+              logger.log('Region saved!')
               store.dispatch('setSaved', true)
             })
             .catch((error) => {
@@ -128,10 +128,10 @@ const actions = {
           // mark the last saved user on the transcription here
           store.dispatch('updateTranscription', { userLastUpdated: region.userLastUpdated })
         },
-        5000,
+        1250,
       )
     } else {
-      console.log('Unable to save, user not authenticated')
+      logger.info('Unable to save, user not authenticated')
     }
   },
 
@@ -147,11 +147,35 @@ const actions = {
     delete transcription.editors
     delete transcription.editorsDb
 
-    logger.info('Save transcription triggered', transcription)
+    /**
+     * Calculate issue count
+     */
+    const issueCount = store.getters.regions
+      .filter((item) => item.issues.length)
+      .map((item) => item.issues)
+      .flat()
+      .filter((item) => !item.resolved).length
+    transcription.issues = `${issueCount}`
+
+    /**
+     * Calculate coverage
+     */
+    const coverage = Number(
+      (
+        (store.getters.regions.filter((item) => item.text.length).length /
+          store.getters.regions.filter((item) => !item.isNote).length) *
+        100
+      ).toFixed(2),
+    )
+    transcription.coverage = coverage
+
+    logger.debug('Save transcription triggered', transcription)
+    logger.info('Transcription issue count', transcription.issues)
+    logger.info('Transcription coverage', transcription.coverage)
     transcriptionService
       .updateTranscription(transcription)
       .then(() => {
-        logger.info('Transcription saved!')
+        logger.debug('Transcription saved!')
         store.dispatch('setSaved', true)
       })
       .catch((error) => {

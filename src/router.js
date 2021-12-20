@@ -1,8 +1,10 @@
-import Vue from 'vue'
 import VueRouter from 'vue-router'
+
+import UserService from './services/user'
 
 // views
 import App from './views/App.vue'
+import StatsHome from './components/rendered/StatsHome.vue'
 import SignIn from './components/SignIn.vue'
 import TranscribeEdit from './components/transcribe/Transcribe.vue'
 import TranscribeList from './components/transcribe/List.vue'
@@ -13,6 +15,7 @@ const router = new VueRouter({
   mode: 'history',
   routes: [
     { path: '/crk/:word', component: RenderedWord },
+    { path: '/home', component: StatsHome },
     {
       path: '/',
       redirect: '/transcribe-list',
@@ -30,17 +33,11 @@ const router = new VueRouter({
 
 router.beforeResolve((to, from, next) => {
   if (to.matched.some((record) => record.meta.requiresAuth)) {
-    Vue.prototype.$Amplify.Auth.currentAuthenticatedUser()
-      .then((data) => {
-        if (data && data.signInUserSession) {
-          return next()
-        } else {
-          next({ path: '/signin' })
-        }
+    UserService.getUser()
+      .then(() => {
+        return next()
       })
-      .catch((error) => {
-        console.warn(error)
-        // likely not authenticated
+      .catch(() => {
         next({ path: '/signin' })
       })
   } else {
