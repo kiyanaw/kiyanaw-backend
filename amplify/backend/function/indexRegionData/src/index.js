@@ -39,23 +39,34 @@ const toCircumflex = (item) => {
 
 exports.handler = async (event) => {
   const record = event.Records[0]
-  // console.log('record', JSON.stringify(record))
+  console.log('record', JSON.stringify(record))
 
   // select the db
   let env = db.prod
-  transcriptionTable = db.prod.transcriptionTable
+  const transcriptionTable = db.prod.transcriptionTable
+  const regionTable = db.prod.regionTable
 
-  // unwrap incoming record
-  const records = event.Records.map((record) => ({
-    new: AWS.DynamoDB.Converter.unmarshall(record.dynamodb.NewImage),
-    old: AWS.DynamoDB.Converter.unmarshall(record.dynamodb.OldImage),
-  }))
-  console.log('records', records)
-  const item = records.pop()
-
-  if (!(item && item.new.id)) {
+  if (!(record && record.body)) {
     return okResponse()
   }
+
+  const regionId = record.body
+  console.log('Processing region', regionId)
+
+  let region
+  try {
+    region = await dynamo.getDoc({
+      TableName: regionTable,
+      Key: {
+        id: regionId,
+      },
+    })
+  } catch (err) {
+    console.error('Error getting region', err)
+    return okResponse()
+  }
+  region = region.Item
+  console.log('Got region', region)
 
   // get transcription
   let transcription
@@ -64,7 +75,7 @@ exports.handler = async (event) => {
     transcription = await dynamo.getDoc({
       TableName: transcriptionTable,
       Key: {
-        id: item.new.transcriptionId,
+        id: region.transcriptionId,
       },
     })
   } catch (err) {
@@ -73,7 +84,6 @@ exports.handler = async (event) => {
   }
 
   transcription = transcription.Item
-  // transcription = transcription.Item
   console.log('transcription', transcription)
 
   if (transcription.isPrivate || transcription.disableAnalyzer) {
@@ -82,7 +92,7 @@ exports.handler = async (event) => {
   }
 
   // pull known words from the region
-  const region = item.new
+  // const region = item.new
   const text = JSON.parse(region.text)
   const words = text
     .filter((item) => item.attributes && item.attributes['known-word'])

@@ -68,8 +68,8 @@
         "Layers": [],
         "Timeout": "25",
         "Code": {
-          "S3Bucket": "amplify-kiyanaw-dev-02717-deployment",
-          "S3Key": "amplify-builds/indexRegionData-5a2b456b4b657668362f-build.zip"
+          "S3Bucket": "amplify-kiyanaw-prod-214643-deployment",
+          "S3Key": "amplify-builds/indexRegionData-3676787076467561324c-build.zip"
         }
       }
     },

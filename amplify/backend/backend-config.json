@@ -30,6 +30,20 @@
           }
         }
       }
+    },
+    "enqueueRegionChange": {
+      "service": "API Gateway",
+      "providerPlugin": "awscloudformation",
+      "dependsOn": [
+        {
+          "category": "function",
+          "resourceName": "enqueueRegionChange",
+          "attributes": [
+            "Name",
+            "Arn"
+          ]
+        }
+      ]
     }
   },
   "function": {
@@ -39,6 +53,11 @@
       "build": true
     },
     "indexRegionData": {
+      "build": true,
+      "providerPlugin": "awscloudformation",
+      "service": "Lambda"
+    },
+    "enqueueRegionChange": {
       "build": true,
       "providerPlugin": "awscloudformation",
       "service": "Lambda"
