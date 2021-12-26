@@ -1,11 +1,6 @@
 const assert = require('assert').strict
 const AWS = require('aws-sdk')
 
-// AWS.config.update({
-//   credentials: new AWS.EnvironmentCredentials('AWS'),
-//   region: 'us-east-1',
-// })
-
 const sqs = new AWS.SQS({ region: 'us-east-1' })
 const queueUrl = 'https://sqs.us-east-1.amazonaws.com/494185203413/enqueueRegionChanges'
 
