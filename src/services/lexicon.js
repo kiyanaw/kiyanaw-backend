@@ -138,6 +138,7 @@ class Client {
   async getSurfaceOccurance(surface) {
     console.log(surface)
     const query = {
+      size: 100,
       query: {
         term: { surface },
       },
