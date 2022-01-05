@@ -31,6 +31,13 @@ exports.handler = async (event) => {
     console.error('Error getting region', err)
     return okResponse()
   }
+
+  // TODO: test this
+  if (!region) {
+    console.warn('Region not found', regionId)
+    return okResponse()
+  }
+
   region = region.Item
   console.log('Got region', region)
 
@@ -46,6 +53,12 @@ exports.handler = async (event) => {
     })
   } catch (err) {
     console.error('Error getting transcription', err)
+    return okResponse()
+  }
+
+  // TODO: test this
+  if (!transcription) {
+    console.warn('Transcription not found', region.transcriptionId)
     return okResponse()
   }
 
@@ -66,7 +79,7 @@ exports.handler = async (event) => {
   /**
    * Parse known words from region
    */
-  const indexedWords = await search.indexKnownWords(region)
+  const indexedWords = await search.indexKnownWords(region, transcription)
   console.log('Indexed', indexedWords)
 
   /**

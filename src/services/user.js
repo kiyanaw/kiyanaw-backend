@@ -156,7 +156,6 @@ export default {
             user: details.user,
             cursor: JSON.stringify(details.cursor),
           },
-          authMode: 'AWS_IAM',
         }),
       )
     } catch (error) {
@@ -168,7 +167,6 @@ export default {
             user: details.user,
             cursor: JSON.stringify(details.cursor),
           },
-          authMode: 'AWS_IAM',
         }),
       )
     }
@@ -179,9 +177,7 @@ export default {
   async listenForCursor(callback) {
     // let up a listener, if we don't have one already
     if (!cursorSubscription) {
-      cursorSubscription = API.graphql(graphqlOperation(onUpdateCursor), {
-        authMode: 'AWS_IAM',
-      }).subscribe({
+      cursorSubscription = API.graphql(graphqlOperation(onUpdateCursor), {}).subscribe({
         next: (data) => {
           // console.log('cursor data', data.value.data.onUpdateCursor)
           const cursorData = data.value.data.onUpdateCursor
@@ -277,11 +273,7 @@ export default {
   async getRegionLocks(transcriptionId) {
     const user = await this.getUser()
     const response = await API.graphql(
-      graphqlOperation(
-        listRegionLocks,
-        { input: { transcriptionId: transcriptionId } },
-        { authMode: 'AWS_IAM' },
-      ),
+      graphqlOperation(listRegionLocks, { input: { transcriptionId: transcriptionId } }),
     )
     // console.log('all region locks', response.data)
     if (response.data) {

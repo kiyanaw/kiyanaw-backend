@@ -4,8 +4,9 @@ const sinon = require('sinon')
 const search = require('../lib/search')
 const sapir = require('../lib/sapir')
 const { client } = require('../lib/es')
-const rawRegion = require('./mock-data').region
-const region = rawRegion.Item
+const mockData = require('./mock-data')
+const region = mockData.region.Item
+const transcription = mockData.transcription.Item
 
 describe('search.clearKnownWordsForRegion()', function () {
   it('should run a delete query for region', async function () {
@@ -80,7 +81,7 @@ describe('search.indexKnownWords()', function () {
       result: 'created',
     })
 
-    await search.indexKnownWords(region)
+    await search.indexKnownWords(region, transcription)
 
     assert.equal(sapirStub.callCount, 1)
     assert.equal(sapirStub.args[0][0], 'tânisi')
@@ -94,7 +95,9 @@ describe('search.indexKnownWords()', function () {
         doc: {
           lemma: 'some lemma',
           surface: 'tânisi',
+          timestamp: '211.69267466560015:214.74777862951606',
           transcriptionId: '73150c90',
+          transcriptionName: 'YT - Francis McAdam',
           regionId: 'wavesurfer_72hcq2e2q88',
           regionText: 'tânisi k-isi-nôcihtâcik pê-pimâtisiwin \n',
           wordType: 'some type',

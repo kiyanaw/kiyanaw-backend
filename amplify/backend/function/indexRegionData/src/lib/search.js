@@ -19,7 +19,7 @@ const clearKnownWordsForRegion = async (regionId) => {
   return deleted
 }
 
-const indexKnownWords = async (region) => {
+const indexKnownWords = async (region, transcription) => {
   const text = JSON.parse(region.text)
   const words = text
     .filter((item) => item.attributes && item.attributes['known-word'])
@@ -29,8 +29,13 @@ const indexKnownWords = async (region) => {
   const sentence = text.map((item) => item.insert).join('')
 
   for (const word of words) {
-    const surface = utils.toCircumflex(word)
+    let surface = utils.toCircumflex(word)
+    // strip out any goofy characters
+    surface = surface.replace(/[.,\/#!$%\^&\*;:{}=_`~()]/g, '').trim()
     console.log('Normalized: ', surface)
+    // TODO: check for IPC
+    // TODO: pull only wolvengrey
+    // TODO: exact-match results
     const raw = await sapir.clickInText(surface)
     const results = raw.data.results
 
@@ -40,6 +45,8 @@ const indexKnownWords = async (region) => {
       const wordClass = results[0].lemma_wordform.wordclass
       console.log(`Got lemma for surface form '${surface}': ${lemma}`)
 
+      // TODO: index transcription name
+      // TODO: index start/end time
       const toIndex = {
         lemma,
         surface,
@@ -48,6 +55,8 @@ const indexKnownWords = async (region) => {
         regionText: utils.toCircumflex(sentence),
         wordType,
         wordClass,
+        transcriptionName: transcription.title,
+        timestamp: `${region.start}:${region.end}`,
       }
       console.log('toIndex', toIndex)
 

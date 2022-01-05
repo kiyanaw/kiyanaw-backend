@@ -1,12 +1,13 @@
-import elasticsearch from 'elasticsearch'
-import httpAwsEs from 'http-aws-es'
+// import elasticsearch from 'elasticsearch'
+// import httpAwsEs from 'http-aws-es'
+import aws4 from 'aws4-tiny'
 
 import Timeout from 'smart-timeout'
 
 import logging from '../logging'
 
 // TODO: inject this
-import AWS from 'aws-sdk'
+// import AWS from 'aws-sdk'
 import { Auth } from 'aws-amplify'
 
 const logger = new logging.Logger('Lexicon')
@@ -18,15 +19,16 @@ class Client {
 
     // Auth.currentCredentials().then((credentials) => {
     //   console.log('credentials', credentials)
-    //   this.esClient = elasticsearch.Client({
-    //     host:
-    //       'https://search-indexregiondata-lqatyzsxiuhepcfidwldyiebh4.us-east-1.es.amazonaws.com',
-    //     connectionClass: httpAwsEs,
-    //     awsConfig: new AWS.Config({ region: 'us-east-1', credentials }),
-    //   })
+    //   // this.esClient = elasticsearch.Client({
+    //   //   host:
+    //   //     'https://search-indexregiondata-lqatyzsxiuhepcfidwldyiebh4.us-east-1.es.amazonaws.com',
+    //   //   connectionClass: httpAwsEs,
+    //   //   awsConfig: new AWS.Config({ region: 'us-east-1', credentials }),
+    //   // })
+    //   this.credentials = credentials
 
-    // window.es = this.esClient
-    // window.foo = this
+    //   // window.es = this.esClient
+    //   window.foo = this
     // })
   }
 
@@ -53,55 +55,96 @@ class Client {
     return response.results
   }
 
-  async setEsClient() {
-    if (!this.esClient) {
-      const credentials = await Auth.currentCredentials()
-      this.esClient = elasticsearch.Client({
-        host:
-          'https://search-indexregiondata-lqatyzsxiuhepcfidwldyiebh4.us-east-1.es.amazonaws.com',
-        connectionClass: httpAwsEs,
-        awsConfig: new AWS.Config({ region: 'us-east-1', credentials }),
-      })
-    }
+  // async setEsClient() {
+  //   // if (!this.esClient) {
+  //   //   const credentials = await Auth.currentCredentials()
+  //   //   this.esClient = elasticsearch.Client({
+  //   //     host:
+  //   //       'https://search-indexregiondata-lqatyzsxiuhepcfidwldyiebh4.us-east-1.es.amazonaws.com',
+  //   //     connectionClass: httpAwsEs,
+  //   //     awsConfig: new AWS.Config({ region: 'us-east-1', credentials }),
+  //   //   })
+  //   //   window.es = this.esClient
+  //   // }
+  // }
+
+  async esQuery(query) {
+    const credentials = await Auth.currentCredentials()
+    let results = await aws4.fetch(
+      'https://search-indexregiondata-lqatyzsxiuhepcfidwldyiebh4.us-east-1.es.amazonaws.com/knownwords/_search',
+      {
+        service: 'es',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(query),
+      },
+      credentials,
+    )
+
+    results = await results.json()
+    return results
   }
 
   async getWordTypeCount() {
-    await this.setEsClient()
     const query = {
-      size: 0,
-      index: 'knownwords',
-      body: {
-        aggs: {
-          wordTypeCount: {
-            terms: { field: 'wordClass', size: 50 },
-          },
+      aggs: {
+        wordTypeCount: {
+          terms: { field: 'wordClass', size: 50 },
         },
       },
     }
-    const results = await this.esClient.search(query)
+
+    const results = await this.esQuery(query)
     return results.aggregations.wordTypeCount.buckets
   }
 
   async getLemmaCount(type = 'V', max = 20) {
-    await this.setEsClient()
     const query = {
-      size: 0,
-      index: 'knownwords',
-      body: {
-        aggs: {
-          lemmaCount: {
-            filter: { term: { wordType: type } },
-            aggs: {
-              lemma: {
-                terms: { field: 'lemma', size: max },
-              },
+      aggs: {
+        lemmaCount: {
+          filter: { term: { wordType: type } },
+          aggs: {
+            lemma: {
+              terms: { field: 'lemma', size: max },
             },
           },
         },
       },
     }
-    const results = await this.esClient.search(query)
+    const results = await this.esQuery(query)
+    console.log('results', results)
     return results.aggregations.lemmaCount.lemma.buckets
+  }
+
+  async getSurfaceCount(lemma, max = 100) {
+    const query = {
+      aggs: {
+        surfaceCount: {
+          filter: { term: { lemma } },
+          aggs: {
+            surface: {
+              terms: { field: 'surface', size: max },
+            },
+          },
+        },
+      },
+    }
+    const results = await this.esQuery(query)
+    return results.aggregations.surfaceCount.surface.buckets
+  }
+
+  async getSurfaceOccurance(surface) {
+    console.log(surface)
+    const query = {
+      query: {
+        term: { surface },
+      },
+    }
+    const results = await this.esQuery(query)
+    console.log('surface', results)
+    return results.hits.hits.map((item) => item._source)
   }
 }
 
@@ -243,6 +286,18 @@ class Lex {
 
   async getNounLemmaCount() {
     return client.getLemmaCount('N')
+  }
+
+  async getSurfaceCount(word) {
+    return client.getSurfaceCount(word)
+  }
+
+  async getLemmaOccurance(word) {
+    return client.getLemmaOccurance(word)
+  }
+
+  async getSurfaceOccurance(surface) {
+    return client.getSurfaceOccurance(surface)
   }
 }
 

@@ -13,13 +13,29 @@
 
       <v-divider></v-divider>
 
-      <v-list v-if="user" nav>
-        <v-list-item link href="/transcribe-list/">
+      <v-list nav dense>
+        <v-list-item v-if="user" link href="/transcribe-list/">
           <v-list-item-icon>
             <v-icon color="white">mdi-pencil-box</v-icon>
           </v-list-item-icon>
           <v-list-item-content>
             <v-list-item-title>Transcriptions</v-list-item-title>
+          </v-list-item-content>
+        </v-list-item>
+        <v-list-item link href="/stats/">
+          <v-list-item-icon>
+            <v-icon color="white">mdi-chart-tree</v-icon>
+          </v-list-item-icon>
+          <v-list-item-content>
+            <v-list-item-title>Stats</v-list-item-title>
+          </v-list-item-content>
+        </v-list-item>
+        <v-list-item link href="/about/">
+          <v-list-item-icon>
+            <v-icon color="white">mdi-information-outline</v-icon>
+          </v-list-item-icon>
+          <v-list-item-content>
+            <v-list-item-title>About</v-list-item-title>
           </v-list-item-content>
         </v-list-item>
       </v-list>

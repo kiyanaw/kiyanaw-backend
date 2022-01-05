@@ -184,7 +184,6 @@ export default {
         API.graphql(graphqlOperation(queries.getTranscription, { id: id })),
         API.graphql(
           graphqlOperation(queries.byTranscription, { transcriptionId: id, limit: 2500 }),
-          'AWS_IAM',
         ),
       ])
 
@@ -243,16 +242,12 @@ export default {
 
   async deleteRegion(transcriptionId, region) {
     await API.graphql(
-      graphqlOperation(
-        mutations.deleteRegion,
-        {
-          input: {
-            id: region.id,
-            expectedVersion: region.version,
-          },
+      graphqlOperation(mutations.deleteRegion, {
+        input: {
+          id: region.id,
+          expectedVersion: region.version,
         },
-        { authMode: 'AWS_IAM' },
-      ),
+      }),
     )
     return true
   },

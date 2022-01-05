@@ -6,8 +6,8 @@
           <img alt="Avatar" src="https://avatars.githubusercontent.com/u/42557359?s=200&v=4" />
         </v-avatar>
 
-        <v-btn v-for="link in links" :key="link" text>
-          {{ link }}
+        <v-btn v-for="link in links" :key="link.title" :href="link.link" text>
+          {{ link.title }}
         </v-btn>
 
         <v-spacer></v-spacer>
@@ -21,6 +21,7 @@
     <v-main class="grey lighten-3">
       <v-container class="mb-6">
         <div class="text-h4 pt-6">Index stats</div>
+        <p>This section is currently experimental.</p>
         <v-row>
           <v-col>
             <v-sheet min-height="20vh" rounded="lg">
@@ -57,7 +58,11 @@
                         </thead>
                         <tbody>
                           <tr v-for="item in topVerbCounts" :key="item.key">
-                            <td>{{ item.key }}</td>
+                            <td>
+                              <a :href="'/stats/lemma/' + item.key">
+                                {{ item.key }}
+                              </a>
+                            </td>
                             <td>{{ item.doc_count }}</td>
                           </tr>
                         </tbody>
@@ -76,7 +81,11 @@
                         </thead>
                         <tbody>
                           <tr v-for="item in topNounCounts" :key="item.key">
-                            <td>{{ item.key }}</td>
+                            <td>
+                              <a :href="'/stats/lemma/' + item.key">
+                                {{ item.key }}
+                              </a>
+                            </td>
                             <td>{{ item.doc_count }}</td>
                           </tr>
                         </tbody>
@@ -97,7 +106,11 @@
 import lexicon from '../../services/lexicon'
 export default {
   data: () => ({
-    links: ['Transcriptions', 'Stats', 'About'],
+    links: [
+      { title: 'Transcriptions', link: '/transcribe-list' },
+      { title: 'Stats', link: '/stats' },
+      { title: 'About', link: '/about' },
+    ],
     wordTypeCounts: [],
     topVerbCounts: [],
     topNounCounts: [],
@@ -115,6 +128,10 @@ export default {
     lexicon.getNounLemmaCount().then((results) => {
       console.log('Nouns', results)
       this.topNounCounts = results
+    })
+    this.$nextTick(() => {
+      // TODO: fix this in CSS
+      document.body.style.overflow = 'auto'
     })
   },
 }
