@@ -20,7 +20,8 @@
           "deploymentBucketName": "amplify-kiyanaw-dev-02717-deployment",
           "s3Key": "amplify-builds/notifyRegionChanges-62687373386358766d62-build.zip"
         },
-        "indexRegionData": {}
+        "indexRegionData": {},
+        "enqueueRegionChange": {}
       }
     }
   },

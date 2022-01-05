@@ -5,7 +5,9 @@
       <v-flex xs3>
         <v-spacer />
         <div>
-          <amplify-authenticator v-if="!signedIn" />
+          <amplify-auth-container>
+            <amplify-authenticator v-if="!signedIn" />
+          </amplify-auth-container>
         </div>
         <div>
           <amplify-sign-out v-if="signedIn" />
