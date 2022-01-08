@@ -32,7 +32,7 @@ type Region
     rules: [{ allow: private, provider: iam }, { allow: public, provider: iam, operations: [read] }]
   )
   @versioned {
-  id: String!
+  id: ID!
   start: Float!
   end: Float!
   text: String!
@@ -51,7 +51,7 @@ type Cursor
   @auth(
     rules: [{ allow: private, provider: iam }, { allow: public, provider: iam, operations: [read] }]
   ) {
-  id: String!
+  id: ID!
   user: String!
   cursor: String!
 }
@@ -62,7 +62,7 @@ type RegionLock
   @auth(
     rules: [{ allow: private, provider: iam }, { allow: public, provider: iam, operations: [read] }]
   ) {
-  id: String!
+  id: ID!
   transcriptionId: String!
   deleteTime: AWSTimestamp!
   user: String!
