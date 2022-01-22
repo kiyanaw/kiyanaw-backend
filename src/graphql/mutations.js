@@ -128,7 +128,6 @@ export const createRegion = /* GraphQL */ `
       transcriptionId
       createdAt
       updatedAt
-      version
     }
   }
 `;
@@ -151,7 +150,6 @@ export const updateRegion = /* GraphQL */ `
       transcriptionId
       createdAt
       updatedAt
-      version
     }
   }
 `;
@@ -174,7 +172,6 @@ export const deleteRegion = /* GraphQL */ `
       transcriptionId
       createdAt
       updatedAt
-      version
     }
   }
 `;

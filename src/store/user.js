@@ -47,9 +47,9 @@ const actions = {
       if (user) {
         store.dispatch('setUser', user)
         // TODO: get/set user profile
-        userService.getProfile().catch((error) => {
-          console.error('Error checking for user profile', error)
-        })
+        // userService.getProfile().catch((error) => {
+        //   console.error('Error checking for user profile', error)
+        // })
       }
     })
   },

@@ -71,6 +71,7 @@ class Transcription {
       // need this so we have the ids of the editors for add/remove
       this.editorsDb = data.editor.items
     }
+    // this._version = `${data._version || 0}`
   }
 
   /**
@@ -113,6 +114,7 @@ export default {
         (item) => new Transcription(item.transcription),
       )
     }
+
     return transcriptions
   },
 
@@ -187,6 +189,7 @@ export default {
         ),
       ])
 
+      console.log('raw transcription', transcription)
       transcription = new Transcription(transcription.data.getTranscription)
       transcription.regions = regions.data.byTranscription.items.map((item) => {
         item.text = JSON.parse(item.text)
@@ -232,7 +235,7 @@ export default {
       dateLastUpdated: `${+new Date()}`,
       userLastUpdated: user.name,
       transcriptionId: transcriptionId,
-      expectedVersion: region.version,
+      _version: region._version,
     }
     logger.debug('update region input', input)
     const update = await API.graphql(graphqlOperation(mutations.updateRegion, { input: input }))
@@ -253,6 +256,7 @@ export default {
   },
 
   async listenForRegions(callback) {
+    console.log('Listening for regions')
     const user = await UserService.getUser()
     if (!this.createRegionSubscription) {
       this.createRegionSubscription = API.graphql(
@@ -324,7 +328,11 @@ export default {
 
   /** */
   async updateTranscription(data) {
-    logger.debug('saving transcription', data)
+    logger.info('saving transcription', data)
+    data = {
+      ...data,
+    }
+    delete data.version
     const update = await API.graphql(
       graphqlOperation(mutations.updateTranscription, { input: data }),
     )

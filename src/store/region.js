@@ -3,6 +3,7 @@ import Vue from 'vue'
 
 import Lexicon from '../services/lexicon'
 import UserService from '../services/user'
+import TranscriptionService from '../services/transcriptions'
 import logging from '../logging'
 
 const logger = new logging.Logger('Region Store')
@@ -90,6 +91,13 @@ const actions = {
     UserService.listenForLock((update) => {
       logger.debug('got realtime lock 1', update)
       store.dispatch('realtimeLockUpdate', update)
+    })
+  },
+
+  initRegionSubscriptions(store, transcriptionId) {
+    console.log('STORE-region listening for region changes', store, transcriptionId)
+    TranscriptionService.listenForRegions((type, data) => {
+      logger.info('Realtime region update', type, data)
     })
   },
 

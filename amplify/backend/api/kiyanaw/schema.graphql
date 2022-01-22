@@ -1,12 +1,9 @@
 type Transcription
   @model
-  @key(fields: ["id"])
-  @key(name: "ByTitle", fields: ["title"], queryField: "byTitle")
-  @key(name: "ByOwnerUpdated", fields: ["author", "dateLastUpdated"], queryField: "byOwnerUpdated")
   @auth(
     rules: [{ allow: private, provider: iam }, { allow: public, provider: iam, operations: [read] }]
   ) {
-  id: ID!
+  id: ID! @primaryKey
   author: String!
   coverage: Float
   dateLastUpdated: String!
@@ -17,22 +14,19 @@ type Transcription
   tags: String
   source: String
   index: String
-  title: String!
+  title: String! @index(name: "ByTitle", queryField: "byTitle")
   type: String!
   isPrivate: Boolean
   disableAnalyzer: Boolean
-  editor: [TranscriptionEditor] @connection(keyName: "byTranscription", fields: ["id"])
+  editor: [TranscriptionEditor] @hasMany(indexName: "byTranscription", fields: ["id"])
 }
 
 type Region
   @model
-  @key(fields: ["id"])
-  @key(name: "ByTranscription", fields: ["transcriptionId"], queryField: "byTranscription")
   @auth(
     rules: [{ allow: private, provider: iam }, { allow: public, provider: iam, operations: [read] }]
-  )
-  @versioned {
-  id: ID!
+  ) {
+  id: ID! @primaryKey
   start: Float!
   end: Float!
   text: String!
@@ -42,27 +36,25 @@ type Region
   translation: String
   dateLastUpdated: String!
   userLastUpdated: String!
-  transcriptionId: String!
+  transcriptionId: String! @index(name: "ByTranscription", queryField: "byTranscription")
 }
 
 type Cursor
   @model
-  @key(fields: ["id", "user"])
   @auth(
     rules: [{ allow: private, provider: iam }, { allow: public, provider: iam, operations: [read] }]
   ) {
-  id: ID!
+  id: ID! @primaryKey(sortKeyFields: ["user"])
   user: String!
   cursor: String!
 }
 
 type RegionLock
   @model
-  @key(fields: ["id", "transcriptionId"])
   @auth(
     rules: [{ allow: private, provider: iam }, { allow: public, provider: iam, operations: [read] }]
   ) {
-  id: ID!
+  id: ID! @primaryKey(sortKeyFields: ["transcriptionId"])
   transcriptionId: String!
   deleteTime: AWSTimestamp!
   user: String!
@@ -70,27 +62,22 @@ type RegionLock
 
 type Editor
   @model
-  @key(fields: ["username"])
   @auth(
     rules: [{ allow: private, provider: iam }, { allow: public, provider: iam, operations: [read] }]
   ) {
   email: ID!
-  username: ID!
-  transcriptions: [TranscriptionEditor] @connection(keyName: "byEditor", fields: ["username"])
+  username: ID! @primaryKey
+  transcriptions: [TranscriptionEditor] @hasMany(indexName: "byEditor", fields: ["username"])
 }
 
-# Intermediary table to join editors to transcriptions
 type TranscriptionEditor
   @model(queries: null)
-  @key(fields: ["id"])
-  @key(name: "byTranscription", fields: ["transcriptionId", "username"])
-  @key(name: "byEditor", fields: ["username", "transcriptionId"])
   @auth(
     rules: [{ allow: private, provider: iam }, { allow: public, provider: iam, operations: [read] }]
   ) {
-  id: ID!
-  transcriptionId: ID!
-  username: ID!
-  transcription: Transcription! @connection(fields: ["transcriptionId"])
-  editor: Editor! @connection(fields: ["username"])
+  id: ID! @primaryKey
+  transcriptionId: ID! @index(name: "byTranscription", sortKeyFields: ["username"])
+  username: ID! @index(name: "byEditor", sortKeyFields: ["transcriptionId"])
+  transcription: Transcription! @belongsTo(fields: ["transcriptionId"])
+  editor: Editor! @belongsTo(fields: ["username"])
 }

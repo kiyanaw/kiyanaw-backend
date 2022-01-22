@@ -73,11 +73,6 @@ const actions = {
       logger.info('Got transcriptions', results)
       store.commit('SET_TRANSCRIPTIONS', results)
     })
-
-    transcriptionService.listenForRegions((type, data) => {
-      // store.dispatch()
-      logger.info('Realtime region update', type, data)
-    })
   },
 
   addEditor(store, username) {
@@ -146,6 +141,7 @@ const actions = {
     delete transcription.regions
     delete transcription.editors
     delete transcription.editorsDb
+    // delete transcription.version
 
     /**
      * Calculate issue count
@@ -207,6 +203,9 @@ const actions = {
 
     // tell the region store to update now
     store.dispatch('setRegions', transcription.regions)
+
+    // listen for region updates
+    store.dispatch('initRegionSubscriptions', transcription.id)
   },
 
   updateTranscription(store, update) {

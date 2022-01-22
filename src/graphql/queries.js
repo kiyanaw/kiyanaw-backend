@@ -76,7 +76,7 @@ export const listTranscriptions = /* GraphQL */ `
   }
 `;
 export const getRegion = /* GraphQL */ `
-  query GetRegion($id: String!) {
+  query GetRegion($id: ID!) {
     getRegion(id: $id) {
       id
       start
@@ -91,13 +91,12 @@ export const getRegion = /* GraphQL */ `
       transcriptionId
       createdAt
       updatedAt
-      version
     }
   }
 `;
 export const listRegions = /* GraphQL */ `
   query ListRegions(
-    $id: String
+    $id: ID
     $filter: ModelRegionFilterInput
     $limit: Int
     $nextToken: String
@@ -124,14 +123,13 @@ export const listRegions = /* GraphQL */ `
         transcriptionId
         createdAt
         updatedAt
-        version
       }
       nextToken
     }
   }
 `;
 export const getCursor = /* GraphQL */ `
-  query GetCursor($id: String!, $user: String!) {
+  query GetCursor($id: ID!, $user: String!) {
     getCursor(id: $id, user: $user) {
       id
       user
@@ -143,7 +141,7 @@ export const getCursor = /* GraphQL */ `
 `;
 export const listCursors = /* GraphQL */ `
   query ListCursors(
-    $id: String
+    $id: ID
     $user: ModelStringKeyConditionInput
     $filter: ModelCursorFilterInput
     $limit: Int
@@ -170,7 +168,7 @@ export const listCursors = /* GraphQL */ `
   }
 `;
 export const getRegionLock = /* GraphQL */ `
-  query GetRegionLock($id: String!, $transcriptionId: String!) {
+  query GetRegionLock($id: ID!, $transcriptionId: String!) {
     getRegionLock(id: $id, transcriptionId: $transcriptionId) {
       id
       transcriptionId
@@ -183,7 +181,7 @@ export const getRegionLock = /* GraphQL */ `
 `;
 export const listRegionLocks = /* GraphQL */ `
   query ListRegionLocks(
-    $id: String
+    $id: ID
     $transcriptionId: ModelStringKeyConditionInput
     $filter: ModelRegionLockFilterInput
     $limit: Int
@@ -260,7 +258,7 @@ export const listEditors = /* GraphQL */ `
 `;
 export const byTitle = /* GraphQL */ `
   query ByTitle(
-    $title: String
+    $title: String!
     $sortDirection: ModelSortDirection
     $filter: ModelTranscriptionFilterInput
     $limit: Int
@@ -299,52 +297,9 @@ export const byTitle = /* GraphQL */ `
     }
   }
 `;
-export const byOwnerUpdated = /* GraphQL */ `
-  query ByOwnerUpdated(
-    $author: String
-    $dateLastUpdated: ModelStringKeyConditionInput
-    $sortDirection: ModelSortDirection
-    $filter: ModelTranscriptionFilterInput
-    $limit: Int
-    $nextToken: String
-  ) {
-    byOwnerUpdated(
-      author: $author
-      dateLastUpdated: $dateLastUpdated
-      sortDirection: $sortDirection
-      filter: $filter
-      limit: $limit
-      nextToken: $nextToken
-    ) {
-      items {
-        id
-        author
-        coverage
-        dateLastUpdated
-        userLastUpdated
-        length
-        issues
-        comments
-        tags
-        source
-        index
-        title
-        type
-        isPrivate
-        disableAnalyzer
-        editor {
-          nextToken
-        }
-        createdAt
-        updatedAt
-      }
-      nextToken
-    }
-  }
-`;
 export const byTranscription = /* GraphQL */ `
   query ByTranscription(
-    $transcriptionId: String
+    $transcriptionId: String!
     $sortDirection: ModelSortDirection
     $filter: ModelRegionFilterInput
     $limit: Int
@@ -371,7 +326,6 @@ export const byTranscription = /* GraphQL */ `
         transcriptionId
         createdAt
         updatedAt
-        version
       }
       nextToken
     }

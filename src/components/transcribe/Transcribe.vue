@@ -78,6 +78,11 @@ import Lookup from './Lookup.vue'
 
 import { mapActions, mapGetters } from 'vuex'
 
+import Amplify, { DataStore } from 'aws-amplify'
+import { Document, Region } from '../../models'
+
+Amplify.Logger.LOG_LEVEL = 'DEBUG'
+
 import logging from '../../logging'
 const logger = new logging.Logger('Transcribe')
 
@@ -191,6 +196,10 @@ export default {
     //     this.$refs.player.playPause()
     //   }
     // })
+
+    window.DataStore = DataStore
+    window.Region = Region
+    window.Document = Document
 
     window.transcribe = this
 
