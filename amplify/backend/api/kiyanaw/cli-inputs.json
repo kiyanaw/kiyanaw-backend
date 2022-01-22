@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "serviceConfiguration": {
+    "serviceName": "AppSync",
+    "defaultAuthType": {
+      "mode": "AWS_IAM"
+    },
+    "additionalAuthTypes": [
+      {
+        "mode": "AMAZON_COGNITO_USER_POOLS",
+        "cognitoUserPoolId": "authkiyanaw664b231a"
+      }
+    ],
+    "conflictResolution": {},
+    "apiName": "kiyanaw",
+    "gqlSchemaPath": "/Users/magius/workspace/kiyanaw-backend/amplify/backend/api/kiyanaw/schema.graphql"
+  }
+}

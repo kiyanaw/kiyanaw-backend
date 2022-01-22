@@ -1,0 +1,48 @@
+{
+  "features": {
+    "graphqltransformer": {
+      "addmissingownerfields": true,
+      "improvepluralization": true,
+      "validatetypenamereservedwords": true,
+      "useexperimentalpipelinedtransformer": true,
+      "enableiterativegsiupdates": true,
+      "secondarykeyasgsi": true,
+      "skipoverridemutationinputtypes": false,
+      "transformerversion": 2,
+      "suppressschemamigrationprompt": true
+    },
+    "auth": {
+      "enablecaseinsensitivity": false,
+      "useinclusiveterminology": true,
+      "breakcirculardependency": true,
+      "forcealiasattributes": false,
+      "useenabledmfas": false
+    },
+    "codegen": {
+      "useappsyncmodelgenplugin": true,
+      "usedocsgeneratorplugin": true,
+      "usetypesgeneratorplugin": true,
+      "cleangeneratedmodelsdirectory": true,
+      "retaincasestyle": true,
+      "addtimestampfields": true,
+      "handlelistnullabilitytransparently": true,
+      "emitauthprovider": true,
+      "generateindexrules": true,
+      "enabledartnullsafety": true
+    },
+    "appsync": {
+      "generategraphqlpermissions": true
+    },
+    "latestregionsupport": {
+      "pinpoint": 0,
+      "translate": 0,
+      "transcribe": 0,
+      "rekognition": 0,
+      "textract": 0,
+      "comprehend": 0
+    },
+    "project": {
+      "overrides": true
+    }
+  }
+}
