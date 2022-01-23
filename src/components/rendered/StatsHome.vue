@@ -22,7 +22,44 @@
       <v-container class="mb-6">
         <div class="text-h4 pt-6">Index stats</div>
         <p>This section is currently experimental.</p>
-        <v-row>
+        <v-text-field
+          v-model="search"
+          append-icon="mdi-magnify"
+          label="Search"
+          single-line
+          hide-details
+        ></v-text-field>
+
+        <v-row v-if="search">
+          <v-col>
+            <v-simple-table class="pa-3" v-if="searchResults.length">
+              <template v-slot:default>
+                <thead>
+                  <tr>
+                    <th class="text-left">Text</th>
+                    <th class="text-left">Source</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(item, index) in searchResults" :key="index">
+                    <td v-html="highlightSurfaceForm(item.regionText, search)"></td>
+                    <td>
+                      <a :href="'/transcribe-edit/' + item.transcriptionId" target="_blank">{{
+                        item.transcriptionName
+                      }}</a
+                      >&nbsp; <v-icon small>mdi-open-in-new</v-icon>&nbsp;
+                      <small>({{ parseTimestamps(item.timestamp) }})</small>
+                    </td>
+                  </tr>
+                </tbody>
+              </template>
+            </v-simple-table>
+
+            <p v-if="!searchResults.length">No results</p>
+          </v-col>
+        </v-row>
+
+        <v-row v-if="!search && !searchResults.length">
           <v-col>
             <v-sheet min-height="20vh" rounded="lg">
               <v-container>
@@ -114,6 +151,8 @@ export default {
     wordTypeCounts: [],
     topVerbCounts: [],
     topNounCounts: [],
+    search: null,
+    searchResults: [],
   }),
 
   mounted() {
@@ -133,6 +172,37 @@ export default {
       // TODO: fix this in CSS
       document.body.style.overflow = 'auto'
     })
+
+    const inboundSearch = this.$route.query.s
+    console.log('Inbound search', inboundSearch)
+    if (inboundSearch) {
+      this.search = inboundSearch
+    }
+  },
+
+  watch: {
+    search(newValue) {
+      if (this.$route.query.s !== newValue) {
+        this.$router.push({ query: { s: newValue } })
+      }
+      lexicon.searchRegions(newValue).then((results) => {
+        console.log('got search results', results)
+        this.searchResults = results
+      })
+    },
+  },
+
+  methods: {
+    highlightSurfaceForm(sentence, surfaceForm) {
+      return sentence.replace(surfaceForm, `<strong>${surfaceForm}</strong>`)
+    },
+
+    parseTimestamps(input) {
+      let [start, end] = input.split(':')
+      start = new Date(start * 1000).toISOString().substr(14, 5)
+      end = new Date(end * 1000).toISOString().substr(14, 5)
+      return `${start}-${end}`
+    },
   },
 }
 </script>

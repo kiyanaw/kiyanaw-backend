@@ -6,6 +6,7 @@ import UserService from './services/user'
 import App from './views/App.vue'
 import StatsHome from './components/rendered/StatsHome.vue'
 import Lemma from './components/rendered/Lemma.vue'
+import Surface from './components/rendered/Surface.vue'
 import About from './components/static/About.vue'
 import SignIn from './components/SignIn.vue'
 import TranscribeEdit from './components/transcribe/Transcribe.vue'
@@ -17,6 +18,7 @@ const router = new VueRouter({
   routes: [
     { path: '/about', component: About },
     { path: '/stats/lemma/:word', component: Lemma },
+    { path: '/stats/surface/:word', component: Surface },
     { path: '/stats', component: StatsHome },
     {
       path: '/',

@@ -81,7 +81,7 @@ import { mapActions, mapGetters } from 'vuex'
 import Amplify, { DataStore } from 'aws-amplify'
 import { Document, Region } from '../../models'
 
-Amplify.Logger.LOG_LEVEL = 'DEBUG'
+Amplify.Logger.LOG_LEVEL = 'INFO'
 
 import logging from '../../logging'
 const logger = new logging.Logger('Transcribe')

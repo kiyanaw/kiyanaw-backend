@@ -55,19 +55,6 @@ class Client {
     return response.results
   }
 
-  // async setEsClient() {
-  //   // if (!this.esClient) {
-  //   //   const credentials = await Auth.currentCredentials()
-  //   //   this.esClient = elasticsearch.Client({
-  //   //     host:
-  //   //       'https://search-indexregiondata-lqatyzsxiuhepcfidwldyiebh4.us-east-1.es.amazonaws.com',
-  //   //     connectionClass: httpAwsEs,
-  //   //     awsConfig: new AWS.Config({ region: 'us-east-1', credentials }),
-  //   //   })
-  //   //   window.es = this.esClient
-  //   // }
-  // }
-
   async esQuery(query) {
     const credentials = await Auth.currentCredentials()
     let results = await aws4.fetch(
@@ -138,7 +125,7 @@ class Client {
   async getSurfaceOccurance(surface) {
     console.log(surface)
     const query = {
-      size: 100,
+      size: 1000,
       query: {
         term: { surface },
       },
@@ -146,6 +133,31 @@ class Client {
     const results = await this.esQuery(query)
     console.log('surface', results)
     return results.hits.hits.map((item) => item._source)
+  }
+
+  async searchRegions(needle) {
+    console.log('Search for', needle)
+
+    // this wasn't bad
+    const query = {
+      size: 100,
+      query: {
+        query_string: {
+          query: `${needle}`,
+          // default_field: 'surface',
+          analyze_wildcard: true,
+        },
+      },
+    }
+
+    const results = await this.esQuery(query)
+    // because we're searching regionText, there can be multiples for the same region
+    // map those out here
+    const outputMap = {}
+    results.hits.hits.map((item) => {
+      outputMap[item._source.regionId] = item._source
+    })
+    return Object.values(outputMap)
   }
 }
 
@@ -299,6 +311,10 @@ class Lex {
 
   async getSurfaceOccurance(surface) {
     return client.getSurfaceOccurance(surface)
+  }
+
+  async searchRegions(needle) {
+    return client.searchRegions(needle)
   }
 }
 
