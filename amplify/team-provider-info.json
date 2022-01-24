@@ -50,10 +50,16 @@
       "function": {
         "notifyRegionChanges": {
           "deploymentBucketName": "amplify-kiyanaw-prod-214643-deployment",
-          "s3Key": "amplify-builds/notifyRegionChanges-62687373386358766d62-build.zip"
+          "s3Key": "amplify-builds/notifyRegionChanges-5a734e55685446625873-build.zip"
         },
-        "indexRegionData": {},
-        "enqueueRegionChange": {}
+        "indexRegionData": {
+          "deploymentBucketName": "amplify-kiyanaw-prod-214643-deployment",
+          "s3Key": "amplify-builds/indexRegionData-7248416c774752364155-build.zip"
+        },
+        "enqueueRegionChange": {
+          "deploymentBucketName": "amplify-kiyanaw-prod-214643-deployment",
+          "s3Key": "amplify-builds/enqueueRegionChange-63736d703942386d4d45-build.zip"
+        }
       }
     }
   }

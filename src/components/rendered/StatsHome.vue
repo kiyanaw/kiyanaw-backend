@@ -44,9 +44,10 @@
                   <tr v-for="(item, index) in searchResults" :key="index">
                     <td v-html="highlightSurfaceForm(item.regionText, search)"></td>
                     <td>
-                      <a :href="'/transcribe-edit/' + item.transcriptionId" target="_blank">{{
-                        item.transcriptionName
-                      }}</a
+                      <a
+                        :href="'/transcribe-edit/' + item.transcriptionId + '/' + item.regionId"
+                        target="_blank"
+                        >{{ item.transcriptionName }}</a
                       >&nbsp; <v-icon small>mdi-open-in-new</v-icon>&nbsp;
                       <small>({{ parseTimestamps(item.timestamp) }})</small>
                     </td>
