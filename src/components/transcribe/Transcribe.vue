@@ -79,7 +79,7 @@ import Lookup from './Lookup.vue'
 import { mapActions, mapGetters } from 'vuex'
 
 import Amplify, { DataStore } from 'aws-amplify'
-import { Document, Region } from '../../models'
+import { Region } from '../../models'
 
 Amplify.Logger.LOG_LEVEL = 'INFO'
 

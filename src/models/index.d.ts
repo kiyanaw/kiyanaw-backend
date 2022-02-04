@@ -28,18 +28,6 @@ type RegionLockMetaData = {
   readOnlyFields: 'createdAt' | 'updatedAt';
 }
 
-type ContributorMetaData = {
-  readOnlyFields: 'createdAt' | 'updatedAt';
-}
-
-type DocumentMetaData = {
-  readOnlyFields: 'createdAt' | 'updatedAt';
-}
-
-type DocumentContributorMetaData = {
-  readOnlyFields: 'createdAt' | 'updatedAt';
-}
-
 export declare class Transcription {
   readonly id: string;
   readonly author: string;
@@ -51,6 +39,7 @@ export declare class Transcription {
   readonly comments?: string;
   readonly tags?: string;
   readonly source?: string;
+  readonly test?: string;
   readonly index?: string;
   readonly title: string;
   readonly type: string;
@@ -121,46 +110,4 @@ export declare class RegionLock {
   readonly updatedAt?: string;
   constructor(init: ModelInit<RegionLock, RegionLockMetaData>);
   static copyOf(source: RegionLock, mutator: (draft: MutableModel<RegionLock, RegionLockMetaData>) => MutableModel<RegionLock, RegionLockMetaData> | void): RegionLock;
-}
-
-export declare class Contributor {
-  readonly id: string;
-  readonly email: string;
-  readonly username: string;
-  readonly document?: (DocumentContributor | null)[];
-  readonly createdAt?: string;
-  readonly updatedAt?: string;
-  constructor(init: ModelInit<Contributor, ContributorMetaData>);
-  static copyOf(source: Contributor, mutator: (draft: MutableModel<Contributor, ContributorMetaData>) => MutableModel<Contributor, ContributorMetaData> | void): Contributor;
-}
-
-export declare class Document {
-  readonly id: string;
-  readonly author: string;
-  readonly coverage?: number;
-  readonly dateLastUpdated: string;
-  readonly userLastUpdated?: string;
-  readonly length?: number;
-  readonly tags?: string;
-  readonly source?: string;
-  readonly index?: string;
-  readonly title: string;
-  readonly type: string;
-  readonly isPrivate?: boolean;
-  readonly disableAnalyzer?: boolean;
-  readonly contributor?: (DocumentContributor | null)[];
-  readonly createdAt?: string;
-  readonly updatedAt?: string;
-  constructor(init: ModelInit<Document, DocumentMetaData>);
-  static copyOf(source: Document, mutator: (draft: MutableModel<Document, DocumentMetaData>) => MutableModel<Document, DocumentMetaData> | void): Document;
-}
-
-export declare class DocumentContributor {
-  readonly id: string;
-  readonly contributor: Contributor;
-  readonly document: Document;
-  readonly createdAt?: string;
-  readonly updatedAt?: string;
-  constructor(init: ModelInit<DocumentContributor, DocumentContributorMetaData>);
-  static copyOf(source: DocumentContributor, mutator: (draft: MutableModel<DocumentContributor, DocumentContributorMetaData>) => MutableModel<DocumentContributor, DocumentContributorMetaData> | void): DocumentContributor;
 }

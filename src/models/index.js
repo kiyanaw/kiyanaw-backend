@@ -4,7 +4,7 @@ import { schema } from './schema';
 
 
 
-const { Transcription, TranscriptionEditor, Editor, Region, Cursor, RegionLock, Contributor, Document, DocumentContributor } = initSchema(schema);
+const { Transcription, TranscriptionEditor, Editor, Region, Cursor, RegionLock } = initSchema(schema);
 
 export {
   Transcription,
@@ -12,8 +12,5 @@ export {
   Editor,
   Region,
   Cursor,
-  RegionLock,
-  Contributor,
-  Document,
-  DocumentContributor
+  RegionLock
 };
