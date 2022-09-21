@@ -45,7 +45,7 @@
     "vue-pusher": "^1.0.0",
     "vue-router": "^3.4.8",
     "vue-virtual-scroll-list": "^2.3.2",
-    "vuetify": "^2.3.16",
+    "vuetify": "^2.6.10",
     "vuetify-upload-button": "^1.2.2",
     "vuex": "^3.5.1",
     "wavesurfer.js": "^4.2.0",
