@@ -84,7 +84,7 @@
     "karma-stylus-preprocessor": "0.0.2",
     "karma-webpack": "^4.0.2",
     "mini-css-extract-plugin": "^0.7.0",
-    "minimatch": "^3.0.4",
+    "minimatch": "^3.0.5",
     "mocha": "^6.2.3",
     "mochapack": "^1.1.15",
     "mutationobserver-shim": "^0.3.7",
