@@ -53,10 +53,10 @@
     "yargs-parser": "^18.1.2"
   },
   "devDependencies": {
-    "@vue/cli-plugin-babel": "^3.5.0",
-    "@vue/cli-plugin-eslint": "^4.5.8",
-    "@vue/cli-plugin-unit-jest": "^4.5.8",
-    "@vue/cli-service": "^4.5.8",
+    "@vue/cli-plugin-babel": "^3.12.1",
+    "@vue/cli-plugin-eslint": "^5.0.8",
+    "@vue/cli-plugin-unit-jest": "^5.0.8",
+    "@vue/cli-service": "^5.0.8",
     "@vue/test-utils": "^1.1.1",
     "axios": "^0.21.4",
     "babel-core": "7.0.0-bridge.0",
@@ -93,7 +93,7 @@
     "sass-loader": "^8.0.2",
     "sinon": "^7.3.2",
     "vue-cli-plugin-vuetify": "^0.5.0",
-    "vue-jest": "^3.0.5",
+    "vue-jest": "^4.0.1",
     "vue-template-compiler": "^2.6.12",
     "vuetify-loader": "^1.6.0",
     "webpack": "^4.41.2",
