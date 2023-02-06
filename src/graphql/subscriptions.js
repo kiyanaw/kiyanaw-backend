@@ -2,8 +2,10 @@
 // this is an auto generated file. This will be overwritten
 
 export const onCreateTranscription = /* GraphQL */ `
-  subscription OnCreateTranscription {
-    onCreateTranscription {
+  subscription OnCreateTranscription(
+    $filter: ModelSubscriptionTranscriptionFilterInput
+  ) {
+    onCreateTranscription(filter: $filter) {
       id
       author
       coverage
@@ -26,17 +28,61 @@ export const onCreateTranscription = /* GraphQL */ `
           username
           createdAt
           updatedAt
+          _version
+          _deleted
+          _lastChangedAt
         }
         nextToken
       }
+      contributors {
+        items {
+          id
+          transcriptionID
+          contributorID
+          createdAt
+          updatedAt
+          _version
+          _deleted
+          _lastChangedAt
+        }
+        nextToken
+        startedAt
+      }
+      regions {
+        items {
+          id
+          start
+          end
+          text
+          issues
+          isNote
+          comments
+          translation
+          dateLastUpdated
+          userLastUpdated
+          transcriptionId
+          createdAt
+          updatedAt
+          _version
+          _deleted
+          _lastChangedAt
+        }
+        nextToken
+        startedAt
+      }
       createdAt
       updatedAt
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
 export const onUpdateTranscription = /* GraphQL */ `
-  subscription OnUpdateTranscription {
-    onUpdateTranscription {
+  subscription OnUpdateTranscription(
+    $filter: ModelSubscriptionTranscriptionFilterInput
+  ) {
+    onUpdateTranscription(filter: $filter) {
       id
       author
       coverage
@@ -59,17 +105,61 @@ export const onUpdateTranscription = /* GraphQL */ `
           username
           createdAt
           updatedAt
+          _version
+          _deleted
+          _lastChangedAt
         }
         nextToken
       }
+      contributors {
+        items {
+          id
+          transcriptionID
+          contributorID
+          createdAt
+          updatedAt
+          _version
+          _deleted
+          _lastChangedAt
+        }
+        nextToken
+        startedAt
+      }
+      regions {
+        items {
+          id
+          start
+          end
+          text
+          issues
+          isNote
+          comments
+          translation
+          dateLastUpdated
+          userLastUpdated
+          transcriptionId
+          createdAt
+          updatedAt
+          _version
+          _deleted
+          _lastChangedAt
+        }
+        nextToken
+        startedAt
+      }
       createdAt
       updatedAt
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
 export const onDeleteTranscription = /* GraphQL */ `
-  subscription OnDeleteTranscription {
-    onDeleteTranscription {
+  subscription OnDeleteTranscription(
+    $filter: ModelSubscriptionTranscriptionFilterInput
+  ) {
+    onDeleteTranscription(filter: $filter) {
       id
       author
       coverage
@@ -92,17 +182,59 @@ export const onDeleteTranscription = /* GraphQL */ `
           username
           createdAt
           updatedAt
+          _version
+          _deleted
+          _lastChangedAt
         }
         nextToken
       }
+      contributors {
+        items {
+          id
+          transcriptionID
+          contributorID
+          createdAt
+          updatedAt
+          _version
+          _deleted
+          _lastChangedAt
+        }
+        nextToken
+        startedAt
+      }
+      regions {
+        items {
+          id
+          start
+          end
+          text
+          issues
+          isNote
+          comments
+          translation
+          dateLastUpdated
+          userLastUpdated
+          transcriptionId
+          createdAt
+          updatedAt
+          _version
+          _deleted
+          _lastChangedAt
+        }
+        nextToken
+        startedAt
+      }
       createdAt
       updatedAt
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
 export const onCreateRegion = /* GraphQL */ `
-  subscription OnCreateRegion {
-    onCreateRegion {
+  subscription OnCreateRegion($filter: ModelSubscriptionRegionFilterInput) {
+    onCreateRegion(filter: $filter) {
       id
       start
       end
@@ -113,15 +245,51 @@ export const onCreateRegion = /* GraphQL */ `
       translation
       dateLastUpdated
       userLastUpdated
+      transcription {
+        id
+        author
+        coverage
+        dateLastUpdated
+        userLastUpdated
+        length
+        issues
+        comments
+        tags
+        source
+        index
+        title
+        type
+        isPrivate
+        disableAnalyzer
+        editor {
+          nextToken
+        }
+        contributors {
+          nextToken
+          startedAt
+        }
+        regions {
+          nextToken
+          startedAt
+        }
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+      }
       transcriptionId
       createdAt
       updatedAt
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
 export const onUpdateRegion = /* GraphQL */ `
-  subscription OnUpdateRegion {
-    onUpdateRegion {
+  subscription OnUpdateRegion($filter: ModelSubscriptionRegionFilterInput) {
+    onUpdateRegion(filter: $filter) {
       id
       start
       end
@@ -132,15 +300,51 @@ export const onUpdateRegion = /* GraphQL */ `
       translation
       dateLastUpdated
       userLastUpdated
+      transcription {
+        id
+        author
+        coverage
+        dateLastUpdated
+        userLastUpdated
+        length
+        issues
+        comments
+        tags
+        source
+        index
+        title
+        type
+        isPrivate
+        disableAnalyzer
+        editor {
+          nextToken
+        }
+        contributors {
+          nextToken
+          startedAt
+        }
+        regions {
+          nextToken
+          startedAt
+        }
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+      }
       transcriptionId
       createdAt
       updatedAt
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
 export const onDeleteRegion = /* GraphQL */ `
-  subscription OnDeleteRegion {
-    onDeleteRegion {
+  subscription OnDeleteRegion($filter: ModelSubscriptionRegionFilterInput) {
+    onDeleteRegion(filter: $filter) {
       id
       start
       end
@@ -151,84 +355,144 @@ export const onDeleteRegion = /* GraphQL */ `
       translation
       dateLastUpdated
       userLastUpdated
+      transcription {
+        id
+        author
+        coverage
+        dateLastUpdated
+        userLastUpdated
+        length
+        issues
+        comments
+        tags
+        source
+        index
+        title
+        type
+        isPrivate
+        disableAnalyzer
+        editor {
+          nextToken
+        }
+        contributors {
+          nextToken
+          startedAt
+        }
+        regions {
+          nextToken
+          startedAt
+        }
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+      }
       transcriptionId
       createdAt
       updatedAt
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
 export const onCreateCursor = /* GraphQL */ `
-  subscription OnCreateCursor {
-    onCreateCursor {
+  subscription OnCreateCursor($filter: ModelSubscriptionCursorFilterInput) {
+    onCreateCursor(filter: $filter) {
       id
       user
       cursor
       createdAt
       updatedAt
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
 export const onUpdateCursor = /* GraphQL */ `
-  subscription OnUpdateCursor {
-    onUpdateCursor {
+  subscription OnUpdateCursor($filter: ModelSubscriptionCursorFilterInput) {
+    onUpdateCursor(filter: $filter) {
       id
       user
       cursor
       createdAt
       updatedAt
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
 export const onDeleteCursor = /* GraphQL */ `
-  subscription OnDeleteCursor {
-    onDeleteCursor {
+  subscription OnDeleteCursor($filter: ModelSubscriptionCursorFilterInput) {
+    onDeleteCursor(filter: $filter) {
       id
       user
       cursor
       createdAt
       updatedAt
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
 export const onCreateRegionLock = /* GraphQL */ `
-  subscription OnCreateRegionLock {
-    onCreateRegionLock {
+  subscription OnCreateRegionLock(
+    $filter: ModelSubscriptionRegionLockFilterInput
+  ) {
+    onCreateRegionLock(filter: $filter) {
       id
       transcriptionId
       deleteTime
       user
       createdAt
       updatedAt
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
 export const onUpdateRegionLock = /* GraphQL */ `
-  subscription OnUpdateRegionLock {
-    onUpdateRegionLock {
+  subscription OnUpdateRegionLock(
+    $filter: ModelSubscriptionRegionLockFilterInput
+  ) {
+    onUpdateRegionLock(filter: $filter) {
       id
       transcriptionId
       deleteTime
       user
       createdAt
       updatedAt
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
 export const onDeleteRegionLock = /* GraphQL */ `
-  subscription OnDeleteRegionLock {
-    onDeleteRegionLock {
+  subscription OnDeleteRegionLock(
+    $filter: ModelSubscriptionRegionLockFilterInput
+  ) {
+    onDeleteRegionLock(filter: $filter) {
       id
       transcriptionId
       deleteTime
       user
       createdAt
       updatedAt
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
 export const onCreateEditor = /* GraphQL */ `
-  subscription OnCreateEditor {
-    onCreateEditor {
+  subscription OnCreateEditor($filter: ModelSubscriptionEditorFilterInput) {
+    onCreateEditor(filter: $filter) {
       email
       username
       transcriptions {
@@ -238,17 +502,23 @@ export const onCreateEditor = /* GraphQL */ `
           username
           createdAt
           updatedAt
+          _version
+          _deleted
+          _lastChangedAt
         }
         nextToken
       }
       createdAt
       updatedAt
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
 export const onUpdateEditor = /* GraphQL */ `
-  subscription OnUpdateEditor {
-    onUpdateEditor {
+  subscription OnUpdateEditor($filter: ModelSubscriptionEditorFilterInput) {
+    onUpdateEditor(filter: $filter) {
       email
       username
       transcriptions {
@@ -258,17 +528,23 @@ export const onUpdateEditor = /* GraphQL */ `
           username
           createdAt
           updatedAt
+          _version
+          _deleted
+          _lastChangedAt
         }
         nextToken
       }
       createdAt
       updatedAt
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
 export const onDeleteEditor = /* GraphQL */ `
-  subscription OnDeleteEditor {
-    onDeleteEditor {
+  subscription OnDeleteEditor($filter: ModelSubscriptionEditorFilterInput) {
+    onDeleteEditor(filter: $filter) {
       email
       username
       transcriptions {
@@ -278,17 +554,115 @@ export const onDeleteEditor = /* GraphQL */ `
           username
           createdAt
           updatedAt
+          _version
+          _deleted
+          _lastChangedAt
         }
         nextToken
       }
       createdAt
       updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+    }
+  }
+`;
+export const onCreateContributor = /* GraphQL */ `
+  subscription OnCreateContributor(
+    $filter: ModelSubscriptionContributorFilterInput
+  ) {
+    onCreateContributor(filter: $filter) {
+      id
+      email
+      username
+      transcriptions {
+        items {
+          id
+          transcriptionID
+          contributorID
+          createdAt
+          updatedAt
+          _version
+          _deleted
+          _lastChangedAt
+        }
+        nextToken
+        startedAt
+      }
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+    }
+  }
+`;
+export const onUpdateContributor = /* GraphQL */ `
+  subscription OnUpdateContributor(
+    $filter: ModelSubscriptionContributorFilterInput
+  ) {
+    onUpdateContributor(filter: $filter) {
+      id
+      email
+      username
+      transcriptions {
+        items {
+          id
+          transcriptionID
+          contributorID
+          createdAt
+          updatedAt
+          _version
+          _deleted
+          _lastChangedAt
+        }
+        nextToken
+        startedAt
+      }
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+    }
+  }
+`;
+export const onDeleteContributor = /* GraphQL */ `
+  subscription OnDeleteContributor(
+    $filter: ModelSubscriptionContributorFilterInput
+  ) {
+    onDeleteContributor(filter: $filter) {
+      id
+      email
+      username
+      transcriptions {
+        items {
+          id
+          transcriptionID
+          contributorID
+          createdAt
+          updatedAt
+          _version
+          _deleted
+          _lastChangedAt
+        }
+        nextToken
+        startedAt
+      }
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
 export const onCreateTranscriptionEditor = /* GraphQL */ `
-  subscription OnCreateTranscriptionEditor {
-    onCreateTranscriptionEditor {
+  subscription OnCreateTranscriptionEditor(
+    $filter: ModelSubscriptionTranscriptionEditorFilterInput
+  ) {
+    onCreateTranscriptionEditor(filter: $filter) {
       id
       transcriptionId
       username
@@ -311,8 +685,19 @@ export const onCreateTranscriptionEditor = /* GraphQL */ `
         editor {
           nextToken
         }
+        contributors {
+          nextToken
+          startedAt
+        }
+        regions {
+          nextToken
+          startedAt
+        }
         createdAt
         updatedAt
+        _version
+        _deleted
+        _lastChangedAt
       }
       editor {
         email
@@ -322,15 +707,23 @@ export const onCreateTranscriptionEditor = /* GraphQL */ `
         }
         createdAt
         updatedAt
+        _version
+        _deleted
+        _lastChangedAt
       }
       createdAt
       updatedAt
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
 export const onUpdateTranscriptionEditor = /* GraphQL */ `
-  subscription OnUpdateTranscriptionEditor {
-    onUpdateTranscriptionEditor {
+  subscription OnUpdateTranscriptionEditor(
+    $filter: ModelSubscriptionTranscriptionEditorFilterInput
+  ) {
+    onUpdateTranscriptionEditor(filter: $filter) {
       id
       transcriptionId
       username
@@ -353,8 +746,19 @@ export const onUpdateTranscriptionEditor = /* GraphQL */ `
         editor {
           nextToken
         }
+        contributors {
+          nextToken
+          startedAt
+        }
+        regions {
+          nextToken
+          startedAt
+        }
         createdAt
         updatedAt
+        _version
+        _deleted
+        _lastChangedAt
       }
       editor {
         email
@@ -364,15 +768,23 @@ export const onUpdateTranscriptionEditor = /* GraphQL */ `
         }
         createdAt
         updatedAt
+        _version
+        _deleted
+        _lastChangedAt
       }
       createdAt
       updatedAt
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
 export const onDeleteTranscriptionEditor = /* GraphQL */ `
-  subscription OnDeleteTranscriptionEditor {
-    onDeleteTranscriptionEditor {
+  subscription OnDeleteTranscriptionEditor(
+    $filter: ModelSubscriptionTranscriptionEditorFilterInput
+  ) {
+    onDeleteTranscriptionEditor(filter: $filter) {
       id
       transcriptionId
       username
@@ -395,8 +807,19 @@ export const onDeleteTranscriptionEditor = /* GraphQL */ `
         editor {
           nextToken
         }
+        contributors {
+          nextToken
+          startedAt
+        }
+        regions {
+          nextToken
+          startedAt
+        }
         createdAt
         updatedAt
+        _version
+        _deleted
+        _lastChangedAt
       }
       editor {
         email
@@ -406,9 +829,204 @@ export const onDeleteTranscriptionEditor = /* GraphQL */ `
         }
         createdAt
         updatedAt
+        _version
+        _deleted
+        _lastChangedAt
       }
       createdAt
       updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+    }
+  }
+`;
+export const onCreateTranscriptionContributor = /* GraphQL */ `
+  subscription OnCreateTranscriptionContributor(
+    $filter: ModelSubscriptionTranscriptionContributorFilterInput
+  ) {
+    onCreateTranscriptionContributor(filter: $filter) {
+      id
+      transcriptionID
+      contributorID
+      transcription {
+        id
+        author
+        coverage
+        dateLastUpdated
+        userLastUpdated
+        length
+        issues
+        comments
+        tags
+        source
+        index
+        title
+        type
+        isPrivate
+        disableAnalyzer
+        editor {
+          nextToken
+        }
+        contributors {
+          nextToken
+          startedAt
+        }
+        regions {
+          nextToken
+          startedAt
+        }
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+      }
+      contributor {
+        id
+        email
+        username
+        transcriptions {
+          nextToken
+          startedAt
+        }
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+      }
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+    }
+  }
+`;
+export const onUpdateTranscriptionContributor = /* GraphQL */ `
+  subscription OnUpdateTranscriptionContributor(
+    $filter: ModelSubscriptionTranscriptionContributorFilterInput
+  ) {
+    onUpdateTranscriptionContributor(filter: $filter) {
+      id
+      transcriptionID
+      contributorID
+      transcription {
+        id
+        author
+        coverage
+        dateLastUpdated
+        userLastUpdated
+        length
+        issues
+        comments
+        tags
+        source
+        index
+        title
+        type
+        isPrivate
+        disableAnalyzer
+        editor {
+          nextToken
+        }
+        contributors {
+          nextToken
+          startedAt
+        }
+        regions {
+          nextToken
+          startedAt
+        }
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+      }
+      contributor {
+        id
+        email
+        username
+        transcriptions {
+          nextToken
+          startedAt
+        }
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+      }
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+    }
+  }
+`;
+export const onDeleteTranscriptionContributor = /* GraphQL */ `
+  subscription OnDeleteTranscriptionContributor(
+    $filter: ModelSubscriptionTranscriptionContributorFilterInput
+  ) {
+    onDeleteTranscriptionContributor(filter: $filter) {
+      id
+      transcriptionID
+      contributorID
+      transcription {
+        id
+        author
+        coverage
+        dateLastUpdated
+        userLastUpdated
+        length
+        issues
+        comments
+        tags
+        source
+        index
+        title
+        type
+        isPrivate
+        disableAnalyzer
+        editor {
+          nextToken
+        }
+        contributors {
+          nextToken
+          startedAt
+        }
+        regions {
+          nextToken
+          startedAt
+        }
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+      }
+      contributor {
+        id
+        email
+        username
+        transcriptions {
+          nextToken
+          startedAt
+        }
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+      }
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;

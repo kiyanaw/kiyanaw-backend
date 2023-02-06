@@ -16,5 +16,9 @@ module.exports = function (config) {
     reporters: ['spec'],
 
     browsers: ['ChromeHeadless'],
+    client: {
+      captureConsole: false,
+    },
+
   })
 }

@@ -1,6 +1,5 @@
-const envLogging = process.env.NODE_LOGGING
 
-const doLog = envLogging === 'off' ? false : true
+const doLog = true
 
 const Logger = function (namespace) {
   const name = namespace || '<unset>'

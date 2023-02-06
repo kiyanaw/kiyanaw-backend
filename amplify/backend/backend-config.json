@@ -1,27 +1,20 @@
 {
-  "hosting": {
-    "S3AndCloudFront": {
-      "service": "S3AndCloudFront",
-      "providerPlugin": "awscloudformation"
-    }
-  },
-  "auth": {
-    "kiyanaw664b231a": {
-      "service": "Cognito",
-      "providerPlugin": "awscloudformation",
-      "dependsOn": []
-    }
-  },
-  "storage": {
-    "transcriptions": {
-      "service": "S3",
-      "providerPlugin": "awscloudformation"
-    }
-  },
   "api": {
-    "kiyanaw": {
-      "service": "AppSync",
+    "enqueueRegionChange": {
+      "dependsOn": [
+        {
+          "attributes": [
+            "Name",
+            "Arn"
+          ],
+          "category": "function",
+          "resourceName": "enqueueRegionChange"
+        }
+      ],
       "providerPlugin": "awscloudformation",
+      "service": "API Gateway"
+    },
+    "kiyanaw": {
       "output": {
         "authConfig": {
           "additionalAuthenticationProviders": [
@@ -36,38 +29,45 @@
             "authenticationType": "AWS_IAM"
           }
         }
-      }
-    },
-    "enqueueRegionChange": {
-      "service": "API Gateway",
+      },
       "providerPlugin": "awscloudformation",
-      "dependsOn": [
-        {
-          "category": "function",
-          "resourceName": "enqueueRegionChange",
-          "attributes": [
-            "Name",
-            "Arn"
-          ]
-        }
-      ]
+      "service": "AppSync"
+    }
+  },
+  "auth": {
+    "kiyanaw664b231a": {
+      "dependsOn": [],
+      "providerPlugin": "awscloudformation",
+      "service": "Cognito"
     }
   },
   "function": {
-    "notifyRegionChanges": {
-      "service": "Lambda",
+    "enqueueRegionChange": {
+      "build": true,
       "providerPlugin": "awscloudformation",
-      "build": true
+      "service": "Lambda"
     },
     "indexRegionData": {
       "build": true,
       "providerPlugin": "awscloudformation",
       "service": "Lambda"
     },
-    "enqueueRegionChange": {
+    "notifyRegionChanges": {
       "build": true,
       "providerPlugin": "awscloudformation",
       "service": "Lambda"
+    }
+  },
+  "hosting": {
+    "S3AndCloudFront": {
+      "providerPlugin": "awscloudformation",
+      "service": "S3AndCloudFront"
+    }
+  },
+  "storage": {
+    "transcriptions": {
+      "providerPlugin": "awscloudformation",
+      "service": "S3"
     }
   }
 }

@@ -19,6 +19,8 @@ type Transcription
   isPrivate: Boolean
   disableAnalyzer: Boolean
   editor: [TranscriptionEditor] @hasMany(indexName: "byTranscription", fields: ["id"])
+  contributors: [Contributor] @manyToMany(relationName: "TranscriptionContributor")
+  regions: [Region] @hasMany(indexName: "ByTranscription", fields: ["id"])
 }
 
 type Region
@@ -36,7 +38,8 @@ type Region
   translation: String
   dateLastUpdated: String!
   userLastUpdated: String!
-  transcriptionId: String! @index(name: "ByTranscription", queryField: "byTranscription")
+  transcription: Transcription! @belongsTo(fields: ["transcriptionId"])
+  transcriptionId: ID! @index(name: "ByTranscription")
 }
 
 type Cursor
@@ -66,8 +69,20 @@ type Editor
     rules: [{ allow: private, provider: iam }, { allow: public, provider: iam, operations: [read] }]
   ) {
   email: ID!
+  foo: String
   username: ID! @primaryKey
   transcriptions: [TranscriptionEditor] @hasMany(indexName: "byEditor", fields: ["username"])
+}
+
+type Contributor
+  @model
+  @auth(
+    rules: [{ allow: private, provider: iam }, { allow: public, provider: iam, operations: [read] }]
+  ) {
+  id: ID! @primaryKey
+  email: ID!
+  username: ID!
+  transcriptions: [Transcription] @manyToMany(relationName: "TranscriptionContributor")
 }
 
 type TranscriptionEditor
@@ -81,3 +96,4 @@ type TranscriptionEditor
   transcription: Transcription! @belongsTo(fields: ["transcriptionId"])
   editor: Editor! @belongsTo(fields: ["username"])
 }
+   

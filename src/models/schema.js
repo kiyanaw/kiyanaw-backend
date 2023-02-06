@@ -73,13 +73,6 @@ export const schema = {
                     "isRequired": false,
                     "attributes": []
                 },
-                "test": {
-                    "name": "test",
-                    "isArray": false,
-                    "type": "String",
-                    "isRequired": false,
-                    "attributes": []
-                },
                 "index": {
                     "name": "index",
                     "isArray": false,
@@ -120,6 +113,34 @@ export const schema = {
                     "isArray": true,
                     "type": {
                         "model": "TranscriptionEditor"
+                    },
+                    "isRequired": false,
+                    "attributes": [],
+                    "isArrayNullable": true,
+                    "association": {
+                        "connectionType": "HAS_MANY",
+                        "associatedWith": "transcription"
+                    }
+                },
+                "contributors": {
+                    "name": "contributors",
+                    "isArray": true,
+                    "type": {
+                        "model": "TranscriptionContributor"
+                    },
+                    "isRequired": false,
+                    "attributes": [],
+                    "isArrayNullable": true,
+                    "association": {
+                        "connectionType": "HAS_MANY",
+                        "associatedWith": "transcription"
+                    }
+                },
+                "regions": {
+                    "name": "regions",
+                    "isArray": true,
+                    "type": {
+                        "model": "Region"
                     },
                     "isRequired": false,
                     "attributes": [],
@@ -177,6 +198,7 @@ export const schema = {
                         "rules": [
                             {
                                 "allow": "private",
+                                "provider": "iam",
                                 "operations": [
                                     "create",
                                     "update",
@@ -249,7 +271,7 @@ export const schema = {
                     "isReadOnly": true
                 }
             },
-            "syncable": true,
+            "syncable": false,
             "pluralName": "TranscriptionEditors",
             "attributes": [
                 {
@@ -292,6 +314,7 @@ export const schema = {
                         "rules": [
                             {
                                 "allow": "private",
+                                "provider": "iam",
                                 "operations": [
                                     "create",
                                     "update",
@@ -366,7 +389,7 @@ export const schema = {
                     "isReadOnly": true
                 }
             },
-            "syncable": true,
+            "syncable": false,
             "pluralName": "Editors",
             "attributes": [
                 {
@@ -387,6 +410,103 @@ export const schema = {
                         "rules": [
                             {
                                 "allow": "private",
+                                "provider": "iam",
+                                "operations": [
+                                    "create",
+                                    "update",
+                                    "delete",
+                                    "read"
+                                ]
+                            },
+                            {
+                                "allow": "public",
+                                "provider": "iam",
+                                "operations": [
+                                    "read"
+                                ]
+                            }
+                        ]
+                    }
+                }
+            ]
+        },
+        "Contributor": {
+            "name": "Contributor",
+            "fields": {
+                "id": {
+                    "name": "id",
+                    "isArray": false,
+                    "type": "ID",
+                    "isRequired": true,
+                    "attributes": []
+                },
+                "email": {
+                    "name": "email",
+                    "isArray": false,
+                    "type": "ID",
+                    "isRequired": true,
+                    "attributes": []
+                },
+                "username": {
+                    "name": "username",
+                    "isArray": false,
+                    "type": "ID",
+                    "isRequired": true,
+                    "attributes": []
+                },
+                "transcriptions": {
+                    "name": "transcriptions",
+                    "isArray": true,
+                    "type": {
+                        "model": "TranscriptionContributor"
+                    },
+                    "isRequired": false,
+                    "attributes": [],
+                    "isArrayNullable": true,
+                    "association": {
+                        "connectionType": "HAS_MANY",
+                        "associatedWith": "contributor"
+                    }
+                },
+                "createdAt": {
+                    "name": "createdAt",
+                    "isArray": false,
+                    "type": "AWSDateTime",
+                    "isRequired": false,
+                    "attributes": [],
+                    "isReadOnly": true
+                },
+                "updatedAt": {
+                    "name": "updatedAt",
+                    "isArray": false,
+                    "type": "AWSDateTime",
+                    "isRequired": false,
+                    "attributes": [],
+                    "isReadOnly": true
+                }
+            },
+            "syncable": true,
+            "pluralName": "Contributors",
+            "attributes": [
+                {
+                    "type": "model",
+                    "properties": {}
+                },
+                {
+                    "type": "key",
+                    "properties": {
+                        "fields": [
+                            "id"
+                        ]
+                    }
+                },
+                {
+                    "type": "auth",
+                    "properties": {
+                        "rules": [
+                            {
+                                "allow": "private",
+                                "provider": "iam",
                                 "operations": [
                                     "create",
                                     "update",
@@ -479,12 +599,18 @@ export const schema = {
                     "isRequired": true,
                     "attributes": []
                 },
-                "transcriptionId": {
-                    "name": "transcriptionId",
+                "transcription": {
+                    "name": "transcription",
                     "isArray": false,
-                    "type": "String",
+                    "type": {
+                        "model": "Transcription"
+                    },
                     "isRequired": true,
-                    "attributes": []
+                    "attributes": [],
+                    "association": {
+                        "connectionType": "BELONGS_TO",
+                        "targetName": "transcriptionId"
+                    }
                 },
                 "createdAt": {
                     "name": "createdAt",
@@ -522,7 +648,6 @@ export const schema = {
                     "type": "key",
                     "properties": {
                         "name": "ByTranscription",
-                        "queryField": "byTranscription",
                         "fields": [
                             "transcriptionId"
                         ]
@@ -534,6 +659,7 @@ export const schema = {
                         "rules": [
                             {
                                 "allow": "private",
+                                "provider": "iam",
                                 "operations": [
                                     "create",
                                     "update",
@@ -616,6 +742,7 @@ export const schema = {
                         "rules": [
                             {
                                 "allow": "private",
+                                "provider": "iam",
                                 "operations": [
                                     "create",
                                     "update",
@@ -705,6 +832,7 @@ export const schema = {
                         "rules": [
                             {
                                 "allow": "private",
+                                "provider": "iam",
                                 "operations": [
                                     "create",
                                     "update",
@@ -723,9 +851,90 @@ export const schema = {
                     }
                 }
             ]
+        },
+        "TranscriptionContributor": {
+            "name": "TranscriptionContributor",
+            "fields": {
+                "id": {
+                    "name": "id",
+                    "isArray": false,
+                    "type": "ID",
+                    "isRequired": true,
+                    "attributes": []
+                },
+                "transcription": {
+                    "name": "transcription",
+                    "isArray": false,
+                    "type": {
+                        "model": "Transcription"
+                    },
+                    "isRequired": true,
+                    "attributes": [],
+                    "association": {
+                        "connectionType": "BELONGS_TO",
+                        "targetName": "transcriptionID"
+                    }
+                },
+                "contributor": {
+                    "name": "contributor",
+                    "isArray": false,
+                    "type": {
+                        "model": "Contributor"
+                    },
+                    "isRequired": true,
+                    "attributes": [],
+                    "association": {
+                        "connectionType": "BELONGS_TO",
+                        "targetName": "contributorID"
+                    }
+                },
+                "createdAt": {
+                    "name": "createdAt",
+                    "isArray": false,
+                    "type": "AWSDateTime",
+                    "isRequired": false,
+                    "attributes": [],
+                    "isReadOnly": true
+                },
+                "updatedAt": {
+                    "name": "updatedAt",
+                    "isArray": false,
+                    "type": "AWSDateTime",
+                    "isRequired": false,
+                    "attributes": [],
+                    "isReadOnly": true
+                }
+            },
+            "syncable": true,
+            "pluralName": "TranscriptionContributors",
+            "attributes": [
+                {
+                    "type": "model",
+                    "properties": {}
+                },
+                {
+                    "type": "key",
+                    "properties": {
+                        "name": "byTranscription",
+                        "fields": [
+                            "transcriptionID"
+                        ]
+                    }
+                },
+                {
+                    "type": "key",
+                    "properties": {
+                        "name": "byContributor",
+                        "fields": [
+                            "contributorID"
+                        ]
+                    }
+                }
+            ]
         }
     },
     "enums": {},
     "nonModels": {},
-    "version": "3c800c1c41307ccfa8b80f9bc69e0a9d"
+    "codegenVersion": "3.3.2",
+    "version": "e761b5bb090cd154b70573743cc52e43"
 };

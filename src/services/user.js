@@ -3,14 +3,14 @@ import { Auth } from 'aws-amplify'
 import {
   createCursor,
   createEditor,
-  createTranscriptionEditor,
+  // createTranscriptionEditor,
   updateCursor,
-  deleteTranscriptionEditor,
+  // deleteTranscriptionEditor,
   createRegionLock,
   deleteRegionLock,
 } from '../graphql/mutations'
-import { onUpdateCursor, onCreateRegionLock, onDeleteRegionLock } from '../graphql/subscriptions'
-import { listRegionLocks, listEditors } from '../graphql/queries'
+// import {  onCreateRegionLock, onDeleteRegionLock } from '../graphql/subscriptions'
+import { listRegionLocks } from '../graphql/queries'
 
 import { API, graphqlOperation } from 'aws-amplify'
 import logging from '../logging'
@@ -56,11 +56,11 @@ export const getEditorWithTranscriptions = /* GraphQL */ `
 `
 
 let user
-let cursorSubscription = null
-let createLockSubscription = null
-let deleteLockSubscription = null
-const cursorSubscribers = []
-const lockSubscribers = []
+// let cursorSubscription = null
+// let createLockSubscription = null
+// let deleteLockSubscription = null
+// const cursorSubscribers = []
+// const lockSubscribers = []
 const myLocks = {}
 
 export default {
@@ -68,6 +68,7 @@ export default {
     if (!user) {
       user = await Auth.currentAuthenticatedUser({ bypassCache: false })
     }
+
     return {
       name: user.username,
       email: user.attributes.email,
@@ -96,42 +97,6 @@ export default {
       console.log('Profile created for user', created)
     }
     return existing
-  },
-
-  /**
-   *
-   */
-  async listProfiles() {
-    const response = await API.graphql(graphqlOperation(listEditors))
-    return response.data.listEditors.items.map((item) => ({
-      username: item.username,
-      email: item.email,
-    }))
-  },
-
-  /**
-   * TODO: this might belong on the transcription service?
-   */
-  async addTranscriptionEditor(transcriptionId, username) {
-    if (!username) {
-      const user = await this.getUser()
-      username = user.name
-    }
-    const input = {
-      username,
-      transcriptionId,
-    }
-    console.log('inputs', input)
-    await API.graphql(
-      graphqlOperation(createTranscriptionEditor, {
-        input,
-      }),
-    )
-  },
-
-  async removeTranscriptionEditor(id) {
-    console.log('removing editor', id)
-    await API.graphql(graphqlOperation(deleteTranscriptionEditor, { input: { id } }))
   },
 
   async flush() {
@@ -174,27 +139,7 @@ export default {
     return result
   },
 
-  async listenForCursor(callback) {
-    // let up a listener, if we don't have one already
-    if (!cursorSubscription) {
-      cursorSubscription = API.graphql(graphqlOperation(onUpdateCursor), {}).subscribe({
-        next: (data) => {
-          // console.log('cursor data', data.value.data.onUpdateCursor)
-          const cursorData = data.value.data.onUpdateCursor
-          // unpack the JSON data
-          if (typeof cursorData.cursor === 'string') {
-            cursorData.cursor = JSON.parse(cursorData.cursor)
-          }
-          for (const subscriber of cursorSubscribers) {
-            subscriber(cursorData)
-          }
-        },
-        error: (error) => {
-          console.warn('onUpdateCursor subscription error', error)
-        },
-      })
-    }
-    cursorSubscribers.push(callback)
+  async listenForCursor() {
   },
 
   async lockRegion(transcriptionId, regionId) {
@@ -238,36 +183,7 @@ export default {
     return true
   },
 
-  async listenForLock(callback) {
-    if (!createLockSubscription) {
-      createLockSubscription = API.graphql(graphqlOperation(onCreateRegionLock)).subscribe({
-        next: (lockData) => {
-          const data = lockData.value.data.onCreateRegionLock
-          data.action = 'created'
-          for (const subscriber of lockSubscribers) {
-            subscriber(data)
-          }
-        },
-        error: (error) => {
-          console.warn('Could not subscribe to locks', error)
-        },
-      })
-    }
-    if (!deleteLockSubscription) {
-      deleteLockSubscription = API.graphql(graphqlOperation(onDeleteRegionLock)).subscribe({
-        next: (lockData) => {
-          const data = lockData.value.data.onDeleteRegionLock
-          data.action = 'deleted'
-          for (const subscriber of lockSubscribers) {
-            subscriber(data)
-          }
-        },
-        error: (error) => {
-          console.warn('Could not subscribe to locks', error)
-        },
-      })
-    }
-    lockSubscribers.push(callback)
+  async listenForLock() {
   },
 
   async getRegionLocks(transcriptionId) {

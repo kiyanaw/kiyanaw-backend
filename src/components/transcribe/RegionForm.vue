@@ -109,11 +109,15 @@
 </template>
 
 <script>
+// import { DataStore } from 'aws-amplify'
+// import { Region } from '../../models'
 import { mapActions, mapGetters } from 'vuex'
 import Timeout from 'smart-timeout'
 
 import RTE from './RTE.vue'
 import Lexicon from '../../services/lexicon'
+// import EventBus from '../../store/bus'
+
 import logging from '../../logging'
 const logger = new logging.Logger('Region Form')
 
@@ -180,6 +184,14 @@ export default {
         return false
       }
     },
+  },
+
+  mounted() {
+    // subscribe to realtime changes
+    // EventBus.$on('realtime-region-change', (incoming) => {
+    //   // console.warn('got realtime region change', incoming)
+    //   this.mainEditor.onRealtimeUpdate(incoming)
+    // })
   },
 
   data() {
@@ -276,6 +288,7 @@ export default {
     },
 
     onMainEditorContentChange(contents) {
+      console.log('!! update region called')
       this.updateRegion({ text: contents })
 
       // additionally check for known words
@@ -334,16 +347,16 @@ export default {
     },
 
     attemptRegionLock() {
-      if (!this.regionIsLockedByMe) {
-        this.lockRegion((result) => {
-          if (!result) {
-            logger.warn('Region lock failed')
-            alert('Unable to lock region, try again shortly')
-            this.$refs.mainEditor.blur()
-            this.$refs.secondaryEditor.blur()
-          }
-        })
-      }
+      // if (!this.regionIsLockedByMe) {
+      //   this.lockRegion((result) => {
+      //     if (!result) {
+      //       logger.warn('Region lock failed')
+      //       alert('Unable to lock region, try again shortly')
+      //       this.$refs.mainEditor.blur()
+      //       this.$refs.secondaryEditor.blur()
+      //     }
+      //   })
+      // }
     },
 
     /**

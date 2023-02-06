@@ -69,7 +69,7 @@ import VirtualList from 'vue-virtual-scroll-list'
 import AudioPlayer from './AudioPlayer.vue'
 
 import StationaryEditor from './StationaryEditor.vue'
-import TranscriptionService from '../../services/transcriptions'
+// import TranscriptionService from '../../services/transcriptions'
 
 import RegionPartial from './RegionPartial.vue'
 import UserService from '../../services/user'
@@ -78,10 +78,10 @@ import Lookup from './Lookup.vue'
 
 import { mapActions, mapGetters } from 'vuex'
 
-import Amplify, { DataStore } from 'aws-amplify'
-import { Region } from '../../models'
 
-Amplify.Logger.LOG_LEVEL = 'INFO'
+import {DataStore } from 'aws-amplify'
+import { Region, Transcription, TranscriptionContributor } from '../../models'
+
 
 import logging from '../../logging'
 const logger = new logging.Logger('Transcribe')
@@ -115,22 +115,13 @@ export default {
   data() {
     return {
       /**
-       * @type {String}
-       * @description ID of the transcription.
-       */
-      source: null,
-      peaks: null,
-      isVideo: false,
-      /**
        * @type {String|null}
        * @default null
        * @description Id of the region currently being edited, `null` otherwise.
        */
       editingRegionId: null,
       inboundRegion: null,
-      title: '',
-      author: '',
-      members: [],
+      // members: [],
       user: null,
       height: 0,
       //
@@ -149,6 +140,32 @@ export default {
 
   computed: {
     ...mapGetters(['regionById', 'regions', 'saved', 'selectedRegion', 'transcription']),
+    isVideo() {
+      return this.transcription ? this.transcription.isVideo : false
+    },
+    source() {
+      return this.transcription ? this.transcription.source : null
+    },
+    title() {
+      return this.transcription ? this.transcription.title : ''
+    },
+    type() {
+      return this.transcription ? this.transcription.type : ''
+    },
+    author() {
+      return this.transcription ? this.transcription.author : ''
+    },
+    peaks() {
+      return this.transcription ? this.transcription.peaks : null
+    }
+  },
+
+  watch: {
+    transcription(newValue) {
+      if (newValue) {
+        this.loading = false
+      }
+    }
   },
   /**
    * Mount point for this component.
@@ -171,16 +188,16 @@ export default {
     /**
      * Set up a subscription for new cursor changes.
      */
-    UserService.listenForCursor((data) => {
-      if (data.user !== this.user.name) {
-        // only try to set cursors for local regions
-        if (this.$refs[data.cursor.id] && this.$refs[data.cursor.id][0]) {
-          this.$refs[data.cursor.id][0].setCursor({ user: data.user, ...data.cursor })
-        }
-      }
-    }).catch((e) => {
-      console.warn('Cursor listen error', e)
-    })
+    // UserService.listenForCursor((data) => {
+    //   if (data.user !== this.user.name) {
+    //     // only try to set cursors for local regions
+    //     if (this.$refs[data.cursor.id] && this.$refs[data.cursor.id][0]) {
+    //       this.$refs[data.cursor.id][0].setCursor({ user: data.user, ...data.cursor })
+    //     }
+    //   }
+    // }).catch((e) => {
+    //   console.warn('Cursor listen error', e)
+    // })
 
     // maintain a dynamic little style sheet for highlighting regions (less expensive
     // to let the browser manage the style than in vue)
@@ -199,39 +216,29 @@ export default {
 
     window.DataStore = DataStore
     window.Region = Region
+    window.Transcription = Transcription
+    window.TranscriptionContributor = TranscriptionContributor
     window.Document = Document
 
     window.transcribe = this
 
     // load up
-    this.load()
+    this.loadTranscription(this.transcriptionId)
   },
 
   methods: {
     ...mapActions([
+      // tested
+      'loadTranscription',
+      // untested
       'createRegion',
       'getLockedRegions',
       'setRegions',
       'setSelectedRegion',
       'setTranscription',
       'updateRegionById',
+    
     ]),
-
-    async index() {
-      const slice = this.regions.slice(1201, 1301)
-      let count = 1
-      for (const region of slice) {
-        if (region.text.length) {
-          const newCreated = region.createdAt.split('.')[0] + '.001Z'
-          console.log(`Updating ${region.id}`)
-          this.updateRegionById({ id: region.id, update: { createdAt: newCreated } })
-          await new Promise((resolve) => setTimeout(resolve, 550))
-          console.log(` - ${count} of ${slice.length}`)
-          count = count + 1
-        }
-      }
-      console.log('Done.')
-    },
 
     regionCursor(data) {
       data.color = cursorColor
@@ -247,15 +254,15 @@ export default {
     /**
      * TODO: remove this, it has moved to the store.
      */
-    coverage() {
-      let val = 0
-      if (this.$refs.player && this.regions && this.regions.length) {
-        const regionCoverage = this.regions.map((x) => x.end - x.start).reduce((x, y) => x + y)
-        const totalLength = this.$refs.player.maxTime
-        val = regionCoverage / totalLength
-      }
-      return (val * 100).toFixed(1)
-    },
+    // coverage() {
+    //   let val = 0
+    //   if (this.$refs.player && this.regions && this.regions.length) {
+    //     const regionCoverage = this.regions.map((x) => x.end - x.start).reduce((x, y) => x + y)
+    //     const totalLength = this.$refs.player.maxTime
+    //     val = regionCoverage / totalLength
+    //   }
+    //   return (val * 100).toFixed(1)
+    // },
 
     /**
      * Handler for the playback head entering a region.
@@ -291,54 +298,54 @@ export default {
     /**
      * @description Loads initial data based on URL params.
      */
-    async load() {
-      // TODO: move to loading through VueX
-      const data = await TranscriptionService.getTranscription(this.transcriptionId)
+    // async load() {
+    //   // TODO: move to loading through VueX
+    //   const data = await TranscriptionService.getTranscription(this.transcriptionId)
 
-      // If a transcription is 'Private' only allow author and editors
-      let canAccess = true
-      if (data.isPrivate) {
-        if (!data.editors.includes(this.user.name)) {
-          canAccess = false
-        }
-      }
-      if (data && canAccess) {
-        this.setTranscription(data)
+    //   // If a transcription is 'Private' only allow author and editors
+    //   let canAccess = true
+    //   if (data.isPrivate) {
+    //     if (!data.editors.includes(this.user.name)) {
+    //       canAccess = false
+    //     }
+    //   }
+    //   if (data && canAccess) {
+    //     this.setTranscription(data)
 
-        // legacy
-        let peaks
-        try {
-          const rawPeaks = await fetch(`${data.source}.json`)
-          peaks = await rawPeaks.json()
-        } catch (error) {
-          console.error('Error loading peaks data', error)
-          this.loading = false
-          this.error = `Failed to load peaks for ${data.title}, try again shortly...`
-          return
-        }
+    //     // legacy
+    //     let peaks
+    //     try {
+    //       const rawPeaks = await fetch(`${data.source}.json`)
+    //       peaks = await rawPeaks.json()
+    //     } catch (error) {
+    //       console.error('Error loading peaks data', error)
+    //       this.loading = false
+    //       this.error = `Failed to load peaks for ${data.title}, try again shortly...`
+    //       return
+    //     }
 
-        // TODO: bind this to the data store
-        this.loading = false
-        this.source = data.source
-        this.title = data.title
-        // this.comments = data.comments
-        this.type = data.type
-        this.author = data.author
-        this.isVideo = data.type.includes('video')
-        this.peaks = peaks
+    //     // TODO: bind this to the data store
+    //     this.loading = false
+    //     this.source = data.source
+    //     this.title = data.title
+    //     // this.comments = data.comments
+    //     this.type = data.type
+    //     this.author = data.author
+    //     this.isVideo = data.type.includes('video')
+    //     this.peaks = peaks
 
-        // set the inbound region, if any
-        logger.info('setting inbound region', this.inboundRegion)
-        this.$store.dispatch('setSelectedRegion', this.inboundRegion)
+    //     // set the inbound region, if any
+    //     logger.info('setting inbound region', this.inboundRegion)
+    //     this.$store.dispatch('setSelectedRegion', this.inboundRegion)
 
-        // Request all locked regions on load
-        this.getLockedRegions()
-      } else {
-        // no transcription
-        this.loading = false
-        this.error = 'Transcription not found 🤷'
-      }
-    },
+    //     // Request all locked regions on load
+    //     this.getLockedRegions()
+    //   } else {
+    //     // no transcription
+    //     this.loading = false
+    //     this.error = 'Transcription not found 🤷'
+    //   }
+    // },
 
     triggerAudioPlayer(regionId) {
       this.$refs.player.playRegion(regionId)
@@ -369,6 +376,7 @@ export default {
     },
 
     onAudioPlayerUpdateRegion(regionUpdate) {
+      // This is probably _very_ slow (the .map), can it be cached?
       const regionIds = this.regions.map((item) => item.id)
       if (regionIds.indexOf(regionUpdate.id) === -1) {
         const regionData = {
@@ -380,11 +388,13 @@ export default {
           isNote: false,
         }
 
+        console.log('create region data', JSON.stringify(regionData))
+
         this.createRegion(regionData)
       } else {
         this.updateRegionById({
+          ...regionUpdate,
           id: regionUpdate.id,
-          update: regionUpdate,
         })
       }
     },

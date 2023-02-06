@@ -334,6 +334,7 @@ export default {
     },
 
     validateIssues(issues) {
+      logger.info('Validating issues...')
       const contents = this.editor.getContents().ops
       const existingIds = contents
         .map((item) =>
@@ -362,6 +363,10 @@ export default {
       logger.info('Adding issue', issue)
       // creates the class .issue-needs-help-1234567890
       this.editor.formatText(issue.index, issue.text.length, `issue-${issue.type}`, issue.id)
+
+      // TODO: this is disabled, because enabling it will trigger "save" when we load up
+      // a region that is a) locked by us and b) has an issue. We shouldn't be saving here
+      // we should only be changing the formatting.
       this.emitChangeEvent('change-format')
     },
 
@@ -377,6 +382,9 @@ export default {
         }
         index += leaf.insert.length
       }
+      // TODO: this is disabled, because enabling it will trigger "save" when we load up
+      // a region that is a) locked by us and b) has an issue. We shouldn't be saving here
+      // we should only be changing the formatting.
       this.emitChangeEvent('change-format')
     },
   },

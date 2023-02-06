@@ -1,17 +1,22 @@
+import { DataStore } from 'aws-amplify'
+import { Region, Transcription } from '../models'
+
 import Vue from 'vue'
 // import Timeout from 'smart-timeout'
 
 import Lexicon from '../services/lexicon'
 import UserService from '../services/user'
-import TranscriptionService from '../services/transcriptions'
+// import TranscriptionService from '../services/transcriptions'
 import logging from '../logging'
+import EventBus from './bus'
+import * as assert from 'assert'
 
 const logger = new logging.Logger('Region Store')
 
 /**
  * Special queue outside the normal store just used to track unlocking.
  */
-const unlockQueue = []
+// const unlockQueue = []
 
 const state = {
   regions: [],
@@ -68,89 +73,38 @@ const actions = {
     store.commit('SET_SELECTED_ISSUE', issue)
   },
 
-  getLockedRegions(store) {
-    logger.debug('Getting all locks')
+  // processUnlockQueue() {
+  //   logger.debug(`Processing unlock queue, ${unlockQueue.length} items`)
+  //   while (unlockQueue.length) {
+  //     const unlock = unlockQueue.pop()
+  //     unlock()
+  //   }
+  // },
 
-    const transcriptionId = store.getters.transcription.id
-    UserService.getRegionLocks(transcriptionId)
-      .then((locks) => {
-        for (const lock of locks) {
-          logger.debug('Incoming lock for region', lock.id, lock)
-          store.commit('SET_LOCK', { key: lock.id, data: lock })
+  async createRegion(store, region) {
+    const regions = store.getters.regions
+    regions.push({ ...region })
+    // store.dispatch('setRegions', regions)
+    // store.dispatch('updateTranscription', { regions })
 
-          // check for our locks, push to unlock queue if any
-          if (lock.user === store.getters.user.name) {
-            store.dispatch('pushToUnlockQueue', lock)
-          }
-        }
-      })
-      .catch((error) => {
-        console.warn('Unable to get region locks', error)
-      })
-
-    UserService.listenForLock((update) => {
-      logger.debug('got realtime lock 1', update)
-      store.dispatch('realtimeLockUpdate', update)
-    })
-  },
-
-  initRegionSubscriptions(store, transcriptionId) {
-    console.log('STORE-region listening for region changes', store, transcriptionId)
-    TranscriptionService.listenForRegions((type, data) => {
-      logger.info('Realtime region update', type, data)
-    })
-  },
-
-  realtimeLockUpdate(store, update) {
-    logger.debug('Got realtime lock update', update.action, update)
-    if (update.action === 'created') {
-      store.commit('SET_LOCK', { key: update.id, data: update })
-    } else {
-      store.commit('SET_LOCK', { key: update.id, data: null })
+    
+    // sync
+    const transcription = await DataStore.query(Transcription, store.getters.transcription.id)
+    const input = {
+      id: region.id,
+      start: region.start,
+      end: region.end,
+      text: JSON.stringify(region.text),
+      dateLastUpdated: `${+new Date()}`,
+      userLastUpdated: (await UserService.getUser()).name,
+      transcription,
     }
-  },
+    
+    console.log('creating new region', input)
+    await DataStore.save(
+      new Region(input),
+    )
 
-  lockRegion(store, callback) {
-    logger.debug('Region lock requested')
-    // store.commit('SET_LOCK', regionId, true)
-    const regionId = store.getters.selectedRegion.id
-    const transcriptionId = store.getters.transcription.id
-    UserService.lockRegion(transcriptionId, regionId).then((result) => {
-      if (result) {
-        store.commit('SET_LOCK', { key: result.id, data: result })
-        callback(result)
-
-        // unlock any existing regions and then queue up this region for unlock
-        store.dispatch('processUnlockQueue')
-
-        result.transcriptionId = transcriptionId
-        store.dispatch('pushToUnlockQueue', result)
-      } else {
-        callback(null)
-      }
-    })
-  },
-
-  processUnlockQueue() {
-    logger.debug(`Processing unlock queue, ${unlockQueue.length} items`)
-    while (unlockQueue.length) {
-      const unlock = unlockQueue.pop()
-      unlock()
-    }
-  },
-
-  unlockRegion(store) {
-    store.dispatch('processUnlockQueue')
-  },
-
-  pushToUnlockQueue(store, item) {
-    logger.debug('Pushing item to unlock queue', item, store)
-    unlockQueue.push(() => {
-      logger.debug(`Unlock for region ${item.id} triggered`)
-      UserService.unlockRegion(item.transcriptionId, item.id).then((result) => {
-        logger.debug(`Region ${item.id} unlocked: ${result}`)
-      })
-    })
   },
 
   /**
@@ -201,18 +155,36 @@ const actions = {
     store.commit('SET_SELECTED_REGION', region)
   },
 
-  /**
-   * TODO: this `input` differs from updateRegion
-   */
-  updateRegionById(store, input) {
-    const update = input.update
-    logger.info('Updating region by Id', update.id)
-    const region = store.getters.regionById(input.id)
+  async updateRegionById(store, update) {
+    assert.ok(update.id, 'region ID must be provided')
+    // const update = input.update
+    
+    const regionId = update.id
+    delete update.id
+
+    logger.info('Updating region by Id', regionId)
+    const region = store.getters.regionById(regionId)
     store.commit('UPDATE_REGION', { region, update })
 
+    const original = await DataStore.query(Region, regionId)
+    console.log('original', original)
+    await DataStore.save(
+      Region.copyOf(original, (toUpdate) => {
+        toUpdate.dateLastUpdated = `${Date.now()}`
+        for (const key of Object.keys(update)) {
+          toUpdate[key] = update[key]
+        }
+        logger.info('Region saved', toUpdate)
+      }),
+    )
+
+    // TODO: fire off dispatch update transcription
+
+    // --- old code/
+
     // now that the update has fired, grab the region again
-    const updated = store.getters.regionById(input.id)
-    store.dispatch('saveRegion', updated)
+    // const updated = store.getters.regi onById(input.id)
+    // store.dispatch('saveRegion', updated)
   },
 
   /**
@@ -220,16 +192,94 @@ const actions = {
    * TODO: this is ambiguous and confused with non-specific region updates - fix it.
    * TODO: this update takes update object {id, start, end} differs from updateRegionById
    */
-  updateRegion(store, update) {
-    logger.debug('region updated', update)
+  async updateRegion(store, update) {
+    console.error('changing contenst!')
+    logger.info('region updated', update)
 
-    const region = store.getters.selectedRegion
-    store.commit('UPDATE_REGION', { region, update })
+    throw new Error('Move update logic to updateRegionById')
 
-    // now that the update has fired, grab the region again
-    const updated = store.getters.regionById(region.id)
-    // console.log('updated', updated)
-    store.dispatch('saveRegion', updated)
+    // const region = store.getters.selectedRegion
+    // console.log(region)
+    // const original = await DataStore.query(Region, region.id)
+
+    // keep a pre-save copy that doesn't have any JSON-serialization
+    // const presaveUpdate = { ...update }
+
+    // DataStore.save(
+    //   Region.copyOf(original, (updated) => {
+    //     updated.dateLastUpdated = `${Date.now()}`
+    //     console.error('saved date')
+
+    //     for (const key of Object.keys(update)) {
+    //       // console.warn('updating key', key)
+    //       if (key === 'text') {
+    //         update[key] = JSON.stringify(update[key])
+    //       }
+    //       updated[key] = update[key]
+    //     }
+
+    //     console.log('Finished update', updated.text)
+    //   }),
+    // )
+
+    // DataStore.save(
+    //   Region.copyOf(original, (updated) => {
+    //     updated.dateLastUpdated = `${Date.now()}`
+    //     console.log('Finished update', updated.text)
+    //   }),
+    // )
+
+    // store.commit('UPDATE_REGION', { region, presaveUpdate })
+  },
+
+  initRegionSubscriptions(store, transcriptionId) {
+    console.log(store, transcriptionId, DataStore, Region)
+    /** this is not providing accurate data */
+    // DataStore.observeQuery(Region, (r) => r.transcriptionId('eq', transcriptionId), {
+    //   sort: (s) => s.dateLastUpdated('DESCENDING'),
+    // }).subscribe((snapshot) => {
+    //   const { items, isSynced } = snapshot
+    //   console.warn(`[Snapshot] item count: ${items.length}, isSynced: ${isSynced}`)
+    //   // console.log('items', items)
+    //   console.log(items.shift())
+    // })
+
+    // DataStore.observe(Region).subscribe((msg) => {
+    //   if (msg.element.transcriptionId !== transcriptionId) {
+    //     return
+    //   }
+    //   if (msg.opType === 'UPDATE') {
+    //     store.dispatch('onRealtimeRegionChange', msg.element)
+    //   } else if (msg.opType === 'CREATE') {
+    //     console.warn('TODO: create region')
+    //   } else {
+    //     console.warn('Unhandled optype: ', msg.opType)
+    //   }
+    // })
+  },
+
+  onRealtimeRegionChange(store, incoming) {
+    const selectedRegion = store.getters.selectedRegion
+
+    // unwrap incoming model
+    incoming = JSON.parse(JSON.stringify(incoming))
+
+    // deserialize text field
+    if (incoming.text && !incoming.text.map) {
+      incoming.text = JSON.parse(incoming.text)
+    }
+
+    if (incoming.issues && !incoming.issues.map) {
+      incoming.issues = JSON.parse(incoming.issues)
+    }
+
+    if (incoming.id === selectedRegion.id) {
+      console.warn('change:', incoming.text.map((item) => item.insert).join(' '))
+      EventBus.$emit('realtime-region-changez', incoming)
+    }
+    // set content on store
+    // const region = store.getters.regionById(incoming.id)
+    // store.commit('UPDATE_REGION', { region, update: incoming })
   },
 }
 

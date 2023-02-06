@@ -11,7 +11,11 @@
         "cognitoUserPoolId": "authkiyanaw664b231a"
       }
     ],
-    "conflictResolution": {},
+    "conflictResolution": {
+      "defaultResolutionStrategy": {
+        "type": "AUTOMERGE"
+      }
+    },
     "apiName": "kiyanaw",
     "gqlSchemaPath": "/Users/magius/workspace/kiyanaw-backend/amplify/backend/api/kiyanaw/schema.graphql"
   }

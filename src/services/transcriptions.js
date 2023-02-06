@@ -1,9 +1,9 @@
 import UUID from 'uuid'
 import { API, graphqlOperation, Storage } from 'aws-amplify'
 
-import * as queries from '../graphql/queries'
+// import * as queries from '../graphql/queries'
 import * as mutations from '../graphql/mutations'
-import * as subscriptions from '../graphql/subscriptions'
+// import * as subscriptions from '../graphql/subscriptions'
 
 import EnvService from '../services/env'
 import UserService from './user'
@@ -11,32 +11,32 @@ import UserService from './user'
 import logging from '../logging'
 const logger = new logging.Logger('Transcription Service')
 
-function pad(num, size) {
-  return ('000000000' + num).substr(-size)
-}
+// function pad(num, size) {
+//   return ('000000000' + num).substr(-size)
+// }
 
-function floatToMSM(value) {
-  const stringFloat = `${value}`
-  const [rawSecs, rawMillis] = stringFloat.split('.')
-  let minutes = Math.floor(rawSecs / 60)
-  if (minutes < 10) {
-    minutes = `0${minutes}`
-  }
-  const seconds = rawSecs % 60
-  let millis = Number(`${rawMillis}`.substr(0, 2))
-  if (`${millis}`.length === 1) {
-    millis = `${millis}0`
-  }
-  if (`${millis}`.length === 2) {
-    millis = `${millis}`
-  }
-  return `${minutes}:${pad(seconds, 2)}.${millis || '00'}`
-}
+// function floatToMSM(value) {
+//   const stringFloat = `${value}`
+//   const [rawSecs, rawMillis] = stringFloat.split('.')
+//   let minutes = Math.floor(rawSecs / 60)
+//   if (minutes < 10) {
+//     minutes = `0${minutes}`
+//   }
+//   const seconds = rawSecs % 60
+//   let millis = Number(`${rawMillis}`.substr(0, 2))
+//   if (`${millis}`.length === 1) {
+//     millis = `${millis}0`
+//   }
+//   if (`${millis}`.length === 2) {
+//     millis = `${millis}`
+//   }
+//   return `${minutes}:${pad(seconds, 2)}.${millis || '00'}`
+// }
 
 // let createRegionSubscription = null
 // let updateRegionSubscription = null
 // let deleteRegionSubscription = null
-const regionSubscribers = []
+// const regionSubscribers = []
 
 /**
  * @typedef {Object} Region
@@ -46,55 +46,55 @@ const regionSubscribers = []
  * @property {Array<Object>} text List of text items in this region
  */
 
-/**
- * @description Interface to the transcription document.
- */
-// TODO: move this object into the store instead of the service
-class Transcription {
-  constructor(data) {
-    this.id = data.id
-    this.data = data
-    this.title = data.title
-    this.comments = data.comments
-    this.author = data.author
-    this.type = data.type
-    this.issues = Number(data.issues) || 0
-    this.source = data.source
-    this.coverage = data.coverage || 0
-    this.isPrivate = data.isPrivate || false
-    this.disableAnalyzer = !!data.disableAnalyzer
+// /**
+//  * @description Interface to the transcription document.
+//  */
+// // TODO: move this object into the store instead of the service
+// class Transcription {
+//   constructor(data) {
+//     this.id = data.id
+//     this.data = data
+//     this.title = data.title
+//     this.comments = data.comments
+//     this.author = data.author
+//     this.type = data.type
+//     this.issues = Number(data.issues) || 0
+//     this.source = data.source
+//     this.coverage = data.coverage || 0
+//     this.isPrivate = data.isPrivate || false
+//     this.disableAnalyzer = !!data.disableAnalyzer
 
-    this.dateLastUpdated = data.dateLastUpdated
-    this.userLastUpdated = data.userLastUpdated
-    if (data.editor && data.editor.items) {
-      this.editors = data.editor.items.map((item) => item.username)
-      // need this so we have the ids of the editors for add/remove
-      this.editorsDb = data.editor.items
-    }
-    // this._version = `${data._version || 0}`
-  }
+//     this.dateLastUpdated = data.dateLastUpdated
+//     this.userLastUpdated = data.userLastUpdated
+//     if (data.editor && data.editor.items) {
+//       this.editors = data.editor.items.map((item) => item.username)
+//       // need this so we have the ids of the editors for add/remove
+//       this.editorsDb = data.editor.items
+//     }
+//     // this._version = `${data._version || 0}`
+//   }
 
-  /**
-   * Provide the URL to edit the transcription.
-   * @returns {string}
-   */
-  get url() {
-    return '/transcribe-edit/' + this.id
-  }
-  /**
-   * Provide the length of the transcription audio in MM:SS
-   * @returns {string}
-   */
-  get length() {
-    try {
-      const length = String(floatToMSM(this.data.length)).split('.')[0]
-      return length
-    } catch (error) {
-      logger.warn('Error parsing length', error)
-      return '0'
-    }
-  }
-}
+//   /**
+//    * Provide the URL to edit the transcription.
+//    * @returns {string}
+//    */
+//   get url() {
+//     return '/transcribe-edit/' + this.id
+//   }
+//   /**
+//    * Provide the length of the transcription audio in MM:SS
+//    * @returns {string}
+//    */
+//   get length() {
+//     try {
+//       const length = String(floatToMSM(this.data.length)).split('.')[0]
+//       return length
+//     } catch (error) {
+//       logger.warn('Error parsing length', error)
+//       return '0'
+//     }
+//   }
+// }
 
 export default {
   /**
@@ -104,19 +104,19 @@ export default {
    */
   // TODO: test me!
   // TODO: want these ordered by lastUpdated
-  async listTranscriptions() {
-    // transcriptions are attached to the user profile
-    const profile = await UserService.getProfile()
-    console.log('transcriptions', profile.transcriptions)
-    let transcriptions = []
-    if (profile.transcriptions.items) {
-      transcriptions = profile.transcriptions.items.map(
-        (item) => new Transcription(item.transcription),
-      )
-    }
+  // async listTranscriptions() {
+  //   // transcriptions are attached to the user profile
+  //   const profile = await UserService.getProfile()
+  //   console.log('transcriptions', profile.transcriptions)
+  //   let transcriptions = []
+  //   if (profile.transcriptions.items) {
+  //     transcriptions = profile.transcriptions.items.map(
+  //       (item) => new Transcription(item.transcription),
+  //     )
+  //   }
 
-    return transcriptions
-  },
+  //   return transcriptions
+  // },
 
   /**
    * @typedef {Object} TranscriptionUpload
@@ -181,45 +181,46 @@ export default {
 
   /** */
   async getTranscription(id) {
-    try {
-      let [transcription, regions] = await Promise.all([
-        API.graphql(graphqlOperation(queries.getTranscription, { id: id })),
-        API.graphql(
-          graphqlOperation(queries.byTranscription, { transcriptionId: id, limit: 2500 }),
-        ),
-      ])
+    console.log(id)
+    // try {
+    //   let [transcription, regions] = await Promise.all([
+    //     API.graphql(graphqlOperation(queries.getTranscription, { id: id })),
+    //     API.graphql(
+    //       graphqlOperation(queries.byTranscription, { transcriptionId: id, limit: 2500 }),
+    //     ),
+    //   ])
 
-      console.log('raw transcription', transcription)
-      transcription = new Transcription(transcription.data.getTranscription)
-      transcription.regions = regions.data.byTranscription.items.map((item) => {
-        item.text = JSON.parse(item.text)
-        item.issues = item.issues ? JSON.parse(item.issues) : []
-        item.comments = item.comments ? JSON.parse(item.comments) : []
-        item.isNote = !!item.isNote
-        return item
-      })
-      return transcription
-    } catch (error) {
-      console.warn('Could not load transcription', error)
-      return null
-    }
+    //   console.log('raw transcription', transcription)
+    //   transcription = new Transcription(transcription.data.getTranscription)
+    //   transcription.regions = regions.data.byTranscription.items.map((item) => {
+    //     item.text = JSON.parse(item.text)
+    //     item.issues = item.issues ? JSON.parse(item.issues) : []
+    //     item.comments = item.comments ? JSON.parse(item.comments) : []
+    //     item.isNote = !!item.isNote
+    //     return item
+    //   })
+    //   return transcription
+    // } catch (error) {
+    //   console.warn('Could not load transcription', error)
+    //   return null
+    // }
   },
 
   /** */
-  async createRegion(transcriptionId, regionData) {
-    const input = {
-      id: regionData.id,
-      start: regionData.start,
-      end: regionData.end,
-      text: JSON.stringify(regionData.text),
-      dateLastUpdated: `${+new Date()}`,
-      userLastUpdated: (await UserService.getUser()).name,
-      transcriptionId: transcriptionId,
-    }
+  async createRegion(/*transcriptionId, regionData*/) {
+    // const input = {
+    //   id: regionData.id,
+    //   start: regionData.start,
+    //   end: regionData.end,
+    //   text: JSON.stringify(regionData.text),
+    //   dateLastUpdated: `${+new Date()}`,
+    //   userLastUpdated: (await UserService.getUser()).name,
+    //   transcriptionId: transcriptionId,
+    // }
 
-    const update = await API.graphql(graphqlOperation(mutations.createRegion, { input: input }))
-    // regionData.version = 1
-    return update.data.createRegion
+    // const update = await API.graphql(graphqlOperation(mutations.createRegion, { input: input }))
+    // // regionData.version = 1
+    // return update.data.createRegion
   },
 
   async updateRegion(transcriptionId, region) {
@@ -255,76 +256,76 @@ export default {
     return true
   },
 
-  async listenForRegions(callback) {
-    console.log('Listening for regions')
-    const user = await UserService.getUser()
-    if (!this.createRegionSubscription) {
-      this.createRegionSubscription = API.graphql(
-        graphqlOperation(subscriptions.onCreateRegion),
-      ).subscribe({
-        next: (lockData) => {
-          const data = lockData.value.data.onCreateRegion
-          // console.log('incoming region', data, user)
-          // console.log('Region locked by another user: ', data)
-          for (const subscriber of regionSubscribers) {
-            const region = data
-            if (typeof region.text === 'string') {
-              region.text = JSON.parse(region.text)
-            }
-            subscriber('created', region)
-          }
-        },
-        error: (error) => {
-          console.warn('Unable to listen for region create', error)
-        },
-      })
-    }
-    if (!this.updateRegionSubscription) {
-      this.updateRegionSubscription = API.graphql(
-        graphqlOperation(subscriptions.onUpdateRegion),
-      ).subscribe({
-        next: (lockData) => {
-          const data = lockData.value.data.onUpdateRegion
-          // console.log('incoming region', data, user)
-          if (data.userLastUpdated !== user.name) {
-            for (const subscriber of regionSubscribers) {
-              const region = data
-              if (typeof region.text === 'string') {
-                region.text = JSON.parse(region.text)
-              }
-              subscriber('updated', region)
-            }
-          }
-        },
-        error: (error) => {
-          console.warn('Unable to listen for region update', error)
-        },
-      })
-    }
-    if (!this.deleteRegionSubscription) {
-      this.deleteRegionSubscription = API.graphql(
-        graphqlOperation(subscriptions.onDeleteRegion),
-      ).subscribe({
-        next: (lockData) => {
-          const data = lockData.value.data.onDeleteRegion
-          // console.log('incoming region', data, user)
-          if (data.userLastUpdated !== user.name) {
-            for (const subscriber of regionSubscribers) {
-              const region = data
-              if (typeof region.text === 'string') {
-                region.text = JSON.parse(region.text)
-              }
-              subscriber('deleted', region)
-            }
-          }
-        },
-        error: (error) => {
-          console.warn('Unable to listen for region delete', error)
-        },
-      })
-    }
-    regionSubscribers.push(callback)
-  },
+  // async listenForRegions(callback) {
+  //   console.log('Listening for regions')
+  //   const user = await UserService.getUser()
+  //   if (!this.createRegionSubscription) {
+  //     this.createRegionSubscription = API.graphql(
+  //       graphqlOperation(subscriptions.onCreateRegion),
+  //     ).subscribe({
+  //       next: (lockData) => {
+  //         const data = lockData.value.data.onCreateRegion
+  //         // console.log('incoming region', data, user)
+  //         // console.log('Region locked by another user: ', data)
+  //         for (const subscriber of regionSubscribers) {
+  //           const region = data
+  //           if (typeof region.text === 'string') {
+  //             region.text = JSON.parse(region.text)
+  //           }
+  //           subscriber('created', region)
+  //         }
+  //       },
+  //       error: (error) => {
+  //         console.warn('Unable to listen for region create', error)
+  //       },
+  //     })
+  //   }
+  //   if (!this.updateRegionSubscription) {
+  //     this.updateRegionSubscription = API.graphql(
+  //       graphqlOperation(subscriptions.onUpdateRegion),
+  //     ).subscribe({
+  //       next: (lockData) => {
+  //         const data = lockData.value.data.onUpdateRegion
+  //         // console.log('incoming region', data, user)
+  //         if (data.userLastUpdated !== user.name) {
+  //           for (const subscriber of regionSubscribers) {
+  //             const region = data
+  //             if (typeof region.text === 'string') {
+  //               region.text = JSON.parse(region.text)
+  //             }
+  //             subscriber('updated', region)
+  //           }
+  //         }
+  //       },
+  //       error: (error) => {
+  //         console.warn('Unable to listen for region update', error)
+  //       },
+  //     })
+  //   }
+  //   if (!this.deleteRegionSubscription) {
+  //     this.deleteRegionSubscription = API.graphql(
+  //       graphqlOperation(subscriptions.onDeleteRegion),
+  //     ).subscribe({
+  //       next: (lockData) => {
+  //         const data = lockData.value.data.onDeleteRegion
+  //         // console.log('incoming region', data, user)
+  //         if (data.userLastUpdated !== user.name) {
+  //           for (const subscriber of regionSubscribers) {
+  //             const region = data
+  //             if (typeof region.text === 'string') {
+  //               region.text = JSON.parse(region.text)
+  //             }
+  //             subscriber('deleted', region)
+  //           }
+  //         }
+  //       },
+  //       error: (error) => {
+  //         console.warn('Unable to listen for region delete', error)
+  //       },
+  //     })
+  //   }
+  //   regionSubscribers.push(callback)
+  // },
 
   /** */
   async updateTranscription(data) {

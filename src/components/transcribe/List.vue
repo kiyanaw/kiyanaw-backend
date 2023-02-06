@@ -61,10 +61,15 @@
 <script>
 import { mapActions, mapGetters } from 'vuex'
 
+import { DataStore } from 'aws-amplify'
+
 import en from 'javascript-time-ago/locale/en'
 import TimeAgo from 'javascript-time-ago'
 TimeAgo.addLocale(en)
 const timeAgo = new TimeAgo('en-US')
+
+
+import { Region, Transcription, Editor, Contributor, TranscriptionContributor } from '../../models'
 
 export default {
   data() {
@@ -85,6 +90,15 @@ export default {
   },
   mounted() {
     this.loadTranscriptions()
+
+
+    window.DataStore = DataStore
+    window.Region = Region
+    window.Transcription = Transcription
+    window.Editor = Editor
+
+    window.Contributor = Contributor
+    window.TranscriptionContributor = TranscriptionContributor
   },
   computed: {
     ...mapGetters(['transcriptions']),

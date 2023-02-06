@@ -18,16 +18,26 @@
       "function": {
         "notifyRegionChanges": {
           "deploymentBucketName": "amplify-kiyanaw-dev-02717-deployment",
-          "s3Key": "amplify-builds/notifyRegionChanges-5a734e55685446625873-build.zip"
+          "s3Key": "amplify-builds/notifyRegionChanges-3942386f532b46716a4a-build.zip"
         },
         "indexRegionData": {
           "deploymentBucketName": "amplify-kiyanaw-dev-02717-deployment",
-          "s3Key": "amplify-builds/indexRegionData-7248416c774752364155-build.zip"
+          "s3Key": "amplify-builds/indexRegionData-453065364a7867754a67-build.zip"
         },
         "enqueueRegionChange": {
           "deploymentBucketName": "amplify-kiyanaw-dev-02717-deployment",
-          "s3Key": "amplify-builds/enqueueRegionChange-63736d703942386d4d45-build.zip"
+          "s3Key": "amplify-builds/enqueueRegionChange-6f4a6e5932586868554f-build.zip"
         }
+      },
+      "hosting": {
+        "S3AndCloudFront": {}
+      },
+      "storage": {
+        "transcriptions": {}
+      },
+      "api": {
+        "kiyanaw": {},
+        "enqueueRegionChange": {}
       }
     }
   },
@@ -60,6 +70,29 @@
           "deploymentBucketName": "amplify-kiyanaw-prod-214643-deployment",
           "s3Key": "amplify-builds/enqueueRegionChange-63736d703942386d4d45-build.zip"
         }
+      }
+    }
+  },
+  "databug": {
+    "awscloudformation": {
+      "AuthRoleName": "amplify-kiyanaw-databug-135349-authRole",
+      "UnauthRoleArn": "arn:aws:iam::494185203413:role/amplify-kiyanaw-databug-135349-unauthRole",
+      "AuthRoleArn": "arn:aws:iam::494185203413:role/amplify-kiyanaw-databug-135349-authRole",
+      "Region": "us-east-1",
+      "DeploymentBucketName": "amplify-kiyanaw-databug-135349-deployment",
+      "UnauthRoleName": "amplify-kiyanaw-databug-135349-unauthRole",
+      "StackName": "amplify-kiyanaw-databug-135349",
+      "StackId": "arn:aws:cloudformation:us-east-1:494185203413:stack/amplify-kiyanaw-databug-135349/bdc24af0-a668-11ed-9c6b-0e9aa6818fbf",
+      "AmplifyAppId": "d2vcnct5kwl6za"
+    },
+    "categories": {
+      "auth": {
+        "kiyanaw664b231a": {}
+      },
+      "function": {
+        "enqueueRegionChange": {},
+        "indexRegionData": {},
+        "notifyRegionChanges": {}
       }
     }
   }

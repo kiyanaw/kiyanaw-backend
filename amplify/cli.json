@@ -9,7 +9,9 @@
       "secondarykeyasgsi": true,
       "skipoverridemutationinputtypes": false,
       "transformerversion": 2,
-      "suppressschemamigrationprompt": true
+      "suppressschemamigrationprompt": true,
+      "securityEnhancementNotification": false,
+      "showFieldAuthNotification": false
     },
     "auth": {
       "enablecaseinsensitivity": false,
@@ -44,5 +46,8 @@
     "project": {
       "overrides": true
     }
+  },
+  "debug": {
+    "shareProjectConfig": false
   }
 }

@@ -29,11 +29,53 @@ export const createTranscription = /* GraphQL */ `
           username
           createdAt
           updatedAt
+          _version
+          _deleted
+          _lastChangedAt
         }
         nextToken
       }
+      contributors {
+        items {
+          id
+          transcriptionID
+          contributorID
+          createdAt
+          updatedAt
+          _version
+          _deleted
+          _lastChangedAt
+        }
+        nextToken
+        startedAt
+      }
+      regions {
+        items {
+          id
+          start
+          end
+          text
+          issues
+          isNote
+          comments
+          translation
+          dateLastUpdated
+          userLastUpdated
+          transcriptionId
+          createdAt
+          updatedAt
+          _version
+          _deleted
+          _lastChangedAt
+        }
+        nextToken
+        startedAt
+      }
       createdAt
       updatedAt
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
@@ -65,11 +107,53 @@ export const updateTranscription = /* GraphQL */ `
           username
           createdAt
           updatedAt
+          _version
+          _deleted
+          _lastChangedAt
         }
         nextToken
       }
+      contributors {
+        items {
+          id
+          transcriptionID
+          contributorID
+          createdAt
+          updatedAt
+          _version
+          _deleted
+          _lastChangedAt
+        }
+        nextToken
+        startedAt
+      }
+      regions {
+        items {
+          id
+          start
+          end
+          text
+          issues
+          isNote
+          comments
+          translation
+          dateLastUpdated
+          userLastUpdated
+          transcriptionId
+          createdAt
+          updatedAt
+          _version
+          _deleted
+          _lastChangedAt
+        }
+        nextToken
+        startedAt
+      }
       createdAt
       updatedAt
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
@@ -101,11 +185,53 @@ export const deleteTranscription = /* GraphQL */ `
           username
           createdAt
           updatedAt
+          _version
+          _deleted
+          _lastChangedAt
         }
         nextToken
       }
+      contributors {
+        items {
+          id
+          transcriptionID
+          contributorID
+          createdAt
+          updatedAt
+          _version
+          _deleted
+          _lastChangedAt
+        }
+        nextToken
+        startedAt
+      }
+      regions {
+        items {
+          id
+          start
+          end
+          text
+          issues
+          isNote
+          comments
+          translation
+          dateLastUpdated
+          userLastUpdated
+          transcriptionId
+          createdAt
+          updatedAt
+          _version
+          _deleted
+          _lastChangedAt
+        }
+        nextToken
+        startedAt
+      }
       createdAt
       updatedAt
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
@@ -125,9 +251,45 @@ export const createRegion = /* GraphQL */ `
       translation
       dateLastUpdated
       userLastUpdated
+      transcription {
+        id
+        author
+        coverage
+        dateLastUpdated
+        userLastUpdated
+        length
+        issues
+        comments
+        tags
+        source
+        index
+        title
+        type
+        isPrivate
+        disableAnalyzer
+        editor {
+          nextToken
+        }
+        contributors {
+          nextToken
+          startedAt
+        }
+        regions {
+          nextToken
+          startedAt
+        }
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+      }
       transcriptionId
       createdAt
       updatedAt
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
@@ -147,9 +309,45 @@ export const updateRegion = /* GraphQL */ `
       translation
       dateLastUpdated
       userLastUpdated
+      transcription {
+        id
+        author
+        coverage
+        dateLastUpdated
+        userLastUpdated
+        length
+        issues
+        comments
+        tags
+        source
+        index
+        title
+        type
+        isPrivate
+        disableAnalyzer
+        editor {
+          nextToken
+        }
+        contributors {
+          nextToken
+          startedAt
+        }
+        regions {
+          nextToken
+          startedAt
+        }
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+      }
       transcriptionId
       createdAt
       updatedAt
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
@@ -169,9 +367,45 @@ export const deleteRegion = /* GraphQL */ `
       translation
       dateLastUpdated
       userLastUpdated
+      transcription {
+        id
+        author
+        coverage
+        dateLastUpdated
+        userLastUpdated
+        length
+        issues
+        comments
+        tags
+        source
+        index
+        title
+        type
+        isPrivate
+        disableAnalyzer
+        editor {
+          nextToken
+        }
+        contributors {
+          nextToken
+          startedAt
+        }
+        regions {
+          nextToken
+          startedAt
+        }
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+      }
       transcriptionId
       createdAt
       updatedAt
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
@@ -186,6 +420,9 @@ export const createCursor = /* GraphQL */ `
       cursor
       createdAt
       updatedAt
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
@@ -200,6 +437,9 @@ export const updateCursor = /* GraphQL */ `
       cursor
       createdAt
       updatedAt
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
@@ -214,6 +454,9 @@ export const deleteCursor = /* GraphQL */ `
       cursor
       createdAt
       updatedAt
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
@@ -229,6 +472,9 @@ export const createRegionLock = /* GraphQL */ `
       user
       createdAt
       updatedAt
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
@@ -244,6 +490,9 @@ export const updateRegionLock = /* GraphQL */ `
       user
       createdAt
       updatedAt
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
@@ -259,6 +508,9 @@ export const deleteRegionLock = /* GraphQL */ `
       user
       createdAt
       updatedAt
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
@@ -277,11 +529,17 @@ export const createEditor = /* GraphQL */ `
           username
           createdAt
           updatedAt
+          _version
+          _deleted
+          _lastChangedAt
         }
         nextToken
       }
       createdAt
       updatedAt
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
@@ -300,11 +558,17 @@ export const updateEditor = /* GraphQL */ `
           username
           createdAt
           updatedAt
+          _version
+          _deleted
+          _lastChangedAt
         }
         nextToken
       }
       createdAt
       updatedAt
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
@@ -323,11 +587,110 @@ export const deleteEditor = /* GraphQL */ `
           username
           createdAt
           updatedAt
+          _version
+          _deleted
+          _lastChangedAt
         }
         nextToken
       }
       createdAt
       updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+    }
+  }
+`;
+export const createContributor = /* GraphQL */ `
+  mutation CreateContributor(
+    $input: CreateContributorInput!
+    $condition: ModelContributorConditionInput
+  ) {
+    createContributor(input: $input, condition: $condition) {
+      id
+      email
+      username
+      transcriptions {
+        items {
+          id
+          transcriptionID
+          contributorID
+          createdAt
+          updatedAt
+          _version
+          _deleted
+          _lastChangedAt
+        }
+        nextToken
+        startedAt
+      }
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+    }
+  }
+`;
+export const updateContributor = /* GraphQL */ `
+  mutation UpdateContributor(
+    $input: UpdateContributorInput!
+    $condition: ModelContributorConditionInput
+  ) {
+    updateContributor(input: $input, condition: $condition) {
+      id
+      email
+      username
+      transcriptions {
+        items {
+          id
+          transcriptionID
+          contributorID
+          createdAt
+          updatedAt
+          _version
+          _deleted
+          _lastChangedAt
+        }
+        nextToken
+        startedAt
+      }
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+    }
+  }
+`;
+export const deleteContributor = /* GraphQL */ `
+  mutation DeleteContributor(
+    $input: DeleteContributorInput!
+    $condition: ModelContributorConditionInput
+  ) {
+    deleteContributor(input: $input, condition: $condition) {
+      id
+      email
+      username
+      transcriptions {
+        items {
+          id
+          transcriptionID
+          contributorID
+          createdAt
+          updatedAt
+          _version
+          _deleted
+          _lastChangedAt
+        }
+        nextToken
+        startedAt
+      }
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
@@ -359,8 +722,19 @@ export const createTranscriptionEditor = /* GraphQL */ `
         editor {
           nextToken
         }
+        contributors {
+          nextToken
+          startedAt
+        }
+        regions {
+          nextToken
+          startedAt
+        }
         createdAt
         updatedAt
+        _version
+        _deleted
+        _lastChangedAt
       }
       editor {
         email
@@ -370,9 +744,15 @@ export const createTranscriptionEditor = /* GraphQL */ `
         }
         createdAt
         updatedAt
+        _version
+        _deleted
+        _lastChangedAt
       }
       createdAt
       updatedAt
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
@@ -404,8 +784,19 @@ export const updateTranscriptionEditor = /* GraphQL */ `
         editor {
           nextToken
         }
+        contributors {
+          nextToken
+          startedAt
+        }
+        regions {
+          nextToken
+          startedAt
+        }
         createdAt
         updatedAt
+        _version
+        _deleted
+        _lastChangedAt
       }
       editor {
         email
@@ -415,9 +806,15 @@ export const updateTranscriptionEditor = /* GraphQL */ `
         }
         createdAt
         updatedAt
+        _version
+        _deleted
+        _lastChangedAt
       }
       createdAt
       updatedAt
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
@@ -449,8 +846,19 @@ export const deleteTranscriptionEditor = /* GraphQL */ `
         editor {
           nextToken
         }
+        contributors {
+          nextToken
+          startedAt
+        }
+        regions {
+          nextToken
+          startedAt
+        }
         createdAt
         updatedAt
+        _version
+        _deleted
+        _lastChangedAt
       }
       editor {
         email
@@ -460,9 +868,207 @@ export const deleteTranscriptionEditor = /* GraphQL */ `
         }
         createdAt
         updatedAt
+        _version
+        _deleted
+        _lastChangedAt
       }
       createdAt
       updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+    }
+  }
+`;
+export const createTranscriptionContributor = /* GraphQL */ `
+  mutation CreateTranscriptionContributor(
+    $input: CreateTranscriptionContributorInput!
+    $condition: ModelTranscriptionContributorConditionInput
+  ) {
+    createTranscriptionContributor(input: $input, condition: $condition) {
+      id
+      transcriptionID
+      contributorID
+      transcription {
+        id
+        author
+        coverage
+        dateLastUpdated
+        userLastUpdated
+        length
+        issues
+        comments
+        tags
+        source
+        index
+        title
+        type
+        isPrivate
+        disableAnalyzer
+        editor {
+          nextToken
+        }
+        contributors {
+          nextToken
+          startedAt
+        }
+        regions {
+          nextToken
+          startedAt
+        }
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+      }
+      contributor {
+        id
+        email
+        username
+        transcriptions {
+          nextToken
+          startedAt
+        }
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+      }
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+    }
+  }
+`;
+export const updateTranscriptionContributor = /* GraphQL */ `
+  mutation UpdateTranscriptionContributor(
+    $input: UpdateTranscriptionContributorInput!
+    $condition: ModelTranscriptionContributorConditionInput
+  ) {
+    updateTranscriptionContributor(input: $input, condition: $condition) {
+      id
+      transcriptionID
+      contributorID
+      transcription {
+        id
+        author
+        coverage
+        dateLastUpdated
+        userLastUpdated
+        length
+        issues
+        comments
+        tags
+        source
+        index
+        title
+        type
+        isPrivate
+        disableAnalyzer
+        editor {
+          nextToken
+        }
+        contributors {
+          nextToken
+          startedAt
+        }
+        regions {
+          nextToken
+          startedAt
+        }
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+      }
+      contributor {
+        id
+        email
+        username
+        transcriptions {
+          nextToken
+          startedAt
+        }
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+      }
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+    }
+  }
+`;
+export const deleteTranscriptionContributor = /* GraphQL */ `
+  mutation DeleteTranscriptionContributor(
+    $input: DeleteTranscriptionContributorInput!
+    $condition: ModelTranscriptionContributorConditionInput
+  ) {
+    deleteTranscriptionContributor(input: $input, condition: $condition) {
+      id
+      transcriptionID
+      contributorID
+      transcription {
+        id
+        author
+        coverage
+        dateLastUpdated
+        userLastUpdated
+        length
+        issues
+        comments
+        tags
+        source
+        index
+        title
+        type
+        isPrivate
+        disableAnalyzer
+        editor {
+          nextToken
+        }
+        contributors {
+          nextToken
+          startedAt
+        }
+        regions {
+          nextToken
+          startedAt
+        }
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+      }
+      contributor {
+        id
+        email
+        username
+        transcriptions {
+          nextToken
+          startedAt
+        }
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+      }
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;

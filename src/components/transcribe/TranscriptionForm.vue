@@ -36,9 +36,11 @@
 </template>
 
 <script>
+import { DataStore } from '@aws-amplify/datastore'
 import { mapActions, mapGetters } from 'vuex'
+import { Contributor } from '../../models'
 
-import UserService from '../../services/user'
+// import UserService from '../../services/user'
 
 export default {
   data() {
@@ -47,20 +49,24 @@ export default {
     }
   },
   mounted() {
-    this.listProfiles()
+    this.loadProfiles()
     this.currentEditors = this.editors
 
     window.api = this
   },
   methods: {
-    ...mapActions(['setProfiles', 'addEditor', 'removeEditor']),
+    ...mapActions(['addEditor', 'removeEditor', 'setProfiles']),
 
-    listProfiles() {
-      UserService.listProfiles().then((results) => {
-        this.setProfiles(results)
+    loadProfiles() {
+      // UserService.listProfiles().then((results) => {
+      //   console.log('profile results', results)
+      //   this.setProfiles(results)
+      // })
+      DataStore.query(Contributor).then((items) => {
+        this.setProfiles(items)
       })
     },
-
+    
     onEditorChange(value) {
       if (!value.includes(this.author)) {
         // don't delete the owner
@@ -82,7 +88,8 @@ export default {
 
     async setAuthor(username) {
       await this.$store.dispatch('updateTranscription', { author: username })
-      await UserService.addTranscriptionEditor(this.transcription.id, username)
+      // TODO: save author here
+      // await UserService.addTranscriptionEditor(this.transcription.id, username)
     },
   },
   computed: {
@@ -174,7 +181,7 @@ export default {
 
     regionCount: {
       get() {
-        return this.$store.getters.transcription.regions.length
+        return this.$store.getters.regions.length
       },
     },
 
