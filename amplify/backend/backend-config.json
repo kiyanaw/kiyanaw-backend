@@ -64,6 +64,56 @@
       "service": "S3AndCloudFront"
     }
   },
+  "parameters": {
+    "AMPLIFY_function_enqueueRegionChange_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "enqueueRegionChange"
+        }
+      ]
+    },
+    "AMPLIFY_function_enqueueRegionChange_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "enqueueRegionChange"
+        }
+      ]
+    },
+    "AMPLIFY_function_indexRegionData_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "indexRegionData"
+        }
+      ]
+    },
+    "AMPLIFY_function_indexRegionData_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "indexRegionData"
+        }
+      ]
+    },
+    "AMPLIFY_function_notifyRegionChanges_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "notifyRegionChanges"
+        }
+      ]
+    },
+    "AMPLIFY_function_notifyRegionChanges_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "notifyRegionChanges"
+        }
+      ]
+    }
+  },
   "storage": {
     "transcriptions": {
       "providerPlugin": "awscloudformation",

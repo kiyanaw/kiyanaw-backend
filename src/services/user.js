@@ -1,8 +1,8 @@
-import { Auth } from 'aws-amplify'
+import { Auth, DataStore } from 'aws-amplify'
 
 import {
   createCursor,
-  createEditor,
+  // createEditor,
   // createTranscriptionEditor,
   updateCursor,
   // deleteTranscriptionEditor,
@@ -14,6 +14,7 @@ import { listRegionLocks } from '../graphql/queries'
 
 import { API, graphqlOperation } from 'aws-amplify'
 import logging from '../logging'
+import { Contributor } from '../models'
 
 const logger = new logging.Logger('User Service')
 
@@ -81,20 +82,18 @@ export default {
    */
   async getProfile() {
     const user = await this.getUser()
-    const response = await API.graphql(
-      graphqlOperation(getEditorWithTranscriptions, { username: user.name }),
-    )
-    console.log('response', response)
-    const existing = response.data.getEditor
+    console.log('user', user)
+    const existing = await DataStore.query(Contributor, user.name)
     console.log('existing profile', existing)
 
     if (!existing) {
       // TODO: this should return a newly-created profile
-      console.warn(`Profile does not exist for ${user.name}, creating...`)
-      const created = await API.graphql(
-        graphqlOperation(createEditor, { input: { username: user.name, email: user.email } }),
-      )
-      console.log('Profile created for user', created)
+      // console.warn(`Profile does not exist for ${user.name}, creating...`)
+      // const created = await API.graphql(
+      //   graphqlOperation(createEditor, { input: { username: user.name, email: user.email } }),
+      // )
+      // console.log('Profile created for user', created)
+      throw new Error('need to create user profile if not found')
     }
     return existing
   },

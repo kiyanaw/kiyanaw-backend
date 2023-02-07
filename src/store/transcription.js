@@ -246,12 +246,14 @@ const actions = {
   async addEditor(store, username) {
     const transcription = await DataStore.query(Transcription, store.getters.transcription.id)
     const contributor = await DataStore.query(Contributor, username)
-    DataStore.save(
+    const link = await DataStore.save(
       new TranscriptionContributor({
         transcription,
         contributor,
       }),
     )
+
+    console.log('saved editor', link)
   },
 
   /**

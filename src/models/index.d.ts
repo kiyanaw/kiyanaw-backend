@@ -6,14 +6,6 @@ type TranscriptionMetaData = {
   readOnlyFields: 'createdAt' | 'updatedAt';
 }
 
-type TranscriptionEditorMetaData = {
-  readOnlyFields: 'createdAt' | 'updatedAt';
-}
-
-type EditorMetaData = {
-  readOnlyFields: 'createdAt' | 'updatedAt';
-}
-
 type ContributorMetaData = {
   readOnlyFields: 'createdAt' | 'updatedAt';
 }
@@ -50,7 +42,6 @@ type EagerTranscription = {
   readonly type: string;
   readonly isPrivate?: boolean | null;
   readonly disableAnalyzer?: boolean | null;
-  readonly editor?: (TranscriptionEditor | null)[] | null;
   readonly contributors?: (TranscriptionContributor | null)[] | null;
   readonly regions?: (Region | null)[] | null;
   readonly createdAt?: string | null;
@@ -73,7 +64,6 @@ type LazyTranscription = {
   readonly type: string;
   readonly isPrivate?: boolean | null;
   readonly disableAnalyzer?: boolean | null;
-  readonly editor: AsyncCollection<TranscriptionEditor>;
   readonly contributors: AsyncCollection<TranscriptionContributor>;
   readonly regions: AsyncCollection<Region>;
   readonly createdAt?: string | null;
@@ -84,52 +74,6 @@ export declare type Transcription = LazyLoading extends LazyLoadingDisabled ? Ea
 
 export declare const Transcription: (new (init: ModelInit<Transcription, TranscriptionMetaData>) => Transcription) & {
   copyOf(source: Transcription, mutator: (draft: MutableModel<Transcription, TranscriptionMetaData>) => MutableModel<Transcription, TranscriptionMetaData> | void): Transcription;
-}
-
-type EagerTranscriptionEditor = {
-  readonly id: string;
-  readonly transcription: Transcription;
-  readonly editor: Editor;
-  readonly createdAt?: string | null;
-  readonly updatedAt?: string | null;
-}
-
-type LazyTranscriptionEditor = {
-  readonly id: string;
-  readonly transcription: AsyncItem<Transcription>;
-  readonly editor: AsyncItem<Editor>;
-  readonly createdAt?: string | null;
-  readonly updatedAt?: string | null;
-}
-
-export declare type TranscriptionEditor = LazyLoading extends LazyLoadingDisabled ? EagerTranscriptionEditor : LazyTranscriptionEditor
-
-export declare const TranscriptionEditor: (new (init: ModelInit<TranscriptionEditor, TranscriptionEditorMetaData>) => TranscriptionEditor) & {
-  copyOf(source: TranscriptionEditor, mutator: (draft: MutableModel<TranscriptionEditor, TranscriptionEditorMetaData>) => MutableModel<TranscriptionEditor, TranscriptionEditorMetaData> | void): TranscriptionEditor;
-}
-
-type EagerEditor = {
-  readonly id: string;
-  readonly email: string;
-  readonly username: string;
-  readonly transcriptions?: (TranscriptionEditor | null)[] | null;
-  readonly createdAt?: string | null;
-  readonly updatedAt?: string | null;
-}
-
-type LazyEditor = {
-  readonly id: string;
-  readonly email: string;
-  readonly username: string;
-  readonly transcriptions: AsyncCollection<TranscriptionEditor>;
-  readonly createdAt?: string | null;
-  readonly updatedAt?: string | null;
-}
-
-export declare type Editor = LazyLoading extends LazyLoadingDisabled ? EagerEditor : LazyEditor
-
-export declare const Editor: (new (init: ModelInit<Editor, EditorMetaData>) => Editor) & {
-  copyOf(source: Editor, mutator: (draft: MutableModel<Editor, EditorMetaData>) => MutableModel<Editor, EditorMetaData> | void): Editor;
 }
 
 type EagerContributor = {

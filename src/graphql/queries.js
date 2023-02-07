@@ -19,19 +19,6 @@ export const getTranscription = /* GraphQL */ `
       type
       isPrivate
       disableAnalyzer
-      editor {
-        items {
-          id
-          transcriptionId
-          username
-          createdAt
-          updatedAt
-          _version
-          _deleted
-          _lastChangedAt
-        }
-        nextToken
-      }
       contributors {
         items {
           id
@@ -107,9 +94,6 @@ export const listTranscriptions = /* GraphQL */ `
         type
         isPrivate
         disableAnalyzer
-        editor {
-          nextToken
-        }
         contributors {
           nextToken
           startedAt
@@ -158,9 +142,6 @@ export const syncTranscriptions = /* GraphQL */ `
         type
         isPrivate
         disableAnalyzer
-        editor {
-          nextToken
-        }
         contributors {
           nextToken
           startedAt
@@ -209,9 +190,6 @@ export const getRegion = /* GraphQL */ `
         type
         isPrivate
         disableAnalyzer
-        editor {
-          nextToken
-        }
         contributors {
           nextToken
           startedAt
@@ -504,94 +482,6 @@ export const syncRegionLocks = /* GraphQL */ `
     }
   }
 `;
-export const getEditor = /* GraphQL */ `
-  query GetEditor($username: ID!) {
-    getEditor(username: $username) {
-      email
-      username
-      transcriptions {
-        items {
-          id
-          transcriptionId
-          username
-          createdAt
-          updatedAt
-          _version
-          _deleted
-          _lastChangedAt
-        }
-        nextToken
-      }
-      createdAt
-      updatedAt
-      _version
-      _deleted
-      _lastChangedAt
-    }
-  }
-`;
-export const listEditors = /* GraphQL */ `
-  query ListEditors(
-    $username: ID
-    $filter: ModelEditorFilterInput
-    $limit: Int
-    $nextToken: String
-    $sortDirection: ModelSortDirection
-  ) {
-    listEditors(
-      username: $username
-      filter: $filter
-      limit: $limit
-      nextToken: $nextToken
-      sortDirection: $sortDirection
-    ) {
-      items {
-        email
-        username
-        transcriptions {
-          nextToken
-        }
-        createdAt
-        updatedAt
-        _version
-        _deleted
-        _lastChangedAt
-      }
-      nextToken
-      startedAt
-    }
-  }
-`;
-export const syncEditors = /* GraphQL */ `
-  query SyncEditors(
-    $filter: ModelEditorFilterInput
-    $limit: Int
-    $nextToken: String
-    $lastSync: AWSTimestamp
-  ) {
-    syncEditors(
-      filter: $filter
-      limit: $limit
-      nextToken: $nextToken
-      lastSync: $lastSync
-    ) {
-      items {
-        email
-        username
-        transcriptions {
-          nextToken
-        }
-        createdAt
-        updatedAt
-        _version
-        _deleted
-        _lastChangedAt
-      }
-      nextToken
-      startedAt
-    }
-  }
-`;
 export const getContributor = /* GraphQL */ `
   query GetContributor($id: ID!) {
     getContributor(id: $id) {
@@ -708,9 +598,6 @@ export const getTranscriptionContributor = /* GraphQL */ `
         type
         isPrivate
         disableAnalyzer
-        editor {
-          nextToken
-        }
         contributors {
           nextToken
           startedAt
@@ -896,9 +783,6 @@ export const byTitle = /* GraphQL */ `
         type
         isPrivate
         disableAnalyzer
-        editor {
-          nextToken
-        }
         contributors {
           nextToken
           startedAt

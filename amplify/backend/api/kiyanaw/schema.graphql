@@ -18,7 +18,7 @@ type Transcription
   type: String!
   isPrivate: Boolean
   disableAnalyzer: Boolean
-  editor: [TranscriptionEditor] @hasMany(indexName: "byTranscription", fields: ["id"])
+  # editor: [TranscriptionEditor] @hasMany(indexName: "byTranscription", fields: ["id"])
   contributors: [Contributor] @manyToMany(relationName: "TranscriptionContributor")
   regions: [Region] @hasMany(indexName: "ByTranscription", fields: ["id"])
 }
@@ -63,16 +63,16 @@ type RegionLock
   user: String!
 }
 
-type Editor
-  @model
-  @auth(
-    rules: [{ allow: private, provider: iam }, { allow: public, provider: iam, operations: [read] }]
-  ) {
-  email: ID!
-  foo: String
-  username: ID! @primaryKey
-  transcriptions: [TranscriptionEditor] @hasMany(indexName: "byEditor", fields: ["username"])
-}
+# type Editor
+#   @model
+#   @auth(
+#     rules: [{ allow: private, provider: iam }, { allow: public, provider: iam, operations: [read] }]
+#   ) {
+#   email: ID!
+#   foo: String
+#   username: ID! @primaryKey
+#   transcriptions: [TranscriptionEditor] @hasMany(indexName: "byEditor", fields: ["username"])
+# }
 
 type Contributor
   @model
@@ -85,15 +85,15 @@ type Contributor
   transcriptions: [Transcription] @manyToMany(relationName: "TranscriptionContributor")
 }
 
-type TranscriptionEditor
-  @model(queries: null)
-  @auth(
-    rules: [{ allow: private, provider: iam }, { allow: public, provider: iam, operations: [read] }]
-  ) {
-  id: ID! @primaryKey
-  transcriptionId: ID! @index(name: "byTranscription", sortKeyFields: ["username"])
-  username: ID! @index(name: "byEditor", sortKeyFields: ["transcriptionId"])
-  transcription: Transcription! @belongsTo(fields: ["transcriptionId"])
-  editor: Editor! @belongsTo(fields: ["username"])
-}
+# type TranscriptionEditor
+#   @model(queries: null)
+#   @auth(
+#     rules: [{ allow: private, provider: iam }, { allow: public, provider: iam, operations: [read] }]
+#   ) {
+#   id: ID! @primaryKey
+#   transcriptionId: ID! @index(name: "byTranscription", sortKeyFields: ["username"])
+#   username: ID! @index(name: "byEditor", sortKeyFields: ["transcriptionId"])
+#   transcription: Transcription! @belongsTo(fields: ["transcriptionId"])
+#   editor: Editor! @belongsTo(fields: ["username"])
+# }
    

@@ -22,19 +22,6 @@ export const createTranscription = /* GraphQL */ `
       type
       isPrivate
       disableAnalyzer
-      editor {
-        items {
-          id
-          transcriptionId
-          username
-          createdAt
-          updatedAt
-          _version
-          _deleted
-          _lastChangedAt
-        }
-        nextToken
-      }
       contributors {
         items {
           id
@@ -100,19 +87,6 @@ export const updateTranscription = /* GraphQL */ `
       type
       isPrivate
       disableAnalyzer
-      editor {
-        items {
-          id
-          transcriptionId
-          username
-          createdAt
-          updatedAt
-          _version
-          _deleted
-          _lastChangedAt
-        }
-        nextToken
-      }
       contributors {
         items {
           id
@@ -178,19 +152,6 @@ export const deleteTranscription = /* GraphQL */ `
       type
       isPrivate
       disableAnalyzer
-      editor {
-        items {
-          id
-          transcriptionId
-          username
-          createdAt
-          updatedAt
-          _version
-          _deleted
-          _lastChangedAt
-        }
-        nextToken
-      }
       contributors {
         items {
           id
@@ -267,9 +228,6 @@ export const createRegion = /* GraphQL */ `
         type
         isPrivate
         disableAnalyzer
-        editor {
-          nextToken
-        }
         contributors {
           nextToken
           startedAt
@@ -325,9 +283,6 @@ export const updateRegion = /* GraphQL */ `
         type
         isPrivate
         disableAnalyzer
-        editor {
-          nextToken
-        }
         contributors {
           nextToken
           startedAt
@@ -383,9 +338,6 @@ export const deleteRegion = /* GraphQL */ `
         type
         isPrivate
         disableAnalyzer
-        editor {
-          nextToken
-        }
         contributors {
           nextToken
           startedAt
@@ -514,93 +466,6 @@ export const deleteRegionLock = /* GraphQL */ `
     }
   }
 `;
-export const createEditor = /* GraphQL */ `
-  mutation CreateEditor(
-    $input: CreateEditorInput!
-    $condition: ModelEditorConditionInput
-  ) {
-    createEditor(input: $input, condition: $condition) {
-      email
-      username
-      transcriptions {
-        items {
-          id
-          transcriptionId
-          username
-          createdAt
-          updatedAt
-          _version
-          _deleted
-          _lastChangedAt
-        }
-        nextToken
-      }
-      createdAt
-      updatedAt
-      _version
-      _deleted
-      _lastChangedAt
-    }
-  }
-`;
-export const updateEditor = /* GraphQL */ `
-  mutation UpdateEditor(
-    $input: UpdateEditorInput!
-    $condition: ModelEditorConditionInput
-  ) {
-    updateEditor(input: $input, condition: $condition) {
-      email
-      username
-      transcriptions {
-        items {
-          id
-          transcriptionId
-          username
-          createdAt
-          updatedAt
-          _version
-          _deleted
-          _lastChangedAt
-        }
-        nextToken
-      }
-      createdAt
-      updatedAt
-      _version
-      _deleted
-      _lastChangedAt
-    }
-  }
-`;
-export const deleteEditor = /* GraphQL */ `
-  mutation DeleteEditor(
-    $input: DeleteEditorInput!
-    $condition: ModelEditorConditionInput
-  ) {
-    deleteEditor(input: $input, condition: $condition) {
-      email
-      username
-      transcriptions {
-        items {
-          id
-          transcriptionId
-          username
-          createdAt
-          updatedAt
-          _version
-          _deleted
-          _lastChangedAt
-        }
-        nextToken
-      }
-      createdAt
-      updatedAt
-      _version
-      _deleted
-      _lastChangedAt
-    }
-  }
-`;
 export const createContributor = /* GraphQL */ `
   mutation CreateContributor(
     $input: CreateContributorInput!
@@ -694,192 +559,6 @@ export const deleteContributor = /* GraphQL */ `
     }
   }
 `;
-export const createTranscriptionEditor = /* GraphQL */ `
-  mutation CreateTranscriptionEditor(
-    $input: CreateTranscriptionEditorInput!
-    $condition: ModelTranscriptionEditorConditionInput
-  ) {
-    createTranscriptionEditor(input: $input, condition: $condition) {
-      id
-      transcriptionId
-      username
-      transcription {
-        id
-        author
-        coverage
-        dateLastUpdated
-        userLastUpdated
-        length
-        issues
-        comments
-        tags
-        source
-        index
-        title
-        type
-        isPrivate
-        disableAnalyzer
-        editor {
-          nextToken
-        }
-        contributors {
-          nextToken
-          startedAt
-        }
-        regions {
-          nextToken
-          startedAt
-        }
-        createdAt
-        updatedAt
-        _version
-        _deleted
-        _lastChangedAt
-      }
-      editor {
-        email
-        username
-        transcriptions {
-          nextToken
-        }
-        createdAt
-        updatedAt
-        _version
-        _deleted
-        _lastChangedAt
-      }
-      createdAt
-      updatedAt
-      _version
-      _deleted
-      _lastChangedAt
-    }
-  }
-`;
-export const updateTranscriptionEditor = /* GraphQL */ `
-  mutation UpdateTranscriptionEditor(
-    $input: UpdateTranscriptionEditorInput!
-    $condition: ModelTranscriptionEditorConditionInput
-  ) {
-    updateTranscriptionEditor(input: $input, condition: $condition) {
-      id
-      transcriptionId
-      username
-      transcription {
-        id
-        author
-        coverage
-        dateLastUpdated
-        userLastUpdated
-        length
-        issues
-        comments
-        tags
-        source
-        index
-        title
-        type
-        isPrivate
-        disableAnalyzer
-        editor {
-          nextToken
-        }
-        contributors {
-          nextToken
-          startedAt
-        }
-        regions {
-          nextToken
-          startedAt
-        }
-        createdAt
-        updatedAt
-        _version
-        _deleted
-        _lastChangedAt
-      }
-      editor {
-        email
-        username
-        transcriptions {
-          nextToken
-        }
-        createdAt
-        updatedAt
-        _version
-        _deleted
-        _lastChangedAt
-      }
-      createdAt
-      updatedAt
-      _version
-      _deleted
-      _lastChangedAt
-    }
-  }
-`;
-export const deleteTranscriptionEditor = /* GraphQL */ `
-  mutation DeleteTranscriptionEditor(
-    $input: DeleteTranscriptionEditorInput!
-    $condition: ModelTranscriptionEditorConditionInput
-  ) {
-    deleteTranscriptionEditor(input: $input, condition: $condition) {
-      id
-      transcriptionId
-      username
-      transcription {
-        id
-        author
-        coverage
-        dateLastUpdated
-        userLastUpdated
-        length
-        issues
-        comments
-        tags
-        source
-        index
-        title
-        type
-        isPrivate
-        disableAnalyzer
-        editor {
-          nextToken
-        }
-        contributors {
-          nextToken
-          startedAt
-        }
-        regions {
-          nextToken
-          startedAt
-        }
-        createdAt
-        updatedAt
-        _version
-        _deleted
-        _lastChangedAt
-      }
-      editor {
-        email
-        username
-        transcriptions {
-          nextToken
-        }
-        createdAt
-        updatedAt
-        _version
-        _deleted
-        _lastChangedAt
-      }
-      createdAt
-      updatedAt
-      _version
-      _deleted
-      _lastChangedAt
-    }
-  }
-`;
 export const createTranscriptionContributor = /* GraphQL */ `
   mutation CreateTranscriptionContributor(
     $input: CreateTranscriptionContributorInput!
@@ -905,9 +584,6 @@ export const createTranscriptionContributor = /* GraphQL */ `
         type
         isPrivate
         disableAnalyzer
-        editor {
-          nextToken
-        }
         contributors {
           nextToken
           startedAt
@@ -969,9 +645,6 @@ export const updateTranscriptionContributor = /* GraphQL */ `
         type
         isPrivate
         disableAnalyzer
-        editor {
-          nextToken
-        }
         contributors {
           nextToken
           startedAt
@@ -1033,9 +706,6 @@ export const deleteTranscriptionContributor = /* GraphQL */ `
         type
         isPrivate
         disableAnalyzer
-        editor {
-          nextToken
-        }
         contributors {
           nextToken
           startedAt
