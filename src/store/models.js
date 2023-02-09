@@ -94,20 +94,57 @@ class TranscriptionModel {
 // TODO: test this
 class RegionModel {
   constructor(data) {
+    console.log(data.displayIndex)
     this.id = data.id 
-    this.comments = data.comments ? JSON.parse(data.comments) : []
     this.createdAt = data.createdAt
     this.dateLastUpdated = data.dateLastUpdated
     this.end = data.end
     this.id = data.id
     this.isNote = !!data.isNote
-    this.issues = data.issues ? JSON.parse(data.issues) : []
+    // this.issues = data.issues ? JSON.parse(data.issues) : []
     this.start = data.start
-    this.text = JSON.parse(data.text)
+    // this.text = JSON.parse(data.text)
     this.transcriptionId = data.transcriptionId
     this.translation = data.translation
     // this.updatedAt = data.updatedAt
     this.userLastUpdated = data.userLastUpdated
+
+    // indexes
+    this.displayIndex = data.displayIndex
+    this.index = data.index
+
+    // comments 
+    if (data.comments) {
+      if (typeof data.comments === 'string') {
+        this.comments = JSON.parse(data.comments)
+      } else {
+        this.comments = data.comments
+      }
+    } else {
+      this.comments = []
+    }
+
+    // text
+    if (data.text) {
+      if (typeof data.text === 'string') {
+        this.text = JSON.parse(data.text)
+      } else {
+        this.text = data.text
+      }
+    } else {
+      this.text = []
+    }
+
+    // issues
+    if (data.issues) {
+      if (typeof data.issues === 'string') {
+        this.issues = JSON.parse(data.issues)
+      } else {
+        this.issues = data.issues
+      }
+    } else {
+      this.issues = []
+    }
   }
 }
 

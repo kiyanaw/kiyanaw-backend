@@ -1,4 +1,4 @@
-import { DataStore, SortDirection } from 'aws-amplify'
+import { DataStore } from 'aws-amplify'
 import { Transcription, TranscriptionContributor, Region, Contributor } from '../models'
 
 import Vue from 'vue'
@@ -125,9 +125,10 @@ const actions = {
     ])
 
     transcription = new models.TranscriptionModel(transcription)
-    regions = regions.map((item) => {
-      return new models.RegionModel(item)
-    })
+    // regions = regions
+    //   .map((item) => {
+    //     return new models.RegionModel(item)
+    //   })
 
     // TODO: convert to store.dispatch('', ...)
     actions.onLoadTranscription(store, transcription, regions)
@@ -168,20 +169,45 @@ const actions = {
         }
       }
     })
+    
 
-    console.debug(SortDirection)
+    let lastUpdate = `${+new Date()}`
+    console.log('lastUpdate', lastUpdate)
 
-    // DataStore.observeQuery(Region, (r) => r.and((r) => [r.transcriptionId.eq(transcription.id)]), {
-    //   sort: (s) => s.updatedAt(SortDirection.DESCENDING),
-    // }).subscribe((snapshot) => {
-    //   const { items, isSynced } = snapshot
-    //   console.log(`[Snapshot] item count: ${items.length}, isSynced: ${isSynced}`)
-    // })
+    DataStore.observeQuery(Region, (r) => r.transcriptionId.eq(transcription.id)).subscribe((snapshot) => {
+      const { items } = snapshot
+      const updated = items.filter((item) => item.dateLastUpdated > lastUpdate && item.userLastUpdated !== user.name)
+      console.log('updated', updated)
+      updated.forEach((item) => {
+        item = new models.RegionModel(item)
+        // record the new `lastUpdate`
+        if (item.dateLastUpdated > lastUpdate) {
+          lastUpdate = item.dateLastUpdated
+        }
+        // update the region locally if need be
+        const existing = store.getters.regionById(item.id)
 
+        // don't overwrite indexes with `undefined` values
+        delete item.index 
+        delete item.displayIndex
 
-    window.subscription = DataStore.observe(Region).subscribe((message) => {
-      console.log('region realtime update', message)
+        console.log('existing', existing, item)
+        if (existing) {
+          if (item.dateLastUpdated > existing.dateLastUpdated) {
+            store.commit('UPDATE_REGION', {region: existing, update: item})
+          }
+        } else {
+          //
+        }
+        // if (item.dateLastUpdated > store.getters.regionById(item.id).dateLastUpdated)
+      })
+
     })
+
+
+    // window.subscription = DataStore.observe(Region).subscribe((message) => {
+    //   console.log('region realtime update', message)
+    // })
 
 
   },

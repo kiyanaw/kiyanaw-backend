@@ -83,7 +83,7 @@ export default {
   async getProfile() {
     const user = await this.getUser()
     console.log('user', user)
-    const existing = await DataStore.query(Contributor, user.name)
+    let existing = await DataStore.query(Contributor, user.name)
     console.log('existing profile', existing)
 
     if (!existing) {
@@ -93,6 +93,16 @@ export default {
       //   graphqlOperation(createEditor, { input: { username: user.name, email: user.email } }),
       // )
       // console.log('Profile created for user', created)
+
+
+      existing = await DataStore.save(
+        new Contributor({
+          id: user.name,
+          username: user.name,
+          email: user.email
+        })
+      )
+
       throw new Error('need to create user profile if not found')
     }
     return existing

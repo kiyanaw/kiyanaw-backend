@@ -1,5 +1,6 @@
 import { DataStore } from 'aws-amplify'
 import { Region, Transcription } from '../models'
+import * as assert from 'assert'
 
 import Vue from 'vue'
 // import Timeout from 'smart-timeout'
@@ -9,7 +10,7 @@ import UserService from '../services/user'
 // import TranscriptionService from '../services/transcriptions'
 import logging from '../logging'
 import EventBus from './bus'
-import * as assert from 'assert'
+import models from './models'
 
 const logger = new logging.Logger('Region Store')
 
@@ -48,13 +49,17 @@ const getters = {
     logger.debug('Getting Lock keys', keys, context.locks)
     return keys
   },
+
   regionById(context) {
     return (regionId) => {
-      // console.log('byId', regionId, context.regionMap)
+      console.log('byId', regionId, context.regionMap)
+      window.context = context
       if (context.regionMap) {
-        return Object.values(context.regionMap)
-          .filter((region) => region.id === regionId)
-          .pop()
+        console.log('Has displayindex: ', context.regionMap[regionId].displayIndex)
+        return context.regionMap[regionId]
+        // return Object.values(context.regionMap)
+        //   .filter((region) => region.id === regionId)
+        //   .pop()
       } else {
         return null
       }
@@ -113,8 +118,8 @@ const actions = {
   setRegions(store, regions) {
     const map = {}
     let displayIndex = 1
-    regions
-      .slice()
+    regions = regions
+      // .slice()
       .sort((a, b) => (a.start > b.start ? 1 : -1))
       .map((item, index) => {
         const out = {
@@ -125,13 +130,18 @@ const actions = {
         if (!item.isNote) {
           displayIndex++
         }
-        return out
+        const region = new models.RegionModel(out)
+        // map[`${region.index}-${region.id}`] = region
+        map[`${region.id}`] = region
+        return region
       })
-      .forEach((item) => {
-        map[`${item.index}-${item.id}`] = item
-      })
+      // .map((item) => {
+      //   map[`${item.index}-${item.id}`] = item
+      //   return item
+      // })
 
     store.commit('SET_REGION_MAP', map)
+    console.log('!! Set region map')
 
     store.commit('SET_REGIONS', regions)
 
@@ -144,6 +154,7 @@ const actions = {
     })
 
     window.regions = regions
+    window.map = map
   },
 
   /**
@@ -311,9 +322,12 @@ const mutations = {
 
   UPDATE_REGION(context, update) {
     const region = update.region
-    const id = `${region.index}-${region.id}`
+    // const id = `${region.index}-${region.id}`
+    const id = `${region.id}`
     const existing = context.regionMap[id]
-    const whole = Object.assign(existing, update.update)
+    console.log('existing', existing)
+    const whole = new models.RegionModel(Object.assign(existing, update.update))
+    console.log('whole', whole)
     Vue.set(context.regionMap, id, whole)
   },
 

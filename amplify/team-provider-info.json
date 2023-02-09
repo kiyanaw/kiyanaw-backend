@@ -90,9 +90,28 @@
         "kiyanaw664b231a": {}
       },
       "function": {
+        "enqueueRegionChange": {
+          "deploymentBucketName": "amplify-kiyanaw-databug-135349-deployment",
+          "s3Key": "amplify-builds/enqueueRegionChange-6f4a6e5932586868554f-build.zip"
+        },
+        "indexRegionData": {
+          "deploymentBucketName": "amplify-kiyanaw-databug-135349-deployment",
+          "s3Key": "amplify-builds/indexRegionData-453065364a7867754a67-build.zip"
+        },
+        "notifyRegionChanges": {
+          "deploymentBucketName": "amplify-kiyanaw-databug-135349-deployment",
+          "s3Key": "amplify-builds/notifyRegionChanges-3942386f532b46716a4a-build.zip"
+        }
+      },
+      "api": {
         "enqueueRegionChange": {},
-        "indexRegionData": {},
-        "notifyRegionChanges": {}
+        "kiyanaw": {}
+      },
+      "hosting": {
+        "S3AndCloudFront": {}
+      },
+      "storage": {
+        "transcriptions": {}
       }
     }
   }

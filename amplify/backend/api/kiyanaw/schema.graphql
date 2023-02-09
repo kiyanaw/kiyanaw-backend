@@ -18,7 +18,6 @@ type Transcription
   type: String!
   isPrivate: Boolean
   disableAnalyzer: Boolean
-  # editor: [TranscriptionEditor] @hasMany(indexName: "byTranscription", fields: ["id"])
   contributors: [Contributor] @manyToMany(relationName: "TranscriptionContributor")
   regions: [Region] @hasMany(indexName: "ByTranscription", fields: ["id"])
 }

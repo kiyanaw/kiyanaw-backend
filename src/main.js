@@ -19,7 +19,7 @@ applyPolyfills().then(() => {
 
 Vue.config.ignoredElements = [/amplify-\w*/]
 
-Amplify.Logger.LOG_LEVEL = 'DEBUG'
+Amplify.Logger.LOG_LEVEL = 'INFO'
 
 Vue.use(VueRouter)
 

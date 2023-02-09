@@ -36,7 +36,7 @@
 </template>
 
 <script>
-import { DataStore, Hub } from 'aws-amplify'
+import { DataStore } from 'aws-amplify'
 import { mapActions, mapGetters } from 'vuex'
 import { Contributor } from '../../models'
 
@@ -49,12 +49,7 @@ export default {
     }
   },
   mounted() {
-    Hub.listen("datastore", async hubData => {
-      const  { event } = hubData.payload;
-      if (event === "ready") {
-        this.loadProfiles()
-      }
-    })
+    this.loadProfiles()
     this.currentEditors = this.editors
 
     window.api = this
@@ -68,6 +63,7 @@ export default {
       //   this.setProfiles(results)
       // })
       DataStore.query(Contributor).then((items) => {
+        console.log('Got profiles', items)
         this.setProfiles(items)
       })
     },

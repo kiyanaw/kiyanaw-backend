@@ -79,7 +79,7 @@ import Lookup from './Lookup.vue'
 import { mapActions, mapGetters } from 'vuex'
 
 
-import {DataStore } from 'aws-amplify'
+import { DataStore, Hub } from 'aws-amplify'
 import { Region, Transcription, TranscriptionContributor } from '../../models'
 
 
@@ -223,7 +223,14 @@ export default {
     window.transcribe = this
 
     // load up
-    this.loadTranscription(this.transcriptionId)
+    Hub.listen("datastore", async hubData => {
+      const  { event } = hubData.payload;
+      if (event === "ready") {
+        this.loadTranscription(this.transcriptionId)
+      }
+    })
+
+    DataStore.start()
   },
 
   methods: {
