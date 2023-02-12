@@ -38,60 +38,6 @@ const getters = {
 }
 
 const actions = {
-  // deleteRegion(store) {
-  //   const transcriptionId = store.getters.transcription.id
-  //   const region = store.getters.selectedRegion
-
-  //   const regions = store.getters.regions.filter((item) => item.id != region.id)
-  //   store.dispatch('setRegions', regions)
-  //   store.dispatch('setSelectedRegion', null)
-
-  //   transcriptionService
-  //     .deleteRegion(transcriptionId, region)
-  //     .catch((error) => {
-  //       console.error(error)
-  //       alert('Failed to delete region, refresh and try again.')
-  //       logger.error('Failed to delete region', region.id)
-  //       // TODO: pop region back into list?
-  //     })
-  //     .then(() => {
-  //       store.dispatch('setSaved', true)
-  //     })
-  // },
-
-  // /**
-  //  * SAVE ACTIONS
-  //  * Region updates happen in their own store, but saving happens here
-  //  */
-  // saveRegion(store, region) {
-  //   if (store.getters.signedIn) {
-  //     logger.debug('save region triggered', store, region)
-
-  //     // Timeout.clear('save-region-timer')
-  //     // Timeout.set(
-  //     //   'save-region-timer',
-  //     //   async () => {
-
-  //     //     // transcriptionService
-  //     //     //   .updateRegion(store.getters.transcription.id, region)
-  //     //     //   .then(() => {
-  //     //     //     logger.log('Region saved!')
-  //     //     //     store.dispatch('setSaved', true)
-  //     //     //   })
-  //     //     //   .catch((error) => {
-  //     //     //     logger.error('Error saving region', region, error)
-  //     //     //     alert('Error saving that region, change the region to try again')
-  //     //     //   })
-  //     //     // mark the last saved user on the transcription here
-  //     //     store.dispatch('updateTranscription', { userLastUpdated: region.userLastUpdated })
-  //     //   },
-  //     //   250,
-  //     // )
-  //   } else {
-  //     logger.info('Unable to save, user not authenticated')
-  //   }
-  // },
-
   /**
    * Loads a transcription and associated regions based on `transcriptionId`.
    *
@@ -132,6 +78,7 @@ const actions = {
     store.dispatch('setTranscription', transcription)
     store.dispatch('setRegions', regions)
 
+    // TODO: maybe move this all to .initSubscriptions() or something
     // subscribe to Transcription changes
     DataStore.observe(Transcription, transcription.id).subscribe((message) => {
       actions.onTranscriptionSubscription(store, message)
@@ -144,17 +91,26 @@ const actions = {
       },
     )
 
+    // subscription to watch for deleted regions
     DataStore.observe(Region).subscribe((message) => {
-      console.log('message', message)
-      if (message.opType === 'DELETE') {
-        if (message.model.name === 'Region') {
-          const regionId = message.element.id
-          console.log('Deleting region', regionId)
-          store.commit('DELETE_REGION', regionId)
-          store.dispatch('resetRegionIndices')
-        }
-      }
+      actions.onDeleteRegionSubscription(store, message)
     })
+  },
+
+  // TODO: needs tests
+  async onDeleteRegionSubscription(store, message) {
+    console.log('message', message)
+    if (message.opType === 'DELETE') {
+      const transcriptionId = store.getters.transcription.id
+      if (
+        message.model.name === 'Region' &&
+        message.element.transcriptionId === transcriptionId
+      ) {
+        const regionId = message.element.id
+        store.commit('DELETE_REGION', regionId)
+        store.dispatch('resetRegionIndices')
+      }
+    }
   },
 
   /**
@@ -170,7 +126,6 @@ const actions = {
         store.commit('UPDATE_TRANSCRIPTION', message.element)
       }
     }
-    // TODO: delete
   },
 
   /**
@@ -185,7 +140,6 @@ const actions = {
    * Handles realtime region updates from DataStore.
    */
   async onRegionSubscription(store, snapshot) {
-    console.log('snapshot', snapshot)
     const user = await userService.getUser()
     const { items } = snapshot
     const updated = items.filter(

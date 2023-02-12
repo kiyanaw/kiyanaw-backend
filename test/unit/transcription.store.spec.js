@@ -7,6 +7,7 @@ const { Transcription, Region } = require('../../src/models')
 const UserService = require('../../src/services/user').default
 const store = require('../../src/store/transcription').default
 const models = require('../../src/store/models').default
+const EventBus = require('../../src/store/bus').default
 
 const mockTranscriptions = require('./transcriptions.json').transcriptions
 
@@ -174,7 +175,7 @@ describe('Transcription store', function () {
       // sets up subscriptions
       assert.deepEqual(observe.args[0], [Transcription, '123'])
       assert.equal(observeQuery.args[0][0], Region)
-      assert.equal(subscribe.callCount, 2)
+      assert.equal(subscribe.callCount, 3)
     })
   })
 
@@ -312,22 +313,30 @@ describe('Transcription store', function () {
 
     /**
      * Makes sure that the incoming region is processed correctly.
+     * - only 1/3 items is updated based on
+     *   - remote user only
+     *   - dateLastUpdated is greater than local value
+     * - EventBus.$emit is called if update matches selected region (updates RTE)
      */
-    it('should update an existing region  from remote messages', async function () {
+    it('should update an existing region from remote messages', async function () {
       this.sandbox.stub(UserService, 'getUser').resolves({ name: 'janedoe' })
       store.dispatch = this.sandbox.stub()
       const setTimestampStub = this.sandbox.stub(store.actions, 'setLastRegionUpdate')
+      const $emit = this.sandbox.stub(EventBus, '$emit')
 
       // set existing local region
       const existing = {
-        ...this.snapshot.items[1],
+        ...this.snapshot.items[2],
         dateLastUpdated: '1675894181000',
         displayIndex: 2,
         index: 1,
       }
       store.getters.regionById = this.sandbox.stub().returns(existing)
+      store.getters.selectedRegion = {
+        id: 'three'
+      }
 
-      // tweak incoming update
+      // tweak incoming update so one of the 3 items matches criteria for updating
       this.snapshot.items[2].userLastUpdated = 'fooboo'
       this.snapshot.items[2].dateLastUpdated = `${+new Date() + 10000}`
       await store.actions.onRegionSubscription(store, { ...this.snapshot })
@@ -359,6 +368,11 @@ describe('Transcription store', function () {
       // make sure the intenal value for LAST_REGION_UPDATE was recorded
       assert.equal(setTimestampStub.callCount, 1)
       assert.equal(setTimestampStub.args[0][0], this.snapshot.items[2].dateLastUpdated)
+
+      // make sure a realtime event was sent through the bus
+      assert.equal($emit.callCount, 1)
+      assert.equal($emit.args[0][0], 'realtime-region-update')
+      assert.equal($emit.args[0][1].id, 'three')
     })
 
     it('should create a new region from remote messages', async function () {

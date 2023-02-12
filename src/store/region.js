@@ -310,6 +310,7 @@ const actions = {
   async deleteRegion(store, regionId) {
     store.commit('DELETE_REGION', regionId)
     await DataStore.delete(Region, regionId)
+    store.dispatch('resetRegionIndices')
   }
 }
 
