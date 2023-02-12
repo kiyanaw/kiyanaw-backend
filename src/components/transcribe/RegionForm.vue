@@ -265,8 +265,9 @@ export default {
     },
 
     onDeleteRegion() {
+      const regionId = this.selectedRegion.id
       if (confirm('Delete selected region?')) {
-        this.deleteRegion()
+        this.deleteRegion(regionId)
       }
     },
 

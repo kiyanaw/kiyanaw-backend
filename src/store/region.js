@@ -305,11 +305,19 @@ const actions = {
     if (resetIndexes) {
       store.dispatch('resetRegionIndices')
     }
+  }, 
+
+  async deleteRegion(store, regionId) {
+    store.commit('DELETE_REGION', regionId)
+    await DataStore.delete(Region, regionId)
   }
 }
 
 const mutations = {
 
+  DELETE_REGION(context, regionId) {
+    Vue.delete(context.regionMap, regionId)
+  },
 
   SET_REGIONS(context, regions) {
     Vue.set(context, 'regions', regions)

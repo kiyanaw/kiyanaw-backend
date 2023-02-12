@@ -5,12 +5,11 @@ import Vue from 'vue'
 import Timeout from 'smart-timeout'
 import assert from 'assert'
 
-// TODO: incorporate this
-import transcriptionService from '../services/transcriptions'
 import userService from '../services/user'
 
 import models from './models'
 import logging from '../logging'
+import EventBus from './bus'
 
 const logger = new logging.Logger('Transcription Store')
 
@@ -39,77 +38,59 @@ const getters = {
 }
 
 const actions = {
-  // createRegion(store, region) {
-  //   // const regions = store.getters.regions
-  //   // regions.push({ ...region, version: 1 })
-  //   // store.dispatch('setRegions', regions)
+  // deleteRegion(store) {
+  //   const transcriptionId = store.getters.transcription.id
+  //   const region = store.getters.selectedRegion
 
-  //   // store.dispatch('updateTranscription', { regions })
+  //   const regions = store.getters.regions.filter((item) => item.id != region.id)
+  //   store.dispatch('setRegions', regions)
+  //   store.dispatch('setSelectedRegion', null)
 
-  //   // const transcriptionId = store.getters.transcription.id
-  //   // transcriptionService
-  //   //   .createRegion(transcriptionId, region)
-  //   //   .catch(function (error) {
-  //   //     console.error('Failed to create region', error)
-  //   //   })
-  //   //   .then(() => {
-  //   //     store.dispatch('setSaved', true)
-  //   //   })
+  //   transcriptionService
+  //     .deleteRegion(transcriptionId, region)
+  //     .catch((error) => {
+  //       console.error(error)
+  //       alert('Failed to delete region, refresh and try again.')
+  //       logger.error('Failed to delete region', region.id)
+  //       // TODO: pop region back into list?
+  //     })
+  //     .then(() => {
+  //       store.dispatch('setSaved', true)
+  //     })
   // },
 
-  deleteRegion(store) {
-    const transcriptionId = store.getters.transcription.id
-    const region = store.getters.selectedRegion
+  // /**
+  //  * SAVE ACTIONS
+  //  * Region updates happen in their own store, but saving happens here
+  //  */
+  // saveRegion(store, region) {
+  //   if (store.getters.signedIn) {
+  //     logger.debug('save region triggered', store, region)
 
-    const regions = store.getters.regions.filter((item) => item.id != region.id)
-    store.dispatch('setRegions', regions)
-    store.dispatch('setSelectedRegion', null)
+  //     // Timeout.clear('save-region-timer')
+  //     // Timeout.set(
+  //     //   'save-region-timer',
+  //     //   async () => {
 
-    transcriptionService
-      .deleteRegion(transcriptionId, region)
-      .catch((error) => {
-        console.error(error)
-        alert('Failed to delete region, refresh and try again.')
-        logger.error('Failed to delete region', region.id)
-        // TODO: pop region back into list?
-      })
-      .then(() => {
-        store.dispatch('setSaved', true)
-      })
-  },
-
-  /**
-   * SAVE ACTIONS
-   * Region updates happen in their own store, but saving happens here
-   */
-  saveRegion(store, region) {
-    if (store.getters.signedIn) {
-      logger.debug('save region triggered', store, region)
-
-      // Timeout.clear('save-region-timer')
-      // Timeout.set(
-      //   'save-region-timer',
-      //   async () => {
-
-      //     // transcriptionService
-      //     //   .updateRegion(store.getters.transcription.id, region)
-      //     //   .then(() => {
-      //     //     logger.log('Region saved!')
-      //     //     store.dispatch('setSaved', true)
-      //     //   })
-      //     //   .catch((error) => {
-      //     //     logger.error('Error saving region', region, error)
-      //     //     alert('Error saving that region, change the region to try again')
-      //     //   })
-      //     // mark the last saved user on the transcription here
-      //     store.dispatch('updateTranscription', { userLastUpdated: region.userLastUpdated })
-      //   },
-      //   250,
-      // )
-    } else {
-      logger.info('Unable to save, user not authenticated')
-    }
-  },
+  //     //     // transcriptionService
+  //     //     //   .updateRegion(store.getters.transcription.id, region)
+  //     //     //   .then(() => {
+  //     //     //     logger.log('Region saved!')
+  //     //     //     store.dispatch('setSaved', true)
+  //     //     //   })
+  //     //     //   .catch((error) => {
+  //     //     //     logger.error('Error saving region', region, error)
+  //     //     //     alert('Error saving that region, change the region to try again')
+  //     //     //   })
+  //     //     // mark the last saved user on the transcription here
+  //     //     store.dispatch('updateTranscription', { userLastUpdated: region.userLastUpdated })
+  //     //   },
+  //     //   250,
+  //     // )
+  //   } else {
+  //     logger.info('Unable to save, user not authenticated')
+  //   }
+  // },
 
   /**
    * Loads a transcription and associated regions based on `transcriptionId`.
@@ -162,6 +143,18 @@ const actions = {
         actions.onRegionSubscription(store, snapshot)
       },
     )
+
+    DataStore.observe(Region).subscribe((message) => {
+      console.log('message', message)
+      if (message.opType === 'DELETE') {
+        if (message.model.name === 'Region') {
+          const regionId = message.element.id
+          console.log('Deleting region', regionId)
+          store.commit('DELETE_REGION', regionId)
+          store.dispatch('resetRegionIndices')
+        }
+      }
+    })
   },
 
   /**
@@ -188,10 +181,11 @@ const actions = {
   },
 
   /**
+   * TODO: move this to store/region
    * Handles realtime region updates from DataStore.
    */
   async onRegionSubscription(store, snapshot) {
-    // console.log('snapshot', snapshot)
+    console.log('snapshot', snapshot)
     const user = await userService.getUser()
     const { items } = snapshot
     const updated = items.filter(
@@ -212,10 +206,16 @@ const actions = {
 
       if (existing) {
         if (item.dateLastUpdated > existing.dateLastUpdated) {
+
           store.dispatch('commitRegionUpdate', {
             update: item,
             region: existing
           })
+
+          // only dispatch if the regionId matches the current selected region
+          if (existing.id === store.getters.selectedRegion.id) {
+            EventBus.$emit('realtime-region-update', item)
+          }
         }
       } else {
         store.dispatch('commitRegionAdd', item)

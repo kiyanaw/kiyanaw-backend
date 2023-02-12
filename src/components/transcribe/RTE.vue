@@ -13,14 +13,17 @@
 
 <script>
 import Quill from 'quill'
+import Delta from 'quill-delta'
 // import QuillCursors from 'quill-cursors'
 import { mapGetters } from 'vuex'
 import Timeout from 'smart-timeout'
 
 window.Timeout = Timeout 
+window.Delta = Delta
 
 import logging from '../../logging'
 import Lexicon from '@/services/lexicon'
+import EventBus from '@/store/bus'
 
 const logger = new logging.Logger('RTE')
 
@@ -120,6 +123,21 @@ export default {
       if (this.disabled) {
         logger.debug('Disabling editor on mount')
         this.editor.disable()
+      } else {
+        EventBus.$on('realtime-region-update', (incoming) => {
+          if (this.mode === 'main') {
+            const incomingText = new Delta(incoming.text)
+            const local = this.editor.getContents()
+            const difference = local.diff(incomingText)
+            this.editor.updateContents(difference, 'api')
+
+          } else {
+            const localValue = this.editor.getText()
+            if (incoming.translation !== localValue) {
+              this.editor.setText(incoming.translation, 'api')
+            }
+          }
+        })
       }
     }
   },

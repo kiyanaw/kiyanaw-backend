@@ -7,12 +7,6 @@ const { Region } = require('../../src/models')
 
 const UserService = require('../../src/services/user').default
 const store = require('../../src/store/region').default
-const models = require('../../src/store/models').default
-
-
-const pause = function (duration = 1) {
-  return new Promise((resolve) => setTimeout(resolve, duration))
-}
 
 describe('Region store', function () {
   beforeEach(function () {
