@@ -27,7 +27,7 @@
           small
           icon
           :disabled="!selectedRange || disableInputs"
-          @click="onCreateIssue"
+          @click="onNavigateToCreateIssueForm"
           data-test="regionIssueButton"
         >
           <v-icon small> mdi-flag-outline </v-icon>
@@ -109,8 +109,6 @@
 </template>
 
 <script>
-// import { DataStore } from 'aws-amplify'
-// import { Region } from '../../models'
 import { mapActions, mapGetters } from 'vuex'
 import Timeout from 'smart-timeout'
 
@@ -187,11 +185,6 @@ export default {
   },
 
   mounted() {
-    // subscribe to realtime changes
-    // EventBus.$on('realtime-region-change', (incoming) => {
-    //   // console.warn('got realtime region change', incoming)
-    //   this.mainEditor.onRealtimeUpdate(incoming)
-    // })
   },
 
   data() {
@@ -238,12 +231,14 @@ export default {
       'checkForLockedRegions',
       'deleteRegion',
       'lockRegion',
+      // TODO: this probably shouldn't be in the store, does any other part
+      // of the app care what the 'selectedIssue' is?
       'setSelectedIssue',
       'updateRegion',
       'unlockRegion',
     ]),
 
-    onCreateIssue() {
+    onNavigateToCreateIssueForm() {
       this.setSelectedIssue({
         id: null,
         type: 'needs-help',
@@ -253,7 +248,7 @@ export default {
         comments: [],
         owner: this.user.name,
       })
-      this.$emit('create-issue')
+      this.$emit('show-create-issue-form')
     },
 
     onIgnoreWord() {

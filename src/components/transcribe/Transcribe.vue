@@ -170,6 +170,10 @@ export default {
       }
     }, 
 
+    // regions(newValue) {
+    //   console.log('!!!! regions have changed', newValue)
+    // }
+
     // regionMap: {
     //   deep: true, 
     //   handler(newValue) {

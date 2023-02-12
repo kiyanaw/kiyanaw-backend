@@ -99,7 +99,7 @@ const actions = {
 
   // TODO: needs tests
   async onDeleteRegionSubscription(store, message) {
-    console.log('message', message)
+    // console.log('message', message)
     if (message.opType === 'DELETE') {
       const transcriptionId = store.getters.transcription.id
       if (
@@ -140,6 +140,7 @@ const actions = {
    * Handles realtime region updates from DataStore.
    */
   async onRegionSubscription(store, snapshot) {
+    console.log('snapshot', snapshot)
     const user = await userService.getUser()
     const { items } = snapshot
     const updated = items.filter(
@@ -167,7 +168,8 @@ const actions = {
           })
 
           // only dispatch if the regionId matches the current selected region
-          if (existing.id === store.getters.selectedRegion.id) {
+          const selectedRegion = store.getters.selectedRegion
+          if (selectedRegion && existing.id === selectedRegion.id) {
             EventBus.$emit('realtime-region-update', item)
           }
         }

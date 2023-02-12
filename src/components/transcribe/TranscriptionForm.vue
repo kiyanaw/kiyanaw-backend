@@ -58,12 +58,8 @@ export default {
     ...mapActions(['addEditor', 'removeEditor', 'setProfiles']),
 
     loadProfiles() {
-      // UserService.listProfiles().then((results) => {
-      //   console.log('profile results', results)
-      //   this.setProfiles(results)
-      // })
       DataStore.query(Contributor).then((items) => {
-        console.log('Got profiles', items)
+        // console.log('Got profiles', items)
         this.setProfiles(items)
       })
     },

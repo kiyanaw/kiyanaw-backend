@@ -424,5 +424,71 @@ describe('Transcription store', function () {
       assert.equal(setTimestampStub.args[0][0], incoming.dateLastUpdated)
     })
 
+    it('should not $emit any events if region not selected', async function () {
+      this.sandbox.stub(UserService, 'getUser').resolves({ name: 'janedoe' })
+      store.dispatch = this.sandbox.stub()
+      const setTimestampStub = this.sandbox.stub(store.actions, 'setLastRegionUpdate')
+      const $emit = this.sandbox.stub(EventBus, '$emit')
+
+      // set existing local region
+      const existing = {
+        ...this.snapshot.items[2],
+        dateLastUpdated: '1675894181000',
+        displayIndex: 2,
+        index: 1,
+      }
+      store.getters.regionById = this.sandbox.stub().returns(existing)
+      store.getters.selectedRegion = null
+
+      // tweak incoming update so one of the 3 items matches criteria for updating
+      this.snapshot.items[2].userLastUpdated = 'fooboo'
+      this.snapshot.items[2].dateLastUpdated = `${+new Date() + 10000}`
+      await store.actions.onRegionSubscription(store, { ...this.snapshot })
+
+      // gets the local region based on remote id
+      assert.equal(store.getters.regionById.args[0][0], 'three')
+
+      // make sure a region was updated
+      assert.equal(setTimestampStub.callCount, 1)
+      assert.equal(setTimestampStub.args[0][0], this.snapshot.items[2].dateLastUpdated)
+
+      // make sure a realtime event was not created
+      assert.equal($emit.callCount, 0)
+    })
+
+    it('should not $emit realtime event if selectedRegion does not match', async function () {
+      this.sandbox.stub(UserService, 'getUser').resolves({ name: 'janedoe' })
+      store.dispatch = this.sandbox.stub()
+      const setTimestampStub = this.sandbox.stub(store.actions, 'setLastRegionUpdate')
+      const $emit = this.sandbox.stub(EventBus, '$emit')
+
+      // set existing local region
+      const existing = {
+        ...this.snapshot.items[2],
+        dateLastUpdated: '1675894181000',
+        displayIndex: 2,
+        index: 1,
+      }
+      store.getters.regionById = this.sandbox.stub().returns(existing)
+      store.getters.selectedRegion = {
+        id: 'four',
+      }
+
+      // tweak incoming update so one of the 3 items matches criteria for updating
+      this.snapshot.items[2].userLastUpdated = 'fooboo'
+      this.snapshot.items[2].dateLastUpdated = `${+new Date() + 10000}`
+      await store.actions.onRegionSubscription(store, { ...this.snapshot })
+
+      // gets the local region based on remote id
+      assert.equal(store.getters.regionById.args[0][0], 'three')
+
+      // make sure a region was updated
+      assert.equal(setTimestampStub.callCount, 1)
+      assert.equal(setTimestampStub.args[0][0], this.snapshot.items[2].dateLastUpdated)
+
+      // make sure a realtime event was not created
+      assert.equal($emit.callCount, 0)
+    })
+
   })
 })

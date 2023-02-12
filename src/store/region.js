@@ -98,6 +98,13 @@ const actions = {
     store.commit('SET_SELECTED_ISSUE', issue)
   },
 
+  async createIssue(store, issue) {
+    console.log('Creating new issue', issue)
+    const issues = store.getters.selectedRegion.issues
+    issues.push(issue)
+    store.dispatch('updateRegion', { issues })
+  },
+
   async createRegion(store, region) {
     // TODO: some assertions around region
     store.dispatch('commitRegionAdd', region)
@@ -119,8 +126,6 @@ const actions = {
 
     // TODO:
     // - update transcription dateLastUpdated
-    // - region not showing up in side list
-    // - update index
   },
 
   /**
@@ -194,6 +199,7 @@ const actions = {
    * Wrapper for `updateRegionById`.
    */
   async updateRegion(store, update) {
+    console.log('updateRegion called', update)
     const region = store.getters.selectedRegion
     store.dispatch('updateRegionById', {
       ...update, 
@@ -203,6 +209,7 @@ const actions = {
 
   async updateRegionById(store, update) {
     assert.ok(update.id, 'update.id must be provided')
+    console.log('updateRegionById', update)
     const regionId = update.id
     // logger.debug('Updating region by Id', regionId)
     const region = store.getters.regionById(regionId)
@@ -293,12 +300,16 @@ const actions = {
     let resetIndexes = false
     // only reset indexes if not at the end of the file
     const lastRegion = store.getters.regions[store.getters.regions.length - 1]
-    if (region.start < lastRegion.start) {
-      resetIndexes = true
+    if (lastRegion) {
+      if (region.start < lastRegion.start) {
+        resetIndexes = true
+      } else {
+        // region is at the end of the list
+        region.index = lastRegion.index + 1
+        region.displayIndex = lastRegion.displayIndex + 1
+      }
     } else {
-      // region is at the end of the list
-      region.index = lastRegion.index + 1
-      region.displayIndex = lastRegion.displayIndex + 1
+      resetIndexes = true
     }
     store.commit('ADD_REGION', region)
 

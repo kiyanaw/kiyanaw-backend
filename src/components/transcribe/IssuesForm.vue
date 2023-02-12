@@ -70,7 +70,7 @@
               outlined
               :disabled="disableInputs"
               :color="selectedIssue.resolved ? 'error' : 'success'"
-              @click="resolveIssue"
+              @click="onResolveIssue"
             >
               <v-icon v-if="!selectedIssue.resolved" left> mdi-checkbox-marked-circle </v-icon>
               <span v-if="!selectedIssue.resolved">Resolve</span>
@@ -249,26 +249,26 @@ export default {
       this.setSelectedIssue(null)
     },
 
+    /** TODO: needs tests */
     onSubmitNewIssue() {
-      const issue = { ...this.selectedIssue }
-      issue.comments = []
+      // bundle up issue details
       const newDate = `${+new Date()}`
-      issue.id = `issue-${issue.type}-${newDate}`
+      const comments = []
       if (this.newIssueCommentText.length) {
-        logger.info('adding issue comment')
-        issue.comments.push({
+        comments.push({
           comment: `${this.newIssueCommentText}`,
           createdAt: newDate,
           owner: this.user.name,
         })
       }
-
-      const issues = this.selectedRegion.issues
-      issues.push(issue)
-
-      logger.info('new issues', issues)
-
-      this.$store.dispatch('updateRegion', { issues })
+      const newIssue = {
+        ...this.selectedIssue,
+        comments,
+        id: `issue-${this.selectedIssue.type}-${newDate}`
+      }
+      // update the store
+      this.$store.dispatch('createIssue', newIssue)
+      // reset the form
       this.newIssueCommentText = ''
       this.setSelectedIssue(null)
     },
@@ -311,7 +311,7 @@ export default {
       this.newIssueCommentText = ''
     },
 
-    resolveIssue() {
+    onResolveIssue() {
       this.$store.dispatch('updateSelectedIssue', { resolved: !this.selectedIssue.resolved })
     },
   },

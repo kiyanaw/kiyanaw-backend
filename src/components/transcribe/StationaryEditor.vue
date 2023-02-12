@@ -16,7 +16,7 @@
       </v-tab-item>
 
       <v-tab-item :transition="false" :reverse-transition="false" class="tab-panel">
-        <region-form @create-issue="activeTab = 2" @play-region="onPlayRegion"></region-form>
+        <region-form @show-create-issue-form="activeTab = 2" @play-region="onPlayRegion"></region-form>
       </v-tab-item>
 
       <v-tab-item :transition="false" :reverse-transition="false" class="tab-panel">
