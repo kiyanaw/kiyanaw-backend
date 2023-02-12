@@ -17,6 +17,8 @@ import Quill from 'quill'
 import { mapGetters } from 'vuex'
 import Timeout from 'smart-timeout'
 
+window.Timeout = Timeout 
+
 import logging from '../../logging'
 import Lexicon from '@/services/lexicon'
 
@@ -116,7 +118,7 @@ export default {
       window[`${this.mode}Editor`] = this.editor
 
       if (this.disabled) {
-        logger.info('Disabling editor on mount')
+        logger.debug('Disabling editor on mount')
         this.editor.disable()
       }
     }
@@ -126,7 +128,7 @@ export default {
     onChange(delta, oldDelta, source) {
       // Only emit user changes
       if (source === 'user') {
-        logger.info('user change')
+        logger.debug('user change', delta)
         this.maybeAddASpaceAtTheEnd()
 
         // throttle updates a little
@@ -136,7 +138,7 @@ export default {
           () => {
             this.emitChangeEvent('change-content')
           },
-          100,
+          10,
         )
       }
     },
@@ -184,12 +186,12 @@ export default {
     },
 
     clearKnownWords() {
-      logger.info('clear known words')
+      logger.debug('clear known words')
       this.editor.formatText(0, 9999, 'known-word', false)
     },
 
     clearSuggestions() {
-      logger.info('clear suggestions')
+      logger.debug('clear suggestions')
       this.editor.formatText(0, 9999, 'suggestions', false)
     },
 
@@ -211,7 +213,7 @@ export default {
       this.editor.formatText(index, length, 'known-word', true)
       this.editor.formatText(index, length, 'suggestion', false)
       // trigger change for save
-      logger.info('apply known word', index, length)
+      logger.debug('apply known word', index, length)
       this.emitChangeEvent('change-format')
     },
 
@@ -231,7 +233,7 @@ export default {
       if (!this.analyze) {
         return
       }
-      logger.info('applying suggestion', index, length)
+      logger.debug('applying suggestion', index, length)
       const currentFormat = this.editor.getFormat(index, length)
       if (Object.keys(currentFormat).indexOf('ignore-word') === -1) {
         this.editor.formatText(index, length, 'suggestion', true, 'silent')
@@ -334,7 +336,7 @@ export default {
     },
 
     validateIssues(issues) {
-      logger.info('Validating issues...')
+      logger.debug('Validating issues...')
       const contents = this.editor.getContents().ops
       const existingIds = contents
         .map((item) =>
@@ -360,7 +362,7 @@ export default {
     },
 
     addIssue(issue) {
-      logger.info('Adding issue', issue)
+      logger.debug('Adding issue', issue)
       // creates the class .issue-needs-help-1234567890
       this.editor.formatText(issue.index, issue.text.length, `issue-${issue.type}`, issue.id)
 
@@ -371,7 +373,7 @@ export default {
     },
 
     removeIssue(issueId) {
-      logger.info('removing issueId', issueId)
+      logger.debug('removing issueId', issueId)
       const issueType = issueId.split('-').slice(0, -1).join('-')
       const contents = this.editor.getContents().ops
       let index = 0
@@ -398,7 +400,7 @@ export default {
 
   watch: {
     disabled(disable) {
-      logger.info('Disable editor: ', disable)
+      logger.debug('Disable editor: ', disable)
       if (disable) {
         this.editor.disable()
       } else {

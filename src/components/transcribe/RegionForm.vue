@@ -288,7 +288,7 @@ export default {
     },
 
     onMainEditorContentChange(contents) {
-      console.log('!! update region called')
+      // console.log('!! update region called')
       this.updateRegion({ text: contents })
 
       // additionally check for known words
@@ -363,7 +363,7 @@ export default {
      * Quickly apply known words to the current region, then do a search on anything left over.
      */
     checkForKnownWords(doUpdate = false) {
-      logger.info(`Checking for known words in editor, (doUpdate: ${doUpdate})`)
+      logger.debug(`Checking for known words in editor, (doUpdate: ${doUpdate})`)
       if (this.transcription.disableAnalyzer) {
         return
       }
@@ -396,7 +396,7 @@ export default {
      * Apply known words from the Lexicon to the current editor.
      */
     async applyKnownWords(doUpdate = false) {
-      logger.info(`applyKnownWords, (doUpdate: ${doUpdate})`)
+      logger.debug(`applyKnownWords, (doUpdate: ${doUpdate})`)
       // check for words to search
       const knownWords = Lexicon.getKnownWords()
       const wordMap = this.getTextMapFromDeltas(this.selectedRegion.text)
@@ -408,7 +408,7 @@ export default {
           // hint known word
           applyFunc = this.editorApplyKnownHint
         } else {
-          logger.info('Should! clear known words')
+          logger.debug('Should! clear known words')
           this.editorClearKnownWords()
           applyFunc = this.editorApplyKnownWords
         }

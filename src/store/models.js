@@ -94,7 +94,6 @@ class TranscriptionModel {
 // TODO: test this
 class RegionModel {
   constructor(data) {
-    console.log(data.displayIndex)
     this.id = data.id 
     this.createdAt = data.createdAt
     this.dateLastUpdated = data.dateLastUpdated

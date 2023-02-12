@@ -135,6 +135,8 @@ export default {
 
       // show lookup dialog
       lookup: false,
+
+      // regions: []
     }
   },
 
@@ -157,7 +159,8 @@ export default {
     },
     peaks() {
       return this.transcription ? this.transcription.peaks : null
-    }
+    },
+
   },
 
   watch: {
@@ -165,7 +168,15 @@ export default {
       if (newValue) {
         this.loading = false
       }
-    }
+    }, 
+
+    // regionMap: {
+    //   deep: true, 
+    //   handler(newValue) {
+    //     this.regions = Object.values(newValue)
+    //   }
+    // }
+
   },
   /**
    * Mount point for this component.
@@ -240,6 +251,7 @@ export default {
       // untested
       'createRegion',
       'getLockedRegions',
+      'resetRegionIndices',
       'setRegions',
       'setSelectedRegion',
       'setTranscription',
@@ -302,58 +314,6 @@ export default {
       this.currentRegionSheet.innerHTML = '.foo {}'
     },
 
-    /**
-     * @description Loads initial data based on URL params.
-     */
-    // async load() {
-    //   // TODO: move to loading through VueX
-    //   const data = await TranscriptionService.getTranscription(this.transcriptionId)
-
-    //   // If a transcription is 'Private' only allow author and editors
-    //   let canAccess = true
-    //   if (data.isPrivate) {
-    //     if (!data.editors.includes(this.user.name)) {
-    //       canAccess = false
-    //     }
-    //   }
-    //   if (data && canAccess) {
-    //     this.setTranscription(data)
-
-    //     // legacy
-    //     let peaks
-    //     try {
-    //       const rawPeaks = await fetch(`${data.source}.json`)
-    //       peaks = await rawPeaks.json()
-    //     } catch (error) {
-    //       console.error('Error loading peaks data', error)
-    //       this.loading = false
-    //       this.error = `Failed to load peaks for ${data.title}, try again shortly...`
-    //       return
-    //     }
-
-    //     // TODO: bind this to the data store
-    //     this.loading = false
-    //     this.source = data.source
-    //     this.title = data.title
-    //     // this.comments = data.comments
-    //     this.type = data.type
-    //     this.author = data.author
-    //     this.isVideo = data.type.includes('video')
-    //     this.peaks = peaks
-
-    //     // set the inbound region, if any
-    //     logger.info('setting inbound region', this.inboundRegion)
-    //     this.$store.dispatch('setSelectedRegion', this.inboundRegion)
-
-    //     // Request all locked regions on load
-    //     this.getLockedRegions()
-    //   } else {
-    //     // no transcription
-    //     this.loading = false
-    //     this.error = 'Transcription not found 🤷'
-    //   }
-    // },
-
     triggerAudioPlayer(regionId) {
       this.$refs.player.playRegion(regionId)
     },
@@ -403,6 +363,9 @@ export default {
           ...regionUpdate,
           id: regionUpdate.id,
         })
+
+        // it's possible the order has changed, update it here
+        // this.resetRegionIndices()
       }
     },
   },

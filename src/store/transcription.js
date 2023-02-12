@@ -14,6 +14,9 @@ import logging from '../logging'
 
 const logger = new logging.Logger('Transcription Store')
 
+// tracks the last Region update
+let LAST_REGION_UPDATE = `${+ new Date()}`
+
 
 const state = {
   transcription: null,
@@ -88,8 +91,6 @@ const actions = {
       //   'save-region-timer',
       //   async () => {
 
-
-
       //     // transcriptionService
       //     //   .updateRegion(store.getters.transcription.id, region)
       //     //   .then(() => {
@@ -125,10 +126,6 @@ const actions = {
     ])
 
     transcription = new models.TranscriptionModel(transcription)
-    // regions = regions
-    //   .map((item) => {
-    //     return new models.RegionModel(item)
-    //   })
 
     // TODO: convert to store.dispatch('', ...)
     actions.onLoadTranscription(store, transcription, regions)
@@ -148,94 +145,88 @@ const actions = {
   async onLoadTranscription(store, transcription, regions) {
     assert.ok(store, 'store must be provided')
     assert.ok(transcription, 'transcription must be provided')
+    assert.ok(regions, 'regions must be provided')
     transcription.peaks = await actions.loadPeaksData(store, transcription.source)
 
     store.dispatch('setTranscription', transcription)
     store.dispatch('setRegions', regions)
-    store.dispatch('subscribeRegions', transcription.id)
 
-    // TODO: this needs tests
-    // set up subscription for Transcription
-    const user = await userService.getUser()
+    // subscribe to Transcription changes
     DataStore.observe(Transcription, transcription.id).subscribe((message) => {
-      const localUser = user.name
-      const remoteUser = message.element.userLastUpdated
-      if (message.opType === 'UPDATE') {
-        // only update if it's a remote update
-        if (remoteUser !== localUser) {
-          console.log('got remote update for transcription!', remoteUser)
-          console.log(message)
-          store.commit('UPDATE_TRANSCRIPTION', message.element)
+      actions.onTranscriptionSubscription(store, message)
+    })
+
+    // subscribe to Region changes for this transcription
+    DataStore.observeQuery(Region, (r) => r.transcriptionId.eq(transcription.id)).subscribe(
+      (snapshot) => {
+        actions.onRegionSubscription(store, snapshot)
+      },
+    )
+  },
+
+  /**
+   * Handle realtime transcription updates from DataStore.
+   */
+  async onTranscriptionSubscription(store, message) {
+    const user = await userService.getUser()
+    const localUser = user.name
+    const remoteUser = message.element.userLastUpdated
+    if (message.opType === 'UPDATE') {
+      // only update if it's a remote update
+      if (remoteUser !== localUser) {
+        store.commit('UPDATE_TRANSCRIPTION', message.element)
+      }
+    }
+    // TODO: delete
+  },
+
+  /**
+   * Sets the timestamp of the last incoming update for regions. Helper for testing.
+   */
+  setLastRegionUpdate(value) {
+    LAST_REGION_UPDATE = value
+  },
+
+  /**
+   * Handles realtime region updates from DataStore.
+   */
+  async onRegionSubscription(store, snapshot) {
+    // console.log('snapshot', snapshot)
+    const user = await userService.getUser()
+    const { items } = snapshot
+    const updated = items.filter(
+      (item) => item.dateLastUpdated > LAST_REGION_UPDATE && item.userLastUpdated !== user.name,
+    )
+
+    updated.forEach((item) => {
+      item = new models.RegionModel(item)
+      // record the new `lastUpdate`
+      if (item.dateLastUpdated > LAST_REGION_UPDATE) {
+        actions.setLastRegionUpdate(item.dateLastUpdated)
+      }
+      // update the region locally if need be
+      const existing = store.getters.regionById(item.id)
+      // don't overwrite indexes with `undefined` values
+      delete item.index
+      delete item.displayIndex
+
+      if (existing) {
+        if (item.dateLastUpdated > existing.dateLastUpdated) {
+          store.dispatch('commitRegionUpdate', {
+            update: item,
+            region: existing
+          })
         }
+      } else {
+        store.dispatch('commitRegionAdd', item)
       }
     })
-    
-
-    let lastUpdate = `${+new Date()}`
-    console.log('lastUpdate', lastUpdate)
-
-    DataStore.observeQuery(Region, (r) => r.transcriptionId.eq(transcription.id)).subscribe((snapshot) => {
-      const { items } = snapshot
-      const updated = items.filter((item) => item.dateLastUpdated > lastUpdate && item.userLastUpdated !== user.name)
-      console.log('updated', updated)
-      updated.forEach((item) => {
-        item = new models.RegionModel(item)
-        // record the new `lastUpdate`
-        if (item.dateLastUpdated > lastUpdate) {
-          lastUpdate = item.dateLastUpdated
-        }
-        // update the region locally if need be
-        const existing = store.getters.regionById(item.id)
-
-        // don't overwrite indexes with `undefined` values
-        delete item.index 
-        delete item.displayIndex
-
-        console.log('existing', existing, item)
-        if (existing) {
-          if (item.dateLastUpdated > existing.dateLastUpdated) {
-            store.commit('UPDATE_REGION', {region: existing, update: item})
-          }
-        } else {
-          //
-        }
-        // if (item.dateLastUpdated > store.getters.regionById(item.id).dateLastUpdated)
-      })
-
-    })
-
-
-    // window.subscription = DataStore.observe(Region).subscribe((message) => {
-    //   console.log('region realtime update', message)
-    // })
-
-
   },
 
   // TODO: test this
   async loadPeaksData(store, source) {
     const peaks = await fetch(`${source}.json`)
     return await peaks.json()
-  },
-
-  // TODO: test this
-  subscribeRegions(store, transcriptionId) {
-    // DataStore.observeQuery(Region, (region) =>
-    //   region.transcriptionId.eq('4454e340'),
-    // ).subscribe((snapshot) => {
-    //   const { items } = snapshot
-    //   console.log(items)
-    // })
-    console.log(transcriptionId)
-    store.dispatch
-
-    // const subscription = DataStore.observeQuery(
-    //   Region,
-    //   (region) => region.transcriptionId.eq('4454e340')
-    // ).subscribe((snapshot) => {
-    //   const { items, isSynced } = snapshot
-    //   console.log(`[Snapshot] item count: ${items.length}, isSynced: ${isSynced}`)
-    // })
   },
 
   /**
@@ -254,8 +245,6 @@ const actions = {
       return new models.TranscriptionModel(item)
     })
 
-    // TODO: conver to store.dispatch()
-    // store.commit('SET_TRANSCRIPTIONS', transcriptions)
     store.dispatch('setTranscriptions', transcriptions)
   },
 
@@ -370,4 +359,5 @@ export default {
   getters,
   actions,
   mutations,
+  LAST_REGION_UPDATE
 }
