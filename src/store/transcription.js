@@ -234,7 +234,6 @@ const actions = {
         contributor,
       }),
     )
-
     console.log('saved editor', link)
   },
 
@@ -279,23 +278,24 @@ const actions = {
 
   /**
    * TODO: test / integration test
+   * TODO: need a queue like Region to updates can happen at typing speed
    */
   async updateTranscription(store, update) {
+    console.log('updating Transcription', update)
     // throttle updates so DataStore doesn't shit the bed
     Timeout.clear('update-transcription-timer')
     Timeout.set(
       'update-transcription-timer',
       async () => {
         const original = await DataStore.query(Transcription, store.getters.transcription.id)
-        await DataStore.save(
-          Transcription.copyOf(original, (toUpdate) => {
-            toUpdate.dateLastUpdated = `${Date.now()}`
-            for (const key of Object.keys(update)) {
-              toUpdate[key] = update[key]
-            }
-            logger.info('Transcription saved', toUpdate)
-          }),
-        )
+        const updated = Transcription.copyOf(original, (toUpdate) => {
+          toUpdate.dateLastUpdated = `${Date.now()}`
+          for (const key of Object.keys(update)) {
+            toUpdate[key] = update[key]
+          }
+          logger.info('Transcription saved')
+        })
+        await DataStore.save(updated)
       },
       250,
     )

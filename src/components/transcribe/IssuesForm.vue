@@ -322,10 +322,7 @@ export default {
         }
         return item
       })
-      // this.setSelectedIssue({
-      //   ...this.selectedIssue,
-      //   resolved: newResolved
-      // })
+
       this.$store.dispatch('updateSelectedIssue', {resolved: newResolved})
       this.$store.dispatch('updateRegion', { issues })
     },

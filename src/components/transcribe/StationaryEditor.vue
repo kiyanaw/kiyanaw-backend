@@ -84,6 +84,7 @@ export default {
       }
     },
 
+    // TODO: this needs tests, only update the region if it has changed
     selectedRegion(newRegion, oldRegion) {
       let switchTabs = true
       if (newRegion) {

@@ -90,14 +90,6 @@ const getters = {
   },
 }
 
-/**
- * Reformat the contents of a region's text based on
- * a list of issues
- */
-// function formatTextForIssues(text, issues) {
-//   const editor = new Quill(document.createElement('div'))
-// }
-
 const actions = {
   updateSelectedIssue(store, update) {
     logger.debug('selectedIssue updated', update)
@@ -114,6 +106,9 @@ const actions = {
     store.dispatch('commitRegionAdd', region)
     store.dispatch('resetRegionIndices')
 
+    const dateLastUpdated = `${+new Date()}`
+    const userLastUpdated = (await UserService.getUser()).name
+
     // sync
     const transcription = await DataStore.query(Transcription, store.getters.transcription.id)
     const input = {
@@ -121,15 +116,17 @@ const actions = {
       start: region.start,
       end: region.end,
       text: JSON.stringify(region.text),
-      dateLastUpdated: `${+new Date()}`,
-      userLastUpdated: (await UserService.getUser()).name,
+      dateLastUpdated,
+      userLastUpdated,
       transcription,
     }
 
     await DataStore.save(new Region(input))
 
-    // TODO:
-    // - update transcription dateLastUpdated
+    // also update the transcription
+    store.dispatch('updateTranscription', {
+      userLastUpdated,
+    })
   },
 
   /**
@@ -293,6 +290,11 @@ const actions = {
       }
     })
     await DataStore.save(copy)
+
+    // also update the transcription
+    store.dispatch('updateTranscription', {
+      userLastUpdated: user.name,
+    })
   },
 
   /**
@@ -345,6 +347,12 @@ const actions = {
     store.commit('DELETE_REGION', regionId)
     await DataStore.delete(Region, regionId)
     store.dispatch('resetRegionIndices')
+
+    // also update the transcription
+    const user = await UserService.getUser()
+    store.dispatch('updateTranscription', {
+      userLastUpdated: user.name,
+    })
   }
 }
 
@@ -365,10 +373,6 @@ const mutations = {
   SET_SELECTED_ISSUE(context, issue) {
     Vue.set(context, 'selectedIssue', issue)
   },
-
-  // SET_SELECTED_REGION(context, region) {
-  //   Vue.set(context, 'selectedRegion', region)
-  // },
 
   SET_SELECTED_REGION_ID(context, regionId) {
     Vue.set(context, 'selectedRegionId', regionId)

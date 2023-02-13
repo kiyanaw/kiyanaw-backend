@@ -11,16 +11,11 @@
         <v-btn
           icon
           small
-          :disabled="(regionIsLocked && !regionIsLockedByMe) || disableInputs"
+          :disabled="disableInputs"
           @click="onToggleRegionType"
           data-test="regionNoteButton"
         >
           <v-icon small> mdi-note-outline </v-icon>
-        </v-btn>
-
-        <v-btn small icon @click="onLock" :disabled="disableInputs" data-test="regionLockButton">
-          <v-icon small v-if="!regionIsLocked">mdi-lock-open-outline</v-icon>
-          <v-icon small v-if="regionIsLocked" color="black">mdi-lock</v-icon>
         </v-btn>
 
         <v-btn
@@ -69,11 +64,9 @@
         mode="main"
         :analyze="!transcription.disableAnalyzer"
         :text="regionText"
-        :disabled="(regionIsLocked && !regionIsLockedByMe) || disableInputs"
+        :disabled="disableInputs"
         @change-content="onMainEditorContentChange"
         @change-format="onMainEditorFormatChange"
-        @focus="onFocusDelayed"
-        @blur="onBlur"
         @selection="onMainEditorSelection"
         v-if="!region.isNote"
       ></rte>
@@ -83,26 +76,12 @@
         ref="secondaryEditor"
         mode="secondary"
         :text="regionTranslation"
-        :disabled="(regionIsLocked && !regionIsLockedByMe) || disableInputs"
+        :disabled="disableInputs"
         @change-content="onSecondaryEditorContentChange"
-        @focus="onFocusDelayed"
-        @blur="onBlur"
       ></rte>
 
       <v-form ref="regionForm">
         <v-text-field v-model="selectedRegion.id" disabled label="Region ID"></v-text-field>
-        <v-text-field
-          v-if="regionIsLocked"
-          :value="selectedRegionLockuser"
-          disabled
-          label="Region lock"
-        ></v-text-field>
-        <v-text-field
-          v-if="regionIsLocked"
-          :value="selectedRegionExpiry"
-          disabled
-          label="Region lock expiry"
-        ></v-text-field>
       </v-form>
     </div>
   </div>
@@ -114,7 +93,6 @@ import Timeout from 'smart-timeout'
 
 import RTE from './RTE.vue'
 import Lexicon from '../../services/lexicon'
-// import EventBus from '../../store/bus'
 
 import logging from '../../logging'
 const logger = new logging.Logger('Region Form')
@@ -124,12 +102,11 @@ const logger = new logging.Logger('Region Form')
  * set contents timing, or issues will be overridden.
  */
 const SET_CONTENTS_TIMING = 25
-// const INVALIDATE_ISSUES_TIMING = SET_CONTENTS_TIMING + 250
 
 export default {
   components: { rte: RTE },
   computed: {
-    ...mapGetters(['locks', 'selectedIssue', 'selectedRegion', 'transcription', 'user']),
+    ...mapGetters(['selectedIssue', 'selectedRegion', 'transcription', 'user']),
 
     /**
      * Disable inputs if not EDITOR
@@ -159,29 +136,6 @@ export default {
     regionTranslation() {
       return [{ insert: this.selectedRegion.translation }]
     },
-
-    regionIsLocked() {
-      const regionId = this.selectedRegion.id
-      return Object.keys(this.locks).includes(regionId)
-    },
-
-    selectedRegionLockuser() {
-      return this.locks[this.selectedRegion.id].user
-    },
-
-    selectedRegionExpiry() {
-      const deleteTime = this.locks[this.selectedRegion.id].deleteTime
-      return deleteTime - +new Date() / 1000
-    },
-
-    regionIsLockedByMe() {
-      const regionId = this.selectedRegion.id
-      if (this.regionIsLocked) {
-        return this.locks[regionId].user === this.user.name
-      } else {
-        return false
-      }
-    },
   },
 
   mounted() {
@@ -195,31 +149,21 @@ export default {
   },
 
   watch: {
-    locks(newValue) {
-      logger.debug('Lock changed', newValue)
-    },
-
-    // issues(newValue) {
-    //   if (!this.selectedRegion.isNote) {
-    //     Timeout.clear('invalidate-issues-timer')
-    //     Timeout.set(
-    //       'invalidate-issues-timer',
-    //       () => {
-    //         this.doTriggerIssueInvalidation(newValue)
-    //       },
-    //       INVALIDATE_ISSUES_TIMING,
-    //     )
-    //   }
-    // },
-
-    selectedRegion(region) {
-      if (region) {
-        logger.debug('setting text for both editors', region.translation)
+    // TODO: this needs tests, only update the region if it has changed
+    selectedRegion(newRegion, oldRegion) {
+      let updateContents = true
+      if (newRegion) {
+        if (oldRegion && oldRegion.id === newRegion.id) {
+          updateContents = false
+        }
+      }
+      if (updateContents) {
+        logger.debug('setting text for both editors', newRegion.translation)
         /**
          * Micro-delay to allow editors to mount the first time.
          */
         setTimeout(() => {
-          this.doSetEditorsContents(region)
+          this.doSetEditorsContents(newRegion)
           this.checkForKnownWords(false)
         }, SET_CONTENTS_TIMING)
       }
@@ -228,14 +172,9 @@ export default {
 
   methods: {
     ...mapActions([
-      'checkForLockedRegions',
       'deleteRegion',
-      'lockRegion',
-      // TODO: this probably shouldn't be in the store, does any other part
-      // of the app care what the 'selectedIssue' is?
       'setSelectedIssue',
       'updateRegion',
-      'unlockRegion',
     ]),
 
     onNavigateToCreateIssueForm() {
@@ -266,16 +205,6 @@ export default {
       }
     },
 
-    onLock() {
-      if (this.regionIsLocked) {
-        if (this.regionIsLockedByMe) {
-          this.unlockRegion()
-        }
-      } else {
-        this.attemptRegionLock()
-      }
-    },
-
     /**
      * Handle main editor content changes.
      */
@@ -289,30 +218,6 @@ export default {
 
       // additionally check for known words
       this.checkForKnownWords(true)
-    },
-
-    /**
-     * Delayed wrapper for the onFocus handler, offset with a timeout of 10ms to ensure that
-     * the order of events is always blur -> focus, since the changing of one editor to the
-     * other would not want to trigger an unlock for this region.
-     */
-    onFocusDelayed() {
-      Timeout.set(this.onFocus, 10)
-    },
-
-    onFocus() {
-      logger.debug('Focus')
-      Timeout.clear('unlock-region-timer')
-      this.attemptRegionLock()
-    },
-
-    /**
-     * This is disabled for now, we'll just keep the region locked until another region is selected.
-     */
-    onBlur() {
-      //logger.debug('Blur')
-      // Delay the unlock request in case we just switched editors
-      // Timeout.set('unlock-region-timer', this.unlockRegion, 50)
     },
 
     onPlayRegion() {
@@ -342,25 +247,12 @@ export default {
       this.updateRegion({ isNote: !this.selectedRegion.isNote })
     },
 
-    attemptRegionLock() {
-      // if (!this.regionIsLockedByMe) {
-      //   this.lockRegion((result) => {
-      //     if (!result) {
-      //       logger.warn('Region lock failed')
-      //       alert('Unable to lock region, try again shortly')
-      //       this.$refs.mainEditor.blur()
-      //       this.$refs.secondaryEditor.blur()
-      //     }
-      //   })
-      // }
-    },
-
     /**
      * Quickly apply known words to the current region, then do a search on anything left over.
      */
     checkForKnownWords(doUpdate = false) {
-      logger.debug(`Checking for known words in editor, (doUpdate: ${doUpdate})`)
-      if (this.transcription.disableAnalyzer) {
+      logger.info(`Checking for known words in editor, (doUpdate: ${doUpdate})`)
+      if (this.transcription.disableAnalyzer || this.selectedRegion.isNote) {
         return
       }
       // clear out any typing changes
@@ -392,7 +284,7 @@ export default {
      * Apply known words from the Lexicon to the current editor.
      */
     async applyKnownWords(doUpdate = false) {
-      logger.debug(`applyKnownWords, (doUpdate: ${doUpdate})`)
+      logger.info(`applyKnownWords, (doUpdate: ${doUpdate})`)
       // check for words to search
       const knownWords = Lexicon.getKnownWords()
       const wordMap = this.getTextMapFromDeltas(this.selectedRegion.text)
@@ -434,13 +326,6 @@ export default {
       }
       this.$refs.secondaryEditor.setContents(region.translation)
     },
-
-    /**
-     * Wrapper for testing, calls the invalidate method on the main editor.
-     */
-    // doTriggerIssueInvalidation(newValue) {
-    //   this.$refs.mainEditor.validateIssues(newValue)
-    // },
 
     /**
      * Turns this
