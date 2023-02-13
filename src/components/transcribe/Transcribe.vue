@@ -234,7 +234,6 @@ export default {
     window.Transcription = Transcription
     window.TranscriptionContributor = TranscriptionContributor
     window.Document = Document
-
     window.transcribe = this
 
     // load up

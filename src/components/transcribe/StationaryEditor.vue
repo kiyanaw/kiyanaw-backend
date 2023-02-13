@@ -84,8 +84,14 @@ export default {
       }
     },
 
-    selectedRegion(newRegion) {
+    selectedRegion(newRegion, oldRegion) {
+      let switchTabs = true
       if (newRegion) {
+        if (oldRegion && oldRegion.id === newRegion.id) {
+          switchTabs = false
+        }
+      }
+      if (switchTabs) {
         this.activeTab = tabs.Region
       }
     },

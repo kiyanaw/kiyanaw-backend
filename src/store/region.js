@@ -1,6 +1,7 @@
 import { DataStore, Hub } from 'aws-amplify'
 import { Region, Transcription } from '../models'
 import * as assert from 'assert'
+// import Quill from 'quill'
 
 import Vue from 'vue'
 import Timeout from 'smart-timeout'
@@ -11,6 +12,7 @@ import UserService from '../services/user'
 import logging from '../logging'
 // import EventBus from './bus'
 import models from './models'
+import * as helpers from '../helpers'
 
 const logger = new logging.Logger('Region Store')
 
@@ -48,6 +50,7 @@ const state = {
   regions: [],
   regionMap: {},
   // The currently-selected region
+  selectedRegionId: null,
   selectedRegion: null,
   selectedIssue: null,
   locks: {},
@@ -58,7 +61,7 @@ const getters = {
     return context.selectedIssue
   },
   selectedRegion(context) {
-    return context.selectedRegion
+    return context.regionMap[context.selectedRegionId]
   },
   regionMap(context) {
     return context.regionMap
@@ -87,6 +90,14 @@ const getters = {
   },
 }
 
+/**
+ * Reformat the contents of a region's text based on
+ * a list of issues
+ */
+// function formatTextForIssues(text, issues) {
+//   const editor = new Quill(document.createElement('div'))
+// }
+
 const actions = {
   updateSelectedIssue(store, update) {
     logger.debug('selectedIssue updated', update)
@@ -96,13 +107,6 @@ const actions = {
   setSelectedIssue(store, issue) {
     logger.debug('setSelectedIssue', issue)
     store.commit('SET_SELECTED_ISSUE', issue)
-  },
-
-  async createIssue(store, issue) {
-    console.log('Creating new issue', issue)
-    const issues = store.getters.selectedRegion.issues
-    issues.push(issue)
-    store.dispatch('updateRegion', { issues })
   },
 
   async createRegion(store, region) {
@@ -190,10 +194,14 @@ const actions = {
    * Accepts regionId and sets the selectedRegion (using the current transcription).
    */
   setSelectedRegion(store, regionId) {
-    const region = store.getters.regionById(regionId)
     logger.info('setting selected region', regionId)
-    store.commit('SET_SELECTED_REGION', region)
+    store.commit('SET_SELECTED_REGION_ID', regionId)
   },
+
+  // Used for when updates happen to issues, the region list is updated properly
+  // updateSelectedRegion(store, regionId) {
+
+  // },
 
   /**
    * Wrapper for `updateRegionById`.
@@ -209,10 +217,25 @@ const actions = {
 
   async updateRegionById(store, update) {
     assert.ok(update.id, 'update.id must be provided')
-    console.log('updateRegionById', update)
+    // console.log('updateRegionById', update)
     const regionId = update.id
     // logger.debug('Updating region by Id', regionId)
     const region = store.getters.regionById(regionId)
+
+    const updateKeys = Object.keys(update)
+    const existingIssues = region.issues.length > 0
+    const mustInvalidateTextAndIssues = existingIssues || updateKeys.includes('issues')
+
+    if (mustInvalidateTextAndIssues) {     
+      const inputText = updateKeys.includes('text') ? update.text : region.text
+      const inputIssues = updateKeys.includes('issues') ? update.issues : region.issues
+      const [text, issues] = helpers.reconcileTextAndIssues(inputText, inputIssues)
+      update = {
+        ...update,
+        text,
+        issues
+      }
+    }
     // commit to local store
     store.dispatch('commitRegionUpdate', { region, update })
 
@@ -262,6 +285,7 @@ const actions = {
       userLastUpdated: user.name,
       dateLastUpdated: `${Date.now()}`,
     }
+    console.log('to DataStore', valuesToUpdate)
     const dbOriginal = await DataStore.query(Region, regionId)
     const copy = Region.copyOf(dbOriginal, (toUpdate) => {
       for (const key of Object.keys(valuesToUpdate)) {
@@ -291,7 +315,6 @@ const actions = {
     
     if (resetIndexes) {
       store.dispatch('resetRegionIndices')
-      
     }
   },
 
@@ -343,8 +366,12 @@ const mutations = {
     Vue.set(context, 'selectedIssue', issue)
   },
 
-  SET_SELECTED_REGION(context, region) {
-    Vue.set(context, 'selectedRegion', region)
+  // SET_SELECTED_REGION(context, region) {
+  //   Vue.set(context, 'selectedRegion', region)
+  // },
+
+  SET_SELECTED_REGION_ID(context, regionId) {
+    Vue.set(context, 'selectedRegionId', regionId)
   },
 
   ADD_REGION(context, region) {
@@ -367,10 +394,9 @@ const mutations = {
     const whole = Object.assign({}, issue, update)
     Vue.set(context, 'selectedIssue', whole)
 
-    // second update is necessary for issue list
-    const allIssues = context.selectedRegion.issues
+    const allIssues = context.regionMap[context.selectedRegionId].issues
     Vue.set(
-      context.selectedRegion,
+      context.regionMap[context.selectedRegionId],
       'issues',
       allIssues.map((item) => {
         if (item.id === issue.id) {

@@ -358,7 +358,7 @@ describe('Transcription store', function () {
         start: 5,
         text: [],
         transcriptionId: '8ce52730',
-        translation: null,
+        translation: '',
         userLastUpdated: 'fooboo',
       })
       // // ensure index & displayIndex are not in the update
@@ -405,7 +405,7 @@ describe('Transcription store', function () {
       assert.equal(store.dispatch.args[0][1].id, 'four')
       assert.equal(store.dispatch.args[0][1].start, 5)
       assert.equal(store.dispatch.args[0][1].end, 6)
-      assert.equal(store.dispatch.args[0][1].translation, null)
+      assert.equal(store.dispatch.args[0][1].translation, '')
       assert.equal(store.dispatch.args[0][1].dateLastUpdated, incoming.dateLastUpdated)
       assert.equal(store.dispatch.args[0][1].userLastUpdated, 'foo')
       assert.equal(store.dispatch.args[0][1].transcriptionId, '8ce52730')

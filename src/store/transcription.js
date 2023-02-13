@@ -10,6 +10,7 @@ import userService from '../services/user'
 import models from './models'
 import logging from '../logging'
 import EventBus from './bus'
+import {registerCustomQuillFormats} from '../helpers'
 
 const logger = new logging.Logger('Transcription Store')
 
@@ -140,7 +141,13 @@ const actions = {
    * Handles realtime region updates from DataStore.
    */
   async onRegionSubscription(store, snapshot) {
-    console.log('snapshot', snapshot)
+
+    /**
+     * TODO:
+     *  - deal with deleted region (check if region is curently selected)
+     *  - deal with updating issues (list does not update)
+     */
+    // console.log('snapshot', snapshot)
     const user = await userService.getUser()
     const { items } = snapshot
     const updated = items.filter(
@@ -162,6 +169,8 @@ const actions = {
       if (existing) {
         if (item.dateLastUpdated > existing.dateLastUpdated) {
 
+          console.log('commiting update', item)
+
           store.dispatch('commitRegionUpdate', {
             update: item,
             region: existing
@@ -170,6 +179,7 @@ const actions = {
           // only dispatch if the regionId matches the current selected region
           const selectedRegion = store.getters.selectedRegion
           if (selectedRegion && existing.id === selectedRegion.id) {
+            // trigger update event for the RTE
             EventBus.$emit('realtime-region-update', item)
           }
         }
@@ -208,6 +218,7 @@ const actions = {
    * Add sync operations here that will prime DataStore for querying.
    */
   async initForLoading() {
+    registerCustomQuillFormats()
     await DataStore.query(TranscriptionContributor)
   },
 

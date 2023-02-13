@@ -124,7 +124,7 @@ const logger = new logging.Logger('Region Form')
  * set contents timing, or issues will be overridden.
  */
 const SET_CONTENTS_TIMING = 25
-const INVALIDATE_ISSUES_TIMING = SET_CONTENTS_TIMING + 250
+// const INVALIDATE_ISSUES_TIMING = SET_CONTENTS_TIMING + 250
 
 export default {
   components: { rte: RTE },
@@ -199,18 +199,18 @@ export default {
       logger.debug('Lock changed', newValue)
     },
 
-    issues(newValue) {
-      if (!this.selectedRegion.isNote) {
-        Timeout.clear('invalidate-issues-timer')
-        Timeout.set(
-          'invalidate-issues-timer',
-          () => {
-            this.doTriggerIssueInvalidation(newValue)
-          },
-          INVALIDATE_ISSUES_TIMING,
-        )
-      }
-    },
+    // issues(newValue) {
+    //   if (!this.selectedRegion.isNote) {
+    //     Timeout.clear('invalidate-issues-timer')
+    //     Timeout.set(
+    //       'invalidate-issues-timer',
+    //       () => {
+    //         this.doTriggerIssueInvalidation(newValue)
+    //       },
+    //       INVALIDATE_ISSUES_TIMING,
+    //     )
+    //   }
+    // },
 
     selectedRegion(region) {
       if (region) {
@@ -438,9 +438,9 @@ export default {
     /**
      * Wrapper for testing, calls the invalidate method on the main editor.
      */
-    doTriggerIssueInvalidation(newValue) {
-      this.$refs.mainEditor.validateIssues(newValue)
-    },
+    // doTriggerIssueInvalidation(newValue) {
+    //   this.$refs.mainEditor.validateIssues(newValue)
+    // },
 
     /**
      * Turns this

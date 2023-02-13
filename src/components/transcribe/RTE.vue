@@ -18,59 +18,19 @@ import Delta from 'quill-delta'
 import { mapGetters } from 'vuex'
 import Timeout from 'smart-timeout'
 
+window.Quill = Quill
 window.Timeout = Timeout 
 window.Delta = Delta
 
+import { transcribeFormats } from '../../helpers'
 import logging from '../../logging'
 import Lexicon from '@/services/lexicon'
 import EventBus from '@/store/bus'
 
 const logger = new logging.Logger('RTE')
 
-const Parchment = Quill.import('parchment')
-let KnownWord = new Parchment.Attributor.Class('known-word', 'known-word', {
-  scope: Parchment.Scope.INLINE,
-})
-let IgnoreWord = new Parchment.Attributor.Class('ignore-word', 'ignore-word', {
-  scope: Parchment.Scope.INLINE,
-})
-let IssueNeedsHelp = new Parchment.Attributor.Class('issue-needs-help', 'issue-needs-help', {
-  scope: Parchment.Scope.INLINE,
-})
-let IssueIndexing = new Parchment.Attributor.Class('issue-indexing', 'issue-indexing', {
-  scope: Parchment.Scope.INLINE,
-})
-let IssueNewWord = new Parchment.Attributor.Class('issue-new-word', 'issue-new-word', {
-  scope: Parchment.Scope.INLINE,
-})
-
-let Suggestion = new Parchment.Attributor.Class('suggestion', 'suggestion', {
-  scope: Parchment.Scope.INLINE,
-})
-
-let SuggestionKnown = new Parchment.Attributor.Class('suggestion-known', 'suggestion-known', {
-  scope: Parchment.Scope.INLINE,
-})
-
-Parchment.register(KnownWord)
-Parchment.register(IgnoreWord)
-Parchment.register(IssueNeedsHelp)
-Parchment.register(IssueIndexing)
-Parchment.register(IssueNewWord)
-Parchment.register(Suggestion)
-Parchment.register(SuggestionKnown)
-// Quill.register('modules/cursors', QuillCursors)
-
 const formats = {
-  main: [
-    'known-word',
-    'ignore-word',
-    'issue-needs-help',
-    'issue-indexing',
-    'issue-new-word',
-    'suggestion',
-    'suggestion-known',
-  ],
+  main: transcribeFormats,
   secondary: [],
 }
 
@@ -353,53 +313,6 @@ export default {
       this.$emit(event, contents)
     },
 
-    validateIssues(issues) {
-      logger.debug('Validating issues...')
-      const contents = this.editor.getContents().ops
-      const existingIds = contents
-        .map((item) =>
-          Object.values(item.attributes || {}).filter((value) => value.startsWith('issue')),
-        )
-        .flat()
-
-      // incoming issues
-      const newIssues = issues
-        .filter((issue) => !issue.resolved)
-        .filter((issue) => !existingIds.includes(issue.id))
-
-      for (const issue of newIssues) {
-        this.addIssue(issue)
-      }
-
-      // deleted or resolved issues
-      const goodIssueIds = issues.filter((issue) => !issue.resolved).map((issue) => issue.id)
-      const deleted = existingIds.filter((id) => !goodIssueIds.includes(id))
-      for (const issueId of deleted) {
-        this.removeIssue(issueId)
-      }
-    },
-
-    addIssue(issue) {
-      logger.debug('Adding issue', issue)
-      // creates the class .issue-needs-help-1234567890
-      this.editor.formatText(issue.index, issue.text.length, `issue-${issue.type}`, issue.id)
-      // this.emitChangeEvent('change-format')
-    },
-
-    removeIssue(issueId) {
-      logger.debug('removing issueId', issueId)
-      const issueType = issueId.split('-').slice(0, -1).join('-')
-      const contents = this.editor.getContents().ops
-      let index = 0
-      for (const leaf of contents) {
-        if (leaf.attributes && Object.values(leaf.attributes).includes(issueId)) {
-          this.editor.formatText(index, leaf.insert.length, issueType, false)
-          break
-        }
-        index += leaf.insert.length
-      }
-      // this.emitChangeEvent('change-format')
-    },
   },
 
   computed: {

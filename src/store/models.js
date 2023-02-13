@@ -104,7 +104,7 @@ class RegionModel {
     this.start = data.start
     // this.text = JSON.parse(data.text)
     this.transcriptionId = data.transcriptionId
-    this.translation = data.translation
+    this.translation = data.translation || ''
     // this.updatedAt = data.updatedAt
     this.userLastUpdated = data.userLastUpdated
 

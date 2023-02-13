@@ -267,7 +267,9 @@ export default {
         id: `issue-${this.selectedIssue.type}-${newDate}`
       }
       // update the store
-      this.$store.dispatch('createIssue', newIssue)
+      const issues = this.selectedRegion.issues
+      issues.push(newIssue)
+      this.$store.dispatch('updateRegion', { issues })
       // reset the form
       this.newIssueCommentText = ''
       this.setSelectedIssue(null)
@@ -312,7 +314,20 @@ export default {
     },
 
     onResolveIssue() {
-      this.$store.dispatch('updateSelectedIssue', { resolved: !this.selectedIssue.resolved })
+      let issues = this.selectedRegion.issues
+      const newResolved = !this.selectedIssue.resolved
+      issues = issues.map((item) => {
+        if (item.id === this.selectedIssue.id) {
+          item.resolved = newResolved
+        }
+        return item
+      })
+      // this.setSelectedIssue({
+      //   ...this.selectedIssue,
+      //   resolved: newResolved
+      // })
+      this.$store.dispatch('updateSelectedIssue', {resolved: newResolved})
+      this.$store.dispatch('updateRegion', { issues })
     },
   },
 }

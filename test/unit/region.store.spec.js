@@ -4,9 +4,9 @@ const Timeout = require('smart-timeout')
 
 const DataStore = require('aws-amplify').DataStore
 const { Region } = require('../../src/models')
-
 const UserService = require('../../src/services/user').default
 const store = require('../../src/store/region').default
+const helpers = require('../../src/helpers')
 
 describe('Region store', function () {
   beforeEach(function () {
@@ -30,7 +30,8 @@ describe('Region store', function () {
     it('should add new region update to queue', async function () {
       const existing = {
         id: 'one',
-        text: 'foo'
+        text: 'foo',
+        issues: []
       }
       const getStub = this.sandbox.stub(store.getters, 'regionById').returns(existing)
       store.dispatch = this.sandbox.stub()
@@ -68,6 +69,7 @@ describe('Region store', function () {
       const existing = {
         id: 'one',
         text: 'foo',
+        issues: []
       }
       const getStub = this.sandbox.stub(store.getters, 'regionById').returns(existing)
       store.dispatch = this.sandbox.stub()
@@ -110,6 +112,7 @@ describe('Region store', function () {
       const existing = {
         id: 'two',
         text: 'fiz',
+        issues: []
       }
       const getStub = this.sandbox.stub(store.getters, 'regionById').returns(existing)
       store.dispatch = this.sandbox.stub()
@@ -146,6 +149,139 @@ describe('Region store', function () {
       })
       // enqueues local save attempt
       assert.deepEqual(store.dispatch.args[1], ['enqueueRegionUpdate', 'two'])
+    })
+
+    it('should not invalidate text&issues if text in update but no issues on region', async function () {
+      const existing = {
+        id: 'two',
+        text: 'fiz',
+        issues: [],
+      }
+      const getStub = this.sandbox.stub(store.getters, 'regionById').returns(existing)
+      store.dispatch = this.sandbox.stub()
+      const invalidate = this.sandbox.stub(helpers, 'reconcileTextAndIssues')
+
+      await store.actions.updateRegionById(store, {
+        id: 'two',
+        text: 'bar',
+        translation: 'foobar',
+      })
+
+      assert.ok(store.dispatch.callCount, 2)
+      // assert invalidate was not called
+      assert.equal(invalidate.callCount, 0)
+    })
+
+    it('should invalidate issues if issue key present in update', async function () {
+      const existing = {
+        id: 'two',
+        text: 'fiz',
+        issues: [],
+      }
+      this.sandbox.stub(store.getters, 'regionById').returns(existing)
+      store.dispatch = this.sandbox.stub()
+      const invalidate = this.sandbox.stub(helpers, 'reconcileTextAndIssues').returns([
+        ['text-from-invalidate'],
+        ['issues-from-invalidate']
+      ])
+
+      // provide an issue in the update
+      await store.actions.updateRegionById(store, {
+        id: 'two',
+        text: ['bar'],
+        issues: ['some-issue'],
+      })
+
+      assert.ok(store.dispatch.callCount, 2)
+      // assert invalidate was called
+      assert.equal(invalidate.callCount, 1)
+      // check that the update pushed to store & DS was the invalidated values
+      const storeUpdate = store.dispatch.args[0][1].update
+      assert.deepEqual(storeUpdate.text, ['text-from-invalidate'])
+      assert.deepEqual(storeUpdate.issues, ['issues-from-invalidate'])
+    })
+
+    it('should invalidate issues if text key present in update & region has issue count', async function () {
+      const existing = {
+        id: 'two',
+        text: 'fiz',
+        issues: [{some: 'issue'}],
+      }
+      this.sandbox.stub(store.getters, 'regionById').returns(existing)
+      store.dispatch = this.sandbox.stub()
+      const invalidate = this.sandbox
+        .stub(helpers, 'reconcileTextAndIssues')
+        .returns([['text-from-invalidate'], ['issues-from-invalidate']])
+
+      // provide an issue in the update
+      await store.actions.updateRegionById(store, {
+        id: 'two',
+        text: ['bar'],
+      })
+
+      assert.ok(store.dispatch.callCount, 2)
+      // assert invalidate was called
+      assert.equal(invalidate.callCount, 1)
+      // check that the update pushed to store & DS was the invalidated values
+      const storeUpdate = store.dispatch.args[0][1].update
+      assert.deepEqual(storeUpdate.text, ['text-from-invalidate'])
+      assert.deepEqual(storeUpdate.issues, ['issues-from-invalidate'])
+    })
+
+    it('integration case, should exercise validate method proper', async function () {
+      const existing = {
+        id: 'two',
+        text: [{ insert: 'This is some text here \n \n' }],
+        issues: []
+      }
+      this.sandbox.stub(store.getters, 'regionById').returns(existing)
+      store.dispatch = this.sandbox.stub()
+
+      const issues = [
+        {
+          id: 'issue-needs-help-1593202739598',
+          type: 'needs-help',
+          createdAt: '1593202739598',
+          resolved: false,
+          owner: 'bengodden',
+          text: 'text',
+          comments: [],
+          index: 13,
+        },
+        {
+          id: 'issue-needs-help-1593202739599',
+          type: 'needs-help',
+          createdAt: '1593202739599',
+          resolved: false,
+          owner: 'bengodden',
+          text: 'is',
+          comments: [],
+          index: 5,
+        },
+      ]
+
+      // provide an issue in the update
+      await store.actions.updateRegionById(store, {
+        id: 'two',
+        issues,
+      })
+      assert.ok(store.dispatch.callCount, 2)
+
+      // check the proper update was passed to store.dispatch
+      const dispatchUpdate = store.dispatch.args[0][1].update 
+      assert.deepEqual(dispatchUpdate.text, [
+        { insert: 'This ' },
+        {
+          attributes: { 'issue-needs-help': 'issue-needs-help-1593202739599' },
+          insert: 'is',
+        },
+        { insert: ' some ' },
+        {
+          attributes: { 'issue-needs-help': 'issue-needs-help-1593202739598' },
+          insert: 'text',
+        },
+        { insert: ' here \n \n' },
+      ])
     })
   })
 
