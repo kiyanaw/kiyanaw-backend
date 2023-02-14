@@ -71,6 +71,17 @@ export default {
     return transcription
   },
 
+  async uploadMediaFile(inputFile, progressCallback = null) {
+    const timestamp = `${+new Date()}`
+    const fileResult = await Storage.put(`${timestamp}-${inputFile.name}`, inputFile, {
+      ACL: 'public-read',
+      expires: new Date('Wed, 31 Dec 2098 23:59:59 GMT'),
+      cacheControl: 'max-age=3600000',
+      progressCallback: progressCallback,
+    })
+    return fileResult
+  },
+
   async getPeaksFile(filename) {
     return Storage.get(filename)
   },

@@ -73,6 +73,7 @@ import StationaryEditor from './StationaryEditor.vue'
 
 import RegionPartial from './RegionPartial.vue'
 import UserService from '../../services/user'
+import EventBus from '../../store/bus'
 
 import Lookup from './Lookup.vue'
 
@@ -169,18 +170,6 @@ export default {
         this.loading = false
       }
     }, 
-
-    // regions(newValue) {
-    //   console.log('!!!! regions have changed', newValue)
-    // }
-
-    // regionMap: {
-    //   deep: true, 
-    //   handler(newValue) {
-    //     this.regions = Object.values(newValue)
-    //   }
-    // }
-
   },
   /**
    * Mount point for this component.
@@ -242,6 +231,10 @@ export default {
       if (event === "ready") {
         this.loadTranscription(this.transcriptionId)
       }
+    })
+
+    EventBus.$on('on-load-peaks-error', () => {
+      this.error = 'Processing waveform data, wait a minute then try refreshing the page...'
     })
 
     DataStore.start()

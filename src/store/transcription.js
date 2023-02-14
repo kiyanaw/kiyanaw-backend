@@ -74,7 +74,14 @@ const actions = {
     assert.ok(store, 'store must be provided')
     assert.ok(transcription, 'transcription must be provided')
     assert.ok(regions, 'regions must be provided')
-    transcription.peaks = await actions.loadPeaksData(store, transcription.source)
+
+    try {
+      transcription.peaks = await actions.loadPeaksData(store, transcription.source)
+    } catch (error) {
+      // peaks file may not be done processing
+      EventBus.$emit('on-load-peaks-error')
+      return
+    }
 
     store.dispatch('setTranscription', transcription)
     store.dispatch('setRegions', regions)
