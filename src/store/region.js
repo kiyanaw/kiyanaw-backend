@@ -13,6 +13,7 @@ import logging from '../logging'
 // import EventBus from './bus'
 import models from './models'
 import * as helpers from '../helpers'
+import EventBus from './bus'
 
 const logger = new logging.Logger('Region Store')
 
@@ -261,6 +262,9 @@ const actions = {
         text,
         issues
       }
+      // refresh the local RTE (text probably changed)
+      // TODO: needs test
+      EventBus.$emit('refresh-local-text', text)
     }
     // commit to local store
     store.dispatch('commitRegionUpdate', { region, update })

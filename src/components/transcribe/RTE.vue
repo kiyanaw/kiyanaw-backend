@@ -124,6 +124,17 @@ export default {
             }
           }
         })
+
+        // listen for new issues, update text
+        EventBus.$on('refresh-local-text', (text) => {
+          console.log('refresh local text', text)
+          if (this.mode === 'main') {
+            const incomingText = new Delta(text)
+            const local = this.editor.getContents()
+            const difference = local.diff(incomingText)
+            this.editor.updateContents(difference, 'api')
+          }
+        })
       }
     }
   },
