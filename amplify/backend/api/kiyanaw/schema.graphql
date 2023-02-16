@@ -51,6 +51,30 @@ type Cursor
   cursor: String!
 }
 
+type UserCursor
+  @model
+  @auth(
+    rules: [{ allow: private, provider: iam }, { allow: public, provider: iam, operations: [read] }]
+  ) {
+  # id is the user name
+  id: ID! @primaryKey
+  transcription: String! @index(name: "ByTranscription", queryField: "byTranscription")
+  region: String!
+  cursor: String!
+}
+
+type Pointer
+  @model
+  @auth(
+    rules: [{ allow: private, provider: iam }, { allow: public, provider: iam, operations: [read] }]
+  ) {
+  # id is the user name
+  id: ID! @primaryKey
+  transcription: String! @index(name: "ByTrans", queryField: "byTrans")
+  region: String!
+  cursor: String!
+}
+
 type RegionLock
   @model
   @auth(

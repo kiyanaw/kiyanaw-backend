@@ -1,5 +1,5 @@
 import { DataStore } from 'aws-amplify'
-import { Transcription, TranscriptionContributor, Region, Contributor } from '../models'
+import { Transcription, TranscriptionContributor, Region, Contributor, Pointer } from '../models'
 
 import Vue from 'vue'
 import Timeout from 'smart-timeout'
@@ -17,14 +17,33 @@ const logger = new logging.Logger('Transcription Store')
 // tracks the last Region update
 let LAST_REGION_UPDATE = `${+ new Date()}`
 
+const cursorColors = [
+  '#4aff83',
+  '#e4ff4a',
+  '#4ac0ff',
+  '#4a4dff',
+  '#b74aff',
+  '#ff894a',
+  '#ff564a',
+  '#4abaff',
+]
+const remoteUserColors = {}
 
 const state = {
   transcription: null,
   transcriptions: [],
+  editingUsers: {},
   saved: false,
+  // we don't bind on this, it's just used internally
+  lastEditorRegion: {},
 }
 
 const getters = {
+
+  editingUsers(context) {
+    return context.editingUsers
+  },
+
   transcription(context) {
     return context.transcription
   },
@@ -57,6 +76,7 @@ const actions = {
 
     // TODO: convert to store.dispatch('', ...)
     actions.onLoadTranscription(store, transcription, regions)
+
   },
 
   /**
@@ -103,6 +123,48 @@ const actions = {
     DataStore.observe(Region).subscribe((message) => {
       actions.onDeleteRegionSubscription(store, message)
     })
+
+    // // subscribe to UserCursor changes
+    DataStore.observe(Pointer, (p) => p.transcription.eq(transcription.id)).subscribe(
+      (snapshot) => {
+        store.dispatch('onCursorSubscription', snapshot.element)
+      },
+    )
+  },
+
+  // TODO: needs tests
+  async onCursorSubscription(store, element) {
+    const transcriptionId = store.getters.transcription.id
+    if (element.transcription === transcriptionId) {
+      // check the user is remote
+      const user = await userService.getUser()
+      let cursor = {}
+      try {
+        cursor = JSON.parse(element.cursor)
+      } catch (e) {
+        // do nothing
+      }
+      const remoteUser = element.id
+      if (user.name !== remoteUser) {
+        // assign a color for this user
+        if (!remoteUserColors[remoteUser]) {
+          // TODO: make this random
+          remoteUserColors[remoteUser] = cursorColors.pop()
+        }
+        const event = {
+          user: remoteUser,
+          regionId: element.region,
+          color: remoteUserColors[remoteUser],
+          cursor
+        }
+        // keep track of what users are editing what region
+        store.commit('UPDATE_EDITING_USERS', event)
+        // TODO set clear timer for editing user
+
+        EventBus.$emit('realtime-cursor', event)
+      }
+    }
+    // TODO: should expire realtime-cursors here
   },
 
   // TODO: needs tests
@@ -175,9 +237,6 @@ const actions = {
 
       if (existing) {
         if (item.dateLastUpdated > existing.dateLastUpdated) {
-
-          console.log('commiting update', item)
-
           store.dispatch('commitRegionUpdate', {
             update: item,
             region: existing
@@ -320,6 +379,30 @@ const mutations = {
 
   SET_TRANSCRIPTIONS(context, transcriptions) {
     Vue.set(context, 'transcriptions', transcriptions)
+  },
+
+  UPDATE_EDITING_USERS(context, event) {
+    // check if the user was editing another region
+    const lastRegionEditedByUser = state.lastEditorRegion[event.user]
+    if (lastRegionEditedByUser && lastRegionEditedByUser != event.regionId) {
+      const allItemsForEntry = context.editingUsers[lastRegionEditedByUser]
+      const newItems = allItemsForEntry.filter((item) => item.user !== event.user)
+      if (newItems.length === 0) {
+        Vue.delete(context.editingUsers, lastRegionEditedByUser)
+      } else {
+        Vue.set(context.editingUsers, lastRegionEditedByUser, newItems)
+      }
+    }
+
+    // does the entry exist?
+    let indexToUse = 0
+    if (!context.editingUsers[event.regionId]) {
+      context.editingUsers[event.regionId] = []
+    } else {
+      indexToUse = context.editingUsers[event.regionId].length
+    }
+    Vue.set(context.editingUsers[event.regionId], indexToUse, event)
+    state.lastEditorRegion[event.user] = event.regionId
   },
 
   UPDATE_TRANSCRIPTION(context, update) {

@@ -391,6 +391,102 @@ export const onDeleteCursor = /* GraphQL */ `
     }
   }
 `;
+export const onCreateUserCursor = /* GraphQL */ `
+  subscription OnCreateUserCursor(
+    $filter: ModelSubscriptionUserCursorFilterInput
+  ) {
+    onCreateUserCursor(filter: $filter) {
+      id
+      transcription
+      region
+      cursor
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+    }
+  }
+`;
+export const onUpdateUserCursor = /* GraphQL */ `
+  subscription OnUpdateUserCursor(
+    $filter: ModelSubscriptionUserCursorFilterInput
+  ) {
+    onUpdateUserCursor(filter: $filter) {
+      id
+      transcription
+      region
+      cursor
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+    }
+  }
+`;
+export const onDeleteUserCursor = /* GraphQL */ `
+  subscription OnDeleteUserCursor(
+    $filter: ModelSubscriptionUserCursorFilterInput
+  ) {
+    onDeleteUserCursor(filter: $filter) {
+      id
+      transcription
+      region
+      cursor
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+    }
+  }
+`;
+export const onCreatePointer = /* GraphQL */ `
+  subscription OnCreatePointer($filter: ModelSubscriptionPointerFilterInput) {
+    onCreatePointer(filter: $filter) {
+      id
+      transcription
+      region
+      cursor
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+    }
+  }
+`;
+export const onUpdatePointer = /* GraphQL */ `
+  subscription OnUpdatePointer($filter: ModelSubscriptionPointerFilterInput) {
+    onUpdatePointer(filter: $filter) {
+      id
+      transcription
+      region
+      cursor
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+    }
+  }
+`;
+export const onDeletePointer = /* GraphQL */ `
+  subscription OnDeletePointer($filter: ModelSubscriptionPointerFilterInput) {
+    onDeletePointer(filter: $filter) {
+      id
+      transcription
+      region
+      cursor
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+    }
+  }
+`;
 export const onCreateRegionLock = /* GraphQL */ `
   subscription OnCreateRegionLock(
     $filter: ModelSubscriptionRegionLockFilterInput

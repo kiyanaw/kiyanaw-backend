@@ -1,5 +1,5 @@
 <template>
-  <div class="region" :class="classObject" :id="source.id" @click="dispatch">
+  <div class="region" :style="editorStyle" :class="classObject" :id="source.id" @click="dispatch">
     <div v-if="!source.isNote" class="region-text">
       <div class="timestamps">
         <span class="time region-start">{{ $options.normalTime(source.start) }}</span>
@@ -13,10 +13,7 @@
     <div class="region-translation" :class="{ isNote: source.isNote }">
       {{ $options.translationHtml(source) }}
     </div>
-
-    <div class="region-lock-label" v-if="locked">
-      <span :class="{ other: !lockedByMe, me: lockedByMe }">locked</span>
-    </div>
+    <div class="region-editor" v-html="editor"></div>
   </div>
 </template>
 
@@ -28,7 +25,27 @@ export default {
   props: ['index', 'source'],
 
   computed: {
-    ...mapGetters(['lockedRegionNames', 'locks', 'user', 'transcription']),
+    ...mapGetters(['editingUsers', 'lockedRegionNames', 'locks', 'user', 'transcription']),
+
+    editorStyle() {
+      // const editorObject = this.editingUsers[this.source.id]
+      // if (editorObject) {
+      //   return `border-left: 2px solid ${editorObject.color}`
+      // } else {
+      //   return ''
+      // }
+      return ''
+    },
+
+    editor() { 
+      const editorObject = this.editingUsers[this.source.id]
+      console.log('editorObject', editorObject)
+      if (editorObject && editorObject.length) {
+        return editorObject.map((item) => `<span style="color: ${item.color}">${item.user}</span>`).join(', ')
+      } else {
+        return ''
+      }
+    },
 
     classObject() {
       return {
@@ -45,9 +62,9 @@ export default {
         : false
     },
 
-    locked() {
-      return this.lockedRegionNames.includes(this.source.id)
-    },
+    // locked() {
+    //   return this.lockedRegionNames.includes(this.source.id)
+    // },
   },
 
   normalTime(value) {
@@ -130,23 +147,14 @@ export default {
   top: 0;
 }
 
-.region-lock-label {
-  margin-top: -18px;
-  text-transform: uppercase;
-  font-size: 11px;
-  font-weight: bold;
-  padding: 0;
-  padding-left: 5px;
-}
-
-.region-lock-label > .other {
-  color: red;
-}
-.region-lock-label > .me {
-  color: green;
-}
-
 .region-source {
   padding-right: 15px;
+}
+
+.region-editor{
+  position: absolute;
+  bottom: 0;
+  padding-left: 3px;
+  font-size:75%;
 }
 </style>

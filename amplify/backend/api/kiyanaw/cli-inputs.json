@@ -16,7 +16,6 @@
         "type": "AUTOMERGE"
       }
     },
-    "apiName": "kiyanaw",
-    "gqlSchemaPath": "/Users/magius/workspace/kiyanaw-backend/amplify/backend/api/kiyanaw/schema.graphql"
+    "apiName": "kiyanaw"
   }
 }

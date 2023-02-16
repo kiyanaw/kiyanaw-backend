@@ -84,6 +84,14 @@
         <v-text-field v-model="selectedRegion.id" disabled label="Region ID"></v-text-field>
       </v-form>
     </div>
+
+    <div class="ql-container">
+      <div class="ql-cursor">
+        <div class="ql-cursor-flag">
+          <div class="ql-cursor-name"></div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -251,7 +259,7 @@ export default {
      * Quickly apply known words to the current region, then do a search on anything left over.
      */
     checkForKnownWords(doUpdate = false) {
-      logger.info(`Checking for known words in editor, (doUpdate: ${doUpdate})`)
+      logger.debug(`Checking for known words in editor, (doUpdate: ${doUpdate})`)
       if (this.transcription.disableAnalyzer || this.selectedRegion.isNote) {
         return
       }
@@ -284,7 +292,7 @@ export default {
      * Apply known words from the Lexicon to the current editor.
      */
     async applyKnownWords(doUpdate = false) {
-      logger.info(`applyKnownWords, (doUpdate: ${doUpdate})`)
+      logger.debug(`applyKnownWords, (doUpdate: ${doUpdate})`)
       // check for words to search
       const knownWords = Lexicon.getKnownWords()
       const wordMap = this.getTextMapFromDeltas(this.selectedRegion.text)
@@ -448,4 +456,6 @@ export default {
   background-color: #f5f5f5;
   color: grey;
 }
+
+
 </style>

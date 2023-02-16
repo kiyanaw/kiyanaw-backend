@@ -18,6 +18,14 @@ type CursorMetaData = {
   readOnlyFields: 'createdAt' | 'updatedAt';
 }
 
+type UserCursorMetaData = {
+  readOnlyFields: 'createdAt' | 'updatedAt';
+}
+
+type PointerMetaData = {
+  readOnlyFields: 'createdAt' | 'updatedAt';
+}
+
 type RegionLockMetaData = {
   readOnlyFields: 'createdAt' | 'updatedAt';
 }
@@ -158,6 +166,54 @@ export declare type Cursor = LazyLoading extends LazyLoadingDisabled ? EagerCurs
 
 export declare const Cursor: (new (init: ModelInit<Cursor, CursorMetaData>) => Cursor) & {
   copyOf(source: Cursor, mutator: (draft: MutableModel<Cursor, CursorMetaData>) => MutableModel<Cursor, CursorMetaData> | void): Cursor;
+}
+
+type EagerUserCursor = {
+  readonly id: string;
+  readonly transcription: string;
+  readonly region: string;
+  readonly cursor: string;
+  readonly createdAt?: string | null;
+  readonly updatedAt?: string | null;
+}
+
+type LazyUserCursor = {
+  readonly id: string;
+  readonly transcription: string;
+  readonly region: string;
+  readonly cursor: string;
+  readonly createdAt?: string | null;
+  readonly updatedAt?: string | null;
+}
+
+export declare type UserCursor = LazyLoading extends LazyLoadingDisabled ? EagerUserCursor : LazyUserCursor
+
+export declare const UserCursor: (new (init: ModelInit<UserCursor, UserCursorMetaData>) => UserCursor) & {
+  copyOf(source: UserCursor, mutator: (draft: MutableModel<UserCursor, UserCursorMetaData>) => MutableModel<UserCursor, UserCursorMetaData> | void): UserCursor;
+}
+
+type EagerPointer = {
+  readonly id: string;
+  readonly transcription: string;
+  readonly region: string;
+  readonly cursor: string;
+  readonly createdAt?: string | null;
+  readonly updatedAt?: string | null;
+}
+
+type LazyPointer = {
+  readonly id: string;
+  readonly transcription: string;
+  readonly region: string;
+  readonly cursor: string;
+  readonly createdAt?: string | null;
+  readonly updatedAt?: string | null;
+}
+
+export declare type Pointer = LazyLoading extends LazyLoadingDisabled ? EagerPointer : LazyPointer
+
+export declare const Pointer: (new (init: ModelInit<Pointer, PointerMetaData>) => Pointer) & {
+  copyOf(source: Pointer, mutator: (draft: MutableModel<Pointer, PointerMetaData>) => MutableModel<Pointer, PointerMetaData> | void): Pointer;
 }
 
 type EagerRegionLock = {

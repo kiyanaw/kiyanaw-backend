@@ -1,5 +1,5 @@
 import { DataStore, Hub } from 'aws-amplify'
-import { Region, Transcription } from '../models'
+import { Region, Transcription, Pointer } from '../models'
 import * as assert from 'assert'
 // import Quill from 'quill'
 
@@ -90,7 +90,36 @@ const getters = {
   },
 }
 
+
 const actions = {
+
+  // TODO: needs tests
+  async updateUserCursor(store, update) {
+    Timeout.clear('save-user-cursor-timer')
+    Timeout.set('save-user-cursor-timer', async () => {
+      const region = store.getters.selectedRegion
+      const transcriptionId = store.getters.transcription.id
+      const user = await UserService.getUser()
+      let cursor = await DataStore.query(Pointer, user.name)
+      if (!cursor) {
+        cursor = await DataStore.save(
+          new Pointer({
+            id: user.name,
+            transcription: transcriptionId,
+            region: '',
+            cursor: '',
+          }),
+          )
+        } else {
+        cursor = Pointer.copyOf(cursor, (newInstance) => {
+          newInstance.region = region.id
+          newInstance.cursor = JSON.stringify(update)
+        })
+        await DataStore.save(cursor)
+      }
+    }, 250)
+  },
+
   updateSelectedIssue(store, update) {
     logger.debug('selectedIssue updated', update)
     store.commit('UPDATE_SELECTED_ISSUE', update)
@@ -282,7 +311,7 @@ const actions = {
       userLastUpdated: user.name,
       dateLastUpdated: `${Date.now()}`,
     }
-    console.log('to DataStore', valuesToUpdate)
+    // console.log('to DataStore', valuesToUpdate)
     const dbOriginal = await DataStore.query(Region, regionId)
     const copy = Region.copyOf(dbOriginal, (toUpdate) => {
       for (const key of Object.keys(valuesToUpdate)) {

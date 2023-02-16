@@ -1,5 +1,6 @@
 const assert = require('assert')
 const sinon = require('sinon')
+const Vue = require('vue')
 
 const DataStore = require('aws-amplify').DataStore
 const { Transcription, Region } = require('../../src/models')
@@ -175,7 +176,7 @@ describe('Transcription store', function () {
       // sets up subscriptions
       assert.deepEqual(observe.args[0], [Transcription, '123'])
       assert.equal(observeQuery.args[0][0], Region)
-      assert.equal(subscribe.callCount, 3)
+      assert.equal(subscribe.callCount, 4)
     })
   })
 
@@ -490,5 +491,129 @@ describe('Transcription store', function () {
       assert.equal($emit.callCount, 0)
     })
 
+  })
+
+  describe('mutations.UPDATE_EDITING_USERS', function () {
+    beforeEach(function () {
+      store.state.lastEditorRegion = {}
+    })
+
+    it('should create a new entry when one does not exist', function () {
+      const vueDelete = this.sandbox.stub(Vue, 'delete')
+      const vueSet = this.sandbox.stub(Vue, 'set')
+
+      const event = {
+        user: 'aaron',
+        regionId: 'one'
+      }
+
+      const context = {
+        editingUsers: {}
+      }
+
+      assert.deepEqual(store.state.lastEditorRegion, {})
+      store.mutations.UPDATE_EDITING_USERS(context, event)
+      
+      assert.equal(vueDelete.called, false)
+      assert.equal(vueSet.callCount, 1)
+      assert.deepEqual(vueSet.args[0], [
+        [],
+        0,
+        event
+      ])
+      assert.deepEqual(store.state.lastEditorRegion, {'aaron': 'one'})
+    })
+
+    it('should create a second entry when one does exist', function () {
+      const vueDelete = this.sandbox.stub(Vue, 'delete')
+      const vueSet = this.sandbox.stub(Vue, 'set')
+
+      const event = {
+        user: 'joe',
+        regionId: 'one',
+      }
+
+      const context = {
+        editingUsers: {
+          one: [
+            {
+              user: 'aaron',
+              regionId: 'one',
+            },
+          ],
+        },
+      }
+
+      store.state.lastEditorRegion = {aaron: 'one'}
+      store.mutations.UPDATE_EDITING_USERS(context, event)
+
+      assert.equal(vueDelete.called, false)
+      assert.equal(vueSet.callCount, 1)
+      assert.deepEqual(vueSet.args[0], [
+        [
+          {
+            user: 'aaron',
+            regionId: 'one',
+          },
+        ],
+        1,
+        event,
+      ])
+      assert.deepEqual(store.state.lastEditorRegion, { aaron: 'one', joe: 'one' })
+    })
+
+    it('should move an entry from one region to another', function () {
+      const vueDelete = this.sandbox.stub(Vue, 'delete')
+      const vueSet = this.sandbox.stub(Vue, 'set')
+
+      // 
+
+      const event = {
+        user: 'joe',
+        regionId: 'two',
+      }
+
+      const context = {
+        editingUsers: {
+          one: [
+            {
+              user: 'aaron',
+              regionId: 'one',
+            },
+            ,
+            {
+              user: 'joe',
+              regionId: 'one',
+            },
+            ,
+          ],
+        },
+      }
+
+      store.state.lastEditorRegion = { aaron: 'one', joe: 'one' }
+      store.mutations.UPDATE_EDITING_USERS(context, event)
+
+      assert.equal(vueDelete.callCount, 0)
+      assert.equal(vueSet.callCount, 2)
+      // first call to Vue.set will update editingUsers to remove joe from 'one'
+      assert.deepEqual(vueSet.args[0], [
+        context.editingUsers,
+        'one',
+        [
+          {
+            user: 'aaron',
+            regionId: 'one',
+          },
+        ],
+      ])
+
+      // because Vue.set is not _actually_ called, the first arg of the second
+      // call will not be correct, but the previous assertion already makes
+      // sure that the context.editingUsers is correct, now let's check the
+      // remaining arguments
+      assert.equal(vueSet.args[1][1], 0)
+      assert.deepEqual(vueSet.args[1][2], event)
+      assert.deepEqual(store.state.lastEditorRegion, { aaron: 'one', joe: 'two' })
+    })
   })
 })

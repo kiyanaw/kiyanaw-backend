@@ -81,7 +81,7 @@ import { mapActions, mapGetters } from 'vuex'
 
 
 import { DataStore, Hub } from 'aws-amplify'
-import { Region, Transcription, TranscriptionContributor } from '../../models'
+import { Region, Transcription, TranscriptionContributor, Pointer } from '../../models'
 
 
 import logging from '../../logging'
@@ -224,6 +224,7 @@ export default {
     window.TranscriptionContributor = TranscriptionContributor
     window.Document = Document
     window.transcribe = this
+    window.Pointer = Pointer
 
     // load up
     Hub.listen("datastore", async hubData => {

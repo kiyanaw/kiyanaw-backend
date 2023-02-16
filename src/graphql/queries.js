@@ -405,6 +405,156 @@ export const syncCursors = /* GraphQL */ `
     }
   }
 `;
+export const getUserCursor = /* GraphQL */ `
+  query GetUserCursor($id: ID!) {
+    getUserCursor(id: $id) {
+      id
+      transcription
+      region
+      cursor
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+    }
+  }
+`;
+export const listUserCursors = /* GraphQL */ `
+  query ListUserCursors(
+    $id: ID
+    $filter: ModelUserCursorFilterInput
+    $limit: Int
+    $nextToken: String
+    $sortDirection: ModelSortDirection
+  ) {
+    listUserCursors(
+      id: $id
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+      sortDirection: $sortDirection
+    ) {
+      items {
+        id
+        transcription
+        region
+        cursor
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+      }
+      nextToken
+      startedAt
+    }
+  }
+`;
+export const syncUserCursors = /* GraphQL */ `
+  query SyncUserCursors(
+    $filter: ModelUserCursorFilterInput
+    $limit: Int
+    $nextToken: String
+    $lastSync: AWSTimestamp
+  ) {
+    syncUserCursors(
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+      lastSync: $lastSync
+    ) {
+      items {
+        id
+        transcription
+        region
+        cursor
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+      }
+      nextToken
+      startedAt
+    }
+  }
+`;
+export const getPointer = /* GraphQL */ `
+  query GetPointer($id: ID!) {
+    getPointer(id: $id) {
+      id
+      transcription
+      region
+      cursor
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+    }
+  }
+`;
+export const listPointers = /* GraphQL */ `
+  query ListPointers(
+    $id: ID
+    $filter: ModelPointerFilterInput
+    $limit: Int
+    $nextToken: String
+    $sortDirection: ModelSortDirection
+  ) {
+    listPointers(
+      id: $id
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+      sortDirection: $sortDirection
+    ) {
+      items {
+        id
+        transcription
+        region
+        cursor
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+      }
+      nextToken
+      startedAt
+    }
+  }
+`;
+export const syncPointers = /* GraphQL */ `
+  query SyncPointers(
+    $filter: ModelPointerFilterInput
+    $limit: Int
+    $nextToken: String
+    $lastSync: AWSTimestamp
+  ) {
+    syncPointers(
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+      lastSync: $lastSync
+    ) {
+      items {
+        id
+        transcription
+        region
+        cursor
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+      }
+      nextToken
+      startedAt
+    }
+  }
+`;
 export const getRegionLock = /* GraphQL */ `
   query GetRegionLock($id: ID!, $transcriptionId: String!) {
     getRegionLock(id: $id, transcriptionId: $transcriptionId) {
@@ -791,6 +941,68 @@ export const byTitle = /* GraphQL */ `
           nextToken
           startedAt
         }
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+      }
+      nextToken
+      startedAt
+    }
+  }
+`;
+export const byTranscription = /* GraphQL */ `
+  query ByTranscription(
+    $transcription: String!
+    $sortDirection: ModelSortDirection
+    $filter: ModelUserCursorFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    byTranscription(
+      transcription: $transcription
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        transcription
+        region
+        cursor
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+      }
+      nextToken
+      startedAt
+    }
+  }
+`;
+export const byTrans = /* GraphQL */ `
+  query ByTrans(
+    $transcription: String!
+    $sortDirection: ModelSortDirection
+    $filter: ModelPointerFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    byTrans(
+      transcription: $transcription
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        transcription
+        region
+        cursor
         createdAt
         updatedAt
         _version

@@ -412,6 +412,114 @@ export const deleteCursor = /* GraphQL */ `
     }
   }
 `;
+export const createUserCursor = /* GraphQL */ `
+  mutation CreateUserCursor(
+    $input: CreateUserCursorInput!
+    $condition: ModelUserCursorConditionInput
+  ) {
+    createUserCursor(input: $input, condition: $condition) {
+      id
+      transcription
+      region
+      cursor
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+    }
+  }
+`;
+export const updateUserCursor = /* GraphQL */ `
+  mutation UpdateUserCursor(
+    $input: UpdateUserCursorInput!
+    $condition: ModelUserCursorConditionInput
+  ) {
+    updateUserCursor(input: $input, condition: $condition) {
+      id
+      transcription
+      region
+      cursor
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+    }
+  }
+`;
+export const deleteUserCursor = /* GraphQL */ `
+  mutation DeleteUserCursor(
+    $input: DeleteUserCursorInput!
+    $condition: ModelUserCursorConditionInput
+  ) {
+    deleteUserCursor(input: $input, condition: $condition) {
+      id
+      transcription
+      region
+      cursor
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+    }
+  }
+`;
+export const createPointer = /* GraphQL */ `
+  mutation CreatePointer(
+    $input: CreatePointerInput!
+    $condition: ModelPointerConditionInput
+  ) {
+    createPointer(input: $input, condition: $condition) {
+      id
+      transcription
+      region
+      cursor
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+    }
+  }
+`;
+export const updatePointer = /* GraphQL */ `
+  mutation UpdatePointer(
+    $input: UpdatePointerInput!
+    $condition: ModelPointerConditionInput
+  ) {
+    updatePointer(input: $input, condition: $condition) {
+      id
+      transcription
+      region
+      cursor
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+    }
+  }
+`;
+export const deletePointer = /* GraphQL */ `
+  mutation DeletePointer(
+    $input: DeletePointerInput!
+    $condition: ModelPointerConditionInput
+  ) {
+    deletePointer(input: $input, condition: $condition) {
+      id
+      transcription
+      region
+      cursor
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+    }
+  }
+`;
 export const createRegionLock = /* GraphQL */ `
   mutation CreateRegionLock(
     $input: CreateRegionLockInput!

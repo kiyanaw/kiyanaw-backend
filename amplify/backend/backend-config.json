@@ -15,6 +15,15 @@
       "service": "API Gateway"
     },
     "kiyanaw": {
+      "dependsOn": [
+        {
+          "attributes": [
+            "UserPoolId"
+          ],
+          "category": "auth",
+          "resourceName": "kiyanaw664b231a"
+        }
+      ],
       "output": {
         "authConfig": {
           "additionalAuthenticationProviders": [

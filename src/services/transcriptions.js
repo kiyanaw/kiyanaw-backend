@@ -107,49 +107,49 @@ export default {
     return API.graphql(graphqlOperation(mutations.createTranscription, { input: input }))
   },
 
-  /** */
-  async getTranscription(id) {
-    console.log(id)
-    // try {
-    //   let [transcription, regions] = await Promise.all([
-    //     API.graphql(graphqlOperation(queries.getTranscription, { id: id })),
-    //     API.graphql(
-    //       graphqlOperation(queries.byTranscription, { transcriptionId: id, limit: 2500 }),
-    //     ),
-    //   ])
+  // /** */
+  // async getTranscription(id) {
+  //   console.log(id)
+  //   // try {
+  //   //   let [transcription, regions] = await Promise.all([
+  //   //     API.graphql(graphqlOperation(queries.getTranscription, { id: id })),
+  //   //     API.graphql(
+  //   //       graphqlOperation(queries.byTranscription, { transcriptionId: id, limit: 2500 }),
+  //   //     ),
+  //   //   ])
 
-    //   console.log('raw transcription', transcription)
-    //   transcription = new Transcription(transcription.data.getTranscription)
-    //   transcription.regions = regions.data.byTranscription.items.map((item) => {
-    //     item.text = JSON.parse(item.text)
-    //     item.issues = item.issues ? JSON.parse(item.issues) : []
-    //     item.comments = item.comments ? JSON.parse(item.comments) : []
-    //     item.isNote = !!item.isNote
-    //     return item
-    //   })
-    //   return transcription
-    // } catch (error) {
-    //   console.warn('Could not load transcription', error)
-    //   return null
-    // }
-  },
+  //   //   console.log('raw transcription', transcription)
+  //   //   transcription = new Transcription(transcription.data.getTranscription)
+  //   //   transcription.regions = regions.data.byTranscription.items.map((item) => {
+  //   //     item.text = JSON.parse(item.text)
+  //   //     item.issues = item.issues ? JSON.parse(item.issues) : []
+  //   //     item.comments = item.comments ? JSON.parse(item.comments) : []
+  //   //     item.isNote = !!item.isNote
+  //   //     return item
+  //   //   })
+  //   //   return transcription
+  //   // } catch (error) {
+  //   //   console.warn('Could not load transcription', error)
+  //   //   return null
+  //   // }
+  // },
 
-  /** */
-  async createRegion(/*transcriptionId, regionData*/) {
-    // const input = {
-    //   id: regionData.id,
-    //   start: regionData.start,
-    //   end: regionData.end,
-    //   text: JSON.stringify(regionData.text),
-    //   dateLastUpdated: `${+new Date()}`,
-    //   userLastUpdated: (await UserService.getUser()).name,
-    //   transcriptionId: transcriptionId,
-    // }
+  // /** */
+  // async createRegion(/*transcriptionId, regionData*/) {
+  //   // const input = {
+  //   //   id: regionData.id,
+  //   //   start: regionData.start,
+  //   //   end: regionData.end,
+  //   //   text: JSON.stringify(regionData.text),
+  //   //   dateLastUpdated: `${+new Date()}`,
+  //   //   userLastUpdated: (await UserService.getUser()).name,
+  //   //   transcriptionId: transcriptionId,
+  //   // }
 
-    // const update = await API.graphql(graphqlOperation(mutations.createRegion, { input: input }))
-    // // regionData.version = 1
-    // return update.data.createRegion
-  },
+  //   // const update = await API.graphql(graphqlOperation(mutations.createRegion, { input: input }))
+  //   // // regionData.version = 1
+  //   // return update.data.createRegion
+  // },
 
   async updateRegion(transcriptionId, region) {
     const user = await UserService.getUser()

@@ -8,16 +8,21 @@
       </v-list>
     </v-menu>
     <div :id="'editor-' + mode" :class="'editor-' + mode"></div>
+
   </div>
+
 </template>
+
+
 
 <script>
 import Quill from 'quill'
 import Delta from 'quill-delta'
-// import QuillCursors from 'quill-cursors'
+import QuillCursors from 'quill-cursors'
 import { mapGetters } from 'vuex'
 import Timeout from 'smart-timeout'
 
+Quill.register('modules/cursors', QuillCursors);
 window.Quill = Quill
 window.Timeout = Timeout 
 window.Delta = Delta
@@ -66,12 +71,15 @@ export default {
         formats: formats[this.mode],
         modules: {
           toolbar: false,
-          // cursors: true,
+          cursors: {
+            hideDelayMs: 5000,
+            transformOnTextChange: true
+          },
         },
         readOnly: false,
       })
 
-      // this.cursors = this.editor.getModule('cursors')
+      this.cursors = this.editor.getModule('cursors')
       this.editor.root.setAttribute('spellcheck', false)
       this.setContents(this.text)
 
@@ -84,6 +92,7 @@ export default {
         logger.debug('Disabling editor on mount')
         this.editor.disable()
       } else {
+        // listen for realtime changes
         EventBus.$on('realtime-region-update', (incoming) => {
           if (this.mode === 'main') {
             const incomingText = new Delta(incoming.text)
@@ -95,6 +104,23 @@ export default {
             const localValue = this.editor.getText()
             if (incoming.translation !== localValue) {
               this.editor.setText(incoming.translation, 'api')
+            }
+          }
+        })
+        // listen for realtime cursors
+        EventBus.$on('realtime-cursor', (event) => {
+          // console.log('rte cursor', event)
+          // const cursorColor = remoteCursors[event.user].color
+          if (event.regionId === this.selectedRegion.id) {
+            // determine which mode we're in
+            const mode = event.cursor.editor
+            if (mode === this.mode) {
+              // update the cursor
+              this.cursors.createCursor(event.user, event.user, event.color)
+              this.cursors.moveCursor(event.user, event.cursor)
+              // this.cursors.toggleFlag(event.user, true)
+            } else {
+              this.cursors.removeCursor(event.user)
             }
           }
         })
@@ -122,7 +148,7 @@ export default {
     },
 
     onSelection(range) {
-      logger.debug('onselection', range)
+      // logger.info('onselection', range)
       if (!this.disabled) {
         logger.debug('Selection change', this.mode, range)
         if (range) {
@@ -135,6 +161,11 @@ export default {
         } else {
           this.$emit('blur')
         }
+        // dispatch user cursor
+        this.$store.dispatch('updateUserCursor', {
+          ...range,
+          editor: this.mode
+        })
       }
     },
 
@@ -316,7 +347,7 @@ export default {
   },
 
   computed: {
-    ...mapGetters(['selectedRegion']),
+    ...mapGetters(['selectedRegion', 'editingUsers']),
     sortedSuggestions() {
       return this.currentSuggestions.sort()
     },
@@ -331,11 +362,27 @@ export default {
         this.editor.enable()
       }
     },
+
+    selectedRegion(region) {
+      const userDetails = this.editingUsers[region.id]
+      if (userDetails && userDetails.length) {
+        // we have cursor details
+        userDetails.forEach((event) => {
+          this.cursors.createCursor(event.user, event.user, event.color)
+          this.cursors.moveCursor(event.user, event.cursor)
+        })
+      } else {
+        // no cursor
+        this.cursors.clearCursors()
+      }
+    }
+
   },
 }
 </script>
 
-<style scoped>
+
+<style>
 .ql-container {
   font-size: 20px;
   height: 150px;
@@ -343,5 +390,13 @@ export default {
 .ql-container.ql-snow {
   border: none;
   padding: 0px 0;
+}
+
+.ql-cursor .ql-cursor-flag {
+  line-height: 12px;
+  padding: 2px;
+}
+.ql-cursor .ql-cursor-flag .ql-cursor-name {
+  font-size: 75%;
 }
 </style>
