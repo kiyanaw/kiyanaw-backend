@@ -9,7 +9,7 @@
     "axios": "^0.24.0",
     "elasticsearch": "^15.5.0",
     "http-aws-es": "^6.0.0",
-    "mocha": "^9.1.3",
+    "mocha": "^9.2.2",
     "sinon": "^12.0.1"
   }
 }
