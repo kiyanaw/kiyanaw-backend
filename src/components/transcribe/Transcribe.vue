@@ -238,6 +238,12 @@ export default {
       this.error = 'Processing waveform data, wait a minute then try refreshing the page...'
     })
 
+    EventBus.$on('transcription-ready', () => {
+      if (this.inboundRegion) {
+        this.setSelectedRegion(this.inboundRegion)
+      }
+    })
+
     DataStore.start()
   },
 

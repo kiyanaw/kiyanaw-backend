@@ -106,6 +106,8 @@ const actions = {
     store.dispatch('setTranscription', transcription)
     store.dispatch('setRegions', regions)
 
+    EventBus.$emit('transcription-ready')
+
     // TODO: maybe move this all to .initSubscriptions() or something
     // subscribe to Transcription changes
     DataStore.observe(Transcription, transcription.id).subscribe((message) => {

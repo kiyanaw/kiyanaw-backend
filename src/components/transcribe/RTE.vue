@@ -368,8 +368,10 @@ export default {
       if (userDetails && userDetails.length) {
         // we have cursor details
         userDetails.forEach((event) => {
-          this.cursors.createCursor(event.user, event.user, event.color)
-          this.cursors.moveCursor(event.user, event.cursor)
+          if (event.editor === this.mode) {
+            this.cursors.createCursor(event.user, event.user, event.color)
+            this.cursors.moveCursor(event.user, event.cursor)
+          }
         })
       } else {
         // no cursor
