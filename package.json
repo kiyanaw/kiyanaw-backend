@@ -74,7 +74,7 @@
     "eslint-plugin-standard": "^4.1.0",
     "eslint-plugin-vue": "^5.2.3",
     "esm": "^3.2.25",
-    "jsdom": "15.2.1",
+    "jsdom": "16.5.0",
     "jsdom-global": "3.0.2",
     "karma": "^6.4.1",
     "karma-brave-launcher": "^1.0.0",
