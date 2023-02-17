@@ -55,39 +55,39 @@ export default {
   async getCredentials() {
     return Auth.currentCredentials()
   },
-  /**
-   * Send updates about cursors in real time.
-   */
-  async sendCursor(details) {
-    let result
-    // TODO: this works, but it might be better to put the cursor updates on a timer
-    // this is going to flood dynamo with a lot of requests
-    try {
-      result = await API.graphql(
-        graphqlOperation(updateCursor, {
-          input: {
-            id: details.user,
-            user: details.user,
-            cursor: JSON.stringify(details.cursor),
-          },
-        }),
-      )
-    } catch (error) {
-      // cursor object probably didn't exist
-      result = await API.graphql(
-        graphqlOperation(createCursor, {
-          input: {
-            id: details.user,
-            user: details.user,
-            cursor: JSON.stringify(details.cursor),
-          },
-        }),
-      )
-    }
-    // console.log('cursor', result)
-    return result
-  },
+  // /**
+  //  * Send updates about cursors in real time.
+  //  */
+  // async sendCursor(details) {
+  //   let result
+  //   // TODO: this works, but it might be better to put the cursor updates on a timer
+  //   // this is going to flood dynamo with a lot of requests
+  //   try {
+  //     result = await API.graphql(
+  //       graphqlOperation(updateCursor, {
+  //         input: {
+  //           id: details.user,
+  //           user: details.user,
+  //           cursor: JSON.stringify(details.cursor),
+  //         },
+  //       }),
+  //     )
+  //   } catch (error) {
+  //     // cursor object probably didn't exist
+  //     result = await API.graphql(
+  //       graphqlOperation(createCursor, {
+  //         input: {
+  //           id: details.user,
+  //           user: details.user,
+  //           cursor: JSON.stringify(details.cursor),
+  //         },
+  //       }),
+  //     )
+  //   }
+  //   // console.log('cursor', result)
+  //   return result
+  // },
 
-  async listenForCursor() {
-  },
+  // async listenForCursor() {
+  // },
 }

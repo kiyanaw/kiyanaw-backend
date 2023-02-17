@@ -263,7 +263,6 @@ const actions = {
         issues
       }
       // refresh the local RTE (text probably changed)
-      // TODO: needs test
       EventBus.$emit('refresh-local-text', text)
     }
     // commit to local store

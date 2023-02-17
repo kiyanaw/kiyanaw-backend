@@ -262,16 +262,16 @@ export default {
     
     ]),
 
-    regionCursor(data) {
-      data.color = cursorColor
-      const update = {
-        cursor: data,
-        user: `${this.user.name}`,
-      }
-      UserService.sendCursor(update).catch((e) => {
-        console.log(e)
-      })
-    },
+    // regionCursor(data) {
+    //   data.color = cursorColor
+    //   const update = {
+    //     cursor: data,
+    //     user: `${this.user.name}`,
+    //   }
+    //   UserService.sendCursor(update).catch((e) => {
+    //     console.log(e)
+    //   })
+    // },
 
     /**
      * TODO: remove this, it has moved to the store.

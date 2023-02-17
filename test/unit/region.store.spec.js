@@ -7,6 +7,7 @@ const { Region } = require('../../src/models')
 const UserService = require('../../src/services/user').default
 const store = require('../../src/store/region').default
 const helpers = require('../../src/helpers')
+const { default: EventBus } = require('../../src/store/bus')
 
 describe('Region store', function () {
   beforeEach(function () {
@@ -184,6 +185,7 @@ describe('Region store', function () {
         ['text-from-invalidate'],
         ['issues-from-invalidate']
       ])
+      const refreshLocal = this.sandbox.stub(EventBus, '$emit')
 
       // provide an issue in the update
       await store.actions.updateRegionById(store, {
@@ -199,19 +201,24 @@ describe('Region store', function () {
       const storeUpdate = store.dispatch.args[0][1].update
       assert.deepEqual(storeUpdate.text, ['text-from-invalidate'])
       assert.deepEqual(storeUpdate.issues, ['issues-from-invalidate'])
+
+      // local event to update RTE is called
+      assert.equal(refreshLocal.callCount, 1)
+      assert.equal(refreshLocal.args[0][0], 'refresh-local-text')
     })
 
     it('should invalidate issues if text key present in update & region has issue count', async function () {
       const existing = {
         id: 'two',
         text: 'fiz',
-        issues: [{some: 'issue'}],
+        issues: [{ some: 'issue' }],
       }
       this.sandbox.stub(store.getters, 'regionById').returns(existing)
       store.dispatch = this.sandbox.stub()
       const invalidate = this.sandbox
         .stub(helpers, 'reconcileTextAndIssues')
         .returns([['text-from-invalidate'], ['issues-from-invalidate']])
+      const refreshLocal = this.sandbox.stub(EventBus, '$emit')
 
       // provide an issue in the update
       await store.actions.updateRegionById(store, {
@@ -226,6 +233,10 @@ describe('Region store', function () {
       const storeUpdate = store.dispatch.args[0][1].update
       assert.deepEqual(storeUpdate.text, ['text-from-invalidate'])
       assert.deepEqual(storeUpdate.issues, ['issues-from-invalidate'])
+
+      // local event to update RTE is called
+      assert.equal(refreshLocal.callCount, 1)
+      assert.equal(refreshLocal.args[0][0], 'refresh-local-text')
     })
 
     it('integration case, should exercise validate method proper', async function () {
