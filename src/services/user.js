@@ -1,11 +1,11 @@
 import { Auth, DataStore } from 'aws-amplify'
 
-import {
-  createCursor,
-  updateCursor,
-} from '../graphql/mutations'
+// import {
+//   createCursor,
+//   updateCursor,
+// } from '../graphql/mutations'
 
-import { API, graphqlOperation } from 'aws-amplify'
+// import { API, graphqlOperation } from 'aws-amplify'
 import { Contributor } from '../models'
 
 

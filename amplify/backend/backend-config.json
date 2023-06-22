@@ -65,6 +65,11 @@
       "build": true,
       "providerPlugin": "awscloudformation",
       "service": "Lambda"
+    },
+    "syncConflictHandler6ac896cc": {
+      "build": true,
+      "providerPlugin": "awscloudformation",
+      "service": "Lambda"
     }
   },
   "hosting": {
@@ -119,6 +124,22 @@
         {
           "category": "function",
           "resourceName": "notifyRegionChanges"
+        }
+      ]
+    },
+    "AMPLIFY_function_syncConflictHandler6ac896cc_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "syncConflictHandler6ac896cc"
+        }
+      ]
+    },
+    "AMPLIFY_function_syncConflictHandler6ac896cc_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "syncConflictHandler6ac896cc"
         }
       ]
     }

@@ -87,20 +87,20 @@ import { Region, Transcription, TranscriptionContributor, Pointer } from '../../
 import logging from '../../logging'
 const logger = new logging.Logger('Transcribe')
 
-function getColor() {
-  return (
-    'hsl(' +
-    360 * Math.random() +
-    ',' +
-    (25 + 70 * Math.random()) +
-    '%,' +
-    (55 + 10 * Math.random()) +
-    '%)'
-  )
-}
+// function getColor() {
+//   return (
+//     'hsl(' +
+//     360 * Math.random() +
+//     ',' +
+//     (25 + 70 * Math.random()) +
+//     '%,' +
+//     (55 + 10 * Math.random()) +
+//     '%)'
+//   )
+// }
 
 // this is the local user's cursor color
-const cursorColor = `${getColor()}`
+// const cursorColor = `${getColor()}`
 // keep track of this cursor
 // let myCursor
 // let inboundRegion = null

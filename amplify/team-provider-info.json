@@ -27,6 +27,10 @@
         "enqueueRegionChange": {
           "deploymentBucketName": "amplify-kiyanaw-dev-02717-deployment",
           "s3Key": "amplify-builds/enqueueRegionChange-6f4a6e5932586868554f-build.zip"
+        },
+        "syncConflictHandler6ac896cc": {
+          "deploymentBucketName": "amplify-kiyanaw-dev-02717-deployment",
+          "s3Key": "amplify-builds/syncConflictHandler6ac896cc-6d6e4947644d4a514264-build.zip"
         }
       },
       "hosting": {
