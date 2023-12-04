@@ -16,96 +16,25 @@
         "kiyanaw664b231a": {}
       },
       "function": {
-        "notifyRegionChanges": {
+        "enqueueRegionChange": {
           "deploymentBucketName": "amplify-kiyanaw-dev-02717-deployment",
-          "s3Key": "amplify-builds/notifyRegionChanges-3942386f532b46716a4a-build.zip"
+          "s3Key": "amplify-builds/enqueueRegionChange-6f4a6e5932586868554f-build.zip"
         },
         "indexRegionData": {
           "deploymentBucketName": "amplify-kiyanaw-dev-02717-deployment",
           "s3Key": "amplify-builds/indexRegionData-453065364a7867754a67-build.zip"
         },
-        "enqueueRegionChange": {
+        "notifyRegionChanges": {
           "deploymentBucketName": "amplify-kiyanaw-dev-02717-deployment",
-          "s3Key": "amplify-builds/enqueueRegionChange-6f4a6e5932586868554f-build.zip"
+          "s3Key": "amplify-builds/notifyRegionChanges-3942386f532b46716a4a-build.zip"
         },
         "syncConflictHandler6ac896cc": {
           "deploymentBucketName": "amplify-kiyanaw-dev-02717-deployment",
           "s3Key": "amplify-builds/syncConflictHandler6ac896cc-6d6e4947644d4a514264-build.zip"
         }
       },
-      "hosting": {
-        "S3AndCloudFront": {}
-      },
       "storage": {
         "transcriptions": {}
-      },
-      "api": {
-        "kiyanaw": {},
-        "enqueueRegionChange": {}
-      }
-    }
-  },
-  "prod": {
-    "awscloudformation": {
-      "AuthRoleName": "amplify-kiyanaw-prod-214643-authRole",
-      "UnauthRoleArn": "arn:aws:iam::494185203413:role/amplify-kiyanaw-prod-214643-unauthRole",
-      "AuthRoleArn": "arn:aws:iam::494185203413:role/amplify-kiyanaw-prod-214643-authRole",
-      "Region": "us-east-1",
-      "DeploymentBucketName": "amplify-kiyanaw-prod-214643-deployment",
-      "UnauthRoleName": "amplify-kiyanaw-prod-214643-unauthRole",
-      "StackName": "amplify-kiyanaw-prod-214643",
-      "StackId": "arn:aws:cloudformation:us-east-1:494185203413:stack/amplify-kiyanaw-prod-214643/f3637870-1d6b-11ea-a8a7-0ef7f3f34731",
-      "AmplifyAppId": "d2vcnct5kwl6za"
-    },
-    "categories": {
-      "auth": {
-        "kiyanaw664b231a": {}
-      },
-      "function": {
-        "notifyRegionChanges": {
-          "deploymentBucketName": "amplify-kiyanaw-prod-214643-deployment",
-          "s3Key": "amplify-builds/notifyRegionChanges-5a734e55685446625873-build.zip"
-        },
-        "indexRegionData": {
-          "deploymentBucketName": "amplify-kiyanaw-prod-214643-deployment",
-          "s3Key": "amplify-builds/indexRegionData-7248416c774752364155-build.zip"
-        },
-        "enqueueRegionChange": {
-          "deploymentBucketName": "amplify-kiyanaw-prod-214643-deployment",
-          "s3Key": "amplify-builds/enqueueRegionChange-63736d703942386d4d45-build.zip"
-        }
-      }
-    }
-  },
-  "databug": {
-    "awscloudformation": {
-      "AuthRoleName": "amplify-kiyanaw-databug-135349-authRole",
-      "UnauthRoleArn": "arn:aws:iam::494185203413:role/amplify-kiyanaw-databug-135349-unauthRole",
-      "AuthRoleArn": "arn:aws:iam::494185203413:role/amplify-kiyanaw-databug-135349-authRole",
-      "Region": "us-east-1",
-      "DeploymentBucketName": "amplify-kiyanaw-databug-135349-deployment",
-      "UnauthRoleName": "amplify-kiyanaw-databug-135349-unauthRole",
-      "StackName": "amplify-kiyanaw-databug-135349",
-      "StackId": "arn:aws:cloudformation:us-east-1:494185203413:stack/amplify-kiyanaw-databug-135349/bdc24af0-a668-11ed-9c6b-0e9aa6818fbf",
-      "AmplifyAppId": "d2vcnct5kwl6za"
-    },
-    "categories": {
-      "auth": {
-        "kiyanaw664b231a": {}
-      },
-      "function": {
-        "enqueueRegionChange": {
-          "deploymentBucketName": "amplify-kiyanaw-databug-135349-deployment",
-          "s3Key": "amplify-builds/enqueueRegionChange-6f4a6e5932586868554f-build.zip"
-        },
-        "indexRegionData": {
-          "deploymentBucketName": "amplify-kiyanaw-databug-135349-deployment",
-          "s3Key": "amplify-builds/indexRegionData-453065364a7867754a67-build.zip"
-        },
-        "notifyRegionChanges": {
-          "deploymentBucketName": "amplify-kiyanaw-databug-135349-deployment",
-          "s3Key": "amplify-builds/notifyRegionChanges-3942386f532b46716a4a-build.zip"
-        }
       },
       "api": {
         "enqueueRegionChange": {},
@@ -113,9 +42,6 @@
       },
       "hosting": {
         "S3AndCloudFront": {}
-      },
-      "storage": {
-        "transcriptions": {}
       }
     }
   }

@@ -39,6 +39,23 @@ type Region
   userLastUpdated: String!
   transcription: Transcription! @belongsTo(fields: ["transcriptionId"])
   transcriptionId: ID! @index(name: "ByTranscription")
+  issueList: [Issue] @hasMany(indexName: "ByRegion", fields: "id")
+}
+
+type Issue
+  @model
+  @auth(
+    rules: [{ allow: private, provider: iam }, { allow: public, provider: iam, operations: [read] }]
+  ) {
+  id: ID! @primaryKey
+  text: String!
+  owner: String!
+  index: Float!
+  type: String!
+  
+  comments: AWSJSON
+  region: Region! @belongsTo(fields: ["regionId"])
+  regionId: ID! @index(name: "ByRegion")
 }
 
 type Cursor

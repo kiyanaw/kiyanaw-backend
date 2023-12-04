@@ -10,6 +10,10 @@ type RegionMetaData = {
   readOnlyFields: 'createdAt' | 'updatedAt';
 }
 
+type IssueMetaData = {
+  readOnlyFields: 'createdAt' | 'updatedAt';
+}
+
 type CursorMetaData = {
   readOnlyFields: 'createdAt' | 'updatedAt';
 }
@@ -96,6 +100,7 @@ type EagerRegion = {
   readonly dateLastUpdated: string;
   readonly userLastUpdated: string;
   readonly transcription: Transcription;
+  readonly issueList?: (Issue | null)[] | null;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
 }
@@ -112,6 +117,7 @@ type LazyRegion = {
   readonly dateLastUpdated: string;
   readonly userLastUpdated: string;
   readonly transcription: AsyncItem<Transcription>;
+  readonly issueList: AsyncCollection<Issue>;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
 }
@@ -120,6 +126,36 @@ export declare type Region = LazyLoading extends LazyLoadingDisabled ? EagerRegi
 
 export declare const Region: (new (init: ModelInit<Region, RegionMetaData>) => Region) & {
   copyOf(source: Region, mutator: (draft: MutableModel<Region, RegionMetaData>) => MutableModel<Region, RegionMetaData> | void): Region;
+}
+
+type EagerIssue = {
+  readonly id: string;
+  readonly text: string;
+  readonly owner: string;
+  readonly index: number;
+  readonly type: string;
+  readonly comments?: string | null;
+  readonly region: Region;
+  readonly createdAt?: string | null;
+  readonly updatedAt?: string | null;
+}
+
+type LazyIssue = {
+  readonly id: string;
+  readonly text: string;
+  readonly owner: string;
+  readonly index: number;
+  readonly type: string;
+  readonly comments?: string | null;
+  readonly region: AsyncItem<Region>;
+  readonly createdAt?: string | null;
+  readonly updatedAt?: string | null;
+}
+
+export declare type Issue = LazyLoading extends LazyLoadingDisabled ? EagerIssue : LazyIssue
+
+export declare const Issue: (new (init: ModelInit<Issue, IssueMetaData>) => Issue) & {
+  copyOf(source: Issue, mutator: (draft: MutableModel<Issue, IssueMetaData>) => MutableModel<Issue, IssueMetaData> | void): Issue;
 }
 
 type EagerCursor = {
