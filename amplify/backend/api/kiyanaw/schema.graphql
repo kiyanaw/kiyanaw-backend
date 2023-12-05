@@ -20,6 +20,7 @@ type Transcription
   disableAnalyzer: Boolean
   contributors: [Contributor] @manyToMany(relationName: "TranscriptionContributor")
   regions: [Region] @hasMany(indexName: "ByTranscription", fields: ["id"])
+  issueList: [Issue] @hasMany(indexName: "ByTranscription", fields: ["id"])
 }
 
 type Region
@@ -30,16 +31,17 @@ type Region
   id: ID! @primaryKey
   start: Float!
   end: Float!
-  text: String!
-  issues: String
+  text: String! # Old text value
+  regionText: String
+  regionAnalysis: String
+  issues: String # this will go away
   isNote: Boolean
-  comments: String
+  comments: String # Can this go away?
   translation: String
-  dateLastUpdated: String!
-  userLastUpdated: String!
+  dateLastUpdated: String! # use built-in fields
+  userLastUpdated: String! # use built-in fields
   transcription: Transcription! @belongsTo(fields: ["transcriptionId"])
   transcriptionId: ID! @index(name: "ByTranscription")
-  issueList: [Issue] @hasMany(indexName: "ByRegion", fields: "id")
 }
 
 type Issue
@@ -49,13 +51,12 @@ type Issue
   ) {
   id: ID! @primaryKey
   text: String!
-  owner: String!
-  index: Float!
-  type: String!
-  
+  owner: String! @index(name: "ByOwner")
+  index: Int!
+  type: String! @index(name: "ByType")
   comments: AWSJSON
-  region: Region! @belongsTo(fields: ["regionId"])
-  regionId: ID! @index(name: "ByRegion")
+  transcription: Transcription! @belongsTo(fields: ["transcriptionId"])
+  transcriptionId: ID! @index(name: "ByTranscription")
 }
 
 type Cursor

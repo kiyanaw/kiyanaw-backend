@@ -136,6 +136,20 @@ export const schema = {
                         "associatedWith": "transcription"
                     }
                 },
+                "issueList": {
+                    "name": "issueList",
+                    "isArray": true,
+                    "type": {
+                        "model": "Issue"
+                    },
+                    "isRequired": false,
+                    "attributes": [],
+                    "isArrayNullable": true,
+                    "association": {
+                        "connectionType": "HAS_MANY",
+                        "associatedWith": "transcription"
+                    }
+                },
                 "createdAt": {
                     "name": "createdAt",
                     "isArray": false,
@@ -235,6 +249,20 @@ export const schema = {
                     "isRequired": true,
                     "attributes": []
                 },
+                "regionText": {
+                    "name": "regionText",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": false,
+                    "attributes": []
+                },
+                "regionAnalysis": {
+                    "name": "regionAnalysis",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": false,
+                    "attributes": []
+                },
                 "issues": {
                     "name": "issues",
                     "isArray": false,
@@ -288,20 +316,6 @@ export const schema = {
                     "association": {
                         "connectionType": "BELONGS_TO",
                         "targetName": "transcriptionId"
-                    }
-                },
-                "issueList": {
-                    "name": "issueList",
-                    "isArray": true,
-                    "type": {
-                        "model": "Issue"
-                    },
-                    "isRequired": false,
-                    "attributes": [],
-                    "isArrayNullable": true,
-                    "association": {
-                        "connectionType": "HAS_MANY",
-                        "associatedWith": "region"
                     }
                 },
                 "createdAt": {
@@ -398,7 +412,7 @@ export const schema = {
                 "index": {
                     "name": "index",
                     "isArray": false,
-                    "type": "Float",
+                    "type": "Int",
                     "isRequired": true,
                     "attributes": []
                 },
@@ -416,17 +430,17 @@ export const schema = {
                     "isRequired": false,
                     "attributes": []
                 },
-                "region": {
-                    "name": "region",
+                "transcription": {
+                    "name": "transcription",
                     "isArray": false,
                     "type": {
-                        "model": "Region"
+                        "model": "Transcription"
                     },
                     "isRequired": true,
                     "attributes": [],
                     "association": {
                         "connectionType": "BELONGS_TO",
-                        "targetName": "regionId"
+                        "targetName": "transcriptionId"
                     }
                 },
                 "createdAt": {
@@ -464,9 +478,27 @@ export const schema = {
                 {
                     "type": "key",
                     "properties": {
-                        "name": "ByRegion",
+                        "name": "ByOwner",
                         "fields": [
-                            "regionId"
+                            "owner"
+                        ]
+                    }
+                },
+                {
+                    "type": "key",
+                    "properties": {
+                        "name": "ByType",
+                        "fields": [
+                            "type"
+                        ]
+                    }
+                },
+                {
+                    "type": "key",
+                    "properties": {
+                        "name": "ByTranscription",
+                        "fields": [
+                            "transcriptionId"
                         ]
                     }
                 },
@@ -1047,5 +1079,5 @@ export const schema = {
     "enums": {},
     "nonModels": {},
     "codegenVersion": "3.4.4",
-    "version": "dd6d803d65f0a0e54782e66d0058fc26"
+    "version": "67341f5d4828a69c74680fc2898f5d30"
 };

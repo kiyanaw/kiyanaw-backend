@@ -5,15 +5,6 @@
         "project": {
             "ConflictHandler": "AUTOMERGE",
             "ConflictDetection": "VERSION"
-        },
-        "models": {
-            "Region": {
-                "ConflictHandler": "LAMBDA",
-                "ConflictDetection": "VERSION",
-                "LambdaConflictHandler": {
-                    "name": "syncConflictHandler6ac896cc"
-                }
-            }
         }
     }
 }

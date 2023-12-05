@@ -81,10 +81,11 @@ import { mapActions, mapGetters } from 'vuex'
 
 
 import { DataStore, Hub } from 'aws-amplify'
-import { Region, Transcription, TranscriptionContributor, Pointer } from '../../models'
+import { Region, Transcription, TranscriptionContributor, Pointer, Issue } from '../../models'
 
 
 import logging from '../../logging'
+import utils from './utils'
 const logger = new logging.Logger('Transcribe')
 
 // function getColor() {
@@ -219,12 +220,14 @@ export default {
     // })
 
     window.DataStore = DataStore
+    window.Issue = Issue
     window.Region = Region
     window.Transcription = Transcription
     window.TranscriptionContributor = TranscriptionContributor
     window.Document = Document
     window.transcribe = this
     window.Pointer = Pointer
+    window.normalTime = utils.floatToMSM
 
     // load up
     Hub.listen("datastore", async hubData => {

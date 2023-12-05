@@ -56,6 +56,7 @@ type EagerTranscription = {
   readonly disableAnalyzer?: boolean | null;
   readonly contributors?: (TranscriptionContributor | null)[] | null;
   readonly regions?: (Region | null)[] | null;
+  readonly issueList?: (Issue | null)[] | null;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
 }
@@ -78,6 +79,7 @@ type LazyTranscription = {
   readonly disableAnalyzer?: boolean | null;
   readonly contributors: AsyncCollection<TranscriptionContributor>;
   readonly regions: AsyncCollection<Region>;
+  readonly issueList: AsyncCollection<Issue>;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
 }
@@ -93,6 +95,8 @@ type EagerRegion = {
   readonly start: number;
   readonly end: number;
   readonly text: string;
+  readonly regionText?: string | null;
+  readonly regionAnalysis?: string | null;
   readonly issues?: string | null;
   readonly isNote?: boolean | null;
   readonly comments?: string | null;
@@ -100,7 +104,6 @@ type EagerRegion = {
   readonly dateLastUpdated: string;
   readonly userLastUpdated: string;
   readonly transcription: Transcription;
-  readonly issueList?: (Issue | null)[] | null;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
 }
@@ -110,6 +113,8 @@ type LazyRegion = {
   readonly start: number;
   readonly end: number;
   readonly text: string;
+  readonly regionText?: string | null;
+  readonly regionAnalysis?: string | null;
   readonly issues?: string | null;
   readonly isNote?: boolean | null;
   readonly comments?: string | null;
@@ -117,7 +122,6 @@ type LazyRegion = {
   readonly dateLastUpdated: string;
   readonly userLastUpdated: string;
   readonly transcription: AsyncItem<Transcription>;
-  readonly issueList: AsyncCollection<Issue>;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
 }
@@ -135,7 +139,7 @@ type EagerIssue = {
   readonly index: number;
   readonly type: string;
   readonly comments?: string | null;
-  readonly region: Region;
+  readonly transcription: Transcription;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
 }
@@ -147,7 +151,7 @@ type LazyIssue = {
   readonly index: number;
   readonly type: string;
   readonly comments?: string | null;
-  readonly region: AsyncItem<Region>;
+  readonly transcription: AsyncItem<Transcription>;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
 }

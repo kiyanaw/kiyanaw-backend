@@ -22,41 +22,16 @@ export const onCreateTranscription = /* GraphQL */ `
       isPrivate
       disableAnalyzer
       contributors {
-        items {
-          id
-          transcriptionID
-          contributorID
-          createdAt
-          updatedAt
-          _version
-          _deleted
-          _lastChangedAt
-          __typename
-        }
         nextToken
         startedAt
         __typename
       }
       regions {
-        items {
-          id
-          start
-          end
-          text
-          issues
-          isNote
-          comments
-          translation
-          dateLastUpdated
-          userLastUpdated
-          transcriptionId
-          createdAt
-          updatedAt
-          _version
-          _deleted
-          _lastChangedAt
-          __typename
-        }
+        nextToken
+        startedAt
+        __typename
+      }
+      issueList {
         nextToken
         startedAt
         __typename
@@ -91,41 +66,16 @@ export const onUpdateTranscription = /* GraphQL */ `
       isPrivate
       disableAnalyzer
       contributors {
-        items {
-          id
-          transcriptionID
-          contributorID
-          createdAt
-          updatedAt
-          _version
-          _deleted
-          _lastChangedAt
-          __typename
-        }
         nextToken
         startedAt
         __typename
       }
       regions {
-        items {
-          id
-          start
-          end
-          text
-          issues
-          isNote
-          comments
-          translation
-          dateLastUpdated
-          userLastUpdated
-          transcriptionId
-          createdAt
-          updatedAt
-          _version
-          _deleted
-          _lastChangedAt
-          __typename
-        }
+        nextToken
+        startedAt
+        __typename
+      }
+      issueList {
         nextToken
         startedAt
         __typename
@@ -160,41 +110,16 @@ export const onDeleteTranscription = /* GraphQL */ `
       isPrivate
       disableAnalyzer
       contributors {
-        items {
-          id
-          transcriptionID
-          contributorID
-          createdAt
-          updatedAt
-          _version
-          _deleted
-          _lastChangedAt
-          __typename
-        }
         nextToken
         startedAt
         __typename
       }
       regions {
-        items {
-          id
-          start
-          end
-          text
-          issues
-          isNote
-          comments
-          translation
-          dateLastUpdated
-          userLastUpdated
-          transcriptionId
-          createdAt
-          updatedAt
-          _version
-          _deleted
-          _lastChangedAt
-          __typename
-        }
+        nextToken
+        startedAt
+        __typename
+      }
+      issueList {
         nextToken
         startedAt
         __typename
@@ -215,6 +140,8 @@ export const onCreateRegion = /* GraphQL */ `
       start
       end
       text
+      regionText
+      regionAnalysis
       issues
       isNote
       comments
@@ -237,16 +164,6 @@ export const onCreateRegion = /* GraphQL */ `
         type
         isPrivate
         disableAnalyzer
-        contributors {
-          nextToken
-          startedAt
-          __typename
-        }
-        regions {
-          nextToken
-          startedAt
-          __typename
-        }
         createdAt
         updatedAt
         _version
@@ -255,26 +172,6 @@ export const onCreateRegion = /* GraphQL */ `
         __typename
       }
       transcriptionId
-      issueList {
-        items {
-          id
-          text
-          owner
-          index
-          type
-          comments
-          regionId
-          createdAt
-          updatedAt
-          _version
-          _deleted
-          _lastChangedAt
-          __typename
-        }
-        nextToken
-        startedAt
-        __typename
-      }
       createdAt
       updatedAt
       _version
@@ -291,6 +188,8 @@ export const onUpdateRegion = /* GraphQL */ `
       start
       end
       text
+      regionText
+      regionAnalysis
       issues
       isNote
       comments
@@ -313,16 +212,6 @@ export const onUpdateRegion = /* GraphQL */ `
         type
         isPrivate
         disableAnalyzer
-        contributors {
-          nextToken
-          startedAt
-          __typename
-        }
-        regions {
-          nextToken
-          startedAt
-          __typename
-        }
         createdAt
         updatedAt
         _version
@@ -331,26 +220,6 @@ export const onUpdateRegion = /* GraphQL */ `
         __typename
       }
       transcriptionId
-      issueList {
-        items {
-          id
-          text
-          owner
-          index
-          type
-          comments
-          regionId
-          createdAt
-          updatedAt
-          _version
-          _deleted
-          _lastChangedAt
-          __typename
-        }
-        nextToken
-        startedAt
-        __typename
-      }
       createdAt
       updatedAt
       _version
@@ -367,6 +236,8 @@ export const onDeleteRegion = /* GraphQL */ `
       start
       end
       text
+      regionText
+      regionAnalysis
       issues
       isNote
       comments
@@ -389,16 +260,6 @@ export const onDeleteRegion = /* GraphQL */ `
         type
         isPrivate
         disableAnalyzer
-        contributors {
-          nextToken
-          startedAt
-          __typename
-        }
-        regions {
-          nextToken
-          startedAt
-          __typename
-        }
         createdAt
         updatedAt
         _version
@@ -407,26 +268,6 @@ export const onDeleteRegion = /* GraphQL */ `
         __typename
       }
       transcriptionId
-      issueList {
-        items {
-          id
-          text
-          owner
-          index
-          type
-          comments
-          regionId
-          createdAt
-          updatedAt
-          _version
-          _deleted
-          _lastChangedAt
-          __typename
-        }
-        nextToken
-        startedAt
-        __typename
-      }
       createdAt
       updatedAt
       _version
@@ -445,46 +286,22 @@ export const onCreateIssue = /* GraphQL */ `
       index
       type
       comments
-      region {
+      transcription {
         id
-        start
-        end
-        text
-        issues
-        isNote
-        comments
-        translation
+        author
+        coverage
         dateLastUpdated
         userLastUpdated
-        transcription {
-          id
-          author
-          coverage
-          dateLastUpdated
-          userLastUpdated
-          length
-          issues
-          comments
-          tags
-          source
-          index
-          title
-          type
-          isPrivate
-          disableAnalyzer
-          createdAt
-          updatedAt
-          _version
-          _deleted
-          _lastChangedAt
-          __typename
-        }
-        transcriptionId
-        issueList {
-          nextToken
-          startedAt
-          __typename
-        }
+        length
+        issues
+        comments
+        tags
+        source
+        index
+        title
+        type
+        isPrivate
+        disableAnalyzer
         createdAt
         updatedAt
         _version
@@ -492,7 +309,7 @@ export const onCreateIssue = /* GraphQL */ `
         _lastChangedAt
         __typename
       }
-      regionId
+      transcriptionId
       createdAt
       updatedAt
       _version
@@ -511,46 +328,22 @@ export const onUpdateIssue = /* GraphQL */ `
       index
       type
       comments
-      region {
+      transcription {
         id
-        start
-        end
-        text
-        issues
-        isNote
-        comments
-        translation
+        author
+        coverage
         dateLastUpdated
         userLastUpdated
-        transcription {
-          id
-          author
-          coverage
-          dateLastUpdated
-          userLastUpdated
-          length
-          issues
-          comments
-          tags
-          source
-          index
-          title
-          type
-          isPrivate
-          disableAnalyzer
-          createdAt
-          updatedAt
-          _version
-          _deleted
-          _lastChangedAt
-          __typename
-        }
-        transcriptionId
-        issueList {
-          nextToken
-          startedAt
-          __typename
-        }
+        length
+        issues
+        comments
+        tags
+        source
+        index
+        title
+        type
+        isPrivate
+        disableAnalyzer
         createdAt
         updatedAt
         _version
@@ -558,7 +351,7 @@ export const onUpdateIssue = /* GraphQL */ `
         _lastChangedAt
         __typename
       }
-      regionId
+      transcriptionId
       createdAt
       updatedAt
       _version
@@ -577,46 +370,22 @@ export const onDeleteIssue = /* GraphQL */ `
       index
       type
       comments
-      region {
+      transcription {
         id
-        start
-        end
-        text
-        issues
-        isNote
-        comments
-        translation
+        author
+        coverage
         dateLastUpdated
         userLastUpdated
-        transcription {
-          id
-          author
-          coverage
-          dateLastUpdated
-          userLastUpdated
-          length
-          issues
-          comments
-          tags
-          source
-          index
-          title
-          type
-          isPrivate
-          disableAnalyzer
-          createdAt
-          updatedAt
-          _version
-          _deleted
-          _lastChangedAt
-          __typename
-        }
-        transcriptionId
-        issueList {
-          nextToken
-          startedAt
-          __typename
-        }
+        length
+        issues
+        comments
+        tags
+        source
+        index
+        title
+        type
+        isPrivate
+        disableAnalyzer
         createdAt
         updatedAt
         _version
@@ -624,7 +393,7 @@ export const onDeleteIssue = /* GraphQL */ `
         _lastChangedAt
         __typename
       }
-      regionId
+      transcriptionId
       createdAt
       updatedAt
       _version
@@ -844,17 +613,6 @@ export const onCreateContributor = /* GraphQL */ `
       email
       username
       transcriptions {
-        items {
-          id
-          transcriptionID
-          contributorID
-          createdAt
-          updatedAt
-          _version
-          _deleted
-          _lastChangedAt
-          __typename
-        }
         nextToken
         startedAt
         __typename
@@ -877,17 +635,6 @@ export const onUpdateContributor = /* GraphQL */ `
       email
       username
       transcriptions {
-        items {
-          id
-          transcriptionID
-          contributorID
-          createdAt
-          updatedAt
-          _version
-          _deleted
-          _lastChangedAt
-          __typename
-        }
         nextToken
         startedAt
         __typename
@@ -910,17 +657,6 @@ export const onDeleteContributor = /* GraphQL */ `
       email
       username
       transcriptions {
-        items {
-          id
-          transcriptionID
-          contributorID
-          createdAt
-          updatedAt
-          _version
-          _deleted
-          _lastChangedAt
-          __typename
-        }
         nextToken
         startedAt
         __typename
@@ -958,16 +694,6 @@ export const onCreateTranscriptionContributor = /* GraphQL */ `
         type
         isPrivate
         disableAnalyzer
-        contributors {
-          nextToken
-          startedAt
-          __typename
-        }
-        regions {
-          nextToken
-          startedAt
-          __typename
-        }
         createdAt
         updatedAt
         _version
@@ -979,11 +705,6 @@ export const onCreateTranscriptionContributor = /* GraphQL */ `
         id
         email
         username
-        transcriptions {
-          nextToken
-          startedAt
-          __typename
-        }
         createdAt
         updatedAt
         _version
@@ -1024,16 +745,6 @@ export const onUpdateTranscriptionContributor = /* GraphQL */ `
         type
         isPrivate
         disableAnalyzer
-        contributors {
-          nextToken
-          startedAt
-          __typename
-        }
-        regions {
-          nextToken
-          startedAt
-          __typename
-        }
         createdAt
         updatedAt
         _version
@@ -1045,11 +756,6 @@ export const onUpdateTranscriptionContributor = /* GraphQL */ `
         id
         email
         username
-        transcriptions {
-          nextToken
-          startedAt
-          __typename
-        }
         createdAt
         updatedAt
         _version
@@ -1090,16 +796,6 @@ export const onDeleteTranscriptionContributor = /* GraphQL */ `
         type
         isPrivate
         disableAnalyzer
-        contributors {
-          nextToken
-          startedAt
-          __typename
-        }
-        regions {
-          nextToken
-          startedAt
-          __typename
-        }
         createdAt
         updatedAt
         _version
@@ -1111,11 +807,6 @@ export const onDeleteTranscriptionContributor = /* GraphQL */ `
         id
         email
         username
-        transcriptions {
-          nextToken
-          startedAt
-          __typename
-        }
         createdAt
         updatedAt
         _version
