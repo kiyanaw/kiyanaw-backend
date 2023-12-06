@@ -139,6 +139,7 @@ type EagerIssue = {
   readonly index: number;
   readonly type: string;
   readonly comments?: string | null;
+  readonly regionId: string;
   readonly transcription: Transcription;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
@@ -151,6 +152,7 @@ type LazyIssue = {
   readonly index: number;
   readonly type: string;
   readonly comments?: string | null;
+  readonly regionId: string;
   readonly transcription: AsyncItem<Transcription>;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;

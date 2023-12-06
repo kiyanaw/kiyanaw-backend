@@ -22,7 +22,7 @@
         },
         "indexRegionData": {
           "deploymentBucketName": "amplify-kiyanaw-dev-02717-deployment",
-          "s3Key": "amplify-builds/indexRegionData-453065364a7867754a67-build.zip"
+          "s3Key": "amplify-builds/indexRegionData-512f504537706d632b71-build.zip"
         },
         "notifyRegionChanges": {
           "deploymentBucketName": "amplify-kiyanaw-dev-02717-deployment",

@@ -430,6 +430,13 @@ export const schema = {
                     "isRequired": false,
                     "attributes": []
                 },
+                "regionId": {
+                    "name": "regionId",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": true,
+                    "attributes": []
+                },
                 "transcription": {
                     "name": "transcription",
                     "isArray": false,
@@ -1079,5 +1086,5 @@ export const schema = {
     "enums": {},
     "nonModels": {},
     "codegenVersion": "3.4.4",
-    "version": "67341f5d4828a69c74680fc2898f5d30"
+    "version": "6ea653d03a06d76303b1b935bfed698c"
 };

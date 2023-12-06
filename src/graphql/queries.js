@@ -268,6 +268,7 @@ export const getIssue = /* GraphQL */ `
       index
       type
       comments
+      regionId
       transcription {
         id
         author
@@ -323,6 +324,7 @@ export const listIssues = /* GraphQL */ `
         index
         type
         comments
+        regionId
         transcriptionId
         createdAt
         updatedAt
@@ -357,6 +359,7 @@ export const syncIssues = /* GraphQL */ `
         index
         type
         comments
+        regionId
         transcriptionId
         createdAt
         updatedAt

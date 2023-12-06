@@ -55,6 +55,7 @@ type Issue
   index: Int!
   type: String! @index(name: "ByType")
   comments: AWSJSON
+  regionId: String!
   transcription: Transcription! @belongsTo(fields: ["transcriptionId"])
   transcriptionId: ID! @index(name: "ByTranscription")
 }

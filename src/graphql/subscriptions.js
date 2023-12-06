@@ -286,6 +286,7 @@ export const onCreateIssue = /* GraphQL */ `
       index
       type
       comments
+      regionId
       transcription {
         id
         author
@@ -328,6 +329,7 @@ export const onUpdateIssue = /* GraphQL */ `
       index
       type
       comments
+      regionId
       transcription {
         id
         author
@@ -370,6 +372,7 @@ export const onDeleteIssue = /* GraphQL */ `
       index
       type
       comments
+      regionId
       transcription {
         id
         author

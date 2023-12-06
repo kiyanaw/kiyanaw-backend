@@ -1,10 +1,10 @@
-import { DataStore, Hub } from 'aws-amplify'
-import { Region, Transcription, Pointer } from '../models'
 import * as assert from 'assert'
+import { DataStore, Hub } from 'aws-amplify'
+import { Pointer, Region, Transcription } from '../models'
 // import Quill from 'quill'
 
-import Vue from 'vue'
 import Timeout from 'smart-timeout'
+import Vue from 'vue'
 
 import Lexicon from '../services/lexicon'
 import UserService from '../services/user'
@@ -12,8 +12,8 @@ import UserService from '../services/user'
 import logging from '../logging'
 // import EventBus from './bus'
 import models from './models'
-import * as helpers from '../helpers'
-import EventBus from './bus'
+// import * as helpers from '../helpers'
+// import EventBus from './bus'
 
 const logger = new logging.Logger('Region Store')
 
@@ -50,6 +50,7 @@ Hub.listen('datastore', async (hubData) => {
 const state = {
   regions: [],
   regionMap: {},
+  issueMap: {}, // look up issues by region
   // The currently-selected region
   selectedRegionId: null,
   selectedRegion: null,
@@ -72,6 +73,9 @@ const getters = {
   },
   locks(context) {
     return context.locks
+  },
+  issueMap(context) {
+    return context.issueMap
   },
   lockedRegionNames(context) {
     const keys = Object.keys(context.locks)
@@ -160,45 +164,77 @@ const actions = {
   },
 
   /**
+   * 
+   * @param {*} store 
+   * @param {*} issues 
+   */
+  setIssues(store, issues) {
+    const issueMap = {}
+    if (issues && issues.length) {
+      // Sort out the issues by region
+      issues.forEach((issue) => {
+        if (!issueMap[issue.regionId]) {
+          issueMap[issue.regionId] = []
+        }
+        issueMap[issue.regionId].push(issue)
+      })
+    }
+
+    store.commit('SET_ISSUE_MAP', issueMap)
+  },
+
+  /**
    * Regions for the current transcription.
    * TODO: test this
    */
   setRegions(store, regions) {
     const map = {}
+
+    const issueMap = store.getters.issueMap
+
     let displayIndex = 1
     regions = regions
       // .slice()
       .sort((a, b) => (a.start > b.start ? 1 : -1))
       .map((item, index) => {
+
+        const issues = issueMap[item.id]
+
         const out = {
           ...item,
+          issues,
           index,
           displayIndex,
         }
         if (!item.isNote) {
           displayIndex++
         }
+
         const region = new models.RegionModel(out)
         map[`${region.id}`] = region
+
+        
+        // add to the lexicon
+        Lexicon.addKnownWords(region.regionAnalysis)
+
         return region
       })
 
     store.commit('SET_REGION_MAP', map)
-    console.log('!! Set region map')
 
     // asynchronously, report known words to the lexicon
-    regions.forEach((region) => {
-      const known = region.text
-        .filter((item) => item.attributes && item.attributes['known-word'] !== undefined)
-        .map((item) => item.insert)
-      Lexicon.addKnownWords(known)
-    })
+    // regions.forEach((region) => {
+
+    //   Lexicon.addKnownWords(region.regionAnalysis)
+    // })
 
     window.regions = regions
     window.map = map
   },
 
+
   resetRegionIndices(store) {
+    logger.debug('RESET REGION INDICES')
     let regions = Object.values(store.getters.regionMap)
     let displayIndex = 1
     regions
@@ -221,7 +257,7 @@ const actions = {
    * Accepts regionId and sets the selectedRegion (using the current transcription).
    */
   setSelectedRegion(store, regionId) {
-    logger.info('setting selected region', regionId)
+    logger.debug('setting selected region', regionId)
     store.commit('SET_SELECTED_REGION_ID', regionId)
   },
 
@@ -249,22 +285,28 @@ const actions = {
     // logger.debug('Updating region by Id', regionId)
     const region = store.getters.regionById(regionId)
 
-    const updateKeys = Object.keys(update)
-    const existingIssues = region.issues.length > 0
-    const mustInvalidateTextAndIssues = existingIssues || updateKeys.includes('issues')
 
-    if (mustInvalidateTextAndIssues) {     
-      const inputText = updateKeys.includes('text') ? update.text : region.text
-      const inputIssues = updateKeys.includes('issues') ? update.issues : region.issues
-      const [text, issues] = helpers.reconcileTextAndIssues(inputText, inputIssues)
-      update = {
-        ...update,
-        text,
-        issues
-      }
-      // refresh the local RTE (text probably changed)
-      EventBus.$emit('refresh-local-text', text)
-    }
+    /** TODO come back to this */
+    // const updateKeys = Object.keys(update)
+    // const existingIssues = region.issues.length > 0
+    // const mustInvalidateTextAndIssues = existingIssues || updateKeys.includes('issues')
+
+    // if (mustInvalidateTextAndIssues) {  
+      
+    //   // TODO: go through and fix this
+
+    //   const inputText = updateKeys.includes('text') ? update.text : region.text
+    //   const inputIssues = updateKeys.includes('issues') ? update.issues : region.issues
+    //   const [text, issues] = helpers.reconcileTextAndIssues(inputText, inputIssues)
+    //   update = {
+    //     ...update,
+    //     text,
+    //     issues
+    //   }
+    //   // refresh the local RTE (text probably changed)
+    //   EventBus.$emit('refresh-local-text', text)
+    // }
+
     // commit to local store
     store.dispatch('commitRegionUpdate', { region, update })
 
@@ -302,7 +344,7 @@ const actions = {
 
     const user = await UserService.getUser()
     const queuedUpdate = saveState.REGION_INTERMEDIARY
-    const keysToEncode = ['text', 'issues', 'comments']
+    const keysToEncode = ['text', 'issues', 'comments', 'regionAnalysis']
     keysToEncode.forEach((key) => {
       if (queuedUpdate[key] && typeof queuedUpdate[key] !== 'string') {
         queuedUpdate[key] = JSON.stringify(queuedUpdate[key])
@@ -340,11 +382,14 @@ const actions = {
 
     // TODO: test this
     // check to see if the incoming update has different start/end times
-    if (incoming.start !== existing.start || incoming.end !== existing.end) {
-      // TODO: this can be further optimized to only update
-      // when the start time goes below/above neighbor regions
-      resetIndexes = true
+    if (incoming.start || incoming.end) {
+      if (incoming.start !== existing.start || incoming.end !== existing.end) {
+        // TODO: this can be further optimized to only update
+        // when the start time goes below/above neighbor regions
+        resetIndexes = true
+      }
     }
+    console.log('commitRegionUpdate, reset indices? ', resetIndexes)
     store.commit('UPDATE_REGION', update)
     
     if (resetIndexes) {
@@ -400,6 +445,10 @@ const mutations = {
 
   SET_REGION_MAP(context, map) {
     Vue.set(context, 'regionMap', map)
+  },
+
+  SET_ISSUE_MAP(context, map) {
+    Vue.set(context, 'issueMap', map)
   },
 
   SET_SELECTED_ISSUE(context, issue) {

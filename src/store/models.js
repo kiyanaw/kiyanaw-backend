@@ -108,6 +108,7 @@ class RegionModel {
     // this.updatedAt = data.updatedAt
     this.userLastUpdated = data.userLastUpdated
 
+
     // indexes
     this.displayIndex = data.displayIndex
     this.index = data.index
@@ -125,13 +126,29 @@ class RegionModel {
 
     // text
     if (data.text) {
-      if (typeof data.text === 'string') {
-        this.text = JSON.parse(data.text)
-      } else {
-        this.text = data.text
-      }
+      /** OLD CODE
+      // if (typeof data.text === 'string') {
+      //   this.text = JSON.parse(data.text)
+      // } else {
+      //   this.text = data.text
+      // }
+      */
+      this.text = data.regionText
+      this.regionText = data.regionText
     } else {
-      this.text = []
+      this.text = ''
+      this.regionText = ''
+    }
+
+    // analysis
+    if (data.regionAnalysis) {
+      if (typeof data.regionAnalysis === 'string') {
+        this.regionAnalysis = JSON.parse(data.regionAnalysis)
+      } else {
+        this.regionAnalysis = data.regionAnalysis
+      }
+    } else { 
+      this.regionAnalysis = []
     }
 
     // issues

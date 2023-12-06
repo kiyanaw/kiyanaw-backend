@@ -147,6 +147,11 @@ export default {
   },
 
   mounted() {
+    // console.log('RegionForm mounted, selected region', this.selectedRegion)
+    if (this.selectedRegion) {
+      this.checkForKnownWords(true)
+      this.applyIssuesFormatting()
+    }
   },
 
   data() {
@@ -159,6 +164,7 @@ export default {
   watch: {
     // TODO: this needs tests, only update the region if it has changed
     selectedRegion(newRegion, oldRegion) {
+      logger.info('Set selected region')
       let updateContents = true
       if (newRegion) {
         if (oldRegion && oldRegion.id === newRegion.id) {
@@ -166,7 +172,7 @@ export default {
         }
       }
       if (updateContents) {
-        logger.debug('setting text for both editors', newRegion.translation)
+        logger.info('setting text for both editors', newRegion.translation)
         /**
          * Micro-delay to allow editors to mount the first time.
          */
@@ -221,8 +227,8 @@ export default {
     },
 
     onMainEditorContentChange(contents) {
-      // console.log('!! update region called')
-      this.updateRegion({ text: contents })
+      console.log('!! update region called', contents)
+      this.updateRegion({ regionText: contents })
 
       // additionally check for known words
       this.checkForKnownWords(true)
@@ -247,7 +253,8 @@ export default {
     },
 
     onToggleRegionType() {
-      const existingTextLength = this.selectedRegion.text.map((item) => item.insert).join('').length
+      // const existingTextLength = this.selectedRegion.text.map((item) => item.insert).join('').length
+      const existingTextLength = this.selectedRegion.text.length
       if (existingTextLength) {
         alert('Cannot convert non-empty region to note!')
         return
@@ -258,19 +265,19 @@ export default {
     /**
      * Quickly apply known words to the current region, then do a search on anything left over.
      */
-    checkForKnownWords(doUpdate = false) {
-      logger.debug(`Checking for known words in editor, (doUpdate: ${doUpdate})`)
+    checkForKnownWords() {
+      logger.debug(`Checking for known words in editor`)
       if (this.transcription.disableAnalyzer || this.selectedRegion.isNote) {
         return
       }
       // clear out any typing changes
-      this.applyKnownWords(doUpdate)
+      this.applyKnownWords()
 
       // throttle word checking
       Timeout.clear('check-known-words-timer')
       Timeout.set(
         'check-known-words-timer',
-        () => {
+        () => { 
           const words = Object.keys(this.getTextMapFromDeltas(this.selectedRegion.text))
           logger.debug('Words to check', words)
 
@@ -280,7 +287,7 @@ export default {
           logger.debug('Words to search for', difference)
 
           Lexicon.wordSearch(difference, () => {
-            this.applyKnownWords(doUpdate)
+            this.applyKnownWords()
             this.applySuggestions()
           })
         },
@@ -288,26 +295,32 @@ export default {
       )
     },
 
+    async applyIssuesFormatting() {
+      logger.info('Apply issue formatting')
+    },
+
     /**
      * Apply known words from the Lexicon to the current editor.
      */
-    async applyKnownWords(doUpdate = false) {
-      logger.debug(`applyKnownWords, (doUpdate: ${doUpdate})`)
+    async applyKnownWords() {
+      logger.debug(`applyKnownWords called`)
+
       // check for words to search
       const knownWords = Lexicon.getKnownWords()
       const wordMap = this.getTextMapFromDeltas(this.selectedRegion.text)
       const matches = Object.keys(wordMap).filter((needle) => knownWords.includes(needle))
+      const analysis = this.selectedRegion.regionAnalysis
 
-      if (matches.length) {
-        let applyFunc
-        if (!doUpdate) {
-          // hint known word
-          applyFunc = this.editorApplyKnownHint
-        } else {
-          logger.debug('Should! clear known words')
-          this.editorClearKnownWords()
-          applyFunc = this.editorApplyKnownWords
+      let haveNewKnownWords = false
+      for (const word of matches) {
+        if (!analysis.includes(word)) {
+          haveNewKnownWords = true
         }
+      }
+
+      logger.debug("Should apply known words", matches.length)
+      if (matches.length) {
+
         // notify main editor to adjust formatting
         for (const match of matches) {
           let bits = wordMap[match]
@@ -317,11 +330,17 @@ export default {
           logger.debug('Applying match', match, bits)
           bits.forEach((bit) => {
             // either highlight known words, or apply hints
-            applyFunc(bit.index, bit.length)
+            this.editorApplyKnownWords(bit.index, bit.length)
           })
         }
       } else {
         this.editorClearKnownWords()
+      }
+
+      // SAVE update here
+      if (haveNewKnownWords) {
+        logger.debug("SAVING BECAUSE NEW KNOWN WORDS")
+        this.updateRegion({ regionAnalysis: matches})
       }
     },
 
@@ -353,10 +372,10 @@ export default {
      * See tests for more details region-form.spec.js
      */
     getTextMapFromDeltas(deltas) {
-      let text = ''
-      for (const item of deltas) {
-        text += item.insert
-      }
+      let text = deltas || '' 
+      // for (const item of deltas) {
+      //   text += item.insert
+      // }
 
       // 'this i[s] some, text'
       let original = text
@@ -430,10 +449,6 @@ export default {
     // wrapper for testing
     editorApplyKnownWords(index, length) {
       this.$refs.mainEditor.applyKnownWord(index, length)
-    },
-    // wrapper for testing
-    editorApplyKnownHint(index, length) {
-      this.$refs.mainEditor.applyKnownHint(index, length)
     },
     // wrapper for testing
     editorApplySuggestion(index, length) {

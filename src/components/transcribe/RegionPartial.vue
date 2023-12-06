@@ -39,7 +39,6 @@ export default {
 
     editor() { 
       const editorObject = this.editingUsers[this.source.id]
-      console.log('editorObject', editorObject)
       if (editorObject && editorObject.length) {
         return editorObject.map((item) => `<span style="color: ${item.color}">${item.user}</span>`).join(', ')
       } else {
@@ -77,29 +76,43 @@ export default {
 
   methods: {
     html(source) {
-      const out = source.text
-        .map((item) => {
-          let classes = []
-          if (item.attributes) {
-            classes = Object.keys(item.attributes)
-          }
+      // const out = source.text
+      //   .map((item) => {
+      //     let classes = []
+      //     if (item.attributes) {
+      //       classes = Object.keys(item.attributes)
+      //     }
 
-          if (this.transcription.disableAnalyzer) {
-            classes = classes.filter((item) => !item.startsWith('known'))
-          }
-          // console.log('disable analyzer', this.transcription.disableAnalyzer)
-          // console.log('classes', classes)
+      //     if (this.transcription.disableAnalyzer) {
+      //       classes = classes.filter((item) => !item.startsWith('known'))
+      //     }
+      //     // console.log('disable analyzer', this.transcription.disableAnalyzer)
+      //     // console.log('classes', classes)
 
-          const content = item.insert || ''
-          if (classes.length) {
-            return `<span class="${classes.join(' ')}">${content}</span>`
-          } else {
-            return content
-          }
-        })
-        .join('')
+      //     const content = item.insert || ''
+      //     if (classes.length) {
+      //       return `<span class="${classes.join(' ')}">${content}</span>`
+      //     } else {
+      //       return content
+      //     }
+      //   })
+      //   .join('')
 
-      return `${out}`
+      // return `${out}`
+      const text = source.text || ''
+      const bits = text.trim().split(' ')
+
+      const out = bits.map((item) => {
+        if (source.regionAnalysis.includes(item)) {
+          return `<span class="known-word">${item}</span>`
+        } else {
+          return item
+        } 
+      })
+
+      return `${out.join(' ')}`
+      // TODO: render issues and known words
+      // return source.text
     },
     dispatch() {
       // this is a hack around the virual list thing

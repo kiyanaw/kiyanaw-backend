@@ -1,5 +1,5 @@
 import { DataStore } from 'aws-amplify'
-import { Transcription, TranscriptionContributor, Region, Contributor, Pointer } from '../models'
+import { Transcription, TranscriptionContributor, Region, Contributor, Pointer, Issue } from '../models'
 
 import Vue from 'vue'
 import Timeout from 'smart-timeout'
@@ -67,15 +67,16 @@ const actions = {
   async loadTranscription(store, transcriptionId) {
     assert.ok(store, 'store must be provided')
     assert.ok(transcriptionId, 'transcriptionId must be provided')
-    let [transcription, regions] = await Promise.all([
+    let [transcription, regions, issues] = await Promise.all([
       DataStore.query(Transcription, transcriptionId),
       DataStore.query(Region, (r) => r.transcription.id.eq(transcriptionId)),
+      DataStore.query(Issue, (i) => i.transcription.id.eq(transcriptionId)),
     ])
 
     transcription = new models.TranscriptionModel(transcription)
 
     // TODO: convert to store.dispatch('', ...)
-    actions.onLoadTranscription(store, transcription, regions)
+    actions.onLoadTranscription(store, transcription, regions, issues)
 
   },
 
@@ -90,7 +91,7 @@ const actions = {
    * @param {Object} transcription
    * @param {Array<Object>} regions
    */
-  async onLoadTranscription(store, transcription, regions) {
+  async onLoadTranscription(store, transcription, regions, issues) {
     assert.ok(store, 'store must be provided')
     assert.ok(transcription, 'transcription must be provided')
     assert.ok(regions, 'regions must be provided')
@@ -103,6 +104,7 @@ const actions = {
       return
     }
 
+    store.dispatch('setIssues', issues)
     store.dispatch('setTranscription', transcription)
     store.dispatch('setRegions', regions)
 
@@ -171,7 +173,6 @@ const actions = {
 
   // TODO: needs tests
   async onDeleteRegionSubscription(store, message) {
-    // console.log('message', message)
     if (message.opType === 'DELETE') {
       const transcriptionId = store.getters.transcription.id
       if (

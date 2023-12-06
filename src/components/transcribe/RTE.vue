@@ -96,7 +96,7 @@ export default {
         EventBus.$on('realtime-region-update', (incoming) => {
           if (this.mode === 'main') {
             const incomingText = new Delta(incoming.text)
-            const local = this.editor.getContents()
+            const local = this.editor.getText()
             const difference = local.diff(incomingText)
             this.editor.updateContents(difference, 'api')
 
@@ -130,7 +130,7 @@ export default {
           console.log('refresh local text', text)
           if (this.mode === 'main') {
             const incomingText = new Delta(text)
-            const local = this.editor.getContents()
+            const local = this.editor.getText()
             const difference = local.diff(incomingText)
             this.editor.updateContents(difference, 'api')
           }
@@ -144,7 +144,8 @@ export default {
       // Only emit user changes
       if (source === 'user') {
         logger.debug('user change', delta)
-        this.maybeAddASpaceAtTheEnd()
+        // remove this because probably not needed with text-only input
+        // this.maybeAddASpaceAtTheEnd()
 
         // throttle updates a little
         Timeout.clear('rte-change-timeout')
@@ -234,19 +235,7 @@ export default {
       this.editor.formatText(index, length, 'suggestion', false)
       // trigger change for save
       logger.debug('apply known word', index, length)
-      this.emitChangeEvent('change-format')
-    },
-
-    applyKnownHint(index, length) {
-      if (!this.analyze) {
-        return
-      }
-      logger.debug('applying known hint', index, length)
-      // check for known-word
-      const currentFormat = this.editor.getFormat(index, length)
-      if (Object.keys(currentFormat).indexOf('known-word') === -1) {
-        this.editor.formatText(index, length, 'suggestion-known', true, 'silent')
-      }
+      // this.emitChangeEvent('change-format')
     },
 
     applySuggestion(index, length) {
@@ -326,33 +315,24 @@ export default {
      * Checks the editor to see if there is a space at the end of the text, adds one if not. This is
      * to allow for typing at the end of the text outside of any existing formatting.
      */
-    maybeAddASpaceAtTheEnd() {
-      // check to see if there is a space at the end of the text
-      const contents = this.editor.getText()
-      const characters = contents.split('')
-      characters.pop() // remove the newline
-      const lastItemIndex = characters.length
-      const lastItem = characters.pop()
-      if (lastItem !== ' ') {
-        this.editor.insertText(lastItemIndex, ' ', 'api')
-        this.editor.removeFormat(lastItemIndex, lastItemIndex + 1, 'api')
-      }
-    },
+    // maybeAddASpaceAtTheEnd() {
+    //   // check to see if there is a space at the end of the text
+    //   const contents = this.editor.getText()
+    //   const characters = contents.split('')
+    //   characters.pop() // remove the newline
+    //   const lastItemIndex = characters.length
+    //   const lastItem = characters.pop()
+    //   if (lastItem !== ' ') {
+    //     this.editor.insertText(lastItemIndex, ' ', 'api')
+    //     this.editor.removeFormat(lastItemIndex, lastItemIndex + 1, 'api')
+    //   }
+    // },
 
     /**
      * Will signal that the editor has changed and needs to be saved.
      */
     emitChangeEvent(event) {
-      let contents = this.editor.getContents().ops
-      // strip out any 'suggestion' markup
-      contents = contents.map((item) => {
-        if (item.attributes) {
-          delete item.attributes.suggestion
-          delete item.attributes['suggestion-known']
-        }
-        return item
-      })
-      this.$emit(event, contents)
+      this.$emit(event, this.editor.getText())
     },
 
   },
