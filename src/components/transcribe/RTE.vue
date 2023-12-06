@@ -227,6 +227,11 @@ export default {
       this.emitChangeEvent('change-format')
     },
 
+    applyIssue(index, length, type) {
+      console.log('applying format for issue', type)
+      this.editor.formatText(index, length, `issue-${type}`, true)
+    },
+
     applyKnownWord(index, length) {
       if (!this.analyze) {
         return

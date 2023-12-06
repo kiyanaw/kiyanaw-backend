@@ -114,7 +114,7 @@ const SET_CONTENTS_TIMING = 25
 export default {
   components: { rte: RTE },
   computed: {
-    ...mapGetters(['selectedIssue', 'selectedRegion', 'transcription', 'user']),
+    ...mapGetters(['selectedIssue', 'selectedRegion', 'transcription', 'user', 'issueMap']),
 
     /**
      * Disable inputs if not EDITOR
@@ -149,7 +149,7 @@ export default {
   mounted() {
     // console.log('RegionForm mounted, selected region', this.selectedRegion)
     if (this.selectedRegion) {
-      this.checkForKnownWords(true)
+      this.checkForKnownWords()
       this.applyIssuesFormatting()
     }
   },
@@ -178,7 +178,8 @@ export default {
          */
         setTimeout(() => {
           this.doSetEditorsContents(newRegion)
-          this.checkForKnownWords(false)
+          this.checkForKnownWords()
+          this.applyIssuesFormatting()
         }, SET_CONTENTS_TIMING)
       }
     },
@@ -231,7 +232,7 @@ export default {
       this.updateRegion({ regionText: contents })
 
       // additionally check for known words
-      this.checkForKnownWords(true)
+      this.checkForKnownWords()
     },
 
     onPlayRegion() {
@@ -297,6 +298,18 @@ export default {
 
     async applyIssuesFormatting() {
       logger.info('Apply issue formatting')
+      const regionId = this.selectedRegion.id
+      const myIssues = this.issueMap[regionId]
+      if (myIssues) {
+        myIssues.forEach((issue) => {
+          console.log('got issues', issue)
+          const index = issue.index
+          const length = issue.text.length
+          const type = issue.type
+          this.$refs.mainEditor.applyIssue(index, length, type)
+        })
+      }
+
     },
 
     /**
