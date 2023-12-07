@@ -181,7 +181,7 @@ const actions = {
         }
         // TODO: this needs to be a model
         // remove "managed" fields like `createdAt`
-        const { id, text, owner, index, type, resolved, comments, regionId, transcriptionId } = issue
+        const { id, text, owner, index, type, resolved, createdAt, comments, regionId, transcriptionId } = issue
         issue = {
           id,
           text,
@@ -189,6 +189,7 @@ const actions = {
           index,
           resolved,
           type,
+          createdAt,
           comments,
           regionId,
           transcriptionId,
@@ -247,6 +248,8 @@ const actions = {
   async updateRegionIssue(store, update) {
     const { regionId, issueId, issueUpdate } = update
 
+    logger.info('Issues update', issueId, issueUpdate)
+
     // update issue map
     let index
     store.getters.issueMap[regionId].forEach((item, i) => {
@@ -267,7 +270,7 @@ const actions = {
       store.getters.issueMap[regionId].push(storeUpdate)
       // apply to selected issue
   
-      console.log('issues updated', store.getters.issueMap[regionId])
+      // console.log('issues updated', store.getters.issueMap[regionId])
   
       // notify components
       EventBus.$emit('issues-updated')

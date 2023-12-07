@@ -209,9 +209,14 @@ export default {
       if (this.selectedRegion) {
         // logger.log('issue map changed')
         const regionId = this.selectedRegion.id
-        const issues = this.issueMap[regionId] || []
-        console.log('issues', issues[0].id)
-        console.log('issues', issues[1].id)
+        let issues = this.issueMap[regionId] || []
+
+        issues = issues.sort((a, b) => {
+          if (a.createdAt < b.createdAt) return 1
+          if (a.createdAt > b.createdAt) return -1
+          return 0
+        })
+
         return issues
       }
       return []
@@ -221,14 +226,11 @@ export default {
       if (this.selectedIssue) {
 
         const issues = [...this.issues]
-        console.log('got issues', issues[0].id)
-        console.log('got issues', issues[1].id)
         const issueId = this.selectedIssue.id
         if (issues) {
           const thisIssue = issues.filter((i) => i.id === issueId).pop()
           const comments = [...thisIssue.comments]
-          console.log('got comments', comments)
-  
+
           return comments.sort((a, b) => {
             if (a.createdAt < b.createdAt) return 1
             if (a.createdAt > b.createdAt) return -1
@@ -351,6 +353,8 @@ export default {
         issueId: issue.id,
         issueUpdate: { resolved: newResolved }
       })
+
+      this.selectedIssue.resolved = newResolved
     },
   },
 }
