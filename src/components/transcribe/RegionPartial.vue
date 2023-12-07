@@ -26,9 +26,10 @@ export default {
   props: ['index', 'source'],
 
   computed: {
-    ...mapGetters(['editingUsers', 'lockedRegionNames', 'locks', 'user', 'transcription']),
+    ...mapGetters(['editingUsers', 'lockedRegionNames', 'locks', 'user', 'transcription', 'issueMap']),
 
     editorStyle() {
+      // TODO: come back to this
       // const editorObject = this.editingUsers[this.source.id]
       // if (editorObject) {
       //   return `border-left: 2px solid ${editorObject.color}`
@@ -96,13 +97,16 @@ export default {
         runningIndex = runningIndex + bit.length + 1
       })
 
-      // apply issues
-      const issues = source.issues
+      // apply issues, filtering out empty ones
+      const regionId = source.id
+      const issues = this.issueMap[regionId] || []
       issues.forEach((issue) => {
-        const typeKey = `issue-${issue.type}`
-        const type = { [typeKey]: true }
-        const change = new Delta().retain(issue.index).retain(issue.text.length, type)
-        delta = delta.compose(change)
+        if (!issue.resolved) {
+          const typeKey = `issue-${issue.type}`
+          const type = { [typeKey]: true }
+          const change = new Delta().retain(issue.index).retain(issue.text.length, type)
+          delta = delta.compose(change)
+        }
       })
 
       const out = delta.ops

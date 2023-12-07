@@ -206,6 +206,13 @@ export default {
       this.suggestionRange = null
     },
 
+    clearIssues() {
+      logger.debug('clear issues')
+      this.editor.formatText(0, 9999, 'issue-needs-help', false)
+      this.editor.formatText(0, 9999, 'issue-indexing', false)
+      this.editor.formatText(0, 9999, 'issue-new-word', false)
+    },
+
     clearKnownWords() {
       logger.debug('clear known words')
       this.editor.formatText(0, 9999, 'known-word', false)
@@ -218,13 +225,13 @@ export default {
 
     ignoreWord() {
       this.editor.format('ignore-word', true)
-      this.emitChangeEvent('change-format')
+      // this.emitChangeEvent('change-format')
     },
 
     clearFormat() {
       const range = this.editor.getSelection()
       this.editor.removeFormat(range.index, range.length)
-      this.emitChangeEvent('change-format')
+      // this.emitChangeEvent('change-format')
     },
 
     applyIssue(index, length, type) {

@@ -299,6 +299,7 @@ export const createIssue = /* GraphQL */ `
       text
       owner
       index
+      resolved
       type
       comments
       regionId
@@ -345,6 +346,7 @@ export const updateIssue = /* GraphQL */ `
       text
       owner
       index
+      resolved
       type
       comments
       regionId
@@ -391,6 +393,7 @@ export const deleteIssue = /* GraphQL */ `
       text
       owner
       index
+      resolved
       type
       comments
       regionId

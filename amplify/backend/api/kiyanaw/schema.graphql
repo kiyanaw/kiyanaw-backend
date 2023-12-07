@@ -53,6 +53,7 @@ type Issue
   text: String!
   owner: String! @index(name: "ByOwner")
   index: Int!
+  resolved: Boolean
   type: String! @index(name: "ByType")
   comments: AWSJSON
   regionId: String!

@@ -266,6 +266,7 @@ export const getIssue = /* GraphQL */ `
       text
       owner
       index
+      resolved
       type
       comments
       regionId
@@ -322,6 +323,7 @@ export const listIssues = /* GraphQL */ `
         text
         owner
         index
+        resolved
         type
         comments
         regionId
@@ -357,6 +359,7 @@ export const syncIssues = /* GraphQL */ `
         text
         owner
         index
+        resolved
         type
         comments
         regionId

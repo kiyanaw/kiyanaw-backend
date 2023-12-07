@@ -137,6 +137,7 @@ type EagerIssue = {
   readonly text: string;
   readonly owner: string;
   readonly index: number;
+  readonly resolved?: boolean | null;
   readonly type: string;
   readonly comments?: string | null;
   readonly regionId: string;
@@ -150,6 +151,7 @@ type LazyIssue = {
   readonly text: string;
   readonly owner: string;
   readonly index: number;
+  readonly resolved?: boolean | null;
   readonly type: string;
   readonly comments?: string | null;
   readonly regionId: string;

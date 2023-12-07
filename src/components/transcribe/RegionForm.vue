@@ -101,6 +101,7 @@ import Timeout from 'smart-timeout'
 
 import RTE from './RTE.vue'
 import Lexicon from '../../services/lexicon'
+import EventBus from '../../store/bus'
 
 import logging from '../../logging'
 const logger = new logging.Logger('Region Form')
@@ -152,6 +153,10 @@ export default {
       this.checkForKnownWords()
       this.applyIssuesFormatting()
     }
+
+    EventBus.$on('issues-updated', () => {
+      this.applyIssuesFormatting()
+    })
   },
 
   data() {
@@ -171,6 +176,7 @@ export default {
           updateContents = false
         }
       }
+
       if (updateContents) {
         logger.info('setting text for both editors', newRegion.translation)
         /**
@@ -179,9 +185,13 @@ export default {
         setTimeout(() => {
           this.doSetEditorsContents(newRegion)
           this.checkForKnownWords()
-          this.applyIssuesFormatting()
         }, SET_CONTENTS_TIMING)
       }
+
+      // attempt to apply issue formatting regardless
+      setTimeout(() => {
+        this.applyIssuesFormatting()
+      }, SET_CONTENTS_TIMING)
     },
   },
 
@@ -193,14 +203,19 @@ export default {
     ]),
 
     onNavigateToCreateIssueForm() {
+
+      const regionId = this.selectedRegion.id
+      const transcriptionId = this.transcription.id
+
       this.setSelectedIssue({
         id: null,
         type: 'needs-help',
-        createdAt: +new Date(),
         index: this.selectedRange.index,
         text: this.selectedRange.text,
         comments: [],
         owner: this.user.name,
+        regionId,
+        transcriptionId,
       })
       this.$emit('show-create-issue-form')
     },
@@ -297,16 +312,20 @@ export default {
     },
 
     async applyIssuesFormatting() {
-      logger.info('Apply issue formatting')
+      logger.debug('Apply issue formatting')
+      // clear format first
+      this.$refs.mainEditor.clearIssues()
+
       const regionId = this.selectedRegion.id
       const myIssues = this.issueMap[regionId]
       if (myIssues) {
         myIssues.forEach((issue) => {
-          console.log('got issues', issue)
-          const index = issue.index
-          const length = issue.text.length
-          const type = issue.type
-          this.$refs.mainEditor.applyIssue(index, length, type)
+          if (!issue.resolved) {
+            const index = issue.index
+            const length = issue.text.length
+            const type = issue.type
+            this.$refs.mainEditor.applyIssue(index, length, type)
+          }
         })
       }
 
