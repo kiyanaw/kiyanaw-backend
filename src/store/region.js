@@ -1,5 +1,5 @@
 import * as assert from 'assert'
-import { DataStore, Hub } from 'aws-amplify'
+import { DataStore, Hub, syncExpression } from 'aws-amplify'
 import { Issue, Pointer, Region, Transcription } from '../models'
 // import Quill from 'quill'
 
@@ -17,6 +17,27 @@ import models from './models'
 // import EventBus from './bus'
 
 const logger = new logging.Logger('Region Store')
+
+/**
+ * Set up DataStore sync expression to reduce the # of data
+ */
+
+let syncTranscription = '--unset--'
+
+async function setSyncTranscription(transcriptionId) {
+  syncTranscription = transcriptionId
+  await DataStore.stop()
+  await DataStore.start()
+}
+
+DataStore.configure({
+  syncExpressions: [
+    syncExpression(Region, () => {
+      return (r) => r.transcriptionId.eq(syncTranscription)
+    }),
+  ],
+})
+
 
 /**
  * An internal "save state" that keeps track of the queued
@@ -573,4 +594,5 @@ export default {
   mutations,
   // for testing
   saveState,
+  setSyncTranscription,
 }

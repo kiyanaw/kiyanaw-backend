@@ -26,8 +26,7 @@ const indexKnownWords = async (region, transcription) => {
     .map((item) => item.insert)
   console.log('Words to index', words)
 
-  // const sentence = text.map((item) => item.insert).join('')
-  const sentent = text
+  const sentence = text.map((item) => item.insert).join('')
 
   for (const word of words) {
     let surface = utils.toCircumflex(word)

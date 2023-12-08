@@ -74,6 +74,8 @@ import StationaryEditor from './StationaryEditor.vue'
 import RegionPartial from './RegionPartial.vue'
 import UserService from '../../services/user'
 import EventBus from '../../store/bus'
+import RegionStore from '../../store/region'
+
 
 import Lookup from './Lookup.vue'
 
@@ -189,6 +191,8 @@ export default {
      */
     this.transcriptionId = this.$route.params.id
     this.inboundRegion = this.$route.params.region || null
+
+    await RegionStore.setSyncTranscription(this.transcriptionId)
 
     /**
      * Set up a subscription for new cursor changes.

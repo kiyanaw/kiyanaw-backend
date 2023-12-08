@@ -60,16 +60,14 @@
 
 <script>
 import { mapActions, mapGetters } from 'vuex'
-
 import { DataStore, Hub } from 'aws-amplify'
-
 import en from 'javascript-time-ago/locale/en'
 import TimeAgo from 'javascript-time-ago'
-TimeAgo.addLocale(en)
-const timeAgo = new TimeAgo('en-US')
-
 
 import { Region, Transcription, Contributor, TranscriptionContributor } from '../../models'
+
+TimeAgo.addLocale(en)
+const timeAgo = new TimeAgo('en-US')
 
 export default {
   data() {
@@ -88,7 +86,17 @@ export default {
       ],
     }
   },
-  mounted() {
+  async mounted() {
+
+
+    // Set up selective sync for *just* our own transcriptions
+    // DataStore.configure({
+    //   syncExpressions: [
+    //     syncExpression(Region, () => {
+    //       return (r) => r.transcriptionId.eq('115f0bd0')
+    //     }),
+    //   ]
+    // });
 
 
 
@@ -100,7 +108,8 @@ export default {
       }
     })
 
-    DataStore.start()
+    await DataStore.stop()
+    await DataStore.start()
 
 
     window.DataStore = DataStore

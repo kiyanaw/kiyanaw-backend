@@ -24,24 +24,18 @@ export const createTranscription = /* GraphQL */ `
       disableAnalyzer
       contributors {
         nextToken
-        startedAt
         __typename
       }
       regions {
         nextToken
-        startedAt
         __typename
       }
       issueList {
         nextToken
-        startedAt
         __typename
       }
       createdAt
       updatedAt
-      _version
-      _deleted
-      _lastChangedAt
       __typename
     }
   }
@@ -69,24 +63,18 @@ export const updateTranscription = /* GraphQL */ `
       disableAnalyzer
       contributors {
         nextToken
-        startedAt
         __typename
       }
       regions {
         nextToken
-        startedAt
         __typename
       }
       issueList {
         nextToken
-        startedAt
         __typename
       }
       createdAt
       updatedAt
-      _version
-      _deleted
-      _lastChangedAt
       __typename
     }
   }
@@ -114,24 +102,18 @@ export const deleteTranscription = /* GraphQL */ `
       disableAnalyzer
       contributors {
         nextToken
-        startedAt
         __typename
       }
       regions {
         nextToken
-        startedAt
         __typename
       }
       issueList {
         nextToken
-        startedAt
         __typename
       }
       createdAt
       updatedAt
-      _version
-      _deleted
-      _lastChangedAt
       __typename
     }
   }
@@ -172,17 +154,11 @@ export const createRegion = /* GraphQL */ `
         disableAnalyzer
         createdAt
         updatedAt
-        _version
-        _deleted
-        _lastChangedAt
         __typename
       }
       transcriptionId
       createdAt
       updatedAt
-      _version
-      _deleted
-      _lastChangedAt
       __typename
     }
   }
@@ -223,17 +199,11 @@ export const updateRegion = /* GraphQL */ `
         disableAnalyzer
         createdAt
         updatedAt
-        _version
-        _deleted
-        _lastChangedAt
         __typename
       }
       transcriptionId
       createdAt
       updatedAt
-      _version
-      _deleted
-      _lastChangedAt
       __typename
     }
   }
@@ -274,17 +244,11 @@ export const deleteRegion = /* GraphQL */ `
         disableAnalyzer
         createdAt
         updatedAt
-        _version
-        _deleted
-        _lastChangedAt
         __typename
       }
       transcriptionId
       createdAt
       updatedAt
-      _version
-      _deleted
-      _lastChangedAt
       __typename
     }
   }
@@ -321,17 +285,11 @@ export const createIssue = /* GraphQL */ `
         disableAnalyzer
         createdAt
         updatedAt
-        _version
-        _deleted
-        _lastChangedAt
         __typename
       }
       transcriptionId
       createdAt
       updatedAt
-      _version
-      _deleted
-      _lastChangedAt
       __typename
     }
   }
@@ -368,17 +326,11 @@ export const updateIssue = /* GraphQL */ `
         disableAnalyzer
         createdAt
         updatedAt
-        _version
-        _deleted
-        _lastChangedAt
         __typename
       }
       transcriptionId
       createdAt
       updatedAt
-      _version
-      _deleted
-      _lastChangedAt
       __typename
     }
   }
@@ -415,17 +367,11 @@ export const deleteIssue = /* GraphQL */ `
         disableAnalyzer
         createdAt
         updatedAt
-        _version
-        _deleted
-        _lastChangedAt
         __typename
       }
       transcriptionId
       createdAt
       updatedAt
-      _version
-      _deleted
-      _lastChangedAt
       __typename
     }
   }
@@ -441,9 +387,6 @@ export const createCursor = /* GraphQL */ `
       cursor
       createdAt
       updatedAt
-      _version
-      _deleted
-      _lastChangedAt
       __typename
     }
   }
@@ -459,9 +402,6 @@ export const updateCursor = /* GraphQL */ `
       cursor
       createdAt
       updatedAt
-      _version
-      _deleted
-      _lastChangedAt
       __typename
     }
   }
@@ -477,66 +417,6 @@ export const deleteCursor = /* GraphQL */ `
       cursor
       createdAt
       updatedAt
-      _version
-      _deleted
-      _lastChangedAt
-      __typename
-    }
-  }
-`;
-export const createUserCursor = /* GraphQL */ `
-  mutation CreateUserCursor(
-    $input: CreateUserCursorInput!
-    $condition: ModelUserCursorConditionInput
-  ) {
-    createUserCursor(input: $input, condition: $condition) {
-      id
-      transcription
-      region
-      cursor
-      createdAt
-      updatedAt
-      _version
-      _deleted
-      _lastChangedAt
-      __typename
-    }
-  }
-`;
-export const updateUserCursor = /* GraphQL */ `
-  mutation UpdateUserCursor(
-    $input: UpdateUserCursorInput!
-    $condition: ModelUserCursorConditionInput
-  ) {
-    updateUserCursor(input: $input, condition: $condition) {
-      id
-      transcription
-      region
-      cursor
-      createdAt
-      updatedAt
-      _version
-      _deleted
-      _lastChangedAt
-      __typename
-    }
-  }
-`;
-export const deleteUserCursor = /* GraphQL */ `
-  mutation DeleteUserCursor(
-    $input: DeleteUserCursorInput!
-    $condition: ModelUserCursorConditionInput
-  ) {
-    deleteUserCursor(input: $input, condition: $condition) {
-      id
-      transcription
-      region
-      cursor
-      createdAt
-      updatedAt
-      _version
-      _deleted
-      _lastChangedAt
       __typename
     }
   }
@@ -553,9 +433,6 @@ export const createPointer = /* GraphQL */ `
       cursor
       createdAt
       updatedAt
-      _version
-      _deleted
-      _lastChangedAt
       __typename
     }
   }
@@ -572,9 +449,6 @@ export const updatePointer = /* GraphQL */ `
       cursor
       createdAt
       updatedAt
-      _version
-      _deleted
-      _lastChangedAt
       __typename
     }
   }
@@ -591,9 +465,6 @@ export const deletePointer = /* GraphQL */ `
       cursor
       createdAt
       updatedAt
-      _version
-      _deleted
-      _lastChangedAt
       __typename
     }
   }
@@ -610,9 +481,6 @@ export const createRegionLock = /* GraphQL */ `
       user
       createdAt
       updatedAt
-      _version
-      _deleted
-      _lastChangedAt
       __typename
     }
   }
@@ -629,9 +497,6 @@ export const updateRegionLock = /* GraphQL */ `
       user
       createdAt
       updatedAt
-      _version
-      _deleted
-      _lastChangedAt
       __typename
     }
   }
@@ -648,9 +513,6 @@ export const deleteRegionLock = /* GraphQL */ `
       user
       createdAt
       updatedAt
-      _version
-      _deleted
-      _lastChangedAt
       __typename
     }
   }
@@ -666,14 +528,10 @@ export const createContributor = /* GraphQL */ `
       username
       transcriptions {
         nextToken
-        startedAt
         __typename
       }
       createdAt
       updatedAt
-      _version
-      _deleted
-      _lastChangedAt
       __typename
     }
   }
@@ -689,14 +547,10 @@ export const updateContributor = /* GraphQL */ `
       username
       transcriptions {
         nextToken
-        startedAt
         __typename
       }
       createdAt
       updatedAt
-      _version
-      _deleted
-      _lastChangedAt
       __typename
     }
   }
@@ -712,14 +566,10 @@ export const deleteContributor = /* GraphQL */ `
       username
       transcriptions {
         nextToken
-        startedAt
         __typename
       }
       createdAt
       updatedAt
-      _version
-      _deleted
-      _lastChangedAt
       __typename
     }
   }
@@ -751,9 +601,6 @@ export const createTranscriptionContributor = /* GraphQL */ `
         disableAnalyzer
         createdAt
         updatedAt
-        _version
-        _deleted
-        _lastChangedAt
         __typename
       }
       contributor {
@@ -762,16 +609,10 @@ export const createTranscriptionContributor = /* GraphQL */ `
         username
         createdAt
         updatedAt
-        _version
-        _deleted
-        _lastChangedAt
         __typename
       }
       createdAt
       updatedAt
-      _version
-      _deleted
-      _lastChangedAt
       __typename
     }
   }
@@ -803,9 +644,6 @@ export const updateTranscriptionContributor = /* GraphQL */ `
         disableAnalyzer
         createdAt
         updatedAt
-        _version
-        _deleted
-        _lastChangedAt
         __typename
       }
       contributor {
@@ -814,16 +652,10 @@ export const updateTranscriptionContributor = /* GraphQL */ `
         username
         createdAt
         updatedAt
-        _version
-        _deleted
-        _lastChangedAt
         __typename
       }
       createdAt
       updatedAt
-      _version
-      _deleted
-      _lastChangedAt
       __typename
     }
   }
@@ -855,9 +687,6 @@ export const deleteTranscriptionContributor = /* GraphQL */ `
         disableAnalyzer
         createdAt
         updatedAt
-        _version
-        _deleted
-        _lastChangedAt
         __typename
       }
       contributor {
@@ -866,16 +695,10 @@ export const deleteTranscriptionContributor = /* GraphQL */ `
         username
         createdAt
         updatedAt
-        _version
-        _deleted
-        _lastChangedAt
         __typename
       }
       createdAt
       updatedAt
-      _version
-      _deleted
-      _lastChangedAt
       __typename
     }
   }
