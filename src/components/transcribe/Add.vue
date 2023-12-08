@@ -54,21 +54,14 @@ export default {
   methods: {
     async uploadFile() {
       this.loading = true
-      // const result = await TranscriptionService.createTranscription(
-      //   {
-      //     file: this.inputFile,
-      //     title: this.title,
-      //   },
-      //   (progress) => {
-      //     this.progress = (progress.loaded / progress.total) * 100
-      //   },
-      // )
+
       const fileResult = await TranscriptionService.uploadMediaFile(this.inputFile,
         (progress) => {
           this.progress = (progress.loaded / progress.total) * 100
         },
       )
 
+      // don't allow funky characters
       const key = fileResult.key
       const bucket = EnvService.getUserBucket()
       const source = `https://${bucket}.s3.amazonaws.com/public/${key}`
