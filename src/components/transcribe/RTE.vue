@@ -96,7 +96,7 @@ export default {
         EventBus.$on('realtime-region-update', (incoming) => {
           if (this.mode === 'main') {
             const incomingText = new Delta(incoming.text)
-            const local = this.editor.getContents()
+            const local = this.editor.getText()
             const difference = local.diff(incomingText)
             this.editor.updateContents(difference, 'api')
 
@@ -124,6 +124,17 @@ export default {
             }
           }
         })
+
+        // listen for new issues, update text
+        EventBus.$on('refresh-local-text', (text) => {
+          console.log('refresh local text', text)
+          if (this.mode === 'main') {
+            const incomingText = new Delta(text)
+            const local = this.editor.getText()
+            const difference = local.diff(incomingText)
+            this.editor.updateContents(difference, 'api')
+          }
+        })
       }
     }
   },
@@ -133,7 +144,8 @@ export default {
       // Only emit user changes
       if (source === 'user') {
         logger.debug('user change', delta)
-        this.maybeAddASpaceAtTheEnd()
+        // remove this because probably not needed with text-only input
+        // this.maybeAddASpaceAtTheEnd()
 
         // throttle updates a little
         Timeout.clear('rte-change-timeout')
@@ -194,6 +206,13 @@ export default {
       this.suggestionRange = null
     },
 
+    clearIssues() {
+      logger.debug('clear issues')
+      this.editor.formatText(0, 9999, 'issue-needs-help', false)
+      this.editor.formatText(0, 9999, 'issue-indexing', false)
+      this.editor.formatText(0, 9999, 'issue-new-word', false)
+    },
+
     clearKnownWords() {
       logger.debug('clear known words')
       this.editor.formatText(0, 9999, 'known-word', false)
@@ -206,13 +225,18 @@ export default {
 
     ignoreWord() {
       this.editor.format('ignore-word', true)
-      this.emitChangeEvent('change-format')
+      // this.emitChangeEvent('change-format')
     },
 
     clearFormat() {
       const range = this.editor.getSelection()
       this.editor.removeFormat(range.index, range.length)
-      this.emitChangeEvent('change-format')
+      // this.emitChangeEvent('change-format')
+    },
+
+    applyIssue(index, length, type) {
+      console.log('applying format for issue', type)
+      this.editor.formatText(index, length, `issue-${type}`, true)
     },
 
     applyKnownWord(index, length) {
@@ -223,19 +247,7 @@ export default {
       this.editor.formatText(index, length, 'suggestion', false)
       // trigger change for save
       logger.debug('apply known word', index, length)
-      this.emitChangeEvent('change-format')
-    },
-
-    applyKnownHint(index, length) {
-      if (!this.analyze) {
-        return
-      }
-      logger.debug('applying known hint', index, length)
-      // check for known-word
-      const currentFormat = this.editor.getFormat(index, length)
-      if (Object.keys(currentFormat).indexOf('known-word') === -1) {
-        this.editor.formatText(index, length, 'suggestion-known', true, 'silent')
-      }
+      // this.emitChangeEvent('change-format')
     },
 
     applySuggestion(index, length) {
@@ -315,33 +327,24 @@ export default {
      * Checks the editor to see if there is a space at the end of the text, adds one if not. This is
      * to allow for typing at the end of the text outside of any existing formatting.
      */
-    maybeAddASpaceAtTheEnd() {
-      // check to see if there is a space at the end of the text
-      const contents = this.editor.getText()
-      const characters = contents.split('')
-      characters.pop() // remove the newline
-      const lastItemIndex = characters.length
-      const lastItem = characters.pop()
-      if (lastItem !== ' ') {
-        this.editor.insertText(lastItemIndex, ' ', 'api')
-        this.editor.removeFormat(lastItemIndex, lastItemIndex + 1, 'api')
-      }
-    },
+    // maybeAddASpaceAtTheEnd() {
+    //   // check to see if there is a space at the end of the text
+    //   const contents = this.editor.getText()
+    //   const characters = contents.split('')
+    //   characters.pop() // remove the newline
+    //   const lastItemIndex = characters.length
+    //   const lastItem = characters.pop()
+    //   if (lastItem !== ' ') {
+    //     this.editor.insertText(lastItemIndex, ' ', 'api')
+    //     this.editor.removeFormat(lastItemIndex, lastItemIndex + 1, 'api')
+    //   }
+    // },
 
     /**
      * Will signal that the editor has changed and needs to be saved.
      */
     emitChangeEvent(event) {
-      let contents = this.editor.getContents().ops
-      // strip out any 'suggestion' markup
-      contents = contents.map((item) => {
-        if (item.attributes) {
-          delete item.attributes.suggestion
-          delete item.attributes['suggestion-known']
-        }
-        return item
-      })
-      this.$emit(event, contents)
+      this.$emit(event, this.editor.getText())
     },
 
   },
@@ -368,8 +371,10 @@ export default {
       if (userDetails && userDetails.length) {
         // we have cursor details
         userDetails.forEach((event) => {
-          this.cursors.createCursor(event.user, event.user, event.color)
-          this.cursors.moveCursor(event.user, event.cursor)
+          if (event.editor === this.mode) {
+            this.cursors.createCursor(event.user, event.user, event.color)
+            this.cursors.moveCursor(event.user, event.cursor)
+          }
         })
       } else {
         // no cursor

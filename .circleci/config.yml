@@ -15,7 +15,7 @@ references:
 jobs:
   test-browser:
     docker:
-      - image: circleci/node:12-buster-browsers
+      - image: cimg/node:12-buster-browsers
     steps:
       - checkout
       - restore_cache:
@@ -36,7 +36,7 @@ jobs:
 
   integration-tests:
     docker:
-      - image: circleci/node:lts
+      - image: cimg/node:lts
     steps:
       - ghostinspector/execute-suite:
           id: 59f33e968ba4c50f26eab519

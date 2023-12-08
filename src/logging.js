@@ -1,7 +1,7 @@
 
 const doLog = true
 
-const Logger = function (namespace) {
+const OldLogger = function (namespace) {
   const name = namespace || '<unset>'
   this.info = function () {
     /* eslint-disable no-undef */
@@ -23,4 +23,20 @@ const Logger = function (namespace) {
   return this
 }
 
-export default { Logger }
+const Logger = function (klass, state) {
+  this.debug = {}
+
+  state = true // TODO: re-enable this for class-level enable/disable
+
+  // if (state && klass.isDebug) {
+  if (state) {
+    for (const m in console)
+      if (typeof console[m] == 'function')
+        this.debug[m] = console[m].bind(window.console, `[${m.toUpperCase()}] ` + klass.toString() + ': ')
+  } else {
+    for (const m in console) if (typeof console[m] == 'function') this.debug[m] = function () {}
+  }
+  return this.debug
+}
+
+export default { Logger, OldLogger }

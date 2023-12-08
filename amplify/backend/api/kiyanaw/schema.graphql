@@ -20,6 +20,7 @@ type Transcription
   disableAnalyzer: Boolean
   contributors: [Contributor] @manyToMany(relationName: "TranscriptionContributor")
   regions: [Region] @hasMany(indexName: "ByTranscription", fields: ["id"])
+  issueList: [Issue] @hasMany(indexName: "ByTranscription", fields: ["id"])
 }
 
 type Region
@@ -30,16 +31,71 @@ type Region
   id: ID! @primaryKey
   start: Float!
   end: Float!
-  text: String!
-  issues: String
+  text: String! # Old text value
+  regionText: String
+  regionAnalysis: String
+  issues: String # this will go away
   isNote: Boolean
-  comments: String
+  comments: String # Can this go away?
   translation: String
-  dateLastUpdated: String!
-  userLastUpdated: String!
+  dateLastUpdated: String! # use built-in fields
+  userLastUpdated: String! # use built-in fields
   transcription: Transcription! @belongsTo(fields: ["transcriptionId"])
   transcriptionId: ID! @index(name: "ByTranscription")
 }
+
+type Issue
+  @model
+  @auth(
+    rules: [{ allow: private, provider: iam }, { allow: public, provider: iam, operations: [read] }]
+  ) {
+  id: ID! @primaryKey
+  text: String!
+  owner: String! @index(name: "ByOwner")
+  index: Int!
+  resolved: Boolean
+  type: String! @index(name: "ByType")
+  comments: AWSJSON
+  regionId: String!
+  transcription: Transcription! @belongsTo(fields: ["transcriptionId"])
+  transcriptionId: ID! @index(name: "ByTranscription")
+}
+
+type Pointer
+  @model
+  @auth(
+    rules: [{ allow: private, provider: iam }, { allow: public, provider: iam, operations: [read] }]
+  ) {
+  # id is the user name
+  id: ID! @primaryKey
+  transcription: String! @index(name: "ByTrans", queryField: "byTrans")
+  region: String!
+  cursor: String!
+  owner: String
+}
+
+type RegionLock
+  @model
+  @auth(
+    rules: [{ allow: private, provider: iam }, { allow: public, provider: iam, operations: [read] }]
+  ) {
+  id: ID! @primaryKey(sortKeyFields: ["transcriptionId"])
+  transcriptionId: String!
+  deleteTime: AWSTimestamp!
+  user: String!
+}
+
+type Contributor
+  @model
+  @auth(
+    rules: [{ allow: private, provider: iam }, { allow: public, provider: iam, operations: [read] }]
+  ) {
+  id: ID! @primaryKey
+  email: ID!
+  username: ID!
+  transcriptions: [Transcription] @manyToMany(relationName: "TranscriptionContributor")
+}
+
 
 type Cursor
   @model
@@ -58,65 +114,7 @@ type UserCursor
   ) {
   # id is the user name
   id: ID! @primaryKey
-  transcription: String! @index(name: "ByTranscription", queryField: "byTranscription")
+  transcription: String! 
   region: String!
   cursor: String!
 }
-
-type Pointer
-  @model
-  @auth(
-    rules: [{ allow: private, provider: iam }, { allow: public, provider: iam, operations: [read] }]
-  ) {
-  # id is the user name
-  id: ID! @primaryKey
-  transcription: String! @index(name: "ByTrans", queryField: "byTrans")
-  region: String!
-  cursor: String!
-}
-
-type RegionLock
-  @model
-  @auth(
-    rules: [{ allow: private, provider: iam }, { allow: public, provider: iam, operations: [read] }]
-  ) {
-  id: ID! @primaryKey(sortKeyFields: ["transcriptionId"])
-  transcriptionId: String!
-  deleteTime: AWSTimestamp!
-  user: String!
-}
-
-# type Editor
-#   @model
-#   @auth(
-#     rules: [{ allow: private, provider: iam }, { allow: public, provider: iam, operations: [read] }]
-#   ) {
-#   email: ID!
-#   foo: String
-#   username: ID! @primaryKey
-#   transcriptions: [TranscriptionEditor] @hasMany(indexName: "byEditor", fields: ["username"])
-# }
-
-type Contributor
-  @model
-  @auth(
-    rules: [{ allow: private, provider: iam }, { allow: public, provider: iam, operations: [read] }]
-  ) {
-  id: ID! @primaryKey
-  email: ID!
-  username: ID!
-  transcriptions: [Transcription] @manyToMany(relationName: "TranscriptionContributor")
-}
-
-# type TranscriptionEditor
-#   @model(queries: null)
-#   @auth(
-#     rules: [{ allow: private, provider: iam }, { allow: public, provider: iam, operations: [read] }]
-#   ) {
-#   id: ID! @primaryKey
-#   transcriptionId: ID! @index(name: "byTranscription", sortKeyFields: ["username"])
-#   username: ID! @index(name: "byEditor", sortKeyFields: ["transcriptionId"])
-#   transcription: Transcription! @belongsTo(fields: ["transcriptionId"])
-#   editor: Editor! @belongsTo(fields: ["username"])
-# }
-   

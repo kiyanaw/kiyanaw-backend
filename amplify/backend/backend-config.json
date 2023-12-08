@@ -15,25 +15,10 @@
       "service": "API Gateway"
     },
     "kiyanaw": {
-      "dependsOn": [
-        {
-          "attributes": [
-            "UserPoolId"
-          ],
-          "category": "auth",
-          "resourceName": "kiyanaw664b231a"
-        }
-      ],
+      "dependsOn": [],
       "output": {
         "authConfig": {
-          "additionalAuthenticationProviders": [
-            {
-              "authenticationType": "AMAZON_COGNITO_USER_POOLS",
-              "userPoolConfig": {
-                "userPoolId": "authkiyanaw664b231a"
-              }
-            }
-          ],
+          "additionalAuthenticationProviders": [],
           "defaultAuthentication": {
             "authenticationType": "AWS_IAM"
           }
@@ -44,10 +29,12 @@
     }
   },
   "auth": {
-    "kiyanaw664b231a": {
+    "kiyanawecd8340e": {
+      "customAuth": false,
       "dependsOn": [],
       "providerPlugin": "awscloudformation",
-      "service": "Cognito"
+      "service": "Cognito",
+      "serviceType": "imported"
     }
   },
   "function": {
@@ -74,6 +61,94 @@
     }
   },
   "parameters": {
+    "AMPLIFY_auth_kiyanawecd8340e_allowUnauthenticatedIdentities": {
+      "usedBy": [
+        {
+          "category": "auth",
+          "resourceName": "kiyanawecd8340e"
+        }
+      ]
+    },
+    "AMPLIFY_auth_kiyanawecd8340e_authRoleArn": {
+      "usedBy": [
+        {
+          "category": "auth",
+          "resourceName": "kiyanawecd8340e"
+        }
+      ]
+    },
+    "AMPLIFY_auth_kiyanawecd8340e_authRoleName": {
+      "usedBy": [
+        {
+          "category": "auth",
+          "resourceName": "kiyanawecd8340e"
+        }
+      ]
+    },
+    "AMPLIFY_auth_kiyanawecd8340e_identityPoolId": {
+      "usedBy": [
+        {
+          "category": "auth",
+          "resourceName": "kiyanawecd8340e"
+        }
+      ]
+    },
+    "AMPLIFY_auth_kiyanawecd8340e_identityPoolName": {
+      "usedBy": [
+        {
+          "category": "auth",
+          "resourceName": "kiyanawecd8340e"
+        }
+      ]
+    },
+    "AMPLIFY_auth_kiyanawecd8340e_nativeClientId": {
+      "usedBy": [
+        {
+          "category": "auth",
+          "resourceName": "kiyanawecd8340e"
+        }
+      ]
+    },
+    "AMPLIFY_auth_kiyanawecd8340e_unauthRoleArn": {
+      "usedBy": [
+        {
+          "category": "auth",
+          "resourceName": "kiyanawecd8340e"
+        }
+      ]
+    },
+    "AMPLIFY_auth_kiyanawecd8340e_unauthRoleName": {
+      "usedBy": [
+        {
+          "category": "auth",
+          "resourceName": "kiyanawecd8340e"
+        }
+      ]
+    },
+    "AMPLIFY_auth_kiyanawecd8340e_userPoolId": {
+      "usedBy": [
+        {
+          "category": "auth",
+          "resourceName": "kiyanawecd8340e"
+        }
+      ]
+    },
+    "AMPLIFY_auth_kiyanawecd8340e_userPoolName": {
+      "usedBy": [
+        {
+          "category": "auth",
+          "resourceName": "kiyanawecd8340e"
+        }
+      ]
+    },
+    "AMPLIFY_auth_kiyanawecd8340e_webClientId": {
+      "usedBy": [
+        {
+          "category": "auth",
+          "resourceName": "kiyanawecd8340e"
+        }
+      ]
+    },
     "AMPLIFY_function_enqueueRegionChange_deploymentBucketName": {
       "usedBy": [
         {

@@ -1,0 +1,16 @@
+{
+  "authSelections": "identityPoolAndUserPool",
+  "resourceName": "kiyanawecd8340e",
+  "serviceType": "imported",
+  "region": "us-east-1",
+  "requiredAttributes": [
+    "email"
+  ],
+  "passwordPolicyMinLength": 8,
+  "passwordPolicyCharacters": [],
+  "mfaConfiguration": "OFF",
+  "autoVerifiedAttributes": [
+    "email"
+  ],
+  "mfaTypes": []
+}

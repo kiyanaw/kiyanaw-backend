@@ -1,21 +1,15 @@
 {
   "version": 1,
   "serviceConfiguration": {
+    "apiName": "kiyanaw",
     "serviceName": "AppSync",
     "defaultAuthType": {
       "mode": "AWS_IAM"
     },
-    "additionalAuthTypes": [
-      {
-        "mode": "AMAZON_COGNITO_USER_POOLS",
-        "cognitoUserPoolId": "authkiyanaw664b231a"
-      }
-    ],
     "conflictResolution": {
       "defaultResolutionStrategy": {
         "type": "AUTOMERGE"
       }
-    },
-    "apiName": "kiyanaw"
+    }
   }
 }

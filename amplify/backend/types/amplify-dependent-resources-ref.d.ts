@@ -10,17 +10,6 @@ export type AmplifyDependentResourcesAttributes = {
       "GraphQLAPIIdOutput": "string"
     }
   },
-  "auth": {
-    "kiyanaw664b231a": {
-      "AppClientID": "string",
-      "AppClientIDWeb": "string",
-      "AppClientSecret": "string",
-      "IdentityPoolId": "string",
-      "IdentityPoolName": "string",
-      "UserPoolId": "string",
-      "UserPoolName": "string"
-    }
-  },
   "function": {
     "enqueueRegionChange": {
       "Arn": "string",
@@ -46,6 +35,10 @@ export type AmplifyDependentResourcesAttributes = {
   },
   "hosting": {
     "S3AndCloudFront": {
+      "CloudFrontDistributionID": "string",
+      "CloudFrontDomainName": "string",
+      "CloudFrontOriginAccessIdentity": "string",
+      "CloudFrontSecureURL": "string",
       "HostingBucketName": "string",
       "Region": "string",
       "S3BucketSecureURL": "string",

@@ -31,7 +31,6 @@ class TranscriptionModel {
     this.comments = data.comments
     this.author = data.author
     this.type = data.type
-    this.issues = Number(data.issues) || 0
     this.source = data.source
     this.coverage = data.coverage || 0
     this.isPrivate = data.isPrivate || false
@@ -100,9 +99,7 @@ class RegionModel {
     this.end = data.end
     this.id = data.id
     this.isNote = !!data.isNote
-    // this.issues = data.issues ? JSON.parse(data.issues) : []
     this.start = data.start
-    // this.text = JSON.parse(data.text)
     this.transcriptionId = data.transcriptionId
     this.translation = data.translation || ''
     // this.updatedAt = data.updatedAt
@@ -125,25 +122,26 @@ class RegionModel {
 
     // text
     if (data.text) {
-      if (typeof data.text === 'string') {
-        this.text = JSON.parse(data.text)
-      } else {
-        this.text = data.text
-      }
+      this.text = data.regionText
+      this.regionText = data.regionText
     } else {
-      this.text = []
+      this.text = ''
+      this.regionText = ''
     }
 
-    // issues
-    if (data.issues) {
-      if (typeof data.issues === 'string') {
-        this.issues = JSON.parse(data.issues)
+    // analysis
+    if (data.regionAnalysis) {
+      if (typeof data.regionAnalysis === 'string') {
+        this.regionAnalysis = JSON.parse(data.regionAnalysis)
       } else {
-        this.issues = data.issues
+        this.regionAnalysis = data.regionAnalysis
       }
-    } else {
-      this.issues = []
+    } else { 
+      this.regionAnalysis = []
     }
+
+    // use a separate collection. 
+    this.issues = null
   }
 }
 

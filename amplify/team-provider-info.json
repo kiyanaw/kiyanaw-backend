@@ -1,46 +1,4 @@
 {
-  "dev": {
-    "awscloudformation": {
-      "AuthRoleName": "amplify-kiyanaw-dev-02717-authRole",
-      "UnauthRoleArn": "arn:aws:iam::494185203413:role/amplify-kiyanaw-dev-02717-unauthRole",
-      "AuthRoleArn": "arn:aws:iam::494185203413:role/amplify-kiyanaw-dev-02717-authRole",
-      "Region": "us-east-1",
-      "DeploymentBucketName": "amplify-kiyanaw-dev-02717-deployment",
-      "UnauthRoleName": "amplify-kiyanaw-dev-02717-unauthRole",
-      "StackName": "amplify-kiyanaw-dev-02717",
-      "StackId": "arn:aws:cloudformation:us-east-1:494185203413:stack/amplify-kiyanaw-dev-02717/b94caea0-10ef-11ea-97d1-122d883fe268",
-      "AmplifyAppId": "d2vcnct5kwl6za"
-    },
-    "categories": {
-      "auth": {
-        "kiyanaw664b231a": {}
-      },
-      "function": {
-        "notifyRegionChanges": {
-          "deploymentBucketName": "amplify-kiyanaw-dev-02717-deployment",
-          "s3Key": "amplify-builds/notifyRegionChanges-3942386f532b46716a4a-build.zip"
-        },
-        "indexRegionData": {
-          "deploymentBucketName": "amplify-kiyanaw-dev-02717-deployment",
-          "s3Key": "amplify-builds/indexRegionData-453065364a7867754a67-build.zip"
-        },
-        "enqueueRegionChange": {
-          "deploymentBucketName": "amplify-kiyanaw-dev-02717-deployment",
-          "s3Key": "amplify-builds/enqueueRegionChange-6f4a6e5932586868554f-build.zip"
-        }
-      },
-      "hosting": {
-        "S3AndCloudFront": {}
-      },
-      "storage": {
-        "transcriptions": {}
-      },
-      "api": {
-        "kiyanaw": {},
-        "enqueueRegionChange": {}
-      }
-    }
-  },
   "prod": {
     "awscloudformation": {
       "AuthRoleName": "amplify-kiyanaw-prod-214643-authRole",
@@ -60,29 +18,39 @@
       "function": {
         "notifyRegionChanges": {
           "deploymentBucketName": "amplify-kiyanaw-prod-214643-deployment",
-          "s3Key": "amplify-builds/notifyRegionChanges-5a734e55685446625873-build.zip"
+          "s3Key": "amplify-builds/notifyRegionChanges-3942386f532b46716a4a-build.zip"
         },
         "indexRegionData": {
           "deploymentBucketName": "amplify-kiyanaw-prod-214643-deployment",
-          "s3Key": "amplify-builds/indexRegionData-7248416c774752364155-build.zip"
+          "s3Key": "amplify-builds/indexRegionData-453065364a7867754a67-build.zip"
         },
         "enqueueRegionChange": {
           "deploymentBucketName": "amplify-kiyanaw-prod-214643-deployment",
-          "s3Key": "amplify-builds/enqueueRegionChange-63736d703942386d4d45-build.zip"
+          "s3Key": "amplify-builds/enqueueRegionChange-6f4a6e5932586868554f-build.zip"
         }
+      },
+      "storage": {
+        "transcriptions": {}
+      },
+      "hosting": {
+        "S3AndCloudFront": {}
+      },
+      "api": {
+        "kiyanaw": {},
+        "enqueueRegionChange": {}
       }
     }
   },
-  "databug": {
+  "dev": {
     "awscloudformation": {
-      "AuthRoleName": "amplify-kiyanaw-databug-135349-authRole",
-      "UnauthRoleArn": "arn:aws:iam::494185203413:role/amplify-kiyanaw-databug-135349-unauthRole",
-      "AuthRoleArn": "arn:aws:iam::494185203413:role/amplify-kiyanaw-databug-135349-authRole",
+      "AuthRoleName": "amplify-kiyanaw-dev-02717-authRole",
+      "UnauthRoleArn": "arn:aws:iam::494185203413:role/amplify-kiyanaw-dev-02717-unauthRole",
+      "AuthRoleArn": "arn:aws:iam::494185203413:role/amplify-kiyanaw-dev-02717-authRole",
       "Region": "us-east-1",
-      "DeploymentBucketName": "amplify-kiyanaw-databug-135349-deployment",
-      "UnauthRoleName": "amplify-kiyanaw-databug-135349-unauthRole",
-      "StackName": "amplify-kiyanaw-databug-135349",
-      "StackId": "arn:aws:cloudformation:us-east-1:494185203413:stack/amplify-kiyanaw-databug-135349/bdc24af0-a668-11ed-9c6b-0e9aa6818fbf",
+      "DeploymentBucketName": "amplify-kiyanaw-dev-02717-deployment",
+      "UnauthRoleName": "amplify-kiyanaw-dev-02717-unauthRole",
+      "StackName": "amplify-kiyanaw-dev-02717",
+      "StackId": "arn:aws:cloudformation:us-east-1:494185203413:stack/amplify-kiyanaw-dev-02717/b94caea0-10ef-11ea-97d1-122d883fe268",
       "AmplifyAppId": "d2vcnct5kwl6za"
     },
     "categories": {
@@ -91,17 +59,24 @@
       },
       "function": {
         "enqueueRegionChange": {
-          "deploymentBucketName": "amplify-kiyanaw-databug-135349-deployment",
+          "deploymentBucketName": "amplify-kiyanaw-dev-02717-deployment",
           "s3Key": "amplify-builds/enqueueRegionChange-6f4a6e5932586868554f-build.zip"
         },
         "indexRegionData": {
-          "deploymentBucketName": "amplify-kiyanaw-databug-135349-deployment",
-          "s3Key": "amplify-builds/indexRegionData-453065364a7867754a67-build.zip"
+          "deploymentBucketName": "amplify-kiyanaw-dev-02717-deployment",
+          "s3Key": "amplify-builds/indexRegionData-512f504537706d632b71-build.zip"
         },
         "notifyRegionChanges": {
-          "deploymentBucketName": "amplify-kiyanaw-databug-135349-deployment",
+          "deploymentBucketName": "amplify-kiyanaw-dev-02717-deployment",
           "s3Key": "amplify-builds/notifyRegionChanges-3942386f532b46716a4a-build.zip"
+        },
+        "syncConflictHandler6ac896cc": {
+          "deploymentBucketName": "amplify-kiyanaw-dev-02717-deployment",
+          "s3Key": "amplify-builds/syncConflictHandler6ac896cc-6d6e4947644d4a514264-build.zip"
         }
+      },
+      "storage": {
+        "transcriptions": {}
       },
       "api": {
         "enqueueRegionChange": {},
@@ -109,9 +84,60 @@
       },
       "hosting": {
         "S3AndCloudFront": {}
+      }
+    }
+  },
+  "realtime": {
+    "awscloudformation": {
+      "AuthRoleName": "amplify-kiyanaw-realtime-223820-authRole",
+      "UnauthRoleArn": "arn:aws:iam::494185203413:role/amplify-kiyanaw-realtime-223820-unauthRole",
+      "AuthRoleArn": "arn:aws:iam::494185203413:role/amplify-kiyanaw-realtime-223820-authRole",
+      "Region": "us-east-1",
+      "DeploymentBucketName": "amplify-kiyanaw-realtime-223820-deployment",
+      "UnauthRoleName": "amplify-kiyanaw-realtime-223820-unauthRole",
+      "StackName": "amplify-kiyanaw-realtime-223820",
+      "StackId": "arn:aws:cloudformation:us-east-1:494185203413:stack/amplify-kiyanaw-realtime-223820/3789be30-94cb-11ee-857b-0e60d877363d",
+      "AmplifyAppId": "d2vcnct5kwl6za"
+    },
+    "categories": {
+      "function": {
+        "enqueueRegionChange": {
+          "deploymentBucketName": "amplify-kiyanaw-realtime-223820-deployment",
+          "s3Key": "amplify-builds/enqueueRegionChange-6f4a6e5932586868554f-build.zip"
+        },
+        "indexRegionData": {
+          "deploymentBucketName": "amplify-kiyanaw-realtime-223820-deployment",
+          "s3Key": "amplify-builds/indexRegionData-453065364a7867754a67-build.zip"
+        },
+        "notifyRegionChanges": {
+          "deploymentBucketName": "amplify-kiyanaw-realtime-223820-deployment",
+          "s3Key": "amplify-builds/notifyRegionChanges-3942386f532b46716a4a-build.zip"
+        }
+      },
+      "api": {
+        "enqueueRegionChange": {},
+        "kiyanaw": {}
       },
       "storage": {
         "transcriptions": {}
+      },
+      "auth": {
+        "kiyanawecd8340e": {
+          "userPoolId": "us-east-1_G0fR5mmzP",
+          "userPoolName": "kiyanaw664b231a_userpool_664b231a-prod",
+          "webClientId": "242gk6um1cfhf7jrdehbjjkeb6",
+          "nativeClientId": "6d7pmicpo2m9d48bl2ufm62e14",
+          "identityPoolId": "us-east-1:d63e0cd3-9397-4a7e-a130-6760e2b18deb",
+          "identityPoolName": "kiyanaw664b231a_identitypool_664b231a__prod",
+          "allowUnauthenticatedIdentities": true,
+          "authRoleArn": "arn:aws:iam::494185203413:role/amplify-kiyanaw-prod-214643-authRole",
+          "authRoleName": "amplify-kiyanaw-prod-214643-authRole",
+          "unauthRoleArn": "arn:aws:iam::494185203413:role/amplify-kiyanaw-prod-214643-unauthRole",
+          "unauthRoleName": "amplify-kiyanaw-prod-214643-unauthRole"
+        }
+      },
+      "hosting": {
+        "S3AndCloudFront": {}
       }
     }
   }

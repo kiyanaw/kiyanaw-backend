@@ -1,20 +1,43 @@
-import { DataStore, Hub } from 'aws-amplify'
-import { Region, Transcription, Pointer } from '../models'
 import * as assert from 'assert'
+import { DataStore, Hub, syncExpression } from 'aws-amplify'
+import { Issue, Pointer, Region, Transcription } from '../models'
 // import Quill from 'quill'
 
-import Vue from 'vue'
 import Timeout from 'smart-timeout'
+import Vue from 'vue'
 
 import Lexicon from '../services/lexicon'
 import UserService from '../services/user'
 // import TranscriptionService from '../services/transcriptions'
 import logging from '../logging'
 // import EventBus from './bus'
+import EventBus from './bus'
 import models from './models'
-import * as helpers from '../helpers'
+// import * as helpers from '../helpers'
+// import EventBus from './bus'
 
 const logger = new logging.Logger('Region Store')
+
+/**
+ * Set up DataStore sync expression to reduce the # of data
+ */
+
+let syncTranscription = '--unset--'
+
+async function setSyncTranscription(transcriptionId) {
+  syncTranscription = transcriptionId
+  await DataStore.stop()
+  await DataStore.start()
+}
+
+DataStore.configure({
+  syncExpressions: [
+    syncExpression(Region, () => {
+      return (r) => r.transcriptionId.eq(syncTranscription)
+    }),
+  ],
+})
+
 
 /**
  * An internal "save state" that keeps track of the queued
@@ -49,6 +72,7 @@ Hub.listen('datastore', async (hubData) => {
 const state = {
   regions: [],
   regionMap: {},
+  issueMap: {}, // look up issues by region
   // The currently-selected region
   selectedRegionId: null,
   selectedRegion: null,
@@ -72,6 +96,9 @@ const getters = {
   locks(context) {
     return context.locks
   },
+  issueMap(context) {
+    return context.issueMap
+  },
   lockedRegionNames(context) {
     const keys = Object.keys(context.locks)
     logger.debug('Getting Lock keys', keys, context.locks)
@@ -92,32 +119,35 @@ const getters = {
 
 
 const actions = {
-
   // TODO: needs tests
   async updateUserCursor(store, update) {
     Timeout.clear('save-user-cursor-timer')
-    Timeout.set('save-user-cursor-timer', async () => {
-      const region = store.getters.selectedRegion
-      const transcriptionId = store.getters.transcription.id
-      const user = await UserService.getUser()
-      let cursor = await DataStore.query(Pointer, user.name)
-      if (!cursor) {
-        cursor = await DataStore.save(
-          new Pointer({
-            id: user.name,
-            transcription: transcriptionId,
-            region: '',
-            cursor: '',
-          }),
+    Timeout.set(
+      'save-user-cursor-timer',
+      async () => {
+        const region = store.getters.selectedRegion
+        const transcriptionId = store.getters.transcription.id
+        const user = await UserService.getUser()
+        let cursor = await DataStore.query(Pointer, user.name)
+        if (!cursor) {
+          cursor = await DataStore.save(
+            new Pointer({
+              id: user.name,
+              transcription: transcriptionId,
+              region: '',
+              cursor: '',
+            }),
           )
         } else {
-        cursor = Pointer.copyOf(cursor, (newInstance) => {
-          newInstance.region = region.id
-          newInstance.cursor = JSON.stringify(update)
-        })
-        await DataStore.save(cursor)
-      }
-    }, 250)
+          cursor = Pointer.copyOf(cursor, (newInstance) => {
+            newInstance.region = region.id
+            newInstance.cursor = JSON.stringify(update)
+          })
+          await DataStore.save(cursor)
+        }
+      },
+      250,
+    )
   },
 
   updateSelectedIssue(store, update) {
@@ -159,18 +189,145 @@ const actions = {
   },
 
   /**
+   * Builds and sets the global issue map for the transcription. Issues
+   * are mapped by region for easy lookup on store.getters.issueMap
+   */
+  setIssues(store, issues) {
+    const issueMap = {}
+    if (issues && issues.length) {
+      // Sort out the issues by region
+      issues.forEach((issue) => {
+        if (!issueMap[issue.regionId]) {
+          issueMap[issue.regionId] = []
+        }
+        // TODO: this needs to be a model
+        // remove "managed" fields like `createdAt`
+        const { id, text, owner, index, type, resolved, createdAt, comments, regionId, transcriptionId } = issue
+        issue = {
+          id,
+          text,
+          owner,
+          index,
+          resolved,
+          type,
+          createdAt,
+          comments,
+          regionId,
+          transcriptionId,
+        }
+        issueMap[issue.regionId].push(issue)
+      })
+    }
+
+    store.commit('SET_ISSUE_MAP', issueMap)
+  },
+
+  /**
+   * Update is { regionId, newIssue }
+   */
+  addRegionIssue(store, update) {
+    // save the new issue
+    DataStore.save(new Issue(update.newIssue))
+
+    // update the issue map with the new issue
+    const { regionId, newIssue } = update
+    const issues = store.getters.issueMap[regionId]
+    issues.push(newIssue)
+
+    // issues are saved separately, but trigger an update for
+    // last updated user and the date
+    store.dispatch('updateRegion', {})
+  },
+
+  /**
+   * Update is { regionId, issueId }
+   */
+  deleteRegionIssue(store, update) {
+    const { regionId, issueId } = update
+
+    // delete from DataStore
+    DataStore.delete(Issue, issueId)
+
+    // update issue map
+    let index
+    store.getters.issueMap[regionId].forEach((item, i) => {
+      if (item.id === issueId) {
+        index = i
+      }
+    })
+    store.getters.issueMap[regionId].splice(index, 1)
+
+    // notify components
+    EventBus.$emit('issues-updated')
+
+    // issues are saved separately, but trigger an update for
+    // last updated user and the date
+    store.dispatch('updateRegion', {})
+  },
+
+  // Update is { regionId, issueId, issueUpdate }
+  async updateRegionIssue(store, update) {
+    const { regionId, issueId, issueUpdate } = update
+
+    logger.info('Issues update', issueId, issueUpdate)
+
+    // update issue map
+    let index
+    store.getters.issueMap[regionId].forEach((item, i) => {
+      if (item.id === issueId) {
+        index = i
+      }
+    })
+
+    if (index !== undefined) {
+      console.log('updating index', index)
+      // apply on the store
+      const storeUpdate = {
+        ...store.getters.issueMap[regionId][index],
+        ...issueUpdate,
+      }
+      store.getters.issueMap[regionId].splice(index, 1)
+
+      store.getters.issueMap[regionId].push(storeUpdate)
+      // apply to selected issue
+  
+      // console.log('issues updated', store.getters.issueMap[regionId])
+  
+      // notify components
+      EventBus.$emit('issues-updated')
+      // update transcription
+      store.dispatch('updateRegion', {})
+  
+      // Lastly update DataStore
+      const dbOriginal = await DataStore.query(Issue, issueId)
+  
+      const copy = Issue.copyOf(dbOriginal, (toUpdate) => {
+        for (const key of Object.keys(issueUpdate)) {
+          toUpdate[key] = issueUpdate[key]
+        }
+      })
+      await DataStore.save(copy)
+    } else {
+      logger.warn('Could not update issue, no index?')
+    }
+  },
+
+  /**
    * Regions for the current transcription.
    * TODO: test this
    */
   setRegions(store, regions) {
     const map = {}
+    const issueMap = store.getters.issueMap
+
     let displayIndex = 1
     regions = regions
-      // .slice()
       .sort((a, b) => (a.start > b.start ? 1 : -1))
       .map((item, index) => {
+        const issues = issueMap[item.id]
         const out = {
           ...item,
+          issues,
           index,
           displayIndex,
         }
@@ -179,48 +336,44 @@ const actions = {
         }
         const region = new models.RegionModel(out)
         map[`${region.id}`] = region
+
+        // add to the lexicon
+        Lexicon.addKnownWords(region.regionAnalysis)
+
         return region
       })
 
     store.commit('SET_REGION_MAP', map)
-    console.log('!! Set region map')
-
-    // asynchronously, report known words to the lexicon
-    regions.forEach((region) => {
-      const known = region.text
-        .filter((item) => item.attributes && item.attributes['known-word'] !== undefined)
-        .map((item) => item.insert)
-      Lexicon.addKnownWords(known)
-    })
 
     window.regions = regions
     window.map = map
   },
 
   resetRegionIndices(store) {
+    logger.debug('RESET REGION INDICES')
     let regions = Object.values(store.getters.regionMap)
     let displayIndex = 1
     regions
       .sort((a, b) => (a.start > b.start ? 1 : -1))
       .forEach((item, index) => {
         store.commit('UPDATE_REGION', {
-          region: item, update: {
+          region: item,
+          update: {
             index,
-            displayIndex
-          }})
+            displayIndex,
+          },
+        })
         if (!item.isNote) {
           displayIndex++
         }
-        
       })
-
   },
 
   /**
    * Accepts regionId and sets the selectedRegion (using the current transcription).
    */
   setSelectedRegion(store, regionId) {
-    logger.info('setting selected region', regionId)
+    logger.debug('setting selected region', regionId)
     store.commit('SET_SELECTED_REGION_ID', regionId)
   },
 
@@ -236,8 +389,8 @@ const actions = {
     console.log('updateRegion called', update)
     const region = store.getters.selectedRegion
     store.dispatch('updateRegionById', {
-      ...update, 
-      id: region.id
+      ...update,
+      id: region.id,
     })
   },
 
@@ -248,20 +401,6 @@ const actions = {
     // logger.debug('Updating region by Id', regionId)
     const region = store.getters.regionById(regionId)
 
-    const updateKeys = Object.keys(update)
-    const existingIssues = region.issues.length > 0
-    const mustInvalidateTextAndIssues = existingIssues || updateKeys.includes('issues')
-
-    if (mustInvalidateTextAndIssues) {     
-      const inputText = updateKeys.includes('text') ? update.text : region.text
-      const inputIssues = updateKeys.includes('issues') ? update.issues : region.issues
-      const [text, issues] = helpers.reconcileTextAndIssues(inputText, inputIssues)
-      update = {
-        ...update,
-        text,
-        issues
-      }
-    }
     // commit to local store
     store.dispatch('commitRegionUpdate', { region, update })
 
@@ -282,9 +421,13 @@ const actions = {
   enqueueRegionUpdate(store, regionId) {
     assert.ok(regionId, 'regionId must be provided')
     if (saveState.DS_OUTBOX_BUSY) {
-      Timeout.set('ds-outbox-time', () => {
-        store.dispatch('enqueueRegionUpdate', regionId)
-      }, saveState.SAVE_RETRY)
+      Timeout.set(
+        'ds-outbox-time',
+        () => {
+          store.dispatch('enqueueRegionUpdate', regionId)
+        },
+        saveState.SAVE_RETRY,
+      )
       return
     } else {
       store.dispatch('commitToDataStore', regionId)
@@ -299,7 +442,7 @@ const actions = {
 
     const user = await UserService.getUser()
     const queuedUpdate = saveState.REGION_INTERMEDIARY
-    const keysToEncode = ['text', 'issues', 'comments']
+    const keysToEncode = ['text', 'issues', 'comments', 'regionAnalysis']
     keysToEncode.forEach((key) => {
       if (queuedUpdate[key] && typeof queuedUpdate[key] !== 'string') {
         queuedUpdate[key] = JSON.stringify(queuedUpdate[key])
@@ -337,13 +480,16 @@ const actions = {
 
     // TODO: test this
     // check to see if the incoming update has different start/end times
-    if (incoming.start !== existing.start || incoming.end !== existing.end) {
-      // TODO: this can be further optimized to only update
-      // when the start time goes below/above neighbor regions
-      resetIndexes = true
+    if (incoming.start || incoming.end) {
+      if (incoming.start !== existing.start || incoming.end !== existing.end) {
+        // TODO: this can be further optimized to only update
+        // when the start time goes below/above neighbor regions
+        resetIndexes = true
+      }
     }
+    console.log('commitRegionUpdate, reset indices? ', resetIndexes)
     store.commit('UPDATE_REGION', update)
-    
+
     if (resetIndexes) {
       store.dispatch('resetRegionIndices')
     }
@@ -370,7 +516,7 @@ const actions = {
     if (resetIndexes) {
       store.dispatch('resetRegionIndices')
     }
-  }, 
+  },
 
   async deleteRegion(store, regionId) {
     store.commit('DELETE_REGION', regionId)
@@ -382,7 +528,7 @@ const actions = {
     store.dispatch('updateTranscription', {
       userLastUpdated: user.name,
     })
-  }
+  },
 }
 
 const mutations = {
@@ -398,6 +544,18 @@ const mutations = {
   SET_REGION_MAP(context, map) {
     Vue.set(context, 'regionMap', map)
   },
+
+  SET_ISSUE_MAP(context, map) {
+    Vue.set(context, 'issueMap', map)
+  },
+
+  // Update is { regionId, issues }
+  // UPDATE_ISSUE_MAP_FOR_REGION(context, update) {
+  //   const { regionId, issues } = update
+  //   // Vue.set(context.issueMap, regionId, []);
+
+  //   context.issueMap[regionId] = [...issues]
+  // },
 
   SET_SELECTED_ISSUE(context, issue) {
     Vue.set(context, 'selectedIssue', issue)
@@ -426,19 +584,6 @@ const mutations = {
     const issue = context.selectedIssue
     const whole = Object.assign({}, issue, update)
     Vue.set(context, 'selectedIssue', whole)
-
-    const allIssues = context.regionMap[context.selectedRegionId].issues
-    Vue.set(
-      context.regionMap[context.selectedRegionId],
-      'issues',
-      allIssues.map((item) => {
-        if (item.id === issue.id) {
-          return whole
-        } else {
-          return item
-        }
-      }),
-    )
   },
 }
 
@@ -449,4 +594,5 @@ export default {
   mutations,
   // for testing
   saveState,
+  setSyncTranscription,
 }

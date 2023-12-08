@@ -19,15 +19,17 @@
 
 <script>
 import { mapGetters } from 'vuex'
+import Delta from 'quill-delta'
 import utils from './utils'
 
 export default {
   props: ['index', 'source'],
 
   computed: {
-    ...mapGetters(['editingUsers', 'lockedRegionNames', 'locks', 'user', 'transcription']),
+    ...mapGetters(['editingUsers', 'lockedRegionNames', 'locks', 'user', 'transcription', 'issueMap']),
 
     editorStyle() {
+      // TODO: come back to this
       // const editorObject = this.editingUsers[this.source.id]
       // if (editorObject) {
       //   return `border-left: 2px solid ${editorObject.color}`
@@ -39,7 +41,6 @@ export default {
 
     editor() { 
       const editorObject = this.editingUsers[this.source.id]
-      console.log('editorObject', editorObject)
       if (editorObject && editorObject.length) {
         return editorObject.map((item) => `<span style="color: ${item.color}">${item.user}</span>`).join(', ')
       } else {
@@ -77,7 +78,38 @@ export default {
 
   methods: {
     html(source) {
-      const out = source.text
+
+      // render overlapping styles using Delta
+      let delta = new Delta()
+
+      const text = source.text || ''
+      const bits = text.trim().split(' ')
+      
+      // apply known words first
+      let runningIndex = 0
+      bits.forEach((bit) => {
+        let known
+        if (source.regionAnalysis.includes(bit)) {
+          known = {'known-word': true}
+        }
+        const change = new Delta().retain(runningIndex).insert(bit, known).insert(' ')
+        delta = delta.compose(change)
+        runningIndex = runningIndex + bit.length + 1
+      })
+
+      // apply issues, filtering out empty ones
+      const regionId = source.id
+      const issues = this.issueMap[regionId] || []
+      issues.forEach((issue) => {
+        if (!issue.resolved) {
+          const typeKey = `issue-${issue.type}`
+          const type = { [typeKey]: true }
+          const change = new Delta().retain(issue.index).retain(issue.text.length, type)
+          delta = delta.compose(change)
+        }
+      })
+
+      const out = delta.ops
         .map((item) => {
           let classes = []
           if (item.attributes) {
@@ -87,9 +119,6 @@ export default {
           if (this.transcription.disableAnalyzer) {
             classes = classes.filter((item) => !item.startsWith('known'))
           }
-          // console.log('disable analyzer', this.transcription.disableAnalyzer)
-          // console.log('classes', classes)
-
           const content = item.insert || ''
           if (classes.length) {
             return `<span class="${classes.join(' ')}">${content}</span>`

@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "Lambda resource stack creation using Amplify CLI",
+  "Description": "{\"createdOn\":\"Mac\",\"createdBy\":\"Amplify\",\"createdWith\":\"12.8.2\",\"stackType\":\"function-Lambda\",\"metadata\":{}}",
   "Parameters": {
     "env": {
       "Type": "String"
@@ -34,12 +34,12 @@
         "FunctionName": {
           "Fn::If": [
             "ShouldNotCreateEnvResources",
-            "notifyRegionChanges",
+            "syncConflictHandler6ac896cc",
             {
               "Fn::Join": [
                 "",
                 [
-                  "notifyRegionChanges",
+                  "syncConflictHandler6ac896cc",
                   "-",
                   {
                     "Ref": "env"
@@ -66,7 +66,7 @@
           ]
         },
         "Runtime": "nodejs14.x",
-        "Timeout": "25",
+        "Timeout": 25,
         "Code": {
           "S3Bucket": {
             "Ref": "deploymentBucketName"
@@ -83,12 +83,12 @@
         "RoleName": {
           "Fn::If": [
             "ShouldNotCreateEnvResources",
-            "kiyanawLambdaRoleb46b8309",
+            "syncConflictHandler6ac896ccLambdaRole",
             {
               "Fn::Join": [
                 "",
                 [
-                  "kiyanawLambdaRoleb46b8309",
+                  "syncConflictHandler6ac896ccLambdaRole",
                   "-",
                   {
                     "Ref": "env"

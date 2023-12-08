@@ -74,6 +74,8 @@ import StationaryEditor from './StationaryEditor.vue'
 import RegionPartial from './RegionPartial.vue'
 import UserService from '../../services/user'
 import EventBus from '../../store/bus'
+import RegionStore from '../../store/region'
+
 
 import Lookup from './Lookup.vue'
 
@@ -81,26 +83,27 @@ import { mapActions, mapGetters } from 'vuex'
 
 
 import { DataStore, Hub } from 'aws-amplify'
-import { Region, Transcription, TranscriptionContributor, Pointer } from '../../models'
+import { Region, Transcription, TranscriptionContributor, Pointer, Issue } from '../../models'
 
 
 import logging from '../../logging'
+import utils from './utils'
 const logger = new logging.Logger('Transcribe')
 
-function getColor() {
-  return (
-    'hsl(' +
-    360 * Math.random() +
-    ',' +
-    (25 + 70 * Math.random()) +
-    '%,' +
-    (55 + 10 * Math.random()) +
-    '%)'
-  )
-}
+// function getColor() {
+//   return (
+//     'hsl(' +
+//     360 * Math.random() +
+//     ',' +
+//     (25 + 70 * Math.random()) +
+//     '%,' +
+//     (55 + 10 * Math.random()) +
+//     '%)'
+//   )
+// }
 
 // this is the local user's cursor color
-const cursorColor = `${getColor()}`
+// const cursorColor = `${getColor()}`
 // keep track of this cursor
 // let myCursor
 // let inboundRegion = null
@@ -189,6 +192,8 @@ export default {
     this.transcriptionId = this.$route.params.id
     this.inboundRegion = this.$route.params.region || null
 
+    await RegionStore.setSyncTranscription(this.transcriptionId)
+
     /**
      * Set up a subscription for new cursor changes.
      */
@@ -219,12 +224,14 @@ export default {
     // })
 
     window.DataStore = DataStore
+    window.Issue = Issue
     window.Region = Region
     window.Transcription = Transcription
     window.TranscriptionContributor = TranscriptionContributor
     window.Document = Document
     window.transcribe = this
     window.Pointer = Pointer
+    window.normalTime = utils.floatToMSM
 
     // load up
     Hub.listen("datastore", async hubData => {
@@ -236,6 +243,12 @@ export default {
 
     EventBus.$on('on-load-peaks-error', () => {
       this.error = 'Processing waveform data, wait a minute then try refreshing the page...'
+    })
+
+    EventBus.$on('transcription-ready', () => {
+      if (this.inboundRegion) {
+        this.setSelectedRegion(this.inboundRegion)
+      }
     })
 
     DataStore.start()
@@ -256,16 +269,16 @@ export default {
     
     ]),
 
-    regionCursor(data) {
-      data.color = cursorColor
-      const update = {
-        cursor: data,
-        user: `${this.user.name}`,
-      }
-      UserService.sendCursor(update).catch((e) => {
-        console.log(e)
-      })
-    },
+    // regionCursor(data) {
+    //   data.color = cursorColor
+    //   const update = {
+    //     cursor: data,
+    //     user: `${this.user.name}`,
+    //   }
+    //   UserService.sendCursor(update).catch((e) => {
+    //     console.log(e)
+    //   })
+    // },
 
     /**
      * TODO: remove this, it has moved to the store.

@@ -194,7 +194,7 @@ const logger = new logging.Logger('Issues Form')
 
 export default {
   computed: {
-    ...mapGetters(['selectedRegion', 'selectedIssue', 'transcription', 'user']),
+    ...mapGetters(['selectedRegion', 'selectedIssue', 'issueMap', 'transcription', 'user']),
 
     disableInputs() {
       if (this.user) {
@@ -205,20 +205,41 @@ export default {
     },
 
     issues() {
+
       if (this.selectedRegion) {
-        return this.selectedRegion.issues || []
+        // logger.log('issue map changed')
+        const regionId = this.selectedRegion.id
+        let issues = this.issueMap[regionId] || []
+
+        issues = issues.sort((a, b) => {
+          if (a.createdAt < b.createdAt) return 1
+          if (a.createdAt > b.createdAt) return -1
+          return 0
+        })
+
+        return issues
       }
       return []
     },
 
     orderedIssueComments() {
       if (this.selectedIssue) {
-        const comments = this.selectedIssue.comments
-        return comments.sort((a, b) => {
-          if (a.createdAt < b.createdAt) return 1
-          if (a.createdAt > b.createdAt) return -1
-          return 0
-        })
+
+        const issues = [...this.issues]
+        const issueId = this.selectedIssue.id
+        if (issues) {
+          const thisIssue = issues.filter((i) => i.id === issueId).pop()
+          const comments = [...thisIssue.comments]
+
+          return comments.sort((a, b) => {
+            if (a.createdAt < b.createdAt) return 1
+            if (a.createdAt > b.createdAt) return -1
+            return 0
+          })
+        } else {
+          return []
+        }
+
       } else {
         return []
       }
@@ -243,8 +264,9 @@ export default {
       logger.log('delete issue', id)
       const deleteIssue = confirm('Delete this issue forever?')
       if (deleteIssue) {
-        const issues = this.issues.filter((issue) => issue.id !== id)
-        this.$store.dispatch('updateRegion', { issues })
+        const regionId = this.selectedRegion.id
+        // const issues = this.issues.filter((issue) => issue.id !== id)
+        this.$store.dispatch('deleteRegionIssue', { regionId, issueId: id })
       }
       this.setSelectedIssue(null)
     },
@@ -257,7 +279,6 @@ export default {
       if (this.newIssueCommentText.length) {
         comments.push({
           comment: `${this.newIssueCommentText}`,
-          createdAt: newDate,
           owner: this.user.name,
         })
       }
@@ -266,10 +287,10 @@ export default {
         comments,
         id: `issue-${this.selectedIssue.type}-${newDate}`
       }
-      // update the store
-      const issues = this.selectedRegion.issues
-      issues.push(newIssue)
-      this.$store.dispatch('updateRegion', { issues })
+
+      const regionId = this.selectedRegion.id
+      this.$store.dispatch('addRegionIssue', { regionId, newIssue })
+
       // reset the form
       this.newIssueCommentText = ''
       this.setSelectedIssue(null)
@@ -298,33 +319,42 @@ export default {
       }
       logger.info('Adding issue comment', comment)
 
-      const issues = this.selectedRegion.issues
-      issues.forEach((item) => {
-        if (item.id === this.selectedIssue.id) {
-          item.comments.push({
-            comment,
-            createdAt: `${+new Date()}`,
-            owner: this.user.name,
-          })
-        }
+      const regionId = this.selectedRegion.id
+      const issueId = this.selectedIssue.id
+      const comments = [...this.selectedIssue.comments]
+      comments.push({
+        comment,
+        createdAt: `${+new Date()}`,
+        owner: this.user.name,
       })
 
-      this.$store.dispatch('updateRegion', { issues })
+      this.$store.dispatch('updateRegionIssue', {
+        regionId,
+        issueId,
+        issueUpdate: { comments }
+      })
+
       this.newIssueCommentText = ''
     },
 
+
     onResolveIssue() {
-      let issues = this.selectedRegion.issues
+      const issue = this.selectedIssue
       const newResolved = !this.selectedIssue.resolved
-      issues = issues.map((item) => {
-        if (item.id === this.selectedIssue.id) {
-          item.resolved = newResolved
-        }
-        return item
+      
+      // this.$store.dispatch('saveIssueResolved', {
+      //   id: issue.id,
+      //   resolved: newResolved,
+      // })
+      
+      const regionId = this.selectedRegion.id
+      this.$store.dispatch('updateRegionIssue', {
+        regionId,
+        issueId: issue.id,
+        issueUpdate: { resolved: newResolved }
       })
 
-      this.$store.dispatch('updateSelectedIssue', {resolved: newResolved})
-      this.$store.dispatch('updateRegion', { issues })
+      this.selectedIssue.resolved = newResolved
     },
   },
 }
