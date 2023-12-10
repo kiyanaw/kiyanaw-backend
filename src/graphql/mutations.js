@@ -23,20 +23,68 @@ export const createTranscription = /* GraphQL */ `
       isPrivate
       disableAnalyzer
       contributors {
+        items {
+          id
+          transcriptionID
+          contributorID
+          createdAt
+          updatedAt
+          _version
+          _deleted
+          _lastChangedAt
+        }
         nextToken
-        __typename
+        startedAt
       }
       regions {
+        items {
+          id
+          start
+          end
+          text
+          regionText
+          regionAnalysis
+          issues
+          isNote
+          comments
+          translation
+          dateLastUpdated
+          userLastUpdated
+          transcriptionId
+          createdAt
+          updatedAt
+          _version
+          _deleted
+          _lastChangedAt
+        }
         nextToken
-        __typename
+        startedAt
       }
       issueList {
+        items {
+          id
+          text
+          owner
+          index
+          resolved
+          type
+          comments
+          regionId
+          transcriptionId
+          createdAt
+          updatedAt
+          _version
+          _deleted
+          _lastChangedAt
+        }
         nextToken
-        __typename
+        startedAt
       }
       createdAt
       updatedAt
-      __typename
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
@@ -62,20 +110,68 @@ export const updateTranscription = /* GraphQL */ `
       isPrivate
       disableAnalyzer
       contributors {
+        items {
+          id
+          transcriptionID
+          contributorID
+          createdAt
+          updatedAt
+          _version
+          _deleted
+          _lastChangedAt
+        }
         nextToken
-        __typename
+        startedAt
       }
       regions {
+        items {
+          id
+          start
+          end
+          text
+          regionText
+          regionAnalysis
+          issues
+          isNote
+          comments
+          translation
+          dateLastUpdated
+          userLastUpdated
+          transcriptionId
+          createdAt
+          updatedAt
+          _version
+          _deleted
+          _lastChangedAt
+        }
         nextToken
-        __typename
+        startedAt
       }
       issueList {
+        items {
+          id
+          text
+          owner
+          index
+          resolved
+          type
+          comments
+          regionId
+          transcriptionId
+          createdAt
+          updatedAt
+          _version
+          _deleted
+          _lastChangedAt
+        }
         nextToken
-        __typename
+        startedAt
       }
       createdAt
       updatedAt
-      __typename
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
@@ -101,20 +197,68 @@ export const deleteTranscription = /* GraphQL */ `
       isPrivate
       disableAnalyzer
       contributors {
+        items {
+          id
+          transcriptionID
+          contributorID
+          createdAt
+          updatedAt
+          _version
+          _deleted
+          _lastChangedAt
+        }
         nextToken
-        __typename
+        startedAt
       }
       regions {
+        items {
+          id
+          start
+          end
+          text
+          regionText
+          regionAnalysis
+          issues
+          isNote
+          comments
+          translation
+          dateLastUpdated
+          userLastUpdated
+          transcriptionId
+          createdAt
+          updatedAt
+          _version
+          _deleted
+          _lastChangedAt
+        }
         nextToken
-        __typename
+        startedAt
       }
       issueList {
+        items {
+          id
+          text
+          owner
+          index
+          resolved
+          type
+          comments
+          regionId
+          transcriptionId
+          createdAt
+          updatedAt
+          _version
+          _deleted
+          _lastChangedAt
+        }
         nextToken
-        __typename
+        startedAt
       }
       createdAt
       updatedAt
-      __typename
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
@@ -152,14 +296,30 @@ export const createRegion = /* GraphQL */ `
         type
         isPrivate
         disableAnalyzer
+        contributors {
+          nextToken
+          startedAt
+        }
+        regions {
+          nextToken
+          startedAt
+        }
+        issueList {
+          nextToken
+          startedAt
+        }
         createdAt
         updatedAt
-        __typename
+        _version
+        _deleted
+        _lastChangedAt
       }
       transcriptionId
       createdAt
       updatedAt
-      __typename
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
@@ -197,14 +357,30 @@ export const updateRegion = /* GraphQL */ `
         type
         isPrivate
         disableAnalyzer
+        contributors {
+          nextToken
+          startedAt
+        }
+        regions {
+          nextToken
+          startedAt
+        }
+        issueList {
+          nextToken
+          startedAt
+        }
         createdAt
         updatedAt
-        __typename
+        _version
+        _deleted
+        _lastChangedAt
       }
       transcriptionId
       createdAt
       updatedAt
-      __typename
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
@@ -242,14 +418,30 @@ export const deleteRegion = /* GraphQL */ `
         type
         isPrivate
         disableAnalyzer
+        contributors {
+          nextToken
+          startedAt
+        }
+        regions {
+          nextToken
+          startedAt
+        }
+        issueList {
+          nextToken
+          startedAt
+        }
         createdAt
         updatedAt
-        __typename
+        _version
+        _deleted
+        _lastChangedAt
       }
       transcriptionId
       createdAt
       updatedAt
-      __typename
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
@@ -283,14 +475,30 @@ export const createIssue = /* GraphQL */ `
         type
         isPrivate
         disableAnalyzer
+        contributors {
+          nextToken
+          startedAt
+        }
+        regions {
+          nextToken
+          startedAt
+        }
+        issueList {
+          nextToken
+          startedAt
+        }
         createdAt
         updatedAt
-        __typename
+        _version
+        _deleted
+        _lastChangedAt
       }
       transcriptionId
       createdAt
       updatedAt
-      __typename
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
@@ -324,14 +532,30 @@ export const updateIssue = /* GraphQL */ `
         type
         isPrivate
         disableAnalyzer
+        contributors {
+          nextToken
+          startedAt
+        }
+        regions {
+          nextToken
+          startedAt
+        }
+        issueList {
+          nextToken
+          startedAt
+        }
         createdAt
         updatedAt
-        __typename
+        _version
+        _deleted
+        _lastChangedAt
       }
       transcriptionId
       createdAt
       updatedAt
-      __typename
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
@@ -365,59 +589,30 @@ export const deleteIssue = /* GraphQL */ `
         type
         isPrivate
         disableAnalyzer
+        contributors {
+          nextToken
+          startedAt
+        }
+        regions {
+          nextToken
+          startedAt
+        }
+        issueList {
+          nextToken
+          startedAt
+        }
         createdAt
         updatedAt
-        __typename
+        _version
+        _deleted
+        _lastChangedAt
       }
       transcriptionId
       createdAt
       updatedAt
-      __typename
-    }
-  }
-`;
-export const createCursor = /* GraphQL */ `
-  mutation CreateCursor(
-    $input: CreateCursorInput!
-    $condition: ModelCursorConditionInput
-  ) {
-    createCursor(input: $input, condition: $condition) {
-      id
-      user
-      cursor
-      createdAt
-      updatedAt
-      __typename
-    }
-  }
-`;
-export const updateCursor = /* GraphQL */ `
-  mutation UpdateCursor(
-    $input: UpdateCursorInput!
-    $condition: ModelCursorConditionInput
-  ) {
-    updateCursor(input: $input, condition: $condition) {
-      id
-      user
-      cursor
-      createdAt
-      updatedAt
-      __typename
-    }
-  }
-`;
-export const deleteCursor = /* GraphQL */ `
-  mutation DeleteCursor(
-    $input: DeleteCursorInput!
-    $condition: ModelCursorConditionInput
-  ) {
-    deleteCursor(input: $input, condition: $condition) {
-      id
-      user
-      cursor
-      createdAt
-      updatedAt
-      __typename
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
@@ -431,9 +626,12 @@ export const createPointer = /* GraphQL */ `
       transcription
       region
       cursor
+      owner
       createdAt
       updatedAt
-      __typename
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
@@ -447,9 +645,12 @@ export const updatePointer = /* GraphQL */ `
       transcription
       region
       cursor
+      owner
       createdAt
       updatedAt
-      __typename
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
@@ -463,9 +664,12 @@ export const deletePointer = /* GraphQL */ `
       transcription
       region
       cursor
+      owner
       createdAt
       updatedAt
-      __typename
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
@@ -481,7 +685,9 @@ export const createRegionLock = /* GraphQL */ `
       user
       createdAt
       updatedAt
-      __typename
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
@@ -497,7 +703,9 @@ export const updateRegionLock = /* GraphQL */ `
       user
       createdAt
       updatedAt
-      __typename
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
@@ -513,7 +721,9 @@ export const deleteRegionLock = /* GraphQL */ `
       user
       createdAt
       updatedAt
-      __typename
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
@@ -527,12 +737,24 @@ export const createContributor = /* GraphQL */ `
       email
       username
       transcriptions {
+        items {
+          id
+          transcriptionID
+          contributorID
+          createdAt
+          updatedAt
+          _version
+          _deleted
+          _lastChangedAt
+        }
         nextToken
-        __typename
+        startedAt
       }
       createdAt
       updatedAt
-      __typename
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
@@ -546,12 +768,24 @@ export const updateContributor = /* GraphQL */ `
       email
       username
       transcriptions {
+        items {
+          id
+          transcriptionID
+          contributorID
+          createdAt
+          updatedAt
+          _version
+          _deleted
+          _lastChangedAt
+        }
         nextToken
-        __typename
+        startedAt
       }
       createdAt
       updatedAt
-      __typename
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
@@ -565,12 +799,129 @@ export const deleteContributor = /* GraphQL */ `
       email
       username
       transcriptions {
+        items {
+          id
+          transcriptionID
+          contributorID
+          createdAt
+          updatedAt
+          _version
+          _deleted
+          _lastChangedAt
+        }
         nextToken
-        __typename
+        startedAt
       }
       createdAt
       updatedAt
-      __typename
+      _version
+      _deleted
+      _lastChangedAt
+    }
+  }
+`;
+export const createCursor = /* GraphQL */ `
+  mutation CreateCursor(
+    $input: CreateCursorInput!
+    $condition: ModelCursorConditionInput
+  ) {
+    createCursor(input: $input, condition: $condition) {
+      id
+      user
+      cursor
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+    }
+  }
+`;
+export const updateCursor = /* GraphQL */ `
+  mutation UpdateCursor(
+    $input: UpdateCursorInput!
+    $condition: ModelCursorConditionInput
+  ) {
+    updateCursor(input: $input, condition: $condition) {
+      id
+      user
+      cursor
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+    }
+  }
+`;
+export const deleteCursor = /* GraphQL */ `
+  mutation DeleteCursor(
+    $input: DeleteCursorInput!
+    $condition: ModelCursorConditionInput
+  ) {
+    deleteCursor(input: $input, condition: $condition) {
+      id
+      user
+      cursor
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+    }
+  }
+`;
+export const createUserCursor = /* GraphQL */ `
+  mutation CreateUserCursor(
+    $input: CreateUserCursorInput!
+    $condition: ModelUserCursorConditionInput
+  ) {
+    createUserCursor(input: $input, condition: $condition) {
+      id
+      transcription
+      region
+      cursor
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+    }
+  }
+`;
+export const updateUserCursor = /* GraphQL */ `
+  mutation UpdateUserCursor(
+    $input: UpdateUserCursorInput!
+    $condition: ModelUserCursorConditionInput
+  ) {
+    updateUserCursor(input: $input, condition: $condition) {
+      id
+      transcription
+      region
+      cursor
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+    }
+  }
+`;
+export const deleteUserCursor = /* GraphQL */ `
+  mutation DeleteUserCursor(
+    $input: DeleteUserCursorInput!
+    $condition: ModelUserCursorConditionInput
+  ) {
+    deleteUserCursor(input: $input, condition: $condition) {
+      id
+      transcription
+      region
+      cursor
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
@@ -599,21 +950,43 @@ export const createTranscriptionContributor = /* GraphQL */ `
         type
         isPrivate
         disableAnalyzer
+        contributors {
+          nextToken
+          startedAt
+        }
+        regions {
+          nextToken
+          startedAt
+        }
+        issueList {
+          nextToken
+          startedAt
+        }
         createdAt
         updatedAt
-        __typename
+        _version
+        _deleted
+        _lastChangedAt
       }
       contributor {
         id
         email
         username
+        transcriptions {
+          nextToken
+          startedAt
+        }
         createdAt
         updatedAt
-        __typename
+        _version
+        _deleted
+        _lastChangedAt
       }
       createdAt
       updatedAt
-      __typename
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
@@ -642,21 +1015,43 @@ export const updateTranscriptionContributor = /* GraphQL */ `
         type
         isPrivate
         disableAnalyzer
+        contributors {
+          nextToken
+          startedAt
+        }
+        regions {
+          nextToken
+          startedAt
+        }
+        issueList {
+          nextToken
+          startedAt
+        }
         createdAt
         updatedAt
-        __typename
+        _version
+        _deleted
+        _lastChangedAt
       }
       contributor {
         id
         email
         username
+        transcriptions {
+          nextToken
+          startedAt
+        }
         createdAt
         updatedAt
-        __typename
+        _version
+        _deleted
+        _lastChangedAt
       }
       createdAt
       updatedAt
-      __typename
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;
@@ -685,21 +1080,43 @@ export const deleteTranscriptionContributor = /* GraphQL */ `
         type
         isPrivate
         disableAnalyzer
+        contributors {
+          nextToken
+          startedAt
+        }
+        regions {
+          nextToken
+          startedAt
+        }
+        issueList {
+          nextToken
+          startedAt
+        }
         createdAt
         updatedAt
-        __typename
+        _version
+        _deleted
+        _lastChangedAt
       }
       contributor {
         id
         email
         username
+        transcriptions {
+          nextToken
+          startedAt
+        }
         createdAt
         updatedAt
-        __typename
+        _version
+        _deleted
+        _lastChangedAt
       }
       createdAt
       updatedAt
-      __typename
+      _version
+      _deleted
+      _lastChangedAt
     }
   }
 `;

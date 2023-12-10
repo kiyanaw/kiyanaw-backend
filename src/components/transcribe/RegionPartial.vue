@@ -41,6 +41,9 @@ export default {
 
     editor() { 
       const editorObject = this.editingUsers[this.source.id]
+
+      console.log('editorObject', editorObject)
+
       if (editorObject && editorObject.length) {
         return editorObject.map((item) => `<span style="color: ${item.color}">${item.user}</span>`).join(', ')
       } else {

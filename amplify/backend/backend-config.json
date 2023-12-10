@@ -29,12 +29,29 @@
     }
   },
   "auth": {
-    "kiyanawecd8340e": {
+    "kiyanawd20b7994": {
       "customAuth": false,
       "dependsOn": [],
+      "frontendAuthConfig": {
+        "mfaConfiguration": "OFF",
+        "mfaTypes": [
+          "SMS"
+        ],
+        "passwordProtectionSettings": {
+          "passwordPolicyCharacters": [],
+          "passwordPolicyMinLength": 8
+        },
+        "signupAttributes": [
+          "EMAIL"
+        ],
+        "socialProviders": [],
+        "usernameAttributes": [],
+        "verificationMechanisms": [
+          "EMAIL"
+        ]
+      },
       "providerPlugin": "awscloudformation",
-      "service": "Cognito",
-      "serviceType": "imported"
+      "service": "Cognito"
     }
   },
   "function": {
@@ -61,94 +78,6 @@
     }
   },
   "parameters": {
-    "AMPLIFY_auth_kiyanawecd8340e_allowUnauthenticatedIdentities": {
-      "usedBy": [
-        {
-          "category": "auth",
-          "resourceName": "kiyanawecd8340e"
-        }
-      ]
-    },
-    "AMPLIFY_auth_kiyanawecd8340e_authRoleArn": {
-      "usedBy": [
-        {
-          "category": "auth",
-          "resourceName": "kiyanawecd8340e"
-        }
-      ]
-    },
-    "AMPLIFY_auth_kiyanawecd8340e_authRoleName": {
-      "usedBy": [
-        {
-          "category": "auth",
-          "resourceName": "kiyanawecd8340e"
-        }
-      ]
-    },
-    "AMPLIFY_auth_kiyanawecd8340e_identityPoolId": {
-      "usedBy": [
-        {
-          "category": "auth",
-          "resourceName": "kiyanawecd8340e"
-        }
-      ]
-    },
-    "AMPLIFY_auth_kiyanawecd8340e_identityPoolName": {
-      "usedBy": [
-        {
-          "category": "auth",
-          "resourceName": "kiyanawecd8340e"
-        }
-      ]
-    },
-    "AMPLIFY_auth_kiyanawecd8340e_nativeClientId": {
-      "usedBy": [
-        {
-          "category": "auth",
-          "resourceName": "kiyanawecd8340e"
-        }
-      ]
-    },
-    "AMPLIFY_auth_kiyanawecd8340e_unauthRoleArn": {
-      "usedBy": [
-        {
-          "category": "auth",
-          "resourceName": "kiyanawecd8340e"
-        }
-      ]
-    },
-    "AMPLIFY_auth_kiyanawecd8340e_unauthRoleName": {
-      "usedBy": [
-        {
-          "category": "auth",
-          "resourceName": "kiyanawecd8340e"
-        }
-      ]
-    },
-    "AMPLIFY_auth_kiyanawecd8340e_userPoolId": {
-      "usedBy": [
-        {
-          "category": "auth",
-          "resourceName": "kiyanawecd8340e"
-        }
-      ]
-    },
-    "AMPLIFY_auth_kiyanawecd8340e_userPoolName": {
-      "usedBy": [
-        {
-          "category": "auth",
-          "resourceName": "kiyanawecd8340e"
-        }
-      ]
-    },
-    "AMPLIFY_auth_kiyanawecd8340e_webClientId": {
-      "usedBy": [
-        {
-          "category": "auth",
-          "resourceName": "kiyanawecd8340e"
-        }
-      ]
-    },
     "AMPLIFY_function_enqueueRegionChange_deploymentBucketName": {
       "usedBy": [
         {

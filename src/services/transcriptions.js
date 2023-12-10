@@ -73,7 +73,7 @@ export default {
 
   async uploadMediaFile(inputFile, progressCallback = null) {
     const timestamp = `${+new Date()}`
-    const fileName = inputFile.name.replace(/[^a-zA-Z0-9]/g,'-')
+    const fileName = inputFile.name.replace(/[^a-zA-Z0-9.]/g,'-')
     const fileResult = await Storage.put(`${timestamp}-${fileName}`, inputFile, {
       ACL: 'public-read',
       expires: new Date('Wed, 31 Dec 2098 23:59:59 GMT'),

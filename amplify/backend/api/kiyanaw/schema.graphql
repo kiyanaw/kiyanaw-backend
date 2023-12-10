@@ -96,7 +96,6 @@ type Contributor
   transcriptions: [Transcription] @manyToMany(relationName: "TranscriptionContributor")
 }
 
-
 type Cursor
   @model
   @auth(
@@ -114,7 +113,7 @@ type UserCursor
   ) {
   # id is the user name
   id: ID! @primaryKey
-  transcription: String! 
+  transcription: String!
   region: String!
   cursor: String!
 }

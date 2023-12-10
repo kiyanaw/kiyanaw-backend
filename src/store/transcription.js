@@ -219,7 +219,6 @@ const actions = {
      *  - deal with deleted region (check if region is curently selected)
      *  - deal with updating issues (list does not update)
      */
-    // console.log('snapshot', snapshot)
     const user = await userService.getUser()
     const { items } = snapshot
     const updated = items.filter(
@@ -350,7 +349,6 @@ const actions = {
    * TODO: need a queue like Region to updates can happen at typing speed
    */
   async updateTranscription(store, update) {
-    console.log('updating Transcription', update)
     // throttle updates so DataStore doesn't shit the bed
     Timeout.clear('update-transcription-timer')
     Timeout.set(
@@ -384,27 +382,44 @@ const mutations = {
     Vue.set(context, 'transcriptions', transcriptions)
   },
 
+  /**
+   * Conditions:
+   *  - user has not edited yet, this event is the first edit
+   *    > add the username to the new region
+   *  - user edited before, and the region is the same
+   *    > do nothing
+   *  - user edited before, and the region is different
+   *    > remove from old region, move to new region √
+   */
   UPDATE_EDITING_USERS(context, event) {
     // check if the user was editing another region
     const lastRegionEditedByUser = state.lastEditorRegion[event.user]
-    if (lastRegionEditedByUser && lastRegionEditedByUser != event.regionId) {
-      const allItemsForEntry = context.editingUsers[lastRegionEditedByUser]
-      const newItems = allItemsForEntry.filter((item) => item.user !== event.user)
-      if (newItems.length === 0) {
-        Vue.delete(context.editingUsers, lastRegionEditedByUser)
-      } else {
-        Vue.set(context.editingUsers, lastRegionEditedByUser, newItems)
+    let addingUserToRegion = false 
+
+    // checks to see if the remote user has changed regions
+    if (lastRegionEditedByUser) {
+      if (lastRegionEditedByUser !== event.regionId) {
+        // The remote user has moved to another region, remove them from last region
+        const allItemsForEntry = context.editingUsers[lastRegionEditedByUser]
+        const newItems = allItemsForEntry.filter((item) => item.user !== event.user)
+        if (newItems.length === 0) {
+          Vue.delete(context.editingUsers, lastRegionEditedByUser)
+        } else {
+          Vue.set(context.editingUsers, lastRegionEditedByUser, newItems)
+        }
+        addingUserToRegion = true
       }
+    } else {
+      addingUserToRegion = true
     }
 
-    // does the entry exist?
-    let indexToUse = 0
-    if (!context.editingUsers[event.regionId]) {
-      context.editingUsers[event.regionId] = []
-    } else {
-      indexToUse = context.editingUsers[event.regionId].length
+    if (addingUserToRegion) {
+      if (!context.editingUsers[event.regionId]) {
+        context.editingUsers[event.regionId] = []
+      }
+      // set the editor into the region
+      context.editingUsers[event.regionId].push(event)
     }
-    Vue.set(context.editingUsers[event.regionId], indexToUse, event)
     state.lastEditorRegion[event.user] = event.regionId
   },
 

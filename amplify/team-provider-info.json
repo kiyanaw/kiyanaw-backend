@@ -12,9 +12,6 @@
       "AmplifyAppId": "d2vcnct5kwl6za"
     },
     "categories": {
-      "auth": {
-        "kiyanaw664b231a": {}
-      },
       "function": {
         "notifyRegionChanges": {
           "deploymentBucketName": "amplify-kiyanaw-prod-214643-deployment",
@@ -38,6 +35,23 @@
       "api": {
         "kiyanaw": {},
         "enqueueRegionChange": {}
+      },
+      "auth": {
+        "kiyanaw5605aca2": {
+          "userPoolId": "us-east-1_G0fR5mmzP",
+          "userPoolName": "kiyanaw664b231a_userpool_664b231a-prod",
+          "webClientId": "242gk6um1cfhf7jrdehbjjkeb6",
+          "nativeClientId": "6d7pmicpo2m9d48bl2ufm62e14",
+          "identityPoolId": "us-east-1:d63e0cd3-9397-4a7e-a130-6760e2b18deb",
+          "identityPoolName": "kiyanaw664b231a_identitypool_664b231a__prod",
+          "allowUnauthenticatedIdentities": true,
+          "authRoleArn": "arn:aws:iam::494185203413:role/amplify-kiyanaw-prod-214643-authRole",
+          "authRoleName": "amplify-kiyanaw-prod-214643-authRole",
+          "unauthRoleArn": "arn:aws:iam::494185203413:role/amplify-kiyanaw-prod-214643-unauthRole",
+          "unauthRoleName": "amplify-kiyanaw-prod-214643-unauthRole"
+        },
+        "kiyanaw3ad15c293ad15c29": {},
+        "userPoolGroups": {}
       }
     }
   },
@@ -121,20 +135,53 @@
       "storage": {
         "transcriptions": {}
       },
+      "hosting": {
+        "S3AndCloudFront": {}
+      },
       "auth": {
-        "kiyanawecd8340e": {
-          "userPoolId": "us-east-1_G0fR5mmzP",
-          "userPoolName": "kiyanaw664b231a_userpool_664b231a-prod",
-          "webClientId": "242gk6um1cfhf7jrdehbjjkeb6",
-          "nativeClientId": "6d7pmicpo2m9d48bl2ufm62e14",
-          "identityPoolId": "us-east-1:d63e0cd3-9397-4a7e-a130-6760e2b18deb",
-          "identityPoolName": "kiyanaw664b231a_identitypool_664b231a__prod",
-          "allowUnauthenticatedIdentities": true,
-          "authRoleArn": "arn:aws:iam::494185203413:role/amplify-kiyanaw-prod-214643-authRole",
-          "authRoleName": "amplify-kiyanaw-prod-214643-authRole",
-          "unauthRoleArn": "arn:aws:iam::494185203413:role/amplify-kiyanaw-prod-214643-unauthRole",
-          "unauthRoleName": "amplify-kiyanaw-prod-214643-unauthRole"
+        "kiyanawecd8340e": {},
+        "kiyanaw3ad15c293ad15c29": {},
+        "userPoolGroups": {},
+        "kiyanawe96451b3": {}
+      }
+    }
+  },
+  "production": {
+    "awscloudformation": {
+      "AuthRoleName": "amplify-kiyanaw-production-143529-authRole",
+      "UnauthRoleArn": "arn:aws:iam::494185203413:role/amplify-kiyanaw-production-143529-unauthRole",
+      "AuthRoleArn": "arn:aws:iam::494185203413:role/amplify-kiyanaw-production-143529-authRole",
+      "Region": "us-east-1",
+      "DeploymentBucketName": "amplify-kiyanaw-production-143529-deployment",
+      "UnauthRoleName": "amplify-kiyanaw-production-143529-unauthRole",
+      "StackName": "amplify-kiyanaw-production-143529",
+      "StackId": "arn:aws:cloudformation:us-east-1:494185203413:stack/amplify-kiyanaw-production-143529/17dd01a0-961a-11ee-a340-0eeeb621168f",
+      "AmplifyAppId": "d2vcnct5kwl6za"
+    },
+    "categories": {
+      "function": {
+        "enqueueRegionChange": {
+          "deploymentBucketName": "amplify-kiyanaw-production-143529-deployment",
+          "s3Key": "amplify-builds/enqueueRegionChange-6f4a6e5932586868554f-build.zip"
+        },
+        "indexRegionData": {
+          "deploymentBucketName": "amplify-kiyanaw-production-143529-deployment",
+          "s3Key": "amplify-builds/indexRegionData-453065364a7867754a67-build.zip"
+        },
+        "notifyRegionChanges": {
+          "deploymentBucketName": "amplify-kiyanaw-production-143529-deployment",
+          "s3Key": "amplify-builds/notifyRegionChanges-3942386f532b46716a4a-build.zip"
         }
+      },
+      "api": {
+        "enqueueRegionChange": {},
+        "kiyanaw": {}
+      },
+      "storage": {
+        "transcriptions": {}
+      },
+      "auth": {
+        "kiyanawd20b7994": {}
       },
       "hosting": {
         "S3AndCloudFront": {}

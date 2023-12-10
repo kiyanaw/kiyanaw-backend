@@ -95,11 +95,12 @@ export default {
         // listen for realtime changes
         EventBus.$on('realtime-region-update', (incoming) => {
           if (this.mode === 'main') {
-            const incomingText = new Delta(incoming.text)
-            const local = this.editor.getText()
-            const difference = local.diff(incomingText)
-            this.editor.updateContents(difference, 'api')
+            const incomingText = new Delta([{insert: incoming.regionText}])
+            const editorText = this.editor.getText()
+            const local = new Delta([{ insert: editorText }])
 
+            const difference = local.diff(incomingText)
+            this.editor.updateContents(difference, 'api') 
           } else {
             const localValue = this.editor.getText()
             if (incoming.translation !== localValue) {
