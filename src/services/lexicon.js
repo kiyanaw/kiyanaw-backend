@@ -16,20 +16,6 @@ class Client {
   constructor() {
     this.endpoint = 'https://icagc4x2ok.execute-api.us-east-1.amazonaws.com'
     this.sapirEndpoint = 'https://itwewina.altlab.app/click-in-text'
-
-    // Auth.currentCredentials().then((credentials) => {
-    //   console.log('credentials', credentials)
-    //   // this.esClient = elasticsearch.Client({
-    //   //   host:
-    //   //     'https://search-indexregiondata-lqatyzsxiuhepcfidwldyiebh4.us-east-1.es.amazonaws.com',
-    //   //   connectionClass: httpAwsEs,
-    //   //   awsConfig: new AWS.Config({ region: 'us-east-1', credentials }),
-    //   // })
-    //   this.credentials = credentials
-
-    //   // window.es = this.esClient
-    //   window.foo = this
-    // })
   }
 
   async search(data) {
@@ -78,7 +64,7 @@ class Client {
     const query = {
       aggs: {
         wordTypeCount: {
-          terms: { field: 'wordClass', size: 50 },
+          terms: { field: 'wordClass', size: 100 },
         },
       },
     }
@@ -87,7 +73,7 @@ class Client {
     return results.aggregations.wordTypeCount.buckets
   }
 
-  async getLemmaCount(type = 'V', max = 20) {
+  async getLemmaCount(type = 'V', max = 100) {
     const query = {
       aggs: {
         lemmaCount: {

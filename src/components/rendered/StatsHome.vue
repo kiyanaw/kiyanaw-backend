@@ -21,7 +21,7 @@
     <v-main class="grey lighten-3">
       <v-container class="mb-6">
         <div class="text-h4 pt-6">Index stats</div>
-        <p>This section is currently experimental.</p>
+        <p>Total indexed words: {{ totalCounts  }}</p>
         <v-text-field
           v-model="search"
           append-icon="mdi-magnify"
@@ -150,6 +150,7 @@ export default {
       { title: 'About', link: '/about' },
     ],
     wordTypeCounts: [],
+    totalCounts: null,
     topVerbCounts: [],
     topNounCounts: [],
     search: null,
@@ -160,6 +161,14 @@ export default {
     lexicon.getWordTypeCount().then((results) => {
       console.log('wordTypes', results)
       this.wordTypeCounts = results
+
+      let total = 0
+      for (const result of results) {
+        total += result.doc_count
+      }
+
+      this.totalCounts = total
+
     })
     lexicon.getVerbLemmaCount().then((results) => {
       console.log('Verbs', results)
