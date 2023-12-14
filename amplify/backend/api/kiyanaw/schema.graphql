@@ -17,6 +17,7 @@ type Transcription
   title: String! @index(name: "ByTitle", queryField: "byTitle")
   type: String!
   isPrivate: Boolean
+  isPublished: Boolean
   disableAnalyzer: Boolean
   contributors: [Contributor] @manyToMany(relationName: "TranscriptionContributor")
   regions: [Region] @hasMany(indexName: "ByTranscription", fields: ["id"])

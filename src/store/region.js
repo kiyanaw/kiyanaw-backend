@@ -231,6 +231,11 @@ const actions = {
 
     // update the issue map with the new issue
     const { regionId, newIssue } = update
+
+    if (!store.getters.issueMap[regionId]) {
+      store.getters.issueMap[regionId] = []
+    }
+
     const issues = store.getters.issueMap[regionId]
     issues.push(newIssue)
 
@@ -398,8 +403,10 @@ const actions = {
     assert.ok(update.id, 'update.id must be provided')
     // console.log('updateRegionById', update)
     const regionId = update.id
-    // logger.debug('Updating region by Id', regionId)
+    logger.info('Updating region by Id', regionId)
     const region = store.getters.regionById(regionId)
+
+    console.log('got region by Id', region)
 
     // commit to local store
     store.dispatch('commitRegionUpdate', { region, update })
@@ -575,8 +582,19 @@ const mutations = {
     const region = update.region
     const id = `${region.id}`
     const existing = context.regionMap[id]
-    const whole = new models.RegionModel(Object.assign(existing, update.update))
+
+    console.log('existing, update', existing, update)
+
+    const assigned = Object.assign(existing, update.update)
+    console.log('assigned', assigned)
+
+    const whole = new models.RegionModel(assigned)
+
+    console.log('whole', whole)
+
     Vue.set(context.regionMap, id, whole)
+
+    console.log('regionMap', context.regionMap)
   },
 
   UPDATE_SELECTED_ISSUE(context, update) {

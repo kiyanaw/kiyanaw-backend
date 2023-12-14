@@ -53,6 +53,7 @@ type EagerTranscription = {
   readonly title: string;
   readonly type: string;
   readonly isPrivate?: boolean | null;
+  readonly isPublished?: boolean | null;
   readonly disableAnalyzer?: boolean | null;
   readonly contributors?: (TranscriptionContributor | null)[] | null;
   readonly regions?: (Region | null)[] | null;
@@ -76,6 +77,7 @@ type LazyTranscription = {
   readonly title: string;
   readonly type: string;
   readonly isPrivate?: boolean | null;
+  readonly isPublished?: boolean | null;
   readonly disableAnalyzer?: boolean | null;
   readonly contributors: AsyncCollection<TranscriptionContributor>;
   readonly regions: AsyncCollection<Region>;

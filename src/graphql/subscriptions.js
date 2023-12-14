@@ -20,6 +20,7 @@ export const onCreateTranscription = /* GraphQL */ `
       title
       type
       isPrivate
+      isPublished
       disableAnalyzer
       contributors {
         items {
@@ -106,6 +107,7 @@ export const onUpdateTranscription = /* GraphQL */ `
       title
       type
       isPrivate
+      isPublished
       disableAnalyzer
       contributors {
         items {
@@ -192,6 +194,7 @@ export const onDeleteTranscription = /* GraphQL */ `
       title
       type
       isPrivate
+      isPublished
       disableAnalyzer
       contributors {
         items {
@@ -289,6 +292,7 @@ export const onCreateRegion = /* GraphQL */ `
         title
         type
         isPrivate
+        isPublished
         disableAnalyzer
         contributors {
           nextToken
@@ -347,6 +351,7 @@ export const onUpdateRegion = /* GraphQL */ `
         title
         type
         isPrivate
+        isPublished
         disableAnalyzer
         contributors {
           nextToken
@@ -405,6 +410,7 @@ export const onDeleteRegion = /* GraphQL */ `
         title
         type
         isPrivate
+        isPublished
         disableAnalyzer
         contributors {
           nextToken
@@ -459,6 +465,7 @@ export const onCreateIssue = /* GraphQL */ `
         title
         type
         isPrivate
+        isPublished
         disableAnalyzer
         contributors {
           nextToken
@@ -513,6 +520,7 @@ export const onUpdateIssue = /* GraphQL */ `
         title
         type
         isPrivate
+        isPublished
         disableAnalyzer
         contributors {
           nextToken
@@ -567,6 +575,7 @@ export const onDeleteIssue = /* GraphQL */ `
         title
         type
         isPrivate
+        isPublished
         disableAnalyzer
         contributors {
           nextToken
@@ -900,6 +909,7 @@ export const onCreateTranscriptionContributor = /* GraphQL */ `
         title
         type
         isPrivate
+        isPublished
         disableAnalyzer
         contributors {
           nextToken
@@ -964,6 +974,7 @@ export const onUpdateTranscriptionContributor = /* GraphQL */ `
         title
         type
         isPrivate
+        isPublished
         disableAnalyzer
         contributors {
           nextToken
@@ -1028,6 +1039,7 @@ export const onDeleteTranscriptionContributor = /* GraphQL */ `
         title
         type
         isPrivate
+        isPublished
         disableAnalyzer
         contributors {
           nextToken

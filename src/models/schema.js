@@ -101,6 +101,13 @@ export const schema = {
                     "isRequired": false,
                     "attributes": []
                 },
+                "isPublished": {
+                    "name": "isPublished",
+                    "isArray": false,
+                    "type": "Boolean",
+                    "isRequired": false,
+                    "attributes": []
+                },
                 "disableAnalyzer": {
                     "name": "disableAnalyzer",
                     "isArray": false,
@@ -1090,5 +1097,5 @@ export const schema = {
     "enums": {},
     "nonModels": {},
     "codegenVersion": "3.3.5",
-    "version": "d22538fb1a7e2036776e31f8968a43d5"
+    "version": "e462811357fac73ece4401395690c6a0"
 };

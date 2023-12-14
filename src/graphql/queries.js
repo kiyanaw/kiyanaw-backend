@@ -18,6 +18,7 @@ export const getTranscription = /* GraphQL */ `
       title
       type
       isPrivate
+      isPublished
       disableAnalyzer
       contributors {
         items {
@@ -115,6 +116,7 @@ export const listTranscriptions = /* GraphQL */ `
         title
         type
         isPrivate
+        isPublished
         disableAnalyzer
         contributors {
           nextToken
@@ -167,6 +169,7 @@ export const syncTranscriptions = /* GraphQL */ `
         title
         type
         isPrivate
+        isPublished
         disableAnalyzer
         contributors {
           nextToken
@@ -221,6 +224,7 @@ export const getRegion = /* GraphQL */ `
         title
         type
         isPrivate
+        isPublished
         disableAnalyzer
         contributors {
           nextToken
@@ -292,6 +296,7 @@ export const listRegions = /* GraphQL */ `
           title
           type
           isPrivate
+          isPublished
           disableAnalyzer
           createdAt
           updatedAt
@@ -352,6 +357,7 @@ export const syncRegions = /* GraphQL */ `
           title
           type
           isPrivate
+          isPublished
           disableAnalyzer
           createdAt
           updatedAt
@@ -397,6 +403,7 @@ export const getIssue = /* GraphQL */ `
         title
         type
         isPrivate
+        isPublished
         disableAnalyzer
         contributors {
           nextToken
@@ -464,6 +471,7 @@ export const listIssues = /* GraphQL */ `
           title
           type
           isPrivate
+          isPublished
           disableAnalyzer
           createdAt
           updatedAt
@@ -520,6 +528,7 @@ export const syncIssues = /* GraphQL */ `
           title
           type
           isPrivate
+          isPublished
           disableAnalyzer
           createdAt
           updatedAt
@@ -958,6 +967,7 @@ export const getTranscriptionContributor = /* GraphQL */ `
         title
         type
         isPrivate
+        isPublished
         disableAnalyzer
         contributors {
           nextToken
@@ -1029,6 +1039,7 @@ export const listTranscriptionContributors = /* GraphQL */ `
           title
           type
           isPrivate
+          isPublished
           disableAnalyzer
           createdAt
           updatedAt
@@ -1089,6 +1100,7 @@ export const syncTranscriptionContributors = /* GraphQL */ `
           title
           type
           isPrivate
+          isPublished
           disableAnalyzer
           createdAt
           updatedAt
@@ -1147,6 +1159,7 @@ export const byTitle = /* GraphQL */ `
         title
         type
         isPrivate
+        isPublished
         disableAnalyzer
         contributors {
           nextToken

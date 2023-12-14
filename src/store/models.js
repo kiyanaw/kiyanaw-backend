@@ -121,7 +121,7 @@ class RegionModel {
     }
 
     // text
-    if (data.text) {
+    if (data.text || data.regionText) {
       this.text = data.regionText
       this.regionText = data.regionText
     } else {

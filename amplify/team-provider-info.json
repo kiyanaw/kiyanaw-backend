@@ -171,6 +171,10 @@
         "notifyRegionChanges": {
           "deploymentBucketName": "amplify-kiyanaw-production-143529-deployment",
           "s3Key": "amplify-builds/notifyRegionChanges-3942386f532b46716a4a-build.zip"
+        },
+        "syncConflictHandler092e0049": {
+          "deploymentBucketName": "amplify-kiyanaw-production-143529-deployment",
+          "s3Key": "amplify-builds/syncConflictHandler092e0049-514a524672446d516254-build.zip"
         }
       },
       "api": {
