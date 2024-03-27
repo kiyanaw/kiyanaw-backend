@@ -97,6 +97,8 @@ export default {
 
 
       if (link) {
+        // give a pause for processing before we redirect, otherwise we brick DataStore
+        await new Promise((r) => { setTimeout(r, 2500) })
         this.$router.push({ path: `/transcribe-edit/${transcription.id}` })
       }
     },

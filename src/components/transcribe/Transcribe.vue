@@ -178,6 +178,7 @@ export default {
    * Mount point for this component.
    */
   async mounted() {
+    console.log('Transcibe mounted')
     // TODO: load this from store
     try {
       this.user = await UserService.getUser()
@@ -193,6 +194,7 @@ export default {
     this.inboundRegion = this.$route.params.region || null
 
     await RegionStore.setSyncTranscription(this.transcriptionId)
+    console.log('set on region store')
 
     /**
      * Set up a subscription for new cursor changes.
@@ -237,6 +239,7 @@ export default {
     Hub.listen("datastore", async hubData => {
       const  { event } = hubData.payload;
       if (event === "ready") {
+        console.log('calling load transcription')
         this.loadTranscription(this.transcriptionId)
       }
     })
@@ -252,6 +255,7 @@ export default {
     })
 
     DataStore.start()
+    console.log('started datastore')
   },
 
   methods: {
