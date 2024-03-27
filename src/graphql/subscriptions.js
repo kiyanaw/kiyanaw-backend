@@ -23,68 +23,26 @@ export const onCreateTranscription = /* GraphQL */ `
       isPublished
       disableAnalyzer
       contributors {
-        items {
-          id
-          transcriptionID
-          contributorID
-          createdAt
-          updatedAt
-          _version
-          _deleted
-          _lastChangedAt
-        }
         nextToken
         startedAt
+        __typename
       }
       regions {
-        items {
-          id
-          start
-          end
-          text
-          regionText
-          regionAnalysis
-          issues
-          isNote
-          comments
-          translation
-          dateLastUpdated
-          userLastUpdated
-          transcriptionId
-          createdAt
-          updatedAt
-          _version
-          _deleted
-          _lastChangedAt
-        }
         nextToken
         startedAt
+        __typename
       }
       issueList {
-        items {
-          id
-          text
-          owner
-          index
-          resolved
-          type
-          comments
-          regionId
-          transcriptionId
-          createdAt
-          updatedAt
-          _version
-          _deleted
-          _lastChangedAt
-        }
         nextToken
         startedAt
+        __typename
       }
       createdAt
       updatedAt
       _version
       _deleted
       _lastChangedAt
+      __typename
     }
   }
 `;
@@ -110,68 +68,26 @@ export const onUpdateTranscription = /* GraphQL */ `
       isPublished
       disableAnalyzer
       contributors {
-        items {
-          id
-          transcriptionID
-          contributorID
-          createdAt
-          updatedAt
-          _version
-          _deleted
-          _lastChangedAt
-        }
         nextToken
         startedAt
+        __typename
       }
       regions {
-        items {
-          id
-          start
-          end
-          text
-          regionText
-          regionAnalysis
-          issues
-          isNote
-          comments
-          translation
-          dateLastUpdated
-          userLastUpdated
-          transcriptionId
-          createdAt
-          updatedAt
-          _version
-          _deleted
-          _lastChangedAt
-        }
         nextToken
         startedAt
+        __typename
       }
       issueList {
-        items {
-          id
-          text
-          owner
-          index
-          resolved
-          type
-          comments
-          regionId
-          transcriptionId
-          createdAt
-          updatedAt
-          _version
-          _deleted
-          _lastChangedAt
-        }
         nextToken
         startedAt
+        __typename
       }
       createdAt
       updatedAt
       _version
       _deleted
       _lastChangedAt
+      __typename
     }
   }
 `;
@@ -197,68 +113,26 @@ export const onDeleteTranscription = /* GraphQL */ `
       isPublished
       disableAnalyzer
       contributors {
-        items {
-          id
-          transcriptionID
-          contributorID
-          createdAt
-          updatedAt
-          _version
-          _deleted
-          _lastChangedAt
-        }
         nextToken
         startedAt
+        __typename
       }
       regions {
-        items {
-          id
-          start
-          end
-          text
-          regionText
-          regionAnalysis
-          issues
-          isNote
-          comments
-          translation
-          dateLastUpdated
-          userLastUpdated
-          transcriptionId
-          createdAt
-          updatedAt
-          _version
-          _deleted
-          _lastChangedAt
-        }
         nextToken
         startedAt
+        __typename
       }
       issueList {
-        items {
-          id
-          text
-          owner
-          index
-          resolved
-          type
-          comments
-          regionId
-          transcriptionId
-          createdAt
-          updatedAt
-          _version
-          _deleted
-          _lastChangedAt
-        }
         nextToken
         startedAt
+        __typename
       }
       createdAt
       updatedAt
       _version
       _deleted
       _lastChangedAt
+      __typename
     }
   }
 `;
@@ -294,23 +168,12 @@ export const onCreateRegion = /* GraphQL */ `
         isPrivate
         isPublished
         disableAnalyzer
-        contributors {
-          nextToken
-          startedAt
-        }
-        regions {
-          nextToken
-          startedAt
-        }
-        issueList {
-          nextToken
-          startedAt
-        }
         createdAt
         updatedAt
         _version
         _deleted
         _lastChangedAt
+        __typename
       }
       transcriptionId
       createdAt
@@ -318,6 +181,7 @@ export const onCreateRegion = /* GraphQL */ `
       _version
       _deleted
       _lastChangedAt
+      __typename
     }
   }
 `;
@@ -353,23 +217,12 @@ export const onUpdateRegion = /* GraphQL */ `
         isPrivate
         isPublished
         disableAnalyzer
-        contributors {
-          nextToken
-          startedAt
-        }
-        regions {
-          nextToken
-          startedAt
-        }
-        issueList {
-          nextToken
-          startedAt
-        }
         createdAt
         updatedAt
         _version
         _deleted
         _lastChangedAt
+        __typename
       }
       transcriptionId
       createdAt
@@ -377,6 +230,7 @@ export const onUpdateRegion = /* GraphQL */ `
       _version
       _deleted
       _lastChangedAt
+      __typename
     }
   }
 `;
@@ -412,23 +266,12 @@ export const onDeleteRegion = /* GraphQL */ `
         isPrivate
         isPublished
         disableAnalyzer
-        contributors {
-          nextToken
-          startedAt
-        }
-        regions {
-          nextToken
-          startedAt
-        }
-        issueList {
-          nextToken
-          startedAt
-        }
         createdAt
         updatedAt
         _version
         _deleted
         _lastChangedAt
+        __typename
       }
       transcriptionId
       createdAt
@@ -436,6 +279,7 @@ export const onDeleteRegion = /* GraphQL */ `
       _version
       _deleted
       _lastChangedAt
+      __typename
     }
   }
 `;
@@ -467,23 +311,12 @@ export const onCreateIssue = /* GraphQL */ `
         isPrivate
         isPublished
         disableAnalyzer
-        contributors {
-          nextToken
-          startedAt
-        }
-        regions {
-          nextToken
-          startedAt
-        }
-        issueList {
-          nextToken
-          startedAt
-        }
         createdAt
         updatedAt
         _version
         _deleted
         _lastChangedAt
+        __typename
       }
       transcriptionId
       createdAt
@@ -491,6 +324,7 @@ export const onCreateIssue = /* GraphQL */ `
       _version
       _deleted
       _lastChangedAt
+      __typename
     }
   }
 `;
@@ -522,23 +356,12 @@ export const onUpdateIssue = /* GraphQL */ `
         isPrivate
         isPublished
         disableAnalyzer
-        contributors {
-          nextToken
-          startedAt
-        }
-        regions {
-          nextToken
-          startedAt
-        }
-        issueList {
-          nextToken
-          startedAt
-        }
         createdAt
         updatedAt
         _version
         _deleted
         _lastChangedAt
+        __typename
       }
       transcriptionId
       createdAt
@@ -546,6 +369,7 @@ export const onUpdateIssue = /* GraphQL */ `
       _version
       _deleted
       _lastChangedAt
+      __typename
     }
   }
 `;
@@ -577,23 +401,12 @@ export const onDeleteIssue = /* GraphQL */ `
         isPrivate
         isPublished
         disableAnalyzer
-        contributors {
-          nextToken
-          startedAt
-        }
-        regions {
-          nextToken
-          startedAt
-        }
-        issueList {
-          nextToken
-          startedAt
-        }
         createdAt
         updatedAt
         _version
         _deleted
         _lastChangedAt
+        __typename
       }
       transcriptionId
       createdAt
@@ -601,6 +414,7 @@ export const onDeleteIssue = /* GraphQL */ `
       _version
       _deleted
       _lastChangedAt
+      __typename
     }
   }
 `;
@@ -617,6 +431,7 @@ export const onCreatePointer = /* GraphQL */ `
       _version
       _deleted
       _lastChangedAt
+      __typename
     }
   }
 `;
@@ -633,6 +448,7 @@ export const onUpdatePointer = /* GraphQL */ `
       _version
       _deleted
       _lastChangedAt
+      __typename
     }
   }
 `;
@@ -649,6 +465,7 @@ export const onDeletePointer = /* GraphQL */ `
       _version
       _deleted
       _lastChangedAt
+      __typename
     }
   }
 `;
@@ -666,6 +483,7 @@ export const onCreateRegionLock = /* GraphQL */ `
       _version
       _deleted
       _lastChangedAt
+      __typename
     }
   }
 `;
@@ -683,6 +501,7 @@ export const onUpdateRegionLock = /* GraphQL */ `
       _version
       _deleted
       _lastChangedAt
+      __typename
     }
   }
 `;
@@ -700,6 +519,7 @@ export const onDeleteRegionLock = /* GraphQL */ `
       _version
       _deleted
       _lastChangedAt
+      __typename
     }
   }
 `;
@@ -712,24 +532,16 @@ export const onCreateContributor = /* GraphQL */ `
       email
       username
       transcriptions {
-        items {
-          id
-          transcriptionID
-          contributorID
-          createdAt
-          updatedAt
-          _version
-          _deleted
-          _lastChangedAt
-        }
         nextToken
         startedAt
+        __typename
       }
       createdAt
       updatedAt
       _version
       _deleted
       _lastChangedAt
+      __typename
     }
   }
 `;
@@ -742,24 +554,16 @@ export const onUpdateContributor = /* GraphQL */ `
       email
       username
       transcriptions {
-        items {
-          id
-          transcriptionID
-          contributorID
-          createdAt
-          updatedAt
-          _version
-          _deleted
-          _lastChangedAt
-        }
         nextToken
         startedAt
+        __typename
       }
       createdAt
       updatedAt
       _version
       _deleted
       _lastChangedAt
+      __typename
     }
   }
 `;
@@ -772,24 +576,16 @@ export const onDeleteContributor = /* GraphQL */ `
       email
       username
       transcriptions {
-        items {
-          id
-          transcriptionID
-          contributorID
-          createdAt
-          updatedAt
-          _version
-          _deleted
-          _lastChangedAt
-        }
         nextToken
         startedAt
+        __typename
       }
       createdAt
       updatedAt
       _version
       _deleted
       _lastChangedAt
+      __typename
     }
   }
 `;
@@ -804,6 +600,7 @@ export const onCreateCursor = /* GraphQL */ `
       _version
       _deleted
       _lastChangedAt
+      __typename
     }
   }
 `;
@@ -818,6 +615,7 @@ export const onUpdateCursor = /* GraphQL */ `
       _version
       _deleted
       _lastChangedAt
+      __typename
     }
   }
 `;
@@ -832,6 +630,7 @@ export const onDeleteCursor = /* GraphQL */ `
       _version
       _deleted
       _lastChangedAt
+      __typename
     }
   }
 `;
@@ -849,6 +648,7 @@ export const onCreateUserCursor = /* GraphQL */ `
       _version
       _deleted
       _lastChangedAt
+      __typename
     }
   }
 `;
@@ -866,6 +666,7 @@ export const onUpdateUserCursor = /* GraphQL */ `
       _version
       _deleted
       _lastChangedAt
+      __typename
     }
   }
 `;
@@ -883,6 +684,7 @@ export const onDeleteUserCursor = /* GraphQL */ `
       _version
       _deleted
       _lastChangedAt
+      __typename
     }
   }
 `;
@@ -911,43 +713,30 @@ export const onCreateTranscriptionContributor = /* GraphQL */ `
         isPrivate
         isPublished
         disableAnalyzer
-        contributors {
-          nextToken
-          startedAt
-        }
-        regions {
-          nextToken
-          startedAt
-        }
-        issueList {
-          nextToken
-          startedAt
-        }
         createdAt
         updatedAt
         _version
         _deleted
         _lastChangedAt
+        __typename
       }
       contributor {
         id
         email
         username
-        transcriptions {
-          nextToken
-          startedAt
-        }
         createdAt
         updatedAt
         _version
         _deleted
         _lastChangedAt
+        __typename
       }
       createdAt
       updatedAt
       _version
       _deleted
       _lastChangedAt
+      __typename
     }
   }
 `;
@@ -976,43 +765,30 @@ export const onUpdateTranscriptionContributor = /* GraphQL */ `
         isPrivate
         isPublished
         disableAnalyzer
-        contributors {
-          nextToken
-          startedAt
-        }
-        regions {
-          nextToken
-          startedAt
-        }
-        issueList {
-          nextToken
-          startedAt
-        }
         createdAt
         updatedAt
         _version
         _deleted
         _lastChangedAt
+        __typename
       }
       contributor {
         id
         email
         username
-        transcriptions {
-          nextToken
-          startedAt
-        }
         createdAt
         updatedAt
         _version
         _deleted
         _lastChangedAt
+        __typename
       }
       createdAt
       updatedAt
       _version
       _deleted
       _lastChangedAt
+      __typename
     }
   }
 `;
@@ -1041,43 +817,30 @@ export const onDeleteTranscriptionContributor = /* GraphQL */ `
         isPrivate
         isPublished
         disableAnalyzer
-        contributors {
-          nextToken
-          startedAt
-        }
-        regions {
-          nextToken
-          startedAt
-        }
-        issueList {
-          nextToken
-          startedAt
-        }
         createdAt
         updatedAt
         _version
         _deleted
         _lastChangedAt
+        __typename
       }
       contributor {
         id
         email
         username
-        transcriptions {
-          nextToken
-          startedAt
-        }
         createdAt
         updatedAt
         _version
         _deleted
         _lastChangedAt
+        __typename
       }
       createdAt
       updatedAt
       _version
       _deleted
       _lastChangedAt
+      __typename
     }
   }
 `;

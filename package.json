@@ -15,11 +15,11 @@
     "unit-watch": "./node_modules/mocha/bin/_mocha --watch --require esm 'test/unit/**.spec.js'"
   },
   "dependencies": {
-    "@aws-amplify/cli": "^10.7.2",
+    "@aws-amplify/cli": "^12.10.1",
     "@aws-amplify/ui-components": "^1.9.40",
     "@babel/plugin-proposal-object-rest-spread": "^7.20.2",
     "@hapi/hoek": "^9.3.0",
-    "aws-amplify": "^5.0.12",
+    "aws-amplify": "^5.3.18",
     "aws4-tiny": "^1.0.0",
     "babel-polyfill": "^6.26.0",
     "braces": "^2.3.2",

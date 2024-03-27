@@ -131,7 +131,7 @@ export default {
   },
   watch: {
     transcriptions() {
-      this.loading = !this.transcriptions.length
+      this.loading = false
     },
   },
 }
