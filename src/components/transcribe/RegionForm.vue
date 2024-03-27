@@ -263,9 +263,8 @@ export default {
     },
 
     onSecondaryEditorContentChange(contents) {
-      const text = contents.map((item) => item.insert).join('')
-      logger.debug('translation changed', text)
-      this.updateRegion({ translation: text })
+      logger.debug('translation changed', contents)
+      this.updateRegion({ translation: contents })
     },
 
     onToggleRegionType() {
@@ -314,19 +313,21 @@ export default {
     async applyIssuesFormatting() {
       logger.debug('Apply issue formatting')
       // clear format first
-      this.$refs.mainEditor.clearIssues()
-
-      const regionId = this.selectedRegion.id
-      const myIssues = this.issueMap[regionId]
-      if (myIssues) {
-        myIssues.forEach((issue) => {
-          if (!issue.resolved) {
-            const index = issue.index
-            const length = issue.text.length
-            const type = issue.type
-            this.$refs.mainEditor.applyIssue(index, length, type)
-          }
-        })
+      if (this.$refs.mainEditor) {
+        this.$refs.mainEditor.clearIssues()
+  
+        const regionId = this.selectedRegion.id
+        const myIssues = this.issueMap[regionId]
+        if (myIssues) {
+          myIssues.forEach((issue) => {
+            if (!issue.resolved) {
+              const index = issue.index
+              const length = issue.text.length
+              const type = issue.type
+              this.$refs.mainEditor.applyIssue(index, length, type)
+            }
+          })
+        }
       }
 
     },
