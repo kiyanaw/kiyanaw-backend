@@ -40,6 +40,10 @@
           <v-btn icon small class="control-btn" @click="onLookup">
             <v-icon small> mdi-card-search </v-icon>
           </v-btn>
+
+          <!-- <v-btn icon small class="control-btn" @click="onDelete">
+            <v-icon small> mdi-delete-forever </v-icon>
+          </v-btn> -->
         </v-flex>
 
         <v-flex md3 hidden-sm-and-down>
@@ -87,7 +91,7 @@ import RegionPlugin from 'wavesurfer.js/dist/plugin/wavesurfer.regions.min.js'
 import TimelinePlugin from 'wavesurfer.js/dist/plugin/wavesurfer.timeline.min.js'
 // import MinimapPlugin from 'wavesurfer.js/dist/plugin/wavesurfer.minimap.min.js'
 
-import { mapGetters } from 'vuex'
+import { mapGetters, mapActions } from 'vuex'
 
 // import soundtouch from './lib/soundtouch'
 import utils from './utils'
@@ -304,9 +308,17 @@ export default {
   },
 
   methods: {
+    ...mapActions(['deleteTranscription']),
+
     onToggleRegionType: function () {
       this.$emit('toggle-region-type')
     },
+
+    onDelete: function () {
+      if (confirm('Delete transcription and all regions?')) {
+        this.deleteTranscription()
+      }
+    },  
 
     onPlayerSeek: function (progressPercent) {
       this.currentTime = this.maxTime * progressPercent

@@ -321,6 +321,11 @@ const actions = {
     }
   },
 
+  async deleteTranscription() {
+    console.log('deleting regions')
+    console.log('deleting transcription')
+  },
+
   // TODO: this needs a better name
   setSaved(store, saved) {
     store.commit('SET_SAVED', saved)
