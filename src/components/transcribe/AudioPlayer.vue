@@ -41,9 +41,9 @@
             <v-icon small> mdi-card-search </v-icon>
           </v-btn>
 
-          <!-- <v-btn icon small class="control-btn" @click="onDelete">
+          <v-btn icon small class="control-btn" @click="onDelete">
             <v-icon small> mdi-delete-forever </v-icon>
-          </v-btn> -->
+          </v-btn>
         </v-flex>
 
         <v-flex md3 hidden-sm-and-down>
@@ -314,9 +314,10 @@ export default {
       this.$emit('toggle-region-type')
     },
 
-    onDelete: function () {
+    onDelete: async function () {
       if (confirm('Delete transcription and all regions?')) {
-        this.deleteTranscription()
+        await this.deleteTranscription()
+        this.$router.push('/transcribe-list')
       }
     },  
 

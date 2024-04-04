@@ -321,9 +321,29 @@ const actions = {
     }
   },
 
-  async deleteTranscription() {
-    console.log('deleting regions')
-    console.log('deleting transcription')
+  async deleteTranscription(store) {
+    const transcriptionId = store.getters.transcription.id
+
+    const [transcription, regions, issues] = await Promise.all([
+      DataStore.query(Transcription, transcriptionId),
+      DataStore.query(Region, (r) => r.transcription.id.eq(transcriptionId)),
+      DataStore.query(Issue, (i) => i.transcription.id.eq(transcriptionId)),
+    ])
+
+    console.log('Deleting regions...')
+    for (const region of regions) {
+      await DataStore.delete(region)
+    }
+
+    console.log('Deleting issues...')
+    for (const issue of issues) {
+      await DataStore.delete(issue)
+    }
+
+    console.log('Deleting transcription')
+    await DataStore.delete(transcription)
+
+    return true
   },
 
   // TODO: this needs a better name
