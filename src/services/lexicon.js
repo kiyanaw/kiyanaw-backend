@@ -166,7 +166,12 @@ class Lex {
   }
 
   replaceMacrons(word) {
-    word = word.replace(/ā/g, 'â').replace(/ē/g, 'ê').replace(/ī/g, 'î').replace(/ō/g, 'ô')
+    word = word
+      .replace(/ā/g, 'â')
+      .replace(/ē/g, 'ê')
+      .replace(/ī/g, 'î')
+      .replace(/ō/g, 'ô')
+      .replace(/ý/g, 'y')
     return word
   }
 
