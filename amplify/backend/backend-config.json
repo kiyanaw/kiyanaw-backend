@@ -15,25 +15,10 @@
       "service": "API Gateway"
     },
     "kiyanaw": {
-      "dependsOn": [
-        {
-          "attributes": [
-            "UserPoolId"
-          ],
-          "category": "auth",
-          "resourceName": "kiyanaw664b231a"
-        }
-      ],
+      "dependsOn": [],
       "output": {
         "authConfig": {
-          "additionalAuthenticationProviders": [
-            {
-              "authenticationType": "AMAZON_COGNITO_USER_POOLS",
-              "userPoolConfig": {
-                "userPoolId": "authkiyanaw664b231a"
-              }
-            }
-          ],
+          "additionalAuthenticationProviders": [],
           "defaultAuthentication": {
             "authenticationType": "AWS_IAM"
           }
@@ -44,8 +29,27 @@
     }
   },
   "auth": {
-    "kiyanaw664b231a": {
+    "kiyanawd20b7994": {
+      "customAuth": false,
       "dependsOn": [],
+      "frontendAuthConfig": {
+        "mfaConfiguration": "OFF",
+        "mfaTypes": [
+          "SMS"
+        ],
+        "passwordProtectionSettings": {
+          "passwordPolicyCharacters": [],
+          "passwordPolicyMinLength": 8
+        },
+        "signupAttributes": [
+          "EMAIL"
+        ],
+        "socialProviders": [],
+        "usernameAttributes": [],
+        "verificationMechanisms": [
+          "EMAIL"
+        ]
+      },
       "providerPlugin": "awscloudformation",
       "service": "Cognito"
     }
@@ -66,7 +70,7 @@
       "providerPlugin": "awscloudformation",
       "service": "Lambda"
     },
-    "syncConflictHandler6ac896cc": {
+    "syncConflictHandler092e0049": {
       "build": true,
       "providerPlugin": "awscloudformation",
       "service": "Lambda"
@@ -127,19 +131,19 @@
         }
       ]
     },
-    "AMPLIFY_function_syncConflictHandler6ac896cc_deploymentBucketName": {
+    "AMPLIFY_function_syncConflictHandler092e0049_deploymentBucketName": {
       "usedBy": [
         {
           "category": "function",
-          "resourceName": "syncConflictHandler6ac896cc"
+          "resourceName": "syncConflictHandler092e0049"
         }
       ]
     },
-    "AMPLIFY_function_syncConflictHandler6ac896cc_s3Key": {
+    "AMPLIFY_function_syncConflictHandler092e0049_s3Key": {
       "usedBy": [
         {
           "category": "function",
-          "resourceName": "syncConflictHandler6ac896cc"
+          "resourceName": "syncConflictHandler092e0049"
         }
       ]
     }

@@ -1,34 +1,15 @@
 {
   "version": 1,
   "serviceConfiguration": {
+    "apiName": "kiyanaw",
     "serviceName": "AppSync",
     "defaultAuthType": {
       "mode": "AWS_IAM"
     },
-    "additionalAuthTypes": [
-      {
-        "mode": "AMAZON_COGNITO_USER_POOLS",
-        "cognitoUserPoolId": "authkiyanaw664b231a"
-      }
-    ],
     "conflictResolution": {
       "defaultResolutionStrategy": {
         "type": "AUTOMERGE"
-      },
-      "perModelResolutionStrategy": [
-        {
-          "resolutionStrategy": {
-            "type": "LAMBDA",
-            "resolver": {
-              "type": "EXISTING",
-              "name": "syncConflictHandler6ac896cc-${env}",
-              "arn": "arn:aws:lambda:us-east-1:494185203413:function:syncConflictHandler6ac896cc-${env}"
-            }
-          },
-          "entityName": "Region"
-        }
-      ]
-    },
-    "apiName": "kiyanaw"
+      }
+    }
   }
 }

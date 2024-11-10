@@ -11,12 +11,13 @@ export type AmplifyDependentResourcesAttributes = {
     }
   },
   "auth": {
-    "kiyanaw664b231a": {
+    "kiyanawd20b7994": {
       "AppClientID": "string",
       "AppClientIDWeb": "string",
-      "AppClientSecret": "string",
+      "CreatedSNSRole": "string",
       "IdentityPoolId": "string",
       "IdentityPoolName": "string",
+      "UserPoolArn": "string",
       "UserPoolId": "string",
       "UserPoolName": "string"
     }
@@ -43,7 +44,7 @@ export type AmplifyDependentResourcesAttributes = {
       "Name": "string",
       "Region": "string"
     },
-    "syncConflictHandler6ac896cc": {
+    "syncConflictHandler092e0049": {
       "Arn": "string",
       "LambdaExecutionRole": "string",
       "LambdaExecutionRoleArn": "string",
@@ -53,6 +54,10 @@ export type AmplifyDependentResourcesAttributes = {
   },
   "hosting": {
     "S3AndCloudFront": {
+      "CloudFrontDistributionID": "string",
+      "CloudFrontDomainName": "string",
+      "CloudFrontOriginAccessIdentity": "string",
+      "CloudFrontSecureURL": "string",
       "HostingBucketName": "string",
       "Region": "string",
       "S3BucketSecureURL": "string",
