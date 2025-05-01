@@ -20,6 +20,7 @@ https://whimsical.com/transcribe-infrastructure-JtGyrrriVXfhfMwwKRHsLM
   - Old node version
   - old Vue version
   - old Amplify version
+- doesn't look like issues refactor is finished
 >>> We _could_ open it up to the public
 - `amplify publish` doesn't care about current branch > deploy from GitHub actions
 - rebuild ElasticSearch
