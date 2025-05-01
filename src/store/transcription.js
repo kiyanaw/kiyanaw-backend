@@ -72,6 +72,8 @@ const actions = {
       DataStore.query(Region, (r) => r.transcription.id.eq(transcriptionId)),
     ])
 
+    console.log('regions', regions)
+
     transcription = new models.TranscriptionModel(transcription)
 
     // TODO: convert to store.dispatch('', ...)

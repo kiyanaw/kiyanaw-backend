@@ -94,55 +94,47 @@ class TranscriptionModel {
 // TODO: test this
 class RegionModel {
   constructor(data) {
-    this.id = data.id 
-    this.createdAt = data.createdAt
-    this.dateLastUpdated = data.dateLastUpdated
-    this.end = data.end
-    this.id = data.id
-    this.isNote = !!data.isNote
-    // this.issues = data.issues ? JSON.parse(data.issues) : []
-    this.start = data.start
-    // this.text = JSON.parse(data.text)
-    this.transcriptionId = data.transcriptionId
-    this.translation = data.translation || ''
-    // this.updatedAt = data.updatedAt
-    this.userLastUpdated = data.userLastUpdated
+    try {
+      this.id = data.id 
+      this.createdAt = data.createdAt
+      this.dateLastUpdated = data.dateLastUpdated
+      this.end = data.end
+      this.isNote = !!data.isNote
 
-    // indexes
-    this.displayIndex = data.displayIndex
-    this.index = data.index
-
-    // comments 
-    if (data.comments) {
-      if (typeof data.comments === 'string') {
-        this.comments = JSON.parse(data.comments)
+      // comments 
+      if (data.comments && data.comments !== '') {
+        this.comments = typeof data.comments === 'string' ? 
+          JSON.parse(data.comments) : data.comments
       } else {
-        this.comments = data.comments
+        this.comments = []
       }
-    } else {
-      this.comments = []
-    }
 
-    // text
-    if (data.text) {
-      if (typeof data.text === 'string') {
-        this.text = JSON.parse(data.text)
+      // text - handle both old and new format
+      if (data.regionText) {
+        this.text = [{ insert: data.regionText }]
+      } else if (data.text && data.text !== '--not used--') {
+        this.text = typeof data.text === 'string' ? 
+          JSON.parse(data.text) : data.text
       } else {
-        this.text = data.text
+        this.text = []
       }
-    } else {
-      this.text = []
-    }
 
-    // issues
-    if (data.issues) {
-      if (typeof data.issues === 'string') {
-        this.issues = JSON.parse(data.issues)
-      } else {
-        this.issues = data.issues
-      }
-    } else {
+      // issues are now handled in a separate table
       this.issues = []
+
+      this.start = data.start
+      this.transcriptionId = data.transcriptionId
+      this.translation = data.translation || ''
+      this.userLastUpdated = data.userLastUpdated
+
+      // indexes
+      this.displayIndex = data.displayIndex
+      this.index = data.index
+
+    } catch (e) {
+      console.error('Error constructing RegionModel:', e);
+      console.error('Data:', JSON.stringify(data, null, 2));
+      throw e;
     }
   }
 }
