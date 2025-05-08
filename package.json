@@ -5,14 +5,14 @@
   "scripts": {
     "serve": "NODE_ENV=test vue-cli-service serve",
     "build": "vue-cli-service build",
-    "test": "NODE_ENV=test mochapack --webpack-config webpack.config.js --require test/unit/setup.js test/unit/**/*.spec.js",
-    "test-watch": "NODE_ENV=test mochapack --watch --webpack-config webpack.config.js --require test/unit/setup.js test/unit/**/*.spec.js",
+    "test": "NODE_ENV=test mochapack --webpack-config webpack.config.js --require test/karma/setup.js test/karma/**/*.spec.js",
+    "test-watch": "NODE_ENV=test mochapack --watch --webpack-config webpack.config.js --require test/karma/setup.js test/karma/**/*.spec.js",
     "karma": "NODE_ENV=test karma start --single-run --log-level warn",
     "karma-watch": "NODE_ENV=test karma start --log-level warn",
     "karma-brave": "NODE_LOGGING=off NODE_ENV=test karma start --browsers Brave",
     "lint": "vue-cli-service lint",
-    "unit": "./node_modules/mocha/bin/_mocha --require esm 'test/unit/**.spec.js'",
-    "unit-watch": "./node_modules/mocha/bin/_mocha --watch --require esm 'test/unit/**.spec.js'"
+    "unit": "mocha --require esm 'test/unit/**.spec.js'",
+    "unit-watch": "mocha --watch --require esm 'test/unit/**.spec.js'"
   },
   "dependencies": {
     "@aws-amplify/cli": "^10.7.2",
@@ -103,20 +103,6 @@
     "webpack-bundle-analyzer": "^3.9.0",
     "webpack-cli": "^3.3.12",
     "webpack-node-externals": "^1.7.2"
-  },
-  "eslintConfig": {
-    "root": true,
-    "env": {
-      "node": true
-    },
-    "extends": [
-      "plugin:vue/essential",
-      "eslint:recommended"
-    ],
-    "rules": {},
-    "parserOptions": {
-      "parser": "babel-eslint"
-    }
   },
   "postcss": {
     "plugins": {
