@@ -47,9 +47,7 @@ export default {
         { title: 'Starred', icon: 'star', url: '/skipped' },
         { title: 'Next unverified', icon: 'create', url: '/next-unverified' },
       ],
-      nav: (event) => {
-        // console.log(event.target)
-      },
+      nav: (_event) => {},
     }
   },
   computed: {

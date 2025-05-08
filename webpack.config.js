@@ -1,6 +1,4 @@
 var path = require('path')
-var webpack = require('webpack')
-const nodeExternals = require('webpack-node-externals')
 const { VueLoaderPlugin } = require('vue-loader')
 var MiniCssExtractPlugin = require('mini-css-extract-plugin')
 

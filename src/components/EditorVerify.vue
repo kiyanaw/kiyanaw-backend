@@ -72,7 +72,7 @@ export default {
       handler () {
         this.loading = true
         this.getUnverified(this.pagination.page)
-          .then(result => {
+          .then(_result => {
             this.loading = false
           })
       },
@@ -82,7 +82,7 @@ export default {
       handler () {
         this.loading = true
         this.getUnverified(this.pagination.page)
-          .then(result => {
+          .then(_result => {
             this.loading = false
           })
       }
