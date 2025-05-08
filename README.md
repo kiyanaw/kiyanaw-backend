@@ -1,8 +1,33 @@
 # kiyanaw-backend
 
-## Project setup
+## Install NVM
+
+Follow instructions [here](https://github.com/nvm-sh/nvm?tab=readme-ov-file#installing-and-updating)
+
+```
+nvm use
+```
+
+## Install Dependancies
 ```
 npm install
+```
+
+## Setup Amplify and Pull `staging`
+```
+npx amplify pull
+
+> Select the authentication method you want to use: Either depending on your local config
+> Which app are you working on? kiyanaw (d2vcnct5kwl6za)
+> Pick a backend environment: staging
+> Choose your default editor: None
+> Choose the type of app that you're building: javascript
+> What javascript framework are you using: vue
+> Source Directory Path: default
+> Distribution Directory Path: default
+> Build Command: default
+> Start Command: default
+> Do you plan on modifying this backend? Yes
 ```
 
 ### Compiles and hot-reloads for development
@@ -10,17 +35,34 @@ npm install
 npm run serve
 ```
 
-### Run your tests
+### Run unit tests
+```
+npm run unit
+```
+
+### Watch unit tests
+```
+npm run unit-watch
+```
+
+### Run Vue tests
 ```
 npm run karma
+```
 
-# to continually watch tests
+### Watch Vue tests
+```
 npm run karma-watch
 ```
 
-### Deploy
+### Deploy Backend
 ```
-amplify publish
+npx amplify push
+```
+
+### Deploy Frontend
+```
+npx amplify publish
 ```
 
 
