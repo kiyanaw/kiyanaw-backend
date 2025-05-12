@@ -33,16 +33,6 @@
         "inject": true,
         "it": true,
         "expect": true
-      },
-      "rules": {
-        "no-unused-vars": "off",
-        "no-new": "off"
-      }
-    },
-    {
-      "files": ["node_modules/**/*.*"],
-      "rules": {
-        "strict": "off"
       }
     }
   ],
