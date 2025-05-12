@@ -882,7 +882,7 @@
           }
       },
       process: function() {
-          var ovlSkip, offset, temp, i;
+          var ovlSkip, offset, temp;
           if (this.pMidBuffer === null) {
               // if midBuffer is empty, move the first samples of the input stream
               // into it
@@ -897,7 +897,6 @@
               );
           }
 
-          var output;
           // Process samples as long as there are enough samples in 'inputBuffer'
           // to form a processing frame.
           while (this._inputBuffer.frameCount >= this.sampleReq) {

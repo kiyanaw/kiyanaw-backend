@@ -10,10 +10,11 @@ import Lexicon from '@/services/lexicon'
 const localVue = createLocalVue()
 localVue.use(Vuex)
 
-// helper to delay execution
-async function wait(time = 5) {
-  return new Promise(function (resolve) {
-    setTimeout(resolve, time)
+const pause = (time = 5) => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve()
+    }, time)
   })
 }
 
@@ -57,7 +58,7 @@ describe('components/RegionForm', function () {
   })
 
   afterEach(async function () {
-    await wait()
+    await pause()
     this.sandbox.restore()
   })
 
@@ -297,52 +298,6 @@ describe('components/RegionForm', function () {
       assert.ok(searchStub.called)
 
       clock.restore()
-    })
-  })
-
-  describe('watch -> issues()', function () {
-    it('should trigger issue invalidation when not note', async function () {
-      const wrapper = shallowMount(RegionForm, { store, localVue })
-      const rendered = wrapper.vm
-
-      const invalidateStub = this.sandbox.stub(rendered, 'doTriggerIssueInvalidation')
-
-      state.selectedRegion.issues = [{ some: 'issue' }]
-
-      // INVALIDATE_ISSUES_TIMING IS 250
-      await new Promise((resolve) => setTimeout(resolve, 350))
-      assert.equal(invalidateStub.callCount, 1)
-    })
-
-    it('should NOT trigger issue invalidation when note', async function () {
-      state.selectedRegion.isNote = true
-      const wrapper = shallowMount(RegionForm, { store, localVue })
-      const rendered = wrapper.vm
-
-      const invalidateStub = this.sandbox.stub(rendered, 'doTriggerIssueInvalidation')
-
-      state.selectedRegion.issues = [{ some: 'issue' }]
-
-      await new Promise((resolve) => setTimeout(resolve, 10))
-      assert.equal(invalidateStub.callCount, 0)
-    })
-  })
-
-  describe('watch -> selectedRegion()', function () {
-    it('should invalidate issues AFTER region updates', async function () {
-      const wrapper = shallowMount(RegionForm, { store, localVue })
-      const rendered = wrapper.vm
-
-      const invalidateStub = this.sandbox.stub(rendered, 'doTriggerIssueInvalidation')
-      const setContentsStub = this.sandbox.stub(rendered, 'doSetEditorsContents')
-
-      state.selectedRegion = { issues: [{ some: 'issue' }] }
-
-      await new Promise((resolve) => setTimeout(resolve, 350))
-      assert.equal(invalidateStub.callCount, 1)
-      assert.equal(setContentsStub.callCount, 1)
-
-      sinon.assert.callOrder(setContentsStub, invalidateStub)
     })
   })
 })

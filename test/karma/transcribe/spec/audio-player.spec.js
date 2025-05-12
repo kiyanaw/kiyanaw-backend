@@ -1,5 +1,4 @@
 import assert from 'assert'
-import sinon from 'sinon'
 import Vuex from 'vuex'
 import { shallowMount, createLocalVue } from '@vue/test-utils'
 
@@ -7,14 +6,6 @@ import AudioPlayer from '@/components/transcribe/AudioPlayer.vue'
 
 const localVue = createLocalVue()
 localVue.use(Vuex)
-
-// const pause = (time = 5) => {
-//   return new Promise((resolve) => {
-//     setTimeout(() => {
-//       resolve()
-//     }, time)
-//   })
-// }
 
 /**
  * METHODS

@@ -35,7 +35,7 @@ type Region
   text: String! # Old text value
   regionText: String
   regionAnalysis: String
-  issues: String # Moved to another table
+  issues: String # this will go away
   isNote: Boolean
   comments: String # Can this go away?
   translation: String
