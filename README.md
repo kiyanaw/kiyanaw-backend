@@ -32,27 +32,27 @@ npx amplify pull
 
 ### Compiles and hot-reloads for development
 ```
-npm run serve
+npm run vue:serve
 ```
 
 ### Run unit tests
 ```
-npm run unit
+npm run test:unit
 ```
 
 ### Watch unit tests
 ```
-npm run unit-watch
+npm run watch:unit
 ```
 
 ### Run Vue tests
 ```
-npm run karma
+npm run test:karma
 ```
 
 ### Watch Vue tests
 ```
-npm run karma-watch
+npm run watch:karma
 ```
 
 ### Deploy Backend

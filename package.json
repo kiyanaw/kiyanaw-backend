@@ -2,17 +2,18 @@
   "name": "kiyanaw-backend",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "14.x"
+  },
   "scripts": {
-    "serve": "NODE_ENV=test vue-cli-service serve",
-    "build": "vue-cli-service build",
-    "test": "NODE_ENV=test mochapack --webpack-config webpack.config.js --require test/karma/setup.js test/karma/**/*.spec.js",
-    "test-watch": "NODE_ENV=test mochapack --watch --webpack-config webpack.config.js --require test/karma/setup.js test/karma/**/*.spec.js",
-    "karma": "NODE_ENV=test karma start --single-run --log-level warn",
-    "karma-watch": "NODE_ENV=test karma start --log-level warn",
-    "karma-brave": "NODE_LOGGING=off NODE_ENV=test karma start --browsers Brave",
-    "lint": "vue-cli-service lint",
-    "unit": "mocha --require esm 'test/unit/**.spec.js'",
-    "unit-watch": "mocha --watch --require esm 'test/unit/**.spec.js'"
+    "test:karma": "NODE_ENV=test karma start --single-run --log-level warn",
+    "test:unit": "mocha --require esm 'test/unit/**.spec.js'",
+    "vue:build": "vue-cli-service build",
+    "vue:lint": "vue-cli-service lint",
+    "vue:serve": "NODE_ENV=test vue-cli-service serve",
+    "watch:karma": "NODE_ENV=test karma start --log-level warn",
+    "watch:karma:brave": "NODE_LOGGING=off NODE_ENV=test karma start --browsers Brave",
+    "watch:unit": "mocha --watch --require esm 'test/unit/**.spec.js'"
   },
   "dependencies": {
     "@aws-amplify/cli": "^10.7.2",
