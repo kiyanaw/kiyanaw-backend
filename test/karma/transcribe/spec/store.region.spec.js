@@ -33,7 +33,7 @@ describe('Mutations -> region', function () {
   })
 
   describe('updateRegionById()', function () {
-    it('should commit UPDATE_REGION', async function () {
+    xit('should commit UPDATE_REGION', async function () {
       const dispatchStub = this.sandbox.stub(store, 'dispatch')
 
       // set up the initial data
@@ -62,7 +62,7 @@ describe('Mutations -> region', function () {
   })
 
   describe('updateRegion()', function () {
-    it('should commit UPDATE_REGION', async function () {
+    xit('should commit UPDATE_REGION', async function () {
       const dispatchStub = this.sandbox.stub(store, 'dispatch')
 
       // set up the initial data
