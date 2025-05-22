@@ -2,9 +2,9 @@ name: Test Workflow
 
 on:
   push:
-    branches: [ "2023-realtime-changes" ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ "2023-realtime-changes" ]
+    branches: [ "main" ]
   
 jobs:
   test_karma:
