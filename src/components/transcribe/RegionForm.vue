@@ -52,7 +52,7 @@
           small
           icon
           @click="onDeleteRegion"
-          :disabled="disableInputs"
+          :disabled="disableInputs || !isTranscriptionAuthor"
           data-test="regionDeleteButton"
         >
           <v-icon small> mdi-delete-forever </v-icon>
@@ -125,6 +125,9 @@ export default {
       } else {
         return true
       }
+    },
+    isTranscriptionAuthor() {
+      return this.transcription.author === this.user.name
     },
     issues() {
       if (this.selectedRegion) {
@@ -207,6 +210,9 @@ export default {
     },
 
     onDeleteRegion() {
+      if (!this.isTranscriptionAuthor) {
+        return
+      }
       const regionId = this.selectedRegion.id
       if (confirm('Delete selected region?')) {
         this.deleteRegion(regionId)
