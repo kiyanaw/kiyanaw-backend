@@ -33,7 +33,7 @@ import TranscriptionService from '../../services/transcriptions'
 import EnvService from '../../services/env'
 import UserService from '../../services/user'
 
-import { DataStore } from 'aws-amplify'
+import { DataStore } from '@aws-amplify/datastore'
 import { Contributor, Transcription, TranscriptionContributor } from '../../models'
 
 export default {

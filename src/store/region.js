@@ -1,4 +1,5 @@
-import { DataStore, Hub } from 'aws-amplify'
+import { DataStore } from '@aws-amplify/datastore'
+import { Hub } from '@aws-amplify/core'
 import { Region, Transcription, Pointer } from '../models'
 import * as assert from 'assert'
 // import Quill from 'quill'

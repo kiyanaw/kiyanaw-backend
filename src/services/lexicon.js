@@ -8,7 +8,7 @@ import logging from '../logging'
 
 // TODO: inject this
 // import AWS from 'aws-sdk'
-import { Auth } from 'aws-amplify'
+import { Auth } from '@aws-amplify/auth'
 
 const logger = new logging.Logger('Lexicon')
 
@@ -56,7 +56,7 @@ class Client {
   }
 
   async esQuery(query) {
-    const credentials = await Auth.currentCredentials()
+    const user = await Auth.currentAuthenticatedUser()
     let results = await aws4.fetch(
       'https://search-indexregiondata-lqatyzsxiuhepcfidwldyiebh4.us-east-1.es.amazonaws.com/knownwords/_search',
       {
@@ -67,7 +67,7 @@ class Client {
         },
         body: JSON.stringify(query),
       },
-      credentials,
+      user.signInUserSession.getAccessToken().getJwtToken(),
     )
 
     results = await results.json()

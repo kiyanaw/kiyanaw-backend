@@ -1,4 +1,5 @@
-import { Auth, DataStore } from 'aws-amplify'
+import { Auth } from '@aws-amplify/auth'
+import { DataStore } from '@aws-amplify/datastore'
 
 // import {
 //   createCursor,
@@ -14,7 +15,7 @@ let user
 export default {
   async getUser() {
     if (!user) {
-      user = await Auth.currentAuthenticatedUser({ bypassCache: false })
+      user = await Auth.currentAuthenticatedUser()
     }
 
     return {
@@ -48,12 +49,13 @@ export default {
   },
 
   async flush() {
-    Auth.signOut()
+    await Auth.signOut()
     await DataStore.clear()
   },
 
   async getCredentials() {
-    return Auth.currentCredentials()
+    const user = await Auth.currentAuthenticatedUser()
+    return user.signInUserSession.getAccessToken().getJwtToken()
   },
   // /**
   //  * Send updates about cursors in real time.

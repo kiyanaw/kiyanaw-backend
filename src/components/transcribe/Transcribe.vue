@@ -80,7 +80,8 @@ import Lookup from './Lookup.vue'
 import { mapActions, mapGetters } from 'vuex'
 
 
-import { DataStore, Hub } from 'aws-amplify'
+import { DataStore } from '@aws-amplify/datastore'
+import { Hub } from '@aws-amplify/core'
 import { Region, Transcription, TranscriptionContributor, Pointer } from '../../models'
 
 

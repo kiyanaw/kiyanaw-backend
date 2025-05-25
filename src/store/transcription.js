@@ -1,4 +1,4 @@
-import { DataStore } from 'aws-amplify'
+import { DataStore } from '@aws-amplify/datastore'
 import { Transcription, TranscriptionContributor, Region, Contributor, Pointer } from '../models'
 
 import Vue from 'vue'
