@@ -1,0 +1,20 @@
+{
+  "Records": [
+    {
+      "messageId": "184daec4-307d-4000-b802-81cbf4c73217",
+      "receiptHandle": "AQEBS21r24RpXvU81bEbmF4p2Vbw3Mb/swHd0SyXH2NHEPARGoHB+xBI543zU+MWYNTIZeVd9lyr8mDpJUjbV7XRshZqar9a/TeUyx6QhJP0frhM6Mjy6exPD4iC2eVZK/qGQ/x0hXOixzOXyH8oDW1fTaJzgOL0GgkR3a105owxn2JCQMIc8fafk9jNXeXOKpm/UVl/72JNBDZOBd9JINkdIAh3Blll1i8KICVlSn7Eo+t9bD2ARelJ/RjipN6nlhtvrnC397E4xmXpg19W0a8lDnYjPC5ovEugrciL8HfHYJmckKYvt5zFEvNAfR57wlrZJ2CGU7MeWIwfQ0TYYbuSL3D+15LQQ5Sv4l05zAQ6hQbzhSlvoLXe4fOLsMK01sgPFP1opJ9opfbNoDePWMRKDA==",
+      "body": "wavesurfer_72hcq2e2q88",
+      "attributes": {
+        "ApproximateReceiveCount": "1",
+        "SentTimestamp": "1640548414121",
+        "SenderId": "AROAXGD53Y3KX3BQBV5VD:enqueueRegionChange-prod",
+        "ApproximateFirstReceiveTimestamp": "1640548414130"
+      },
+      "messageAttributes": {},
+      "md5OfBody": "fcf456526e8bf48232818552fa60cd53",
+      "eventSource": "aws:sqs",
+      "eventSourceARN": "arn:aws:sqs:us-east-1:494185203413:enqueueRegionChanges",
+      "awsRegion": "us-east-1"
+    }
+  ]
+}
