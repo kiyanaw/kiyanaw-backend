@@ -1,5 +1,6 @@
 import UUID from 'uuid'
-import { API, graphqlOperation, Storage } from 'aws-amplify'
+import { API } from '@aws-amplify/api'
+import { Storage } from '@aws-amplify/storage'
 
 // import * as queries from '../graphql/queries'
 import * as mutations from '../graphql/mutations'
@@ -10,8 +11,6 @@ import UserService from './user'
 
 import logging from '../logging'
 const logger = new logging.Logger('Transcription Service')
-
-
 
 export default {
   /**
@@ -49,13 +48,15 @@ export default {
   async createTranscription(data, progressCallback = null) {
     const { file, title } = data
     const timestamp = `${+new Date()}`
-    const fileResult = await Storage.put(`${timestamp}-${file.name}`, file, {
-      ACL: 'public-read',
+    const key = `${timestamp}-${file.name}`
+    
+    await Storage.put(key, file, {
+      level: 'public',
       expires: new Date('Wed, 31 Dec 2098 23:59:59 GMT'),
       cacheControl: 'max-age=3600000',
       progressCallback: progressCallback,
     })
-    const key = fileResult.key
+
     const bucket = EnvService.getUserBucket()
     const source = `https://${bucket}.s3.amazonaws.com/public/${key}`
     const result = await this.createDocument({
@@ -73,17 +74,21 @@ export default {
 
   async uploadMediaFile(inputFile, progressCallback = null) {
     const timestamp = `${+new Date()}`
-    const fileResult = await Storage.put(`${timestamp}-${inputFile.name}`, inputFile, {
-      ACL: 'public-read',
-      expires: new Date('Wed, 31 Dec 2098 23:59:59 GMT'),
-      cacheControl: 'max-age=3600000',
-      progressCallback: progressCallback,
-    })
+    const fileResult = await Storage.put(
+      `${timestamp}-${inputFile.name}`,
+      inputFile,
+      {
+        level: 'public',
+        expires: new Date('Wed, 31 Dec 2098 23:59:59 GMT'),
+        cacheControl: 'max-age=3600000',
+        progressCallback: progressCallback,
+      }
+    )
     return fileResult
   },
 
   async getPeaksFile(filename) {
-    return Storage.get(filename)
+    return Storage.getUrl({ key: filename })
   },
 
   /** */
@@ -104,7 +109,7 @@ export default {
       disableAnalyzer: false,
       isPrivate: false,
     }
-    return API.graphql(graphqlOperation(mutations.createTranscription, { input: input }))
+    return API.graphql(mutations.createTranscription, { input: input })
   },
 
   // /** */
@@ -167,19 +172,20 @@ export default {
       _version: region._version,
     }
     logger.debug('update region input', input)
-    const update = await API.graphql(graphqlOperation(mutations.updateRegion, { input: input }))
+    const update = await API.graphql(mutations.updateRegion, { input: input })
     region.version = region.version + 1
     return update.data.updateRegion
   },
 
   async deleteRegion(transcriptionId, region) {
     await API.graphql(
-      graphqlOperation(mutations.deleteRegion, {
+      mutations.deleteRegion,
+      {
         input: {
           id: region.id,
           expectedVersion: region.version,
         },
-      }),
+      },
     )
     return true
   },
@@ -263,7 +269,8 @@ export default {
     }
     delete data.version
     const update = await API.graphql(
-      graphqlOperation(mutations.updateTranscription, { input: data }),
+      mutations.updateTranscription, 
+      { input: data }
     )
     return update.data.updateTranscription
   },

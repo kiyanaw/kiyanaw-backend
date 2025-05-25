@@ -36,7 +36,7 @@
 </template>
 
 <script>
-import { DataStore } from 'aws-amplify'
+import { DataStore } from '@aws-amplify/datastore'
 import { mapActions, mapGetters } from 'vuex'
 import { Contributor } from '../../models'
 

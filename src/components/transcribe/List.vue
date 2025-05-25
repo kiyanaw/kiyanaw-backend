@@ -61,7 +61,8 @@
 <script>
 import { mapActions, mapGetters } from 'vuex'
 
-import { DataStore, Hub } from 'aws-amplify'
+import { DataStore } from '@aws-amplify/datastore'
+import { Hub } from '@aws-amplify/core'
 
 import en from 'javascript-time-ago/locale/en'
 import TimeAgo from 'javascript-time-ago'

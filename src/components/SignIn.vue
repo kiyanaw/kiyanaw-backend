@@ -19,7 +19,7 @@
 </template>
 
 <script>
-import { AuthState, onAuthUIStateChange } from '@aws-amplify/ui-components'
+import { Auth } from '@aws-amplify/auth'
 import { mapGetters, mapActions } from 'vuex'
 
 export default {
@@ -28,19 +28,17 @@ export default {
   },
 
   mounted() {
-    onAuthUIStateChange((nextAuthState, authData) => {
-      console.log('state changed', nextAuthState, authData)
-      if (nextAuthState === AuthState.SignedIn) {
+    Auth.currentAuthenticatedUser()
+      .then(user => {
         console.log('user successfully signed in!')
-        console.log('user data: ', authData)
+        console.log('user data: ', user)
         this.getUser()
         this.$router.push('/')
-      }
-      if (!authData) {
+      })
+      .catch(_err => {
         console.log('user is not signed in...')
         this.setSignedIn(false)
-      }
-    })
+      })
   },
   methods: {
     ...mapActions(['getUser', 'setSignedIn']),
