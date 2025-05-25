@@ -3,7 +3,7 @@ The legacy Vue implementation in `src_old/` is **read-only** and serves solely a
 
 - [ ] **Phase 0 – Discovery & Setup**
     1. Review work plan documents and functional requirements `docs/amplify_react_requirements.md`, `docs/core_competencies_overview.md` and `docs/functional_requirements.md`.
-    2. Initialise new React project inside **`./src/`** (e.g., Vite + TypeScript).  
+    2. Initialise new React project inside the current root folder (e.g., Vite + TypeScript).  
         • Install Amplify v6 modular pkgs per docs/amplify_react_requirements.md §1.  _(Functional Req – Overview & §1-15 for baseline review)_
 
 - [ ] **Phase 1 – Amplify Bootstrapping (Critical path)**
