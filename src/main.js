@@ -4,6 +4,7 @@ import vuetify from './plugins/vuetify'
 import router from './router'
 import store from './store/index'
 import 'babel-polyfill'
+import 'vuetify/dist/vuetify.min.css'
 
 import { Amplify } from 'aws-amplify'
 import aws_exports from './aws-exports'
