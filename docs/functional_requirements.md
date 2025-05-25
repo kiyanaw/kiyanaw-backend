@@ -103,29 +103,25 @@ Tab selection SHALL auto-switch to Region when a new region becomes selected.
 10.2  Inputs or destructive actions SHALL be disabled for non-editors and/or non-authors depending on context.
 10.3  Component-level `disableInputs` computed props SHALL enforce these restrictions.
 
-## 11  Real-time Collaboration
-11.1  Per-region editing users and cursor positions SHALL be propagated through an EventBus (`realtime-region-update`, `realtime-cursor`).
-11.2  Remote cursors SHALL be rendered using `Quill-cursors` with per-user colours.
+## 11  Data Persistence (AWS Amplify DataStore)
+11.1  Domain models used: `Transcription`, `Region`, `Contributor`, `TranscriptionContributor`, `Pointer`.
+11.2  All create/update/delete operations in components SHALL persist via `DataStore.save` or trigger Vuex actions that ultimately call DataStore.
+11.3  The application SHALL listen to Amplify Hub `datastore:ready` before operating on offline data.
 
-## 12  Data Persistence (AWS Amplify DataStore)
-12.1  Domain models used: `Transcription`, `Region`, `Contributor`, `TranscriptionContributor`, `Pointer`.
-12.2  All create/update/delete operations in components SHALL persist via `DataStore.save` or trigger Vuex actions that ultimately call DataStore.
-12.3  The application SHALL listen to Amplify Hub `datastore:ready` before operating on offline data.
+## 12  Media Processing
+12.1  Waveform peak JSON (`peaks`) MAY be loaded; if unavailable a snackbar SHALL report "Processing waveform data" error.
+12.2  `coverage` metric SHALL be derived from total region length / media duration (see TODO in comments).
 
-## 13  Media Processing
-13.1  Waveform peak JSON (`peaks`) MAY be loaded; if unavailable a snackbar SHALL report "Processing waveform data" error.
-13.2  `coverage` metric SHALL be derived from total region length / media duration (see TODO in comments).
-
-## 14  Responsive Design
-14.1  Vuetify breakpoints SHALL adapt layout:
+## 13  Responsive Design
+13.1  Vuetify breakpoints SHALL adapt layout:
  • Drawer permanent only on `mdAndUp`.
  • Waveform/video sizing adjusted for `xsOnly`.
  • Region list switches between side-pane and full width based on screen size.
 
-## 15  Accessibility & Usability
-15.1  Playback controls SHALL be accessible via mouse and keyboard (spacebar toggles play/pause via listener – presently commented out).
-15.2  Video element SHALL be draggable left/right by click.
-15.3  Loading states (circular/spinner) SHALL appear when waveform or data is loading.
+## 14  Accessibility & Usability
+14.1  Playback controls SHALL be accessible via mouse and keyboard (spacebar toggles play/pause via listener – presently commented out).
+14.2  Video element SHALL be draggable left/right by click.
+14.3  Loading states (circular/spinner) SHALL appear when waveform or data is loading.
 
 ---
 
