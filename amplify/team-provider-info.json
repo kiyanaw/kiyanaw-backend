@@ -37,5 +37,62 @@
         }
       }
     }
+  },
+  "upgrade": {
+    "awscloudformation": {},
+    "categories": {
+      "function": {
+        "enqueueRegionChange": {},
+        "indexRegionData": {},
+        "notifyRegionChanges": {},
+        "syncConflictHandler092e0049": {}
+      }
+    }
+  },
+  "upgradetwo": {
+    "awscloudformation": {
+      "AuthRoleName": "amplify-kiyanaw-upgradetwo-155254-authRole",
+      "UnauthRoleArn": "arn:aws:iam::494185203413:role/amplify-kiyanaw-upgradetwo-155254-unauthRole",
+      "AuthRoleArn": "arn:aws:iam::494185203413:role/amplify-kiyanaw-upgradetwo-155254-authRole",
+      "Region": "us-east-1",
+      "DeploymentBucketName": "amplify-kiyanaw-upgradetwo-155254-deployment",
+      "UnauthRoleName": "amplify-kiyanaw-upgradetwo-155254-unauthRole",
+      "StackName": "amplify-kiyanaw-upgradetwo-155254",
+      "StackId": "arn:aws:cloudformation:us-east-1:494185203413:stack/amplify-kiyanaw-upgradetwo-155254/804f5930-375f-11f0-a069-12107e8aa73d",
+      "AmplifyAppId": "d2vcnct5kwl6za"
+    },
+    "categories": {
+      "auth": {
+        "kiyanawd20b7994": {}
+      },
+      "function": {
+        "enqueueRegionChange": {
+          "deploymentBucketName": "amplify-kiyanaw-upgradetwo-155254-deployment",
+          "s3Key": "amplify-builds/enqueueRegionChange-6f4a6e5932586868554f-build.zip"
+        },
+        "indexRegionData": {
+          "deploymentBucketName": "amplify-kiyanaw-upgradetwo-155254-deployment",
+          "s3Key": "amplify-builds/indexRegionData-453065364a7867754a67-build.zip"
+        },
+        "notifyRegionChanges": {
+          "deploymentBucketName": "amplify-kiyanaw-upgradetwo-155254-deployment",
+          "s3Key": "amplify-builds/notifyRegionChanges-3942386f532b46716a4a-build.zip"
+        },
+        "syncConflictHandler092e0049": {
+          "deploymentBucketName": "amplify-kiyanaw-upgradetwo-155254-deployment",
+          "s3Key": "amplify-builds/syncConflictHandler092e0049-514a524672446d516254-build.zip"
+        }
+      },
+      "api": {
+        "enqueueRegionChange": {},
+        "kiyanaw": {}
+      },
+      "hosting": {
+        "S3AndCloudFront": {}
+      },
+      "storage": {
+        "transcriptions": {}
+      }
+    }
   }
 }
