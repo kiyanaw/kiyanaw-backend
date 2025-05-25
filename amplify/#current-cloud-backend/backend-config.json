@@ -1,0 +1,157 @@
+{
+  "api": {
+    "enqueueRegionChange": {
+      "dependsOn": [
+        {
+          "attributes": [
+            "Name",
+            "Arn"
+          ],
+          "category": "function",
+          "resourceName": "enqueueRegionChange"
+        }
+      ],
+      "providerPlugin": "awscloudformation",
+      "service": "API Gateway"
+    },
+    "kiyanaw": {
+      "dependsOn": [],
+      "output": {
+        "authConfig": {
+          "additionalAuthenticationProviders": [],
+          "defaultAuthentication": {
+            "authenticationType": "AWS_IAM"
+          }
+        }
+      },
+      "providerPlugin": "awscloudformation",
+      "service": "AppSync"
+    }
+  },
+  "auth": {
+    "kiyanawd20b7994": {
+      "customAuth": false,
+      "dependsOn": [],
+      "frontendAuthConfig": {
+        "mfaConfiguration": "OFF",
+        "mfaTypes": [
+          "SMS"
+        ],
+        "passwordProtectionSettings": {
+          "passwordPolicyCharacters": [],
+          "passwordPolicyMinLength": 8
+        },
+        "signupAttributes": [
+          "EMAIL"
+        ],
+        "socialProviders": [],
+        "usernameAttributes": [],
+        "verificationMechanisms": [
+          "EMAIL"
+        ]
+      },
+      "providerPlugin": "awscloudformation",
+      "service": "Cognito"
+    }
+  },
+  "function": {
+    "enqueueRegionChange": {
+      "build": true,
+      "providerPlugin": "awscloudformation",
+      "service": "Lambda"
+    },
+    "indexRegionData": {
+      "build": true,
+      "providerPlugin": "awscloudformation",
+      "service": "Lambda"
+    },
+    "notifyRegionChanges": {
+      "build": true,
+      "providerPlugin": "awscloudformation",
+      "service": "Lambda"
+    },
+    "syncConflictHandler092e0049": {
+      "build": true,
+      "providerPlugin": "awscloudformation",
+      "service": "Lambda"
+    }
+  },
+  "hosting": {
+    "S3AndCloudFront": {
+      "providerPlugin": "awscloudformation",
+      "service": "S3AndCloudFront"
+    }
+  },
+  "parameters": {
+    "AMPLIFY_function_enqueueRegionChange_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "enqueueRegionChange"
+        }
+      ]
+    },
+    "AMPLIFY_function_enqueueRegionChange_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "enqueueRegionChange"
+        }
+      ]
+    },
+    "AMPLIFY_function_indexRegionData_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "indexRegionData"
+        }
+      ]
+    },
+    "AMPLIFY_function_indexRegionData_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "indexRegionData"
+        }
+      ]
+    },
+    "AMPLIFY_function_notifyRegionChanges_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "notifyRegionChanges"
+        }
+      ]
+    },
+    "AMPLIFY_function_notifyRegionChanges_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "notifyRegionChanges"
+        }
+      ]
+    },
+    "AMPLIFY_function_syncConflictHandler092e0049_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "syncConflictHandler092e0049"
+        }
+      ]
+    },
+    "AMPLIFY_function_syncConflictHandler092e0049_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "syncConflictHandler092e0049"
+        }
+      ]
+    }
+  },
+  "storage": {
+    "transcriptions": {
+      "providerPlugin": "awscloudformation",
+      "service": "S3"
+    }
+  }
+}

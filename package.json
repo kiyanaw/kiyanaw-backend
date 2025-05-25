@@ -1,0 +1,42 @@
+{
+  "name": "kiyanaw-backend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "format": "prettier --write src/",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@aws-amplify/auth": "^6.12.4",
+    "@aws-amplify/datastore": "^5.0.82",
+    "@aws-amplify/storage": "^6.8.4",
+    "@aws-amplify/ui-react": "^6.11.2",
+    "aws-amplify": "^6.14.4",
+    "javascript-time-ago": "^2.5.11",
+    "lodash.debounce": "^4.0.8",
+    "mitt": "^3.0.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-quill": "^2.0.0",
+    "react-router-dom": "^6.26.2",
+    "wavesurfer.js": "^7.9.5"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.25.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@vitejs/plugin-react": "^4.4.1",
+    "eslint": "^9.25.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.19",
+    "globals": "^16.0.0",
+    "prettier": "^3.5.3",
+    "typescript": "~5.8.3",
+    "typescript-eslint": "^8.30.1",
+    "vite": "^6.3.5"
+  }
+}

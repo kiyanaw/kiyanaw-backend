@@ -1,0 +1,197 @@
+.stationary-inspector {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.inspector-tabs {
+  display: flex;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e0e0e0;
+  flex-shrink: 0;
+}
+
+.tab-button {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: #666;
+  transition: all 0.2s ease;
+  min-height: 48px;
+}
+
+.tab-button:hover:not(.disabled) {
+  background-color: #e9ecef;
+  color: #333;
+}
+
+.tab-button.active {
+  background-color: #fff;
+  color: #2196f3;
+  border-bottom-color: #2196f3;
+}
+
+.tab-button.disabled {
+  color: #ccc;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.tab-button.disabled:hover {
+  background-color: transparent;
+}
+
+.tab-icon {
+  font-size: 16px;
+}
+
+.tab-label {
+  font-weight: 500;
+}
+
+.inspector-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.tab-empty-state {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+}
+
+.empty-content {
+  text-align: center;
+  color: #666;
+}
+
+.empty-content h3 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  font-weight: 500;
+  color: #999;
+}
+
+.empty-content p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+  color: #bbb;
+}
+
+.region-editor-placeholder,
+.issues-panel-placeholder {
+  padding: 20px;
+}
+
+.region-editor-placeholder h3,
+.issues-panel-placeholder h3 {
+  margin: 0 0 16px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  border-bottom: 2px solid #f0f0f0;
+  padding-bottom: 10px;
+}
+
+.region-editor-placeholder p,
+.issues-panel-placeholder p {
+  margin: 0 0 16px 0;
+  color: #666;
+  font-style: italic;
+}
+
+.region-info,
+.issues-info {
+  background-color: #f8f9fa;
+  padding: 16px;
+  border-radius: 6px;
+  border-left: 4px solid #2196f3;
+}
+
+.region-info p,
+.issues-info p {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  color: #555;
+  font-style: normal;
+}
+
+.region-info p:last-child,
+.issues-info p:last-child {
+  margin-bottom: 0;
+}
+
+.region-info strong {
+  color: #333;
+  font-weight: 600;
+}
+
+/* Scrollbar styling */
+.inspector-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.inspector-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.inspector-content::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.inspector-content::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .tab-button {
+    padding: 8px 12px;
+    font-size: 12px;
+    min-height: 40px;
+  }
+
+  .tab-icon {
+    font-size: 14px;
+  }
+
+  .tab-label {
+    display: none;
+  }
+
+  .region-editor-placeholder,
+  .issues-panel-placeholder {
+    padding: 16px;
+  }
+
+  .region-editor-placeholder h3,
+  .issues-panel-placeholder h3 {
+    font-size: 16px;
+  }
+
+  .empty-content h3 {
+    font-size: 16px;
+  }
+
+  .empty-content p {
+    font-size: 13px;
+  }
+}

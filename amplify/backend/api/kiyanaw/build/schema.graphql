@@ -1,0 +1,1008 @@
+
+type Transcription {
+  id: ID!
+  author: String!
+  coverage: Float
+  dateLastUpdated: String!
+  userLastUpdated: String
+  length: Float
+  issues: String
+  comments: String
+  tags: String
+  source: String
+  index: String
+  title: String!
+  type: String!
+  isPrivate: Boolean
+  isPublished: Boolean
+  disableAnalyzer: Boolean
+  contributors(filter: ModelTranscriptionContributorFilterInput, sortDirection: ModelSortDirection, limit: Int, nextToken: String): ModelTranscriptionContributorConnection
+  regions(filter: ModelRegionFilterInput, sortDirection: ModelSortDirection, limit: Int, nextToken: String): ModelRegionConnection
+  issueList(filter: ModelIssueFilterInput, sortDirection: ModelSortDirection, limit: Int, nextToken: String): ModelIssueConnection
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+  _version: Int!
+  _deleted: Boolean
+  _lastChangedAt: AWSTimestamp!
+}
+
+type Region {
+  id: ID!
+  start: Float!
+  end: Float!
+  text: String!
+  regionText: String
+  regionAnalysis: String
+  issues: String
+  isNote: Boolean
+  comments: String
+  translation: String
+  dateLastUpdated: String!
+  userLastUpdated: String!
+  transcription: Transcription!
+  transcriptionId: ID!
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+  _version: Int!
+  _deleted: Boolean
+  _lastChangedAt: AWSTimestamp!
+}
+
+type Issue {
+  id: ID!
+  text: String!
+  owner: String!
+  index: Int!
+  resolved: Boolean
+  type: String!
+  comments: AWSJSON
+  regionId: String!
+  transcription: Transcription!
+  transcriptionId: ID!
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+  _version: Int!
+  _deleted: Boolean
+  _lastChangedAt: AWSTimestamp!
+}
+
+type Pointer {
+  id: ID!
+  transcription: String!
+  region: String!
+  cursor: String!
+  owner: String
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+  _version: Int!
+  _deleted: Boolean
+  _lastChangedAt: AWSTimestamp!
+}
+
+type RegionLock {
+  id: ID!
+  transcriptionId: String!
+  deleteTime: AWSTimestamp!
+  user: String!
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+  _version: Int!
+  _deleted: Boolean
+  _lastChangedAt: AWSTimestamp!
+}
+
+type Contributor {
+  id: ID!
+  email: ID!
+  username: ID!
+  transcriptions(filter: ModelTranscriptionContributorFilterInput, sortDirection: ModelSortDirection, limit: Int, nextToken: String): ModelTranscriptionContributorConnection
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+  _version: Int!
+  _deleted: Boolean
+  _lastChangedAt: AWSTimestamp!
+}
+
+type Cursor {
+  id: ID!
+  user: String!
+  cursor: String!
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+  _version: Int!
+  _deleted: Boolean
+  _lastChangedAt: AWSTimestamp!
+}
+
+type UserCursor {
+  id: ID!
+  transcription: String!
+  region: String!
+  cursor: String!
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+  _version: Int!
+  _deleted: Boolean
+  _lastChangedAt: AWSTimestamp!
+}
+
+type TranscriptionContributor {
+  id: ID!
+  transcriptionID: ID!
+  contributorID: ID!
+  transcription: Transcription!
+  contributor: Contributor!
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+  _version: Int!
+  _deleted: Boolean
+  _lastChangedAt: AWSTimestamp!
+}
+
+input ModelStringInput {
+  ne: String
+  eq: String
+  le: String
+  lt: String
+  ge: String
+  gt: String
+  contains: String
+  notContains: String
+  between: [String]
+  beginsWith: String
+  attributeExists: Boolean
+  attributeType: ModelAttributeTypes
+  size: ModelSizeInput
+}
+
+input ModelIntInput {
+  ne: Int
+  eq: Int
+  le: Int
+  lt: Int
+  ge: Int
+  gt: Int
+  between: [Int]
+  attributeExists: Boolean
+  attributeType: ModelAttributeTypes
+}
+
+input ModelFloatInput {
+  ne: Float
+  eq: Float
+  le: Float
+  lt: Float
+  ge: Float
+  gt: Float
+  between: [Float]
+  attributeExists: Boolean
+  attributeType: ModelAttributeTypes
+}
+
+input ModelBooleanInput {
+  ne: Boolean
+  eq: Boolean
+  attributeExists: Boolean
+  attributeType: ModelAttributeTypes
+}
+
+input ModelIDInput {
+  ne: ID
+  eq: ID
+  le: ID
+  lt: ID
+  ge: ID
+  gt: ID
+  contains: ID
+  notContains: ID
+  between: [ID]
+  beginsWith: ID
+  attributeExists: Boolean
+  attributeType: ModelAttributeTypes
+  size: ModelSizeInput
+}
+
+input ModelSubscriptionStringInput {
+  ne: String
+  eq: String
+  le: String
+  lt: String
+  ge: String
+  gt: String
+  contains: String
+  notContains: String
+  between: [String]
+  beginsWith: String
+  in: [String]
+  notIn: [String]
+}
+
+input ModelSubscriptionIntInput {
+  ne: Int
+  eq: Int
+  le: Int
+  lt: Int
+  ge: Int
+  gt: Int
+  between: [Int]
+  in: [Int]
+  notIn: [Int]
+}
+
+input ModelSubscriptionFloatInput {
+  ne: Float
+  eq: Float
+  le: Float
+  lt: Float
+  ge: Float
+  gt: Float
+  between: [Float]
+  in: [Float]
+  notIn: [Float]
+}
+
+input ModelSubscriptionBooleanInput {
+  ne: Boolean
+  eq: Boolean
+}
+
+input ModelSubscriptionIDInput {
+  ne: ID
+  eq: ID
+  le: ID
+  lt: ID
+  ge: ID
+  gt: ID
+  contains: ID
+  notContains: ID
+  between: [ID]
+  beginsWith: ID
+  in: [ID]
+  notIn: [ID]
+}
+
+enum ModelAttributeTypes {
+  binary
+  binarySet
+  bool
+  list
+  map
+  number
+  numberSet
+  string
+  stringSet
+  _null
+}
+
+input ModelSizeInput {
+  ne: Int
+  eq: Int
+  le: Int
+  lt: Int
+  ge: Int
+  gt: Int
+  between: [Int]
+}
+
+enum ModelSortDirection {
+  ASC
+  DESC
+}
+
+type ModelTranscriptionConnection {
+  items: [Transcription]!
+  nextToken: String
+  startedAt: AWSTimestamp
+}
+
+input ModelTranscriptionFilterInput {
+  id: ModelIDInput
+  author: ModelStringInput
+  coverage: ModelFloatInput
+  dateLastUpdated: ModelStringInput
+  userLastUpdated: ModelStringInput
+  length: ModelFloatInput
+  issues: ModelStringInput
+  comments: ModelStringInput
+  tags: ModelStringInput
+  source: ModelStringInput
+  index: ModelStringInput
+  title: ModelStringInput
+  type: ModelStringInput
+  isPrivate: ModelBooleanInput
+  isPublished: ModelBooleanInput
+  disableAnalyzer: ModelBooleanInput
+  and: [ModelTranscriptionFilterInput]
+  or: [ModelTranscriptionFilterInput]
+  not: ModelTranscriptionFilterInput
+}
+
+type Query {
+  getTranscription(id: ID!): Transcription
+  listTranscriptions(id: ID, filter: ModelTranscriptionFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelTranscriptionConnection
+  syncTranscriptions(filter: ModelTranscriptionFilterInput, limit: Int, nextToken: String, lastSync: AWSTimestamp): ModelTranscriptionConnection
+  getRegion(id: ID!): Region
+  listRegions(id: ID, filter: ModelRegionFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelRegionConnection
+  syncRegions(filter: ModelRegionFilterInput, limit: Int, nextToken: String, lastSync: AWSTimestamp): ModelRegionConnection
+  getIssue(id: ID!): Issue
+  listIssues(id: ID, filter: ModelIssueFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelIssueConnection
+  syncIssues(filter: ModelIssueFilterInput, limit: Int, nextToken: String, lastSync: AWSTimestamp): ModelIssueConnection
+  getPointer(id: ID!): Pointer
+  listPointers(id: ID, filter: ModelPointerFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelPointerConnection
+  syncPointers(filter: ModelPointerFilterInput, limit: Int, nextToken: String, lastSync: AWSTimestamp): ModelPointerConnection
+  getRegionLock(id: ID!, transcriptionId: String!): RegionLock
+  listRegionLocks(id: ID, transcriptionId: ModelStringKeyConditionInput, filter: ModelRegionLockFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelRegionLockConnection
+  syncRegionLocks(filter: ModelRegionLockFilterInput, limit: Int, nextToken: String, lastSync: AWSTimestamp): ModelRegionLockConnection
+  getContributor(id: ID!): Contributor
+  listContributors(id: ID, filter: ModelContributorFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelContributorConnection
+  syncContributors(filter: ModelContributorFilterInput, limit: Int, nextToken: String, lastSync: AWSTimestamp): ModelContributorConnection
+  getCursor(id: ID!, user: String!): Cursor
+  listCursors(id: ID, user: ModelStringKeyConditionInput, filter: ModelCursorFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelCursorConnection
+  syncCursors(filter: ModelCursorFilterInput, limit: Int, nextToken: String, lastSync: AWSTimestamp): ModelCursorConnection
+  getUserCursor(id: ID!): UserCursor
+  listUserCursors(id: ID, filter: ModelUserCursorFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelUserCursorConnection
+  syncUserCursors(filter: ModelUserCursorFilterInput, limit: Int, nextToken: String, lastSync: AWSTimestamp): ModelUserCursorConnection
+  getTranscriptionContributor(id: ID!): TranscriptionContributor
+  listTranscriptionContributors(filter: ModelTranscriptionContributorFilterInput, limit: Int, nextToken: String): ModelTranscriptionContributorConnection
+  syncTranscriptionContributors(filter: ModelTranscriptionContributorFilterInput, limit: Int, nextToken: String, lastSync: AWSTimestamp): ModelTranscriptionContributorConnection
+  byTitle(title: String!, sortDirection: ModelSortDirection, filter: ModelTranscriptionFilterInput, limit: Int, nextToken: String): ModelTranscriptionConnection
+  byTrans(transcription: String!, sortDirection: ModelSortDirection, filter: ModelPointerFilterInput, limit: Int, nextToken: String): ModelPointerConnection
+}
+
+input ModelTranscriptionConditionInput {
+  author: ModelStringInput
+  coverage: ModelFloatInput
+  dateLastUpdated: ModelStringInput
+  userLastUpdated: ModelStringInput
+  length: ModelFloatInput
+  issues: ModelStringInput
+  comments: ModelStringInput
+  tags: ModelStringInput
+  source: ModelStringInput
+  index: ModelStringInput
+  title: ModelStringInput
+  type: ModelStringInput
+  isPrivate: ModelBooleanInput
+  isPublished: ModelBooleanInput
+  disableAnalyzer: ModelBooleanInput
+  and: [ModelTranscriptionConditionInput]
+  or: [ModelTranscriptionConditionInput]
+  not: ModelTranscriptionConditionInput
+}
+
+input CreateTranscriptionInput {
+  id: ID
+  author: String!
+  coverage: Float
+  dateLastUpdated: String!
+  userLastUpdated: String
+  length: Float
+  issues: String
+  comments: String
+  tags: String
+  source: String
+  index: String
+  title: String!
+  type: String!
+  isPrivate: Boolean
+  isPublished: Boolean
+  disableAnalyzer: Boolean
+  _version: Int
+}
+
+input UpdateTranscriptionInput {
+  id: ID!
+  author: String
+  coverage: Float
+  dateLastUpdated: String
+  userLastUpdated: String
+  length: Float
+  issues: String
+  comments: String
+  tags: String
+  source: String
+  index: String
+  title: String
+  type: String
+  isPrivate: Boolean
+  isPublished: Boolean
+  disableAnalyzer: Boolean
+  _version: Int
+}
+
+input DeleteTranscriptionInput {
+  id: ID!
+  _version: Int
+}
+
+type Mutation {
+  createTranscription(input: CreateTranscriptionInput!, condition: ModelTranscriptionConditionInput): Transcription
+  updateTranscription(input: UpdateTranscriptionInput!, condition: ModelTranscriptionConditionInput): Transcription
+  deleteTranscription(input: DeleteTranscriptionInput!, condition: ModelTranscriptionConditionInput): Transcription
+  createRegion(input: CreateRegionInput!, condition: ModelRegionConditionInput): Region
+  updateRegion(input: UpdateRegionInput!, condition: ModelRegionConditionInput): Region
+  deleteRegion(input: DeleteRegionInput!, condition: ModelRegionConditionInput): Region
+  createIssue(input: CreateIssueInput!, condition: ModelIssueConditionInput): Issue
+  updateIssue(input: UpdateIssueInput!, condition: ModelIssueConditionInput): Issue
+  deleteIssue(input: DeleteIssueInput!, condition: ModelIssueConditionInput): Issue
+  createPointer(input: CreatePointerInput!, condition: ModelPointerConditionInput): Pointer
+  updatePointer(input: UpdatePointerInput!, condition: ModelPointerConditionInput): Pointer
+  deletePointer(input: DeletePointerInput!, condition: ModelPointerConditionInput): Pointer
+  createRegionLock(input: CreateRegionLockInput!, condition: ModelRegionLockConditionInput): RegionLock
+  updateRegionLock(input: UpdateRegionLockInput!, condition: ModelRegionLockConditionInput): RegionLock
+  deleteRegionLock(input: DeleteRegionLockInput!, condition: ModelRegionLockConditionInput): RegionLock
+  createContributor(input: CreateContributorInput!, condition: ModelContributorConditionInput): Contributor
+  updateContributor(input: UpdateContributorInput!, condition: ModelContributorConditionInput): Contributor
+  deleteContributor(input: DeleteContributorInput!, condition: ModelContributorConditionInput): Contributor
+  createCursor(input: CreateCursorInput!, condition: ModelCursorConditionInput): Cursor
+  updateCursor(input: UpdateCursorInput!, condition: ModelCursorConditionInput): Cursor
+  deleteCursor(input: DeleteCursorInput!, condition: ModelCursorConditionInput): Cursor
+  createUserCursor(input: CreateUserCursorInput!, condition: ModelUserCursorConditionInput): UserCursor
+  updateUserCursor(input: UpdateUserCursorInput!, condition: ModelUserCursorConditionInput): UserCursor
+  deleteUserCursor(input: DeleteUserCursorInput!, condition: ModelUserCursorConditionInput): UserCursor
+  createTranscriptionContributor(input: CreateTranscriptionContributorInput!, condition: ModelTranscriptionContributorConditionInput): TranscriptionContributor
+  updateTranscriptionContributor(input: UpdateTranscriptionContributorInput!, condition: ModelTranscriptionContributorConditionInput): TranscriptionContributor
+  deleteTranscriptionContributor(input: DeleteTranscriptionContributorInput!, condition: ModelTranscriptionContributorConditionInput): TranscriptionContributor
+}
+
+input ModelSubscriptionTranscriptionFilterInput {
+  id: ModelSubscriptionIDInput
+  author: ModelSubscriptionStringInput
+  coverage: ModelSubscriptionFloatInput
+  dateLastUpdated: ModelSubscriptionStringInput
+  userLastUpdated: ModelSubscriptionStringInput
+  length: ModelSubscriptionFloatInput
+  issues: ModelSubscriptionStringInput
+  comments: ModelSubscriptionStringInput
+  tags: ModelSubscriptionStringInput
+  source: ModelSubscriptionStringInput
+  index: ModelSubscriptionStringInput
+  title: ModelSubscriptionStringInput
+  type: ModelSubscriptionStringInput
+  isPrivate: ModelSubscriptionBooleanInput
+  isPublished: ModelSubscriptionBooleanInput
+  disableAnalyzer: ModelSubscriptionBooleanInput
+  and: [ModelSubscriptionTranscriptionFilterInput]
+  or: [ModelSubscriptionTranscriptionFilterInput]
+}
+
+type Subscription {
+  onCreateTranscription(filter: ModelSubscriptionTranscriptionFilterInput): Transcription @aws_subscribe(mutations: ["createTranscription"])
+  onUpdateTranscription(filter: ModelSubscriptionTranscriptionFilterInput): Transcription @aws_subscribe(mutations: ["updateTranscription"])
+  onDeleteTranscription(filter: ModelSubscriptionTranscriptionFilterInput): Transcription @aws_subscribe(mutations: ["deleteTranscription"])
+  onCreateRegion(filter: ModelSubscriptionRegionFilterInput): Region @aws_subscribe(mutations: ["createRegion"])
+  onUpdateRegion(filter: ModelSubscriptionRegionFilterInput): Region @aws_subscribe(mutations: ["updateRegion"])
+  onDeleteRegion(filter: ModelSubscriptionRegionFilterInput): Region @aws_subscribe(mutations: ["deleteRegion"])
+  onCreateIssue(filter: ModelSubscriptionIssueFilterInput): Issue @aws_subscribe(mutations: ["createIssue"])
+  onUpdateIssue(filter: ModelSubscriptionIssueFilterInput): Issue @aws_subscribe(mutations: ["updateIssue"])
+  onDeleteIssue(filter: ModelSubscriptionIssueFilterInput): Issue @aws_subscribe(mutations: ["deleteIssue"])
+  onCreatePointer(filter: ModelSubscriptionPointerFilterInput): Pointer @aws_subscribe(mutations: ["createPointer"])
+  onUpdatePointer(filter: ModelSubscriptionPointerFilterInput): Pointer @aws_subscribe(mutations: ["updatePointer"])
+  onDeletePointer(filter: ModelSubscriptionPointerFilterInput): Pointer @aws_subscribe(mutations: ["deletePointer"])
+  onCreateRegionLock(filter: ModelSubscriptionRegionLockFilterInput): RegionLock @aws_subscribe(mutations: ["createRegionLock"])
+  onUpdateRegionLock(filter: ModelSubscriptionRegionLockFilterInput): RegionLock @aws_subscribe(mutations: ["updateRegionLock"])
+  onDeleteRegionLock(filter: ModelSubscriptionRegionLockFilterInput): RegionLock @aws_subscribe(mutations: ["deleteRegionLock"])
+  onCreateContributor(filter: ModelSubscriptionContributorFilterInput): Contributor @aws_subscribe(mutations: ["createContributor"])
+  onUpdateContributor(filter: ModelSubscriptionContributorFilterInput): Contributor @aws_subscribe(mutations: ["updateContributor"])
+  onDeleteContributor(filter: ModelSubscriptionContributorFilterInput): Contributor @aws_subscribe(mutations: ["deleteContributor"])
+  onCreateCursor(filter: ModelSubscriptionCursorFilterInput): Cursor @aws_subscribe(mutations: ["createCursor"])
+  onUpdateCursor(filter: ModelSubscriptionCursorFilterInput): Cursor @aws_subscribe(mutations: ["updateCursor"])
+  onDeleteCursor(filter: ModelSubscriptionCursorFilterInput): Cursor @aws_subscribe(mutations: ["deleteCursor"])
+  onCreateUserCursor(filter: ModelSubscriptionUserCursorFilterInput): UserCursor @aws_subscribe(mutations: ["createUserCursor"])
+  onUpdateUserCursor(filter: ModelSubscriptionUserCursorFilterInput): UserCursor @aws_subscribe(mutations: ["updateUserCursor"])
+  onDeleteUserCursor(filter: ModelSubscriptionUserCursorFilterInput): UserCursor @aws_subscribe(mutations: ["deleteUserCursor"])
+  onCreateTranscriptionContributor(filter: ModelSubscriptionTranscriptionContributorFilterInput): TranscriptionContributor @aws_subscribe(mutations: ["createTranscriptionContributor"])
+  onUpdateTranscriptionContributor(filter: ModelSubscriptionTranscriptionContributorFilterInput): TranscriptionContributor @aws_subscribe(mutations: ["updateTranscriptionContributor"])
+  onDeleteTranscriptionContributor(filter: ModelSubscriptionTranscriptionContributorFilterInput): TranscriptionContributor @aws_subscribe(mutations: ["deleteTranscriptionContributor"])
+}
+
+type ModelRegionConnection {
+  items: [Region]!
+  nextToken: String
+  startedAt: AWSTimestamp
+}
+
+input ModelRegionFilterInput {
+  id: ModelIDInput
+  start: ModelFloatInput
+  end: ModelFloatInput
+  text: ModelStringInput
+  regionText: ModelStringInput
+  regionAnalysis: ModelStringInput
+  issues: ModelStringInput
+  isNote: ModelBooleanInput
+  comments: ModelStringInput
+  translation: ModelStringInput
+  dateLastUpdated: ModelStringInput
+  userLastUpdated: ModelStringInput
+  transcriptionId: ModelIDInput
+  and: [ModelRegionFilterInput]
+  or: [ModelRegionFilterInput]
+  not: ModelRegionFilterInput
+}
+
+input ModelRegionConditionInput {
+  start: ModelFloatInput
+  end: ModelFloatInput
+  text: ModelStringInput
+  regionText: ModelStringInput
+  regionAnalysis: ModelStringInput
+  issues: ModelStringInput
+  isNote: ModelBooleanInput
+  comments: ModelStringInput
+  translation: ModelStringInput
+  dateLastUpdated: ModelStringInput
+  userLastUpdated: ModelStringInput
+  transcriptionId: ModelIDInput
+  and: [ModelRegionConditionInput]
+  or: [ModelRegionConditionInput]
+  not: ModelRegionConditionInput
+}
+
+input CreateRegionInput {
+  id: ID
+  start: Float!
+  end: Float!
+  text: String!
+  regionText: String
+  regionAnalysis: String
+  issues: String
+  isNote: Boolean
+  comments: String
+  translation: String
+  dateLastUpdated: String!
+  userLastUpdated: String!
+  transcriptionId: ID!
+  _version: Int
+}
+
+input UpdateRegionInput {
+  id: ID!
+  start: Float
+  end: Float
+  text: String
+  regionText: String
+  regionAnalysis: String
+  issues: String
+  isNote: Boolean
+  comments: String
+  translation: String
+  dateLastUpdated: String
+  userLastUpdated: String
+  transcriptionId: ID
+  _version: Int
+}
+
+input DeleteRegionInput {
+  id: ID!
+  _version: Int
+}
+
+input ModelSubscriptionRegionFilterInput {
+  id: ModelSubscriptionIDInput
+  start: ModelSubscriptionFloatInput
+  end: ModelSubscriptionFloatInput
+  text: ModelSubscriptionStringInput
+  regionText: ModelSubscriptionStringInput
+  regionAnalysis: ModelSubscriptionStringInput
+  issues: ModelSubscriptionStringInput
+  isNote: ModelSubscriptionBooleanInput
+  comments: ModelSubscriptionStringInput
+  translation: ModelSubscriptionStringInput
+  dateLastUpdated: ModelSubscriptionStringInput
+  userLastUpdated: ModelSubscriptionStringInput
+  transcriptionId: ModelSubscriptionIDInput
+  and: [ModelSubscriptionRegionFilterInput]
+  or: [ModelSubscriptionRegionFilterInput]
+}
+
+type ModelIssueConnection {
+  items: [Issue]!
+  nextToken: String
+  startedAt: AWSTimestamp
+}
+
+input ModelIssueFilterInput {
+  id: ModelIDInput
+  text: ModelStringInput
+  owner: ModelStringInput
+  index: ModelIntInput
+  resolved: ModelBooleanInput
+  type: ModelStringInput
+  comments: ModelStringInput
+  regionId: ModelStringInput
+  transcriptionId: ModelIDInput
+  and: [ModelIssueFilterInput]
+  or: [ModelIssueFilterInput]
+  not: ModelIssueFilterInput
+}
+
+input ModelIssueConditionInput {
+  text: ModelStringInput
+  owner: ModelStringInput
+  index: ModelIntInput
+  resolved: ModelBooleanInput
+  type: ModelStringInput
+  comments: ModelStringInput
+  regionId: ModelStringInput
+  transcriptionId: ModelIDInput
+  and: [ModelIssueConditionInput]
+  or: [ModelIssueConditionInput]
+  not: ModelIssueConditionInput
+}
+
+input CreateIssueInput {
+  id: ID
+  text: String!
+  owner: String!
+  index: Int!
+  resolved: Boolean
+  type: String!
+  comments: AWSJSON
+  regionId: String!
+  transcriptionId: ID!
+  _version: Int
+}
+
+input UpdateIssueInput {
+  id: ID!
+  text: String
+  owner: String
+  index: Int
+  resolved: Boolean
+  type: String
+  comments: AWSJSON
+  regionId: String
+  transcriptionId: ID
+  _version: Int
+}
+
+input DeleteIssueInput {
+  id: ID!
+  _version: Int
+}
+
+input ModelSubscriptionIssueFilterInput {
+  id: ModelSubscriptionIDInput
+  text: ModelSubscriptionStringInput
+  owner: ModelSubscriptionStringInput
+  index: ModelSubscriptionIntInput
+  resolved: ModelSubscriptionBooleanInput
+  type: ModelSubscriptionStringInput
+  comments: ModelSubscriptionStringInput
+  regionId: ModelSubscriptionStringInput
+  transcriptionId: ModelSubscriptionIDInput
+  and: [ModelSubscriptionIssueFilterInput]
+  or: [ModelSubscriptionIssueFilterInput]
+}
+
+type ModelPointerConnection {
+  items: [Pointer]!
+  nextToken: String
+  startedAt: AWSTimestamp
+}
+
+input ModelPointerFilterInput {
+  id: ModelIDInput
+  transcription: ModelStringInput
+  region: ModelStringInput
+  cursor: ModelStringInput
+  owner: ModelStringInput
+  and: [ModelPointerFilterInput]
+  or: [ModelPointerFilterInput]
+  not: ModelPointerFilterInput
+}
+
+input ModelPointerConditionInput {
+  transcription: ModelStringInput
+  region: ModelStringInput
+  cursor: ModelStringInput
+  owner: ModelStringInput
+  and: [ModelPointerConditionInput]
+  or: [ModelPointerConditionInput]
+  not: ModelPointerConditionInput
+}
+
+input CreatePointerInput {
+  id: ID
+  transcription: String!
+  region: String!
+  cursor: String!
+  owner: String
+  _version: Int
+}
+
+input UpdatePointerInput {
+  id: ID!
+  transcription: String
+  region: String
+  cursor: String
+  owner: String
+  _version: Int
+}
+
+input DeletePointerInput {
+  id: ID!
+  _version: Int
+}
+
+input ModelSubscriptionPointerFilterInput {
+  id: ModelSubscriptionIDInput
+  transcription: ModelSubscriptionStringInput
+  region: ModelSubscriptionStringInput
+  cursor: ModelSubscriptionStringInput
+  owner: ModelSubscriptionStringInput
+  and: [ModelSubscriptionPointerFilterInput]
+  or: [ModelSubscriptionPointerFilterInput]
+}
+
+type ModelRegionLockConnection {
+  items: [RegionLock]!
+  nextToken: String
+  startedAt: AWSTimestamp
+}
+
+input ModelRegionLockFilterInput {
+  id: ModelIDInput
+  transcriptionId: ModelStringInput
+  deleteTime: ModelIntInput
+  user: ModelStringInput
+  and: [ModelRegionLockFilterInput]
+  or: [ModelRegionLockFilterInput]
+  not: ModelRegionLockFilterInput
+}
+
+input ModelRegionLockConditionInput {
+  deleteTime: ModelIntInput
+  user: ModelStringInput
+  and: [ModelRegionLockConditionInput]
+  or: [ModelRegionLockConditionInput]
+  not: ModelRegionLockConditionInput
+}
+
+input CreateRegionLockInput {
+  id: ID
+  transcriptionId: String!
+  deleteTime: AWSTimestamp!
+  user: String!
+  _version: Int
+}
+
+input UpdateRegionLockInput {
+  id: ID!
+  transcriptionId: String!
+  deleteTime: AWSTimestamp
+  user: String
+  _version: Int
+}
+
+input DeleteRegionLockInput {
+  id: ID!
+  transcriptionId: String!
+  _version: Int
+}
+
+input ModelSubscriptionRegionLockFilterInput {
+  id: ModelSubscriptionIDInput
+  transcriptionId: ModelSubscriptionStringInput
+  deleteTime: ModelSubscriptionIntInput
+  user: ModelSubscriptionStringInput
+  and: [ModelSubscriptionRegionLockFilterInput]
+  or: [ModelSubscriptionRegionLockFilterInput]
+}
+
+type ModelContributorConnection {
+  items: [Contributor]!
+  nextToken: String
+  startedAt: AWSTimestamp
+}
+
+input ModelContributorFilterInput {
+  id: ModelIDInput
+  email: ModelIDInput
+  username: ModelIDInput
+  and: [ModelContributorFilterInput]
+  or: [ModelContributorFilterInput]
+  not: ModelContributorFilterInput
+}
+
+input ModelContributorConditionInput {
+  email: ModelIDInput
+  username: ModelIDInput
+  and: [ModelContributorConditionInput]
+  or: [ModelContributorConditionInput]
+  not: ModelContributorConditionInput
+}
+
+input CreateContributorInput {
+  id: ID
+  email: ID!
+  username: ID!
+  _version: Int
+}
+
+input UpdateContributorInput {
+  id: ID!
+  email: ID
+  username: ID
+  _version: Int
+}
+
+input DeleteContributorInput {
+  id: ID!
+  _version: Int
+}
+
+input ModelSubscriptionContributorFilterInput {
+  id: ModelSubscriptionIDInput
+  email: ModelSubscriptionIDInput
+  username: ModelSubscriptionIDInput
+  and: [ModelSubscriptionContributorFilterInput]
+  or: [ModelSubscriptionContributorFilterInput]
+}
+
+type ModelCursorConnection {
+  items: [Cursor]!
+  nextToken: String
+  startedAt: AWSTimestamp
+}
+
+input ModelCursorFilterInput {
+  id: ModelIDInput
+  user: ModelStringInput
+  cursor: ModelStringInput
+  and: [ModelCursorFilterInput]
+  or: [ModelCursorFilterInput]
+  not: ModelCursorFilterInput
+}
+
+input ModelCursorConditionInput {
+  cursor: ModelStringInput
+  and: [ModelCursorConditionInput]
+  or: [ModelCursorConditionInput]
+  not: ModelCursorConditionInput
+}
+
+input CreateCursorInput {
+  id: ID
+  user: String!
+  cursor: String!
+  _version: Int
+}
+
+input UpdateCursorInput {
+  id: ID!
+  user: String!
+  cursor: String
+  _version: Int
+}
+
+input DeleteCursorInput {
+  id: ID!
+  user: String!
+  _version: Int
+}
+
+input ModelSubscriptionCursorFilterInput {
+  id: ModelSubscriptionIDInput
+  user: ModelSubscriptionStringInput
+  cursor: ModelSubscriptionStringInput
+  and: [ModelSubscriptionCursorFilterInput]
+  or: [ModelSubscriptionCursorFilterInput]
+}
+
+type ModelUserCursorConnection {
+  items: [UserCursor]!
+  nextToken: String
+  startedAt: AWSTimestamp
+}
+
+input ModelUserCursorFilterInput {
+  id: ModelIDInput
+  transcription: ModelStringInput
+  region: ModelStringInput
+  cursor: ModelStringInput
+  and: [ModelUserCursorFilterInput]
+  or: [ModelUserCursorFilterInput]
+  not: ModelUserCursorFilterInput
+}
+
+input ModelUserCursorConditionInput {
+  transcription: ModelStringInput
+  region: ModelStringInput
+  cursor: ModelStringInput
+  and: [ModelUserCursorConditionInput]
+  or: [ModelUserCursorConditionInput]
+  not: ModelUserCursorConditionInput
+}
+
+input CreateUserCursorInput {
+  id: ID
+  transcription: String!
+  region: String!
+  cursor: String!
+  _version: Int
+}
+
+input UpdateUserCursorInput {
+  id: ID!
+  transcription: String
+  region: String
+  cursor: String
+  _version: Int
+}
+
+input DeleteUserCursorInput {
+  id: ID!
+  _version: Int
+}
+
+input ModelSubscriptionUserCursorFilterInput {
+  id: ModelSubscriptionIDInput
+  transcription: ModelSubscriptionStringInput
+  region: ModelSubscriptionStringInput
+  cursor: ModelSubscriptionStringInput
+  and: [ModelSubscriptionUserCursorFilterInput]
+  or: [ModelSubscriptionUserCursorFilterInput]
+}
+
+type ModelTranscriptionContributorConnection {
+  items: [TranscriptionContributor]!
+  nextToken: String
+  startedAt: AWSTimestamp
+}
+
+input ModelTranscriptionContributorFilterInput {
+  id: ModelIDInput
+  transcriptionID: ModelIDInput
+  contributorID: ModelIDInput
+  and: [ModelTranscriptionContributorFilterInput]
+  or: [ModelTranscriptionContributorFilterInput]
+  not: ModelTranscriptionContributorFilterInput
+}
+
+input ModelTranscriptionContributorConditionInput {
+  transcriptionID: ModelIDInput
+  contributorID: ModelIDInput
+  and: [ModelTranscriptionContributorConditionInput]
+  or: [ModelTranscriptionContributorConditionInput]
+  not: ModelTranscriptionContributorConditionInput
+}
+
+input CreateTranscriptionContributorInput {
+  id: ID
+  transcriptionID: ID!
+  contributorID: ID!
+  _version: Int
+}
+
+input UpdateTranscriptionContributorInput {
+  id: ID!
+  transcriptionID: ID
+  contributorID: ID
+  _version: Int
+}
+
+input DeleteTranscriptionContributorInput {
+  id: ID!
+  _version: Int
+}
+
+input ModelSubscriptionTranscriptionContributorFilterInput {
+  id: ModelSubscriptionIDInput
+  transcriptionID: ModelSubscriptionIDInput
+  contributorID: ModelSubscriptionIDInput
+  and: [ModelSubscriptionTranscriptionContributorFilterInput]
+  or: [ModelSubscriptionTranscriptionContributorFilterInput]
+}
+
+input ModelStringKeyConditionInput {
+  eq: String
+  le: String
+  lt: String
+  ge: String
+  gt: String
+  between: [String]
+  beginsWith: String
+}
+
