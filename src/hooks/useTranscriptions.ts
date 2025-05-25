@@ -74,7 +74,32 @@ export const useTranscriptions = () => {
         throw new Error('Transcription not found');
       }
 
-      setTranscription(transcription);
+      // Load peaks data (following the old Vue pattern)
+      try {
+        const peaksResponse = await fetch(`${transcription.source}.json`);
+        const peaksData = await peaksResponse.json();
+        
+        console.log('🔍 Peaks data loaded:', {
+          url: `${transcription.source}.json`,
+          dataStructure: peaksData,
+          hasData: !!peaksData?.data,
+          dataLength: peaksData?.data?.length,
+          sampleData: peaksData?.data?.slice(0, 10) // First 10 values
+        });
+        
+        // Add peaks data to transcription object
+        const transcriptionWithPeaks = {
+          ...transcription,
+          peaks: peaksData
+        };
+        
+        setTranscription(transcriptionWithPeaks);
+      } catch (error) {
+        console.error('Error loading peaks data:', error);
+        // peaks file may not be done processing
+        eventBus.emit('on-load-peaks-error');
+        return;
+      }
 
       // Emit event for other components
       eventBus.emit('transcription-ready');

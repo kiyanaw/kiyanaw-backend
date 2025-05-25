@@ -47,6 +47,7 @@ The legacy Vue implementation in `src_old/` is **read-only** and serves solely a
     1. ✅ Wrap WaveSurfer.js in `WaveformPlayer.tsx`.  
        • ✅ Source from S3 via `Storage.getUrl` (§4.4).  
        • ✅ Support regions plugin, timeline, zoom, speed.
+       • ✅ Load peaks data from `${source}.json` following Vue pattern.
     2. ✅ Handle events (`region-in/out`, `waveform-ready`, etc.).
     3. ✅ Implement video overlay for `.mp4` (`AudioPlayer.vue` ref).
 
@@ -86,6 +87,7 @@ The legacy Vue implementation in `src_old/` is **read-only** and serves solely a
 - [ ] **TypeScript Improvements** – replace `any` types with proper interfaces (65 errors).
 - [ ] **React Hook Dependencies** – fix missing dependency warnings (13 warnings).
 - [x] **Generated Model Types** – update `@ts-ignore` to `@ts-expect-error` in models.
+- [x] **Peaks Data Loading** – implement waveform peaks data loading following Vue pattern.
 - [ ] **Testing Setup** – configure Vitest + React Testing Library for ≥90% coverage.
 - [ ] **Pre-commit Hooks** – set up Prettier formatting on commit.
 

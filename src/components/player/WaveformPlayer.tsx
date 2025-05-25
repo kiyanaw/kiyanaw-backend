@@ -18,6 +18,7 @@ interface Region {
 
 interface WaveformPlayerProps {
   source: string;
+  peaks?: any;
   canEdit: boolean;
   inboundRegion?: string | null;
   regions: Region[];
@@ -29,6 +30,7 @@ interface WaveformPlayerProps {
 
 export const WaveformPlayer = ({
   source,
+  peaks,
   canEdit,
   inboundRegion,
   regions,
@@ -37,6 +39,16 @@ export const WaveformPlayer = ({
   onRegionUpdate,
   onLookup,
 }: WaveformPlayerProps) => {
+  console.log('🎯 WaveformPlayer render:', {
+    source,
+    hasPeaks: !!peaks,
+    peaksType: typeof peaks,
+    peaksKeys: peaks ? Object.keys(peaks) : null,
+    canEdit,
+    isVideo,
+    title
+  });
+
   const waveformRef = useRef<HTMLDivElement>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -57,10 +69,22 @@ export const WaveformPlayer = ({
   useEffect(() => {
     const getAudioUrl = async () => {
       try {
+        console.log('🔗 Getting audio URL for source:', source);
+        
+        // Check if source is already a full URL
+        if (source.startsWith('http://') || source.startsWith('https://')) {
+          console.log('✅ Source is already a full URL, using directly:', source);
+          setAudioUrl(source);
+          return;
+        }
+        
+        // If it's just a path, generate signed URL
         const result = await getUrl({ path: source });
-        setAudioUrl(result.url.toString());
+        const url = result.url.toString();
+        console.log('✅ Audio URL obtained from path:', url);
+        setAudioUrl(url);
       } catch (error) {
-        console.error('Error getting audio URL:', error);
+        console.error('❌ Error getting audio URL:', error);
         eventBus.emit('on-load-peaks-error');
       }
     };
@@ -72,10 +96,22 @@ export const WaveformPlayer = ({
 
   // Initialize WaveSurfer
   useEffect(() => {
-    if (!waveformRef.current || !audioUrl) return;
+    if (!audioUrl) {
+      console.log('⏳ WaveformPlayer useEffect - waiting for audioUrl');
+      return;
+    }
 
     const initWaveSurfer = async () => {
       try {
+        // Prevent multiple initializations
+        if (wavesurferRef.current) {
+          console.log('🔄 WaveSurfer already exists, destroying previous instance');
+          wavesurferRef.current.destroy();
+          wavesurferRef.current = null;
+        }
+
+        console.log('🎛️ Creating WaveSurfer instance...');
+        
         // Create regions plugin
         const regionsPlugin = Regions.create();
         regionsPluginRef.current = regionsPlugin;
@@ -83,6 +119,15 @@ export const WaveformPlayer = ({
         // Create timeline plugin
         const timelinePlugin = Timeline.create({
           container: timelineRef.current!,
+        });
+
+        console.log('🎛️ Creating WaveSurfer with config:', {
+          container: waveformRef.current,
+          waveColor: '#305880',
+          progressColor: '#162738',
+          barWidth: 2,
+          height: 128,
+          plugins: [regionsPlugin, timelinePlugin],
         });
 
         // Create WaveSurfer instance
@@ -95,10 +140,12 @@ export const WaveformPlayer = ({
           plugins: [regionsPlugin, timelinePlugin],
         });
 
+        console.log('✅ WaveSurfer instance created successfully');
         wavesurferRef.current = wavesurfer;
 
         // Event listeners
         wavesurfer.on('ready', () => {
+          console.log('🎉 WaveSurfer ready event fired!');
           setMaxTime(wavesurfer.getDuration());
           setLoading(false);
           renderRegions();
@@ -117,6 +164,20 @@ export const WaveformPlayer = ({
           }
 
           eventBus.emit('waveform-ready');
+        });
+
+        wavesurfer.on('load', (url) => {
+          console.log('🔄 WaveSurfer load event fired:', url);
+        });
+
+        wavesurfer.on('decode', (duration) => {
+          console.log('🎵 WaveSurfer decode event fired, duration:', duration);
+        });
+
+        wavesurfer.on('error', (error) => {
+          console.error('❌ WaveSurfer error:', error);
+          setLoading(false);
+          eventBus.emit('on-load-peaks-error');
         });
 
         wavesurfer.on('play', () => setPlaying(true));
@@ -159,8 +220,61 @@ export const WaveformPlayer = ({
           });
         }
 
-        // Load audio
-        wavesurfer.load(audioUrl);
+        // Load audio with peaks data (following old Vue pattern)
+        // WaveSurfer v7 expects peaks as Array<Float32Array | number[]>
+        // The audiowaveform JSON format typically has { data: [array] }
+        let peaksArray = null;
+        if (peaks) {
+          console.log('🔍 Raw peaks data structure:', {
+            peaks,
+            peaksType: typeof peaks,
+            peaksKeys: peaks ? Object.keys(peaks) : null,
+            hasData: peaks && 'data' in peaks,
+            dataType: peaks?.data ? typeof peaks.data : 'undefined',
+            dataIsArray: Array.isArray(peaks?.data),
+            dataLength: peaks?.data?.length,
+            firstFewDataValues: peaks?.data?.slice(0, 10)
+          });
+
+          // Convert audiowaveform JSON format to WaveSurfer v7 format
+          if (peaks.data && Array.isArray(peaks.data)) {
+            // audiowaveform JSON format: { data: [numbers] }
+            // WaveSurfer v7 expects: [Float32Array] or [number[]]
+            peaksArray = [peaks.data];
+            console.log('✅ Converted audiowaveform JSON to WaveSurfer v7 format:', {
+              originalLength: peaks.data.length,
+              convertedFormat: 'Array<number[]>',
+              peaksArrayLength: peaksArray.length,
+              firstArrayLength: peaksArray[0]?.length,
+              firstFewValues: peaksArray[0]?.slice(0, 10)
+            });
+          } else if (Array.isArray(peaks)) {
+            // Already in correct format
+            peaksArray = peaks;
+            console.log('✅ Peaks already in correct format');
+          } else {
+            console.warn('⚠️ Unknown peaks format, will load without peaks');
+          }
+        }
+        
+        try {
+          console.log('🎵 About to load audio with peaks:', {
+            audioUrl,
+            hasPeaksArray: !!peaksArray,
+            peaksArrayType: peaksArray ? typeof peaksArray : 'undefined',
+            peaksArrayLength: peaksArray?.length,
+            isVideo
+          });
+          
+          // Load audio/video with or without peaks
+          await wavesurfer.load(audioUrl, peaksArray || undefined);
+          console.log('✅ WaveSurfer load completed successfully');
+        } catch (error) {
+          console.error('❌ Error during wavesurfer.load():', error);
+          setLoading(false);
+          eventBus.emit('on-load-peaks-error');
+          return; // Exit early if load fails
+        }
 
         // Set zoom from localStorage
         const savedZoom = localStorage.getItem('zoom');
@@ -173,15 +287,43 @@ export const WaveformPlayer = ({
       }
     };
 
-    initWaveSurfer();
+    const initializeWhenReady = () => {
+      if (!waveformRef.current) {
+        console.log('⏳ WaveformPlayer - DOM not ready, retrying...');
+        return false;
+      }
+      
+      console.log('🚀 WaveformPlayer useEffect triggered:', {
+        hasWaveformRef: !!waveformRef.current,
+        hasAudioUrl: !!audioUrl,
+        hasPeaks: !!peaks,
+        peaksStructure: peaks
+      });
+      
+      initWaveSurfer();
+      return true;
+    };
 
+    // Try immediately
+    if (initializeWhenReady()) {
+      return; // Success
+    }
+
+    // If DOM not ready, try again after a short delay
+    const timeoutId = setTimeout(() => {
+      if (!initializeWhenReady()) {
+        console.warn('⚠️ WaveformPlayer: DOM element still not ready after delay');
+      }
+    }, 50);
+    
     return () => {
+      clearTimeout(timeoutId);
       if (wavesurferRef.current) {
         wavesurferRef.current.destroy();
         wavesurferRef.current = null;
       }
     };
-  }, [audioUrl, canEdit, inboundRegion, isVideo, onRegionUpdate]);
+  }, [audioUrl, peaks, canEdit, inboundRegion, isVideo, onRegionUpdate]);
 
   // Handle zoom changes
   useEffect(() => {
@@ -301,17 +443,27 @@ export const WaveformPlayer = ({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  if (loading) {
-    return (
-      <div className="waveform-loading">
-        <div className="loading-spinner"></div>
-        <p>Loading waveform...</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="waveform-container">
+    <div className="waveform-container" style={{ position: 'relative' }}>
+      {/* Loading overlay */}
+      {loading && (
+        <div className="waveform-loading" style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div className="loading-spinner"></div>
+          <p>Loading waveform...</p>
+        </div>
+      )}
       {/* Header */}
       <div className="waveform-header">
         <div className="media-title">

@@ -40,3 +40,4 @@ npm run build
 - Don't mutate props or state directly.
 - Don't commit secrets; use Amplify env vars (+ .gitignore).
 - Don't introduce breaking changes to Amplify generated files; use `amplify push` instead. 
+- Don't try to run the local dev server unless explicitly asked, that will always be done manually.
