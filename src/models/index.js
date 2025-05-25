@@ -4,15 +4,15 @@ import { schema } from './schema';
 
 
 
-const { Transcription, Contributor, Region, Issue, Pointer, RegionLock, Cursor, UserCursor, TranscriptionContributor } = initSchema(schema);
+const { Transcription, Region, Issue, Pointer, RegionLock, Contributor, Cursor, UserCursor, TranscriptionContributor } = initSchema(schema);
 
 export {
   Transcription,
-  Contributor,
   Region,
   Issue,
   Pointer,
   RegionLock,
+  Contributor,
   Cursor,
   UserCursor,
   TranscriptionContributor
