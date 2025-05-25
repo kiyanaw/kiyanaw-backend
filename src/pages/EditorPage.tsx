@@ -165,6 +165,14 @@ export const EditorPage = () => {
   const isVideo = transcription.type?.startsWith('video/');
   const canEdit = user !== null;
 
+  console.log('📄 EditorPage rendering WaveformPlayer with:', {
+    transcription: transcription,
+    hasPeaks: !!transcription.peaks,
+    peaksType: typeof transcription.peaks,
+    peaksKeys: transcription.peaks ? Object.keys(transcription.peaks) : null,
+    source: transcription.source
+  });
+
   return (
     <div className="editor-container">
       {/* Waveform/Video Player Section */}
@@ -172,6 +180,7 @@ export const EditorPage = () => {
         <div className="audio-player">
           <WaveformPlayer
             source={transcription.source}
+            peaks={transcription.peaks}
             canEdit={canEdit}
             inboundRegion={inboundRegion}
             regions={regions}
