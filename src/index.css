@@ -1,10 +1,17 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  --color-ki-blue: #1E3A8A;
+  --color-ki-accent: #3B82F6;
+  --color-issue-red: #EF4444;
+  --color-issue-yellow: #F59E0B;
+  --color-issue-green: #10B981;
+  --font-sans: 'Roboto', 'Noto Sans', sans-serif;
+}
 
 @layer base {
   :root {
-    font-family: 'Roboto', 'Noto Sans', sans-serif;
+    font-family: var(--font-sans);
     line-height: 1.5;
     font-weight: 400;
     font-synthesis: none;
