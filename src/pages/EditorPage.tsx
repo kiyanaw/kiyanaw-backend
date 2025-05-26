@@ -38,20 +38,14 @@ export const EditorPage = () => {
 
   const loading = transcriptionLoading || regionsLoading;
 
+  // Load transcription and regions once per transcriptionId
   useEffect(() => {
     if (!transcriptionId) return;
 
-    // Load transcription and regions
     const loadData = async () => {
       try {
         const cleanup = await loadTranscription(transcriptionId);
         await loadRegions(transcriptionId);
-
-        // Set inbound region from URL
-        if (regionId) {
-          setInboundRegion(regionId);
-        }
-
         return cleanup;
       } catch (error) {
         console.error('Error loading transcription:', error);
@@ -60,7 +54,16 @@ export const EditorPage = () => {
     };
 
     loadData();
-  }, [transcriptionId, regionId, loadTranscription, loadRegions]);
+  }, [transcriptionId, loadTranscription, loadRegions]);
+
+  // Handle inbound region from URL separately to avoid re-loading data
+  useEffect(() => {
+    if (regionId) {
+      setInboundRegion(regionId);
+    } else {
+      setInboundRegion(null);
+    }
+  }, [regionId]);
 
   useEffect(() => {
     // Listen for events
@@ -91,69 +94,82 @@ export const EditorPage = () => {
     };
   }, [inboundRegion, setSelectedRegion]);
 
-  const handleRegionClick = (regionId: string) => {
-    console.log('🎯 Region clicked:', regionId);
-    
-    // Clear inbound region to fix play button
-    setInboundRegion(null);
+  const handleRegionClick = async (regionId: string) => {
+    try {
+      console.log('🎯 Region clicked:', regionId);
+      
+      // Clear inbound region to fix play button
+      setInboundRegion(null);
 
-    // Set selected region (this will trigger scroll in RegionList)
-    setSelectedRegion(regionId);
+      // Set selected region (this will trigger scroll in RegionList)
+      setSelectedRegion(regionId);
 
-    const region = regions.find((r) => r.id === regionId);
-    if (region && !region.isNote) {
-      console.log('🎵 Triggering audio playback for region:', regionId);
-      // Trigger audio player to play this region (user-initiated)
-      eventBus.emit('region-play', regionId);
+      const region = regions.find((r) => r.id === regionId);
+      if (region && !region.isNote) {
+        console.log('🎵 Triggering audio playback for region:', regionId);
+        // Trigger audio player to play this region (user-initiated)
+        eventBus.emit('region-play', regionId);
+      }
+
+      // Update URL without page refresh - only if the path actually changed
+      const newPath = `/transcribe-edit/${transcriptionId}/${regionId}`;
+      const currentPath = window.location.pathname;
+      if (currentPath !== newPath) {
+        navigate(newPath, { replace: true });
+      }
+    } catch (error) {
+      console.error('❌ Error handling region click:', error);
+      // Don't let the error propagate and cause page reload
     }
-
-    // Update URL without page refresh
-    const newPath = `/transcribe-edit/${transcriptionId}/${regionId}`;
-    navigate(newPath, { replace: true });
   };
 
-  const handleRegionUpdate = (regionUpdate: any) => {
-    console.log('🎯 handleRegionUpdate called with:', regionUpdate);
-    // Removed excessive logging to prevent render loops
-    
-    // Handle region updates from the waveform player
-    const existingRegion = regions.find((r) => r.id === regionUpdate.id);
-
-    if (!existingRegion) {
-      // Create new region with minimal required fields
-      const regionData = {
-        start: regionUpdate.start,
-        end: regionUpdate.end,
-        id: regionUpdate.id,
-        text: '', // Simple empty string for now
-        isNote: false,
-        userLastUpdated: user?.username || 'unknown',
-      };
-      console.log('🆕 Creating new region:', regionData);
-      createRegion(regionData);
-    } else {
-      // Update existing region - but only if it's a proper DataStore model
-      console.log('📝 Updating existing region:', regionUpdate);
-      console.log('📝 Existing region type:', typeof existingRegion, existingRegion.constructor?.name);
+  const handleRegionUpdate = async (regionUpdate: any) => {
+    try {
+      console.log('🎯 handleRegionUpdate called with:', regionUpdate);
+      // Removed excessive logging to prevent render loops
       
-      // Only update if the region has proper DataStore model properties
-      if (existingRegion && typeof existingRegion === 'object' && existingRegion.id) {
-        updateRegion(existingRegion.id, {
-          start: regionUpdate.start,
-          end: regionUpdate.end,
-        });
-      } else {
-        console.warn('⚠️ Existing region is not a proper DataStore model, treating as new');
+      // Handle region updates from the waveform player
+      const existingRegion = regions.find((r) => r.id === regionUpdate.id);
+
+      if (!existingRegion) {
+        // Create new region with minimal required fields
         const regionData = {
           start: regionUpdate.start,
           end: regionUpdate.end,
           id: regionUpdate.id,
-          text: '',
+          text: '', // Simple empty string for now
           isNote: false,
           userLastUpdated: user?.username || 'unknown',
         };
-        createRegion(regionData);
+        console.log('🆕 Creating new region:', regionData);
+        await createRegion(regionData);
+      } else {
+        // Update existing region - but only if it's a proper DataStore model
+        console.log('📝 Updating existing region:', regionUpdate);
+        console.log('📝 Existing region type:', typeof existingRegion, existingRegion.constructor?.name);
+        
+        // Only update if the region has proper DataStore model properties
+        if (existingRegion && typeof existingRegion === 'object' && existingRegion.id) {
+          await updateRegion(existingRegion.id, {
+            start: regionUpdate.start,
+            end: regionUpdate.end,
+          });
+        } else {
+          console.warn('⚠️ Existing region is not a proper DataStore model, treating as new');
+          const regionData = {
+            start: regionUpdate.start,
+            end: regionUpdate.end,
+            id: regionUpdate.id,
+            text: '',
+            isNote: false,
+            userLastUpdated: user?.username || 'unknown',
+          };
+          await createRegion(regionData);
+        }
       }
+    } catch (error) {
+      console.error('❌ Error handling region update:', error);
+      // Don't let the error propagate and cause issues
     }
   };
 
