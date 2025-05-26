@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { TranscriptionForm } from '../forms/TranscriptionForm';
 import { RegionEditor } from '../regions/RegionEditor';
 import { IssuesPanel } from '../issues/IssuesPanel';
-import './StationaryInspector.css';
 
 interface StationaryInspectorProps {
   transcription: any;
@@ -76,10 +75,10 @@ export const StationaryInspector = ({
       case 'region':
         if (!selectedRegion) {
           return (
-            <div className="tab-empty-state">
-              <div className="empty-content">
-                <h3>No Region Selected</h3>
-                <p>Select a region from the list to edit its content.</p>
+            <div className="h-full flex items-center justify-center py-10 px-5">
+              <div className="text-center text-gray-600">
+                <h3 className="m-0 mb-2 text-lg font-medium text-gray-400">No Region Selected</h3>
+                <p className="m-0 text-sm leading-relaxed text-gray-300">Select a region from the list to edit its content.</p>
               </div>
             </div>
           );
@@ -115,23 +114,31 @@ export const StationaryInspector = ({
   };
 
   return (
-    <div className="stationary-inspector">
-      <div className="inspector-tabs">
+    <div className="h-full flex flex-col bg-white border border-gray-300 rounded-lg overflow-hidden">
+      <div className="flex bg-gray-50 border-b border-gray-300 flex-shrink-0">
         {tabs.map((tab) => (
           <button
             key={tab.id}
-            className={`tab-button ${activeTab === tab.id ? 'active' : ''} ${tab.disabled ? 'disabled' : ''}`}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-none border-none border-b-[3px] border-transparent cursor-pointer text-sm font-medium text-gray-600 transition-all duration-200 min-h-[48px] md:py-3 md:px-4 md:text-sm md:min-h-[48px] py-2 px-3 text-xs min-h-[40px] ${
+              activeTab === tab.id
+                ? 'bg-white text-blue-500 border-b-blue-500'
+                : tab.disabled
+                ? 'text-gray-300 cursor-not-allowed opacity-60'
+                : 'hover:bg-gray-200 hover:text-gray-800'
+            }`}
             onClick={() => !tab.disabled && setActiveTab(tab.id)}
             disabled={tab.disabled}
             title={tab.disabled ? 'Select a region to enable this tab' : ''}
           >
-            <span className="tab-icon">{tab.icon}</span>
-            <span className="tab-label">{tab.label}</span>
+            <span className="text-base md:text-base text-sm">{tab.icon}</span>
+            <span className="font-medium md:inline hidden">{tab.label}</span>
           </button>
         ))}
       </div>
 
-      <div className="inspector-content">{renderTabContent()}</div>
+      <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-track-gray-100 scrollbar-thumb-gray-400 hover:scrollbar-thumb-gray-500">
+        {renderTabContent()}
+      </div>
     </div>
   );
 };

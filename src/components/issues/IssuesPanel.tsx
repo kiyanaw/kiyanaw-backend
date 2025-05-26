@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import './IssuesPanel.css';
 
 interface Issue {
   id: string;
@@ -145,14 +144,14 @@ export const IssuesPanel = ({
   };
 
   return (
-    <div className="issues-panel">
-      <div className="issues-header">
-        <h3>Issues</h3>
-        <div className="issues-controls">
+    <div className="flex flex-col h-full bg-white rounded-lg overflow-hidden">
+      <div className="flex justify-between items-center p-4 bg-gray-50 border-b border-gray-200 md:flex-row md:p-4 flex-col p-3 gap-3">
+        <h3 className="m-0 text-lg font-semibold text-gray-800">Issues</h3>
+        <div className="flex gap-3 items-center md:gap-3 gap-2">
           <select
             value={filter}
             onChange={(e) => setFilter(e.target.value as typeof filter)}
-            className="filter-select"
+            className="py-1.5 px-3 border border-gray-300 rounded bg-white text-sm text-gray-700"
           >
             <option value="all">All Issues</option>
             <option value="open">Open Issues</option>
@@ -161,7 +160,7 @@ export const IssuesPanel = ({
 
           {canEdit && (
             <button
-              className="create-issue-button"
+              className="py-2 px-4 bg-blue-600 text-white border-none rounded text-sm font-medium cursor-pointer transition-colors duration-200 hover:bg-blue-700"
               onClick={() => setShowCreateForm(!showCreateForm)}
             >
               + New Issue
@@ -171,13 +170,13 @@ export const IssuesPanel = ({
       </div>
 
       {showCreateForm && (
-        <div className="create-issue-form">
-          <div className="form-group">
-            <label>Issue Type</label>
+        <div className="p-4 bg-gray-50 border-b border-gray-200">
+          <div className="mb-3">
+            <label className="block mb-1 font-semibold text-gray-700 text-sm">Issue Type</label>
             <select
               value={newIssueType}
               onChange={(e) => setNewIssueType(e.target.value as Issue['type'])}
-              className="issue-type-select"
+              className="w-full py-2 px-3 border border-gray-300 rounded text-sm text-gray-700"
             >
               {issueTypes.map((type) => (
                 <option key={type.value} value={type.value}>
@@ -187,28 +186,28 @@ export const IssuesPanel = ({
             </select>
           </div>
 
-          <div className="form-group">
-            <label>Description</label>
+          <div className="mb-3">
+            <label className="block mb-1 font-semibold text-gray-700 text-sm">Description</label>
             <textarea
               value={newIssueText}
               onChange={(e) => setNewIssueText(e.target.value)}
               placeholder="Describe the issue..."
-              className="issue-textarea"
+              className="w-full py-2 px-3 border border-gray-300 rounded text-sm text-gray-700 resize-y min-h-[60px] font-inherit"
               rows={3}
             />
           </div>
 
-          <div className="form-actions">
+          <div className="flex gap-2 mt-4">
             <button
               onClick={handleCreateIssue}
               disabled={!newIssueText.trim()}
-              className="create-button"
+              className="py-2 px-4 bg-green-600 text-white border-none rounded text-sm cursor-pointer transition-colors duration-200 hover:bg-green-700 disabled:bg-gray-500 disabled:cursor-not-allowed"
             >
               Create Issue
             </button>
             <button
               onClick={() => setShowCreateForm(false)}
-              className="cancel-button"
+              className="py-2 px-4 bg-gray-500 text-white border-none rounded text-sm cursor-pointer transition-colors duration-200 hover:bg-gray-600"
             >
               Cancel
             </button>
@@ -216,12 +215,12 @@ export const IssuesPanel = ({
         </div>
       )}
 
-      <div className="issues-list">
+      <div className="flex-1 overflow-y-auto p-4">
         {filteredIssues.length === 0 ? (
-          <div className="empty-state">
-            <p>No issues found.</p>
+          <div className="text-center py-10 px-5 text-gray-500">
+            <p className="m-0 mb-2">No issues found.</p>
             {selectedRegionId && (
-              <p className="empty-hint">
+              <p className="text-sm text-gray-400 m-0">
                 Issues will be filtered to the selected region.
               </p>
             )}
@@ -235,29 +234,29 @@ export const IssuesPanel = ({
             return (
               <div
                 key={issue.id}
-                className={`issue-item ${issue.resolved ? 'resolved' : 'open'}`}
+                className={`border border-gray-200 rounded-lg mb-3 bg-white transition-all duration-200 hover:border-gray-400 hover:shadow-sm ${
+                  issue.resolved ? 'opacity-70 bg-gray-50' : ''
+                }`}
               >
                 <div
-                  className="issue-header"
+                  className="p-3 px-4 cursor-pointer flex justify-between items-start gap-3 md:flex-row md:items-start flex-col items-stretch"
                   onClick={() => handleToggleExpanded(issue.id)}
                 >
-                  <div className="issue-info">
+                  <div className="flex-1 flex items-start gap-2">
                     <span
-                      className="issue-type-badge"
+                      className="inline-block py-0.5 px-2 rounded-xl text-xs font-medium uppercase text-white flex-shrink-0"
                       style={{ backgroundColor: typeInfo.color }}
                     >
                       {typeInfo.label}
                     </span>
-                    <span className="issue-text">{issue.text}</span>
+                    <span className="text-sm text-gray-800">{issue.text}</span>
                   </div>
 
-                  <div className="issue-meta">
-                    <span className="issue-owner">by {issue.owner}</span>
-                    <span className="issue-date">
-                      {formatDate(issue.createdAt)}
-                    </span>
+                  <div className="flex items-center gap-2 text-xs text-gray-500 md:flex-row md:gap-2 flex-col gap-1">
+                    <span>by {issue.owner}</span>
+                    <span>{formatDate(issue.createdAt)}</span>
                     <span
-                      className={`expand-icon ${isExpanded ? 'expanded' : ''}`}
+                      className={`transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
                     >
                       ▼
                     </span>
@@ -265,12 +264,16 @@ export const IssuesPanel = ({
                 </div>
 
                 {isExpanded && (
-                  <div className="issue-details">
-                    <div className="issue-actions">
+                  <div className="p-4 pt-0">
+                    <div className="flex gap-2 mb-4 md:flex-row flex-col">
                       {canEdit && (
                         <button
                           onClick={() => handleToggleResolved(issue)}
-                          className={`resolve-button ${issue.resolved ? 'unresolve' : 'resolve'}`}
+                          className={`py-1.5 px-3 border-none rounded text-sm cursor-pointer transition-colors duration-200 ${
+                            issue.resolved
+                              ? 'bg-yellow-600 text-white hover:bg-yellow-700'
+                              : 'bg-green-600 text-white hover:bg-green-700'
+                          }`}
                         >
                           {issue.resolved ? 'Reopen' : 'Resolve'}
                         </button>
@@ -279,7 +282,7 @@ export const IssuesPanel = ({
                       {canModify && (
                         <button
                           onClick={() => handleDeleteIssue(issue.id)}
-                          className="delete-button"
+                          className="py-1.5 px-3 bg-red-600 text-white border-none rounded text-sm cursor-pointer transition-colors duration-200 hover:bg-red-700"
                         >
                           Delete
                         </button>
@@ -287,9 +290,9 @@ export const IssuesPanel = ({
                     </div>
 
                     {issue.comments.length > 0 && (
-                      <div className="comments-section">
-                        <h4>Comments ({issue.comments.length})</h4>
-                        <div className="comments-list">
+                      <div className="mb-4">
+                        <h4 className="m-0 mb-3 text-sm font-semibold text-gray-700">Comments ({issue.comments.length})</h4>
+                        <div className="space-y-3">
                           {issue.comments
                             .sort(
                               (a, b) =>
@@ -297,16 +300,16 @@ export const IssuesPanel = ({
                                 new Date(a.createdAt).getTime()
                             )
                             .map((comment) => (
-                              <div key={comment.id} className="comment-item">
-                                <div className="comment-header">
-                                  <span className="comment-author">
+                              <div key={comment.id} className="border border-gray-200 rounded p-3 bg-gray-50">
+                                <div className="flex justify-between items-center mb-2">
+                                  <span className="font-medium text-sm text-gray-800">
                                     {comment.author}
                                   </span>
-                                  <span className="comment-date">
+                                  <span className="text-xs text-gray-500">
                                     {formatDate(comment.createdAt)}
                                   </span>
                                 </div>
-                                <div className="comment-text">
+                                <div className="text-sm text-gray-700 leading-relaxed">
                                   {comment.text}
                                 </div>
                               </div>
@@ -316,7 +319,7 @@ export const IssuesPanel = ({
                     )}
 
                     {canEdit && (
-                      <div className="add-comment-form">
+                      <div className="mt-4">
                         <textarea
                           value={commentTexts[issue.id] || ''}
                           onChange={(e) =>
@@ -326,13 +329,13 @@ export const IssuesPanel = ({
                             }))
                           }
                           placeholder="Add a comment..."
-                          className="comment-textarea"
+                          className="w-full py-2 px-3 border border-gray-300 rounded text-sm text-gray-700 resize-y min-h-[50px] font-inherit mb-2"
                           rows={2}
                         />
                         <button
                           onClick={() => handleAddComment(issue.id)}
                           disabled={!commentTexts[issue.id]?.trim()}
-                          className="add-comment-button"
+                          className="py-1.5 px-3 bg-blue-600 text-white border-none rounded text-sm cursor-pointer transition-colors duration-200 hover:bg-blue-700 disabled:bg-gray-500 disabled:cursor-not-allowed"
                         >
                           Add Comment
                         </button>

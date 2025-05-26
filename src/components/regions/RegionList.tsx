@@ -1,6 +1,5 @@
 import { useEffect, useRef, useMemo } from 'react';
 import { RegionItem } from './RegionItem';
-import './RegionList.css';
 
 interface Region {
   id: string;
@@ -71,27 +70,28 @@ export const RegionList = ({
 
   if (sortedRegions.length === 0) {
     return (
-      <div className="region-list-empty">
-        <div className="empty-state">
-          <h3>No regions yet</h3>
-          <p>Create regions by selecting audio in the waveform above.</p>
+      <div className="h-full flex items-center justify-center bg-white border border-gray-300 rounded">
+        <div className="text-center py-10 px-5 text-gray-600">
+          <h3 className="text-lg font-medium text-gray-400 mb-2">No regions yet</h3>
+          <p className="text-sm leading-relaxed text-gray-300">Create regions by selecting audio in the waveform above.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="region-list" ref={listRef}>
-      <div className="region-list-header">
-        <h4>Regions ({sortedRegions.length})</h4>
+    <div className="h-full flex flex-col bg-white border border-gray-300 rounded overflow-hidden" ref={listRef}>
+      <div className="py-3 px-4 bg-gray-100 border-b border-gray-300 flex-shrink-0">
+        <h4 className="m-0 text-sm font-semibold text-gray-800 uppercase tracking-wide">Regions ({sortedRegions.length})</h4>
       </div>
 
-      <div className="region-list-content">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-track-gray-100 scrollbar-thumb-gray-400 hover:scrollbar-thumb-gray-500">
         {sortedRegions.map((region, index) => (
           <div
             key={region.id}
             ref={region.id === selectedRegionId ? selectedItemRef : undefined}
             onDoubleClick={() => handleRegionDoubleClick(region.id)}
+            className="border-b border-gray-300 last:border-b-0"
           >
             <RegionItem
               region={region}

@@ -2,7 +2,6 @@ import type { ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { usePermissions } from '../../hooks/usePermissions';
-import './ProtectedRoute.css';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -34,10 +33,10 @@ export const ProtectedRoute = ({
       return <>{fallback}</>;
     }
     return (
-      <div className="permission-denied">
-        <h2>Access Denied</h2>
-        <p>You don't have permission to edit this transcription.</p>
-        <p>Only the author and editors can make changes.</p>
+      <div className="flex flex-col items-center justify-center py-10 px-5 text-center bg-gray-50 rounded-lg m-5">
+        <h2 className="text-red-600 m-0 mb-4 text-2xl font-semibold">Access Denied</h2>
+        <p className="text-gray-600 m-0 mb-2 text-base leading-relaxed max-w-md">You don't have permission to edit this transcription.</p>
+        <p className="text-gray-600 m-0 mb-2 text-base leading-relaxed max-w-md">Only the author and editors can make changes.</p>
       </div>
     );
   }

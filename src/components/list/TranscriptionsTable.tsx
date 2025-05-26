@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { useTranscriptions } from '../../hooks/useTranscriptions';
 import TimeAgo from 'javascript-time-ago';
 import en from 'javascript-time-ago/locale/en';
-import './TranscriptionsTable.css';
 
 // Initialize TimeAgo
 TimeAgo.addDefaultLocale(en);
@@ -17,13 +16,13 @@ interface Column {
 }
 
 const columns: Column[] = [
-  { key: 'title', label: 'Title', width: '30%', sortable: true },
-  { key: 'author', label: 'Owner', width: '15%', sortable: true },
-  { key: 'length', label: 'Length', sortable: true },
-  { key: 'coverage', label: 'Coverage', width: '10%', sortable: true },
+  { key: 'title', label: 'Title', width: '25%', sortable: true },
+  { key: 'author', label: 'Owner', width: '12%', sortable: true },
+  { key: 'length', label: 'Length', width: '8%', sortable: true },
+  { key: 'coverage', label: 'Coverage', width: '12%', sortable: true },
   { key: 'issues', label: 'Issues', width: '8%', sortable: true },
-  { key: 'dateLastUpdated', label: 'Last Edit', sortable: true },
-  { key: 'type', label: 'Type', sortable: true },
+  { key: 'dateLastUpdated', label: 'Last Edit', width: '15%', sortable: true },
+  { key: 'type', label: 'Type', width: '8%', sortable: true },
   { key: 'source', label: 'Source', width: '8%' },
 ];
 
@@ -96,161 +95,222 @@ export const TranscriptionsTable = () => {
   };
 
   const formatDuration = (seconds: number) => {
-    if (!seconds) return '--';
+    if (!seconds) return '00:00';
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
-
-
 
   if (loading) {
     return (
-      <div className="transcriptions-loading">
-        <div className="loading-spinner"></div>
-        <p>Loading transcriptions...</p>
+      <div className="flex flex-col items-center justify-center py-32 text-gray-500">
+        <div className="w-8 h-8 border-2 border-gray-300 border-t-ki-blue rounded-full animate-spin mb-4"></div>
+        <p className="text-base">Loading transcriptions...</p>
       </div>
     );
   }
 
   return (
-    <div className="transcriptions-container">
-      <div className="transcriptions-header">
-        <h2>Transcriptions</h2>
-        <div className="search-section">
-          <input
-            type="text"
-            placeholder="Search transcriptions..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="search-input"
-          />
+    <div className="bg-gray-50 min-h-screen">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200 px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold text-gray-900">Transcriptions</h1>
+            <p className="text-sm text-gray-600 mt-1">Manage and review your audio transcriptions</p>
+          </div>
+          
+          <div className="flex items-center space-x-4">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search transcriptions..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-80 pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ki-blue focus:border-transparent"
+              />
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+            </div>
+            
+            <Link 
+              to="/transcribe-add" 
+              className="inline-flex items-center px-4 py-2 bg-ki-blue text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m-6 0h6m0-6h6" />
+              </svg>
+              Add New
+            </Link>
+          </div>
         </div>
       </div>
 
-      <div className="table-container">
-        <table className="transcriptions-table">
-          <thead>
-            <tr>
-              {columns.map((column) => (
-                <th
-                  key={column.key}
-                  style={{ width: column.width }}
-                  className={column.sortable ? 'sortable' : ''}
-                  onClick={() => column.sortable && handleSort(column.key)}
-                >
-                  {column.label}
-                  {column.sortable && sortBy === column.key && (
-                    <span className="sort-indicator">
-                      {sortDesc ? ' ↓' : ' ↑'}
+      {/* Table Container */}
+      <div className="px-6 py-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <table className="min-w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                {columns.map((column) => (
+                  <th
+                    key={column.key}
+                    style={{ width: column.width }}
+                    className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200 ${
+                      column.sortable 
+                        ? 'cursor-pointer hover:bg-gray-100 transition-colors' 
+                        : ''
+                    } ${
+                      column.key === 'length' || column.key === 'type' || column.key === 'source'
+                        ? 'hidden lg:table-cell'
+                        : ''
+                    }`}
+                    onClick={() => column.sortable && handleSort(column.key)}
+                  >
+                    <div className="flex items-center space-x-1">
+                      <span>{column.label}</span>
+                      {column.sortable && sortBy === column.key && (
+                        <span className="text-ki-blue">
+                          {sortDesc ? '↓' : '↑'}
+                        </span>
+                      )}
+                    </div>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {paginatedTranscriptions.map((transcription) => (
+                <tr key={transcription.id} className="hover:bg-gray-50 transition-colors">
+                  {/* Title */}
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <Link
+                      to={`/transcribe-edit/${transcription.id}`}
+                      className="text-ki-blue font-medium hover:text-blue-800 hover:underline"
+                    >
+                      {transcription.title}
+                    </Link>
+                  </td>
+                  
+                  {/* Owner */}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {transcription.author}
+                  </td>
+                  
+                  {/* Length */}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 hidden lg:table-cell">
+                    {formatDuration(transcription.length || 0)}
+                  </td>
+                  
+                  {/* Coverage */}
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <div className="w-16 bg-gray-200 rounded-full h-2 mr-3">
+                        <div
+                          className="bg-green-500 h-2 rounded-full"
+                          style={{
+                            width: `${(transcription.coverage || 0) * 100}%`,
+                          }}
+                        />
+                      </div>
+                      <span className="text-sm text-gray-700 min-w-[30px]">
+                        {Math.round((transcription.coverage || 0) * 100)}%
+                      </span>
+                    </div>
+                  </td>
+                  
+                  {/* Issues */}
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span
+                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                        transcription.issues === '0' || !transcription.issues
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-red-100 text-red-800'
+                      }`}
+                    >
+                      {transcription.issues || '0'}
                     </span>
-                  )}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {paginatedTranscriptions.map((transcription) => (
-              <tr key={transcription.id}>
-                <td>
-                  <Link
-                    to={`/transcribe-edit/${transcription.id}`}
-                    className="title-link"
-                  >
-                    {transcription.title}
-                  </Link>
-                </td>
-                <td>{transcription.author}</td>
-                <td>{formatDuration(transcription.length || 0)}</td>
-                <td>
-                  <div className="coverage-bar">
-                    <div
-                      className="coverage-fill"
-                      style={{
-                        width: `${(transcription.coverage || 0) * 100}%`,
-                      }}
-                    />
-                  </div>
-                  <span className="coverage-text">
-                    {Math.round((transcription.coverage || 0) * 100)}%
-                  </span>
-                </td>
-                <td>
-                  <span
-                    className={`issues-badge ${transcription.issues === '0' ? 'no-issues' : 'has-issues'}`}
-                  >
-                    {transcription.issues || '0'}
-                  </span>
-                </td>
-                <td>
-                  <div className="last-edit">
-                    <div>{formatTimeAgo(transcription.dateLastUpdated)}</div>
-                    <div className="last-edit-user">
+                  </td>
+                  
+                  {/* Last Edit */}
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">
+                      {formatTimeAgo(transcription.dateLastUpdated)}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
                       by {transcription.userLastUpdated}
                     </div>
-                  </div>
-                </td>
-                <td>
-                  <span className="file-type">
-                    {transcription.type?.split('/')[1]?.toUpperCase() ||
-                      'Unknown'}
-                  </span>
-                </td>
-                <td>
-                  {transcription.source && (
-                    <a
-                      href={transcription.source}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="source-link"
-                    >
-                      Source
-                    </a>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                  </td>
+                  
+                  {/* Type */}
+                  <td className="px-6 py-4 whitespace-nowrap hidden lg:table-cell">
+                    <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                      {transcription.type?.split('/')[1]?.toUpperCase() || 'Unknown'}
+                    </span>
+                  </td>
+                  
+                  {/* Source */}
+                  <td className="px-6 py-4 whitespace-nowrap hidden lg:table-cell">
+                    {transcription.source && (
+                      <a
+                        href={transcription.source}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-ki-blue hover:text-blue-800 text-sm hover:underline"
+                      >
+                        Source
+                      </a>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
 
-        {paginatedTranscriptions.length === 0 && (
-          <div className="no-results">
-            {search
-              ? 'No transcriptions match your search.'
-              : 'No transcriptions found.'}
+          {/* Empty State */}
+          {paginatedTranscriptions.length === 0 && (
+            <div className="text-center py-12">
+              <div className="text-gray-500">
+                {search
+                  ? 'No transcriptions match your search.'
+                  : 'No transcriptions found.'}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between mt-6">
+            <div className="text-sm text-gray-700">
+              Showing {(currentPage - 1) * itemsPerPage + 1} to{' '}
+              {Math.min(currentPage * itemsPerPage, filteredAndSortedTranscriptions.length)} of{' '}
+              {filteredAndSortedTranscriptions.length} results
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setCurrentPage(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <span className="text-sm text-gray-700">
+                {currentPage} of {totalPages}
+              </span>
+              <button
+                onClick={() => setCurrentPage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
           </div>
         )}
-      </div>
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="pagination">
-          <button
-            onClick={() => setCurrentPage(currentPage - 1)}
-            disabled={currentPage === 1}
-            className="pagination-btn"
-          >
-            Previous
-          </button>
-          <span className="pagination-info">
-            Page {currentPage} of {totalPages}
-          </span>
-          <button
-            onClick={() => setCurrentPage(currentPage + 1)}
-            disabled={currentPage === totalPages}
-            className="pagination-btn"
-          >
-            Next
-          </button>
-        </div>
-      )}
-
-      {/* Add New Button */}
-      <div className="add-transcription-section">
-        <Link to="/transcribe-add" className="add-btn">
-          <span className="add-icon">+</span>
-          Add New
-        </Link>
       </div>
     </div>
   );

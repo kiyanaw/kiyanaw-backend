@@ -8,7 +8,6 @@ import {
   Contributor,
 } from '../../models';
 import { useAuth } from '../../hooks/useAuth';
-import './UploadForm.css';
 
 export const UploadForm = () => {
   const [title, setTitle] = useState('');
@@ -109,59 +108,71 @@ export const UploadForm = () => {
   };
 
   return (
-    <div className="upload-container">
-      <h2>Upload Media</h2>
+    <div className="max-w-2xl mx-auto my-8 md:my-8 my-4 p-8 md:p-8 p-6 bg-white rounded-lg shadow-md">
+      <h2 className="m-0 mb-8 text-gray-800 text-2xl md:text-2xl text-xl font-semibold">Upload Media</h2>
 
-      <div className="form-group">
-        <label htmlFor="title">Title</label>
-        <input
-          id="title"
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Enter transcription title"
-          className="title-input"
-        />
-      </div>
+      <div className="space-y-6">
+        <div className="mb-6">
+          <label htmlFor="title" className="block mb-2 text-gray-700 font-medium">
+            Title
+          </label>
+          <input
+            id="title"
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Enter transcription title"
+            className="w-full px-3 py-3 border-2 border-gray-200 rounded focus:outline-none focus:border-ki-blue transition-colors"
+          />
+        </div>
 
-      <div className="form-group">
-        <label htmlFor="file">Select an MP3 or MP4 file:</label>
-        <input
-          id="file"
-          ref={fileInputRef}
-          type="file"
-          accept=".mp3,.mp4"
-          onChange={handleFileChange}
-          className="file-input"
-        />
-        {inputFile && (
-          <div className="file-info">
-            Selected: {inputFile.name} (
-            {(inputFile.size / 1024 / 1024).toFixed(2)} MB)
-          </div>
-        )}
-      </div>
-
-      <div className="upload-section">
-        <button
-          onClick={uploadFile}
-          disabled={disableUpload || loading}
-          className={`upload-btn ${disableUpload || loading ? 'disabled' : ''}`}
-        >
-          {loading ? 'Uploading...' : 'Upload'}
-        </button>
-
-        {loading && (
-          <div className="progress-section">
-            <div className="progress-bar">
-              <div
-                className="progress-fill"
-                style={{ width: `${progress}%` }}
-              />
+        <div className="mb-6">
+          <label htmlFor="file" className="block mb-2 text-gray-700 font-medium">
+            Select an MP3 or MP4 file:
+          </label>
+          <input
+            id="file"
+            ref={fileInputRef}
+            type="file"
+            accept=".mp3,.mp4"
+            onChange={handleFileChange}
+            className="w-full px-3 py-3 border-2 border-dashed border-gray-200 rounded bg-gray-50 cursor-pointer transition-all hover:border-ki-blue hover:bg-blue-50"
+          />
+          {inputFile && (
+            <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-green-800 text-sm">
+              Selected: {inputFile.name} (
+              {(inputFile.size / 1024 / 1024).toFixed(2)} MB)
             </div>
-            <span className="progress-text">{Math.round(progress)}%</span>
-          </div>
-        )}
+          )}
+        </div>
+
+        <div className="flex flex-col items-start gap-4">
+          <button
+            onClick={uploadFile}
+            disabled={disableUpload || loading}
+            className={`px-8 py-3 rounded font-medium transition-colors md:w-auto w-full ${
+              disableUpload || loading
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : 'bg-ki-blue text-white hover:bg-blue-700 cursor-pointer'
+            }`}
+          >
+            {loading ? 'Uploading...' : 'Upload'}
+          </button>
+
+          {loading && (
+            <div className="flex items-center gap-4 w-full">
+              <div className="flex-1 h-2 bg-gray-200 rounded overflow-hidden">
+                <div
+                  className="h-full bg-ki-blue transition-all duration-300"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              <span className="text-sm text-gray-600 font-medium min-w-10">
+                {Math.round(progress)}%
+              </span>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
