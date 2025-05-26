@@ -216,11 +216,11 @@ export const EditorPage = () => {
       </div>
 
       {/* Main Editor Layout */}
-      <div className="flex flex-1 overflow-hidden md:flex-row flex-col">
+      <div className="flex flex-1 overflow-hidden">
         {/* Stationary Inspector */}
-        <div className="flex-1 bg-white border-r border-gray-300 overflow-auto md:border-r md:border-b-0 border-b">
+        <div className="flex-1 bg-white border-r border-gray-300 overflow-hidden flex flex-col">
           {/* TODO: Implement StationaryInspector component */}
-          <div className="p-8 text-center md:p-8 p-4">
+          <div className="p-8 text-center">
             <h4 className="text-gray-800 text-lg font-semibold mb-4">Stationary Inspector</h4>
             <p className="text-gray-600 mb-2">Inspector tabs will be implemented in Phase 10</p>
             <p className="text-gray-600 mb-4">Selected Region: {selectedRegionId || 'None'}</p>
@@ -234,7 +234,7 @@ export const EditorPage = () => {
         </div>
 
         {/* Region List */}
-        <div className="w-full md:w-96 flex-shrink-0 bg-gray-50 border-l border-gray-300 flex flex-col md:border-l md:border-t-0 border-t md:h-auto h-80">
+        <div className="w-96 flex-shrink-0 bg-gray-50 border-l border-gray-300 flex flex-col">
           <RegionList
             regions={regions}
             selectedRegionId={selectedRegionId}
