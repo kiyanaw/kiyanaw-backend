@@ -197,6 +197,16 @@ export const WaveformPlayer = ({
         });
 
         regionsPlugin.on('region-updated', (region: any) => {
+          console.log('🎯 WaveformPlayer: region-updated event fired:', region);
+          onRegionUpdate({
+            id: region.id,
+            start: region.start,
+            end: region.end,
+          });
+        });
+
+        regionsPlugin.on('region-created', (region: any) => {
+          console.log('🆕 WaveformPlayer: region-created event fired:', region);
           onRegionUpdate({
             id: region.id,
             start: region.start,
@@ -214,9 +224,12 @@ export const WaveformPlayer = ({
 
         // Enable drag selection for editing
         if (canEdit) {
+          console.log('🎯 Enabling drag selection for editing');
           regionsPlugin.enableDragSelection({
             color: 'rgba(0, 213, 255, 0.1)',
           });
+        } else {
+          console.log('⚠️ Drag selection NOT enabled - canEdit is false');
         }
 
         // Load audio with peaks data (following old Vue pattern)

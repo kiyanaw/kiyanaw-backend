@@ -24,6 +24,8 @@ export const EditorPage = () => {
     selectedRegionId,
     setSelectedRegion,
     loadRegions,
+    createRegion,
+    updateRegion,
     loading: regionsLoading,
   } = useRegions(transcriptionId);
 
@@ -107,25 +109,47 @@ export const EditorPage = () => {
   };
 
   const handleRegionUpdate = (regionUpdate: any) => {
+    console.log('🎯 handleRegionUpdate called with:', regionUpdate);
+    // Removed excessive logging to prevent render loops
+    
     // Handle region updates from the waveform player
     const existingRegion = regions.find((r) => r.id === regionUpdate.id);
 
     if (!existingRegion) {
-      // Create new region
+      // Create new region with minimal required fields
       const regionData = {
         start: regionUpdate.start,
         end: regionUpdate.end,
         id: regionUpdate.id,
-        text: '[]', // Empty Quill delta
-        issues: '[]',
+        text: '', // Simple empty string for now
         isNote: false,
+        userLastUpdated: user?.username || 'unknown',
       };
-      console.log('Creating new region:', regionData);
-      // TODO: Implement region creation
+      console.log('🆕 Creating new region:', regionData);
+      createRegion(regionData);
     } else {
-      // Update existing region
-      console.log('Updating region:', regionUpdate);
-      // TODO: Implement region update
+      // Update existing region - but only if it's a proper DataStore model
+      console.log('📝 Updating existing region:', regionUpdate);
+      console.log('📝 Existing region type:', typeof existingRegion, existingRegion.constructor?.name);
+      
+      // Only update if the region has proper DataStore model properties
+      if (existingRegion && typeof existingRegion === 'object' && existingRegion.id) {
+        updateRegion(existingRegion.id, {
+          start: regionUpdate.start,
+          end: regionUpdate.end,
+        });
+      } else {
+        console.warn('⚠️ Existing region is not a proper DataStore model, treating as new');
+        const regionData = {
+          start: regionUpdate.start,
+          end: regionUpdate.end,
+          id: regionUpdate.id,
+          text: '',
+          isNote: false,
+          userLastUpdated: user?.username || 'unknown',
+        };
+        createRegion(regionData);
+      }
     }
   };
 
