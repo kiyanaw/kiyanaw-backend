@@ -232,13 +232,13 @@ export const WaveformPlayer = ({
                 end: region.end,
               });
             } else {
-              console.log('⏭️ Skipping region update - region already exists:', region.id);
+              // console.log('⏭️ Skipping region update - region already exists:', region.id);
             }
           } else {
-            console.log('⏭️ Skipping region update - zero/minimal duration:', {
-              duration: Math.abs(region.end - region.start),
-              threshold: 0.01
-            });
+            // console.log('⏭️ Skipping region update - zero/minimal duration:', {
+            //   duration: Math.abs(region.end - region.start),
+            //   threshold: 0.01
+            // });
           }
         });
 
