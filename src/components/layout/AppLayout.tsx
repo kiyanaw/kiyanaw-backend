@@ -80,7 +80,7 @@ export const AppLayout = () => {
       )}
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto p-4 md:p-8 bg-gray-50 md:ml-64 mt-20">
+      <main className="flex-1 overflow-auto p-0 bg-gray-50 md:ml-64 mt-20">
         <Outlet />
       </main>
     </div>
