@@ -55,6 +55,9 @@ export const WaveformPlayer = ({
   const [speed, setSpeed] = useState(100);
   const [videoLeft, setVideoLeft] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string>('');
+  const [isInitialRender, setIsInitialRender] = useState(true);
+  const [isSeekingToInboundRegion, setIsSeekingToInboundRegion] = useState(false);
+  const isSeekingToInboundRegionRef = useRef(false);
 
   // Get audio URL from S3
   useEffect(() => {
@@ -97,7 +100,11 @@ export const WaveformPlayer = ({
         // Prevent multiple initializations
         if (wavesurferRef.current) {
           console.log('🔄 WaveSurfer already exists, destroying previous instance');
-          wavesurferRef.current.destroy();
+          try {
+            wavesurferRef.current.destroy();
+          } catch (error) {
+            console.warn('⚠️ Error destroying previous WaveSurfer instance:', error);
+          }
           wavesurferRef.current = null;
         }
 
@@ -141,29 +148,18 @@ export const WaveformPlayer = ({
           setLoading(false);
           renderRegions();
 
-          // Handle inbound region
-          if (inboundRegion && regionsPlugin.getRegions().length > 0) {
-            const region = regionsPlugin
-              .getRegions()
-              .find((r: any) => r.id === inboundRegion);
-            if (region) {
-              const startTime = region.start;
-              const duration = wavesurfer.getDuration();
-              wavesurfer.seekTo(startTime / duration);
-              eventBus.emit('region-in', inboundRegion);
-            }
-          }
-
+          // Don't handle inbound region here - wait for transcription-ready event
+          // This ensures all data is loaded before trying to access regions
           eventBus.emit('waveform-ready');
         });
 
-        wavesurfer.on('load', (url) => {
-          console.log('🔄 WaveSurfer load event fired:', url);
-        });
+        // wavesurfer.on('load', (url) => {
+        //   console.log('🔄 WaveSurfer load event fired:', url);
+        // });
 
-        wavesurfer.on('decode', (duration) => {
-          console.log('🎵 WaveSurfer decode event fired, duration:', duration);
-        });
+        // wavesurfer.on('decode', (duration) => {
+        //   console.log('🎵 WaveSurfer decode event fired, duration:', duration);
+        // });
 
         wavesurfer.on('error', (error) => {
           console.error('❌ WaveSurfer error:', error);
@@ -181,15 +177,30 @@ export const WaveformPlayer = ({
         // Region events
         regionsPlugin.on('region-clicked', (region: any) => {
           if (!canEdit) {
-            // For viewers, play the region
-            setTimeout(() => {
-              region.play();
+            // For viewers, play the region with user interaction
+            // Use a small timeout to ensure this is treated as user-initiated
+            setTimeout(async () => {
+              try {
+                console.log('🎵 Playing region on click:', region.id);
+                await region.play();
+              } catch (error) {
+                // Handle browser autoplay restrictions gracefully
+                if (error instanceof Error && error.name === 'NotAllowedError') {
+                  console.log('🔇 Auto-play blocked by browser - user interaction required');
+                  // Fallback: just seek to the region start
+                  const startTime = region.start;
+                  const duration = wavesurfer.getDuration();
+                  wavesurfer.seekTo(startTime / duration);
+                } else {
+                  console.error('❌ Error playing region:', error);
+                }
+              }
             }, 25);
           }
         });
 
         regionsPlugin.on('region-updated', (region: any) => {
-          console.log('🎯 WaveformPlayer: region-updated event fired:', region);
+          // console.log('🎯 WaveformPlayer: region-updated event fired:', region);
           onRegionUpdate({
             id: region.id,
             start: region.start,
@@ -198,30 +209,41 @@ export const WaveformPlayer = ({
         });
 
         regionsPlugin.on('region-created', (region: any) => {
-          console.log('🆕 WaveformPlayer: region-created event fired:', region);
-          console.log('🔍 Region details:', {
-            id: region.id,
-            start: region.start,
-            end: region.end,
-            color: region.color,
-            content: region.content
-          });
+          // console.log('🆕 WaveformPlayer: region-created event fired:', {
+          //   id: region.id,
+          //   start: region.start,
+          //   end: region.end,
+          //   hasValidDuration: region.start !== region.end,
+          //   isInitialRender
+          // });
           
           // Only call onRegionUpdate for NEW regions created by drag selection
-          // Existing regions being rendered should not trigger updates
-          if (region.start !== region.end) {
+          // Skip during initial render and for existing regions being rendered
+          // Also check that the region has a meaningful duration
+          if (!isInitialRender && region.start !== region.end && Math.abs(region.end - region.start) > 0.01) {
+            console.log('✅ Calling onRegionUpdate for new region:', region.id);
             onRegionUpdate({
               id: region.id,
               start: region.start,
               end: region.end,
             });
           } else {
-            console.log('⏭️ Skipping region update for zero-length region (likely existing region being rendered)');
+            // console.log('⏭️ Skipping region update:', {
+            //   reason: isInitialRender ? 'initial render' : 'zero/minimal duration',
+            //   isInitialRender,
+            //   duration: Math.abs(region.end - region.start)
+            // });
           }
         });
 
         regionsPlugin.on('region-in', (region: any) => {
-          eventBus.emit('region-in', region.id);
+          // Only emit region-in events if we're not currently seeking to an inbound region
+          // This prevents infinite loops when seeking to regions
+          if (!isSeekingToInboundRegionRef.current) {
+            eventBus.emit('region-in', region.id);
+          } else {
+            console.log('🚫 Suppressing region-in event during inbound region seeking:', region.id);
+          }
         });
 
         regionsPlugin.on('region-out', (region: any) => {
@@ -311,7 +333,7 @@ export const WaveformPlayer = ({
         return false;
       }
       
-      console.log('🚀 WaveformPlayer useEffect triggered:', {
+      console.log('🚀 WaveformPlayer useEffect triggered (Note: React StrictMode causes double initialization in dev):', {
         hasWaveformRef: !!waveformRef.current,
         hasAudioUrl: !!audioUrl,
         hasPeaks: !!peaks,
@@ -335,9 +357,15 @@ export const WaveformPlayer = ({
     }, 50);
     
     return () => {
+      console.log('🧹 WaveformPlayer cleanup function called');
       clearTimeout(timeoutId);
       if (wavesurferRef.current) {
-        wavesurferRef.current.destroy();
+        console.log('🗑️ Destroying WaveSurfer instance in cleanup');
+        try {
+          wavesurferRef.current.destroy();
+        } catch (error) {
+          console.warn('⚠️ Error destroying WaveSurfer instance in cleanup:', error);
+        }
         wavesurferRef.current = null;
       }
     };
@@ -376,12 +404,12 @@ export const WaveformPlayer = ({
 
     regions.forEach((region) => {
       if (!region.isNote) {
-        console.log('➕ Adding region to WaveSurfer:', {
-          id: region.id,
-          start: region.start,
-          end: region.end,
-          displayIndex: region.displayIndex
-        });
+        // console.log('➕ Adding region to WaveSurfer:', {
+        //   id: region.id,
+        //   start: region.start,
+        //   end: region.end,
+        //   displayIndex: region.displayIndex
+        // });
         
         regionsPluginRef.current.addRegion({
           id: region.id,
@@ -394,7 +422,13 @@ export const WaveformPlayer = ({
         });
       }
     });
-  }, [regions, canEdit]);
+
+    // After first render, allow region-created events to trigger updates
+    if (isInitialRender) {
+      setIsInitialRender(false);
+      console.log('🎯 Initial render complete, enabling region-created updates');
+    }
+  }, [regions, canEdit, isInitialRender]);
 
   useEffect(() => {
     renderRegions();
@@ -402,7 +436,15 @@ export const WaveformPlayer = ({
 
   // Event bus listeners
   useEffect(() => {
-    const handleRegionIn = (regionId: unknown) => {
+    const handleRegionIn = async (regionId: unknown) => {
+      // Prevent infinite loops when seeking to inbound regions
+      if (isSeekingToInboundRegionRef.current) {
+        console.log('🚫 Ignoring region-in event during inbound region seeking:', regionId);
+        return;
+      }
+
+      // Only handle region-in events for seeking, not auto-playing
+      // Auto-play should only happen on explicit user interaction
       if (
         regionsPluginRef.current &&
         wavesurferRef.current &&
@@ -412,32 +454,96 @@ export const WaveformPlayer = ({
           .getRegions()
           .find((r: any) => r.id === regionId);
         if (region) {
-          region.play();
+          // Just seek to the region, don't auto-play
+          const startTime = region.start;
+          const duration = wavesurferRef.current.getDuration();
+          wavesurferRef.current.seekTo(startTime / duration);
+          console.log('🎯 Seeked to region via event bus:', regionId, 'at time:', startTime);
+          // Don't auto-play here to avoid browser restrictions and infinite loops
         }
       }
     };
 
+    const handleTranscriptionReady = () => {
+      // Handle inbound region when transcription is fully ready
+      // This ensures all regions are loaded before trying to access them
+      if (inboundRegion && regionsPluginRef.current && wavesurferRef.current) {
+        console.log('🎯 Transcription ready, handling inbound region:', inboundRegion);
+        
+        // Set flag to prevent infinite loops
+        setIsSeekingToInboundRegion(true);
+        isSeekingToInboundRegionRef.current = true;
+        
+        const region = regionsPluginRef.current
+          .getRegions()
+          .find((r: any) => r.id === inboundRegion);
+        if (region) {
+          const startTime = region.start;
+          const duration = wavesurferRef.current.getDuration();
+          wavesurferRef.current.seekTo(startTime / duration);
+          console.log('✅ Seeked to inbound region:', inboundRegion, 'at time:', startTime);
+        } else {
+          console.warn('⚠️ Inbound region not found:', inboundRegion);
+        }
+        
+        // Clear the flag after a short delay to allow for the seek to complete
+        setTimeout(() => {
+          setIsSeekingToInboundRegion(false);
+          isSeekingToInboundRegionRef.current = false;
+          console.log('🔓 Cleared inbound region seeking flag');
+        }, 500);
+      }
+    };
+
     eventBus.on('region-in', handleRegionIn);
+    eventBus.on('transcription-ready', handleTranscriptionReady);
 
     return () => {
       eventBus.off('region-in', handleRegionIn);
+      eventBus.off('transcription-ready', handleTranscriptionReady);
     };
-  }, []);
+  }, [inboundRegion, isSeekingToInboundRegion]);
 
-  const playPause = () => {
+  const playPause = async () => {
     if (!wavesurferRef.current) return;
 
+    // If there's an inbound region, play that specific region
     if (inboundRegion && regionsPluginRef.current) {
       const region = regionsPluginRef.current
         .getRegions()
         .find((r: any) => r.id === inboundRegion);
       if (region) {
-        region.play();
+        try {
+          console.log('🎵 Playing inbound region:', inboundRegion);
+          await region.play();
+        } catch (error) {
+          // Handle browser autoplay restrictions gracefully
+          if (error instanceof Error && error.name === 'NotAllowedError') {
+            console.log('🔇 Auto-play blocked by browser - user interaction required');
+            // Fallback: seek to region and play normally
+            const startTime = region.start;
+            const duration = wavesurferRef.current.getDuration();
+            wavesurferRef.current.seekTo(startTime / duration);
+            await wavesurferRef.current.play();
+          } else {
+            console.error('❌ Error playing region:', error);
+          }
+        }
         return;
       }
     }
 
-    wavesurferRef.current.playPause();
+    // Normal play/pause
+    try {
+      await wavesurferRef.current.playPause();
+    } catch (error) {
+      // Handle browser autoplay restrictions gracefully
+      if (error instanceof Error && error.name === 'NotAllowedError') {
+        console.log('🔇 Auto-play blocked by browser - user interaction required');
+      } else {
+        console.error('❌ Error playing audio:', error);
+      }
+    }
   };
 
   const markRegion = () => {
