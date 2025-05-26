@@ -9,9 +9,9 @@ https://whimsical.com/transcribe-infrastructure-JtGyrrriVXfhfMwwKRHsLM
 
 
 ## LIST OF TECH DEBT ITEMS
-- get local changes pushed up from Aaron's laptop
-- get project deploying
-- you can't delete a transcription you don't own
+X get local changes pushed up from Aaron's laptop
+X get project deploying
+X you can't delete a transcription you don't own
 - user management refactor
   - not exposing all user profiles when adding editors
   - ** users should have to sign up by email, not username (wait for migration)

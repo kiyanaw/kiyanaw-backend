@@ -181,27 +181,9 @@ export const WaveformPlayer = ({
 
         // Region events
         regionsPlugin.on('region-clicked', (region: any) => {
-          if (!canEdit) {
-            // For viewers, play the region with user interaction
-            // Use a small timeout to ensure this is treated as user-initiated
-            setTimeout(async () => {
-              try {
-                console.log('🎵 Playing region on click:', region.id);
-                await region.play();
-              } catch (error) {
-                // Handle browser autoplay restrictions gracefully
-                if (error instanceof Error && error.name === 'NotAllowedError') {
-                  console.log('🔇 Auto-play blocked by browser - user interaction required');
-                  // Fallback: just seek to the region start
-                  const startTime = region.start;
-                  const duration = wavesurfer.getDuration();
-                  wavesurfer.seekTo(startTime / duration);
-                } else {
-                  console.error('❌ Error playing region:', error);
-                }
-              }
-            }, 25);
-          }
+          // Don't handle region clicks in the waveform player
+          // Let the RegionList component handle all region clicks to avoid conflicts
+          console.log('🎯 Region clicked in waveform:', region.id, '- delegating to RegionList');
         });
 
         regionsPlugin.on('region-updated', (region: any) => {
@@ -433,24 +415,16 @@ export const WaveformPlayer = ({
   // Event bus listeners (stable - no dependencies that change)
   useEffect(() => {
     const handleRegionIn = async (regionId: unknown) => {
-      // Only handle region-in events for seeking, not auto-playing
-      // Auto-play should only happen on explicit user interaction
+      // Handle region-in events for UI updates only, don't seek
+      // Seeking on region-in creates infinite loops since seeking triggers more region-in events
       if (
         regionsPluginRef.current &&
         wavesurferRef.current &&
         typeof regionId === 'string'
       ) {
-        const region = regionsPluginRef.current
-          .getRegions()
-          .find((r: any) => r.id === regionId);
-        if (region) {
-          // Just seek to the region, don't auto-play
-          const startTime = region.start;
-          const duration = wavesurferRef.current.getDuration();
-          wavesurferRef.current.seekTo(startTime / duration);
-          console.log('🎯 Seeked to region via event bus:', regionId, 'at time:', startTime);
-          // Don't auto-play here to avoid browser restrictions and infinite loops
-        }
+        console.log('🎯 Playhead entered region:', regionId);
+        // Just log the event, don't seek to avoid infinite loops
+        // The UI can use this event for highlighting, scrolling, etc.
       }
     };
 
@@ -467,16 +441,18 @@ export const WaveformPlayer = ({
         if (region) {
           try {
             console.log('🎵 Playing region from user click:', regionId);
-            // Seek to region start and play
+            // Seek to region start and play the main audio
             const startTime = region.start;
             const duration = wavesurferRef.current.getDuration();
             wavesurferRef.current.seekTo(startTime / duration);
-            await region.play();
+            
+            // Play the main audio instead of using region.play() to avoid stack overflow
+            await wavesurferRef.current.play();
           } catch (error) {
             // Handle browser autoplay restrictions gracefully
             if (error instanceof Error && error.name === 'NotAllowedError') {
               console.log('🔇 Auto-play blocked by browser - user interaction required');
-              // Fallback: just seek to the region
+              // Just seek to the region if play is blocked
               const startTime = region.start;
               const duration = wavesurferRef.current.getDuration();
               wavesurferRef.current.seekTo(startTime / duration);
@@ -529,7 +505,7 @@ export const WaveformPlayer = ({
   const playPause = async () => {
     if (!wavesurferRef.current) return;
 
-    // If there's an inbound region, play that specific region
+    // If there's an inbound region, seek to it and play the main audio
     if (inboundRegion && regionsPluginRef.current) {
       const region = regionsPluginRef.current
         .getRegions()
@@ -537,16 +513,19 @@ export const WaveformPlayer = ({
       if (region) {
         try {
           console.log('🎵 Playing inbound region:', inboundRegion);
-          await region.play();
+          // Seek to region start and play the main audio
+          const startTime = region.start;
+          const duration = wavesurferRef.current.getDuration();
+          wavesurferRef.current.seekTo(startTime / duration);
+          await wavesurferRef.current.play();
         } catch (error) {
           // Handle browser autoplay restrictions gracefully
           if (error instanceof Error && error.name === 'NotAllowedError') {
             console.log('🔇 Auto-play blocked by browser - user interaction required');
-            // Fallback: seek to region and play normally
+            // Just seek to the region if play is blocked
             const startTime = region.start;
             const duration = wavesurferRef.current.getDuration();
             wavesurferRef.current.seekTo(startTime / duration);
-            await wavesurferRef.current.play();
           } else {
             console.error('❌ Error playing region:', error);
           }
