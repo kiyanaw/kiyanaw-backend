@@ -209,30 +209,36 @@ export const WaveformPlayer = ({
         });
 
         regionsPlugin.on('region-created', (region: any) => {
-          // console.log('🆕 WaveformPlayer: region-created event fired:', {
-          //   id: region.id,
-          //   start: region.start,
-          //   end: region.end,
-          //   hasValidDuration: region.start !== region.end,
-          //   isInitialRender
-          // });
+          console.log('🆕 WaveformPlayer: region-created event fired:', {
+            id: region.id,
+            start: region.start,
+            end: region.end,
+            hasValidDuration: region.start !== region.end,
+            isInitialRender,
+            duration: Math.abs(region.end - region.start)
+          });
           
           // Only call onRegionUpdate for NEW regions created by drag selection
-          // Skip during initial render and for existing regions being rendered
-          // Also check that the region has a meaningful duration
-          if (!isInitialRender && region.start !== region.end && Math.abs(region.end - region.start) > 0.01) {
-            console.log('✅ Calling onRegionUpdate for new region:', region.id);
-            onRegionUpdate({
-              id: region.id,
-              start: region.start,
-              end: region.end,
-            });
+          // Check that the region has a meaningful duration (> 0.01 seconds)
+          // User-created regions from drag selection will always have a proper duration
+          if (region.start !== region.end && Math.abs(region.end - region.start) > 0.01) {
+            // Check if this region already exists in our regions array
+            const existingRegion = regions.find(r => r.id === region.id);
+            if (!existingRegion) {
+              console.log('✅ Calling onRegionUpdate for new user-created region:', region.id);
+              onRegionUpdate({
+                id: region.id,
+                start: region.start,
+                end: region.end,
+              });
+            } else {
+              console.log('⏭️ Skipping region update - region already exists:', region.id);
+            }
           } else {
-            // console.log('⏭️ Skipping region update:', {
-            //   reason: isInitialRender ? 'initial render' : 'zero/minimal duration',
-            //   isInitialRender,
-            //   duration: Math.abs(region.end - region.start)
-            // });
+            console.log('⏭️ Skipping region update - zero/minimal duration:', {
+              duration: Math.abs(region.end - region.start),
+              threshold: 0.01
+            });
           }
         });
 
