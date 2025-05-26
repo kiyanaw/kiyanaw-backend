@@ -80,12 +80,12 @@ export const RegionList = ({
   }
 
   return (
-    <div className="h-full flex flex-col bg-white border border-gray-300 rounded overflow-hidden" ref={listRef}>
+    <div className="h-full flex flex-col bg-white border border-gray-300 rounded overflow-hidden min-h-0" ref={listRef}>
       <div className="py-3 px-4 bg-gray-100 border-b border-gray-300 flex-shrink-0">
         <h4 className="m-0 text-sm font-semibold text-gray-800 uppercase tracking-wide">Regions ({sortedRegions.length})</h4>
       </div>
 
-      <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-track-gray-100 scrollbar-thumb-gray-400 hover:scrollbar-thumb-gray-500">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-track-gray-100 scrollbar-thumb-gray-400 hover:scrollbar-thumb-gray-500 min-h-0">
         {sortedRegions.map((region, index) => (
           <div
             key={region.id}
