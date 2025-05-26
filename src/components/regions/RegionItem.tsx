@@ -1,5 +1,4 @@
 import { useMemo } from 'react';
-import './RegionItem.css';
 
 interface RegionItemProps {
   region: {
@@ -84,36 +83,38 @@ export const RegionItem = ({
 
   return (
     <div
-      className={`region ${isSelected ? 'selected' : ''} region-index-${index} ${
-        region.isNote ? '' : `region-display-index-${region.displayIndex}`
+      className={`min-h-[25px] border border-gray-400 relative cursor-pointer transition-colors hover:bg-gray-50 ${
+        isSelected ? 'bg-blue-50 border-blue-500' : ''
       }`}
       id={region.id}
       onClick={handleClick}
     >
       {!region.isNote && (
-        <div className="region-text">
-          <div className="timestamps">
-            <span className="time region-start">
+        <div className="py-4 px-6 pl-[70px] min-h-[50px]">
+          <div className="absolute left-1 top-0 text-xs text-gray-600">
+            <span className="block font-mono font-bold text-green-600">
               {formatTime(region.start)}
             </span>
             <br />
-            <span className="time region-end">{formatTime(region.end)}</span>
+            <span className="block font-mono font-bold text-red-600">{formatTime(region.end)}</span>
           </div>
           <div
-            className="region-source"
+            className="pr-4 leading-relaxed [&_.known-word]:bg-green-50 [&_.known-word]:text-green-800 [&_.unknown-word]:bg-red-50 [&_.unknown-word]:text-red-800 [&_.proper-noun]:font-bold [&_.proper-noun]:text-blue-700 [&_.emphasis]:italic [&_.strong]:font-bold empty:before:content-['No_text_content'] empty:before:text-gray-400 empty:before:italic"
             dangerouslySetInnerHTML={{ __html: renderTextContent }}
           />
-          <span className="region-index">{region.displayIndex}</span>
+          <span className="absolute top-0 right-1 text-3xl font-black text-gray-200 pointer-events-none">{region.displayIndex}</span>
         </div>
       )}
 
-      <div className={`region-translation ${region.isNote ? 'isNote' : ''}`}>
+      <div className={`py-4 px-6 pl-[70px] min-h-[50px] text-gray-600 italic empty:before:content-['No_translation'] empty:before:text-gray-400 empty:before:italic ${
+        region.isNote ? 'bg-yellow-50 text-yellow-800' : 'bg-gray-100'
+      }`}>
         {region.translation}
       </div>
 
       {editorIndicator && (
         <div
-          className="region-editor"
+          className="absolute bottom-0 pl-1 text-xs bg-white bg-opacity-90 rounded px-1 py-0.5"
           dangerouslySetInnerHTML={{ __html: editorIndicator }}
         />
       )}

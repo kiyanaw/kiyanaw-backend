@@ -6,7 +6,6 @@ import { useAuth } from '../hooks/useAuth';
 import { eventBus } from '../lib/eventBus';
 import { WaveformPlayer } from '../components/player/WaveformPlayer';
 import { RegionList } from '../components/regions/RegionList';
-import './EditorPage.css';
 
 export const EditorPage = () => {
   const { id: transcriptionId, regionId } = useParams<{
@@ -137,27 +136,27 @@ export const EditorPage = () => {
 
   if (loading && !error) {
     return (
-      <div className="editor-loading">
-        <div className="loading-spinner"></div>
-        <p>Loading transcription...</p>
+      <div className="flex flex-col items-center justify-center h-screen p-8 text-center">
+        <div className="w-10 h-10 border-4 border-gray-300 border-t-ki-blue rounded-full animate-spin mb-4"></div>
+        <p className="text-gray-600">Loading transcription...</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="editor-error">
-        <h2>Error</h2>
-        <p>{error}</p>
+      <div className="flex flex-col items-center justify-center h-screen p-8 text-center">
+        <h2 className="text-red-600 text-2xl font-semibold mb-4">Error</h2>
+        <p className="text-gray-600">{error}</p>
       </div>
     );
   }
 
   if (!transcription) {
     return (
-      <div className="editor-error">
-        <h2>Not Found</h2>
-        <p>Transcription not found.</p>
+      <div className="flex flex-col items-center justify-center h-screen p-8 text-center">
+        <h2 className="text-red-600 text-2xl font-semibold mb-4">Not Found</h2>
+        <p className="text-gray-600">Transcription not found.</p>
       </div>
     );
   }
@@ -174,10 +173,10 @@ export const EditorPage = () => {
   });
 
   return (
-    <div className="editor-container">
+    <div className="flex flex-col h-screen overflow-hidden">
       {/* Waveform/Video Player Section */}
-      <div className="audio-container">
-        <div className="audio-player">
+      <div className="flex-shrink-0 bg-gray-100 border-b border-gray-300">
+        <div className="h-[223px] flex items-center justify-center">
           <WaveformPlayer
             source={transcription.source}
             peaks={transcription.peaks}
@@ -193,22 +192,25 @@ export const EditorPage = () => {
       </div>
 
       {/* Main Editor Layout */}
-      <div className="editor-layout">
+      <div className="flex flex-1 overflow-hidden md:flex-row flex-col">
         {/* Stationary Inspector */}
-        <div className="stationary-editor">
+        <div className="flex-1 bg-white border-r border-gray-300 overflow-auto md:border-r md:border-b-0 border-b">
           {/* TODO: Implement StationaryInspector component */}
-          <div className="inspector-placeholder">
-            <h4>Stationary Inspector</h4>
-            <p>Inspector tabs will be implemented in Phase 10</p>
-            <p>Selected Region: {selectedRegionId || 'None'}</p>
-            <button onClick={() => setShowLookup(!showLookup)}>
+          <div className="p-8 text-center md:p-8 p-4">
+            <h4 className="text-gray-800 text-lg font-semibold mb-4">Stationary Inspector</h4>
+            <p className="text-gray-600 mb-2">Inspector tabs will be implemented in Phase 10</p>
+            <p className="text-gray-600 mb-4">Selected Region: {selectedRegionId || 'None'}</p>
+            <button 
+              onClick={() => setShowLookup(!showLookup)}
+              className="mt-4 px-4 py-2 bg-ki-blue text-white border-none rounded hover:bg-blue-700 transition-colors cursor-pointer"
+            >
               Toggle Lookup
             </button>
           </div>
         </div>
 
         {/* Region List */}
-        <div className="region-list-container">
+        <div className="w-full md:w-96 flex-shrink-0 bg-gray-50 border-l border-gray-300 flex flex-col md:border-l md:border-t-0 border-t md:h-auto h-80">
           <RegionList
             regions={regions}
             selectedRegionId={selectedRegionId}
@@ -221,11 +223,16 @@ export const EditorPage = () => {
 
       {/* Lookup Modal */}
       {showLookup && (
-        <div className="lookup-modal">
-          <div className="lookup-content">
-            <h3>Dictionary Lookup</h3>
-            <p>Lookup modal will be implemented in Phase 13</p>
-            <button onClick={() => setShowLookup(false)}>Close</button>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1000]">
+          <div className="bg-white p-8 rounded-lg shadow-xl max-w-lg w-[90%] text-center">
+            <h3 className="text-gray-800 text-xl font-semibold mb-4">Dictionary Lookup</h3>
+            <p className="text-gray-600 mb-6">Lookup modal will be implemented in Phase 13</p>
+            <button 
+              onClick={() => setShowLookup(false)}
+              className="mt-4 px-4 py-2 bg-ki-blue text-white border-none rounded hover:bg-blue-700 transition-colors cursor-pointer"
+            >
+              Close
+            </button>
           </div>
         </div>
       )}

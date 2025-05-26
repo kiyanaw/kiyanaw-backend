@@ -4,7 +4,6 @@ import Regions from 'wavesurfer.js/dist/plugins/regions.esm.js';
 import Timeline from 'wavesurfer.js/dist/plugins/timeline.esm.js';
 import { getUrl } from 'aws-amplify/storage';
 import { eventBus } from '../../lib/eventBus';
-import './WaveformPlayer.css';
 
 interface Region {
   id: string;
@@ -444,47 +443,36 @@ export const WaveformPlayer = ({
   };
 
   return (
-    <div className="waveform-container" style={{ position: 'relative' }}>
+    <div className="w-full bg-white border border-gray-300 rounded-lg overflow-hidden relative">
       {/* Loading overlay */}
       {loading && (
-        <div className="waveform-loading" style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(255, 255, 255, 0.9)',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div className="loading-spinner"></div>
-          <p>Loading waveform...</p>
+        <div className="absolute inset-0 bg-white bg-opacity-90 flex flex-col items-center justify-center z-[1000]">
+          <div className="w-10 h-10 border-4 border-gray-300 border-t-[#305880] rounded-full animate-spin mb-4"></div>
+          <p className="text-gray-600">Loading waveform...</p>
         </div>
       )}
+      
       {/* Header */}
-      <div className="waveform-header">
-        <div className="media-title">
+      <div className="flex justify-between items-center bg-[#dbdbdb] h-8 px-4 text-gray-900 font-bold text-sm">
+        <div className="uppercase overflow-hidden text-ellipsis whitespace-nowrap flex-1">
           <span>{title}</span>
         </div>
-        <div className="main-time">
+        <div className="font-bold text-sm">
           {formatTime(currentTime)}/{formatTime(maxTime)}
         </div>
       </div>
 
       {/* Waveform */}
-      <div ref={waveformRef} className="waveform" />
+      <div ref={waveformRef} className="w-full h-32 bg-white" />
 
       {/* Timeline */}
-      <div ref={timelineRef} className="timeline" />
+      <div ref={timelineRef} className="w-full h-5 bg-gray-100 border-t border-gray-300" />
 
       {/* Controls */}
-      <div className="channel-strip">
-        <div className="controls">
+      <div className="flex items-center justify-between h-10 bg-gray-100 px-5 border-t border-gray-300 md:flex-row md:h-10 md:px-5 flex-col h-auto px-2.5 py-2.5 gap-2.5">
+        <div className="flex items-center gap-2">
           <button
-            className="control-btn"
+            className="bg-none border-none text-base cursor-pointer px-2 py-1 rounded transition-colors hover:bg-black hover:bg-opacity-10 disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={playPause}
             data-testid="play-button"
           >
@@ -494,7 +482,7 @@ export const WaveformPlayer = ({
           {canEdit && (
             <>
               <button
-                className="control-btn"
+                className="bg-none border-none text-base cursor-pointer px-2 py-1 rounded transition-colors hover:bg-black hover:bg-opacity-10 disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={markRegion}
                 data-testid="mark-region"
               >
@@ -502,7 +490,7 @@ export const WaveformPlayer = ({
               </button>
 
               <button
-                className="control-btn"
+                className="bg-none border-none text-base cursor-pointer px-2 py-1 rounded transition-colors hover:bg-black hover:bg-opacity-10 disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={cancelRegion}
                 disabled={currentRegion === null}
               >
@@ -511,35 +499,50 @@ export const WaveformPlayer = ({
             </>
           )}
 
-          <span className="separator">|</span>
+          <span className="mx-2 text-gray-600 font-bold">|</span>
 
-          <button className="control-btn" onClick={onLookup}>
+          <button 
+            className="bg-none border-none text-base cursor-pointer px-2 py-1 rounded transition-colors hover:bg-black hover:bg-opacity-10"
+            onClick={onLookup}
+          >
             🔍
           </button>
         </div>
 
-        <div className="zoom-control">
-          <label>Zoom:</label>
+        <div className="md:flex hidden items-center gap-2">
+          <label className="text-xs font-bold text-gray-600 min-w-[40px]">Zoom:</label>
           <input
             type="range"
             min="5"
             max="75"
             value={zoom}
             onChange={(e) => setZoom(parseInt(e.target.value))}
+            className="w-25"
           />
-          <button onClick={() => setZoom(40)}>🔍</button>
+          <button 
+            className="bg-none border-none text-sm cursor-pointer px-1 py-0.5 rounded transition-colors hover:bg-black hover:bg-opacity-10"
+            onClick={() => setZoom(40)}
+          >
+            🔍
+          </button>
         </div>
 
-        <div className="speed-control">
-          <label>Speed:</label>
+        <div className="md:flex hidden items-center gap-2">
+          <label className="text-xs font-bold text-gray-600 min-w-[40px]">Speed:</label>
           <input
             type="range"
             min="50"
             max="150"
             value={speed}
             onChange={(e) => setSpeed(parseInt(e.target.value))}
+            className="w-25"
           />
-          <button onClick={() => setSpeed(100)}>🏃</button>
+          <button 
+            className="bg-none border-none text-sm cursor-pointer px-1 py-0.5 rounded transition-colors hover:bg-black hover:bg-opacity-10"
+            onClick={() => setSpeed(100)}
+          >
+            🏃
+          </button>
         </div>
       </div>
 
@@ -547,7 +550,9 @@ export const WaveformPlayer = ({
       {isVideo && (
         <video
           ref={videoRef}
-          className={`video ${videoLeft ? 'video-left' : 'video-right'}`}
+          className={`fixed bottom-4 max-w-[350px] max-h-[350px] z-[190] shadow-lg cursor-pointer rounded ${
+            videoLeft ? 'left-4' : 'right-4'
+          } md:max-w-[350px] md:max-h-[350px] max-w-[250px] max-h-[200px]`}
           controls
           playsInline
           onClick={() => setVideoLeft(!videoLeft)}
