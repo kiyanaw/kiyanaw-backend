@@ -146,6 +146,8 @@ export const WaveformPlayer = ({
           progressColor: '#162738',
           barWidth: 2,
           height: 128,
+          autoCenter: true,
+          autoScroll: true,
           plugins: [regionsPlugin, timelinePlugin],
           ...(isVideo && videoRef.current ? { media: videoRef.current } : {}),
         });
@@ -437,8 +439,12 @@ export const WaveformPlayer = ({
         typeof regionId === 'string'
       ) {
         console.log('🎯 Playhead entered region:', regionId);
-        // Just log the event, don't seek to avoid infinite loops
-        // The UI can use this event for highlighting, scrolling, etc.
+        
+        // Update region color directly without re-rendering
+        const region = regionsPluginRef.current.getRegions().find((r: any) => r.id === regionId);
+        if (region) {
+          region.setOptions({ color: 'rgba(0, 213, 255, 0.1)' });
+        }
       }
     };
 
@@ -458,7 +464,10 @@ export const WaveformPlayer = ({
             // Seek to region start and play the main audio
             const startTime = region.start;
             const duration = wavesurferRef.current.getDuration();
-            wavesurferRef.current.seekTo(startTime / duration);
+            const progress = startTime / duration;
+            
+            // Seek to region (this will auto-center due to autoCenter: true)
+            wavesurferRef.current.seekTo(progress);
             
             // Play the main audio instead of using region.play() to avoid stack overflow
             await wavesurferRef.current.play();
@@ -469,7 +478,8 @@ export const WaveformPlayer = ({
               // Just seek to the region if play is blocked
               const startTime = region.start;
               const duration = wavesurferRef.current.getDuration();
-              wavesurferRef.current.seekTo(startTime / duration);
+              const progress = startTime / duration;
+              wavesurferRef.current.seekTo(progress);
             } else {
               console.error('❌ Error playing region:', error);
             }
@@ -478,11 +488,28 @@ export const WaveformPlayer = ({
       }
     };
 
+    const handleRegionOut = async (regionId: unknown) => {
+      if (
+        regionsPluginRef.current &&
+        typeof regionId === 'string'
+      ) {
+        console.log('🎯 Playhead exited region:', regionId);
+        
+        // Reset region color directly without re-rendering
+        const region = regionsPluginRef.current.getRegions().find((r: any) => r.id === regionId);
+        if (region) {
+          region.setOptions({ color: 'rgba(0, 0, 0, 0.1)' });
+        }
+      }
+    };
+
     eventBus.on('region-in', handleRegionIn);
+    eventBus.on('region-out', handleRegionOut);
     eventBus.on('region-play', handleRegionPlay);
 
     return () => {
       eventBus.off('region-in', handleRegionIn);
+      eventBus.off('region-out', handleRegionOut);
       eventBus.off('region-play', handleRegionPlay);
     };
   }, []); // No dependencies - these handlers are stable
@@ -501,8 +528,12 @@ export const WaveformPlayer = ({
         if (region) {
           const startTime = region.start;
           const duration = wavesurferRef.current.getDuration();
-          wavesurferRef.current.seekTo(startTime / duration);
-          console.log('✅ Seeked to inbound region:', inboundRegion, 'at time:', startTime);
+          const progress = startTime / duration;
+          
+          // Seek to the region start (this will auto-center due to autoCenter: true)
+          wavesurferRef.current.seekTo(progress);
+          
+          console.log('✅ Seeked and centered inbound region:', inboundRegion, 'at time:', startTime, 'progress:', progress);
         } else {
           console.warn('⚠️ Inbound region not found:', inboundRegion);
         }
@@ -530,7 +561,10 @@ export const WaveformPlayer = ({
           // Seek to region start and play the main audio
           const startTime = region.start;
           const duration = wavesurferRef.current.getDuration();
-          wavesurferRef.current.seekTo(startTime / duration);
+          const progress = startTime / duration;
+          
+          // Seek to region (this will auto-center due to autoCenter: true)
+          wavesurferRef.current.seekTo(progress);
           await wavesurferRef.current.play();
         } catch (error) {
           // Handle browser autoplay restrictions gracefully
@@ -539,7 +573,8 @@ export const WaveformPlayer = ({
             // Just seek to the region if play is blocked
             const startTime = region.start;
             const duration = wavesurferRef.current.getDuration();
-            wavesurferRef.current.seekTo(startTime / duration);
+            const progress = startTime / duration;
+            wavesurferRef.current.seekTo(progress);
           } else {
             console.error('❌ Error playing region:', error);
           }
