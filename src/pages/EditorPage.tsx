@@ -197,7 +197,7 @@ export const EditorPage = () => {
   });
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden">
+    <div className="flex flex-col h-full overflow-hidden">
       {/* Waveform/Video Player Section */}
       <div className="flex-shrink-0 bg-gray-100 border-b border-gray-300">
         <div className="h-[223px] flex items-center justify-center">
@@ -216,7 +216,7 @@ export const EditorPage = () => {
       </div>
 
       {/* Main Editor Layout */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden min-h-0">
         {/* Stationary Inspector */}
         <div className="flex-1 bg-white border-r border-gray-300 overflow-hidden flex flex-col">
           {/* TODO: Implement StationaryInspector component */}
