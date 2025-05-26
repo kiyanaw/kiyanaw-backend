@@ -25,7 +25,21 @@ export const useRegions = (transcriptionId?: string) => {
     error: null,
   });
 
+  // Process region data - preserve DataStore model instance
+  const processRegionData = (data: any) => {
+    // DataStore models have read-only properties, so we can't modify them directly
+    // Just return the original DataStore model instance as-is
+    return data;
+  };
+
   const setRegions = useCallback((regions: any[]) => {
+    console.log('🔧 setRegions called with:', regions.map(r => ({
+      id: r.id,
+      constructor: r.constructor?.name,
+      hasDataStoreProps: !!(r._version || r._lastChangedAt || r._deleted),
+      keys: Object.keys(r)
+    })));
+    
     const map: Record<string, any> = {};
     let displayIndex = 1;
 
@@ -33,17 +47,27 @@ export const useRegions = (transcriptionId?: string) => {
       .slice()
       .sort((a, b) => (a.start > b.start ? 1 : -1))
       .map((item, index) => {
-        const region = {
-          ...item,
+        const processedItem = processRegionData(item);
+        
+        // Create a wrapper object that includes the DataStore model plus additional properties
+        const regionWrapper = {
+          ...processedItem, // Spread the DataStore model properties
           index,
           displayIndex,
         };
+        
         if (!item.isNote) {
           displayIndex++;
         }
-        map[region.id] = region;
-        return region;
+        map[regionWrapper.id] = regionWrapper;
+        return regionWrapper;
       });
+
+    console.log('🔧 setRegions processed regions:', sortedRegions.map(r => ({
+      id: r.id,
+      constructor: r.constructor?.name,
+      hasDataStoreProps: !!(r._version || r._lastChangedAt || r._deleted)
+    })));
 
     setState((prev) => ({
       ...prev,
@@ -67,24 +91,37 @@ export const useRegions = (transcriptionId?: string) => {
   const updateRegion = useCallback(
     async (regionId: string, update: Partial<any>) => {
       try {
-        const region = state.regionMap[regionId];
-        if (!region) return;
+        const regionWrapper = state.regionMap[regionId];
+        console.log('🔧 updateRegion called with:', { regionId, update, regionWrapper });
+        
+        if (!regionWrapper) {
+          console.warn('⚠️ Region not found in regionMap:', regionId);
+          return;
+        }
 
+        // We need to find the original DataStore model instance
+        // Since we're using a subscription, let's query DataStore directly
+        const originalRegion = await DataStore.query(Region, regionId);
+        
+        if (!originalRegion) {
+          console.error('❌ Original region not found in DataStore:', regionId);
+          setState((prev) => ({ ...prev, error: 'Region not found in DataStore' }));
+          return;
+        }
+
+        console.log('💾 Attempting to update region via DataStore...');
         const updated = await DataStore.save(
-          Region.copyOf(region, (draft) => {
+          Region.copyOf(originalRegion, (draft) => {
             Object.assign(draft, update);
           })
         );
 
-        setState((prev) => ({
-          ...prev,
-          regionMap: {
-            ...prev.regionMap,
-            [regionId]: updated,
-          },
-        }));
+        console.log('✅ Region updated successfully:', updated);
+        
+        // The subscription will automatically update our state
+        // No need to manually update the regionMap here
       } catch (error) {
-        console.error('Error updating region:', error);
+        console.error('❌ Error updating region:', error);
         setState((prev) => ({ ...prev, error: 'Failed to update region' }));
       }
     },
@@ -94,14 +131,23 @@ export const useRegions = (transcriptionId?: string) => {
   const createRegion = useCallback(
     async (regionData: any) => {
       try {
-        if (!transcriptionId) return;
+        console.log('🔧 createRegion called with:', regionData);
+        
+        if (!transcriptionId) {
+          console.error('❌ No transcriptionId provided');
+          return;
+        }
 
         const transcription = await DataStore.query(
           Transcription,
           transcriptionId
         );
-        if (!transcription) return;
+        if (!transcription) {
+          console.error('❌ Transcription not found:', transcriptionId);
+          return;
+        }
 
+        console.log('💾 Saving region to DataStore...');
         const newRegion = await DataStore.save(
           new Region({
             ...regionData,
@@ -109,6 +155,8 @@ export const useRegions = (transcriptionId?: string) => {
             dateLastUpdated: `${+new Date()}`,
           })
         );
+
+        console.log('✅ Region saved successfully:', newRegion);
 
         setState((prev) => ({
           ...prev,
@@ -120,9 +168,10 @@ export const useRegions = (transcriptionId?: string) => {
 
         // Trigger region indices reset
         const updatedRegions = Object.values(state.regionMap);
+        console.log('🔄 Updating regions list with new region');
         setRegions([...updatedRegions, newRegion]);
       } catch (error) {
-        console.error('Error creating region:', error);
+        console.error('❌ Error creating region:', error);
         setState((prev) => ({ ...prev, error: 'Failed to create region' }));
       }
     },
