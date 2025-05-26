@@ -33,12 +33,7 @@ export const useRegions = (transcriptionId?: string) => {
   };
 
   const setRegions = useCallback((regions: any[]) => {
-    console.log('🔧 setRegions called with:', regions.map(r => ({
-      id: r.id,
-      constructor: r.constructor?.name,
-      hasDataStoreProps: !!(r._version || r._lastChangedAt || r._deleted),
-      keys: Object.keys(r)
-    })));
+    // Removed excessive logging
     
     const map: Record<string, any> = {};
     let displayIndex = 1;
@@ -63,11 +58,7 @@ export const useRegions = (transcriptionId?: string) => {
         return regionWrapper;
       });
 
-    console.log('🔧 setRegions processed regions:', sortedRegions.map(r => ({
-      id: r.id,
-      constructor: r.constructor?.name,
-      hasDataStoreProps: !!(r._version || r._lastChangedAt || r._deleted)
-    })));
+    // Removed excessive logging
 
     setState((prev) => ({
       ...prev,
@@ -157,25 +148,15 @@ export const useRegions = (transcriptionId?: string) => {
         );
 
         console.log('✅ Region saved successfully:', newRegion);
-
-        setState((prev) => ({
-          ...prev,
-          regionMap: {
-            ...prev.regionMap,
-            [newRegion.id]: newRegion,
-          },
-        }));
-
-        // Trigger region indices reset
-        const updatedRegions = Object.values(state.regionMap);
-        console.log('🔄 Updating regions list with new region');
-        setRegions([...updatedRegions, newRegion]);
+        
+        // The DataStore subscription will automatically update our state
+        // No need to manually call setRegions here
       } catch (error) {
         console.error('❌ Error creating region:', error);
         setState((prev) => ({ ...prev, error: 'Failed to create region' }));
       }
     },
-    [transcriptionId, state.regionMap, setRegions]
+    [transcriptionId]
   );
 
   const deleteRegion = useCallback(
@@ -229,10 +210,25 @@ export const useRegions = (transcriptionId?: string) => {
   useEffect(() => {
     if (!transcriptionId) return;
 
+    let lastItemsHash = '';
+
     const regionSubscription = DataStore.observeQuery(Region, (r) =>
       r.transcription.id.eq(transcriptionId)
     ).subscribe((snapshot) => {
-      setRegions(snapshot.items);
+      // Create a simple hash of the items to detect actual changes
+      const itemsHash = snapshot.items
+        .map(item => `${item.id}-${item.start}-${item.end}-${item.dateLastUpdated}`)
+        .sort()
+        .join('|');
+      
+      // Only update if the data has actually changed
+      if (itemsHash !== lastItemsHash) {
+        console.log('📊 Region data changed, updating regions');
+        lastItemsHash = itemsHash;
+        setRegions(snapshot.items);
+      } else {
+        console.log('📊 Region data unchanged, skipping setRegions');
+      }
     });
 
     return () => {

@@ -38,15 +38,7 @@ export const WaveformPlayer = ({
   onRegionUpdate,
   onLookup,
 }: WaveformPlayerProps) => {
-  console.log('🎯 WaveformPlayer render:', {
-    source,
-    hasPeaks: !!peaks,
-    peaksType: typeof peaks,
-    peaksKeys: peaks ? Object.keys(peaks) : null,
-    canEdit,
-    isVideo,
-    title
-  });
+  // Removed excessive render logging to prevent noise
 
   const waveformRef = useRef<HTMLDivElement>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
@@ -207,11 +199,25 @@ export const WaveformPlayer = ({
 
         regionsPlugin.on('region-created', (region: any) => {
           console.log('🆕 WaveformPlayer: region-created event fired:', region);
-          onRegionUpdate({
+          console.log('🔍 Region details:', {
             id: region.id,
             start: region.start,
             end: region.end,
+            color: region.color,
+            content: region.content
           });
+          
+          // Only call onRegionUpdate for NEW regions created by drag selection
+          // Existing regions being rendered should not trigger updates
+          if (region.start !== region.end) {
+            onRegionUpdate({
+              id: region.id,
+              start: region.start,
+              end: region.end,
+            });
+          } else {
+            console.log('⏭️ Skipping region update for zero-length region (likely existing region being rendered)');
+          }
         });
 
         regionsPlugin.on('region-in', (region: any) => {
@@ -358,10 +364,25 @@ export const WaveformPlayer = ({
   const renderRegions = useCallback(() => {
     if (!regionsPluginRef.current) return;
 
+    console.log('🎨 renderRegions called with:', regions.map(r => ({
+      id: r.id,
+      start: r.start,
+      end: r.end,
+      isNote: r.isNote,
+      displayIndex: r.displayIndex
+    })));
+
     regionsPluginRef.current.clearRegions();
 
     regions.forEach((region) => {
       if (!region.isNote) {
+        console.log('➕ Adding region to WaveSurfer:', {
+          id: region.id,
+          start: region.start,
+          end: region.end,
+          displayIndex: region.displayIndex
+        });
+        
         regionsPluginRef.current.addRegion({
           id: region.id,
           start: region.start,
