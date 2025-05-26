@@ -124,6 +124,11 @@ export const WaveformPlayer = ({
           container: timelineRef.current!,
         });
 
+        // For video files, ensure the video element is ready
+        if (isVideo && videoRef.current) {
+          videoRef.current.preload = 'auto';
+        }
+
         console.log('🎛️ Creating WaveSurfer with config:', {
           container: waveformRef.current,
           waveColor: '#305880',
@@ -131,6 +136,7 @@ export const WaveformPlayer = ({
           barWidth: 2,
           height: 128,
           plugins: [regionsPlugin, timelinePlugin],
+          media: isVideo ? videoRef.current : undefined,
         });
 
         // Create WaveSurfer instance
@@ -141,6 +147,7 @@ export const WaveformPlayer = ({
           barWidth: 2,
           height: 128,
           plugins: [regionsPlugin, timelinePlugin],
+          ...(isVideo && videoRef.current ? { media: videoRef.current } : {}),
         });
 
         console.log('✅ WaveSurfer instance created successfully');
@@ -286,8 +293,15 @@ export const WaveformPlayer = ({
             isVideo
           });
           
-          // Load audio/video with or without peaks
-          await wavesurfer.load(audioUrl, peaksArray || undefined);
+          if (isVideo && videoRef.current) {
+            // For video files, WaveSurfer is already connected to the video element via the media option
+            // We still need to call load with the URL and peaks for proper initialization
+            console.log('🎬 Loading video URL with peaks data (video element already connected)');
+            await wavesurfer.load(audioUrl, peaksArray || undefined);
+          } else {
+            // For audio files, load the URL
+            await wavesurfer.load(audioUrl, peaksArray || undefined);
+          }
           console.log('✅ WaveSurfer load completed successfully');
         } catch (error) {
           console.error('❌ Error during wavesurfer.load():', error);
@@ -694,13 +708,10 @@ export const WaveformPlayer = ({
           className={`fixed bottom-4 max-w-[350px] max-h-[350px] z-[190] shadow-lg cursor-pointer rounded ${
             videoLeft ? 'left-4' : 'right-4'
           } md:max-w-[350px] md:max-h-[350px] max-w-[250px] max-h-[200px]`}
-          controls
           playsInline
           onClick={() => setVideoLeft(!videoLeft)}
           style={{ display: loading ? 'none' : 'block' }}
-        >
-          <source src={audioUrl} />
-        </video>
+        />
       )}
     </div>
   );
