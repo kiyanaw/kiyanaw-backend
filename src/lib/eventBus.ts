@@ -21,6 +21,7 @@ export interface EventTypes {
   'refresh-local-text': void;
   'region-in': string;
   'region-out': string;
+  'region-play': string;
   'region-updated': any;
   'waveform-ready': void;
   'player-ready': void;

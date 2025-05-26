@@ -92,18 +92,22 @@ export const EditorPage = () => {
   }, [inboundRegion, setSelectedRegion]);
 
   const handleRegionClick = (regionId: string) => {
+    console.log('🎯 Region clicked:', regionId);
+    
     // Clear inbound region to fix play button
     setInboundRegion(null);
 
+    // Set selected region (this will trigger scroll in RegionList)
     setSelectedRegion(regionId);
 
     const region = regions.find((r) => r.id === regionId);
     if (region && !region.isNote) {
-      // Trigger audio player to play this region
-      eventBus.emit('region-in', regionId);
+      console.log('🎵 Triggering audio playback for region:', regionId);
+      // Trigger audio player to play this region (user-initiated)
+      eventBus.emit('region-play', regionId);
     }
 
-    // Update URL
+    // Update URL without page refresh
     const newPath = `/transcribe-edit/${transcriptionId}/${regionId}`;
     navigate(newPath, { replace: true });
   };
@@ -154,8 +158,8 @@ export const EditorPage = () => {
   };
 
   const handlePlayRegion = (regionId: string) => {
-    // Trigger audio player to play specific region
-    eventBus.emit('region-in', regionId);
+    // Trigger audio player to play specific region (user-initiated)
+    eventBus.emit('region-play', regionId);
   };
 
   if (loading && !error) {

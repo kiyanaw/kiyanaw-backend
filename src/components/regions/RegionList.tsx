@@ -52,7 +52,7 @@ export const RegionList = ({
       if (selectedElement) {
         selectedElement.scrollIntoView({
           behavior: 'smooth',
-          block: 'center',
+          block: 'start',
         });
       }
     }
