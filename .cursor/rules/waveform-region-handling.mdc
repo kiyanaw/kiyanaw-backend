@@ -204,4 +204,41 @@ eventBus.emit('region-in', regionId);   // Automatic (UI only)
 - Handle browser autoplay restrictions gracefully
 - Validate region data before operations
 
+## 🎬 Video Synchronization Rules
+
+### Use Media Element for Video Files
+- For video files, pass the video element to WaveSurfer via the `media` option
+- This ensures WaveSurfer controls the video playback directly
+- The video element should be set up before WaveSurfer creation
+- ❌ BAD: Separate video element with independent controls
+- ✅ GOOD: WaveSurfer managing the video element directly
+
+```typescript
+// ❌ BAD: Disconnected video
+<video ref={videoRef} controls />
+await wavesurfer.load(audioUrl);
+
+// ✅ GOOD: Connected video
+// 1. Set up video element first
+if (isVideo && videoRef.current) {
+  videoRef.current.preload = 'auto';
+}
+
+// 2. Create WaveSurfer with media option
+const wavesurfer = WaveSurfer.create({
+  container: waveformRef.current,
+  ...(isVideo && videoRef.current ? { media: videoRef.current } : {}),
+});
+
+// 3. Load with URL and peaks
+await wavesurfer.load(audioUrl, peaks);
+```
+
+### Video Element Best Practices
+- Remove `controls` attribute from video element when using with WaveSurfer
+- WaveSurfer will handle all playback controls
+- Video element should be positioned as an overlay/preview
+- Use `playsInline` for mobile compatibility
+- Set `preload="auto"` for better loading experience
+
 Remember: **Stability over complexity**. Fix root causes rather than adding workarounds.
