@@ -550,40 +550,35 @@ export const WaveformPlayer = ({
   const playPause = async () => {
     if (!wavesurferRef.current) return;
 
-    // If there's an inbound region, seek to it and play the main audio
-    if (inboundRegion && regionsPluginRef.current) {
+    // If there's an inbound region and we're currently paused, seek to it first
+    if (!playing && inboundRegion && regionsPluginRef.current) {
       const region = regionsPluginRef.current
         .getRegions()
         .find((r: any) => r.id === inboundRegion);
       if (region) {
-        try {
-          console.log('🎵 Playing inbound region:', inboundRegion);
-          // Seek to region start and play the main audio
+        const currentTime = wavesurferRef.current.getCurrentTime();
+        const isWithinRegion = currentTime >= region.start && currentTime <= region.end;
+        
+        // Only seek to region start if we're not already within the region
+        if (!isWithinRegion) {
+          console.log('🎵 Seeking to inbound region before play:', inboundRegion, 'current:', currentTime, 'region:', region.start, '-', region.end);
+          // Seek to region start
           const startTime = region.start;
           const duration = wavesurferRef.current.getDuration();
           const progress = startTime / duration;
           
           // Seek to region (this will auto-center due to autoCenter: true)
           wavesurferRef.current.seekTo(progress);
-          await wavesurferRef.current.play();
-        } catch (error) {
-          // Handle browser autoplay restrictions gracefully
-          if (error instanceof Error && error.name === 'NotAllowedError') {
-            console.log('🔇 Auto-play blocked by browser - user interaction required');
-            // Just seek to the region if play is blocked
-            const startTime = region.start;
-            const duration = wavesurferRef.current.getDuration();
-            const progress = startTime / duration;
-            wavesurferRef.current.seekTo(progress);
-          } else {
-            console.error('❌ Error playing region:', error);
-          }
+          
+          // Add a small delay to let the seek operation complete before playing
+          await new Promise(resolve => setTimeout(resolve, 50));
+        } else {
+          console.log('🎵 Already within inbound region, resuming from current position:', currentTime);
         }
-        return;
       }
     }
 
-    // Normal play/pause
+    // Use the standard playPause method for consistent behavior
     try {
       await wavesurferRef.current.playPause();
     } catch (error) {
@@ -591,7 +586,7 @@ export const WaveformPlayer = ({
       if (error instanceof Error && error.name === 'NotAllowedError') {
         console.log('🔇 Auto-play blocked by browser - user interaction required');
       } else {
-        console.error('❌ Error playing audio:', error);
+        console.error('❌ Error with playPause:', error);
       }
     }
   };
