@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import React from 'react';
 import WaveSurfer from 'wavesurfer.js';
 import Regions from 'wavesurfer.js/dist/plugins/regions.esm.js';
 import Timeline from 'wavesurfer.js/dist/plugins/timeline.esm.js';
@@ -27,7 +28,7 @@ interface WaveformPlayerProps {
   onLookup: () => void;
 }
 
-export const WaveformPlayer = ({
+export const WaveformPlayer = React.memo(({
   source,
   peaks,
   canEdit,
@@ -46,6 +47,8 @@ export const WaveformPlayer = ({
   const wavesurferRef = useRef<WaveSurfer | null>(null);
   const regionsPluginRef = useRef<any>(null);
   const onRegionUpdateRef = useRef(onRegionUpdate);
+  const isMountedRef = useRef(false);
+  const regionUpdateThrottleRef = useRef<{ [key: string]: number }>({});
 
   const [loading, setLoading] = useState(true);
   const [playing, setPlaying] = useState(false);
@@ -100,8 +103,27 @@ export const WaveformPlayer = ({
       return;
     }
 
+    // Prevent double initialization in StrictMode
+    if (isMountedRef.current) {
+      console.log('⏭️ WaveformPlayer already mounted, skipping initialization:', {
+        isMounted: isMountedRef.current,
+        hasWavesurfer: !!wavesurferRef.current,
+        wavesurferDuration: wavesurferRef.current?.getDuration()
+      });
+      return;
+    }
+
+    console.log('🎯 WaveformPlayer initializing for the first time:', {
+      isMounted: isMountedRef.current,
+      hasAudioUrl: !!audioUrl,
+      audioUrl
+    });
+
     const initWaveSurfer = async () => {
       try {
+        // Mark as mounted early to prevent race conditions
+        isMountedRef.current = true;
+
         // Prevent multiple initializations
         if (wavesurferRef.current) {
           console.log('🔄 WaveSurfer already exists, destroying previous instance');
@@ -240,12 +262,20 @@ export const WaveformPlayer = ({
         });
 
         regionsPlugin.on('region-updated', (region: any) => {
-          // console.log('🎯 WaveformPlayer: region-updated event fired:', region);
-          onRegionUpdateRef.current({
-            id: region.id,
-            start: region.start,
-            end: region.end,
-          });
+          // Throttle region updates to prevent excessive callbacks
+          const now = Date.now();
+          const lastUpdate = regionUpdateThrottleRef.current[region.id] || 0;
+          const throttleDelay = 100; // 100ms throttle
+          
+          if (now - lastUpdate > throttleDelay) {
+            regionUpdateThrottleRef.current[region.id] = now;
+            // console.log('🎯 WaveformPlayer: region-updated event fired:', region);
+            onRegionUpdateRef.current({
+              id: region.id,
+              start: region.start,
+              end: region.end,
+            });
+          }
         });
 
         regionsPlugin.on('region-created', (region: any) => {
@@ -363,6 +393,7 @@ export const WaveformPlayer = ({
         }
       } catch (error) {
         console.error('Error initializing WaveSurfer:', error);
+        isMountedRef.current = false; // Reset on error
         eventBus.emit('on-load-peaks-error');
       }
     };
@@ -377,7 +408,8 @@ export const WaveformPlayer = ({
         hasWaveformRef: !!waveformRef.current,
         hasAudioUrl: !!audioUrl,
         hasPeaks: !!peaks,
-        peaksStructure: peaks
+        peaksStructure: peaks,
+        isMounted: isMountedRef.current
       });
       
       initWaveSurfer();
@@ -398,6 +430,7 @@ export const WaveformPlayer = ({
     
     return () => {
       console.log('🧹 WaveformPlayer cleanup function called');
+      isMountedRef.current = false;
       clearTimeout(timeoutId);
       if (wavesurferRef.current) {
         console.log('🗑️ Destroying WaveSurfer instance in cleanup');
@@ -499,6 +532,14 @@ export const WaveformPlayer = ({
         wavesurferRef.current &&
         typeof regionId === 'string'
       ) {
+        console.log('🎵 handleRegionPlay called:', {
+          regionId,
+          hasRegionsPlugin: !!regionsPluginRef.current,
+          hasWavesurfer: !!wavesurferRef.current,
+          wavesurferReady: wavesurferRef.current?.getDuration() > 0,
+          isMounted: isMountedRef.current
+        });
+        
         const region = regionsPluginRef.current
           .getRegions()
           .find((r: any) => r.id === regionId);
@@ -522,11 +563,20 @@ export const WaveformPlayer = ({
             const duration = wavesurferRef.current.getDuration();
             const progress = startTime / duration;
             
+            console.log('🎵 About to seek and play:', {
+              startTime,
+              duration,
+              progress,
+              currentTime: wavesurferRef.current.getCurrentTime(),
+              isPlaying: wavesurferRef.current.isPlaying()
+            });
+            
             // Seek to region (this will auto-center due to autoCenter: true)
             wavesurferRef.current.seekTo(progress);
             
             // Play the main audio instead of using region.play() to avoid stack overflow
             await wavesurferRef.current.play();
+            console.log('✅ Region play completed successfully');
           } catch (error) {
             // Handle browser autoplay restrictions gracefully
             if (error instanceof Error && error.name === 'NotAllowedError') {
@@ -540,7 +590,16 @@ export const WaveformPlayer = ({
               console.error('❌ Error playing region:', error);
             }
           }
+        } else {
+          console.warn('⚠️ Region not found in WaveSurfer regions:', regionId);
         }
+      } else {
+        console.warn('⚠️ WaveSurfer or regions plugin not available for region play:', {
+          regionId,
+          hasRegionsPlugin: !!regionsPluginRef.current,
+          hasWavesurfer: !!wavesurferRef.current,
+          isMounted: isMountedRef.current
+        });
       }
     };
 
@@ -824,4 +883,30 @@ export const WaveformPlayer = ({
       )}
     </div>
   );
-};
+}, (prevProps, nextProps) => {
+  // Custom comparison function to prevent unnecessary re-renders
+  return (
+    prevProps.source === nextProps.source &&
+    prevProps.peaks === nextProps.peaks &&
+    prevProps.canEdit === nextProps.canEdit &&
+    prevProps.inboundRegion === nextProps.inboundRegion &&
+    prevProps.isVideo === nextProps.isVideo &&
+    prevProps.title === nextProps.title &&
+    // Compare function props by reference (they should be stable via useCallback)
+    prevProps.onRegionUpdate === nextProps.onRegionUpdate &&
+    prevProps.onLookup === nextProps.onLookup &&
+    // For regions array, do a shallow comparison of only the essential properties
+    // Ignore index and displayIndex as they change on every render but don't affect WaveSurfer
+    prevProps.regions.length === nextProps.regions.length &&
+    prevProps.regions.every((r, i) => {
+      const next = nextProps.regions[i];
+      return (
+        r.id === next.id && 
+        r.start === next.start && 
+        r.end === next.end && 
+        r.isNote === next.isNote &&
+        r.text === next.text
+      );
+    })
+  );
+});
