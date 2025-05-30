@@ -45,6 +45,7 @@ export const WaveformPlayer = ({
   const videoRef = useRef<HTMLVideoElement>(null);
   const wavesurferRef = useRef<WaveSurfer | null>(null);
   const regionsPluginRef = useRef<any>(null);
+  const onRegionUpdateRef = useRef(onRegionUpdate);
 
   const [loading, setLoading] = useState(true);
   const [playing, setPlaying] = useState(false);
@@ -56,8 +57,7 @@ export const WaveformPlayer = ({
   const [videoLeft, setVideoLeft] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string>('');
   const [isInitialRender, setIsInitialRender] = useState(true);
-
-  const onRegionUpdateRef = useRef(onRegionUpdate);
+  const [inboundRegionHandled, setInboundRegionHandled] = useState<string | null>(null);
 
   // Update the ref when onRegionUpdate changes
   useEffect(() => {
@@ -105,6 +105,11 @@ export const WaveformPlayer = ({
         // Prevent multiple initializations
         if (wavesurferRef.current) {
           console.log('🔄 WaveSurfer already exists, destroying previous instance');
+          console.log('🔍 Previous instance details:', {
+            isDestroyed: !wavesurferRef.current,
+            currentTime: wavesurferRef.current?.getCurrentTime?.(),
+            duration: wavesurferRef.current?.getDuration?.()
+          });
           try {
             wavesurferRef.current.destroy();
           } catch (error) {
@@ -158,10 +163,49 @@ export const WaveformPlayer = ({
         // Event listeners
         wavesurfer.on('ready', () => {
           console.log('🎉 WaveSurfer ready event fired!');
+          console.log('🔍 WaveSurfer state on ready:', {
+            duration: wavesurfer.getDuration(),
+            currentTime: wavesurfer.getCurrentTime(),
+            isPlaying: wavesurfer.isPlaying(),
+            inboundRegion,
+            inboundRegionHandled: inboundRegionHandled
+          });
           setMaxTime(wavesurfer.getDuration());
           setLoading(false);
-          // Don't call renderRegions here - let the useEffect handle it to avoid double rendering
+          
+          // Handle inbound region directly here to ensure it survives React StrictMode re-initialization
+          if (inboundRegion && inboundRegionHandled !== inboundRegion) {
+            console.log('🎯 WaveSurfer ready - will handle inbound region:', inboundRegion);
+            // Don't handle immediately, wait for regions to be rendered first
+            // Use a timeout to ensure regions are created
+            setTimeout(() => {
+              if (regionsPluginRef.current && wavesurferRef.current) {
+                const region = regionsPluginRef.current
+                  .getRegions()
+                  .find((r: any) => r.id === inboundRegion);
+                if (region) {
+                  const startTime = region.start;
+                  const duration = wavesurferRef.current.getDuration();
+                  const progress = startTime / duration;
+                  
+                  // Highlight the inbound region with blue color (deep link behavior)
+                  region.setOptions({ color: 'rgba(0, 213, 255, 0.1)' });
+                  
+                  // Seek to the region start (this will auto-center due to autoCenter: true)
+                  wavesurferRef.current.seekTo(progress);
+                  
+                  // Mark as handled to prevent duplicate processing
+                  setInboundRegionHandled(inboundRegion);
+                  
+                  console.log('✅ [Ready Event] Seeked, centered, and highlighted inbound region:', inboundRegion, 'at time:', startTime, 'progress:', progress);
+                } else {
+                  console.warn('⚠️ [Ready Event] Inbound region not found:', inboundRegion);
+                }
+              }
+            }, 100); // Small delay to ensure regions are rendered
+          }
 
+          // Don't call renderRegions here - let the useEffect handle it to avoid double rendering
           // Don't handle inbound region here - wait for transcription-ready event
           // This ensures all data is loaded before trying to access regions
           eventBus.emit('waveform-ready');
@@ -461,6 +505,18 @@ export const WaveformPlayer = ({
         if (region) {
           try {
             console.log('🎵 Playing region from user click:', regionId);
+            
+            // Clear inbound region highlighting when user manually plays a different region
+            if (inboundRegion && regionId !== inboundRegion) {
+              const inboundRegionObj = regionsPluginRef.current
+                .getRegions()
+                .find((r: any) => r.id === inboundRegion);
+              if (inboundRegionObj) {
+                inboundRegionObj.setOptions({ color: 'rgba(0, 0, 0, 0.1)' });
+                console.log('🔄 Cleared inbound region highlighting for:', inboundRegion);
+              }
+            }
+            
             // Seek to region start and play the main audio
             const startTime = region.start;
             const duration = wavesurferRef.current.getDuration();
@@ -512,7 +568,7 @@ export const WaveformPlayer = ({
       eventBus.off('region-out', handleRegionOut);
       eventBus.off('region-play', handleRegionPlay);
     };
-  }, []); // No dependencies - these handlers are stable
+  }, [inboundRegion]); // Added inboundRegion dependency for highlighting management
 
   // Handle inbound region separately to avoid re-initializing WaveSurfer
   useEffect(() => {
@@ -520,6 +576,12 @@ export const WaveformPlayer = ({
       // Handle inbound region when transcription is fully ready
       // This ensures all regions are loaded before trying to access them
       if (inboundRegion && regionsPluginRef.current && wavesurferRef.current) {
+        // Prevent duplicate handling during React StrictMode re-initialization
+        if (inboundRegionHandled === inboundRegion) {
+          console.log('🔄 Inbound region already handled, skipping:', inboundRegion);
+          return;
+        }
+
         console.log('🎯 Transcription ready, handling inbound region:', inboundRegion);
         
         const region = regionsPluginRef.current
@@ -530,10 +592,16 @@ export const WaveformPlayer = ({
           const duration = wavesurferRef.current.getDuration();
           const progress = startTime / duration;
           
+          // Highlight the inbound region with blue color (deep link behavior)
+          region.setOptions({ color: 'rgba(0, 213, 255, 0.1)' });
+          
           // Seek to the region start (this will auto-center due to autoCenter: true)
           wavesurferRef.current.seekTo(progress);
           
-          console.log('✅ Seeked and centered inbound region:', inboundRegion, 'at time:', startTime, 'progress:', progress);
+          // Mark as handled to prevent duplicate processing
+          setInboundRegionHandled(inboundRegion);
+          
+          console.log('✅ Seeked, centered, and highlighted inbound region:', inboundRegion, 'at time:', startTime, 'progress:', progress);
         } else {
           console.warn('⚠️ Inbound region not found:', inboundRegion);
         }
@@ -546,6 +614,17 @@ export const WaveformPlayer = ({
       eventBus.off('transcription-ready', handleTranscriptionReady);
     };
   }, [inboundRegion]); // Only depends on inboundRegion, not the WaveSurfer initialization
+
+  // Reset inbound region handled flag when inboundRegion changes
+  useEffect(() => {
+    if (inboundRegion !== inboundRegionHandled) {
+      console.log('🔄 Inbound region changed, resetting handled flag:', {
+        previous: inboundRegionHandled,
+        new: inboundRegion
+      });
+      setInboundRegionHandled(null);
+    }
+  }, [inboundRegion, inboundRegionHandled]);
 
   const playPause = async () => {
     if (!wavesurferRef.current) return;
