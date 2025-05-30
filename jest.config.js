@@ -15,13 +15,13 @@ export default {
     }],
   },
   testMatch: [
-    '<rootDir>/src/**/__tests__/**/*.(ts|tsx)',
     '<rootDir>/src/**/*.(test|spec).(ts|tsx)',
   ],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
   collectCoverageFrom: [
     'src/**/*.(ts|tsx)',
     '!src/**/*.d.ts',
+    '!src/**/*.(test|spec).(ts|tsx)',
   ],
   testPathIgnorePatterns: [
     '/node_modules/',

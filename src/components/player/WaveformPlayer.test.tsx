@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { WaveformPlayer } from '../WaveformPlayer';
+import { WaveformPlayer } from './WaveformPlayer';
 import React from 'react';
 
 // Mock WaveSurfer and its plugins
@@ -40,7 +40,7 @@ jest.mock('aws-amplify/storage', () => ({
   getUrl: jest.fn(() => Promise.resolve({ url: new URL('http://test.com/audio.mp3') })),
 }));
 
-jest.mock('../../../lib/eventBus', () => ({
+jest.mock('../../lib/eventBus', () => ({
   eventBus: {
     emit: jest.fn(),
     on: jest.fn(),
