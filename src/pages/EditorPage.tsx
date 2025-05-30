@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranscriptions } from '../hooks/useTranscriptions';
 import { useRegions } from '../hooks/useRegions';
@@ -34,9 +34,15 @@ export const EditorPage = () => {
   const [showLookup, setShowLookup] = useState(false);
   const [inboundRegion, setInboundRegion] = useState<string | null>(null);
 
+  // Memoize computed values to prevent unnecessary re-renders
+  const isVideo = useMemo(() => transcription?.type?.startsWith('video/'), [transcription?.type]);
+  const canEdit = useMemo(() => user !== null, [user]);
+  const loading = useMemo(() => transcriptionLoading || regionsLoading, [transcriptionLoading, regionsLoading]);
 
-
-  const loading = transcriptionLoading || regionsLoading;
+  // Memoize transcription props to prevent WaveformPlayer re-renders
+  const transcriptionSource = useMemo(() => transcription?.source, [transcription?.source]);
+  const transcriptionPeaks = useMemo(() => transcription?.peaks, [transcription?.peaks]);
+  const transcriptionTitle = useMemo(() => transcription?.title, [transcription?.title]);
 
   // Load transcription and regions once per transcriptionId
   useEffect(() => {
@@ -94,7 +100,7 @@ export const EditorPage = () => {
     };
   }, [inboundRegion, setSelectedRegion]);
 
-  const handleRegionClick = async (regionId: string) => {
+  const handleRegionClick = useCallback(async (regionId: string) => {
     try {
       console.log('🎯 Region clicked:', regionId);
       
@@ -111,19 +117,26 @@ export const EditorPage = () => {
         eventBus.emit('region-play', regionId);
       }
 
-      // Update URL without page refresh - only if the path actually changed
-      const newPath = `/transcribe-edit/${transcriptionId}/${regionId}`;
-      const currentPath = window.location.pathname;
-      if (currentPath !== newPath) {
-        navigate(newPath, { replace: true });
-      }
+      // URL update is now handled in a separate useEffect
     } catch (error) {
       console.error('❌ Error handling region click:', error);
       // Don't let the error propagate and cause page reload
     }
-  };
+  }, [regions, setSelectedRegion]);
 
-  const handleRegionUpdate = async (regionUpdate: any) => {
+  // Handle URL updates separately to avoid triggering re-renders during click handling
+  useEffect(() => {
+    if (selectedRegionId && transcriptionId) {
+      const newPath = `/transcribe-edit/${transcriptionId}/${selectedRegionId}`;
+      const currentPath = window.location.pathname;
+      if (currentPath !== newPath) {
+        // Use window.history.replaceState to avoid React Router re-renders
+        window.history.replaceState({}, '', newPath);
+      }
+    }
+  }, [selectedRegionId, transcriptionId]);
+
+  const handleRegionUpdate = useCallback(async (regionUpdate: any) => {
     try {
       console.log('🎯 handleRegionUpdate called with:', regionUpdate);
       // Removed excessive logging to prevent render loops
@@ -171,12 +184,16 @@ export const EditorPage = () => {
       console.error('❌ Error handling region update:', error);
       // Don't let the error propagate and cause issues
     }
-  };
+  }, [regions, user, createRegion, updateRegion]);
 
-  const handlePlayRegion = (regionId: string) => {
+  const handlePlayRegion = useCallback((regionId: string) => {
     // Trigger audio player to play specific region (user-initiated)
     eventBus.emit('region-play', regionId);
-  };
+  }, []);
+
+  const handleLookup = useCallback(() => {
+    setShowLookup(true);
+  }, []);
 
   if (loading && !error) {
     return (
@@ -205,9 +222,6 @@ export const EditorPage = () => {
     );
   }
 
-  const isVideo = transcription.type?.startsWith('video/');
-  const canEdit = user !== null;
-
   console.log('📄 EditorPage rendering WaveformPlayer with:', {
     transcription: transcription,
     hasPeaks: !!transcription.peaks,
@@ -222,15 +236,15 @@ export const EditorPage = () => {
       <div className="flex-shrink-0 bg-gray-100 border-b border-gray-300">
         <div className="h-[223px] flex items-center justify-center">
           <WaveformPlayer
-            source={transcription.source}
-            peaks={transcription.peaks}
+            source={transcriptionSource}
+            peaks={transcriptionPeaks}
             canEdit={canEdit}
             inboundRegion={inboundRegion}
             regions={regions}
             isVideo={isVideo}
-            title={transcription.title}
+            title={transcriptionTitle}
             onRegionUpdate={handleRegionUpdate}
-            onLookup={() => setShowLookup(true)}
+            onLookup={handleLookup}
           />
         </div>
       </div>

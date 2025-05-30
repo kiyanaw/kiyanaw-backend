@@ -1,4 +1,5 @@
 import { useEffect, useRef, useMemo } from 'react';
+import React from 'react';
 import { RegionItem } from './RegionItem';
 
 interface Region {
@@ -20,7 +21,7 @@ interface RegionListProps {
   onPlayRegion?: (regionId: string) => void;
 }
 
-export const RegionList = ({
+export const RegionList = React.memo(({
   regions,
   selectedRegionId,
   editingUsers = {},
@@ -106,4 +107,4 @@ export const RegionList = ({
       </div>
     </div>
   );
-};
+});
