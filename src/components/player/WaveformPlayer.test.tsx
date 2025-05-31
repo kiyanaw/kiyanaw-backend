@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import type { RenderResult } from '@testing-library/react';
 import { WaveformPlayer } from './WaveformPlayer';
 import React from 'react';
 
@@ -121,25 +122,29 @@ describe('WaveformPlayer React.memo behavior', () => {
   });
 
   test('should not re-render when props are identical', async () => {
-    const { rerender } = render(
-      <WaveformPlayerWithRenderTracking {...defaultProps} />
-    );
+    let result: RenderResult;
+    await act(async () => {
+      result = render(<WaveformPlayerWithRenderTracking {...defaultProps} />);
+    });
 
     await waitFor(() => {
       expect(renderCount).toBe(1);
     });
 
     // Re-render with identical props
-    rerender(<WaveformPlayerWithRenderTracking {...defaultProps} />);
+    await act(async () => {
+      result.rerender(<WaveformPlayerWithRenderTracking {...defaultProps} />);
+    });
 
     // Should not trigger additional renders
     expect(renderCount).toBe(1);
   });
 
   test('should not re-render when only region displayIndex changes', async () => {
-    const { rerender } = render(
-      <WaveformPlayerWithRenderTracking {...defaultProps} />
-    );
+    let result: RenderResult;
+    await act(async () => {
+      result = render(<WaveformPlayerWithRenderTracking {...defaultProps} />);
+    });
 
     await waitFor(() => {
       expect(renderCount).toBe(1);
@@ -152,21 +157,24 @@ describe('WaveformPlayer React.memo behavior', () => {
       index: i + 50, // Different index
     }));
 
-    rerender(
-      <WaveformPlayerWithRenderTracking 
-        {...defaultProps} 
-        regions={regionsWithDifferentIndex} 
-      />
-    );
+    await act(async () => {
+      result.rerender(
+        <WaveformPlayerWithRenderTracking 
+          {...defaultProps} 
+          regions={regionsWithDifferentIndex} 
+        />
+      );
+    });
 
     // Should not trigger additional renders since core region data is the same
     expect(renderCount).toBe(1);
   });
 
   test('should re-render when essential region properties change', async () => {
-    const { rerender } = render(
-      <WaveformPlayerWithRenderTracking {...defaultProps} />
-    );
+    let result: RenderResult;
+    await act(async () => {
+      result = render(<WaveformPlayerWithRenderTracking {...defaultProps} />);
+    });
 
     await waitFor(() => {
       expect(renderCount).toBe(1);
@@ -178,12 +186,14 @@ describe('WaveformPlayer React.memo behavior', () => {
       defaultProps.regions[1],
     ];
 
-    rerender(
-      <WaveformPlayerWithRenderTracking 
-        {...defaultProps} 
-        regions={regionsWithDifferentText} 
-      />
-    );
+    await act(async () => {
+      result.rerender(
+        <WaveformPlayerWithRenderTracking 
+          {...defaultProps} 
+          regions={regionsWithDifferentText} 
+        />
+      );
+    });
 
     // Should trigger re-render
     await waitFor(() => {
@@ -192,9 +202,10 @@ describe('WaveformPlayer React.memo behavior', () => {
   });
 
   test('should re-render when function props change', async () => {
-    const { rerender } = render(
-      <WaveformPlayerWithRenderTracking {...defaultProps} />
-    );
+    let result: RenderResult;
+    await act(async () => {
+      result = render(<WaveformPlayerWithRenderTracking {...defaultProps} />);
+    });
 
     await waitFor(() => {
       expect(renderCount).toBe(1);
@@ -203,12 +214,14 @@ describe('WaveformPlayer React.memo behavior', () => {
     // Create new function reference
     const newOnRegionUpdate = jest.fn();
 
-    rerender(
-      <WaveformPlayerWithRenderTracking 
-        {...defaultProps} 
-        onRegionUpdate={newOnRegionUpdate}
-      />
-    );
+    await act(async () => {
+      result.rerender(
+        <WaveformPlayerWithRenderTracking 
+          {...defaultProps} 
+          onRegionUpdate={newOnRegionUpdate}
+        />
+      );
+    });
 
     // Should trigger re-render due to function reference change
     await waitFor(() => {
@@ -219,18 +232,19 @@ describe('WaveformPlayer React.memo behavior', () => {
   test('should not re-render when inboundRegion changes from same value to same value', async () => {
     const propsWithInboundRegion = { ...defaultProps, inboundRegion: 'region1' };
     
-    const { rerender } = render(
-      <WaveformPlayerWithRenderTracking {...propsWithInboundRegion} />
-    );
+    let result: RenderResult;
+    await act(async () => {
+      result = render(<WaveformPlayerWithRenderTracking {...propsWithInboundRegion} />);
+    });
 
     await waitFor(() => {
       expect(renderCount).toBe(1);
     });
 
     // Re-render with same inboundRegion
-    rerender(
-      <WaveformPlayerWithRenderTracking {...propsWithInboundRegion} />
-    );
+    await act(async () => {
+      result.rerender(<WaveformPlayerWithRenderTracking {...propsWithInboundRegion} />);
+    });
 
     expect(renderCount).toBe(1);
   });
@@ -240,17 +254,18 @@ describe('WaveformPlayer React.memo behavior', () => {
     const peaks1 = { data: [1, 2, 3] };
     const peaks2 = { data: [1, 2, 3] }; // Same data, different object
 
-    const { rerender } = render(
-      <WaveformPlayerWithRenderTracking {...defaultProps} peaks={peaks1} />
-    );
+    let result: RenderResult;
+    await act(async () => {
+      result = render(<WaveformPlayerWithRenderTracking {...defaultProps} peaks={peaks1} />);
+    });
 
     await waitFor(() => {
       expect(renderCount).toBe(1);
     });
 
-    rerender(
-      <WaveformPlayerWithRenderTracking {...defaultProps} peaks={peaks2} />
-    );
+    await act(async () => {
+      result.rerender(<WaveformPlayerWithRenderTracking {...defaultProps} peaks={peaks2} />);
+    });
 
     // Should trigger re-render due to object reference change
     await waitFor(() => {
@@ -260,7 +275,7 @@ describe('WaveformPlayer React.memo behavior', () => {
 });
 
 describe('WaveformPlayer re-render debugging', () => {
-  test('should properly handle WaveSurfer initialization', () => {
+  test('should properly handle WaveSurfer initialization', async () => {
     const consoleSpy = jest.spyOn(console, 'log');
     
     const props = {
@@ -275,7 +290,9 @@ describe('WaveformPlayer re-render debugging', () => {
       onLookup: jest.fn(),
     };
 
-    render(<WaveformPlayer {...props} />);
+    await act(async () => {
+      render(<WaveformPlayer {...props} />);
+    });
 
     // Should log WaveSurfer initialization steps
     expect(consoleSpy).toHaveBeenCalledWith(
