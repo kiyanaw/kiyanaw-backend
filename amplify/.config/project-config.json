@@ -10,8 +10,8 @@
     "config": {
       "SourceDir": "src",
       "DistributionDir": "dist",
-      "BuildCommand": "npm run-script build",
-      "StartCommand": "npm run-script serve"
+      "BuildCommand": "npm run-script vue:build",
+      "StartCommand": "npm run-script vue:serve"
     }
   }
 }
