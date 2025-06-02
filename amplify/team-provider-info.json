@@ -74,6 +74,13 @@
           "deploymentBucketName": "amplify-kiyanaw-staging-131551-deployment",
           "s3Key": "amplify-builds/syncConflictHandler092e0049-514a524672446d516254-build.zip"
         }
+      },
+      "api": {
+        "enqueueRegionChange": {},
+        "kiyanaw": {}
+      },
+      "hosting": {
+        "S3AndCloudFront": {}
       }
     }
   }
