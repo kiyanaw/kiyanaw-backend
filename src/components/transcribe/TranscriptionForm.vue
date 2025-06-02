@@ -15,6 +15,12 @@
       label="Public read access"
     ></v-combobox>
     <v-combobox
+      v-model="lang"
+      :disabled="disableInputs"
+      :items="['Plains Cree', 'Northern Michif']"
+      label="Language"
+    ></v-combobox>
+    <v-combobox
       v-model="analyzerEnabled"
       :disabled="disableInputs"
       :items="['Enable', 'Disable']"
@@ -104,6 +110,24 @@ export default {
           this.$store.dispatch('updateTranscription', { isPrivate: true })
         } else {
           this.$store.dispatch('updateTranscription', { isPrivate: false })
+        }
+      },
+    },
+
+    lang: {
+      get() {
+        let lang = this.$store.getters.transcription.lang
+        if (lang === 'crg') {
+          return 'Northern Michif'
+        } else {
+          return 'Plains Cree'
+        }
+      },
+      set(value) {
+        if (value === 'Northern Michif') {
+          this.$store.dispatch('updateTranscription', { lang: 'crg' })
+        } else {
+          this.$store.dispatch('updateTranscription', { lang: 'crk' })
         }
       },
     },
