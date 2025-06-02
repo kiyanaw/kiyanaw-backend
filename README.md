@@ -65,6 +65,15 @@ npx amplify push
 npx amplify publish
 ```
 
+### Updating Models
+
+Edit `amplify/backend/api/kiyanaw/schema.graphql`
+
+Then run
+```
+npx amplify codegen models
+```
+
 
 # Infrastructure
 

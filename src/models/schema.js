@@ -108,6 +108,13 @@ export const schema = {
                     "isRequired": false,
                     "attributes": []
                 },
+                "lang": {
+                    "name": "lang",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": false,
+                    "attributes": []
+                },
                 "disableAnalyzer": {
                     "name": "disableAnalyzer",
                     "isArray": false,
@@ -1097,5 +1104,5 @@ export const schema = {
     "enums": {},
     "nonModels": {},
     "codegenVersion": "3.3.5",
-    "version": "e462811357fac73ece4401395690c6a0"
+    "version": "71ce10fc14219a2097097adb2f57b80d"
 };
