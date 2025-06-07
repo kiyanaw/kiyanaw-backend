@@ -39,10 +39,10 @@ export const WaveformPlayer = React.memo(({
   onRegionUpdate,
   onLookup,
 }: WaveformPlayerProps) => {
-  // Removed excessive render logging to prevent noise
+  console.log('--- WaveformPlayer Render ---', { source, hasPeaks: !!peaks });
 
-  const waveformRef = useRef<HTMLDivElement>(null);
-  const timelineRef = useRef<HTMLDivElement>(null);
+  const waveformContainerRef = useRef<HTMLDivElement>(null);
+  const timelineContainerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const wavesurferRef = useRef<WaveSurfer | null>(null);
   const regionsPluginRef = useRef<any>(null);
@@ -58,7 +58,6 @@ export const WaveformPlayer = React.memo(({
   const [zoom, setZoom] = useState(40);
   const [speed, setSpeed] = useState(100);
   const [videoLeft, setVideoLeft] = useState(false);
-  const [audioUrl, setAudioUrl] = useState<string>('');
   const [isInitialRender, setIsInitialRender] = useState(true);
   const [inboundRegionHandled, setInboundRegionHandled] = useState<string | null>(null);
 
@@ -67,399 +66,130 @@ export const WaveformPlayer = React.memo(({
     onRegionUpdateRef.current = onRegionUpdate;
   }, [onRegionUpdate]);
 
-  // Get audio URL from S3
+  // Effect for WaveSurfer creation and destruction
   useEffect(() => {
-    const getAudioUrl = async () => {
-      try {
-        console.log('🔗 Getting audio URL for source:', source);
-        
-        // Check if source is already a full URL
-        if (source.startsWith('http://') || source.startsWith('https://')) {
-          console.log('✅ Source is already a full URL, using directly:', source);
-          setAudioUrl(source);
-          return;
-        }
-        
-        // If it's just a path, generate signed URL
-        const result = await getUrl({ path: source });
-        const url = result.url.toString();
-        console.log('✅ Audio URL obtained from path:', url);
-        setAudioUrl(url);
-      } catch (error) {
-        console.error('❌ Error getting audio URL:', error);
-        eventBus.emit('on-load-peaks-error');
-      }
-    };
+    if (!waveformContainerRef.current || !timelineContainerRef.current) return;
 
-    if (source) {
-      getAudioUrl();
-    }
-  }, [source]);
-
-  // Initialize WaveSurfer
-  useEffect(() => {
-    if (!audioUrl) {
-      console.log('⏳ WaveformPlayer useEffect - waiting for audioUrl');
+    // If isVideo is true, we need the video element to be ready.
+    if (isVideo && !videoRef.current) {
+      console.warn("WaveformPlayer: isVideo is true, but video element ref is not available yet.");
       return;
     }
 
-    // Prevent double initialization in StrictMode
-    if (isMountedRef.current) {
-      console.log('⏭️ WaveformPlayer already mounted, skipping initialization:', {
-        isMounted: isMountedRef.current,
-        hasWavesurfer: !!wavesurferRef.current,
-        wavesurferDuration: wavesurferRef.current?.getDuration()
-      });
-      return;
-    }
+    console.log('--- Initializing WaveSurfer ---');
 
-    console.log('🎯 WaveformPlayer initializing for the first time:', {
-      isMounted: isMountedRef.current,
-      hasAudioUrl: !!audioUrl,
-      audioUrl
+    const regionsPlugin = Regions.create();
+    regionsPluginRef.current = regionsPlugin;
+
+    const timelinePlugin = Timeline.create({
+      container: timelineContainerRef.current,
     });
 
-    const initWaveSurfer = async () => {
-      try {
-        // Mark as mounted early to prevent race conditions
-        isMountedRef.current = true;
+    const ws = WaveSurfer.create({
+      container: waveformContainerRef.current,
+      waveColor: '#305880',
+      progressColor: '#162738',
+      barWidth: 2,
+      height: 128,
+      plugins: [regionsPlugin, timelinePlugin],
+      ...(isVideo && videoRef.current && { media: videoRef.current }),
+    });
 
-        // Prevent multiple initializations
-        if (wavesurferRef.current) {
-          console.log('🔄 WaveSurfer already exists, destroying previous instance');
-          console.log('🔍 Previous instance details:', {
-            isDestroyed: !wavesurferRef.current,
-            currentTime: wavesurferRef.current?.getCurrentTime?.(),
-            duration: wavesurferRef.current?.getDuration?.()
-          });
-          try {
-            wavesurferRef.current.destroy();
-          } catch (error) {
-            console.warn('⚠️ Error destroying previous WaveSurfer instance:', error);
-          }
-          wavesurferRef.current = null;
-        }
+    wavesurferRef.current = ws;
 
-        console.log('🎛️ Creating WaveSurfer instance...');
-        
-        // Create regions plugin
-        const regionsPlugin = Regions.create();
-        regionsPluginRef.current = regionsPlugin;
+    // --- Attach Event Handlers ---
+    ws.on('ready', (duration) => {
+      console.log(`🎉 WaveSurfer ready! Duration: ${duration}`);
+      setLoading(false);
+      setMaxTime(duration);
+      eventBus.emit('waveform-ready');
+    });
 
-        // Create timeline plugin
-        const timelinePlugin = Timeline.create({
-          container: timelineRef.current!,
-        });
+    ws.on('error', (err) => {
+      console.error('❌ WaveSurfer error:', err);
+      setLoading(false); // Stop loading on error
+    });
 
-        // For video files, ensure the video element is ready
-        if (isVideo && videoRef.current) {
-          videoRef.current.preload = 'auto';
-        }
-
-        console.log('🎛️ Creating WaveSurfer with config:', {
-          container: waveformRef.current,
-          waveColor: '#305880',
-          progressColor: '#162738',
-          barWidth: 2,
-          height: 128,
-          plugins: [regionsPlugin, timelinePlugin],
-          media: isVideo ? videoRef.current : undefined,
-        });
-
-        // Create WaveSurfer instance
-        const wavesurfer = WaveSurfer.create({
-          container: waveformRef.current!,
-          waveColor: '#305880',
-          progressColor: '#162738',
-          barWidth: 2,
-          height: 128,
-          autoCenter: true,
-          autoScroll: true,
-          plugins: [regionsPlugin, timelinePlugin],
-          ...(isVideo && videoRef.current ? { media: videoRef.current } : {}),
-        });
-
-        console.log('✅ WaveSurfer instance created successfully');
-        wavesurferRef.current = wavesurfer;
-
-        // Event listeners
-        wavesurfer.on('ready', () => {
-          console.log('🎉 WaveSurfer ready event fired!');
-          console.log('🔍 WaveSurfer state on ready:', {
-            duration: wavesurfer.getDuration(),
-            currentTime: wavesurfer.getCurrentTime(),
-            isPlaying: wavesurfer.isPlaying(),
-            inboundRegion,
-            inboundRegionHandled: inboundRegionHandled
-          });
-          setMaxTime(wavesurfer.getDuration());
-          setLoading(false);
-          
-          // Handle inbound region directly here to ensure it survives React StrictMode re-initialization
-          if (inboundRegion && inboundRegionHandled !== inboundRegion) {
-            console.log('🎯 WaveSurfer ready - will handle inbound region:', inboundRegion);
-            // Don't handle immediately, wait for regions to be rendered first
-            // Use a timeout to ensure regions are created
-            setTimeout(() => {
-              if (regionsPluginRef.current && wavesurferRef.current) {
-                const region = regionsPluginRef.current
-                  .getRegions()
-                  .find((r: any) => r.id === inboundRegion);
-                if (region) {
-                  const startTime = region.start;
-                  const duration = wavesurferRef.current.getDuration();
-                  const progress = startTime / duration;
-                  
-                  // Highlight the inbound region with blue color (deep link behavior)
-                  region.setOptions({ color: 'rgba(0, 213, 255, 0.1)' });
-                  
-                  // Seek to the region start (this will auto-center due to autoCenter: true)
-                  wavesurferRef.current.seekTo(progress);
-                  
-                  // Mark as handled to prevent duplicate processing
-                  setInboundRegionHandled(inboundRegion);
-                  
-                  console.log('✅ [Ready Event] Seeked, centered, and highlighted inbound region:', inboundRegion, 'at time:', startTime, 'progress:', progress);
-                } else {
-                  console.warn('⚠️ [Ready Event] Inbound region not found:', inboundRegion);
-                }
-              }
-            }, 100); // Small delay to ensure regions are rendered
-          }
-
-          // Don't call renderRegions here - let the useEffect handle it to avoid double rendering
-          // Don't handle inbound region here - wait for transcription-ready event
-          // This ensures all data is loaded before trying to access regions
-          eventBus.emit('waveform-ready');
-        });
-
-        // wavesurfer.on('load', (url) => {
-        //   console.log('🔄 WaveSurfer load event fired:', url);
-        // });
-
-        // wavesurfer.on('decode', (duration) => {
-        //   console.log('🎵 WaveSurfer decode event fired, duration:', duration);
-        // });
-
-        wavesurfer.on('error', (error) => {
-          console.error('❌ WaveSurfer error:', error);
-          setLoading(false);
-          eventBus.emit('on-load-peaks-error');
-        });
-
-        wavesurfer.on('play', () => setPlaying(true));
-        wavesurfer.on('pause', () => setPlaying(false));
-
-        wavesurfer.on('timeupdate', (currentTime) => {
-          setCurrentTime(currentTime);
-        });
-
-        // Region events
-        regionsPlugin.on('region-clicked', (region: any) => {
-          // Don't handle region clicks in the waveform player
-          // Let the RegionList component handle all region clicks to avoid conflicts
-          console.log('🎯 Region clicked in waveform:', region.id, '- delegating to RegionList');
-        });
-
-        regionsPlugin.on('region-updated', (region: any) => {
-          // Throttle region updates to prevent excessive callbacks
-          const now = Date.now();
-          const lastUpdate = regionUpdateThrottleRef.current[region.id] || 0;
-          const throttleDelay = 100; // 100ms throttle
-          
-          if (now - lastUpdate > throttleDelay) {
-            regionUpdateThrottleRef.current[region.id] = now;
-            // console.log('🎯 WaveformPlayer: region-updated event fired:', region);
-            onRegionUpdateRef.current({
-              id: region.id,
-              start: region.start,
-              end: region.end,
-            });
-          }
-        });
-
-        regionsPlugin.on('region-created', (region: any) => {
-          console.log('🆕 WaveformPlayer: region-created event fired:', region.id);
-          
-          // Only call onRegionUpdate for NEW regions created by drag selection
-          // Check that the region has a meaningful duration (> 0.01 seconds)
-          // User-created regions from drag selection will always have a proper duration
-          if (region.start !== region.end && Math.abs(region.end - region.start) > 0.01) {
-            // Check if this region already exists in our regions array
-            const existingRegion = regions.find(r => r.id === region.id);
-            if (!existingRegion) {
-              console.log('✅ Calling onRegionUpdate for new user-created region:', region.id);
-              onRegionUpdateRef.current({
-                id: region.id,
-                start: region.start,
-                end: region.end,
-              });
-            } else {
-              // console.log('⏭️ Skipping region update - region already exists:', region.id);
-            }
-          } else {
-            // console.log('⏭️ Skipping region update - zero/minimal duration:', {
-            //   duration: Math.abs(region.end - region.start),
-            //   threshold: 0.01
-            // });
-          }
-        });
-
-        regionsPlugin.on('region-in', (region: any) => {
-          eventBus.emit('region-in', region.id);
-        });
-
-        regionsPlugin.on('region-out', (region: any) => {
-          eventBus.emit('region-out', region.id);
-        });
-
-        // Enable drag selection for editing
-        if (canEdit) {
-          console.log('🎯 Enabling drag selection for editing');
-          regionsPlugin.enableDragSelection({
-            color: 'rgba(0, 213, 255, 0.1)',
-          });
-        } else {
-          console.log('⚠️ Drag selection NOT enabled - canEdit is false');
-        }
-
-        // Load audio with peaks data (following old Vue pattern)
-        // WaveSurfer v7 expects peaks as Array<Float32Array | number[]>
-        // The audiowaveform JSON format typically has { data: [array] }
-        let peaksArray = null;
-        if (peaks) {
-          console.log('🔍 Raw peaks data structure:', {
-            peaks,
-            peaksType: typeof peaks,
-            peaksKeys: peaks ? Object.keys(peaks) : null,
-            hasData: peaks && 'data' in peaks,
-            dataType: peaks?.data ? typeof peaks.data : 'undefined',
-            dataIsArray: Array.isArray(peaks?.data),
-            dataLength: peaks?.data?.length,
-            firstFewDataValues: peaks?.data?.slice(0, 10)
-          });
-
-          // Convert audiowaveform JSON format to WaveSurfer v7 format
-          if (peaks.data && Array.isArray(peaks.data)) {
-            // audiowaveform JSON format: { data: [numbers] }
-            // WaveSurfer v7 expects: [Float32Array] or [number[]]
-            peaksArray = [peaks.data];
-            console.log('✅ Converted audiowaveform JSON to WaveSurfer v7 format:', {
-              originalLength: peaks.data.length,
-              convertedFormat: 'Array<number[]>',
-              peaksArrayLength: peaksArray.length,
-              firstArrayLength: peaksArray[0]?.length,
-              firstFewValues: peaksArray[0]?.slice(0, 10)
-            });
-          } else if (Array.isArray(peaks)) {
-            // Already in correct format
-            peaksArray = peaks;
-            console.log('✅ Peaks already in correct format');
-          } else {
-            console.warn('⚠️ Unknown peaks format, will load without peaks');
-          }
-        }
-        
-        try {
-          console.log('🎵 About to load audio with peaks:', {
-            audioUrl,
-            hasPeaksArray: !!peaksArray,
-            peaksArrayType: peaksArray ? typeof peaksArray : 'undefined',
-            peaksArrayLength: peaksArray?.length,
-            isVideo
-          });
-          
-          if (isVideo && videoRef.current) {
-            // For video files, WaveSurfer is already connected to the video element via the media option
-            // We still need to call load with the URL and peaks for proper initialization
-            console.log('🎬 Loading video URL with peaks data (video element already connected)');
-            await wavesurfer.load(audioUrl, peaksArray || undefined);
-          } else {
-            // For audio files, load the URL
-            await wavesurfer.load(audioUrl, peaksArray || undefined);
-          }
-          console.log('✅ WaveSurfer load completed successfully');
-        } catch (error) {
-          console.error('❌ Error during wavesurfer.load():', error);
-          setLoading(false);
-          eventBus.emit('on-load-peaks-error');
-          return; // Exit early if load fails
-        }
-
-        // Set zoom from localStorage
-        const savedZoom = localStorage.getItem('zoom');
-        if (canEdit && savedZoom) {
-          setZoom(parseInt(savedZoom));
-        }
-      } catch (error) {
-        console.error('Error initializing WaveSurfer:', error);
-        isMountedRef.current = false; // Reset on error
-        eventBus.emit('on-load-peaks-error');
-      }
-    };
-
-    const initializeWhenReady = () => {
-      if (!waveformRef.current) {
-        console.log('⏳ WaveformPlayer - DOM not ready, retrying...');
-        return false;
-      }
-      
-      console.log('🚀 WaveformPlayer useEffect triggered (Note: React StrictMode causes double initialization in dev):', {
-        hasWaveformRef: !!waveformRef.current,
-        hasAudioUrl: !!audioUrl,
-        hasPeaks: !!peaks,
-        peaksStructure: peaks,
-        isMounted: isMountedRef.current
-      });
-      
-      initWaveSurfer();
-      return true;
-    };
-
-    // Try immediately
-    if (initializeWhenReady()) {
-      return; // Success
-    }
-
-    // If DOM not ready, try again after a short delay
-    const timeoutId = setTimeout(() => {
-      if (!initializeWhenReady()) {
-        console.warn('⚠️ WaveformPlayer: DOM element still not ready after delay');
-      }
-    }, 50);
+    ws.on('play', () => setPlaying(true));
+    ws.on('pause', () => setPlaying(false));
+    ws.on('audioprocess', (time) => setCurrentTime(time));
+    ws.on('seeking', (time) => setCurrentTime(time));
     
-    return () => {
-      console.log('🧹 WaveformPlayer cleanup function called');
-      isMountedRef.current = false;
-      clearTimeout(timeoutId);
-      if (wavesurferRef.current) {
-        console.log('🗑️ Destroying WaveSurfer instance in cleanup');
+    // --- Region Event Handlers ---
+    regionsPlugin.on('region-updated', (region) => {
+      if (isInitialRender) return;
+
+      const throttleKey = region.id;
+      const now = Date.now();
+      const lastCall = regionUpdateThrottleRef.current[throttleKey] || 0;
+
+      if (now - lastCall > 200) { // Throttle updates to every 200ms
+        console.log('🔄 Region updated (throttled):', region.id);
+        onRegionUpdateRef.current({
+          id: region.id,
+          start: region.start,
+          end: region.end,
+        });
+        regionUpdateThrottleRef.current[throttleKey] = now;
+      }
+    });
+
+    regionsPlugin.on('region-created', (region) => {
+      if (isInitialRender) {
+        console.log('🚫 Ignoring region-created during initial render');
+        return;
+      }
+      console.log('✨ Region created:', region.id);
+      onRegionUpdateRef.current({
+        id: region.id,
+        start: region.start,
+        end: region.end,
+      });
+    });
+
+    // --- Load Media ---
+    const loadMedia = async () => {
+      if (source && peaks) {
+        setLoading(true);
+        console.log('⏳ Loading media and peaks into WaveSurfer...');
         try {
-          wavesurferRef.current.destroy();
+          await ws.load(source, peaks);
+          console.log('✅ Media and peaks loaded.');
         } catch (error) {
-          console.warn('⚠️ Error destroying WaveSurfer instance in cleanup:', error);
+          console.error('❌ Error loading media into WaveSurfer:', error);
+          setLoading(false);
         }
-        wavesurferRef.current = null;
+      } else {
+        console.log('⏳ WaveformPlayer: Waiting for source or peaks...');
+        setLoading(true);
       }
     };
-  }, [audioUrl, peaks, canEdit, isVideo]);
+    loadMedia();
+
+    return () => {
+      console.log('🧹 Destroying WaveSurfer instance.');
+      ws.destroy();
+      wavesurferRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [source, peaks, isVideo]); // Re-create if source, peaks or isVideo changes.
 
   // Handle zoom changes
   useEffect(() => {
-    if (wavesurferRef.current) {
+    if (wavesurferRef.current && !loading) {
       wavesurferRef.current.zoom(zoom);
       if (canEdit) {
         localStorage.setItem('zoom', zoom.toString());
       }
     }
-  }, [zoom, canEdit]);
+  }, [zoom, canEdit, loading]);
 
   // Handle speed changes
   useEffect(() => {
-    if (wavesurferRef.current) {
+    if (wavesurferRef.current && !loading) {
       wavesurferRef.current.setPlaybackRate(speed / 100);
     }
-  }, [speed]);
+  }, [speed, loading]);
 
   // Render regions when they change
   useEffect(() => {
@@ -786,10 +516,10 @@ export const WaveformPlayer = React.memo(({
       </div>
 
       {/* Waveform */}
-      <div ref={waveformRef} className="w-full h-32 bg-white" />
+      <div ref={waveformContainerRef} className="w-full h-32 bg-white" />
 
       {/* Timeline */}
-      <div ref={timelineRef} className="w-full h-5 bg-gray-100 border-t border-gray-300" />
+      <div ref={timelineContainerRef} className="w-full h-5 bg-gray-100 border-t border-gray-300" />
 
       {/* Controls */}
       <div className="flex items-center justify-between h-10 bg-gray-100 px-5 border-t border-gray-300 md:flex-row md:h-10 md:px-5 flex-col h-auto px-2.5 py-2.5 gap-2.5">
@@ -873,6 +603,8 @@ export const WaveformPlayer = React.memo(({
       {isVideo && (
         <video
           ref={videoRef}
+          src={source}
+          muted
           className={`fixed bottom-4 max-w-[350px] max-h-[350px] z-[190] shadow-lg cursor-pointer rounded ${
             videoLeft ? 'left-4' : 'right-4'
           } md:max-w-[350px] md:max-h-[350px] max-w-[250px] max-h-[200px]`}
@@ -887,7 +619,6 @@ export const WaveformPlayer = React.memo(({
   // Custom comparison function to prevent unnecessary re-renders
   return (
     prevProps.source === nextProps.source &&
-    prevProps.peaks === nextProps.peaks &&
     prevProps.canEdit === nextProps.canEdit &&
     prevProps.inboundRegion === nextProps.inboundRegion &&
     prevProps.isVideo === nextProps.isVideo &&
@@ -896,7 +627,6 @@ export const WaveformPlayer = React.memo(({
     prevProps.onRegionUpdate === nextProps.onRegionUpdate &&
     prevProps.onLookup === nextProps.onLookup &&
     // For regions array, do a shallow comparison of only the essential properties
-    // Ignore index and displayIndex as they change on every render but don't affect WaveSurfer
     prevProps.regions.length === nextProps.regions.length &&
     prevProps.regions.every((r, i) => {
       const next = nextProps.regions[i];
@@ -904,8 +634,7 @@ export const WaveformPlayer = React.memo(({
         r.id === next.id && 
         r.start === next.start && 
         r.end === next.end && 
-        r.isNote === next.isNote &&
-        r.text === next.text
+        r.isNote === next.isNote
       );
     })
   );
