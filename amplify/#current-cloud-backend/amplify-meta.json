@@ -30,7 +30,7 @@
         "s3TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-upgradetwo-155254-deployment/amplify-cfn-templates/api/enqueueRegionChange-cloudformation-template.json",
         "logicalId": "apienqueueRegionChange"
       },
-      "lastPushTimeStamp": "2025-05-22T23:00:40.359Z",
+      "lastPushTimeStamp": "2025-06-07T17:36:13.164Z",
       "output": {
         "ApiName": "enqueueRegionChange",
         "RootUrl": "https://mhh49qvn0g.execute-api.us-east-1.amazonaws.com/upgradetwo",
@@ -56,8 +56,8 @@
         "s3TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-upgradetwo-155254-deployment/amplify-cfn-templates/api/cloudformation-template.json",
         "logicalId": "apikiyanaw"
       },
-      "lastPushTimeStamp": "2025-05-22T23:00:40.359Z",
-      "lastPushDirHash": "giMFBdJBuqXCPdm7Xz6QQAaXC1E="
+      "lastPushTimeStamp": "2025-06-07T17:36:17.869Z",
+      "lastPushDirHash": "yP6DlN1z2eu9kq1pikbE2+7QynE="
     }
   },
   "auth": {
@@ -88,7 +88,7 @@
         "s3TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-upgradetwo-155254-deployment/amplify-cfn-templates/auth/kiyanawd20b7994-cloudformation-template.json",
         "logicalId": "authkiyanawd20b7994"
       },
-      "lastPushTimeStamp": "2025-05-22T23:00:40.359Z",
+      "lastPushTimeStamp": "2025-06-07T17:36:13.167Z",
       "output": {
         "CreatedSNSRole": "arn:aws:iam::494185203413:role/snsd20b7994155254-upgradetwo",
         "UserPoolId": "us-east-1_mR8Pj0kJ6",
@@ -119,7 +119,7 @@
         "s3TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-upgradetwo-155254-deployment/amplify-cfn-templates/function/enqueueRegionChange-cloudformation-template.json",
         "logicalId": "functionenqueueRegionChange"
       },
-      "lastPushTimeStamp": "2025-05-22T23:00:40.359Z",
+      "lastPushTimeStamp": "2025-06-07T17:36:13.168Z",
       "output": {
         "LambdaExecutionRoleArn": "arn:aws:iam::494185203413:role/kiyanawLambdaRole4e645603-upgradetwo",
         "Region": "us-east-1",
@@ -145,7 +145,7 @@
         "s3TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-upgradetwo-155254-deployment/amplify-cfn-templates/function/indexRegionData-cloudformation-template.json",
         "logicalId": "functionindexRegionData"
       },
-      "lastPushTimeStamp": "2025-05-22T23:00:40.359Z",
+      "lastPushTimeStamp": "2025-06-07T17:36:13.169Z",
       "output": {
         "LambdaExecutionRoleArn": "arn:aws:iam::494185203413:role/kiyanawLambdaRolebf3e5ddd-upgradetwo",
         "Region": "us-east-1",
@@ -171,7 +171,7 @@
         "s3TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-upgradetwo-155254-deployment/amplify-cfn-templates/function/notifyRegionChanges-cloudformation-template.json",
         "logicalId": "functionnotifyRegionChanges"
       },
-      "lastPushTimeStamp": "2025-05-22T23:00:40.359Z",
+      "lastPushTimeStamp": "2025-06-07T17:36:13.170Z",
       "output": {
         "LambdaExecutionRoleArn": "arn:aws:iam::494185203413:role/kiyanawLambdaRoleb46b8309-upgradetwo",
         "Region": "us-east-1",
@@ -185,19 +185,19 @@
       "build": true,
       "providerPlugin": "awscloudformation",
       "service": "Lambda",
-      "lastBuildTimeStamp": "2025-05-22T22:54:03.299Z",
+      "lastBuildTimeStamp": "2025-06-07T17:32:24.264Z",
       "lastBuildType": "PROD",
-      "lastPackageTimeStamp": "2025-05-22T22:54:04.865Z",
-      "distZipFilename": "syncConflictHandler092e0049-514a524672446d516254-build.zip",
+      "lastPackageTimeStamp": "2025-06-07T17:32:24.887Z",
+      "distZipFilename": "syncConflictHandler092e0049-7a4a755a424469687669-build.zip",
       "s3Bucket": {
         "deploymentBucketName": "amplify-kiyanaw-upgradetwo-155254-deployment",
-        "s3Key": "amplify-builds/syncConflictHandler092e0049-514a524672446d516254-build.zip"
+        "s3Key": "amplify-builds/syncConflictHandler092e0049-7a4a755a424469687669-build.zip"
       },
       "providerMetadata": {
         "s3TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-upgradetwo-155254-deployment/amplify-cfn-templates/function/syncConflictHandler092e0049-cloudformation-template.json",
         "logicalId": "functionsyncConflictHandler092e0049"
       },
-      "lastPushTimeStamp": "2025-05-22T23:00:40.359Z",
+      "lastPushTimeStamp": "2025-06-07T17:36:17.869Z",
       "output": {
         "LambdaExecutionRoleArn": "arn:aws:iam::494185203413:role/syncConflictHandler092e0049LambdaRole-upgradetwo",
         "Region": "us-east-1",
@@ -205,7 +205,7 @@
         "Name": "syncConflictHandler092e0049-upgradetwo",
         "LambdaExecutionRole": "syncConflictHandler092e0049LambdaRole-upgradetwo"
       },
-      "lastPushDirHash": "x9ZfeuBGsmcVslFXq/rQWRLb0kc="
+      "lastPushDirHash": "zh8iwxUq6UxFJZl4J+Q4YIArvio="
     }
   },
   "hosting": {
@@ -216,7 +216,7 @@
         "s3TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-upgradetwo-155254-deployment/amplify-cfn-templates/hosting/template.json",
         "logicalId": "hostingS3AndCloudFront"
       },
-      "lastPushTimeStamp": "2025-05-22T23:00:40.359Z",
+      "lastPushTimeStamp": "2025-06-07T17:36:13.174Z",
       "output": {
         "CloudFrontSecureURL": "https://d1tzcnq1t8nfb4.cloudfront.net",
         "S3BucketSecureURL": "https://kiyanaw-20231209160100-hostingbucket-upgradetwo.s3.amazonaws.com",
@@ -238,7 +238,7 @@
         "s3TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-upgradetwo-155254-deployment/amplify-cfn-templates/storage/s3-cloudformation-template.json",
         "logicalId": "storagetranscriptions"
       },
-      "lastPushTimeStamp": "2025-05-22T23:00:40.359Z",
+      "lastPushTimeStamp": "2025-06-07T17:36:13.176Z",
       "output": {
         "BucketName": "kiyanawb9b0a37496e34efd8156e27ad4220e33-upgradetwo",
         "Region": "us-east-1"

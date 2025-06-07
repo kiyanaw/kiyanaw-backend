@@ -4,20 +4,27 @@
 #set( $filterMap = {} )
 #set( $QueryMap = {} )
 #set( $PkMap = {} )
+#set( $SkMap = {} )
 #set( $filterArgsMap = {} )
+#if( $ctx.stash.QueryRequest )
+  #return
+#end
+#set( $queryRequestVariables = {} )
 ## [End] Set map initialization for @key **
 ## [Start] Set query expression for @key **
 $util.qr($QueryMap.put('transcriptionID' , 'byTranscription'))
 $util.qr($PkMap.put('transcriptionID' , 'byTranscription'))
+$util.qr($SkMap.put("byTranscription", []))
 ## [End] Set query expression for @key **
 ## [Start] Set query expression for @key **
 $util.qr($QueryMap.put('contributorID' , 'byContributor'))
 $util.qr($PkMap.put('contributorID' , 'byContributor'))
+$util.qr($SkMap.put("byContributor", []))
 ## [End] Set query expression for @key **
 ## [Start] Set query expression for @key **
 #set( $filterArgsMap = $ctx.args.filter.get("and") )
 #set( $isLastSyncInDeltaTTLWindow = false )
-#set( $minLastSync = $util.time.nowEpochMilliSeconds() - 1800000 )
+#set( $minLastSync = $util.time.nowEpochMilliSeconds() - $ctx.stash.deltaSyncTableTtl * 60 * 1000 )
 #if( !$util.isNull($ctx.args.lastSync) && $ctx.args.lastSync != 0 && $minLastSync <= $ctx.args.lastSync )
   #set( $isLastSyncInDeltaTTLWindow = true )
 #end
@@ -29,6 +36,10 @@ $util.qr($PkMap.put('contributorID' , 'byContributor'))
       #if( $ind == 0 && !$util.isNullOrEmpty($entry.value.eq) && !$util.isNullOrEmpty($PkMap.get($entry.key)) )
         #set( $pk = $entry.key )
         #set( $scan = false )
+        #set( $queryRequestVariables.partitionKey = $pk )
+        #set( $queryRequestVariables.sortKeys = $SkMap.get($PkMap.get($pk)) )
+        #set( $queryRequestVariables.partitionKeyFilter = {} )
+        $util.qr($queryRequestVariables.partitionKeyFilter.put($pk, {'eq': $entry.value.eq}))
         $util.qr($ctx.args.put($pk,$entry.value.eq))
         #set( $index = $PkMap.get($pk) )
       #end
@@ -100,7 +111,8 @@ $util.qr($PkMap.put('contributorID' , 'byContributor'))
 ## [Start]  Set query expression for @key **
 #if( !$scan )
   #set( $limit = $util.defaultIfNull($context.args.limit, 100) )
-  #set( $QueryRequest = {
+  #set( $ctx.stash.QueryRequestVariables = $queryRequestVariables )
+  #set( $ctx.stash.QueryRequest = {
   "version": "2018-05-29",
   "operation": "Sync",
   "limit": $limit,
@@ -109,30 +121,17 @@ $util.qr($PkMap.put('contributorID' , 'byContributor'))
 } )
   #if( !$util.isNull($ctx.args.sortDirection)
                     && $ctx.args.sortDirection == "DESC" )
-    #set( $QueryRequest.scanIndexForward = false )
+    #set( $ctx.stash.QueryRequest.scanIndexForward = false )
   #else
-    #set( $QueryRequest.scanIndexForward = true )
+    #set( $ctx.stash.QueryRequest.scanIndexForward = true )
   #end
-#if( $context.args.nextToken ) #set( $QueryRequest.nextToken = $context.args.nextToken ) #end
-  #if( !$util.isNullOrEmpty($filterMap) )
-    #set( $QueryRequest.filter = $util.parseJson($util.transform.toDynamoDBFilterExpression($filterMap)) )
+#if( $context.args.nextToken ) #set( $ctx.stash.QueryRequest.nextToken = $context.args.nextToken ) #end
+  #if( !$util.isNullOrEmpty($filterMap) && $util.toJson($filterMap) != $util.toJson({}) )
+    #set( $ctx.stash.QueryRequest.filter = $filterMap )
   #end
   #if( $index != "dbTable" )
-    #set( $QueryRequest.index = $index )
+    #set( $ctx.stash.QueryRequest.index = $index )
   #end
-  $util.toJson($QueryRequest)
-#else
-{
-      "version": "2018-05-29",
-      "operation": "Sync",
-      "limit": $util.defaultIfNull($ctx.args.limit, 100),
-      "nextToken": $util.toJson($util.defaultIfNull($ctx.args.nextToken, null)),
-      "lastSync": $util.toJson($util.defaultIfNull($ctx.args.lastSync, null)),
-      "filter":     #if( !$util.isNullOrEmpty($ctx.args.filter) )
-$util.transform.toDynamoDBFilterExpression($ctx.args.filter)
-    #else
-null
-    #end
-  }
 #end
+$util.toJson({})
 ## [End]  Set query expression for @key **

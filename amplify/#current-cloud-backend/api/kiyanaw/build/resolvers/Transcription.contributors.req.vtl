@@ -1,5 +1,8 @@
 #if( $ctx.stash.deniedField )
-  #return($util.toJson(null))
+  #set( $result = {
+  "items":   []
+} )
+  #return($result)
 #end
 #set( $partitionKeyValue = $util.defaultIfNull($ctx.stash.connectionAttributes.get("id"), $ctx.source.id) )
 #if( $util.isNull($partitionKeyValue) )

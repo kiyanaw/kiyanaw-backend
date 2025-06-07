@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { useTranscriptions } from '../../hooks/useTranscriptions';
+import { useTranscriptionsStore } from '../../stores/useTranscriptionsStore';
+import type { Transcription } from '../../models';
 import TimeAgo from 'javascript-time-ago';
 import en from 'javascript-time-ago/locale/en';
 
@@ -27,7 +28,10 @@ const columns: Column[] = [
 ];
 
 export const TranscriptionsTable = () => {
-  const { transcriptions, loading, loadTranscriptions } = useTranscriptions();
+  const transcriptions = useTranscriptionsStore((state) => state.transcriptions);
+  const loading = useTranscriptionsStore((state) => state.loading);
+  const error = useTranscriptionsStore((state) => state.error);
+  const loadTranscriptions = useTranscriptionsStore((state) => state.loadTranscriptions);
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState('dateLastUpdated');
   const [sortDesc, setSortDesc] = useState(true);
@@ -46,8 +50,8 @@ export const TranscriptionsTable = () => {
 
     // Sort
     filtered.sort((a, b) => {
-      let aValue = a[sortBy];
-      let bValue = b[sortBy];
+      let aValue: any = (a as any)[sortBy];
+      let bValue: any = (b as any)[sortBy];
 
       // Handle numeric values
       if (
@@ -106,6 +110,20 @@ export const TranscriptionsTable = () => {
       <div className="flex flex-col items-center justify-center py-32 text-gray-500">
         <div className="w-8 h-8 border-2 border-gray-300 border-t-ki-blue rounded-full animate-spin mb-4"></div>
         <p className="text-base">Loading transcriptions...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-32 text-red-500">
+        <p className="text-base">Error: {error}</p>
+        <button 
+          onClick={loadTranscriptions}
+          className="mt-4 px-4 py-2 bg-ki-blue text-white rounded hover:bg-blue-700"
+        >
+          Retry
+        </button>
       </div>
     );
   }

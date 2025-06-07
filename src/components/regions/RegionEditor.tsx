@@ -43,8 +43,7 @@ interface Region {
   start: number;
   end: number;
   displayIndex: number;
-  text?: any; // Quill Delta format
-  regionText?: string; // Plain text for display/search
+  regionText?: string; // Plain text content
   translation?: string;
   isNote?: boolean;
   issues?: any[];
@@ -132,35 +131,18 @@ export const RegionEditor = memo(({
       if (saveState.DS_OUTBOX_BUSY) {
         setTimeout(() => debouncedSave(regionId, updates), saveState.SAVE_RETRY);
       } else {
-        // Strip suggestion formats before saving
-        if (updates.text) {
-          const cleanText = stripSuggestionFormats(updates.text);
-          updates.text = cleanText;
-        }
+        // Strip suggestion formats before saving - not needed for plain text
+        // Since regionText is plain text, no need to strip formatting
         onUpdate(regionId, updates);
       }
     }, 250),
     [onUpdate]
   );
 
-  // Strip suggestion formats from Delta
-  const stripSuggestionFormats = (delta: any) => {
-    if (Array.isArray(delta)) {
-      return delta.map(op => {
-        if (op.attributes) {
-          const cleanAttributes = { ...op.attributes };
-          delete cleanAttributes.suggestion;
-          delete cleanAttributes['suggestion-known'];
-          if (Object.keys(cleanAttributes).length === 0) {
-            return { insert: op.insert };
-          }
-          return { ...op, attributes: cleanAttributes };
-        }
-        return op;
-      });
-    }
-    return delta;
-  };
+  // Strip suggestion formats from Delta - no longer needed for plain text
+  // const stripSuggestionFormats = (delta: any) => {
+  //   // This function is no longer needed since we're using plain text
+  // };
 
   // Reconcile text and issues - update issue indices when text changes
   const reconcileTextAndIssues = (newText: string, oldText: string, issues: any[]) => {
@@ -193,7 +175,6 @@ export const RegionEditor = memo(({
   // Handle main editor content changes
   const handleMainEditorChange = (_content: string, _delta: any, source: string, editor: any) => {
     if (source === 'user') {
-      const deltaOps = editor.getContents().ops;
       const plainText = editor.getText();
       const oldText = region.regionText || '';
       
@@ -201,7 +182,6 @@ export const RegionEditor = memo(({
       const reconciledIssues = reconcileTextAndIssues(plainText.trim(), oldText, region.issues || []);
       
       debouncedSave(region.id, {
-        text: deltaOps,
         regionText: plainText.trim(),
         ...(reconciledIssues.length !== (region.issues || []).length && { issues: reconciledIssues })
       });
@@ -315,13 +295,9 @@ export const RegionEditor = memo(({
   // Initialize editor content when region changes
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (mainEditorRef.current && region.text) {
+      if (mainEditorRef.current && region.regionText) {
         const quill = mainEditorRef.current.getEditor();
-        if (Array.isArray(region.text)) {
-          quill.setContents(region.text);
-        } else {
-          quill.setText(region.text);
-        }
+        quill.setText(region.regionText);
       }
 
       if (translationEditorRef.current && region.translation) {
@@ -331,7 +307,7 @@ export const RegionEditor = memo(({
     }, 25); // Micro-delay as specified
 
     return () => clearTimeout(timer);
-  }, [region.id, region.text, region.translation]);
+  }, [region.id, region.regionText, region.translation]);
 
   // Handle permissions
   useEffect(() => {
@@ -362,31 +338,24 @@ export const RegionEditor = memo(({
     word: string;
   } | null>(null);
   
-  // Extract words from Quill deltas for analysis
-  const getTextMapFromDeltas = (deltas: any[]) => {
+  // Extract words from plain text for analysis
+  const getTextMapFromPlainText = (text: string) => {
     const textMap: { [word: string]: { index: number; length: number; original: string } } = {};
     
-    if (!Array.isArray(deltas)) return textMap;
+    if (!text) return textMap;
     
-    let currentIndex = 0;
-    deltas.forEach((op: any) => {
-      if (typeof op.insert === 'string') {
-        const text = op.insert;
-        // Extract words, handling special characters: [],.?() etc
-        const words = text.match(/[a-zA-ZÀ-ÿ-]+/g) || [];
-        
-        words.forEach((word: string) => {
-          const cleanWord = word.toLowerCase().trim();
-          if (cleanWord.length > 1) { // Only check words longer than 1 character
-            const wordIndex = text.indexOf(word, currentIndex);
-            textMap[cleanWord] = {
-              index: currentIndex + wordIndex,
-              length: word.length,
-              original: word
-            };
-          }
-        });
-        currentIndex += text.length;
+    // Extract words, handling special characters: [],.?() etc
+    const words = text.match(/[a-zA-ZÀ-ÿ-]+/g) || [];
+    
+    words.forEach((word: string) => {
+      const cleanWord = word.toLowerCase().trim();
+      if (cleanWord.length > 1) { // Only check words longer than 1 character
+        const wordIndex = text.indexOf(word);
+        textMap[cleanWord] = {
+          index: wordIndex,
+          length: word.length,
+          original: word
+        };
       }
     });
     
@@ -395,8 +364,8 @@ export const RegionEditor = memo(({
 
   // Memoized text map for performance
   const textMap = useMemo(() => {
-    return getTextMapFromDeltas(region.text || []);
-  }, [region.text]);
+    return getTextMapFromPlainText(region.regionText || '');
+  }, [region.regionText]);
 
   // Check for known words and apply formatting
   const checkForKnownWords = useCallback((doUpdate = false) => {
@@ -408,7 +377,7 @@ export const RegionEditor = memo(({
     
     const timer = setTimeout(() => {
       const quill = mainEditorRef.current?.getEditor();
-      if (!quill || !region.text) return;
+      if (!quill || !region.regionText) return;
       
       const words = Object.keys(textMap);
       const unknownWords = words.filter(w => !knownWords.includes(w));
@@ -434,26 +403,25 @@ export const RegionEditor = memo(({
     }, 750); // 750ms delay as specified
     
     setCheckTimer(timer);
-  }, [transcription?.disableAnalyzer, region.isNote, region.text, textMap, knownWords, checkTimer]);
+  }, [transcription?.disableAnalyzer, region.isNote, region.regionText, textMap, knownWords, checkTimer]);
 
   // Apply known word formatting
   const applyKnownWords = useCallback(() => {
     const quill = mainEditorRef.current?.getEditor();
-    if (!quill || !region.text) return;
+    if (!quill || !region.regionText) return;
     
     Object.entries(textMap).forEach(([word, position]) => {
       if (knownWords.includes(word)) {
         // Use CSS class approach for now - simpler than complex Quill format registration
-        const range = quill.getSelection();
         quill.formatText(position.index, position.length, 'class', 'known-word');
       }
     });
-  }, [region.text, textMap, knownWords]);
+  }, [region.regionText, textMap, knownWords]);
 
   // Apply suggestion formatting to unknown words
   const applySuggestions = useCallback(() => {
     const quill = mainEditorRef.current?.getEditor();
-    if (!quill || !region.text) return;
+    if (!quill || !region.regionText) return;
     
     Object.entries(textMap).forEach(([word, position]) => {
       if (!knownWords.includes(word) && word.length > 2) {
@@ -464,7 +432,7 @@ export const RegionEditor = memo(({
         }
       }
     });
-  }, [region.text, textMap, knownWords]);
+  }, [region.regionText, textMap, knownWords]);
 
   // Show suggestion dropdown for a word
   const showSuggestionDropdown = useCallback((word: string, range: { index: number; length: number }) => {

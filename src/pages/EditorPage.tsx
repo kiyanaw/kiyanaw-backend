@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import { useTranscriptions } from '../hooks/useTranscriptions';
-import { useRegions } from '../hooks/useRegions';
+import { useEditorStore } from '../stores/useEditorStore';
 import { useAuth } from '../hooks/useAuth';
 import { eventBus } from '../lib/eventBus';
 import { WaveformPlayer } from '../components/player/WaveformPlayer';
@@ -14,32 +13,35 @@ export const EditorPage = () => {
     regionId?: string;
   }>();
   const { user } = useAuth();
-  const {
-    transcription,
-    loadTranscription,
-    loading: transcriptionLoading,
-  } = useTranscriptions();
-  const {
-    regions,
-    selectedRegionId,
-    setSelectedRegion,
-    loadRegions,
-    createRegion,
-    updateRegion,
-    loading: regionsLoading,
-  } = useRegions(transcriptionId);
+  
+  // Editor store selectors
+  const transcription = useEditorStore((state) => state.transcription);
+  const regions = useEditorStore((state) => state.regions);
+  const selectedRegionId = useEditorStore((state) => state.selectedRegionId);
+  const loading = useEditorStore((state) => state.loading);
+  const error = useEditorStore((state) => state.error);
+  const issues = useEditorStore((state) => state.issues);
+  
+  // Editor store actions
+  const loadData = useEditorStore((state) => state.loadData);
+  const cleanup = useEditorStore((state) => state.cleanup);
+  const setSelectedRegion = useEditorStore((state) => state.setSelectedRegion);
+  const createRegion = useEditorStore((state) => state.createRegion);
+  const updateRegion = useEditorStore((state) => state.updateRegion);
+  const updateTranscription = useEditorStore((state) => state.updateTranscription);
+  const createIssue = useEditorStore((state) => state.createIssue);
+  const updateIssue = useEditorStore((state) => state.updateIssue);
+  const deleteIssue = useEditorStore((state) => state.deleteIssue);
+  const addComment = useEditorStore((state) => state.addComment);
 
 
-  const [error, setError] = useState<string | null>(null);
   const [showLookup, setShowLookup] = useState(false);
   const [inboundRegion, setInboundRegion] = useState<string | null>(null);
-  const [issues, setIssues] = useState<any[]>([]);
 
   // Memoize computed values to prevent unnecessary re-renders
   const isVideo = useMemo(() => transcription?.type?.startsWith('video/'), [transcription?.type]);
   const canEdit = useMemo(() => user !== null, [user]);
   const isTranscriptionAuthor = useMemo(() => transcription?.author === user?.username, [transcription?.author, user?.username]);
-  const loading = useMemo(() => transcriptionLoading || regionsLoading, [transcriptionLoading, regionsLoading]);
   const selectedRegion = useMemo(() => 
     regions.find(r => r.id === selectedRegionId) || null, 
     [regions, selectedRegionId]
@@ -54,19 +56,13 @@ export const EditorPage = () => {
   useEffect(() => {
     if (!transcriptionId) return;
 
-    const loadData = async () => {
-      try {
-        const cleanup = await loadTranscription(transcriptionId);
-        await loadRegions(transcriptionId);
-        return cleanup;
-      } catch (error) {
-        console.error('Error loading transcription:', error);
-        setError('Failed to load transcription');
-      }
-    };
+    loadData(transcriptionId);
 
-    loadData();
-  }, [transcriptionId, loadTranscription, loadRegions]);
+    // Cleanup on unmount or transcriptionId change
+    return () => {
+      cleanup();
+    };
+  }, [transcriptionId, loadData, cleanup]);
 
   // Handle inbound region from URL separately to avoid re-loading data
   useEffect(() => {
@@ -80,9 +76,7 @@ export const EditorPage = () => {
   useEffect(() => {
     // Listen for events
     const handlePeaksError = () => {
-      setError(
-        'Processing waveform data, wait a minute then try refreshing the page...'
-      );
+      console.warn('Processing waveform data, wait a minute then try refreshing the page...');
     };
 
     const handleTranscriptionReady = () => {
@@ -165,7 +159,7 @@ export const EditorPage = () => {
           start: regionUpdate.start,
           end: regionUpdate.end,
           id: regionUpdate.id,
-          text: '', // Simple empty string for now
+          regionText: '', // Simple empty string for now
           isNote: false,
           userLastUpdated: user?.username || 'unknown',
         };
@@ -188,7 +182,7 @@ export const EditorPage = () => {
             start: regionUpdate.start,
             end: regionUpdate.end,
             id: regionUpdate.id,
-            text: '',
+            regionText: '',
             isNote: false,
             userLastUpdated: user?.username || 'unknown',
           };
@@ -214,11 +208,11 @@ export const EditorPage = () => {
   const handleTranscriptionUpdate = useCallback(async (updates: any) => {
     try {
       console.log('📝 Updating transcription:', updates);
-      // TODO: Implement transcription update logic when DataStore integration is ready
+      await updateTranscription(updates);
     } catch (error) {
       console.error('❌ Error updating transcription:', error);
     }
-  }, []);
+  }, [updateTranscription]);
 
   // Handler for region updates from the editor
   const handleRegionEditorUpdate = useCallback(async (regionId: string, updates: any) => {
@@ -271,27 +265,21 @@ export const EditorPage = () => {
   }, []);
 
   // Issue management handlers
-  const handleIssueCreate = useCallback((issue: any) => {
-    setIssues(prev => [...prev, { ...issue, id: Date.now().toString() }]);
-  }, []);
+  const handleIssueCreate = useCallback(async (issueData: any) => {
+    await createIssue(issueData);
+  }, [createIssue]);
 
-  const handleIssueUpdate = useCallback((issueId: string, updates: any) => {
-    setIssues(prev => prev.map(issue => 
-      issue.id === issueId ? { ...issue, ...updates } : issue
-    ));
-  }, []);
+  const handleIssueUpdate = useCallback(async (issueId: string, updates: any) => {
+    await updateIssue(issueId, updates);
+  }, [updateIssue]);
 
-  const handleIssueDelete = useCallback((issueId: string) => {
-    setIssues(prev => prev.filter(issue => issue.id !== issueId));
-  }, []);
+  const handleIssueDelete = useCallback(async (issueId: string) => {
+    await deleteIssue(issueId);
+  }, [deleteIssue]);
 
-  const handleIssueAddComment = useCallback((issueId: string, comment: any) => {
-    setIssues(prev => prev.map(issue => 
-      issue.id === issueId 
-        ? { ...issue, comments: [...(issue.comments || []), comment] }
-        : issue
-    ));
-  }, []);
+  const handleIssueAddComment = useCallback(async (issueId: string, comment: any) => {
+    await addComment(issueId, comment);
+  }, [addComment]);
 
   if (loading && !error) {
     return (

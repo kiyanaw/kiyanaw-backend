@@ -1,4 +1,3 @@
-
 type Transcription {
   id: ID!
   author: String!
@@ -30,10 +29,8 @@ type Region {
   id: ID!
   start: Float!
   end: Float!
-  text: String!
   regionText: String
   regionAnalysis: String
-  issues: String
   isNote: Boolean
   comments: String
   translation: String
@@ -312,9 +309,12 @@ input ModelTranscriptionFilterInput {
   isPrivate: ModelBooleanInput
   isPublished: ModelBooleanInput
   disableAnalyzer: ModelBooleanInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
   and: [ModelTranscriptionFilterInput]
   or: [ModelTranscriptionFilterInput]
   not: ModelTranscriptionFilterInput
+  _deleted: ModelBooleanInput
 }
 
 type Query {
@@ -368,6 +368,9 @@ input ModelTranscriptionConditionInput {
   and: [ModelTranscriptionConditionInput]
   or: [ModelTranscriptionConditionInput]
   not: ModelTranscriptionConditionInput
+  _deleted: ModelBooleanInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
 }
 
 input CreateTranscriptionInput {
@@ -462,8 +465,11 @@ input ModelSubscriptionTranscriptionFilterInput {
   isPrivate: ModelSubscriptionBooleanInput
   isPublished: ModelSubscriptionBooleanInput
   disableAnalyzer: ModelSubscriptionBooleanInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
   and: [ModelSubscriptionTranscriptionFilterInput]
   or: [ModelSubscriptionTranscriptionFilterInput]
+  _deleted: ModelBooleanInput
 }
 
 type Subscription {
@@ -506,28 +512,27 @@ input ModelRegionFilterInput {
   id: ModelIDInput
   start: ModelFloatInput
   end: ModelFloatInput
-  text: ModelStringInput
   regionText: ModelStringInput
   regionAnalysis: ModelStringInput
-  issues: ModelStringInput
   isNote: ModelBooleanInput
   comments: ModelStringInput
   translation: ModelStringInput
   dateLastUpdated: ModelStringInput
   userLastUpdated: ModelStringInput
   transcriptionId: ModelIDInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
   and: [ModelRegionFilterInput]
   or: [ModelRegionFilterInput]
   not: ModelRegionFilterInput
+  _deleted: ModelBooleanInput
 }
 
 input ModelRegionConditionInput {
   start: ModelFloatInput
   end: ModelFloatInput
-  text: ModelStringInput
   regionText: ModelStringInput
   regionAnalysis: ModelStringInput
-  issues: ModelStringInput
   isNote: ModelBooleanInput
   comments: ModelStringInput
   translation: ModelStringInput
@@ -537,16 +542,17 @@ input ModelRegionConditionInput {
   and: [ModelRegionConditionInput]
   or: [ModelRegionConditionInput]
   not: ModelRegionConditionInput
+  _deleted: ModelBooleanInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
 }
 
 input CreateRegionInput {
   id: ID
   start: Float!
   end: Float!
-  text: String!
   regionText: String
   regionAnalysis: String
-  issues: String
   isNote: Boolean
   comments: String
   translation: String
@@ -560,10 +566,8 @@ input UpdateRegionInput {
   id: ID!
   start: Float
   end: Float
-  text: String
   regionText: String
   regionAnalysis: String
-  issues: String
   isNote: Boolean
   comments: String
   translation: String
@@ -582,18 +586,19 @@ input ModelSubscriptionRegionFilterInput {
   id: ModelSubscriptionIDInput
   start: ModelSubscriptionFloatInput
   end: ModelSubscriptionFloatInput
-  text: ModelSubscriptionStringInput
   regionText: ModelSubscriptionStringInput
   regionAnalysis: ModelSubscriptionStringInput
-  issues: ModelSubscriptionStringInput
   isNote: ModelSubscriptionBooleanInput
   comments: ModelSubscriptionStringInput
   translation: ModelSubscriptionStringInput
   dateLastUpdated: ModelSubscriptionStringInput
   userLastUpdated: ModelSubscriptionStringInput
   transcriptionId: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
   and: [ModelSubscriptionRegionFilterInput]
   or: [ModelSubscriptionRegionFilterInput]
+  _deleted: ModelBooleanInput
 }
 
 type ModelIssueConnection {
@@ -612,9 +617,12 @@ input ModelIssueFilterInput {
   comments: ModelStringInput
   regionId: ModelStringInput
   transcriptionId: ModelIDInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
   and: [ModelIssueFilterInput]
   or: [ModelIssueFilterInput]
   not: ModelIssueFilterInput
+  _deleted: ModelBooleanInput
 }
 
 input ModelIssueConditionInput {
@@ -629,6 +637,9 @@ input ModelIssueConditionInput {
   and: [ModelIssueConditionInput]
   or: [ModelIssueConditionInput]
   not: ModelIssueConditionInput
+  _deleted: ModelBooleanInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
 }
 
 input CreateIssueInput {
@@ -672,8 +683,11 @@ input ModelSubscriptionIssueFilterInput {
   comments: ModelSubscriptionStringInput
   regionId: ModelSubscriptionStringInput
   transcriptionId: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
   and: [ModelSubscriptionIssueFilterInput]
   or: [ModelSubscriptionIssueFilterInput]
+  _deleted: ModelBooleanInput
 }
 
 type ModelPointerConnection {
@@ -688,9 +702,12 @@ input ModelPointerFilterInput {
   region: ModelStringInput
   cursor: ModelStringInput
   owner: ModelStringInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
   and: [ModelPointerFilterInput]
   or: [ModelPointerFilterInput]
   not: ModelPointerFilterInput
+  _deleted: ModelBooleanInput
 }
 
 input ModelPointerConditionInput {
@@ -701,6 +718,9 @@ input ModelPointerConditionInput {
   and: [ModelPointerConditionInput]
   or: [ModelPointerConditionInput]
   not: ModelPointerConditionInput
+  _deleted: ModelBooleanInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
 }
 
 input CreatePointerInput {
@@ -732,8 +752,11 @@ input ModelSubscriptionPointerFilterInput {
   region: ModelSubscriptionStringInput
   cursor: ModelSubscriptionStringInput
   owner: ModelSubscriptionStringInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
   and: [ModelSubscriptionPointerFilterInput]
   or: [ModelSubscriptionPointerFilterInput]
+  _deleted: ModelBooleanInput
 }
 
 type ModelRegionLockConnection {
@@ -747,9 +770,12 @@ input ModelRegionLockFilterInput {
   transcriptionId: ModelStringInput
   deleteTime: ModelIntInput
   user: ModelStringInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
   and: [ModelRegionLockFilterInput]
   or: [ModelRegionLockFilterInput]
   not: ModelRegionLockFilterInput
+  _deleted: ModelBooleanInput
 }
 
 input ModelRegionLockConditionInput {
@@ -758,6 +784,9 @@ input ModelRegionLockConditionInput {
   and: [ModelRegionLockConditionInput]
   or: [ModelRegionLockConditionInput]
   not: ModelRegionLockConditionInput
+  _deleted: ModelBooleanInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
 }
 
 input CreateRegionLockInput {
@@ -787,8 +816,11 @@ input ModelSubscriptionRegionLockFilterInput {
   transcriptionId: ModelSubscriptionStringInput
   deleteTime: ModelSubscriptionIntInput
   user: ModelSubscriptionStringInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
   and: [ModelSubscriptionRegionLockFilterInput]
   or: [ModelSubscriptionRegionLockFilterInput]
+  _deleted: ModelBooleanInput
 }
 
 type ModelContributorConnection {
@@ -801,9 +833,12 @@ input ModelContributorFilterInput {
   id: ModelIDInput
   email: ModelIDInput
   username: ModelIDInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
   and: [ModelContributorFilterInput]
   or: [ModelContributorFilterInput]
   not: ModelContributorFilterInput
+  _deleted: ModelBooleanInput
 }
 
 input ModelContributorConditionInput {
@@ -812,6 +847,9 @@ input ModelContributorConditionInput {
   and: [ModelContributorConditionInput]
   or: [ModelContributorConditionInput]
   not: ModelContributorConditionInput
+  _deleted: ModelBooleanInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
 }
 
 input CreateContributorInput {
@@ -837,8 +875,11 @@ input ModelSubscriptionContributorFilterInput {
   id: ModelSubscriptionIDInput
   email: ModelSubscriptionIDInput
   username: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
   and: [ModelSubscriptionContributorFilterInput]
   or: [ModelSubscriptionContributorFilterInput]
+  _deleted: ModelBooleanInput
 }
 
 type ModelCursorConnection {
@@ -851,9 +892,12 @@ input ModelCursorFilterInput {
   id: ModelIDInput
   user: ModelStringInput
   cursor: ModelStringInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
   and: [ModelCursorFilterInput]
   or: [ModelCursorFilterInput]
   not: ModelCursorFilterInput
+  _deleted: ModelBooleanInput
 }
 
 input ModelCursorConditionInput {
@@ -861,6 +905,9 @@ input ModelCursorConditionInput {
   and: [ModelCursorConditionInput]
   or: [ModelCursorConditionInput]
   not: ModelCursorConditionInput
+  _deleted: ModelBooleanInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
 }
 
 input CreateCursorInput {
@@ -887,8 +934,11 @@ input ModelSubscriptionCursorFilterInput {
   id: ModelSubscriptionIDInput
   user: ModelSubscriptionStringInput
   cursor: ModelSubscriptionStringInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
   and: [ModelSubscriptionCursorFilterInput]
   or: [ModelSubscriptionCursorFilterInput]
+  _deleted: ModelBooleanInput
 }
 
 type ModelUserCursorConnection {
@@ -902,9 +952,12 @@ input ModelUserCursorFilterInput {
   transcription: ModelStringInput
   region: ModelStringInput
   cursor: ModelStringInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
   and: [ModelUserCursorFilterInput]
   or: [ModelUserCursorFilterInput]
   not: ModelUserCursorFilterInput
+  _deleted: ModelBooleanInput
 }
 
 input ModelUserCursorConditionInput {
@@ -914,6 +967,9 @@ input ModelUserCursorConditionInput {
   and: [ModelUserCursorConditionInput]
   or: [ModelUserCursorConditionInput]
   not: ModelUserCursorConditionInput
+  _deleted: ModelBooleanInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
 }
 
 input CreateUserCursorInput {
@@ -942,8 +998,11 @@ input ModelSubscriptionUserCursorFilterInput {
   transcription: ModelSubscriptionStringInput
   region: ModelSubscriptionStringInput
   cursor: ModelSubscriptionStringInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
   and: [ModelSubscriptionUserCursorFilterInput]
   or: [ModelSubscriptionUserCursorFilterInput]
+  _deleted: ModelBooleanInput
 }
 
 type ModelTranscriptionContributorConnection {
@@ -956,9 +1015,12 @@ input ModelTranscriptionContributorFilterInput {
   id: ModelIDInput
   transcriptionID: ModelIDInput
   contributorID: ModelIDInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
   and: [ModelTranscriptionContributorFilterInput]
   or: [ModelTranscriptionContributorFilterInput]
   not: ModelTranscriptionContributorFilterInput
+  _deleted: ModelBooleanInput
 }
 
 input ModelTranscriptionContributorConditionInput {
@@ -967,6 +1029,9 @@ input ModelTranscriptionContributorConditionInput {
   and: [ModelTranscriptionContributorConditionInput]
   or: [ModelTranscriptionContributorConditionInput]
   not: ModelTranscriptionContributorConditionInput
+  _deleted: ModelBooleanInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
 }
 
 input CreateTranscriptionContributorInput {
@@ -992,8 +1057,11 @@ input ModelSubscriptionTranscriptionContributorFilterInput {
   id: ModelSubscriptionIDInput
   transcriptionID: ModelSubscriptionIDInput
   contributorID: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
   and: [ModelSubscriptionTranscriptionContributorFilterInput]
   or: [ModelSubscriptionTranscriptionContributorFilterInput]
+  _deleted: ModelBooleanInput
 }
 
 input ModelStringKeyConditionInput {
@@ -1005,4 +1073,3 @@ input ModelStringKeyConditionInput {
   between: [String]
   beginsWith: String
 }
-
