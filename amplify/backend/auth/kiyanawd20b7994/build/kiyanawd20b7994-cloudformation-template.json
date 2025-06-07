@@ -1,5 +1,5 @@
 {
-  "Description": "{\"createdOn\":\"Mac\",\"createdBy\":\"Amplify\",\"createdWith\":\"11.1.1\",\"stackType\":\"auth-Cognito\",\"metadata\":{}}",
+  "Description": "Amplify Cognito Stack for AWS Amplify CLI",
   "AWSTemplateFormatVersion": "2010-09-09",
   "Parameters": {
     "env": {
@@ -121,14 +121,6 @@
           "Ref": "env"
         },
         "NONE"
-      ]
-    },
-    "ShouldOutputAppClientSecrets": {
-      "Fn::Equals": [
-        {
-          "Ref": "userpoolClientGenerateSecret"
-        },
-        true
       ]
     }
   },
@@ -286,15 +278,15 @@
     "UserPoolClientWeb": {
       "Type": "AWS::Cognito::UserPoolClient",
       "Properties": {
-        "UserPoolId": {
-          "Ref": "UserPool"
-        },
         "ClientName": "kiyanad20b7994_app_clientWeb",
         "RefreshTokenValidity": {
           "Ref": "userpoolClientRefreshTokenValidity"
         },
         "TokenValidityUnits": {
           "RefreshToken": "days"
+        },
+        "UserPoolId": {
+          "Ref": "UserPool"
         }
       },
       "DependsOn": [
@@ -304,9 +296,6 @@
     "UserPoolClient": {
       "Type": "AWS::Cognito::UserPoolClient",
       "Properties": {
-        "UserPoolId": {
-          "Ref": "UserPool"
-        },
         "ClientName": "kiyanad20b7994_app_client",
         "GenerateSecret": {
           "Ref": "userpoolClientGenerateSecret"
@@ -316,6 +305,9 @@
         },
         "TokenValidityUnits": {
           "RefreshToken": "days"
+        },
+        "UserPoolId": {
+          "Ref": "UserPool"
         }
       },
       "DependsOn": [
@@ -370,126 +362,7 @@
             }
           ]
         }
-      },
-      "DependsOn": [
-        "UserPoolClient"
-      ]
-    },
-    "UserPoolClientLambda": {
-      "Type": "AWS::Lambda::Function",
-      "Properties": {
-        "Code": {
-          "ZipFile": "const response = require('cfn-response');\nconst aws = require('aws-sdk');\nconst identity = new aws.CognitoIdentityServiceProvider();\nexports.handler = (event, context, callback) => {\n  if (event.RequestType == 'Delete') {\n    response.send(event, context, response.SUCCESS, {});\n  }\n  if (event.RequestType == 'Update' || event.RequestType == 'Create') {\n    const params = {\n      ClientId: event.ResourceProperties.clientId,\n      UserPoolId: event.ResourceProperties.userpoolId,\n    };\n    identity\n      .describeUserPoolClient(params)\n      .promise()\n      .then((res) => {\n        response.send(event, context, response.SUCCESS, { appSecret: res.UserPoolClient.ClientSecret });\n      })\n      .catch((err) => {\n        response.send(event, context, response.FAILED, { err });\n      });\n  }\n};\n"
-        },
-        "Role": {
-          "Fn::GetAtt": [
-            "UserPoolClientRole",
-            "Arn"
-          ]
-        },
-        "Handler": "index.handler",
-        "Runtime": "nodejs16.x",
-        "Timeout": 300
-      },
-      "DependsOn": [
-        "UserPoolClientRole"
-      ]
-    },
-    "UserPoolClientLambdaPolicy": {
-      "Type": "AWS::IAM::Policy",
-      "Properties": {
-        "PolicyDocument": {
-          "Version": "2012-10-17",
-          "Statement": [
-            {
-              "Effect": "Allow",
-              "Action": [
-                "cognito-idp:DescribeUserPoolClient"
-              ],
-              "Resource": {
-                "Fn::GetAtt": [
-                  "UserPool",
-                  "Arn"
-                ]
-              }
-            }
-          ]
-        },
-        "PolicyName": "kiyanad20b7994_userpoolclient_lambda_iam_policy",
-        "Roles": [
-          {
-            "Ref": "UserPoolClientRole"
-          }
-        ]
-      },
-      "DependsOn": [
-        "UserPoolClientLambda"
-      ]
-    },
-    "UserPoolClientLogPolicy": {
-      "Type": "AWS::IAM::Policy",
-      "Properties": {
-        "PolicyDocument": {
-          "Version": "2012-10-17",
-          "Statement": [
-            {
-              "Effect": "Allow",
-              "Action": [
-                "logs:CreateLogGroup",
-                "logs:CreateLogStream",
-                "logs:PutLogEvents"
-              ],
-              "Resource": {
-                "Fn::Sub": [
-                  "arn:aws:logs:${region}:${account}:log-group:/aws/lambda/${lambda}:log-stream:*",
-                  {
-                    "region": {
-                      "Ref": "AWS::Region"
-                    },
-                    "account": {
-                      "Ref": "AWS::AccountId"
-                    },
-                    "lambda": {
-                      "Ref": "UserPoolClientLambda"
-                    }
-                  }
-                ]
-              }
-            }
-          ]
-        },
-        "PolicyName": "kiyanad20b7994_userpoolclient_lambda_log_policy",
-        "Roles": [
-          {
-            "Ref": "UserPoolClientRole"
-          }
-        ]
-      },
-      "DependsOn": [
-        "UserPoolClientLambdaPolicy"
-      ]
-    },
-    "UserPoolClientInputs": {
-      "Type": "Custom::LambdaCallout",
-      "Properties": {
-        "ServiceToken": {
-          "Fn::GetAtt": [
-            "UserPoolClientLambda",
-            "Arn"
-          ]
-        },
-        "clientId": {
-          "Ref": "UserPoolClient"
-        },
-        "userpoolId": {
-          "Ref": "UserPool"
-        }
-      },
-      "DependsOn": [
-        "UserPoolClientLogPolicy"
-      ],
-      "UpdateReplacePolicy": "Delete",
-      "DeletionPolicy": "Delete"
+      }
     },
     "IdentityPool": {
       "Type": "AWS::Cognito::IdentityPool",
@@ -552,10 +425,7 @@
             }
           ]
         }
-      },
-      "DependsOn": [
-        "UserPoolClientInputs"
-      ]
+      }
     },
     "IdentityPoolRoleMap": {
       "Type": "AWS::Cognito::IdentityPoolRoleAttachment",
@@ -623,15 +493,6 @@
       "Value": {
         "Ref": "UserPoolClient"
       }
-    },
-    "AppClientSecret": {
-      "Value": {
-        "Fn::GetAtt": [
-          "UserPoolClientInputs",
-          "appSecret"
-        ]
-      },
-      "Condition": "ShouldOutputAppClientSecrets"
     },
     "CreatedSNSRole": {
       "Description": "role arn",

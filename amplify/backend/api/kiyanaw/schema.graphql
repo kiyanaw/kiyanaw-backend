@@ -32,10 +32,8 @@ type Region
   id: ID! @primaryKey
   start: Float!
   end: Float!
-  text: String! # Old text value
   regionText: String
   regionAnalysis: String
-  issues: String # this will go away
   isNote: Boolean
   comments: String # Can this go away?
   translation: String

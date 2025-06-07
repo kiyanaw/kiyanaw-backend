@@ -80,7 +80,7 @@
         },
         "syncConflictHandler092e0049": {
           "deploymentBucketName": "amplify-kiyanaw-upgradetwo-155254-deployment",
-          "s3Key": "amplify-builds/syncConflictHandler092e0049-514a524672446d516254-build.zip"
+          "s3Key": "amplify-builds/syncConflictHandler092e0049-7a4a755a424469687669-build.zip"
         }
       },
       "api": {

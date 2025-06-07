@@ -7,13 +7,12 @@ interface RegionItemProps {
     end: number;
     displayIndex?: number;
     isNote?: boolean;
-    text?: string;
+    regionText?: string;
     translation?: string;
   };
   index: number;
   isSelected: boolean;
   editingUsers?: Array<{ user: string; color: string }>;
-  disableAnalyzer?: boolean;
   onClick: (regionId: string, index: number) => void;
 }
 
@@ -22,7 +21,6 @@ export const RegionItem = ({
   index,
   isSelected,
   editingUsers = [],
-  disableAnalyzer = false,
   onClick,
 }: RegionItemProps) => {
   const formatTime = (seconds: number) => {
@@ -32,40 +30,10 @@ export const RegionItem = ({
   };
 
   const renderTextContent = useMemo(() => {
-    if (!region.text) return '';
+    if (!region.regionText) return '';
 
-    try {
-      // Parse Quill delta format
-      const delta = JSON.parse(region.text);
-      if (delta.ops) {
-        return delta.ops
-          .map((op: any) => {
-            const content = op.insert || '';
-            if (op.attributes) {
-              let classes = Object.keys(op.attributes);
-
-              // Filter out analyzer classes if disabled
-              if (disableAnalyzer) {
-                classes = classes.filter(
-                  (cls: string) => !cls.startsWith('known')
-                );
-              }
-
-              if (classes.length) {
-                return `<span class="${classes.join(' ')}">${content}</span>`;
-              }
-            }
-            return content;
-          })
-          .join('');
-      }
-    } catch (error) {
-      // Fallback to plain text if parsing fails
-      return region.text;
-    }
-
-    return region.text;
-  }, [region.text, disableAnalyzer]);
+    return region.regionText;
+  }, [region.regionText]);
 
   const editorIndicator = useMemo(() => {
     if (editingUsers.length === 0) return '';

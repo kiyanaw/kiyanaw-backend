@@ -24,7 +24,7 @@
   "index": "ByTitle"
 } )
 #if( !$util.isNull($ctx.args.sortDirection)
-                      && $ctx.args.sortDirection == "DESC" )
+                  && $ctx.args.sortDirection == "DESC" )
   #set( $QueryRequest.scanIndexForward = false )
 #else
   #set( $QueryRequest.scanIndexForward = true )

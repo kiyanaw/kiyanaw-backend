@@ -1,47 +1,42 @@
-import { ModelInit, MutableModel } from '@aws-amplify/datastore';
-// @ts-expect-error - Amplify DataStore types require this import pattern
-import {
-  LazyLoading,
-  LazyLoadingDisabled,
-  AsyncCollection,
-  AsyncItem,
-} from '@aws-amplify/datastore';
+import { ModelInit, MutableModel } from "@aws-amplify/datastore";
+// @ts-ignore
+import { LazyLoading, LazyLoadingDisabled, AsyncCollection, AsyncItem } from "@aws-amplify/datastore";
 
 type TranscriptionMetaData = {
   readOnlyFields: 'createdAt' | 'updatedAt';
-};
+}
 
 type RegionMetaData = {
   readOnlyFields: 'createdAt' | 'updatedAt';
-};
+}
 
 type IssueMetaData = {
   readOnlyFields: 'createdAt' | 'updatedAt';
-};
+}
 
 type PointerMetaData = {
   readOnlyFields: 'createdAt' | 'updatedAt';
-};
+}
 
 type RegionLockMetaData = {
   readOnlyFields: 'createdAt' | 'updatedAt';
-};
+}
 
 type ContributorMetaData = {
   readOnlyFields: 'createdAt' | 'updatedAt';
-};
+}
 
 type CursorMetaData = {
   readOnlyFields: 'createdAt' | 'updatedAt';
-};
+}
 
 type UserCursorMetaData = {
   readOnlyFields: 'createdAt' | 'updatedAt';
-};
+}
 
 type TranscriptionContributorMetaData = {
   readOnlyFields: 'createdAt' | 'updatedAt';
-};
+}
 
 type EagerTranscription = {
   readonly id: string;
@@ -65,7 +60,7 @@ type EagerTranscription = {
   readonly issueList?: (Issue | null)[] | null;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
-};
+}
 
 type LazyTranscription = {
   readonly id: string;
@@ -89,31 +84,20 @@ type LazyTranscription = {
   readonly issueList: AsyncCollection<Issue>;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
-};
+}
 
-export declare type Transcription = LazyLoading extends LazyLoadingDisabled
-  ? EagerTranscription
-  : LazyTranscription;
+export declare type Transcription = LazyLoading extends LazyLoadingDisabled ? EagerTranscription : LazyTranscription
 
-export declare const Transcription: (new (
-  init: ModelInit<Transcription, TranscriptionMetaData>
-) => Transcription) & {
-  copyOf(
-    source: Transcription,
-    mutator: (
-      draft: MutableModel<Transcription, TranscriptionMetaData>
-    ) => MutableModel<Transcription, TranscriptionMetaData> | void
-  ): Transcription;
-};
+export declare const Transcription: (new (init: ModelInit<Transcription, TranscriptionMetaData>) => Transcription) & {
+  copyOf(source: Transcription, mutator: (draft: MutableModel<Transcription, TranscriptionMetaData>) => MutableModel<Transcription, TranscriptionMetaData> | void): Transcription;
+}
 
 type EagerRegion = {
   readonly id: string;
   readonly start: number;
   readonly end: number;
-  readonly text: string;
   readonly regionText?: string | null;
   readonly regionAnalysis?: string | null;
-  readonly issues?: string | null;
   readonly isNote?: boolean | null;
   readonly comments?: string | null;
   readonly translation?: string | null;
@@ -122,16 +106,14 @@ type EagerRegion = {
   readonly transcription: Transcription;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
-};
+}
 
 type LazyRegion = {
   readonly id: string;
   readonly start: number;
   readonly end: number;
-  readonly text: string;
   readonly regionText?: string | null;
   readonly regionAnalysis?: string | null;
-  readonly issues?: string | null;
   readonly isNote?: boolean | null;
   readonly comments?: string | null;
   readonly translation?: string | null;
@@ -140,22 +122,13 @@ type LazyRegion = {
   readonly transcription: AsyncItem<Transcription>;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
-};
+}
 
-export declare type Region = LazyLoading extends LazyLoadingDisabled
-  ? EagerRegion
-  : LazyRegion;
+export declare type Region = LazyLoading extends LazyLoadingDisabled ? EagerRegion : LazyRegion
 
-export declare const Region: (new (
-  init: ModelInit<Region, RegionMetaData>
-) => Region) & {
-  copyOf(
-    source: Region,
-    mutator: (
-      draft: MutableModel<Region, RegionMetaData>
-    ) => MutableModel<Region, RegionMetaData> | void
-  ): Region;
-};
+export declare const Region: (new (init: ModelInit<Region, RegionMetaData>) => Region) & {
+  copyOf(source: Region, mutator: (draft: MutableModel<Region, RegionMetaData>) => MutableModel<Region, RegionMetaData> | void): Region;
+}
 
 type EagerIssue = {
   readonly id: string;
@@ -169,7 +142,7 @@ type EagerIssue = {
   readonly transcription: Transcription;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
-};
+}
 
 type LazyIssue = {
   readonly id: string;
@@ -183,22 +156,13 @@ type LazyIssue = {
   readonly transcription: AsyncItem<Transcription>;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
-};
+}
 
-export declare type Issue = LazyLoading extends LazyLoadingDisabled
-  ? EagerIssue
-  : LazyIssue;
+export declare type Issue = LazyLoading extends LazyLoadingDisabled ? EagerIssue : LazyIssue
 
-export declare const Issue: (new (
-  init: ModelInit<Issue, IssueMetaData>
-) => Issue) & {
-  copyOf(
-    source: Issue,
-    mutator: (
-      draft: MutableModel<Issue, IssueMetaData>
-    ) => MutableModel<Issue, IssueMetaData> | void
-  ): Issue;
-};
+export declare const Issue: (new (init: ModelInit<Issue, IssueMetaData>) => Issue) & {
+  copyOf(source: Issue, mutator: (draft: MutableModel<Issue, IssueMetaData>) => MutableModel<Issue, IssueMetaData> | void): Issue;
+}
 
 type EagerPointer = {
   readonly id: string;
@@ -208,7 +172,7 @@ type EagerPointer = {
   readonly owner?: string | null;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
-};
+}
 
 type LazyPointer = {
   readonly id: string;
@@ -218,22 +182,13 @@ type LazyPointer = {
   readonly owner?: string | null;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
-};
+}
 
-export declare type Pointer = LazyLoading extends LazyLoadingDisabled
-  ? EagerPointer
-  : LazyPointer;
+export declare type Pointer = LazyLoading extends LazyLoadingDisabled ? EagerPointer : LazyPointer
 
-export declare const Pointer: (new (
-  init: ModelInit<Pointer, PointerMetaData>
-) => Pointer) & {
-  copyOf(
-    source: Pointer,
-    mutator: (
-      draft: MutableModel<Pointer, PointerMetaData>
-    ) => MutableModel<Pointer, PointerMetaData> | void
-  ): Pointer;
-};
+export declare const Pointer: (new (init: ModelInit<Pointer, PointerMetaData>) => Pointer) & {
+  copyOf(source: Pointer, mutator: (draft: MutableModel<Pointer, PointerMetaData>) => MutableModel<Pointer, PointerMetaData> | void): Pointer;
+}
 
 type EagerRegionLock = {
   readonly id: string;
@@ -242,7 +197,7 @@ type EagerRegionLock = {
   readonly user: string;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
-};
+}
 
 type LazyRegionLock = {
   readonly id: string;
@@ -251,22 +206,13 @@ type LazyRegionLock = {
   readonly user: string;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
-};
+}
 
-export declare type RegionLock = LazyLoading extends LazyLoadingDisabled
-  ? EagerRegionLock
-  : LazyRegionLock;
+export declare type RegionLock = LazyLoading extends LazyLoadingDisabled ? EagerRegionLock : LazyRegionLock
 
-export declare const RegionLock: (new (
-  init: ModelInit<RegionLock, RegionLockMetaData>
-) => RegionLock) & {
-  copyOf(
-    source: RegionLock,
-    mutator: (
-      draft: MutableModel<RegionLock, RegionLockMetaData>
-    ) => MutableModel<RegionLock, RegionLockMetaData> | void
-  ): RegionLock;
-};
+export declare const RegionLock: (new (init: ModelInit<RegionLock, RegionLockMetaData>) => RegionLock) & {
+  copyOf(source: RegionLock, mutator: (draft: MutableModel<RegionLock, RegionLockMetaData>) => MutableModel<RegionLock, RegionLockMetaData> | void): RegionLock;
+}
 
 type EagerContributor = {
   readonly id: string;
@@ -275,7 +221,7 @@ type EagerContributor = {
   readonly transcriptions?: (TranscriptionContributor | null)[] | null;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
-};
+}
 
 type LazyContributor = {
   readonly id: string;
@@ -284,22 +230,13 @@ type LazyContributor = {
   readonly transcriptions: AsyncCollection<TranscriptionContributor>;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
-};
+}
 
-export declare type Contributor = LazyLoading extends LazyLoadingDisabled
-  ? EagerContributor
-  : LazyContributor;
+export declare type Contributor = LazyLoading extends LazyLoadingDisabled ? EagerContributor : LazyContributor
 
-export declare const Contributor: (new (
-  init: ModelInit<Contributor, ContributorMetaData>
-) => Contributor) & {
-  copyOf(
-    source: Contributor,
-    mutator: (
-      draft: MutableModel<Contributor, ContributorMetaData>
-    ) => MutableModel<Contributor, ContributorMetaData> | void
-  ): Contributor;
-};
+export declare const Contributor: (new (init: ModelInit<Contributor, ContributorMetaData>) => Contributor) & {
+  copyOf(source: Contributor, mutator: (draft: MutableModel<Contributor, ContributorMetaData>) => MutableModel<Contributor, ContributorMetaData> | void): Contributor;
+}
 
 type EagerCursor = {
   readonly id: string;
@@ -307,7 +244,7 @@ type EagerCursor = {
   readonly cursor: string;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
-};
+}
 
 type LazyCursor = {
   readonly id: string;
@@ -315,22 +252,13 @@ type LazyCursor = {
   readonly cursor: string;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
-};
+}
 
-export declare type Cursor = LazyLoading extends LazyLoadingDisabled
-  ? EagerCursor
-  : LazyCursor;
+export declare type Cursor = LazyLoading extends LazyLoadingDisabled ? EagerCursor : LazyCursor
 
-export declare const Cursor: (new (
-  init: ModelInit<Cursor, CursorMetaData>
-) => Cursor) & {
-  copyOf(
-    source: Cursor,
-    mutator: (
-      draft: MutableModel<Cursor, CursorMetaData>
-    ) => MutableModel<Cursor, CursorMetaData> | void
-  ): Cursor;
-};
+export declare const Cursor: (new (init: ModelInit<Cursor, CursorMetaData>) => Cursor) & {
+  copyOf(source: Cursor, mutator: (draft: MutableModel<Cursor, CursorMetaData>) => MutableModel<Cursor, CursorMetaData> | void): Cursor;
+}
 
 type EagerUserCursor = {
   readonly id: string;
@@ -339,7 +267,7 @@ type EagerUserCursor = {
   readonly cursor: string;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
-};
+}
 
 type LazyUserCursor = {
   readonly id: string;
@@ -348,22 +276,13 @@ type LazyUserCursor = {
   readonly cursor: string;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
-};
+}
 
-export declare type UserCursor = LazyLoading extends LazyLoadingDisabled
-  ? EagerUserCursor
-  : LazyUserCursor;
+export declare type UserCursor = LazyLoading extends LazyLoadingDisabled ? EagerUserCursor : LazyUserCursor
 
-export declare const UserCursor: (new (
-  init: ModelInit<UserCursor, UserCursorMetaData>
-) => UserCursor) & {
-  copyOf(
-    source: UserCursor,
-    mutator: (
-      draft: MutableModel<UserCursor, UserCursorMetaData>
-    ) => MutableModel<UserCursor, UserCursorMetaData> | void
-  ): UserCursor;
-};
+export declare const UserCursor: (new (init: ModelInit<UserCursor, UserCursorMetaData>) => UserCursor) & {
+  copyOf(source: UserCursor, mutator: (draft: MutableModel<UserCursor, UserCursorMetaData>) => MutableModel<UserCursor, UserCursorMetaData> | void): UserCursor;
+}
 
 type EagerTranscriptionContributor = {
   readonly id: string;
@@ -371,7 +290,7 @@ type EagerTranscriptionContributor = {
   readonly contributor: Contributor;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
-};
+}
 
 type LazyTranscriptionContributor = {
   readonly id: string;
@@ -379,26 +298,10 @@ type LazyTranscriptionContributor = {
   readonly contributor: AsyncItem<Contributor>;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
-};
+}
 
-export declare type TranscriptionContributor =
-  LazyLoading extends LazyLoadingDisabled
-    ? EagerTranscriptionContributor
-    : LazyTranscriptionContributor;
+export declare type TranscriptionContributor = LazyLoading extends LazyLoadingDisabled ? EagerTranscriptionContributor : LazyTranscriptionContributor
 
-export declare const TranscriptionContributor: (new (
-  init: ModelInit<TranscriptionContributor, TranscriptionContributorMetaData>
-) => TranscriptionContributor) & {
-  copyOf(
-    source: TranscriptionContributor,
-    mutator: (
-      draft: MutableModel<
-        TranscriptionContributor,
-        TranscriptionContributorMetaData
-      >
-    ) => MutableModel<
-      TranscriptionContributor,
-      TranscriptionContributorMetaData
-    > | void
-  ): TranscriptionContributor;
-};
+export declare const TranscriptionContributor: (new (init: ModelInit<TranscriptionContributor, TranscriptionContributorMetaData>) => TranscriptionContributor) & {
+  copyOf(source: TranscriptionContributor, mutator: (draft: MutableModel<TranscriptionContributor, TranscriptionContributorMetaData>) => MutableModel<TranscriptionContributor, TranscriptionContributorMetaData> | void): TranscriptionContributor;
+}

@@ -1,5 +1,7 @@
 import { useAuthenticator } from '@aws-amplify/ui-react';
 import { signOut as amplifySignOut } from 'aws-amplify/auth';
+import { useEffect } from 'react';
+import { useAuthStore } from '../stores/useAuthStore';
 
 export interface AuthUser {
   username: string;
@@ -26,6 +28,18 @@ export const useAuth = (): UseAuthReturn => {
     context.route,
     context.signOut,
   ]);
+  
+  const setUser = useAuthStore((state) => state.setUser);
+  const authStoreUser = useAuthStore((state) => state.user);
+
+  useEffect(() => {
+    const currentUser = route === 'authenticated' && user ? {
+      username: user.username,
+      userId: user.userId,
+      signInDetails: user.signInDetails,
+    } : null;
+    setUser(currentUser);
+  }, [user, route, setUser]);
 
   const signIn = () => {
     // This will be handled by the Authenticator component
@@ -51,15 +65,9 @@ export const useAuth = (): UseAuthReturn => {
     route === 'authenticated' ? 'authenticated' : 'unauthenticated';
 
   return {
-    user: user
-      ? {
-          username: user.username,
-          userId: user.userId,
-          signInDetails: user.signInDetails,
-        }
-      : null,
+    user: authStoreUser,
     route: mappedRoute,
-    signedIn: route === 'authenticated',
+    signedIn: !!authStoreUser,
     signIn,
     signOut,
     refreshSession,
