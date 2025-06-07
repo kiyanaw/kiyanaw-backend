@@ -1,13 +1,12 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
 import { useEditorStore } from '../stores/useEditorStore';
 import { useAuth } from '../hooks/useAuth';
+import { useEditorData } from '../hooks/useEditorData';
 import { eventBus } from '../lib/eventBus';
 import { WaveformPlayer } from '../components/player/WaveformPlayer';
 import { RegionList } from '../components/regions/RegionList';
 import { StationaryInspector } from '../components/inspector/StationaryInspector';
-import { getEditorData } from '../services/transcriptionService';
 
 export const EditorPage = () => {
   const { id: transcriptionId, regionId } = useParams<{
@@ -15,6 +14,7 @@ export const EditorPage = () => {
     regionId?: string;
   }>();
   const { user } = useAuth();
+  const { isLoading, error: queryError } = useEditorData(transcriptionId);
   
   // Editor store selectors
   const transcription = useEditorStore((state) => state.transcription);
@@ -34,33 +34,6 @@ export const EditorPage = () => {
   const deleteIssue = useEditorStore((state) => state.deleteIssue);
   const addComment = useEditorStore((state) => state.addComment);
 
-  // TanStack Query for data fetching
-  const { 
-    isLoading, 
-    error: queryError, 
-    data,
-  } = useQuery({
-    queryKey: ['editorData', transcriptionId],
-    queryFn: () => getEditorData(transcriptionId!),
-    enabled: !!transcriptionId, // Only run query if transcriptionId exists
-    staleTime: Infinity, // Data is managed by DataStore subscriptions, so it's always fresh
-    refetchOnWindowFocus: false,
-  });
-
-  // Effect to load data from query into the store
-  useEffect(() => {
-    if (data) {
-      setData({
-        transcription: data.transcription,
-        regions: data.regions,
-        issues: data.issues,
-        source: data.source ?? undefined,
-        peaks: data.peaks,
-        isVideo: data.isVideo,
-      });
-    }
-  }, [data, setData]);
-
   const [showLookup, setShowLookup] = useState(false);
   const [inboundRegion, setInboundRegion] = useState<string | null>(null);
 
@@ -72,16 +45,6 @@ export const EditorPage = () => {
   const transcriptionSource = useEditorStore((state) => state.transcriptionSource);
   const transcriptionPeaks = useEditorStore((state) => state.transcriptionPeaks);
   const transcriptionTitle = useEditorStore((state) => state.transcriptionTitle);
-
-  // Load transcription and regions once per transcriptionId
-  useEffect(() => {
-    if (!transcriptionId) return;
-
-    // Cleanup on unmount or transcriptionId change
-    return () => {
-      cleanup();
-    };
-  }, [transcriptionId, cleanup]);
 
   // Handle inbound region from URL separately to avoid re-loading data
   useEffect(() => {
@@ -303,7 +266,7 @@ export const EditorPage = () => {
   return (
     <div className="flex flex-col h-full overflow-hidden relative">
       {/* Loading/Error/Not Found Overlay */}
-      {(isLoading || queryError || (!isLoading && !data)) && (
+      {(isLoading || queryError || (!isLoading && !transcription)) && (
         <div className="absolute inset-0 bg-white flex flex-col items-center justify-center z-10">
           {isLoading && (
             <div className="flex flex-col items-center justify-center h-full p-8 text-center">
@@ -317,7 +280,7 @@ export const EditorPage = () => {
               <p className="text-gray-600">{(queryError as Error).message}</p>
             </div>
           )}
-          {!isLoading && !queryError && !data && (
+          {!isLoading && !queryError && !transcription && (
             <div className="flex flex-col items-center justify-center h-full p-8 text-center">
               <h2 className="text-red-600 text-2xl font-semibold mb-4">Not Found</h2>
               <p className="text-gray-600">Transcription not found.</p>
