@@ -9,11 +9,13 @@ export default {
     'node_modules/(?!(@aws-amplify|aws-amplify)/)',
   ],
   transform: {
-    '^.+\\.(ts|tsx)$': ['ts-jest', {
+    '^.+\\.(t|j)sx?$': ['ts-jest', {
       tsconfig: {
         jsx: 'react-jsx',
         esModuleInterop: true,
         allowSyntheticDefaultImports: true,
+        allowJs: true,
+        types: ['@testing-library/jest-dom'],
       },
     }],
   },

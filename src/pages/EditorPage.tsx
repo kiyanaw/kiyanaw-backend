@@ -1,11 +1,13 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useEditorStore } from '../stores/useEditorStore';
 import { useAuth } from '../hooks/useAuth';
 import { eventBus } from '../lib/eventBus';
 import { WaveformPlayer } from '../components/player/WaveformPlayer';
 import { RegionList } from '../components/regions/RegionList';
 import { StationaryInspector } from '../components/inspector/StationaryInspector';
+import { getEditorData } from '../services/transcriptionService';
 
 export const EditorPage = () => {
   const { id: transcriptionId, regionId } = useParams<{
@@ -18,12 +20,10 @@ export const EditorPage = () => {
   const transcription = useEditorStore((state) => state.transcription);
   const regions = useEditorStore((state) => state.regions);
   const selectedRegionId = useEditorStore((state) => state.selectedRegionId);
-  const loading = useEditorStore((state) => state.loading);
-  const error = useEditorStore((state) => state.error);
   const issues = useEditorStore((state) => state.issues);
   
   // Editor store actions
-  const loadData = useEditorStore((state) => state.loadData);
+  const setData = useEditorStore((state) => state.setData);
   const cleanup = useEditorStore((state) => state.cleanup);
   const setSelectedRegion = useEditorStore((state) => state.setSelectedRegion);
   const createRegion = useEditorStore((state) => state.createRegion);
@@ -34,35 +34,54 @@ export const EditorPage = () => {
   const deleteIssue = useEditorStore((state) => state.deleteIssue);
   const addComment = useEditorStore((state) => state.addComment);
 
+  // TanStack Query for data fetching
+  const { 
+    isLoading, 
+    error: queryError, 
+    data,
+  } = useQuery({
+    queryKey: ['editorData', transcriptionId],
+    queryFn: () => getEditorData(transcriptionId!),
+    enabled: !!transcriptionId, // Only run query if transcriptionId exists
+    staleTime: Infinity, // Data is managed by DataStore subscriptions, so it's always fresh
+    refetchOnWindowFocus: false,
+  });
+
+  // Effect to load data from query into the store
+  useEffect(() => {
+    if (data) {
+      setData({
+        transcription: data.transcription,
+        regions: data.regions,
+        issues: data.issues,
+        source: data.source ?? undefined,
+        peaks: data.peaks,
+        isVideo: data.isVideo,
+      });
+    }
+  }, [data, setData]);
 
   const [showLookup, setShowLookup] = useState(false);
   const [inboundRegion, setInboundRegion] = useState<string | null>(null);
 
-  // Memoize computed values to prevent unnecessary re-renders
-  const isVideo = useMemo(() => transcription?.type?.startsWith('video/'), [transcription?.type]);
+  // Derived state from the store
+  const isVideo = useEditorStore((state) => state.isVideo);
   const canEdit = useMemo(() => user !== null, [user]);
-  const isTranscriptionAuthor = useMemo(() => transcription?.author === user?.username, [transcription?.author, user?.username]);
-  const selectedRegion = useMemo(() => 
-    regions.find(r => r.id === selectedRegionId) || null, 
-    [regions, selectedRegionId]
-  );
-
-  // Memoize transcription props to prevent WaveformPlayer re-renders
-  const transcriptionSource = useMemo(() => transcription?.source, [transcription?.source]);
-  const transcriptionPeaks = useMemo(() => transcription?.peaks, [transcription?.peaks]);
-  const transcriptionTitle = useMemo(() => transcription?.title, [transcription?.title]);
+  const isTranscriptionAuthor = useEditorStore((state) => state.isTranscriptionAuthor(user));
+  const selectedRegion = useEditorStore((state) => state.selectedRegion);
+  const transcriptionSource = useEditorStore((state) => state.transcriptionSource);
+  const transcriptionPeaks = useEditorStore((state) => state.transcriptionPeaks);
+  const transcriptionTitle = useEditorStore((state) => state.transcriptionTitle);
 
   // Load transcription and regions once per transcriptionId
   useEffect(() => {
     if (!transcriptionId) return;
 
-    loadData(transcriptionId);
-
     // Cleanup on unmount or transcriptionId change
     return () => {
       cleanup();
     };
-  }, [transcriptionId, loadData, cleanup]);
+  }, [transcriptionId, cleanup]);
 
   // Handle inbound region from URL separately to avoid re-loading data
   useEffect(() => {
@@ -281,54 +300,45 @@ export const EditorPage = () => {
     await addComment(issueId, comment);
   }, [addComment]);
 
-  if (loading && !error) {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen p-8 text-center">
-        <div className="w-10 h-10 border-4 border-gray-300 border-t-ki-blue rounded-full animate-spin mb-4"></div>
-        <p className="text-gray-600">Loading transcription...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen p-8 text-center">
-        <h2 className="text-red-600 text-2xl font-semibold mb-4">Error</h2>
-        <p className="text-gray-600">{error}</p>
-      </div>
-    );
-  }
-
-  if (!transcription) {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen p-8 text-center">
-        <h2 className="text-red-600 text-2xl font-semibold mb-4">Not Found</h2>
-        <p className="text-gray-600">Transcription not found.</p>
-      </div>
-    );
-  }
-
-  console.log('📄 EditorPage rendering WaveformPlayer with:', {
-    transcription: transcription,
-    hasPeaks: !!transcription.peaks,
-    peaksType: typeof transcription.peaks,
-    peaksKeys: transcription.peaks ? Object.keys(transcription.peaks) : null,
-    source: transcription.source
-  });
-
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex flex-col h-full overflow-hidden relative">
+      {/* Loading/Error/Not Found Overlay */}
+      {(isLoading || queryError || (!isLoading && !data)) && (
+        <div className="absolute inset-0 bg-white flex flex-col items-center justify-center z-10">
+          {isLoading && (
+            <div className="flex flex-col items-center justify-center h-full p-8 text-center">
+              <div className="w-10 h-10 border-4 border-gray-300 border-t-ki-blue rounded-full animate-spin mb-4"></div>
+              <p className="text-gray-600">Loading transcription...</p>
+            </div>
+          )}
+          {queryError && (
+            <div className="flex flex-col items-center justify-center h-full p-8 text-center">
+              <h2 className="text-red-600 text-2xl font-semibold mb-4">Error</h2>
+              <p className="text-gray-600">{(queryError as Error).message}</p>
+            </div>
+          )}
+          {!isLoading && !queryError && !data && (
+            <div className="flex flex-col items-center justify-center h-full p-8 text-center">
+              <h2 className="text-red-600 text-2xl font-semibold mb-4">Not Found</h2>
+              <p className="text-gray-600">Transcription not found.</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Main Content (always rendered) */}
+      
       {/* Waveform/Video Player Section */}
       <div className="flex-shrink-0 bg-gray-100 border-b border-gray-300">
         <div className="h-[223px] flex items-center justify-center">
           <WaveformPlayer
-            source={transcriptionSource}
+            source={transcriptionSource || ''}
             peaks={transcriptionPeaks}
             canEdit={canEdit}
             inboundRegion={inboundRegion}
             regions={regions}
             isVideo={isVideo}
-            title={transcriptionTitle}
+            title={transcriptionTitle || ''}
             onRegionUpdate={handleRegionUpdate}
             onLookup={handleLookup}
           />
@@ -379,7 +389,7 @@ export const EditorPage = () => {
           <div className="bg-white p-8 rounded-lg shadow-xl max-w-lg w-[90%] text-center">
             <h3 className="text-gray-800 text-xl font-semibold mb-4">Dictionary Lookup</h3>
             <p className="text-gray-600 mb-6">Lookup modal will be implemented in Phase 13</p>
-            <button 
+            <button
               onClick={() => setShowLookup(false)}
               className="mt-4 px-4 py-2 bg-ki-blue text-white border-none rounded hover:bg-blue-700 transition-colors cursor-pointer"
             >

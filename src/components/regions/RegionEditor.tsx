@@ -139,11 +139,6 @@ export const RegionEditor = memo(({
     [onUpdate]
   );
 
-  // Strip suggestion formats from Delta - no longer needed for plain text
-  // const stripSuggestionFormats = (delta: any) => {
-  //   // This function is no longer needed since we're using plain text
-  // };
-
   // Reconcile text and issues - update issue indices when text changes
   const reconcileTextAndIssues = (newText: string, oldText: string, issues: any[]) => {
     if (!issues || issues.length === 0) return issues;
