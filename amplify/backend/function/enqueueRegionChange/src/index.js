@@ -1,8 +1,8 @@
 const assert = require('assert').strict
 const AWS = require('aws-sdk')
 
-const sqs = new AWS.SQS({ region: 'us-east-1' })
-const queueUrl = 'https://sqs.us-east-1.amazonaws.com/494185203413/enqueueRegionChanges'
+const sqs = new AWS.SQS({ region: process.env.REGION })
+const queueUrl = `https://sqs.${process.env.REGION}.amazonaws.com/494185203413/enqueueRegionChanges-${process.env.ENV}`
 
 const okResponse = () => {
   return {
@@ -39,10 +39,7 @@ exports.handler = async (event) => {
 
   // push ID to the queue
   const params = {
-    // DelaySeconds: 10,
     MessageBody: regionId,
-    // TODO: this only works with fifo?
-    // MessageDeduplicationId: regionId.replace('_', '-'),
     QueueUrl: queueUrl,
   }
 
