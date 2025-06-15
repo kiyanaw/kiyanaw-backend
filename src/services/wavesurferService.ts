@@ -25,8 +25,6 @@ class WaveSurferService {
       return this.wavesurfer;
     }
 
-    console.log('📋 Initializing WaveSurfer singleton 111', this.peaks);
-
     // Create plugins
     this.regionsPlugin = Regions.create();
     this.timelinePlugin = Timeline.create({
@@ -40,7 +38,6 @@ class WaveSurferService {
       progressColor: '#162738',
       barWidth: 2,
       height: 128,
-      peaks: this.peaks,
       plugins: [this.regionsPlugin, this.timelinePlugin],
     });
 
@@ -70,14 +67,10 @@ class WaveSurferService {
     this.wavesurfer.setMediaElement(mediaElement);
   }
 
-  loadAudio(source: string, peaks?: number[]): Promise<void> {
-    if (!this.wavesurfer) {
-      throw new Error('WaveSurfer not initialized');
-    }
-
-    console.log('📋 Loading audio into WaveSurfer singleton:', source);
-    return this.wavesurfer.load(source, peaks as any);
+  setZoom(value: number): void {
+    this.wavesurfer?.zoom(value);
   }
+
 
   destroy(): void {
     if (this.wavesurfer) {
