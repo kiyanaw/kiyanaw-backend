@@ -1,11 +1,21 @@
 import { useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuthStore } from '../../stores/useAuthStore';
+import { signOut } from 'aws-amplify/auth';
 
 export const AppLayout = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const { signedIn, signOut, user } = useAuth();
+  const user = useAuthStore((state) => state.user);
+  const signedIn = useAuthStore((state) => state.signedIn);
   const location = useLocation();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
 
   const toggleDrawer = () => {
     setDrawerOpen(!drawerOpen);
@@ -35,7 +45,7 @@ export const AppLayout = () => {
             <div className="flex items-center gap-4">
               <span className="hidden md:inline">Welcome, {user?.username}</span>
               <button 
-                onClick={signOut} 
+                onClick={handleSignOut} 
                 className="bg-white/10 border border-white/30 text-white py-2 px-3 rounded text-sm hover:bg-white/20 transition-colors"
               >
                 Sign out

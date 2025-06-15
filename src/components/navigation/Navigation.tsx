@@ -1,7 +1,17 @@
-import { useAuth } from '../../hooks/useAuth';
+import { useAuthStore } from '../../stores/useAuthStore';
+import { signOut } from 'aws-amplify/auth';
 
 export const Navigation = () => {
-  const { signedIn, signOut, user } = useAuth();
+  const user = useAuthStore((state) => state.user);
+  const signedIn = useAuthStore((state) => state.signedIn);
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
 
   return (
     <nav>
@@ -9,7 +19,7 @@ export const Navigation = () => {
         {signedIn ? (
           <div>
             <span>Welcome, {user?.username}</span>
-            <button onClick={signOut}>Sign out</button>
+            <button onClick={handleSignOut}>Sign out</button>
           </div>
         ) : (
           <div>

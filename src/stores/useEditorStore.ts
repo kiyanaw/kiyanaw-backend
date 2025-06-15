@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { DataStore } from '@aws-amplify/datastore';
 import { Transcription, Region, Issue } from '../models';
-import { eventBus } from '../lib/eventBus';
+
 
 interface EditorDataPayload {
   transcription: any;
@@ -18,7 +18,7 @@ interface EditorState {
   transcription: any | null;
   saved: boolean;
   transcriptionSource: string | null;
-  transcriptionPeaks: any | null;
+  peaks: any | null;
 
   // Regions state
   regions: any[];
@@ -78,7 +78,7 @@ export const useEditorStore = create<EditorState>()(
       transcription: null,
       saved: false,
       transcriptionSource: null,
-      transcriptionPeaks: null,
+      peaks: null,
       regions: [],
       regionMap: {},
       selectedRegionId: null,
@@ -118,73 +118,6 @@ export const useEditorStore = create<EditorState>()(
           issueMap[issue.id] = issue;
         });
 
-        // Set up subscriptions
-        if (transcription) {
-          const subscriptions = [
-            // Transcription subscription
-            DataStore.observe(Transcription, transcription.id).subscribe((message) => {
-              if (message.opType === 'UPDATE') {
-                set({ transcription: message.element });
-                eventBus.emit('transcription-updated', message.element);
-              }
-            }),
-
-            // Regions subscription
-            DataStore.observeQuery(Region, (r) => r.transcription.id.eq(transcription.id)).subscribe((snapshot) => {
-              const newRegions = snapshot.items
-                .slice()
-                .sort((a, b) => (a.start > b.start ? 1 : -1))
-                .map((item, index) => ({
-                  ...item,
-                  index,
-                  displayIndex: item.isNote ? 0 : index + 1,
-                }));
-
-              const newRegionMap: Record<string, any> = {};
-              newRegions.forEach((region) => {
-                newRegionMap[region.id] = region;
-              });
-
-              set((currentState) => ({
-                regions: newRegions,
-                regionMap: newRegionMap,
-                selectedRegion: currentState.selectedRegionId ? newRegionMap[currentState.selectedRegionId] : null,
-              }));
-            }),
-
-            // Issues subscription
-            DataStore.observeQuery(Issue, (i) => i.transcription.id.eq(transcription.id)).subscribe((snapshot) => {
-              const newIssues = snapshot.items.map((issue: any) => {
-                let comments = [];
-                try {
-                  comments = issue.comments ? JSON.parse(issue.comments) : [];
-                } catch (e) {
-                  console.warn('Failed to parse comments for issue:', issue.id);
-                  comments = [];
-                }
-                return {
-                  ...issue,
-                  comments: comments.sort(
-                    (a: any, b: any) =>
-                      new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-                  ),
-                };
-              }).sort(
-                (a, b) =>
-                  new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-              );
-
-              const newIssueMap: Record<string, any> = {};
-              newIssues.forEach((issue) => {
-                newIssueMap[issue.id] = issue;
-              });
-
-              set({ issues: newIssues, issueMap: newIssueMap });
-            })
-          ];
-          set({ _subscriptions: subscriptions });
-        }
-
         set({
           transcription,
           regions,
@@ -192,12 +125,10 @@ export const useEditorStore = create<EditorState>()(
           issues,
           issueMap,
           transcriptionSource: source,
-          transcriptionPeaks: peaks,
+          peaks: peaks,
           isVideo: isVideo ?? false,
         });
-        
-        eventBus.emit('transcription-ready');
-        eventBus.emit('transcription-loaded', transcription);
+
       },
 
       cleanup: () => {
@@ -206,7 +137,7 @@ export const useEditorStore = create<EditorState>()(
         set({
           transcription: null,
           transcriptionSource: null,
-          transcriptionPeaks: null,
+          peaks: null,
           regions: [],
           regionMap: {},
           issues: [],
@@ -242,7 +173,6 @@ export const useEditorStore = create<EditorState>()(
           );
 
           set({ transcription: updated, saved: true });
-          eventBus.emit('transcription-updated', updated);
         } catch (error) {
           console.error('Error updating transcription:', error);
           set({ transcription }); // Revert optimistic update on error
@@ -329,7 +259,6 @@ export const useEditorStore = create<EditorState>()(
             })
           );
 
-          eventBus.emit('issue-created', newIssue);
           return newIssue;
         } catch (error) {
           console.error('Error creating issue:', error);
@@ -348,7 +277,6 @@ export const useEditorStore = create<EditorState>()(
             })
           );
 
-          eventBus.emit('issue-updated', issue);
         } catch (error) {
           console.error('Error updating issue:', error);
         }
