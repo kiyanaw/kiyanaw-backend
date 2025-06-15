@@ -31,8 +31,9 @@ export class LoadTranscription {
     const wavesurferService = this.config.services.wavesurferService
     try {
       const data = await transcriptionService.loadInFull(this.config.transcriptionId);
-      console.log('data loaded', data)
       this.config.store.setData(data);
+
+      // load wavesurfer details _outside_ the React system
       wavesurferService.load(data.source, data.peaks)
       
     } catch (error) {

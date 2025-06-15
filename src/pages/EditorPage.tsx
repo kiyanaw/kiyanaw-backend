@@ -17,6 +17,7 @@ export const EditorPage = () => {
   
   console.log('editor')
   useTranscription(transcriptionId!);
+  // NOT sure we need this yet
   useWavesurferEvents(transcriptionId!);
 
   

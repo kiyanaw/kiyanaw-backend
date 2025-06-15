@@ -87,7 +87,7 @@ export const WaveformPlayer = ({
   };
 
   const handleZoomChange = (value: number) => {
-    eventBus.emit('waveform-zoom-change', value);
+    wavesurferService.setZoom(value)
   };
 
   const handleSpeedChange = (value: number) => {

@@ -30,7 +30,6 @@ const fetchPeaksData = async (source: string): Promise<number[]> => {
  * @returns An object containing the transcription, regions, and issues.
  */
 export const loadInFull = async (transcriptionId: string) => {
-  console.log('load in full')
   if (!transcriptionId) {
     throw new Error('transcriptionId is required');
   }
@@ -47,8 +46,6 @@ export const loadInFull = async (transcriptionId: string) => {
   
   const peaks = await fetchPeaksData(transcription.source);
   const transcriptionWithPeaks = { ...transcription, peaks };
-
-  console.log('got transcription peaks', peaks)
 
   const [regions, issues] = await Promise.all([
     loadRegionsForTranscription(transcriptionId),
