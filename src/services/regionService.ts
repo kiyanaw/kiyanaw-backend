@@ -1,5 +1,7 @@
 import { DataStore } from '@aws-amplify/datastore';
-import { Region } from '../models';
+import { Region as DSRegion } from '../models';
+
+import { RegionModel } from './adt';
 
 /**
  * Loads and processes regions for a given transcription.
@@ -7,10 +9,11 @@ import { Region } from '../models';
  * @returns Processed and sorted regions
  */
 export const loadRegionsForTranscription = async (transcriptionId: string) => {
-  const regions = await DataStore.query(Region, (r) => r.transcription.id.eq(transcriptionId));
+  const regions = await DataStore.query(DSRegion, (r) => r.transcription.id.eq(transcriptionId));
   
   // Process and sort regions by start time
   return regions
     .slice()
-    .sort((a, b) => (a.start > b.start ? 1 : -1));
+    .sort((a, b) => (a.start > b.start ? 1 : -1))
+    .map((r) => new RegionModel(r as any));
 }; 

@@ -12,30 +12,22 @@ export const useWavesurferEvents = (transcriptionId: string): void => {
     lastCalledRef.current = transcriptionId;
     console.log('initializing for transcription:', transcriptionId);
 
-    // SET THE PEAKS HERE
+    // Clear all existing listeners before registering new ones
+    wavesurferService.clearAllListeners();
 
-    // wavesurferService.setPeaks(peaks)
-    
-    // Update regions when they change - this runs during render
-    // const regionsPlugin = wavesurferService.getRegionsPlugin();
-    // if (regionsPlugin && regions) {
-    //   console.log('🎨 Updating regions in WaveSurfer:', regions.length);
-      
-    //   regionsPlugin.clearRegions();
+    // handle events
+    wavesurferService.on('region-created', (event) => {
+      console.log('got event here', event)
+      /**
+       * Plan:
+       *  - use case createRegion
+       *    - consolidated function to sort & index the regions
+       *    - set the regions on the store
+       *    - service call to save the new region
+       *    - re-render the regions to wavesurfer service
+       *  - 
+       */
+    })
 
-    //   regions.forEach((region) => {
-    //     if (!region.isNote) {
-    //       regionsPlugin.addRegion({
-    //         id: region.id,
-    //         start: region.start,
-    //         end: region.end,
-    //         color: 'rgba(0, 0, 0, 0.1)',
-    //         resize: true, // TODO: get canEdit from somewhere
-    //         drag: true,
-    //         content: region.displayIndex?.toString() || '',
-    //       });
-    //     }
-    //   });
-    // }
   }
 }; 
