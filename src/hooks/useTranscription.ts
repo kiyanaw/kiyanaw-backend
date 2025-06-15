@@ -18,6 +18,7 @@ export const useTranscription = (transcriptionId: string): void => {
       store,
     });
 
+    console.log('loading transcription')
     useCase.execute()
   }
 }; 

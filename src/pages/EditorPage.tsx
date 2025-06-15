@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { useEditorStore } from '../stores/useEditorStore';
 import { useTranscription } from '../hooks/useTranscription';
+import { useWavesurferEvents } from '../hooks/useWavesurferEvents';
 import { useAuthStore } from '../stores/useAuthStore';
 import { eventBus } from '../lib/eventBus';
 import { WaveformPlayer } from '../components/player/WaveformPlayer';
@@ -16,6 +17,8 @@ export const EditorPage = () => {
   
   console.log('editor')
   useTranscription(transcriptionId!);
+  useWavesurferEvents(transcriptionId!);
+
   
   // const regions = []
   const selectedRegion = {}
@@ -25,6 +28,7 @@ export const EditorPage = () => {
   const transcription = useEditorStore((state) => state.transcription);
   const peaks = useEditorStore((state) => state.peaks);
   const regions = useEditorStore((state) => state.regions);
+  
 
   const isVideo = transcription?.type?.startsWith('video/') ?? false
   // const selectedRegionId = useEditorStore((state) => state.selectedRegionId);
@@ -45,9 +49,9 @@ export const EditorPage = () => {
 
       {(transcription) && (
         <>
-        <div className="absolute inset-0 bg-white flex flex-col items-center justify-center z-10">
+        {/* <div className="absolute inset-0 bg-white flex flex-col items-center justify-center z-10">
           Got Transcription!
-        </div>
+        </div> */}
         
         {/* Waveform/Video Player Section */}
         <div className="flex-shrink-0 bg-gray-100 border-b border-gray-300">
