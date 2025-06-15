@@ -99,7 +99,7 @@ export const WaveformPlayer = React.memo(({
 
     // --- Attach Event Handlers ---
     ws.on('ready', (duration) => {
-      console.log(`🎉 WaveSurfer ready! Duration: ${duration}`);
+      // console.log(`🎉 WaveSurfer ready! Duration: ${duration}`);
       setLoading(false);
       setMaxTime(duration);
       eventBus.emit('waveform-ready');
