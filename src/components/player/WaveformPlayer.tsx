@@ -164,7 +164,7 @@ export const WaveformPlayer = ({
             type="range"
             min="5"
             max="75"
-            defaultValue={40}
+            defaultValue={20}
             onChange={(e) => handleZoomChange(parseInt(e.target.value))}
             className="w-25"
           />

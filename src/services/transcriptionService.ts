@@ -1,7 +1,9 @@
 import { DataStore } from '@aws-amplify/datastore';
-import { Transcription } from '../models';
+import { Transcription as DSTranscription } from '../models';
+
 import { loadRegionsForTranscription } from './regionService';
 import { loadIssuesForTranscription } from './issueService';
+import { TranscriptionModel } from './adt';
 
 /**
  * Fetches peaks data for a given audio/video source.
@@ -34,18 +36,14 @@ export const loadInFull = async (transcriptionId: string) => {
     throw new Error('transcriptionId is required');
   }
 
-  const transcription = await DataStore.query(Transcription, transcriptionId);
+  const raw = await DataStore.query(DSTranscription, transcriptionId)
+  const transcription = new TranscriptionModel(raw as any);
   if (!transcription) {
     throw new Error('Transcription not found');
   }
 
-  if (!transcription.source) {
-    // Should not be able to get here
-    throw new Error('Transcription source is required');
-  }
-  
-  const peaks = await fetchPeaksData(transcription.source);
-  const transcriptionWithPeaks = { ...transcription, peaks };
+  const peaks = await fetchPeaksData(transcription.source!);
+  // const transcriptionWithPeaks = { ...transcription, peaks };
 
   const [regions, issues] = await Promise.all([
     loadRegionsForTranscription(transcriptionId),
@@ -53,11 +51,11 @@ export const loadInFull = async (transcriptionId: string) => {
   ]);
 
   return {
-    transcription: transcriptionWithPeaks,
+    transcription: transcription,
     source: transcription.source,
     peaks,
     regions,
     issues,
-    isVideo: transcription.type?.startsWith('video/') ?? false,
+    isVideo: transcription.isVideo,
   };
 }; 

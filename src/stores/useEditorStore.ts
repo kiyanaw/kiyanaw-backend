@@ -34,7 +34,7 @@ interface EditorState {
   _subscriptions: any[];
 
   // Actions
-  setData: (data: EditorDataPayload) => void;
+  setFullTranscriptionData: (data: EditorDataPayload) => void;
   cleanup: () => void;
   
   // Transcription actions
@@ -101,7 +101,7 @@ export const useEditorStore = create<EditorState>()(
       },
 
       // Action to set data from TanStack Query
-      setData: (data) => {
+      setFullTranscriptionData: (data) => {
         const { transcription, regions, issues, source, peaks, isVideo } = data;
         const state = get();
         state.cleanup();
