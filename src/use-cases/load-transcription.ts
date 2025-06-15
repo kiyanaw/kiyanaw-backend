@@ -28,10 +28,12 @@ export class LoadTranscription {
     this.validate();
 
     const transcriptionService = this.config.services.transcriptionService
+    const wavesurferService = this.config.services.wavesurferService
     try {
       const data = await transcriptionService.loadInFull(this.config.transcriptionId);
       console.log('data loaded', data)
       this.config.store.setData(data);
+      wavesurferService.load(data.source, data.peaks)
       
     } catch (error) {
       throw error;
