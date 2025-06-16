@@ -21,6 +21,8 @@ export class LoadTranscription {
 
     // Log current user for debugging/audit purposes
     const user = this.config.services.authService.currentUser();
+
+    // TODO: this is dumb, assert there is a user?
     console.log('User loading transcription:', user?.username || 'anonymous');
   }
 
@@ -31,6 +33,7 @@ export class LoadTranscription {
     const wavesurferService = this.config.services.wavesurferService
     try {
       const data = await transcriptionService.loadInFull(this.config.transcriptionId);
+      console.log('>>> loaded in full')
       this.config.store.setFullTranscriptionData(data);
 
       // load wavesurfer details _outside_ the React system
