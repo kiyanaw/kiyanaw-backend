@@ -11,6 +11,8 @@ class WaveSurferService {
   private regionsPlugin: any = null;
   private timelinePlugin: any = null;
   private muteEvents: boolean = false;
+  private ready: boolean = false;
+  private _delayedRegions: any[] = []
 
   private constructor() {
     // Private constructor for singleton
@@ -57,6 +59,21 @@ class WaveSurferService {
   }
 
   registerEvents(): void {
+
+    // Wavesurfer ready
+    this.wavesurfer?.on('ready', (event) => {
+      console.log('📋 Wavesurfer ready event fired!', event)
+      this.ready = true
+      
+      if (this._delayedRegions.length) {
+        console.log(`📋 Processing ${this._delayedRegions.length} delayed regions`)
+        this.setRegions(this._delayedRegions)
+      } else {
+        console.log('📋 No delayed regions to process')
+      }
+    })
+
+    // Region created
     this.regionsPlugin?.on('region-created', (event: any) => {
       this.emitEvent('region-created', {
         id: event.id,
@@ -98,21 +115,38 @@ class WaveSurferService {
   }
 
   setRegions(regions:any) {
+    console.log(`📋 setRegions called with ${regions.length} regions, ready: ${this.ready}, wavesurfer exists: ${!!this.wavesurfer}`)
+    
     if (this.wavesurfer) {
-      console.log('Rendering regions, total: ', regions.length) // TODO
-      // Must be delayed to ensure that the element is present on the page
-      setTimeout(() => {
-        this.muteEvents = true
-        regions.forEach((region: any) => {
-          this.regionsPlugin.addRegion({
-            start: region.start,
-            end: region.end,
-            content: region.displayIndex,
-            resize: true,
+      if (this.ready) {
+        console.log('📋 Rendering regions immediately, total: ', regions.length)
+        // Clear delayed regions first since we're processing them now
+        this._delayedRegions = []
+        
+        // // Must be delayed to ensure that the element is present on the page
+        // setTimeout(() => {
+          console.log('📋 Actually adding regions to wavesurfer now')
+          this.muteEvents = true
+          regions.forEach((region: any) => {
+            this.regionsPlugin.addRegion({
+              start: region.start,
+              end: region.end,
+              content: `${region.displayIndex}`,
+              resize: true,
+            });
           });
-        });
-        this.muteEvents = false
-      }, 50)
+          this.muteEvents = false
+          console.log('📋 Finished adding regions to wavesurfer')
+        // }, 50)
+      } else {
+        console.log('📋 Wavesurfer not ready, delaying regions')
+        this._delayedRegions = regions
+        console.log(`📋 Stored ${this._delayedRegions.length} regions for later`)
+      }
+    } else {
+      console.log('📋 Wavesurfer not initialized, delaying regions')
+      this._delayedRegions = regions
+      console.log(`📋 Stored ${this._delayedRegions.length} regions for later`)
     }
   }
   
