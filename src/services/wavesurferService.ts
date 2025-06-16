@@ -115,38 +115,27 @@ class WaveSurferService {
   }
 
   setRegions(regions:any) {
-    console.log(`📋 setRegions called with ${regions.length} regions, ready: ${this.ready}, wavesurfer exists: ${!!this.wavesurfer}`)
-    
     if (this.wavesurfer) {
       if (this.ready) {
         console.log('📋 Rendering regions immediately, total: ', regions.length)
         // Clear delayed regions first since we're processing them now
         this._delayedRegions = []
-        
-        // // Must be delayed to ensure that the element is present on the page
-        // setTimeout(() => {
-          console.log('📋 Actually adding regions to wavesurfer now')
-          this.muteEvents = true
-          regions.forEach((region: any) => {
-            this.regionsPlugin.addRegion({
-              start: region.start,
-              end: region.end,
-              content: `${region.displayIndex}`,
-              resize: true,
-            });
+
+        this.muteEvents = true
+        regions.forEach((region: any) => {
+          this.regionsPlugin.addRegion({
+            start: region.start,
+            end: region.end,
+            content: `${region.displayIndex}`,
+            resize: true,
           });
-          this.muteEvents = false
-          console.log('📋 Finished adding regions to wavesurfer')
-        // }, 50)
+        });
+        this.muteEvents = false
       } else {
-        console.log('📋 Wavesurfer not ready, delaying regions')
         this._delayedRegions = regions
-        console.log(`📋 Stored ${this._delayedRegions.length} regions for later`)
       }
     } else {
-      console.log('📋 Wavesurfer not initialized, delaying regions')
       this._delayedRegions = regions
-      console.log(`📋 Stored ${this._delayedRegions.length} regions for later`)
     }
   }
   
@@ -171,6 +160,11 @@ class WaveSurferService {
       this.regionsPlugin = null;
       this.timelinePlugin = null;
     }
+    // Reset state
+    this.ready = false;
+    this._delayedRegions = [];
+    this.muteEvents = false;
+    this.clearAllListeners();
   }
 }
 
