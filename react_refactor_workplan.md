@@ -18,7 +18,7 @@ The legacy Vue implementation in `src_old/` is **read-only** and serves solely a
 
 - [x] **Phase 3 – Global State & Events**
     1. ✅ Convert Vuex stores:
-        • ✅ `transcription.js` → `useTranscriptions` / context.  
+        • ✅ `transcription.js` → `useLoadTranscriptions` / context.  
         • ✅ `region.js`→ `useRegions`.  
     2. ✅ Replace `bus.js` EventBus with `mitt` emitter _(Functional Req §11.1 – EventBus realtime updates)_.  
     3. ✅ Port selectors (e.g., `canEdit`, `editingUsers`) to pure utils.  
@@ -37,7 +37,7 @@ The legacy Vue implementation in `src_old/` is **read-only** and serves solely a
 - [x] **Phase 6 – Transcriptions List (Functional Req §4)**
     1. ✅ Port `List.vue` (`src_old/components/transcribe/List.vue`) => `TranscriptionsTable.tsx`.  
        • ✅ Columns per §4.2, search, sort, pagination (custom table).  
-       • ✅ Query `useTranscriptions` hook.
+       • ✅ Query `useLoadTranscriptions` hook.
 
 - [x] **Phase 7 – Editor Workspace Shell (Functional Req §5)**
     1. ✅ Port `Transcribe.vue` & child layout into `EditorPage.tsx`.  
@@ -62,7 +62,7 @@ The legacy Vue implementation in `src_old/` is **read-only** and serves solely a
     3. ✅ Issues Panel – port `IssuesForm.vue` (§8).  
 
 - [x] **Phase 11 – Data Hooks & Mutations**
-    1. ✅ Implement DataStore hooks (`useTranscription`, `useRegions`, `useIssues`).  
+    1. ✅ Implement DataStore hooks (`useLoadTranscription`, `useRegions`, `useIssues`).  
     2. ✅ Wrap mutations (`updateRegion`, `createRegion`, etc.) ensuring optimistic UI _(Functional Req §12.2)_.  
     3. ✅ Handle JSON fields parse/stringify _(Functional Req §12.2)_.
 

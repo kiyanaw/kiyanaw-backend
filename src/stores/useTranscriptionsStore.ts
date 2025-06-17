@@ -10,7 +10,7 @@ interface TranscriptionsState {
   loadTranscriptions: () => Promise<void>;
 }
 
-export const useTranscriptionsStore = create<TranscriptionsState>()(
+export const useLoadTranscriptionsStore = create<TranscriptionsState>()(
   devtools(
     (set) => ({
       transcriptions: [],

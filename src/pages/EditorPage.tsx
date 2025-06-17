@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { useEditorStore } from '../stores/useEditorStore';
-import { useTranscription } from '../hooks/useTranscription';
+import { useLoadTranscription } from '../hooks/useLoadTranscription';
 import { useWavesurferEvents } from '../hooks/useWavesurferEvents';
 import { useAuthStore } from '../stores/useAuthStore';
 import { eventBus } from '../lib/eventBus';
@@ -16,7 +16,7 @@ export const EditorPage = () => {
   }>();
   
   console.log('editor')
-  useTranscription(transcriptionId!);
+  useLoadTranscription(transcriptionId!);
   // NOT sure we need this yet
   useWavesurferEvents(transcriptionId!);
 

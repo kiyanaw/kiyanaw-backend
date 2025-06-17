@@ -1,5 +1,5 @@
 import { renderHook } from '@testing-library/react';
-import { useTranscription } from './useTranscription';
+import { useLoadTranscription } from './useLoadTranscription';
 import { services } from '../services';
 import { LoadTranscription } from '../use-cases/load-transcription';
 import { useEditorStore } from '../stores/useEditorStore';
@@ -9,7 +9,7 @@ jest.mock('../services');
 jest.mock('../use-cases/load-transcription');
 jest.mock('../stores/useEditorStore');
 
-describe('useTranscription', () => {
+describe('useLoadTranscription', () => {
   // Mock implementations
   const mockExecute = jest.fn();
   const mockStore = {
@@ -34,7 +34,7 @@ describe('useTranscription', () => {
     it('should call the use case when transcriptionId is provided for the first time', () => {
       const transcriptionId = 'test-id-1';
 
-      renderHook(() => useTranscription(transcriptionId));
+      renderHook(() => useLoadTranscription(transcriptionId));
 
       expect(LoadTranscription).toHaveBeenCalledWith({
         transcriptionId,
@@ -49,7 +49,7 @@ describe('useTranscription', () => {
 
       // First render
       const { rerender } = renderHook(
-        ({ id }) => useTranscription(id),
+        ({ id }) => useLoadTranscription(id),
         { initialProps: { id: transcriptionId } }
       );
 
@@ -68,7 +68,7 @@ describe('useTranscription', () => {
       const newId = 'test-id-2';
 
       const { rerender } = renderHook(
-        ({ id }) => useTranscription(id),
+        ({ id }) => useLoadTranscription(id),
         { initialProps: { id: initialId } }
       );
 
@@ -98,7 +98,7 @@ describe('useTranscription', () => {
       const secondId = 'test-id-2';
 
       const { rerender } = renderHook(
-        ({ id }) => useTranscription(id),
+        ({ id }) => useLoadTranscription(id),
         { initialProps: { id: firstId } }
       );
 
@@ -121,7 +121,7 @@ describe('useTranscription', () => {
     it('should handle empty string transcriptionId changes correctly', () => {
       const transcriptionId = '';
 
-      renderHook(() => useTranscription(transcriptionId));
+      renderHook(() => useLoadTranscription(transcriptionId));
 
       expect(LoadTranscription).toHaveBeenCalledWith({
         transcriptionId: '',
@@ -135,7 +135,7 @@ describe('useTranscription', () => {
       const transcriptionId = 'test-id-1';
 
       const { rerender } = renderHook(
-        ({ id }) => useTranscription(id),
+        ({ id }) => useLoadTranscription(id),
         { initialProps: { id: transcriptionId } }
       );
 
@@ -154,7 +154,7 @@ describe('useTranscription', () => {
     it('should create LoadTranscription with correct parameters', () => {
       const transcriptionId = 'test-transcription-id';
 
-      renderHook(() => useTranscription(transcriptionId));
+      renderHook(() => useLoadTranscription(transcriptionId));
 
       expect(LoadTranscription).toHaveBeenCalledWith({
         transcriptionId,
@@ -166,7 +166,7 @@ describe('useTranscription', () => {
     it('should call execute on the use case instance', () => {
       const transcriptionId = 'test-transcription-id';
 
-      renderHook(() => useTranscription(transcriptionId));
+      renderHook(() => useLoadTranscription(transcriptionId));
 
       expect(mockExecute).toHaveBeenCalledTimes(1);
       expect(mockExecute).toHaveBeenCalledWith();
@@ -177,7 +177,7 @@ describe('useTranscription', () => {
       const transcriptionId2 = 'test-id-2';
 
       const { rerender } = renderHook(
-        ({ id }) => useTranscription(id),
+        ({ id }) => useLoadTranscription(id),
         { initialProps: { id: transcriptionId1 } }
       );
 
@@ -193,7 +193,7 @@ describe('useTranscription', () => {
     it('should handle undefined transcriptionId', () => {
       const transcriptionId = undefined as any;
 
-      renderHook(() => useTranscription(transcriptionId));
+      renderHook(() => useLoadTranscription(transcriptionId));
 
       // The hook logic shows that undefined !== undefined is false on first call
       // because lastCalledRef.current starts as undefined
@@ -208,7 +208,7 @@ describe('useTranscription', () => {
 
       // Test that ref starts as undefined by providing a real transcriptionId first
       const { rerender } = renderHook(
-        ({ id }) => useTranscription(id),
+        ({ id }) => useLoadTranscription(id),
         { initialProps: { id: firstId } }
       );
 
@@ -244,7 +244,7 @@ describe('useTranscription', () => {
   describe('edge cases', () => {
     it('should work correctly when transcriptionId changes from undefined to defined', () => {
       const { rerender } = renderHook(
-        ({ id }) => useTranscription(id),
+        ({ id }) => useLoadTranscription(id),
         { initialProps: { id: undefined as any } }
       );
 
@@ -264,7 +264,7 @@ describe('useTranscription', () => {
 
     it('should work correctly when transcriptionId changes from defined to undefined', () => {
       const { rerender } = renderHook(
-        ({ id }) => useTranscription(id),
+        ({ id }) => useLoadTranscription(id),
         { initialProps: { id: 'defined-id' } }
       );
 

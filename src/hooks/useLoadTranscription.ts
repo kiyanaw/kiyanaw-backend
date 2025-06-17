@@ -5,7 +5,7 @@ import { LoadTranscription } from '../use-cases/load-transcription'
 import { useEditorStore } from '../stores/useEditorStore';
 
 
-export const useTranscription = (transcriptionId: string): void => {
+export const useLoadTranscription = (transcriptionId: string): void => {
   const lastCalledRef = useRef<string | undefined>(undefined);
   
   // Only call loadTranscription when transcriptionId actually changes
