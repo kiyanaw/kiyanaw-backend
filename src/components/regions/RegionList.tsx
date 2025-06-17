@@ -1,74 +1,46 @@
-import { useEffect, useRef, useMemo } from 'react';
+import { useRef } from 'react';
 import React from 'react';
 import { RegionItem } from './RegionItem';
+import type { LightRegion } from '../../services/adt';
+import { usePlayRegion } from '../../hooks/usePlayRegion';
 
-interface Region {
-  id: string;
-  start: number;
-  end: number;
-  isNote?: boolean;
-  text?: string;
-  translation?: string;
-}
 
 interface RegionListProps {
-  regions: Region[];
+  regions: LightRegion[];
   selectedRegionId: string | null;
-  editingUsers?: Record<string, Array<{ user: string; color: string }>>;
   disableAnalyzer?: boolean;
-  onRegionClick: (regionId: string, index: number) => void;
-  onPlayRegion?: (regionId: string) => void;
 }
 
 export const RegionList = React.memo(({
   regions,
   selectedRegionId,
-  editingUsers = {},
   disableAnalyzer = false,
-  onRegionClick,
-  onPlayRegion,
 }: RegionListProps) => {
   const listRef = useRef<HTMLDivElement>(null);
   const selectedItemRef = useRef<HTMLDivElement>(null);
 
-  // Sort regions by start time, with notes at the end
-  const sortedRegions = useMemo(() => {
-    return [...regions].sort((a, b) => {
-      // Notes go to the end
-      if (a.isNote && !b.isNote) return 1;
-      if (!a.isNote && b.isNote) return -1;
+  const playRegion = usePlayRegion()
 
-      // Sort by start time
-      return a.start - b.start;
-    });
-  }, [regions]);
+  // // Scroll to selected region
+  // useEffect(() => {
+  //   if (selectedRegionId && listRef.current) {
+  //     const selectedElement = listRef.current.querySelector(
+  //       `#${selectedRegionId}`
+  //     );
+  //     if (selectedElement) {
+  //       selectedElement.scrollIntoView({
+  //         behavior: 'smooth',
+  //         block: 'start',
+  //       });
+  //     }
+  //   }
+  // }, [selectedRegionId]);
 
-  // Scroll to selected region
-  useEffect(() => {
-    if (selectedRegionId && listRef.current) {
-      const selectedElement = listRef.current.querySelector(
-        `#${selectedRegionId}`
-      );
-      if (selectedElement) {
-        selectedElement.scrollIntoView({
-          behavior: 'smooth',
-          block: 'start',
-        });
-      }
-    }
-  }, [selectedRegionId]);
-
-  const handleRegionClick = (regionId: string, index: number) => {
-    onRegionClick(regionId, index);
+  const handleRegionClick = (regionId: string) => {
+    playRegion(regionId);
   };
 
-  const handleRegionDoubleClick = (regionId: string) => {
-    if (onPlayRegion) {
-      onPlayRegion(regionId);
-    }
-  };
-
-  if (sortedRegions.length === 0) {
+  if (regions.length === 0) {
     return (
       <div className="h-full flex items-center justify-center bg-white border border-gray-300 rounded">
         <div className="text-center py-10 px-5 text-gray-600">
@@ -82,22 +54,20 @@ export const RegionList = React.memo(({
   return (
     <div className="h-full flex flex-col bg-white border border-gray-300 rounded overflow-hidden min-h-0" ref={listRef}>
       <div className="py-3 px-4 bg-gray-100 border-b border-gray-300 flex-shrink-0">
-        <h4 className="m-0 text-sm font-semibold text-gray-800 uppercase tracking-wide">Regions ({sortedRegions.length})</h4>
+        <h4 className="m-0 text-sm font-semibold text-gray-800 uppercase tracking-wide">Regions ({regions.length})</h4>
       </div>
 
       <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-track-gray-100 scrollbar-thumb-gray-400 hover:scrollbar-thumb-gray-500 min-h-0">
-        {sortedRegions.map((region, index) => (
+        {regions.map((region, index) => (
           <div
             key={region.id}
             ref={region.id === selectedRegionId ? selectedItemRef : undefined}
-            onDoubleClick={() => handleRegionDoubleClick(region.id)}
             className="border-b border-gray-300 last:border-b-0"
           >
             <RegionItem
               region={region}
               index={index}
               isSelected={region.id === selectedRegionId}
-              editingUsers={editingUsers[region.id] || []}
               onClick={handleRegionClick}
             />
           </div>

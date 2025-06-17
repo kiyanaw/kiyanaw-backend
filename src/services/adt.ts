@@ -31,6 +31,14 @@ export interface RegionData {
   index?: number;
 }
 
+export interface LightRegion {
+  id: string;
+  start: number;
+  end: number;
+  text?: string;
+  translation?: string;
+}
+
 function pad(num: number, size: number): string {
   return ('000000000' + num).substr(-size);
 }

@@ -1,10 +1,11 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+
 import { useParams } from 'react-router-dom';
+
 import { useEditorStore } from '../stores/useEditorStore';
+import { usePlayerStore } from '../stores/usePlayerStore';
 import { useLoadTranscription } from '../hooks/useLoadTranscription';
 import { useWavesurferEvents } from '../hooks/useWavesurferEvents';
-import { useAuthStore } from '../stores/useAuthStore';
-import { eventBus } from '../lib/eventBus';
+
 import { WaveformPlayer } from '../components/player/WaveformPlayer';
 import { RegionList } from '../components/regions/RegionList';
 import { StationaryInspector } from '../components/inspector/StationaryInspector';
@@ -19,7 +20,6 @@ export const EditorPage = () => {
   useLoadTranscription(transcriptionId!);
   // NOT sure we need this yet
   useWavesurferEvents(transcriptionId!);
-
   
   // const regions = []
   const selectedRegion = {}
@@ -35,6 +35,7 @@ export const EditorPage = () => {
   const transcription = useEditorStore((state) => state.transcription);
   const peaks = useEditorStore((state) => state.peaks);
   const regions = useEditorStore((state) => state.regions);
+  const playing = usePlayerStore((state) => state.playing)
   
 
   const isVideo = transcription?.isVideo

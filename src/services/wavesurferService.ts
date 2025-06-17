@@ -83,6 +83,19 @@ class WaveSurferService {
       });
       this.updateRegionIndices()
     });
+
+    this.wavesurfer?.on('play', () => {
+      this.emitEvent('play');
+    })
+
+    this.wavesurfer?.on('pause', () => {
+      this.emitEvent('pause');
+    })
+
+
+    this.wavesurfer?.on('error', (event) => {
+      console.log('Wavesurfer error event', event)
+    })
   }
 
   emitEvent(eventName: string, data?: any): void {
@@ -103,6 +116,7 @@ class WaveSurferService {
     this.emitter.off(eventName, callback);
   }
 
+  /* NEVER USE THIS ONLY FOR TESTING */
   getWaveSurfer(): WaveSurfer | null {
     return this.wavesurfer;
   }
@@ -157,6 +171,22 @@ class WaveSurferService {
 
   setZoom(value: number): void {
     this.wavesurfer?.zoom(value);
+  }
+  
+  seekToTime(timeInSeconds: number): void {
+    this.wavesurfer?.setTime(timeInSeconds);
+  }
+
+  async play(): Promise<void> {
+    await this.wavesurfer?.play();
+  }
+
+  pause(): void {
+    this.wavesurfer?.pause();
+  }
+
+  playPause(): Promise<void> {
+    return this.wavesurfer?.playPause() || Promise.resolve();
   }
   
   updateMediaElement(mediaElement: HTMLMediaElement): void {

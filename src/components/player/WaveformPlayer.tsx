@@ -1,6 +1,9 @@
 import { useRef, useCallback } from 'react';
 import { eventBus } from '../../lib/eventBus';
 import { wavesurferService } from '../../services/wavesurferService';
+import { usePlayerStore } from '../../stores/usePlayerStore';
+import { usePlay } from '../../hooks/usePlay';
+import { usePause } from '../../hooks/usePause';
 
 interface Region {
   id: string;
@@ -41,6 +44,11 @@ export const WaveformPlayer = ({
   const timelineContainerRef = useRef<HTMLDivElement | null>(null);
   const containersReadyRef = useRef({ waveform: false, timeline: false });
 
+  const isPlaying = usePlayerStore((state) => state.playing)
+  const play = usePlay()
+  const pause = usePause()
+
+
   // Initialize WaveSurfer when both containers are ready
   const initializeWaveSurfer = useCallback(() => {
     const { waveform, timeline } = containersReadyRef.current;
@@ -74,7 +82,11 @@ export const WaveformPlayer = ({
 
   // Simple event handlers that emit to the event bus
   const handlePlayPause = () => {
-    eventBus.emit('waveform-play-pause');
+    if (isPlaying) {
+      pause();
+    } else {
+      play();
+    }
   };
 
   const handleMarkRegion = () => {
@@ -125,7 +137,7 @@ export const WaveformPlayer = ({
             onClick={handlePlayPause}
             data-testid="play-button"
           >
-            ▶️
+            {isPlaying ? '⏸️' : '▶️'}
           </button>
 
           {canEdit && (
