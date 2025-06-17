@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef } from 'react';
 import { useEditorStore } from '../stores/useEditorStore';
 import { wavesurferService } from '../services/wavesurferService';
 import { services } from '../services';
