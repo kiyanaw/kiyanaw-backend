@@ -6,7 +6,6 @@ interface Region {
   id: string;
   start: number;
   end: number;
-  displayIndex?: number;
   isNote?: boolean;
   text?: string;
   translation?: string;
@@ -99,7 +98,6 @@ export const RegionList = React.memo(({
               index={index}
               isSelected={region.id === selectedRegionId}
               editingUsers={editingUsers[region.id] || []}
-              disableAnalyzer={disableAnalyzer}
               onClick={handleRegionClick}
             />
           </div>

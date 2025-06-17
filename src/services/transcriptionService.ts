@@ -52,10 +52,8 @@ export const loadInFull = async (transcriptionId: string) => {
 
   return {
     transcription: transcription,
-    source: transcription.source,
     peaks,
     regions,
     issues,
-    isVideo: transcription.isVideo,
   };
 }; 

@@ -1,5 +1,5 @@
 import { DataStore } from '@aws-amplify/datastore';
-import { Region as DSRegion } from '../models';
+import { Region as DSRegion, Transcription as DSTranscription } from '../models';
 
 import { RegionModel } from './adt';
 
@@ -18,32 +18,44 @@ export const loadRegionsForTranscription = async (transcriptionId: string) => {
     .map((r) => new RegionModel(r as any));
 
 
-  regions = sortAndIndexRegions(regions)
   console.log('regions', regions)
   return regions
 }; 
 
+
 /**
- * Sorts regions by start time and adds index information.
- * Regions marked as notes have a null displayIndex, others increment from 1.
- * @param regions Array of regions to process
- * @returns Processed and indexed regions array
+ * Saves a new region to DataStore.
+ * @param transcriptionId The ID of the transcription this region belongs to
+ * @param region The region data to save
+ * @param username The username of the user creating the region
+ * @returns The saved region as a RegionModel
  */
-export const sortAndIndexRegions = (regions: RegionModel[]) => {
-  let displayIndex = 1;
+export const saveRegion = async (transcriptionId: string, region: {
+  id: string;
+  start: number;
+  end: number;
+  isNote?: boolean;
+}, username: string) => {
 
-  return regions
-    .sort((a, b) => (a.start > b.start ? 1 : -1))
-    .map((item, index) => {
-      item.index = index;
-      item.displayIndex = item.isNote ? undefined : displayIndex;
-      
-      if (!item.isNote) {
-        displayIndex++;
-      }
+  const transcription = await DataStore.query(DSTranscription, transcriptionId)
+  if (!transcription) {
+    throw new Error(`Transcription with ID ${transcriptionId} not found`);
+  }
 
-      return item;
-    });
+  const newRegion = new DSRegion({
+    start: region.start,
+    end: region.end,
+    isNote: region.isNote || false,
+    dateLastUpdated: `${Date.now()}`,
+    userLastUpdated: username,
+    transcription,
+  });
+  
+  // Set the explicit ID
+  (newRegion as any).id = region.id;
+  
+  const savedRegion = await DataStore.save(newRegion);
+
+  return new RegionModel(savedRegion as any);
 };
-
 

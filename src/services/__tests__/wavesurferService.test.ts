@@ -58,6 +58,7 @@ describe('WaveSurferService', () => {
       enableDragSelection: jest.fn(),
       addRegion: jest.fn(),
       on: jest.fn(),
+      getRegions: jest.fn(),
     };
     
     mockTimelineInstance = {};
@@ -201,8 +202,6 @@ describe('WaveSurferService', () => {
       expect(wavesurferService['_delayedRegions']).toEqual([]);
     });
 
-
-
     it('should handle empty regions array', () => {
       wavesurferService.setRegions([]);
       
@@ -219,6 +218,55 @@ describe('WaveSurferService', () => {
       
       // Should not crash or add any regions
       expect(mockRegionsInstance.addRegion).not.toHaveBeenCalled();
+    });
+
+    it('should add region and update indices using regions plugin', () => {
+      const mockRegionsFromPlugin = [
+        { start: 1, end: 2, content: '1' },
+        { start: 3, end: 4, content: '2' },
+      ];
+      
+      // Mock getRegions to return existing regions plus the new one
+      mockRegionsInstance.getRegions.mockReturnValue([
+        { start: 1, end: 2, content: '1' },
+        { start: 2.5, end: 3.5, content: '1' }, // New region inserted
+        { start: 3, end: 4, content: '2' },
+      ]);
+      
+      // Trigger ready event first
+      readyCallback();
+      
+      // Add a new region
+      const newRegion = { start: 2.5, end: 3.5 };
+      wavesurferService.addRegionAndUpdateIndices(newRegion);
+      
+      // Should add the region to wavesurfer
+      expect(mockRegionsInstance.addRegion).toHaveBeenCalledWith({
+        start: 2.5,
+        end: 3.5,
+        content: '1',
+        resize: true,
+      });
+      
+      // Should get all regions and update their content
+      expect(mockRegionsInstance.getRegions).toHaveBeenCalled();
+      
+      // Should update content of all regions based on their order
+      const mockRegions = mockRegionsInstance.getRegions();
+      expect(mockRegions[0].content).toBe('1');
+      expect(mockRegions[1].content).toBe('2');
+      expect(mockRegions[2].content).toBe('3');
+    });
+
+    it('should not add region when wavesurfer is not ready', () => {
+      const newRegion = { start: 1, end: 2 };
+      
+      // Don't trigger ready event
+      wavesurferService.addRegionAndUpdateIndices(newRegion);
+      
+      // Should not add any regions
+      expect(mockRegionsInstance.addRegion).not.toHaveBeenCalled();
+      expect(mockRegionsInstance.getRegions).not.toHaveBeenCalled();
     });
   });
 

@@ -42,7 +42,6 @@ interface Region {
   id: string;
   start: number;
   end: number;
-  displayIndex: number;
   regionText?: string; // Plain text content
   translation?: string;
   isNote?: boolean;

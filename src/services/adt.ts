@@ -23,12 +23,11 @@ export interface RegionData {
   start: number;
   isNote?: boolean;
   comments?: string | any[];
-  regionText?: string;
+  regionText?: string; // TODO: reconcile this field
   text?: string | any[];
   transcriptionId: string;
   translation?: string;
   userLastUpdated?: string;
-  displayIndex?: number;
   index?: number;
 }
 
@@ -130,7 +129,6 @@ export class RegionModel {
   public transcriptionId: string;
   public translation: string;
   public userLastUpdated?: string;
-  public displayIndex?: number;
   public index?: number;
 
   constructor(data: RegionData) {
@@ -145,7 +143,6 @@ export class RegionModel {
       this.transcriptionId = data.transcriptionId;
       this.translation = data.translation || '';
       this.userLastUpdated = data.userLastUpdated;
-      this.displayIndex = data.displayIndex;
       this.index = data.index;
 
       // Handle text - support both old and new format

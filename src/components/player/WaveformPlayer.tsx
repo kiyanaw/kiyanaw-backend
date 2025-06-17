@@ -6,7 +6,6 @@ interface Region {
   id: string;
   start: number;
   end: number;
-  displayIndex?: number;
   isNote?: boolean;
   text?: string;
   translation?: string;

@@ -49,10 +49,11 @@ class WaveSurferService {
     });
 
     // TODO: we'll need to check permissions for this, maybe add an .enableDragSelection()?
-    this.regionsPlugin.enableDragSelection({}, 5)
+    this.regionsPlugin.enableDragSelection({}, 5);
 
-    this.registerEvents()
+    this.registerEvents();
 
+    (window as any).ws = this;
 
     console.log('📋 WaveSurfer singleton initialized');
     return this.wavesurfer;
@@ -80,6 +81,7 @@ class WaveSurferService {
         start: event.start,
         end: event.end
       });
+      this.updateRegionIndices()
     });
   }
 
@@ -122,13 +124,14 @@ class WaveSurferService {
         this._delayedRegions = []
 
         this.muteEvents = true
-        regions.forEach((region: any) => {
-          this.regionsPlugin.addRegion({
+        regions.forEach((region: any, index: number) => {
+          const input = {
             start: region.start,
             end: region.end,
-            content: `${region.displayIndex}`,
+            content: `${index + 1}`,
             resize: true,
-          });
+          }
+          this.regionsPlugin.addRegion(input);
         });
         this.muteEvents = false
       } else {
@@ -138,7 +141,21 @@ class WaveSurferService {
       this._delayedRegions = regions
     }
   }
-  
+
+  /**
+   * Adds a new region and updates the display indices of all regions
+   */
+  updateRegionIndices() {
+    const allRegions = this.regionsPlugin.getRegions();
+    
+    // Update the content (display index) of each region
+    allRegions.forEach((region: any, index: number) => {
+      // Directly update the content property
+      region.setContent(`${index + 1}`)
+    });
+    
+  }
+
   setZoom(value: number): void {
     this.wavesurfer?.zoom(value);
   }

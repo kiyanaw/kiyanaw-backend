@@ -31,8 +31,8 @@ export const EditorPage = () => {
   const regions = useEditorStore((state) => state.regions);
   
 
-  const isVideo = transcription?.type?.startsWith('video/') ?? false
-  // const selectedRegionId = useEditorStore((state) => state.selectedRegionId);
+  const isVideo = transcription?.isVideo
+  const selectedRegionId = useEditorStore((state) => state.selectedRegionId);
   // const issues = useEditorStore((state) => state.issues);
 
   return (
@@ -101,15 +101,15 @@ export const EditorPage = () => {
         </div>
 
         {/* Region List */}
-        {/* <div className="w-96 flex-shrink-0 bg-gray-50 border-l border-gray-300 flex flex-col min-h-0">
+        <div className="w-96 flex-shrink-0 bg-gray-50 border-l border-gray-300 flex flex-col min-h-0">
           <RegionList
             regions={regions}
             selectedRegionId={selectedRegionId}
             disableAnalyzer={transcription?.disableAnalyzer}
-            // onRegionClick={handleRegionClick}
-            onPlayRegion={handlePlayRegion}
+            onRegionClick={()=>{}}
+            onPlayRegion={()=>{}}
           />
-        </div> */}
+        </div>
       </div>
 
     </div>

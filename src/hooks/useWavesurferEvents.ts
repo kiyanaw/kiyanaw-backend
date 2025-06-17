@@ -22,17 +22,7 @@ export const useWavesurferEvents = (transcriptionId: string): void => {
     // handle events
     wavesurferService.on('region-created', (event) => {
       console.log('got event here', event)
-      /**
-       * Plan:
-       *  - use case createRegion
-       *    - consolidated function to sort & index the regions
-       *    - set the regions on the store
-       *    - service call to save the new region
-       *    - re-render the regions to wavesurfer service
-       *  - 
-       */
       const store = useEditorStore.getState();
-
       const usecase = new CreateRegion({
         transcriptionId,
         newRegion: {
@@ -44,9 +34,12 @@ export const useWavesurferEvents = (transcriptionId: string): void => {
         services,
         store
       })
-
       usecase.execute()
     })
+
+    // wavesurferService.on('play-pause', (event) => {
+
+    // })
 
   }
 }; 
