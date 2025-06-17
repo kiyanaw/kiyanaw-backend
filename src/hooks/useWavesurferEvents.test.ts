@@ -1,12 +1,14 @@
 import { renderHook } from '@testing-library/react';
 import { useWavesurferEvents } from './useWavesurferEvents';
 import { useEditorStore } from '../stores/useEditorStore';
+import { usePlayerStore } from '../stores/usePlayerStore';
 import { wavesurferService } from '../services/wavesurferService';
 import { services } from '../services';
 import { CreateRegion } from '../use-cases/create-region';
 
 // Mock the dependencies
 jest.mock('../stores/useEditorStore');
+jest.mock('../stores/usePlayerStore');
 jest.mock('../services/wavesurferService');
 jest.mock('../services');
 jest.mock('../use-cases/create-region');
@@ -19,6 +21,10 @@ describe('useWavesurferEvents', () => {
   const mockStore = {
     setFullTranscriptionData: jest.fn(),
     cleanup: jest.fn(),
+  };
+  const mockPlayerStore = {
+    setPlaying: jest.fn(),
+    setPaused: jest.fn(),
   };
   const mockRegions = [
     { id: 'region1', start: 0, end: 10 },
@@ -45,6 +51,9 @@ describe('useWavesurferEvents', () => {
     // Mock useEditorStore.getState()
     (useEditorStore.getState as jest.Mock).mockReturnValue(mockStore);
 
+    // Mock usePlayerStore.getState()
+    (usePlayerStore.getState as jest.Mock).mockReturnValue(mockPlayerStore);
+
     // Mock wavesurferService methods
     (wavesurferService.clearAllListeners as jest.Mock).mockImplementation(mockClearAllListeners);
     (wavesurferService.on as jest.Mock).mockImplementation(mockOn);
@@ -57,8 +66,10 @@ describe('useWavesurferEvents', () => {
       renderHook(() => useWavesurferEvents(transcriptionId));
 
       expect(mockClearAllListeners).toHaveBeenCalledTimes(1);
-      expect(mockOn).toHaveBeenCalledTimes(1);
+      expect(mockOn).toHaveBeenCalledTimes(3);
       expect(mockOn).toHaveBeenCalledWith('region-created', expect.any(Function));
+      expect(mockOn).toHaveBeenCalledWith('play', expect.any(Function));
+      expect(mockOn).toHaveBeenCalledWith('pause', expect.any(Function));
     });
 
     it('should NOT reinitialize event listeners when the same transcriptionId is used', () => {
@@ -91,7 +102,7 @@ describe('useWavesurferEvents', () => {
 
       // Verify first initialization
       expect(mockClearAllListeners).toHaveBeenCalledTimes(1);
-      expect(mockOn).toHaveBeenCalledTimes(1);
+      expect(mockOn).toHaveBeenCalledTimes(3);
 
       // Clear mocks and change to new ID
       jest.clearAllMocks();
@@ -99,7 +110,7 @@ describe('useWavesurferEvents', () => {
 
       // Verify second initialization
       expect(mockClearAllListeners).toHaveBeenCalledTimes(1);
-      expect(mockOn).toHaveBeenCalledTimes(1);
+      expect(mockOn).toHaveBeenCalledTimes(3);
       expect(mockOn).toHaveBeenCalledWith('region-created', expect.any(Function));
     });
 
@@ -118,7 +129,7 @@ describe('useWavesurferEvents', () => {
 
       // Should only initialize once (from initial render)
       expect(mockClearAllListeners).toHaveBeenCalledTimes(1);
-      expect(mockOn).toHaveBeenCalledTimes(1);
+      expect(mockOn).toHaveBeenCalledTimes(3);
     });
 
     it('should handle undefined transcriptionId correctly', () => {
@@ -140,7 +151,7 @@ describe('useWavesurferEvents', () => {
       renderHook(() => useWavesurferEvents(transcriptionId));
 
       expect(mockClearAllListeners).toHaveBeenCalledTimes(1);
-      expect(mockOn).toHaveBeenCalledTimes(1);
+      expect(mockOn).toHaveBeenCalledTimes(3);
       
       // Verify clearAllListeners is called before registering new listeners
       const clearCallOrder = mockClearAllListeners.mock.invocationCallOrder[0];
@@ -156,16 +167,7 @@ describe('useWavesurferEvents', () => {
       expect(mockOn).toHaveBeenCalledWith('region-created', expect.any(Function));
     });
 
-    it('should log initialization message', () => {
-      const transcriptionId = 'test-transcription-1';
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
 
-      renderHook(() => useWavesurferEvents(transcriptionId));
-
-      expect(consoleSpy).toHaveBeenCalledWith('initializing for transcription:', transcriptionId);
-      
-      consoleSpy.mockRestore();
-    });
   });
 
   describe('region-created event handling', () => {
@@ -228,21 +230,7 @@ describe('useWavesurferEvents', () => {
       });
     });
 
-    it('should log event data when region-created fires', () => {
-      const transcriptionId = 'test-transcription-1';
-      const eventData = { id: 'test-region', start: 1, end: 2 };
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
 
-      renderHook(() => useWavesurferEvents(transcriptionId));
-
-      // Get and call the event handler
-      const eventHandler = mockOn.mock.calls[0][1];
-      eventHandler(eventData);
-
-      expect(consoleSpy).toHaveBeenCalledWith('got event here', eventData);
-      
-      consoleSpy.mockRestore();
-    });
 
     it('should get fresh store state and regions for each event', () => {
       const transcriptionId = 'test-transcription-1';
@@ -283,7 +271,7 @@ describe('useWavesurferEvents', () => {
 
       // Should initialize now
       expect(mockClearAllListeners).toHaveBeenCalledTimes(1);
-      expect(mockOn).toHaveBeenCalledTimes(1);
+      expect(mockOn).toHaveBeenCalledTimes(3);
     });
 
     it('should work correctly when transcriptionId changes from defined to undefined', () => {
@@ -294,7 +282,7 @@ describe('useWavesurferEvents', () => {
 
       // Should initialize on first defined value
       expect(mockClearAllListeners).toHaveBeenCalledTimes(1);
-      expect(mockOn).toHaveBeenCalledTimes(1);
+      expect(mockOn).toHaveBeenCalledTimes(3);
 
       // Clear mocks
       jest.clearAllMocks();
@@ -304,7 +292,7 @@ describe('useWavesurferEvents', () => {
 
       // Should initialize again because 'defined-transcription-id' !== undefined
       expect(mockClearAllListeners).toHaveBeenCalledTimes(1);
-      expect(mockOn).toHaveBeenCalledTimes(1);
+      expect(mockOn).toHaveBeenCalledTimes(3);
     });
 
     it('should handle empty string transcriptionId', () => {
@@ -314,7 +302,7 @@ describe('useWavesurferEvents', () => {
 
       // Should initialize with empty string
       expect(mockClearAllListeners).toHaveBeenCalledTimes(1);
-      expect(mockOn).toHaveBeenCalledTimes(1);
+      expect(mockOn).toHaveBeenCalledTimes(3);
 
       // Verify event handler works with empty transcriptionId
       const eventHandler = mockOn.mock.calls[0][1];
@@ -327,5 +315,46 @@ describe('useWavesurferEvents', () => {
         })
       );
     });
+  });
+
+  describe('play and pause event handling', () => {
+    it('should call playerStore.setPlaying when play event fires', () => {
+      const transcriptionId = 'test-transcription-1';
+
+      renderHook(() => useWavesurferEvents(transcriptionId));
+
+      // Find the play event handler (should be the second registered event)
+      const playEventHandler = mockOn.mock.calls.find(call => call[0] === 'play')[1];
+
+      // Simulate the play event firing
+      playEventHandler();
+
+      expect(mockPlayerStore.setPlaying).toHaveBeenCalledTimes(1);
+    });
+
+    it('should call playerStore.setPaused when pause event fires', () => {
+      const transcriptionId = 'test-transcription-1';
+
+      renderHook(() => useWavesurferEvents(transcriptionId));
+
+      // Find the pause event handler (should be the third registered event)
+      const pauseEventHandler = mockOn.mock.calls.find(call => call[0] === 'pause')[1];
+
+      // Simulate the pause event firing
+      pauseEventHandler();
+
+      expect(mockPlayerStore.setPaused).toHaveBeenCalledTimes(1);
+    });
+
+    it('should register both play and pause event listeners', () => {
+      const transcriptionId = 'test-transcription-1';
+
+      renderHook(() => useWavesurferEvents(transcriptionId));
+
+      expect(mockOn).toHaveBeenCalledWith('play', expect.any(Function));
+      expect(mockOn).toHaveBeenCalledWith('pause', expect.any(Function));
+    });
+
+
   });
 }); 

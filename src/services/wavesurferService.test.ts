@@ -52,6 +52,10 @@ describe('WaveSurferService', () => {
       setMediaElement: jest.fn(),
       destroy: jest.fn(),
       on: jest.fn(),
+      setTime: jest.fn(),
+      play: jest.fn().mockResolvedValue(undefined),
+      pause: jest.fn(),
+      playPause: jest.fn().mockResolvedValue(undefined),
     };
     
     mockRegionsInstance = {
@@ -115,6 +119,9 @@ describe('WaveSurferService', () => {
       wavesurferService.initialize(mockContainer, mockTimelineContainer);
       
       expect(mockWaveSurferInstance.on).toHaveBeenCalledWith('ready', expect.any(Function));
+      expect(mockWaveSurferInstance.on).toHaveBeenCalledWith('play', expect.any(Function));
+      expect(mockWaveSurferInstance.on).toHaveBeenCalledWith('pause', expect.any(Function));
+      expect(mockWaveSurferInstance.on).toHaveBeenCalledWith('error', expect.any(Function));
       expect(mockRegionsInstance.on).toHaveBeenCalledWith('region-created', expect.any(Function));
     });
   });
@@ -251,8 +258,6 @@ describe('WaveSurferService', () => {
       // Should not crash or add any regions
       expect(mockRegionsInstance.addRegion).not.toHaveBeenCalled();
     });
-
-
   });
 
   describe('Event Handling', () => {
@@ -301,6 +306,63 @@ describe('WaveSurferService', () => {
       });
       
       expect(mockCallback).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Playback Event Handling', () => {
+    let playCallback: Function;
+    let pauseCallback: Function;
+    
+    beforeEach(() => {
+      wavesurferService.initialize(mockContainer, mockTimelineContainer);
+      
+      // Capture the play and pause callbacks
+      const playCall = mockWaveSurferInstance.on.mock.calls.find(
+        (call: any) => call[0] === 'play'
+      );
+      playCallback = playCall[1];
+      
+      const pauseCall = mockWaveSurferInstance.on.mock.calls.find(
+        (call: any) => call[0] === 'pause'
+      );
+      pauseCallback = pauseCall[1];
+    });
+
+    it('should emit play events', () => {
+      const mockCallback = jest.fn();
+      wavesurferService.on('play', mockCallback);
+      
+      // Simulate play event
+      playCallback();
+      
+      expect(mockCallback).toHaveBeenCalled();
+    });
+
+    it('should emit pause events', () => {
+      const mockCallback = jest.fn();
+      wavesurferService.on('pause', mockCallback);
+      
+      // Simulate pause event
+      pauseCallback();
+      
+      expect(mockCallback).toHaveBeenCalled();
+    });
+
+    it('should not emit play/pause events when muted', () => {
+      const playMockCallback = jest.fn();
+      const pauseMockCallback = jest.fn();
+      wavesurferService.on('play', playMockCallback);
+      wavesurferService.on('pause', pauseMockCallback);
+      
+      // Mute events
+      wavesurferService['muteEvents'] = true;
+      
+      // Simulate events
+      playCallback();
+      pauseCallback();
+      
+      expect(playMockCallback).not.toHaveBeenCalled();
+      expect(pauseMockCallback).not.toHaveBeenCalled();
     });
   });
 
@@ -357,6 +419,46 @@ describe('WaveSurferService', () => {
 
     it('should return regions plugin', () => {
       expect(wavesurferService.getRegionsPlugin()).toBe(mockRegionsInstance);
+    });
+
+    it('should seek to specific time', () => {
+      mockWaveSurferInstance.setTime = jest.fn();
+      
+      wavesurferService.seekToTime(45.5);
+      
+      expect(mockWaveSurferInstance.setTime).toHaveBeenCalledWith(45.5);
+    });
+
+    it('should play audio', async () => {
+      mockWaveSurferInstance.play = jest.fn().mockResolvedValue(undefined);
+      
+      await wavesurferService.play();
+      
+      expect(mockWaveSurferInstance.play).toHaveBeenCalled();
+    });
+
+    it('should pause audio', () => {
+      mockWaveSurferInstance.pause = jest.fn();
+      
+      wavesurferService.pause();
+      
+      expect(mockWaveSurferInstance.pause).toHaveBeenCalled();
+    });
+
+    it('should toggle play/pause', async () => {
+      mockWaveSurferInstance.playPause = jest.fn().mockResolvedValue(undefined);
+      
+      await wavesurferService.playPause();
+      
+      expect(mockWaveSurferInstance.playPause).toHaveBeenCalled();
+    });
+
+    it('should handle playPause when wavesurfer is null', async () => {
+      wavesurferService.destroy();
+      
+      const result = await wavesurferService.playPause();
+      
+      expect(result).toBeUndefined();
     });
   });
 

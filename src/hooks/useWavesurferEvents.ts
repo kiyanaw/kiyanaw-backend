@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import { useEditorStore } from '../stores/useEditorStore';
+import { usePlayerStore } from '../stores/usePlayerStore';
 import { wavesurferService } from '../services/wavesurferService';
 import { services } from '../services';
 
@@ -9,6 +10,9 @@ import { CreateRegion } from '../use-cases/create-region';
 export const useWavesurferEvents = (transcriptionId: string): void => {
   const lastCalledRef = useRef<string | undefined>(undefined);
   const regions = useEditorStore((state) => state.regions);
+
+  const playerStore = usePlayerStore.getState()
+  
   // const peaks = useEditorStore((state) => state.peaks);
   
   // Only run region update when transcription changes or regions change
@@ -35,6 +39,14 @@ export const useWavesurferEvents = (transcriptionId: string): void => {
         store
       })
       usecase.execute()
+    })
+
+    wavesurferService.on('play', () => {
+      playerStore.setPlaying();
+    })
+    
+    wavesurferService.on('pause', () => {
+      playerStore.setPaused();
     })
   }
 }; 
