@@ -126,7 +126,7 @@ describe('useWavesurferEvents', () => {
 
       renderHook(() => useWavesurferEvents(transcriptionId));
 
-      // Similar to useTranscription, undefined !== undefined is false on first call
+      // Similar to useLoadTranscription, undefined !== undefined is false on first call
       // because lastCalledRef.current starts as undefined
       expect(mockClearAllListeners).not.toHaveBeenCalled();
       expect(mockOn).not.toHaveBeenCalled();

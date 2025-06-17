@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { useTranscriptionsStore } from '../../stores/useTranscriptionsStore';
+import { useLoadTranscriptionsStore } from '../../stores/useLoadTranscriptionsStore';
 import type { Transcription } from '../../models';
 import TimeAgo from 'javascript-time-ago';
 import en from 'javascript-time-ago/locale/en';
@@ -28,10 +28,10 @@ const columns: Column[] = [
 ];
 
 export const TranscriptionsTable = () => {
-  const transcriptions = useTranscriptionsStore((state) => state.transcriptions);
-  const loading = useTranscriptionsStore((state) => state.loading);
-  const error = useTranscriptionsStore((state) => state.error);
-  const loadTranscriptions = useTranscriptionsStore((state) => state.loadTranscriptions);
+  const transcriptions = useLoadTranscriptionsStore((state) => state.transcriptions);
+  const loading = useLoadTranscriptionsStore((state) => state.loading);
+  const error = useLoadTranscriptionsStore((state) => state.error);
+  const loadTranscriptions = useLoadTranscriptionsStore((state) => state.loadTranscriptions);
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState('dateLastUpdated');
   const [sortDesc, setSortDesc] = useState(true);
