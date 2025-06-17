@@ -23,6 +23,12 @@ export const EditorPage = () => {
   
   // const regions = []
   const selectedRegion = {}
+
+  // TODO: 
+  const canEdit = true
+  const isTranscriptionAuthor = true 
+  const user = 'aaronfay'
+  const issues = []
   
   // Editor store selectors
   // const user = useAuthStore((state) => state.user);
@@ -78,26 +84,25 @@ export const EditorPage = () => {
       <div className="flex flex-1 overflow-hidden min-h-0">
         {/* Stationary Inspector */}
         <div className="flex-1 bg-white border-r border-gray-300 overflow-hidden flex flex-col">
-          {/* <StationaryInspector
+          <StationaryInspector
             transcription={transcription}
             regions={regions}
             selectedRegion={selectedRegion}
             canEdit={canEdit}
             isTranscriptionAuthor={isTranscriptionAuthor}
             user={user}
-            issues={issues}
-            onTranscriptionUpdate={handleTranscriptionUpdate}
-            onRegionUpdate={handleRegionEditorUpdate}
-            onRegionPlay={handleRegionPlay}
-            onRegionToggleNote={handleRegionToggleNote}
-            onRegionCreateIssue={handleRegionCreateIssue}
-            onRegionDelete={handleRegionDelete}
-            onShowCreateIssueForm={handleShowCreateIssueForm}
-            onIssueCreate={handleIssueCreate}
-            onIssueUpdate={handleIssueUpdate}
-            onIssueDelete={handleIssueDelete}
-            onIssueAddComment={handleIssueAddComment}
-          /> */}
+            onTranscriptionUpdate={() => {}}
+            onRegionUpdate={() => {}}
+            onRegionPlay={() => {}}
+            onRegionToggleNote={() => {}}
+            onRegionCreateIssue={() => {}}
+            onRegionDelete={() => {}}
+            onShowCreateIssueForm={() => {}}
+            onIssueCreate={() => {}}
+            onIssueUpdate={() => {}}
+            onIssueDelete={() => {}}
+            onIssueAddComment={() => {}}
+          />
         </div>
 
         {/* Region List */}

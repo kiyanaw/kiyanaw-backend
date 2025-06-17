@@ -34,35 +34,19 @@ export class CreateRegion {
   async execute(): Promise<void> {
     this.validate();
 
-    console.log('USE CASE')
-
-    const regionService = this.config.services.regionService
-    const wavesurferService = this.config.services.wavesurferService
-
     try {
+      const store = this.config.store
+      const regionService = this.config.services.regionService
+      const newRegion = this.config.newRegion
+      const transcriptionId = this.config.transcriptionId
+      const userLastUpdated = this.user.username
 
-      const regions = this.config.store.regions
+      // save to store
+      store.addNewRegion(newRegion)
 
-      const newRegion = {
-        ...this.config.newRegion,
-        userLastUpdated: this.user.username,
-        dateLastUpdated: `${+new Date()}`
-      }
+      // async save to DB
+      regionService.createRegion(transcriptionId, newRegion, userLastUpdated)
 
-      this.config.store.addNewRegion(newRegion)
-
-      /**
-       * Plan:
-       *  - use case createRegion
-       *    - consolidated function to sort & index the regions
-       *    - set the regions on the store
-       *    - service call to save the new region
-       *    - re-render the regions to wavesurfer service
-       *  - add Regions list back on the page & test
-       */
-      // TODO make sure you return RegionModel
-
-      
     } catch (error) {
       throw error;
     }

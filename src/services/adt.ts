@@ -132,7 +132,6 @@ export class RegionModel {
   public index?: number;
 
   constructor(data: RegionData) {
-    console.log('region instance', data)
     try {
       this.id = data.id;
       this.createdAt = data.createdAt;

@@ -36,10 +36,5 @@ export const useWavesurferEvents = (transcriptionId: string): void => {
       })
       usecase.execute()
     })
-
-    // wavesurferService.on('play-pause', (event) => {
-
-    // })
-
   }
 }; 

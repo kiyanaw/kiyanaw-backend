@@ -18,12 +18,6 @@ export class LoadTranscription {
     if (!this.config.transcriptionId || this.config.transcriptionId.trim() === '') {
       throw new Error('transcriptionId is required and cannot be empty');
     }
-
-    // Log current user for debugging/audit purposes
-    const user = this.config.services.authService.currentUser();
-
-    // TODO: this is dumb, assert there is a user?
-    console.log('User loading transcription:', user?.username || 'anonymous');
   }
 
   async execute(): Promise<void> {

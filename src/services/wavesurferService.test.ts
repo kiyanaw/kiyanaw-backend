@@ -20,7 +20,7 @@ jest.mock('wavesurfer.js/dist/plugins/timeline.esm.js', () => ({
   },
 }));
 
-import { wavesurferService } from '../wavesurferService';
+import { wavesurferService } from './wavesurferService';
 import WaveSurfer from 'wavesurfer.js';
 import Regions from 'wavesurfer.js/dist/plugins/regions.esm.js';
 import Timeline from 'wavesurfer.js/dist/plugins/timeline.esm.js';
@@ -58,7 +58,7 @@ describe('WaveSurferService', () => {
       enableDragSelection: jest.fn(),
       addRegion: jest.fn(),
       on: jest.fn(),
-      getRegions: jest.fn(),
+      getRegions: jest.fn().mockReturnValue([]),
     };
     
     mockTimelineInstance = {};
@@ -202,6 +202,38 @@ describe('WaveSurferService', () => {
       expect(wavesurferService['_delayedRegions']).toEqual([]);
     });
 
+    it('should update region indices when region is created', () => {
+      const mockRegions = [
+        { start: 1, end: 2, setContent: jest.fn() },
+        { start: 3, end: 4, setContent: jest.fn() },
+      ];
+      
+      mockRegionsInstance.getRegions.mockReturnValue(mockRegions);
+      
+      // Trigger ready event first
+      readyCallback();
+      
+      // Get the region-created callback
+      const regionCreatedCall = mockRegionsInstance.on.mock.calls.find(
+        (call: any) => call[0] === 'region-created'
+      );
+      const regionCreatedCallback = regionCreatedCall[1];
+      
+      // Simulate region creation (this should trigger updateRegionIndices)
+      regionCreatedCallback({
+        id: 'test-region',
+        start: 2.5,
+        end: 3.5,
+      });
+      
+      // Should get all regions
+      expect(mockRegionsInstance.getRegions).toHaveBeenCalled();
+      
+      // Should update content of all regions with their indices
+      expect(mockRegions[0].setContent).toHaveBeenCalledWith('1');
+      expect(mockRegions[1].setContent).toHaveBeenCalledWith('2');
+    });
+
     it('should handle empty regions array', () => {
       wavesurferService.setRegions([]);
       
@@ -220,54 +252,7 @@ describe('WaveSurferService', () => {
       expect(mockRegionsInstance.addRegion).not.toHaveBeenCalled();
     });
 
-    it('should add region and update indices using regions plugin', () => {
-      const mockRegionsFromPlugin = [
-        { start: 1, end: 2, content: '1' },
-        { start: 3, end: 4, content: '2' },
-      ];
-      
-      // Mock getRegions to return existing regions plus the new one
-      mockRegionsInstance.getRegions.mockReturnValue([
-        { start: 1, end: 2, content: '1' },
-        { start: 2.5, end: 3.5, content: '1' }, // New region inserted
-        { start: 3, end: 4, content: '2' },
-      ]);
-      
-      // Trigger ready event first
-      readyCallback();
-      
-      // Add a new region
-      const newRegion = { start: 2.5, end: 3.5 };
-      wavesurferService.addRegionAndUpdateIndices(newRegion);
-      
-      // Should add the region to wavesurfer
-      expect(mockRegionsInstance.addRegion).toHaveBeenCalledWith({
-        start: 2.5,
-        end: 3.5,
-        content: '1',
-        resize: true,
-      });
-      
-      // Should get all regions and update their content
-      expect(mockRegionsInstance.getRegions).toHaveBeenCalled();
-      
-      // Should update content of all regions based on their order
-      const mockRegions = mockRegionsInstance.getRegions();
-      expect(mockRegions[0].content).toBe('1');
-      expect(mockRegions[1].content).toBe('2');
-      expect(mockRegions[2].content).toBe('3');
-    });
 
-    it('should not add region when wavesurfer is not ready', () => {
-      const newRegion = { start: 1, end: 2 };
-      
-      // Don't trigger ready event
-      wavesurferService.addRegionAndUpdateIndices(newRegion);
-      
-      // Should not add any regions
-      expect(mockRegionsInstance.addRegion).not.toHaveBeenCalled();
-      expect(mockRegionsInstance.getRegions).not.toHaveBeenCalled();
-    });
   });
 
   describe('Event Handling', () => {

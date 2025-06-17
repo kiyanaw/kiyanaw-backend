@@ -147,10 +147,9 @@ class WaveSurferService {
    */
   updateRegionIndices() {
     const allRegions = this.regionsPlugin.getRegions();
-    
-    // Update the content (display index) of each region
-    allRegions.forEach((region: any, index: number) => {
-      // Directly update the content property
+    // Sort regions by start time to ensure proper chronological ordering
+    const sortedRegions = allRegions.sort((a: any, b: any) => a.start - b.start);
+    sortedRegions.forEach((region: any, index: number) => {
       region.setContent(`${index + 1}`)
     });
     
