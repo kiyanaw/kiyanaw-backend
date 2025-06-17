@@ -17,7 +17,6 @@ interface EditorState {
   // Transcription state
   transcription: any | null;
   saved: boolean;
-  transcriptionSource: string | null;
   peaks: any | null;
 
   // Regions state
@@ -47,6 +46,7 @@ interface EditorState {
   updateRegion: (regionId: string, update: Partial<any>) => Promise<void>;
   createRegion: (regionData: any) => Promise<void>;
   deleteRegion: (regionId: string) => Promise<void>;
+  addNewRegion: (region: any) => void;
 
   // Issue actions
   createIssue: (issueData: {
@@ -70,6 +70,13 @@ interface EditorState {
   issueById: (id: string) => any | null;
   issuesByRegion: (regionId: string) => any[];
 }
+interface NewRegion {
+  id: string;
+  start: number;
+  end: number;
+  userLastUpdated: string;
+  dateLastUpdated: string;
+}
 
 export const useEditorStore = create<EditorState>()(
   devtools(
@@ -77,7 +84,6 @@ export const useEditorStore = create<EditorState>()(
       // Initial state
       transcription: null,
       saved: false,
-      transcriptionSource: null,
       peaks: null,
       regions: [],
       regionMap: {},
@@ -87,10 +93,6 @@ export const useEditorStore = create<EditorState>()(
       issueMap: {},
       _subscriptions: [],
 
-      // Computed properties
-      get isVideo() {
-        return get().transcription?.type?.startsWith('video/') ?? false;
-      },
       isTranscriptionAuthor: (user) => {
         const { transcription } = get();
         if (!transcription || !user) return false;
@@ -102,7 +104,7 @@ export const useEditorStore = create<EditorState>()(
 
       // Action to set data from TanStack Query
       setFullTranscriptionData: (data) => {
-        const { transcription, regions, issues, source, peaks, isVideo } = data;
+        const { transcription, regions, issues, peaks } = data;
         const state = get();
         state.cleanup();
 
@@ -124,9 +126,7 @@ export const useEditorStore = create<EditorState>()(
           regionMap,
           issues,
           issueMap,
-          transcriptionSource: source,
-          peaks: peaks,
-          isVideo: isVideo ?? false,
+          peaks: peaks
         });
 
       },
@@ -136,7 +136,6 @@ export const useEditorStore = create<EditorState>()(
         _subscriptions.forEach(sub => sub.unsubscribe());
         set({
           transcription: null,
-          transcriptionSource: null,
           peaks: null,
           regions: [],
           regionMap: {},
@@ -233,6 +232,27 @@ export const useEditorStore = create<EditorState>()(
         } catch (error) {
           console.error('Error deleting region:', error);
         }
+      },
+
+      addNewRegion: (region:NewRegion) => {
+        const { regions, regionMap } = get();
+        
+        // Add to regionMap for O(1) lookups
+        const newRegionMap = { ...regionMap, [region.id]: region };
+        
+        // Insert into regions array maintaining sort order (by start time)
+        const newRegions = [...regions];
+        const insertIndex = newRegions.findIndex(r => r.start > region.start);
+        if (insertIndex === -1) {
+          newRegions.push(region); // Add to end if it's the latest
+        } else {
+          newRegions.splice(insertIndex, 0, region); // Insert at correct position
+        }
+        
+        set({
+          regions: newRegions,
+          regionMap: newRegionMap,
+        });
       },
 
       // Issue actions

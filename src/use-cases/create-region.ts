@@ -3,7 +3,11 @@ import { services } from '../services';
 
 interface CreateRegionConfig {
   transcriptionId: string;
-  newRegion: any;
+  newRegion: {
+    id: string;
+    start: number;
+    end: number;
+  };
   regions: any[];
   services: typeof services;
   store: any; // whole store object
@@ -38,17 +42,26 @@ export class CreateRegion {
     try {
 
       const regions = this.config.store.regions
-      console.log(regions)
 
+      const newRegion = {
+        ...this.config.newRegion,
+        userLastUpdated: this.user.username,
+        dateLastUpdated: `${+new Date()}`
+      }
 
+      this.config.store.addNewRegion(newRegion)
+
+      /**
+       * Plan:
+       *  - use case createRegion
+       *    - consolidated function to sort & index the regions
+       *    - set the regions on the store
+       *    - service call to save the new region
+       *    - re-render the regions to wavesurfer service
+       *  - add Regions list back on the page & test
+       */
       // TODO make sure you return RegionModel
 
-      // const data = await transcriptionService.loadInFull(this.config.transcriptionId);
-      // this.config.store.setFullTranscriptionData(data);
-
-      // // load wavesurfer details _outside_ the React system
-      // wavesurferService.load(data.source, data.peaks)
-      // wavesurferService.setRegions(data.regions)
       
     } catch (error) {
       throw error;

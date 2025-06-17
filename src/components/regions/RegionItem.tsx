@@ -5,7 +5,6 @@ interface RegionItemProps {
     id: string;
     start: number;
     end: number;
-    displayIndex?: number;
     isNote?: boolean;
     regionText?: string;
     translation?: string;
@@ -70,7 +69,7 @@ export const RegionItem = ({
             className="pr-4 leading-relaxed [&_.known-word]:bg-green-50 [&_.known-word]:text-green-800 [&_.unknown-word]:bg-red-50 [&_.unknown-word]:text-red-800 [&_.proper-noun]:font-bold [&_.proper-noun]:text-blue-700 [&_.emphasis]:italic [&_.strong]:font-bold empty:before:content-['No_text_content'] empty:before:text-gray-400 empty:before:italic"
             dangerouslySetInnerHTML={{ __html: renderTextContent }}
           />
-          <span className="absolute top-0 right-1 text-3xl font-black text-gray-200 pointer-events-none">{region.displayIndex}</span>
+          <span className="absolute top-0 right-1 text-3xl font-black text-gray-200 pointer-events-none">{index + 1}</span>
         </div>
       )}
 
