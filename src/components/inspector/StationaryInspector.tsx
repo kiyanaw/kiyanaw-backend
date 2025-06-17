@@ -7,7 +7,6 @@ interface StationaryInspectorProps {
   canEdit: boolean;
   isTranscriptionAuthor?: boolean;
   user?: any;
-  issues: any[];
   onTranscriptionUpdate: (updates: any) => void;
   onRegionUpdate: (regionId: string, updates: any) => void;
   onRegionPlay?: (start: number, end: number) => void;
@@ -28,7 +27,6 @@ export const StationaryInspector = ({
   canEdit,
   isTranscriptionAuthor,
   user,
-  issues,
   onTranscriptionUpdate,
   onRegionUpdate,
   onRegionPlay,

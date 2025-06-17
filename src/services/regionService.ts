@@ -17,8 +17,6 @@ export const loadRegionsForTranscription = async (transcriptionId: string) => {
     .sort((a, b) => (a.start > b.start ? 1 : -1))
     .map((r) => new RegionModel(r as any));
 
-
-  console.log('regions', regions)
   return regions
 }; 
 
@@ -30,7 +28,7 @@ export const loadRegionsForTranscription = async (transcriptionId: string) => {
  * @param username The username of the user creating the region
  * @returns The saved region as a RegionModel
  */
-export const saveRegion = async (transcriptionId: string, region: {
+export const createRegion = async (transcriptionId: string, region: {
   id: string;
   start: number;
   end: number;
@@ -43,16 +41,15 @@ export const saveRegion = async (transcriptionId: string, region: {
   }
 
   const newRegion = new DSRegion({
+    // @ts-ignore - id not in TS type
+    id: region.id, 
     start: region.start,
     end: region.end,
-    isNote: region.isNote || false,
+    isNote: region.isNote || false, 
     dateLastUpdated: `${Date.now()}`,
     userLastUpdated: username,
     transcription,
   });
-  
-  // Set the explicit ID
-  (newRegion as any).id = region.id;
   
   const savedRegion = await DataStore.save(newRegion);
 
