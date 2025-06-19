@@ -8,7 +8,7 @@ exports.handler = async (event) => {
   console.log('record', JSON.stringify(record))
 
   // select the db
-  let tables = dynamo.config.prod
+  let tables = dynamo.config[process.env.ENV]
   const transcriptionTable = tables.transcriptionTable
   const regionTable = tables.regionTable
 
@@ -65,7 +65,7 @@ exports.handler = async (event) => {
   transcription = transcription.Item
   console.log('transcription', transcription)
 
-  if (transcription.isPrivate || transcription.disableAnalyzer) {
+  if (transcription.isPrivate || transcription.disableAnalyzer || process.env.ENV != 'production') {
     console.log('Not processing transcription')
     return okResponse()
   }

@@ -7,10 +7,15 @@ AWS.config.update({
 const docClient = new AWS.DynamoDB.DocumentClient({ apiVersion: '2012-08-10' })
 
 const config = {
-  prod: {
-    transcriptionTable: 'Transcription-2f6oi2uymzaunf4rb564agznt4-prod',
-    regionTable: 'Region-2f6oi2uymzaunf4rb564agznt4-prod',
+  production: {
+    transcriptionTable: 'Transcription-26n7gb6myzcklnzgus7uo6pwuq-production',
+    regionTable: 'Region-26n7gb6myzcklnzgus7uo6pwuq-production',
     domain: 'https://transcribe.kiyanaw.net',
+  },
+  staging: {
+    transcriptionTable: 'Transcription-m2zepok2hrhxrlp4jpo52kh774-staging',
+    regionTable: 'Region-m2zepok2hrhxrlp4jpo52kh774-staging',
+    domain: 'https://transcribe.kiyanaw.dev',
   },
 }
 
