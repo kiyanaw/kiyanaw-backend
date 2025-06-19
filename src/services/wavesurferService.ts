@@ -13,6 +13,9 @@ class WaveSurferService {
   private muteEvents: boolean = false;
   private ready: boolean = false;
   private _delayedRegions: any[] = []
+  private _delayedSeekTime: number | null = null
+  private _ignoreNextRegionOut: boolean = false
+  private _currentHighlightedRegion: any = null
 
   private REGION_BACKGROUND_COLOR = 'rgba(0, 0, 0, 0.1)'
   private REGION_HIGHLIGHTED_COLOR = 'rgba(0, 213, 255, 0.1)'
@@ -75,6 +78,14 @@ class WaveSurferService {
       } else {
         console.log('📋 No delayed regions to process')
       }
+
+      if (this._delayedSeekTime !== null) {
+        console.log(`📋 Processing delayed seek to time: ${this._delayedSeekTime}`)
+        this.wavesurfer?.setTime(this._delayedSeekTime)
+        this._delayedSeekTime = null
+        // Ignore the next region-out event since we're seeking to a region intentionally
+        this._ignoreNextRegionOut = true
+      }
     })
 
     this.wavesurfer?.on('play', () => {
@@ -103,14 +114,36 @@ class WaveSurferService {
     this.regionsPlugin?.on('region-in', (event: any) => {
       console.log('region in', event)
 
+      // Clear the previous region's highlight if there was one
+      if (this._currentHighlightedRegion && this._currentHighlightedRegion.id !== event.id) {
+        console.log(`📋 Manually clearing highlight from previous region: ${this._currentHighlightedRegion.id}`)
+        this._currentHighlightedRegion.element.style.backgroundColor = this.REGION_BACKGROUND_COLOR;
+      }
+
       // Set highlight color when entering region
       event.element.style.backgroundColor = this.REGION_HIGHLIGHTED_COLOR;
+      this._currentHighlightedRegion = event;
+      
       this.emitEvent('region-in', {regionId: event.id})
     })
     this.regionsPlugin?.on('region-out', (event: any) => {
       console.log('region out', event)
+      
+      // Check if we should ignore this region-out event
+      if (this._ignoreNextRegionOut) {
+        console.log('📋 Ignoring region-out event after initial seek')
+        this._ignoreNextRegionOut = false
+        return
+      }
+      
       // Restore original background color when leaving region
       event.element.style.backgroundColor = this.REGION_BACKGROUND_COLOR
+      
+      // Clear current highlighted region tracking if this is the one leaving
+      if (this._currentHighlightedRegion && this._currentHighlightedRegion.id === event.id) {
+        this._currentHighlightedRegion = null
+      }
+      
       this.emitEvent('region-out', {regionId: event.id})
     })
 
@@ -194,7 +227,13 @@ class WaveSurferService {
   }
   
   seekToTime(timeInSeconds: number): void {
-    this.wavesurfer?.setTime(timeInSeconds);
+    if (this.wavesurfer && this.ready) {
+      console.log(`📋 Seeking to time: ${timeInSeconds}`)
+      this.wavesurfer.setTime(timeInSeconds);
+    } else {
+      console.log(`📋 Wavesurfer not ready, delaying seek to time: ${timeInSeconds}`)
+      this._delayedSeekTime = timeInSeconds;
+    }
   }
 
   async play(): Promise<void> {
@@ -229,6 +268,9 @@ class WaveSurferService {
     // Reset state
     this.ready = false;
     this._delayedRegions = [];
+    this._delayedSeekTime = null;
+    this._ignoreNextRegionOut = false;
+    this._currentHighlightedRegion = null;
     this.muteEvents = false;
     this.clearAllListeners();
   }
