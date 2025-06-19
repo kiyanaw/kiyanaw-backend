@@ -14,8 +14,11 @@ class WaveSurferService {
   private ready: boolean = false;
   private _delayedRegions: any[] = []
   private _delayedSeekTime: number | null = null
-  private _ignoreNextRegionOut: boolean = false
-  private _currentHighlightedRegion: any = null
+  // Inbound region highlighting state management
+  // Used to ignore region-out events immediately after seeking to prevent unwanted highlight removal
+  private _inboundRegionIgnoreNextOut: boolean = false
+  // Tracks the currently highlighted region in the wavesurfer player for inbound region management
+  private _inboundRegionCurrentHighlighted: any = null
 
   private REGION_BACKGROUND_COLOR = 'rgba(0, 0, 0, 0.1)'
   private REGION_HIGHLIGHTED_COLOR = 'rgba(0, 213, 255, 0.1)'
@@ -66,7 +69,6 @@ class WaveSurferService {
   }
 
   registerEvents(): void {
-
     // Wavesurfer events
     this.wavesurfer?.on('ready', (event) => {
       console.log('📋 Wavesurfer ready event fired!', event)
@@ -84,7 +86,7 @@ class WaveSurferService {
         this.wavesurfer?.setTime(this._delayedSeekTime)
         this._delayedSeekTime = null
         // Ignore the next region-out event since we're seeking to a region intentionally
-        this._ignoreNextRegionOut = true
+        this._inboundRegionIgnoreNextOut = true
       }
     })
 
@@ -111,42 +113,52 @@ class WaveSurferService {
     });
 
 
+    /**
+     * For `region-in` we have a little extra checking because there is some additional
+     * logic around when we have an "inbound region". This means that we have a deep-
+     * link to a region and the region gets highlighted, but we need some additional
+     * logic to make sure that the highlight gets cleared properly when we play the
+     * media or click somewhere else. 
+     */
     this.regionsPlugin?.on('region-in', (event: any) => {
-      console.log('region in', event)
-
-      // Clear the previous region's highlight if there was one
-      if (this._currentHighlightedRegion && this._currentHighlightedRegion.id !== event.id) {
-        console.log(`📋 Manually clearing highlight from previous region: ${this._currentHighlightedRegion.id}`)
-        this._currentHighlightedRegion.element.style.backgroundColor = this.REGION_BACKGROUND_COLOR;
+      const previouslyHighlightedInboundRegion = this._inboundRegionCurrentHighlighted !== null;
+      const newRegionInIsDifferent = previouslyHighlightedInboundRegion && this._inboundRegionCurrentHighlighted.id !== event.id;
+      const needToClearHighlight = newRegionInIsDifferent;
+      if (needToClearHighlight) {
+        console.log(`📋 Manually clearing highlight from previous region: ${this._inboundRegionCurrentHighlighted.id}`)
+        this._inboundRegionCurrentHighlighted.element.style.backgroundColor = this.REGION_BACKGROUND_COLOR;
       }
-
       // Set highlight color when entering region
       event.element.style.backgroundColor = this.REGION_HIGHLIGHTED_COLOR;
-      this._currentHighlightedRegion = event;
-      
+      this._inboundRegionCurrentHighlighted = event;
       this.emitEvent('region-in', {regionId: event.id})
     })
+
+    /**
+     * Similarly for the `region-out` event, we have extra logic that "skips" the very
+     * first event of `region-out` when we have an inbound region, this is so the region
+     * stays highlighted in wavesurfer, since both `region-in` and `region-out` fire
+     * back-to-back when we seek to the initial region. It could possible be cleaner,
+     * but this is where we are today :)
+     */
     this.regionsPlugin?.on('region-out', (event: any) => {
-      console.log('region out', event)
-      
       // Check if we should ignore this region-out event
-      if (this._ignoreNextRegionOut) {
+      const shouldIgnoreRegionOutEvent = this._inboundRegionIgnoreNextOut;
+      if (shouldIgnoreRegionOutEvent) {
         console.log('📋 Ignoring region-out event after initial seek')
-        this._ignoreNextRegionOut = false
+        this._inboundRegionIgnoreNextOut = false
         return
       }
-      
       // Restore original background color when leaving region
       event.element.style.backgroundColor = this.REGION_BACKGROUND_COLOR
-      
       // Clear current highlighted region tracking if this is the one leaving
-      if (this._currentHighlightedRegion && this._currentHighlightedRegion.id === event.id) {
-        this._currentHighlightedRegion = null
+      const previouslyHighlightedInboundRegion = this._inboundRegionCurrentHighlighted !== null;
+      const isLeavingCurrentlyHighlightedRegion = previouslyHighlightedInboundRegion && this._inboundRegionCurrentHighlighted.id === event.id;
+      if (isLeavingCurrentlyHighlightedRegion) {
+        this._inboundRegionCurrentHighlighted = null
       }
-      
       this.emitEvent('region-out', {regionId: event.id})
     })
-
 
   }
 
@@ -269,8 +281,8 @@ class WaveSurferService {
     this.ready = false;
     this._delayedRegions = [];
     this._delayedSeekTime = null;
-    this._ignoreNextRegionOut = false;
-    this._currentHighlightedRegion = null;
+    this._inboundRegionIgnoreNextOut = false;
+    this._inboundRegionCurrentHighlighted = null;
     this.muteEvents = false;
     this.clearAllListeners();
   }
