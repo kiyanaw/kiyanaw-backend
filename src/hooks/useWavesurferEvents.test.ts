@@ -3,6 +3,7 @@ import { useWavesurferEvents } from './useWavesurferEvents';
 import { useEditorStore } from '../stores/useEditorStore';
 import { usePlayerStore } from '../stores/usePlayerStore';
 import { wavesurferService } from '../services/wavesurferService';
+import { browserService } from '../services/browserService';
 import { services } from '../services';
 import { CreateRegion } from '../use-cases/create-region';
 
@@ -10,7 +11,20 @@ import { CreateRegion } from '../use-cases/create-region';
 jest.mock('../stores/useEditorStore');
 jest.mock('../stores/usePlayerStore');
 jest.mock('../services/wavesurferService');
-jest.mock('../services');
+jest.mock('../services/browserService', () => ({
+  browserService: {
+    addCustomStyle: jest.fn(),
+    removeCustomStyle: jest.fn(),
+  },
+}));
+jest.mock('../services', () => ({
+  services: {
+    browserService: {
+      addCustomStyle: jest.fn(),
+      removeCustomStyle: jest.fn(),
+    },
+  },
+}));
 jest.mock('../use-cases/create-region');
 
 describe('useWavesurferEvents', () => {
@@ -36,6 +50,10 @@ describe('useWavesurferEvents', () => {
     
     // Reset DOM mocks
     jest.restoreAllMocks();
+    
+    // Reset browserService mocks
+    (browserService.addCustomStyle as jest.Mock).mockClear();
+    (browserService.removeCustomStyle as jest.Mock).mockClear();
     
     // Mock CreateRegion constructor and methods
     (CreateRegion as jest.MockedClass<typeof CreateRegion>).mockImplementation(() => ({
@@ -385,5 +403,167 @@ describe('useWavesurferEvents', () => {
     // it('should handle region-out when stylesheet does not exist', () => {
     //   // Test implementation here...
     // });
+  });
+
+  describe('inbound region highlighting', () => {
+    let mockAddCustomStyle: jest.Mock;
+    let mockRemoveCustomStyle: jest.Mock;
+
+    beforeEach(() => {
+      // Get references to the mocked functions
+      mockAddCustomStyle = browserService.addCustomStyle as jest.Mock;
+      mockRemoveCustomStyle = browserService.removeCustomStyle as jest.Mock;
+      
+      // Set up default return value
+      mockAddCustomStyle.mockReturnValue('test-style-id');
+    });
+
+    it('should highlight region in list when region-in event fires', () => {
+      const transcriptionId = 'test-transcription-1';
+      const regionId = 'test-region-1';
+
+      renderHook(() => useWavesurferEvents(transcriptionId));
+
+      // Get the region-in event handler
+      const regionInHandler = mockOn.mock.calls.find(call => call[0] === 'region-in')[1];
+
+      // Simulate region-in event
+      regionInHandler({ regionId });
+
+      expect(mockAddCustomStyle).toHaveBeenCalledWith(
+        `div#regionitem-${regionId}`,
+        { 'background-color': 'rgba(0, 213, 255, 0.1) !important' }
+      );
+    });
+
+    it('should clear previous region highlight when new region-in event fires', () => {
+      const transcriptionId = 'test-transcription-1';
+      const firstRegionId = 'test-region-1';
+      const secondRegionId = 'test-region-2';
+
+      renderHook(() => useWavesurferEvents(transcriptionId));
+
+      // Get the region-in event handler
+      const regionInHandler = mockOn.mock.calls.find(call => call[0] === 'region-in')[1];
+
+      // Simulate first region-in event
+      regionInHandler({ regionId: firstRegionId });
+      expect(mockAddCustomStyle).toHaveBeenCalledTimes(1);
+
+      // Simulate second region-in event (should clear first)
+      regionInHandler({ regionId: secondRegionId });
+
+      // Should remove the previous style and add new one
+      expect(mockRemoveCustomStyle).toHaveBeenCalledWith('test-style-id');
+      expect(mockAddCustomStyle).toHaveBeenCalledTimes(2);
+      expect(mockAddCustomStyle).toHaveBeenNthCalledWith(2,
+        `div#regionitem-${secondRegionId}`,
+        { 'background-color': 'rgba(0, 213, 255, 0.1) !important' }
+      );
+    });
+
+    it('should remove region highlight when region-out event fires', () => {
+      const transcriptionId = 'test-transcription-1';
+      const regionId = 'test-region-1';
+
+      renderHook(() => useWavesurferEvents(transcriptionId));
+
+      // Get event handlers
+      const regionInHandler = mockOn.mock.calls.find(call => call[0] === 'region-in')[1];
+      const regionOutHandler = mockOn.mock.calls.find(call => call[0] === 'region-out')[1];
+
+      // Simulate region-in event first
+      regionInHandler({ regionId });
+      expect(mockAddCustomStyle).toHaveBeenCalledWith(
+        `div#regionitem-${regionId}`,
+        { 'background-color': 'rgba(0, 213, 255, 0.1) !important' }
+      );
+
+      // Simulate region-out event
+      regionOutHandler({ regionId });
+
+      expect(mockRemoveCustomStyle).toHaveBeenCalledWith('test-style-id');
+    });
+
+    it('should handle region-out event for region that was never highlighted', () => {
+      const transcriptionId = 'test-transcription-1';
+      const regionId = 'test-region-1';
+
+      renderHook(() => useWavesurferEvents(transcriptionId));
+
+      // Get the region-out event handler
+      const regionOutHandler = mockOn.mock.calls.find(call => call[0] === 'region-out')[1];
+
+      // Simulate region-out event without prior region-in
+      expect(() => regionOutHandler({ regionId })).not.toThrow();
+      expect(mockRemoveCustomStyle).not.toHaveBeenCalled();
+    });
+
+    it('should handle multiple region transitions correctly', () => {
+      const transcriptionId = 'test-transcription-1';
+      const region1 = 'test-region-1';
+      const region2 = 'test-region-2';
+      const region3 = 'test-region-3';
+
+      // Set up different style IDs for each call
+      mockAddCustomStyle
+        .mockReturnValueOnce('style-id-1')
+        .mockReturnValueOnce('style-id-2')
+        .mockReturnValueOnce('style-id-3');
+
+      renderHook(() => useWavesurferEvents(transcriptionId));
+
+      // Get event handlers
+      const regionInHandler = mockOn.mock.calls.find(call => call[0] === 'region-in')[1];
+      const regionOutHandler = mockOn.mock.calls.find(call => call[0] === 'region-out')[1];
+
+      // Simulate: region1 in -> region2 in (clears region1) -> region2 out -> region3 in
+      regionInHandler({ regionId: region1 });
+      expect(mockAddCustomStyle).toHaveBeenCalledTimes(1);
+
+      regionInHandler({ regionId: region2 });
+      expect(mockRemoveCustomStyle).toHaveBeenCalledWith('style-id-1'); // Clear region1
+      expect(mockAddCustomStyle).toHaveBeenCalledTimes(2);
+
+      regionOutHandler({ regionId: region2 });
+      expect(mockRemoveCustomStyle).toHaveBeenCalledWith('style-id-2'); // Clear region2
+
+      regionInHandler({ regionId: region3 });
+      expect(mockAddCustomStyle).toHaveBeenCalledTimes(3); // No previous to clear
+    });
+
+    it('should track inbound region correctly across multiple transitions', () => {
+      const transcriptionId = 'test-transcription-1';
+      const region1 = 'test-region-1';
+      const region2 = 'test-region-2';
+
+      mockAddCustomStyle
+        .mockReturnValueOnce('style-id-1')
+        .mockReturnValueOnce('style-id-2');
+
+      renderHook(() => useWavesurferEvents(transcriptionId));
+
+      // Get event handlers
+      const regionInHandler = mockOn.mock.calls.find(call => call[0] === 'region-in')[1];
+      const regionOutHandler = mockOn.mock.calls.find(call => call[0] === 'region-out')[1];
+
+      // Enter region1, then region2 (should clear region1), then try to exit region1 (should do nothing)
+      regionInHandler({ regionId: region1 });
+      regionInHandler({ regionId: region2 }); // Should clear region1 automatically
+      
+      // Reset mocks to see only new calls
+      mockRemoveCustomStyle.mockClear();
+      
+      // Try to exit region1 - should do nothing since region2 is currently tracked
+      regionOutHandler({ regionId: region1 });
+      expect(mockRemoveCustomStyle).not.toHaveBeenCalled();
+
+      // Exit region2 - should work since it's the currently tracked region
+      regionOutHandler({ regionId: region2 });
+      expect(mockRemoveCustomStyle).toHaveBeenCalledWith('style-id-2');
+    });
+  });
+
+  describe('complete event flow', () => {
   });
 }); 

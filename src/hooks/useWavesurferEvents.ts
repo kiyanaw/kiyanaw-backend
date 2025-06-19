@@ -11,7 +11,10 @@ import { CreateRegion } from '../use-cases/create-region';
 export const useWavesurferEvents = (transcriptionId: string): void => {
   const lastCalledRef = useRef<string | undefined>(undefined);
   const styleIdRef = useRef<Map<string, string>>(new Map()); // Maps regionId to styleId
-  const currentHighlightedRegionRef = useRef<string | null>(null); // Track currently highlighted region
+  // Track which region currently has inbound highlighting applied in the region list
+  // This is needed because region-out events can be ignored (for wavesurfer highlighting)
+  // but we still need to clear previous region list highlighting when moving to a new region
+  const highlightedInboundRegionRef = useRef<string | null>(null);
   const regions = useEditorStore((state) => state.regions);
 
   const playerStore = usePlayerStore.getState()
@@ -53,33 +56,38 @@ export const useWavesurferEvents = (transcriptionId: string): void => {
     })
 
     wavesurferService.on('region-in', ({regionId}) => {
-      // Clear the previous region's highlight if there is one
-      if (currentHighlightedRegionRef.current) {
-        const previousStyleId = styleIdRef.current.get(currentHighlightedRegionRef.current);
+      // INBOUND REGION HIGHLIGHTING: Clear any previous region's highlight before applying new one
+      // This ensures only one region is highlighted in the list at a time, even when
+      // region-out events are ignored (which happens for wavesurfer highlighting preservation)
+      if (highlightedInboundRegionRef.current) {
+        const previousStyleId = styleIdRef.current.get(highlightedInboundRegionRef.current);
         if (previousStyleId) {
           browserService.removeCustomStyle(previousStyleId);
-          styleIdRef.current.delete(currentHighlightedRegionRef.current);
+          styleIdRef.current.delete(highlightedInboundRegionRef.current);
         }
       }
 
-      // Apply highlight to the new region
+      // Apply inbound region highlighting to the region list item
       const selector = `div#regionitem-${regionId}`;
       const styles = { 
         'background-color': 'rgba(0, 213, 255, 0.1) !important' 
       };
       const styleId = browserService.addCustomStyle(selector, styles);
       styleIdRef.current.set(regionId, styleId);
-      currentHighlightedRegionRef.current = regionId;
+      highlightedInboundRegionRef.current = regionId;
     })
 
     wavesurferService.on('region-out', ({regionId}) => {
+      // INBOUND REGION HIGHLIGHTING: Remove highlighting when leaving a region
+      // Note: This event may be ignored for some regions (to preserve wavesurfer highlighting)
+      // but the manual cleanup in region-in ensures we don't get stuck highlights
       const styleId = styleIdRef.current.get(regionId);
       if (styleId) {
         browserService.removeCustomStyle(styleId);
         styleIdRef.current.delete(regionId);
-        // Clear tracking if this was the currently highlighted region
-        if (currentHighlightedRegionRef.current === regionId) {
-          currentHighlightedRegionRef.current = null;
+        // Clear inbound region tracking if this was the highlighted region
+        if (highlightedInboundRegionRef.current === regionId) {
+          highlightedInboundRegionRef.current = null;
         }
       }
     })

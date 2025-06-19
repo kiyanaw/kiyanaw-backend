@@ -465,7 +465,7 @@ describe('WaveSurferService', () => {
       // Delayed seek time should be cleared
       expect(wavesurferService['_delayedSeekTime']).toBeNull();
       // Ignore flag should be set
-      expect(wavesurferService['_ignoreNextRegionOut']).toBe(true);
+              expect(wavesurferService['_inboundRegionIgnoreNextOut']).toBe(true);
     });
 
     it('should ignore the first region-out event after delayed seek', () => {
@@ -476,7 +476,7 @@ describe('WaveSurferService', () => {
       wavesurferService.on('region-out', mockRegionOutCallback);
       
       // Set the ignore flag as if we just did a delayed seek
-      wavesurferService['_ignoreNextRegionOut'] = true;
+      wavesurferService['_inboundRegionIgnoreNextOut'] = true;
       
       // Get the region-out callback
       const regionOutCallback = mockRegionsInstance.on.mock.calls.find(
@@ -491,7 +491,7 @@ describe('WaveSurferService', () => {
       
       // The event should not be emitted and flag should be reset
       expect(mockRegionOutCallback).not.toHaveBeenCalled();
-      expect(wavesurferService['_ignoreNextRegionOut']).toBe(false);
+      expect(wavesurferService['_inboundRegionIgnoreNextOut']).toBe(false);
       
       // Simulate another region-out event (should not be ignored)
       regionOutCallback({
@@ -523,7 +523,7 @@ describe('WaveSurferService', () => {
       
       // First region should be highlighted and tracked
       expect(region1Element.style.backgroundColor).toBe('rgba(0, 213, 255, 0.1)');
-      expect(wavesurferService['_currentHighlightedRegion']).toEqual({
+      expect(wavesurferService['_inboundRegionCurrentHighlighted']).toEqual({
         id: 'region-1',
         element: region1Element
       });
@@ -537,7 +537,7 @@ describe('WaveSurferService', () => {
       // First region should be cleared, second should be highlighted
       expect(region1Element.style.backgroundColor).toBe('rgba(0, 0, 0, 0.1)');
       expect(region2Element.style.backgroundColor).toBe('rgba(0, 213, 255, 0.1)');
-      expect(wavesurferService['_currentHighlightedRegion']).toEqual({
+      expect(wavesurferService['_inboundRegionCurrentHighlighted']).toEqual({
         id: 'region-2',
         element: region2Element
       });
@@ -564,7 +564,7 @@ describe('WaveSurferService', () => {
       });
       
       // Region should be tracked
-      expect(wavesurferService['_currentHighlightedRegion']).toEqual({
+      expect(wavesurferService['_inboundRegionCurrentHighlighted']).toEqual({
         id: 'test-region',
         element: regionElement
       });
@@ -576,7 +576,7 @@ describe('WaveSurferService', () => {
       });
       
       // Tracking should be cleared
-      expect(wavesurferService['_currentHighlightedRegion']).toBeNull();
+      expect(wavesurferService['_inboundRegionCurrentHighlighted']).toBeNull();
     });
 
     it('should play audio', async () => {
