@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import { useEditorStore } from '../stores/useEditorStore';
 import { usePlayerStore } from '../stores/usePlayerStore';
 import { wavesurferService } from '../services/wavesurferService';
+import { browserService } from '../services/browserService';
 import { services } from '../services';
 
 
@@ -9,6 +10,7 @@ import { CreateRegion } from '../use-cases/create-region';
 
 export const useWavesurferEvents = (transcriptionId: string): void => {
   const lastCalledRef = useRef<string | undefined>(undefined);
+  const styleIdRef = useRef<Map<string, string>>(new Map()); // Maps regionId to styleId
   const regions = useEditorStore((state) => state.regions);
 
   const playerStore = usePlayerStore.getState()
@@ -47,6 +49,23 @@ export const useWavesurferEvents = (transcriptionId: string): void => {
     
     wavesurferService.on('pause', () => {
       playerStore.setPaused();
+    })
+
+    wavesurferService.on('region-in', ({regionId}) => {
+      const selector = `div#regionitem-${regionId}`;
+      const styles = { 
+        'background-color': 'rgba(0, 213, 255, 0.1) !important' 
+      };
+      const styleId = browserService.addCustomStyle(selector, styles);
+      styleIdRef.current.set(regionId, styleId);
+    })
+
+    wavesurferService.on('region-out', ({regionId}) => {
+      const styleId = styleIdRef.current.get(regionId);
+      if (styleId) {
+        browserService.removeCustomStyle(styleId);
+        styleIdRef.current.delete(regionId);
+      }
     })
   }
 }; 

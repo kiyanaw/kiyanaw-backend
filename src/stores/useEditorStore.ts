@@ -24,6 +24,7 @@ interface EditorState {
   regionMap: Record<string, any>;
   selectedRegionId: string | null;
   selectedRegion: any | null;
+  playbackWithinRegion: string | null;
 
   // Issues state
   issues: any[];
@@ -43,6 +44,7 @@ interface EditorState {
 
   // Region actions
   setSelectedRegion: (regionId: string | null) => void;
+  setPlaybackWithinRegion: (regionId: string | null) => void;
   updateRegion: (regionId: string, update: Partial<any>) => Promise<void>;
   createRegion: (regionData: any) => Promise<void>;
   deleteRegion: (regionId: string) => Promise<void>;
@@ -89,6 +91,7 @@ export const useEditorStore = create<EditorState>()(
       regionMap: {},
       selectedRegionId: null,
       selectedRegion: null,
+      playbackWithinRegion: null,
       issues: [],
       issueMap: {},
       _subscriptions: [],
@@ -143,6 +146,7 @@ export const useEditorStore = create<EditorState>()(
           issueMap: {},
           selectedRegionId: null,
           selectedRegion: null,
+          playbackWithinRegion: null,
           _subscriptions: [],
         });
       },
@@ -185,6 +189,10 @@ export const useEditorStore = create<EditorState>()(
           selectedRegionId: regionId,
           selectedRegion: regionId ? regionMap[regionId] : null,
         });
+      },
+
+      setPlaybackWithinRegion: (regionId) => {
+        set({ playbackWithinRegion: regionId });
       },
 
       updateRegion: async (regionId, update) => {

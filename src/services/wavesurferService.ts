@@ -14,6 +14,9 @@ class WaveSurferService {
   private ready: boolean = false;
   private _delayedRegions: any[] = []
 
+  private REGION_BACKGROUND_COLOR = 'rgba(0, 0, 0, 0.1)'
+  private REGION_HIGHLIGHTED_COLOR = 'rgba(0, 213, 255, 0.1)'
+
   private constructor() {
     // Private constructor for singleton
   }
@@ -61,7 +64,7 @@ class WaveSurferService {
 
   registerEvents(): void {
 
-    // Wavesurfer ready
+    // Wavesurfer events
     this.wavesurfer?.on('ready', (event) => {
       console.log('📋 Wavesurfer ready event fired!', event)
       this.ready = true
@@ -74,7 +77,19 @@ class WaveSurferService {
       }
     })
 
-    // Region created
+    this.wavesurfer?.on('play', () => {
+      this.emitEvent('play');
+    })
+
+    this.wavesurfer?.on('pause', () => {
+      this.emitEvent('pause');
+    })
+
+    this.wavesurfer?.on('error', (event) => {
+      console.log('Wavesurfer error event', event)
+    })
+
+    // Region events
     this.regionsPlugin?.on('region-created', (event: any) => {
       this.emitEvent('region-created', {
         id: event.id,
@@ -84,18 +99,22 @@ class WaveSurferService {
       this.updateRegionIndices()
     });
 
-    this.wavesurfer?.on('play', () => {
-      this.emitEvent('play');
+
+    this.regionsPlugin?.on('region-in', (event: any) => {
+      console.log('region in', event)
+
+      // Set highlight color when entering region
+      event.element.style.backgroundColor = this.REGION_HIGHLIGHTED_COLOR;
+      this.emitEvent('region-in', {regionId: event.id})
+    })
+    this.regionsPlugin?.on('region-out', (event: any) => {
+      console.log('region out', event)
+      // Restore original background color when leaving region
+      event.element.style.backgroundColor = this.REGION_BACKGROUND_COLOR
+      this.emitEvent('region-out', {regionId: event.id})
     })
 
-    this.wavesurfer?.on('pause', () => {
-      this.emitEvent('pause');
-    })
 
-
-    this.wavesurfer?.on('error', (event) => {
-      console.log('Wavesurfer error event', event)
-    })
   }
 
   emitEvent(eventName: string, data?: any): void {
@@ -140,6 +159,7 @@ class WaveSurferService {
         this.muteEvents = true
         regions.forEach((region: any, index: number) => {
           const input = {
+            id: region.id, // Pass the region ID so wavesurfer uses the same ID as the database
             start: region.start,
             end: region.end,
             content: `${index + 1}`,

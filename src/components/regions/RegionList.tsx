@@ -3,21 +3,22 @@ import React from 'react';
 import { RegionItem } from './RegionItem';
 import type { LightRegion } from '../../services/adt';
 import { usePlayRegion } from '../../hooks/usePlayRegion';
+import { useEditorStore } from '../../stores/useEditorStore';
 
 
 interface RegionListProps {
   regions: LightRegion[];
-  selectedRegionId: string | null;
   disableAnalyzer?: boolean;
 }
 
 export const RegionList = React.memo(({
   regions,
-  selectedRegionId,
   disableAnalyzer = false,
 }: RegionListProps) => {
   const listRef = useRef<HTMLDivElement>(null);
   const selectedItemRef = useRef<HTMLDivElement>(null);
+
+  const selectedRegionId = useEditorStore((state) => state.selectedRegionId);
 
   const playRegion = usePlayRegion()
 
