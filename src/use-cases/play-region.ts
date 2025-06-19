@@ -24,6 +24,15 @@ export class PlayRegion {
       throw new Error(`Region with id ${this.config.regionId} not found`);
     }
 
+    // Get transcription data for URL update
+    const transcription = this.config.store.transcription;
+    if (transcription && transcription.id) {
+      // Update URL to reflect current region being played
+      this.config.services.browserService.updateUrl(
+        `/transcribe-edit/${transcription.id}/${this.config.regionId}`
+      );
+    }
+
     // Seek to the region's start time using the service
     this.config.services.wavesurferService.seekToTime(region.start);
     

@@ -1,5 +1,4 @@
 import { PlayRegion } from './play-region';
-import { services } from '../services';
 
 // Mock the services
 jest.mock('../services', () => ({
@@ -8,6 +7,9 @@ jest.mock('../services', () => ({
       seekToTime: jest.fn(),
       play: jest.fn(),
     },
+    browserService: {
+      updateUrl: jest.fn(),
+    },
   },
 }));
 
@@ -15,17 +17,25 @@ describe('PlayRegion', () => {
   const mockSeekToTime = jest.fn();
   const mockPlay = jest.fn();
   const mockRegionById = jest.fn();
+  const mockUpdateUrl = jest.fn();
 
   const mockServices = {
     wavesurferService: {
       seekToTime: mockSeekToTime,
       play: mockPlay,
     },
+    browserService: {
+      updateUrl: mockUpdateUrl,
+    },
   };
 
   const mockStore = {
     regionById: mockRegionById,
     setPlaying: jest.fn(),
+    transcription: {
+      id: 'transcription-123',
+      title: 'Test Transcription',
+    },
   };
 
   const mockRegion = {
@@ -46,6 +56,7 @@ describe('PlayRegion', () => {
     mockRegionById.mockReturnValue(mockRegion);
     mockPlay.mockResolvedValue(undefined);
     mockSeekToTime.mockImplementation(() => {});
+    mockUpdateUrl.mockImplementation(() => {});
   });
 
   describe('constructor', () => {
@@ -146,7 +157,41 @@ describe('PlayRegion', () => {
       expect(mockPlay).toHaveBeenCalledTimes(1);
     });
 
-    it('should execute in correct order: validate -> get region -> seek -> play', async () => {
+    it('should update URL with transcription and region IDs', async () => {
+      const useCase = new PlayRegion(validConfig);
+      
+      await useCase.execute();
+      
+      expect(mockUpdateUrl).toHaveBeenCalledWith('/transcribe-edit/transcription-123/region-123');
+    });
+
+    it('should not update URL when transcription is missing', async () => {
+      const storeWithoutTranscription = { ...mockStore, transcription: null };
+      const configWithoutTranscription = { ...validConfig, store: storeWithoutTranscription };
+      const useCase = new PlayRegion(configWithoutTranscription);
+      
+      await useCase.execute();
+      
+      expect(mockUpdateUrl).not.toHaveBeenCalled();
+    });
+
+    it('should not update URL when transcription ID is missing', async () => {
+      const storeWithIncompleteTranscription = { 
+        ...mockStore, 
+        transcription: { title: 'Test' } 
+      };
+      const configWithIncompleteTranscription = { 
+        ...validConfig, 
+        store: storeWithIncompleteTranscription 
+      };
+      const useCase = new PlayRegion(configWithIncompleteTranscription);
+      
+      await useCase.execute();
+      
+      expect(mockUpdateUrl).not.toHaveBeenCalled();
+    });
+
+    it('should execute in correct order: validate -> get region -> update URL -> seek -> play', async () => {
       const useCase = new PlayRegion(validConfig);
       const validateSpy = jest.spyOn(useCase, 'validate');
       
@@ -154,11 +199,13 @@ describe('PlayRegion', () => {
       
       const validateCallOrder = validateSpy.mock.invocationCallOrder[0];
       const regionCallOrder = mockRegionById.mock.invocationCallOrder[0];
+      const urlCallOrder = mockUpdateUrl.mock.invocationCallOrder[0];
       const seekCallOrder = mockSeekToTime.mock.invocationCallOrder[0];
       const playCallOrder = mockPlay.mock.invocationCallOrder[0];
       
       expect(validateCallOrder).toBeLessThan(regionCallOrder);
-      expect(regionCallOrder).toBeLessThan(seekCallOrder);
+      expect(regionCallOrder).toBeLessThan(urlCallOrder);
+      expect(urlCallOrder).toBeLessThan(seekCallOrder);
       expect(seekCallOrder).toBeLessThan(playCallOrder);
     });
 
@@ -206,6 +253,7 @@ describe('PlayRegion', () => {
       await expect(useCase.execute()).resolves.not.toThrow();
       
       expect(mockRegionById).toHaveBeenCalledTimes(1);
+      expect(mockUpdateUrl).toHaveBeenCalledTimes(1);
       expect(mockSeekToTime).toHaveBeenCalledTimes(1);
       expect(mockPlay).toHaveBeenCalledTimes(1);
     });
@@ -226,6 +274,7 @@ describe('PlayRegion', () => {
       await useCase.execute();
       
       expect(mockRegionById).toHaveBeenCalledWith('custom-region-789');
+      expect(mockUpdateUrl).toHaveBeenCalledWith('/transcribe-edit/transcription-123/custom-region-789');
       expect(mockSeekToTime).toHaveBeenCalledWith(25.8);
       expect(mockPlay).toHaveBeenCalledTimes(1);
     });
@@ -239,6 +288,27 @@ describe('PlayRegion', () => {
       await useCase.execute();
       
       expect(mockSeekToTime).toHaveBeenCalledWith(0);
+      expect(mockUpdateUrl).toHaveBeenCalledWith('/transcribe-edit/transcription-123/region-123');
+    });
+
+    it('should work without URL update when transcription data is incomplete', async () => {
+      const storeWithoutTranscription = { 
+        ...mockStore, 
+        transcription: null 
+      };
+      const configWithoutTranscription = { 
+        ...validConfig, 
+        store: storeWithoutTranscription 
+      };
+      
+      const useCase = new PlayRegion(configWithoutTranscription);
+      
+      await expect(useCase.execute()).resolves.not.toThrow();
+      
+      expect(mockRegionById).toHaveBeenCalledTimes(1);
+      expect(mockUpdateUrl).not.toHaveBeenCalled();
+      expect(mockSeekToTime).toHaveBeenCalledTimes(1);
+      expect(mockPlay).toHaveBeenCalledTimes(1);
     });
   });
 }); 
