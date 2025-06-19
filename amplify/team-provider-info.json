@@ -58,10 +58,6 @@
         "transcriptions": {}
       },
       "function": {
-        "enqueueRegionChange": {
-          "deploymentBucketName": "amplify-kiyanaw-staging-131551-deployment",
-          "s3Key": "amplify-builds/enqueueRegionChange-6f4a6e5932586868554f-build.zip"
-        },
         "indexRegionData": {
           "deploymentBucketName": "amplify-kiyanaw-staging-131551-deployment",
           "s3Key": "amplify-builds/indexRegionData-453065364a7867754a67-build.zip"
@@ -69,10 +65,10 @@
         "notifyRegionChanges": {
           "deploymentBucketName": "amplify-kiyanaw-staging-131551-deployment",
           "s3Key": "amplify-builds/notifyRegionChanges-3942386f532b46716a4a-build.zip"
-        }
+        },
+        "queueRegionChange": {}
       },
       "api": {
-        "enqueueRegionChange": {},
         "kiyanaw": {}
       },
       "hosting": {
