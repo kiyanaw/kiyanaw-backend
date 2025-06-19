@@ -53,7 +53,7 @@ export const RegionItem = ({
       className={`min-h-[25px] border border-gray-400 relative cursor-pointer transition-colors hover:bg-gray-50 ${
         isSelected ? 'bg-blue-50 border-blue-500' : ''
       }`}
-      id={region.id}
+      id={`regionitem-${region.id}`}
       onClick={handleClick}
     >
       {!region.isNote && (
