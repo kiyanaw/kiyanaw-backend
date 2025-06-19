@@ -94,10 +94,8 @@ export default {
 
     accessLevel: {
       get() {
-        if (this.$store.getters.transciption) {
-          return this.$store.getters.transciption.isPrivate ? 'Disable' : 'Enable'
-        }
-        return 'Enable'
+        console.log('getters during accessLevel', this.$store.getters)
+        return this.$store.getters.transcription.isPrivate ? 'Disable' : 'Enable'
       },
       set(value) {
         if (value === 'Disable') {
