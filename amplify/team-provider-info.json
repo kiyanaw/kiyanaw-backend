@@ -60,11 +60,11 @@
       "function": {
         "enqueueRegionChange": {
           "deploymentBucketName": "amplify-kiyanaw-staging-131551-deployment",
-          "s3Key": "amplify-builds/enqueueRegionChange-6f4a6e5932586868554f-build.zip"
+          "s3Key": "amplify-builds/enqueueRegionChange-692b6c424c535963794c-build.zip"
         },
         "indexRegionData": {
           "deploymentBucketName": "amplify-kiyanaw-staging-131551-deployment",
-          "s3Key": "amplify-builds/indexRegionData-453065364a7867754a67-build.zip"
+          "s3Key": "amplify-builds/indexRegionData-6245626952676a574c47-build.zip"
         },
         "notifyRegionChanges": {
           "deploymentBucketName": "amplify-kiyanaw-staging-131551-deployment",

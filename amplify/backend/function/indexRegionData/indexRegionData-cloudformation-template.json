@@ -164,7 +164,16 @@
             {
               "Effect": "Allow",
               "Action": "sqs:ReceiveMessage",
-              "Resource": "arn:aws:sqs:us-east-1:494185203413:enqueueRegionChanges-{env}"
+              "Resource": {
+                "Fn::Sub": [
+                  "arn:aws:sqs:us-east-1:494185203413:enqueueRegionChanges-${env}",
+                  {
+                    "env": {
+                      "Ref": "env"
+                    }
+                  }
+                ]
+              }
             }
           ]
         }
