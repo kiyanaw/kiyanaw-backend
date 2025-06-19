@@ -421,12 +421,162 @@ describe('WaveSurferService', () => {
       expect(wavesurferService.getRegionsPlugin()).toBe(mockRegionsInstance);
     });
 
-    it('should seek to specific time', () => {
+    it('should seek to specific time when wavesurfer is ready', () => {
       mockWaveSurferInstance.setTime = jest.fn();
+      // Set wavesurfer as ready
+      wavesurferService['ready'] = true;
       
       wavesurferService.seekToTime(45.5);
       
       expect(mockWaveSurferInstance.setTime).toHaveBeenCalledWith(45.5);
+    });
+
+    it('should delay seek when wavesurfer is not ready', () => {
+      mockWaveSurferInstance.setTime = jest.fn();
+      // Ensure wavesurfer is not ready
+      wavesurferService['ready'] = false;
+      
+      wavesurferService.seekToTime(45.5);
+      
+      // setTime should not be called immediately
+      expect(mockWaveSurferInstance.setTime).not.toHaveBeenCalled();
+      // Delayed seek time should be stored
+      expect(wavesurferService['_delayedSeekTime']).toBe(45.5);
+    });
+
+    it('should process delayed seek when wavesurfer becomes ready', () => {
+      mockWaveSurferInstance.setTime = jest.fn();
+      // Set wavesurfer as not ready
+      wavesurferService['ready'] = false;
+      
+      // Call seekToTime which should delay it
+      wavesurferService.seekToTime(45.5);
+      expect(mockWaveSurferInstance.setTime).not.toHaveBeenCalled();
+      
+      // Simulate the 'ready' event to process delayed seek
+      const readyCallback = mockWaveSurferInstance.on.mock.calls.find(
+        (call: any) => call[0] === 'ready'
+      )[1];
+      
+      readyCallback();
+      
+      // Now setTime should be called
+      expect(mockWaveSurferInstance.setTime).toHaveBeenCalledWith(45.5);
+      // Delayed seek time should be cleared
+      expect(wavesurferService['_delayedSeekTime']).toBeNull();
+      // Ignore flag should be set
+      expect(wavesurferService['_ignoreNextRegionOut']).toBe(true);
+    });
+
+    it('should ignore the first region-out event after delayed seek', () => {
+      wavesurferService.initialize(mockContainer, mockTimelineContainer);
+      
+      // Set up event listener to track region-out events
+      const mockRegionOutCallback = jest.fn();
+      wavesurferService.on('region-out', mockRegionOutCallback);
+      
+      // Set the ignore flag as if we just did a delayed seek
+      wavesurferService['_ignoreNextRegionOut'] = true;
+      
+      // Get the region-out callback
+      const regionOutCallback = mockRegionsInstance.on.mock.calls.find(
+        (call: any) => call[0] === 'region-out'
+      )[1];
+      
+      // Simulate the first region-out event (should be ignored)
+      regionOutCallback({
+        id: 'test-region',
+        element: { style: {} }
+      });
+      
+      // The event should not be emitted and flag should be reset
+      expect(mockRegionOutCallback).not.toHaveBeenCalled();
+      expect(wavesurferService['_ignoreNextRegionOut']).toBe(false);
+      
+      // Simulate another region-out event (should not be ignored)
+      regionOutCallback({
+        id: 'test-region-2',
+        element: { style: {} }
+      });
+      
+      // This time the event should be emitted
+      expect(mockRegionOutCallback).toHaveBeenCalledWith({regionId: 'test-region-2'});
+    });
+
+    it('should manage region highlighting correctly when switching between regions', () => {
+      wavesurferService.initialize(mockContainer, mockTimelineContainer);
+      
+      // Get the region-in callback
+      const regionInCallback = mockRegionsInstance.on.mock.calls.find(
+        (call: any) => call[0] === 'region-in'
+      )[1];
+      
+      // Mock region elements with style property
+      const region1Element = { style: { backgroundColor: '' } };
+      const region2Element = { style: { backgroundColor: '' } };
+      
+      // Simulate entering first region
+      regionInCallback({
+        id: 'region-1',
+        element: region1Element
+      });
+      
+      // First region should be highlighted and tracked
+      expect(region1Element.style.backgroundColor).toBe('rgba(0, 213, 255, 0.1)');
+      expect(wavesurferService['_currentHighlightedRegion']).toEqual({
+        id: 'region-1',
+        element: region1Element
+      });
+      
+      // Simulate entering second region
+      regionInCallback({
+        id: 'region-2',
+        element: region2Element
+      });
+      
+      // First region should be cleared, second should be highlighted
+      expect(region1Element.style.backgroundColor).toBe('rgba(0, 0, 0, 0.1)');
+      expect(region2Element.style.backgroundColor).toBe('rgba(0, 213, 255, 0.1)');
+      expect(wavesurferService['_currentHighlightedRegion']).toEqual({
+        id: 'region-2',
+        element: region2Element
+      });
+    });
+
+    it('should clear highlighted region tracking on normal region-out', () => {
+      wavesurferService.initialize(mockContainer, mockTimelineContainer);
+      
+      // Get the callbacks
+      const regionInCallback = mockRegionsInstance.on.mock.calls.find(
+        (call: any) => call[0] === 'region-in'
+      )[1];
+      const regionOutCallback = mockRegionsInstance.on.mock.calls.find(
+        (call: any) => call[0] === 'region-out'
+      )[1];
+      
+      // Mock region element
+      const regionElement = { style: { backgroundColor: '' } };
+      
+      // Simulate entering region
+      regionInCallback({
+        id: 'test-region',
+        element: regionElement
+      });
+      
+      // Region should be tracked
+      expect(wavesurferService['_currentHighlightedRegion']).toEqual({
+        id: 'test-region',
+        element: regionElement
+      });
+      
+      // Simulate leaving region normally (not ignored)
+      regionOutCallback({
+        id: 'test-region',
+        element: regionElement
+      });
+      
+      // Tracking should be cleared
+      expect(wavesurferService['_currentHighlightedRegion']).toBeNull();
     });
 
     it('should play audio', async () => {

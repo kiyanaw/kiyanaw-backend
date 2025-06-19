@@ -11,6 +11,7 @@ import { CreateRegion } from '../use-cases/create-region';
 export const useWavesurferEvents = (transcriptionId: string): void => {
   const lastCalledRef = useRef<string | undefined>(undefined);
   const styleIdRef = useRef<Map<string, string>>(new Map()); // Maps regionId to styleId
+  const currentHighlightedRegionRef = useRef<string | null>(null); // Track currently highlighted region
   const regions = useEditorStore((state) => state.regions);
 
   const playerStore = usePlayerStore.getState()
@@ -52,12 +53,23 @@ export const useWavesurferEvents = (transcriptionId: string): void => {
     })
 
     wavesurferService.on('region-in', ({regionId}) => {
+      // Clear the previous region's highlight if there is one
+      if (currentHighlightedRegionRef.current) {
+        const previousStyleId = styleIdRef.current.get(currentHighlightedRegionRef.current);
+        if (previousStyleId) {
+          browserService.removeCustomStyle(previousStyleId);
+          styleIdRef.current.delete(currentHighlightedRegionRef.current);
+        }
+      }
+
+      // Apply highlight to the new region
       const selector = `div#regionitem-${regionId}`;
       const styles = { 
         'background-color': 'rgba(0, 213, 255, 0.1) !important' 
       };
       const styleId = browserService.addCustomStyle(selector, styles);
       styleIdRef.current.set(regionId, styleId);
+      currentHighlightedRegionRef.current = regionId;
     })
 
     wavesurferService.on('region-out', ({regionId}) => {
@@ -65,6 +77,10 @@ export const useWavesurferEvents = (transcriptionId: string): void => {
       if (styleId) {
         browserService.removeCustomStyle(styleId);
         styleIdRef.current.delete(regionId);
+        // Clear tracking if this was the currently highlighted region
+        if (currentHighlightedRegionRef.current === regionId) {
+          currentHighlightedRegionRef.current = null;
+        }
       }
     })
   }

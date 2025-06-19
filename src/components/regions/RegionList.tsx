@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useEffect } from 'react';
 import React from 'react';
 import { RegionItem } from './RegionItem';
 import type { LightRegion } from '../../services/adt';
@@ -22,20 +22,20 @@ export const RegionList = React.memo(({
 
   const playRegion = usePlayRegion()
 
-  // // Scroll to selected region
-  // useEffect(() => {
-  //   if (selectedRegionId && listRef.current) {
-  //     const selectedElement = listRef.current.querySelector(
-  //       `#${selectedRegionId}`
-  //     );
-  //     if (selectedElement) {
-  //       selectedElement.scrollIntoView({
-  //         behavior: 'smooth',
-  //         block: 'start',
-  //       });
-  //     }
-  //   }
-  // }, [selectedRegionId]);
+  // Scroll to selected region
+  useEffect(() => {
+    if (selectedRegionId && listRef.current) {
+      const selectedElement = listRef.current.querySelector(
+        `#regionitem-${selectedRegionId}`
+      );
+      if (selectedElement) {
+        selectedElement.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+        });
+      }
+    }
+  }, [selectedRegionId]);
 
   const handleRegionClick = (regionId: string) => {
     playRegion(regionId);

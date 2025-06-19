@@ -129,6 +129,51 @@ class BrowserService {
     this.styleMap.clear();
     this.styleIdCounter = 0;
   }
+
+  /**
+   * Extracts regionId from the current URL
+   * Supports both query parameter (?regionId=xxx) and path segment patterns
+   * @returns regionId if found, null otherwise
+   */
+  getRegionIdFromUrl(): string | null {
+    if (typeof window === 'undefined') return null;
+
+    try {
+      const url = new URL(window.location.href);
+      
+      // Check query parameter first: ?regionId=xxx
+      const regionIdFromQuery = url.searchParams.get('regionId');
+      if (regionIdFromQuery) {
+        return regionIdFromQuery;
+      }
+
+      // Check path segments for patterns like: /transcribe-edit/transcriptionId/regionId
+      const pathSegments = url.pathname.split('/').filter(segment => segment !== '');
+      
+      // Look for pattern: ['transcribe-edit', transcriptionId, regionId]
+      if (pathSegments.length >= 3 && pathSegments[0] === 'transcribe-edit') {
+        const potentialRegionId = pathSegments[2];
+        // Basic validation: region IDs should not be empty
+        if (potentialRegionId && potentialRegionId.trim() !== '') {
+          return potentialRegionId;
+        }
+      }
+
+      return null;
+    } catch (error) {
+      console.warn('Error parsing URL for regionId:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Gets the current URL pathname
+   * @returns current pathname or empty string if window is undefined
+   */
+  getCurrentPath(): string {
+    if (typeof window === 'undefined') return '';
+    return window.location.pathname;
+  }
 }
 
 // Export the singleton instance

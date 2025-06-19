@@ -50,8 +50,8 @@ export const RegionItem = ({
 
   return (
     <div
-      className={`min-h-[25px] border border-gray-400 relative cursor-pointer transition-colors hover:bg-gray-50 ${
-        isSelected ? 'bg-blue-50 border-blue-500' : ''
+      className={`min-h-[25px] border relative cursor-pointer transition-colors hover:bg-gray-50 ${
+        isSelected ? 'border-gray-800 border-2' : 'border-gray-400'
       }`}
       id={`regionitem-${region.id}`}
       onClick={handleClick}

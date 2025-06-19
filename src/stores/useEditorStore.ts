@@ -34,7 +34,7 @@ interface EditorState {
   _subscriptions: any[];
 
   // Actions
-  setFullTranscriptionData: (data: EditorDataPayload) => void;
+  setFullTranscriptionData: (data: EditorDataPayload, selectedRegionId?: string | null) => void;
   cleanup: () => void;
   
   // Transcription actions
@@ -106,7 +106,7 @@ export const useEditorStore = create<EditorState>()(
       },
 
       // Action to set data from TanStack Query
-      setFullTranscriptionData: (data) => {
+      setFullTranscriptionData: (data, selectedRegionId) => {
         const { transcription, regions, issues, peaks } = data;
         const state = get();
         state.cleanup();
@@ -123,15 +123,23 @@ export const useEditorStore = create<EditorState>()(
           issueMap[issue.id] = issue;
         });
 
-        set({
+        // Set initial state
+        const newState: any = {
           transcription,
           regions,
           regionMap,
           issues,
           issueMap,
           peaks: peaks
-        });
+        };
 
+        // If we have a selectedRegionId and it exists in our regions, set it as selected
+        if (selectedRegionId && regionMap[selectedRegionId]) {
+          newState.selectedRegionId = selectedRegionId;
+          newState.selectedRegion = regionMap[selectedRegionId];
+        }
+
+        set(newState);
       },
 
       cleanup: () => {

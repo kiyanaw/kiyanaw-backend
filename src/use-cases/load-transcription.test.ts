@@ -13,6 +13,10 @@ jest.mock('../services', () => ({
     wavesurferService: {
       load: jest.fn(),
       setRegions: jest.fn(),
+      seekToTime: jest.fn(),
+    },
+    browserService: {
+      getRegionIdFromUrl: jest.fn(),
     },
   },
 }));
@@ -56,6 +60,8 @@ describe('LoadTranscription', () => {
     (services.transcriptionService.loadInFull as jest.Mock).mockResolvedValue(mockTranscriptionData);
     (services.wavesurferService.load as jest.Mock).mockImplementation(() => {});
     (services.wavesurferService.setRegions as jest.Mock).mockImplementation(() => {});
+    (services.wavesurferService.seekToTime as jest.Mock).mockImplementation(() => {});
+    (services.browserService.getRegionIdFromUrl as jest.Mock).mockReturnValue(null);
   });
 
   afterEach(() => {
@@ -188,7 +194,7 @@ describe('LoadTranscription', () => {
       
       await useCase.execute();
       
-      expect(mockStore.setFullTranscriptionData).toHaveBeenCalledWith(mockTranscriptionData);
+      expect(mockStore.setFullTranscriptionData).toHaveBeenCalledWith(mockTranscriptionData, null);
     });
 
     it('should load wavesurfer with source and peaks', async () => {
@@ -337,6 +343,56 @@ describe('LoadTranscription', () => {
         expect(mockStore.setFullTranscriptionData).toHaveBeenCalled();
         expect(services.wavesurferService.load).toHaveBeenCalled();
         expect(services.wavesurferService.setRegions).toHaveBeenCalled();
+      });
+
+      it('should handle URL region selection when regionId is present', async () => {
+        const selectedRegionId = 'region-1';
+        (services.browserService.getRegionIdFromUrl as jest.Mock).mockReturnValue(selectedRegionId);
+        const useCase = new LoadTranscription(mockConfig);
+        
+        await useCase.execute();
+        
+        // Should call browserService to get regionId
+        expect(services.browserService.getRegionIdFromUrl).toHaveBeenCalled();
+        
+        // Should pass regionId to store
+        expect(mockStore.setFullTranscriptionData).toHaveBeenCalledWith(mockTranscriptionData, selectedRegionId);
+        
+        // Should seek to the region's start time
+        expect(services.wavesurferService.seekToTime).toHaveBeenCalledWith(10); // region-1 starts at 10
+      });
+
+      it('should handle URL region selection when regionId is not found in regions', async () => {
+        const unknownRegionId = 'unknown-region';
+        (services.browserService.getRegionIdFromUrl as jest.Mock).mockReturnValue(unknownRegionId);
+        const useCase = new LoadTranscription(mockConfig);
+        
+        await useCase.execute();
+        
+        // Should call browserService to get regionId
+        expect(services.browserService.getRegionIdFromUrl).toHaveBeenCalled();
+        
+        // Should still pass regionId to store
+        expect(mockStore.setFullTranscriptionData).toHaveBeenCalledWith(mockTranscriptionData, unknownRegionId);
+        
+        // Should not seek since region was not found
+        expect(services.wavesurferService.seekToTime).not.toHaveBeenCalled();
+      });
+
+      it('should handle when no regionId is in URL', async () => {
+        (services.browserService.getRegionIdFromUrl as jest.Mock).mockReturnValue(null);
+        const useCase = new LoadTranscription(mockConfig);
+        
+        await useCase.execute();
+        
+        // Should call browserService to get regionId
+        expect(services.browserService.getRegionIdFromUrl).toHaveBeenCalled();
+        
+        // Should pass null to store
+        expect(mockStore.setFullTranscriptionData).toHaveBeenCalledWith(mockTranscriptionData, null);
+        
+        // Should not seek
+        expect(services.wavesurferService.seekToTime).not.toHaveBeenCalled();
       });
     });
   });

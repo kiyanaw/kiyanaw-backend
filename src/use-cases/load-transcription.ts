@@ -1,4 +1,3 @@
-
 import { services } from '../services';
 
 interface LoadTranscriptionConfig {
@@ -25,16 +24,29 @@ export class LoadTranscription {
 
     const transcriptionService = this.config.services.transcriptionService
     const wavesurferService = this.config.services.wavesurferService
+    const browserService = this.config.services.browserService
+    
     try {
-
       const data = await transcriptionService.loadInFull(this.config.transcriptionId);
 
       console.log('>>> loaded in full')
-      this.config.store.setFullTranscriptionData(data);
+      
+      // Check if there's a regionId in the URL that we should select
+      const selectedRegionId = browserService.getRegionIdFromUrl();
+      
+      this.config.store.setFullTranscriptionData(data, selectedRegionId);
 
       // load wavesurfer details _outside_ the React system
       wavesurferService.load(data.transcription.source, data.peaks)
       wavesurferService.setRegions(data.regions)
+      
+      // If we have a selected region, seek to it in the wavesurfer
+      if (selectedRegionId) {
+        const selectedRegion = data.regions.find((region: any) => region.id === selectedRegionId);
+        if (selectedRegion) {
+          wavesurferService.seekToTime(selectedRegion.start);
+        }
+      }
       
     } catch (error) {
       throw error;
