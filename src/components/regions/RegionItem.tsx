@@ -10,7 +10,6 @@ interface RegionItemProps {
     translation?: string;
   };
   index: number;
-  isSelected: boolean;
   editingUsers?: Array<{ user: string; color: string }>;
   onClick: (regionId: string, index: number) => void;
 }
@@ -18,7 +17,6 @@ interface RegionItemProps {
 export const RegionItem = ({
   region,
   index,
-  isSelected,
   editingUsers = [],
   onClick,
 }: RegionItemProps) => {
@@ -50,9 +48,7 @@ export const RegionItem = ({
 
   return (
     <div
-      className={`min-h-[25px] border relative cursor-pointer transition-colors hover:bg-gray-50 ${
-        isSelected ? 'border-gray-800 border-2' : 'border-gray-400'
-      }`}
+      className="min-h-[25px] border border-gray-400 relative cursor-pointer transition-colors hover:bg-gray-50"
       id={`regionitem-${region.id}`}
       onClick={handleClick}
     >

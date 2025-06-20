@@ -3,6 +3,7 @@ class BrowserService {
   private readonly DYNAMIC_STYLES_STYLESHEET_ID = 'dynamic-styles';
   private styleIdCounter = 0;
   private styleMap = new Map<string, { selector: string; ruleIndex: number }>();
+  private selectedRegionStyleId: string | null = null;
 
   private constructor() {
     // Private constructor for singleton
@@ -173,6 +174,34 @@ class BrowserService {
   getCurrentPath(): string {
     if (typeof window === 'undefined') return '';
     return window.location.pathname;
+  }
+
+  /**
+   * Sets the selected region styling, clearing any previous selection
+   * @param regionId The ID of the region to mark as selected
+   */
+  setSelectedRegion(regionId: string): void {
+    // Clear previous selection
+    this.clearSelectedRegion();
+    
+    // Apply new selection styling (only if regionId is not empty)
+    if (regionId && regionId.trim() !== '') {
+      const selector = `div#regionitem-${regionId}`;
+      const styles = { 
+        'border': '2px solid rgb(0, 170, 204) !important' // bolder version of playback blue
+      };
+      this.selectedRegionStyleId = this.addCustomStyle(selector, styles);
+    }
+  }
+
+  /**
+   * Clears the currently selected region styling
+   */
+  clearSelectedRegion(): void {
+    if (this.selectedRegionStyleId) {
+      this.removeCustomStyle(this.selectedRegionStyleId);
+      this.selectedRegionStyleId = null;
+    }
   }
 }
 
