@@ -29,7 +29,7 @@ export class LoadTranscription {
     try {
       const data = await transcriptionService.loadInFull(this.config.transcriptionId);
 
-      console.log('>>> loaded in full')
+      console.log('>>> loaded in full', data)
       
       // Check if there's a regionId in the URL that we should select
       const selectedRegionId = browserService.getRegionIdFromUrl();

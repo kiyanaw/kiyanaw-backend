@@ -326,107 +326,51 @@ describe('ADT Models', () => {
 
         const model = new RegionModel(dataWithRegionText);
         
-        expect(model.text).toEqual([{ insert: 'Hello from regionText' }]);
+        expect(model.regionText).toBe('Hello from regionText');
       });
 
-      it('should handle text as JSON string', () => {
-        const textData = [
-          { insert: 'Hello ' },
-          { insert: 'world', attributes: { bold: true } },
-        ];
-        const dataWithJsonText = {
+      it('should handle missing regionText property', () => {
+        const dataWithoutRegionText = { ...mockRegionData };
+        delete dataWithoutRegionText.regionText;
+
+        const model = new RegionModel(dataWithoutRegionText);
+        
+        expect(model.regionText).toBe('');
+      });
+
+      it('should handle empty regionText', () => {
+        const dataWithEmptyRegionText = {
           ...mockRegionData,
-          text: JSON.stringify(textData),
+          regionText: '',
         };
 
-        const model = new RegionModel(dataWithJsonText);
+        const model = new RegionModel(dataWithEmptyRegionText);
         
-        expect(model.text).toEqual(textData);
+        expect(model.regionText).toBe('');
       });
 
-      it('should handle text as array', () => {
-        const textData = [
-          { insert: 'Direct array' },
-          { insert: ' text', attributes: { italic: true } },
-        ];
-        const dataWithArrayText = {
+      it('should handle regionText with special characters', () => {
+        const specialText = 'Text with émojis 🎉 and symbols: @#$%^&*()';
+        const dataWithSpecialText = {
           ...mockRegionData,
-          text: textData,
+          regionText: specialText,
         };
 
-        const model = new RegionModel(dataWithArrayText);
+        const model = new RegionModel(dataWithSpecialText);
         
-        expect(model.text).toEqual(textData);
+        expect(model.regionText).toBe(specialText);
       });
 
-      it('should handle --not used-- text value', () => {
-        const dataWithNotUsedText = {
+      it('should handle long regionText content', () => {
+        const longText = 'A'.repeat(10000);
+        const dataWithLongText = {
           ...mockRegionData,
-          text: '--not used--',
+          regionText: longText,
         };
 
-        const model = new RegionModel(dataWithNotUsedText);
+        const model = new RegionModel(dataWithLongText);
         
-        expect(model.text).toEqual([]);
-      });
-
-      it('should handle missing text property', () => {
-        const dataWithoutText = { ...mockRegionData };
-        delete dataWithoutText.text;
-
-        const model = new RegionModel(dataWithoutText);
-        
-        expect(model.text).toEqual([]);
-      });
-
-      it('should prioritize regionText over text', () => {
-        const dataWithBoth = {
-          ...mockRegionData,
-          regionText: 'From regionText',
-          text: '[{"insert":"From text"}]',
-        };
-
-        const model = new RegionModel(dataWithBoth);
-        
-        expect(model.text).toEqual([{ insert: 'From regionText' }]);
-      });
-
-      it('should handle invalid JSON in text gracefully', () => {
-        const consoleSpy = jest.spyOn(console, 'error');
-        const dataWithInvalidJson = {
-          ...mockRegionData,
-          text: '{"invalid": json}',
-        };
-
-        expect(() => new RegionModel(dataWithInvalidJson)).toThrow();
-        expect(consoleSpy).toHaveBeenCalledWith('Error constructing RegionModel:', expect.any(Error));
-        expect(consoleSpy).toHaveBeenCalledWith('Data:', expect.any(String));
-      });
-    });
-
-    describe('error handling', () => {
-      it('should handle construction errors and log details', () => {
-        const consoleSpy = jest.spyOn(console, 'error');
-        
-        // Create data that will cause JSON.parse to fail
-        const invalidData = {
-          ...mockRegionData,
-          text: 'invalid json string',
-        };
-
-        expect(() => new RegionModel(invalidData)).toThrow();
-        
-        expect(consoleSpy).toHaveBeenCalledWith('Error constructing RegionModel:', expect.any(Error));
-        expect(consoleSpy).toHaveBeenCalledWith('Data:', JSON.stringify(invalidData, null, 2));
-      });
-
-      it('should propagate construction errors', () => {
-        const invalidData = {
-          ...mockRegionData,
-          text: '{invalid json',
-        };
-
-        expect(() => new RegionModel(invalidData)).toThrow();
+        expect(model.regionText).toBe(longText);
       });
     });
 
@@ -447,7 +391,7 @@ describe('ADT Models', () => {
         expect(model.translation).toBe('');
         expect(model.userLastUpdated).toBeUndefined();
         expect(model.index).toBeUndefined();
-        expect(model.text).toEqual([]);
+        expect(model.regionText).toBe('');
       });
 
       it('should handle null values', () => {

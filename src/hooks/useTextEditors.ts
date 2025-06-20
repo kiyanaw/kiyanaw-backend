@@ -2,6 +2,7 @@ import { useLayoutEffect, useEffect, useRef } from 'react';
 import { rteService, type EditorKey } from '../services/rteService';
 import { UpdateRegionTextUseCase } from '../use-cases/update-region-text';
 import { useEditorStore } from '../stores/useEditorStore';
+import { services } from '../services';
 
 export const useTextEditors = (regionId: string, activeTab: 'main' | 'translation') => {
   const mainEditorRef = useRef<HTMLDivElement>(null);
@@ -39,7 +40,8 @@ export const useTextEditors = (regionId: string, activeTab: 'main' | 'translatio
         regionId,
         text,
         field: 'regionText',
-        store: useEditorStore
+        store: useEditorStore,
+        services
       }).execute();
     });
 
@@ -74,7 +76,8 @@ export const useTextEditors = (regionId: string, activeTab: 'main' | 'translatio
         regionId,
         text,
         field: 'translation',
-        store: useEditorStore
+        store: useEditorStore,
+        services
       }).execute();
     });
 
@@ -84,26 +87,7 @@ export const useTextEditors = (regionId: string, activeTab: 'main' | 'translatio
     };
   }, [translationEditorKey, activeTab]);
 
-  /**
-   * CONTENT POPULATION (after editors are created)
-   * Only runs when regionId changes (new region selected)
-   */
-  useEffect(() => {
-    // Small delay to ensure editors are attached first
-    const timeoutId = setTimeout(() => {
-      // Populate main editor if it's the active tab
-      if (activeTab === 'main' && rteService.hasEditor(mainEditorKey) && currentRegion?.regionText) {
-        rteService.setContent(mainEditorKey, currentRegion.regionText);
-      }
 
-      // Populate translation editor if it's the active tab  
-      if (activeTab === 'translation' && rteService.hasEditor(translationEditorKey) && currentRegion?.translation) {
-        rteService.setContent(translationEditorKey, currentRegion.translation);
-      }
-    }, 10);
-
-    return () => clearTimeout(timeoutId);
-  }, [regionId, activeTab, mainEditorKey, translationEditorKey]); // Include keys to ensure editors exist
 
   return {
     mainEditorRef,

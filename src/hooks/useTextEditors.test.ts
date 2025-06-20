@@ -232,4 +232,35 @@ describe('useTextEditors', () => {
       expect(mockRteService.attach).not.toHaveBeenCalled();
     });
   });
+
+  describe('text change integration', () => {
+    it('sets up text change listeners for active editors', () => {
+      const mockDiv = document.createElement('div');
+      
+      renderHookWithMockedRefs(
+        () => useTextEditors('test-region', 'main'),
+        mockDiv
+      );
+
+      // Should set up text change listener for main editor
+      expect(mockRteService.onTextChange).toHaveBeenCalledWith(
+        'test-region:main', 
+        expect.any(Function)
+      );
+    });
+
+    it('cleans up text change listeners on unmount', () => {
+      const mockDiv = document.createElement('div');
+      
+      const { unmount } = renderHookWithMockedRefs(
+        () => useTextEditors('test-region', 'main'),
+        mockDiv
+      );
+
+      unmount();
+
+      // Should clean up text change listener
+      expect(mockRteService.offTextChange).toHaveBeenCalledWith('test-region:main');
+    });
+  });
 }); 
