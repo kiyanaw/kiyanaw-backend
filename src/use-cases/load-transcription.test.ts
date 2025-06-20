@@ -13,7 +13,7 @@ jest.mock('../services', () => ({
     wavesurferService: {
       load: jest.fn(),
       setRegions: jest.fn(),
-      seekToTime: jest.fn(),
+      seekToRegion: jest.fn(),
     },
     browserService: {
       getRegionIdFromUrl: jest.fn(),
@@ -61,7 +61,7 @@ describe('LoadTranscription', () => {
     (services.transcriptionService.loadInFull as jest.Mock).mockResolvedValue(mockTranscriptionData);
     (services.wavesurferService.load as jest.Mock).mockImplementation(() => {});
     (services.wavesurferService.setRegions as jest.Mock).mockImplementation(() => {});
-    (services.wavesurferService.seekToTime as jest.Mock).mockImplementation(() => {});
+    (services.wavesurferService.seekToRegion as jest.Mock).mockImplementation(() => {});
     (services.browserService.getRegionIdFromUrl as jest.Mock).mockReturnValue(null);
   });
 
@@ -360,7 +360,7 @@ describe('LoadTranscription', () => {
         expect(mockStore.setFullTranscriptionData).toHaveBeenCalledWith(mockTranscriptionData, selectedRegionId);
         
         // Should seek to the region's start time
-        expect(services.wavesurferService.seekToTime).toHaveBeenCalledWith(10); // region-1 starts at 10
+        expect(services.wavesurferService.seekToRegion).toHaveBeenCalledWith({ id: 'region-1', start: 10, end: 20 }); // region-1 starts at 10
         
         // Should apply selected region styling
         expect(services.browserService.setSelectedRegion).toHaveBeenCalledWith(selectedRegionId);
@@ -381,7 +381,7 @@ describe('LoadTranscription', () => {
         expect(mockStore.setFullTranscriptionData).toHaveBeenCalledWith(mockTranscriptionData, null);
         
         // Should not seek
-        expect(services.wavesurferService.seekToTime).not.toHaveBeenCalled();
+        expect(services.wavesurferService.seekToRegion).not.toHaveBeenCalled();
         
         // Should not apply selected region styling
         expect(services.browserService.setSelectedRegion).not.toHaveBeenCalled();
@@ -401,7 +401,7 @@ describe('LoadTranscription', () => {
         expect(mockStore.setFullTranscriptionData).toHaveBeenCalledWith(mockTranscriptionData, unknownRegionId);
         
         // Should not seek since region was not found
-        expect(services.wavesurferService.seekToTime).not.toHaveBeenCalled();
+        expect(services.wavesurferService.seekToRegion).not.toHaveBeenCalled();
         
         // Should not apply selected region styling since region was not found
         expect(services.browserService.setSelectedRegion).not.toHaveBeenCalled();

@@ -2,7 +2,7 @@ interface SelectAndPlayRegionConfig {
   regionId: string;
   services: {
     wavesurferService: {
-      seekToTime: (time: number) => void;
+      seekToRegion: (region: { id: string, start: number, end: number }) => void;
       play: () => Promise<void>;
     };
     browserService: {
@@ -44,7 +44,7 @@ export class SelectAndPlayRegion {
     this.config.services.browserService.setSelectedRegion(this.config.regionId);
 
     // Seek to the region's start time using the service
-    this.config.services.wavesurferService.seekToTime(region.start);
+    this.config.services.wavesurferService.seekToRegion(region);
     
     // Play audio
     await this.config.services.wavesurferService.play();

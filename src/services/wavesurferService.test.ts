@@ -421,51 +421,128 @@ describe('WaveSurferService', () => {
       expect(wavesurferService.getRegionsPlugin()).toBe(mockRegionsInstance);
     });
 
-    it('should seek to specific time when wavesurfer is ready', () => {
+
+
+    it('should seek to region start when wavesurfer is ready', () => {
       mockWaveSurferInstance.setTime = jest.fn();
       // Set wavesurfer as ready
       wavesurferService['ready'] = true;
       
-      wavesurferService.seekToTime(45.5);
+      const testRegion = { id: 'test-region', start: 25.5, end: 35.2 };
+      wavesurferService.seekToRegion(testRegion);
       
-      expect(mockWaveSurferInstance.setTime).toHaveBeenCalledWith(45.5);
+      expect(mockWaveSurferInstance.setTime).toHaveBeenCalledWith(25.5);
     });
 
-    it('should delay seek when wavesurfer is not ready', () => {
+    it('should arm region-bounded playback when seeking to region', () => {
+      const testRegion = { id: 'test-region', start: 25.5, end: 35.2 };
+      wavesurferService.seekToRegion(testRegion);
+      
+      expect(wavesurferService['_playbackBoundRegion']).toEqual(testRegion);
+    });
+
+    it('should delay region seek when wavesurfer is not ready', () => {
       mockWaveSurferInstance.setTime = jest.fn();
       // Ensure wavesurfer is not ready
       wavesurferService['ready'] = false;
       
-      wavesurferService.seekToTime(45.5);
+      const testRegion = { id: 'test-region', start: 25.5, end: 35.2 };
+      wavesurferService.seekToRegion(testRegion);
       
       // setTime should not be called immediately
       expect(mockWaveSurferInstance.setTime).not.toHaveBeenCalled();
-      // Delayed seek time should be stored
-      expect(wavesurferService['_delayedSeekTime']).toBe(45.5);
+      // Delayed seek region should be stored
+      expect(wavesurferService['_delayedSeekRegion']).toEqual(testRegion);
     });
 
-    it('should process delayed seek when wavesurfer becomes ready', () => {
-      mockWaveSurferInstance.setTime = jest.fn();
-      // Set wavesurfer as not ready
-      wavesurferService['ready'] = false;
+    it('should clear region-bounded playback when calling clearRegionBoundedPlayback', () => {
+      const testRegion = { id: 'test-region', start: 25.5, end: 35.2 };
       
-      // Call seekToTime which should delay it
-      wavesurferService.seekToTime(45.5);
-      expect(mockWaveSurferInstance.setTime).not.toHaveBeenCalled();
+      // First arm the guard
+      wavesurferService.seekToRegion(testRegion);
+      expect(wavesurferService['_playbackBoundRegion']).toEqual(testRegion);
       
-      // Simulate the 'ready' event to process delayed seek
-      const readyCallback = mockWaveSurferInstance.on.mock.calls.find(
-        (call: any) => call[0] === 'ready'
+      // Then clear it
+      wavesurferService.clearRegionBoundedPlayback();
+      expect(wavesurferService['_playbackBoundRegion']).toBeNull();
+    });
+
+    it('should stop playback when reaching end of bounded region', () => {
+      wavesurferService.initialize(mockContainer, mockTimelineContainer);
+      mockWaveSurferInstance.pause = jest.fn();
+      mockWaveSurferInstance.isPlaying = jest.fn().mockReturnValue(true);
+      
+      const testRegion = { id: 'test-region', start: 25.5, end: 35.2 };
+      wavesurferService.seekToRegion(testRegion);
+      
+      // Get the timeupdate callback
+      const timeupdateCallback = mockWaveSurferInstance.on.mock.calls.find(
+        (call: any) => call[0] === 'timeupdate'
       )[1];
       
-      readyCallback();
+      // Simulate timeupdate at region end
+      timeupdateCallback(35.3); // Past the end time
       
-      // Now setTime should be called
-      expect(mockWaveSurferInstance.setTime).toHaveBeenCalledWith(45.5);
-      // Delayed seek time should be cleared
-      expect(wavesurferService['_delayedSeekTime']).toBeNull();
-      // Ignore flag should be set
-              expect(wavesurferService['_inboundRegionIgnoreNextOut']).toBe(true);
+      // Should pause and clear guard
+      expect(mockWaveSurferInstance.pause).toHaveBeenCalled();
+      expect(wavesurferService['_playbackBoundRegion']).toBeNull();
+    });
+
+    it('should not stop playback when not playing', () => {
+      wavesurferService.initialize(mockContainer, mockTimelineContainer);
+      mockWaveSurferInstance.pause = jest.fn();
+      mockWaveSurferInstance.isPlaying = jest.fn().mockReturnValue(false);
+      
+      const testRegion = { id: 'test-region', start: 25.5, end: 35.2 };
+      wavesurferService.seekToRegion(testRegion);
+      
+      // Get the timeupdate callback
+      const timeupdateCallback = mockWaveSurferInstance.on.mock.calls.find(
+        (call: any) => call[0] === 'timeupdate'
+      )[1];
+      
+      // Simulate timeupdate at region end while not playing
+      timeupdateCallback(35.3);
+      
+      // Should not pause since not playing
+      expect(mockWaveSurferInstance.pause).not.toHaveBeenCalled();
+      expect(wavesurferService['_playbackBoundRegion']).toEqual(testRegion);
+    });
+
+    it('should clear region-bounded playback when user seeks outside region', () => {
+      wavesurferService.initialize(mockContainer, mockTimelineContainer);
+      
+      const testRegion = { id: 'test-region', start: 25.5, end: 35.2 };
+      wavesurferService.seekToRegion(testRegion);
+      
+      // Get the interaction callback
+      const interactionCallback = mockWaveSurferInstance.on.mock.calls.find(
+        (call: any) => call[0] === 'interaction'
+      )[1];
+      
+      // Simulate user seeking outside the region
+      interactionCallback(40.0); // Outside region end
+      
+      // Should clear the guard
+      expect(wavesurferService['_playbackBoundRegion']).toBeNull();
+    });
+
+    it('should not clear region-bounded playback when user seeks within region', () => {
+      wavesurferService.initialize(mockContainer, mockTimelineContainer);
+      
+      const testRegion = { id: 'test-region', start: 25.5, end: 35.2 };
+      wavesurferService.seekToRegion(testRegion);
+      
+      // Get the interaction callback
+      const interactionCallback = mockWaveSurferInstance.on.mock.calls.find(
+        (call: any) => call[0] === 'interaction'
+      )[1];
+      
+      // Simulate user seeking within the region
+      interactionCallback(30.0); // Within region bounds
+      
+      // Should keep the guard
+      expect(wavesurferService['_playbackBoundRegion']).toEqual(testRegion);
     });
 
     it('should ignore the first region-out event after delayed seek', () => {

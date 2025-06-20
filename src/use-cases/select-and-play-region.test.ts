@@ -2,7 +2,7 @@ import { SelectAndPlayRegion } from './select-and-play-region';
 
 describe('SelectAndPlayRegion', () => {
   const mockWavesurferService = {
-    seekToTime: jest.fn(),
+    seekToRegion: jest.fn(),
     play: jest.fn().mockResolvedValue(undefined),
   };
 
@@ -29,7 +29,7 @@ describe('SelectAndPlayRegion', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockStore.regionById.mockReturnValue({ start: 10.5 });
+    mockStore.regionById.mockReturnValue({ id: 'test-region-id', start: 10.5, end: 20.5 });
   });
 
   describe('constructor', () => {
@@ -87,7 +87,7 @@ describe('SelectAndPlayRegion', () => {
       const useCase = new SelectAndPlayRegion(validConfig);
       await useCase.execute();
 
-      expect(mockWavesurferService.seekToTime).toHaveBeenCalledWith(10.5);
+      expect(mockWavesurferService.seekToRegion).toHaveBeenCalledWith({ id: 'test-region-id', start: 10.5, end: 20.5 });
     });
 
     it('should play audio after seeking', async () => {
@@ -101,7 +101,7 @@ describe('SelectAndPlayRegion', () => {
       const callOrder: string[] = [];
 
       const mockWavesurferServiceWithTracking = {
-        seekToTime: jest.fn(() => callOrder.push('seekToTime')),
+        seekToRegion: jest.fn(() => callOrder.push('seekToRegion')),
         play: jest.fn(() => {
           callOrder.push('play');
           return Promise.resolve();
@@ -123,7 +123,7 @@ describe('SelectAndPlayRegion', () => {
 
       await useCase.execute();
 
-      expect(callOrder).toEqual(['updateUrl', 'setSelectedRegion', 'seekToTime', 'play']);
+      expect(callOrder).toEqual(['updateUrl', 'setSelectedRegion', 'seekToRegion', 'play']);
     });
 
     it('should not update URL when transcription is missing', async () => {
@@ -183,7 +183,7 @@ describe('SelectAndPlayRegion', () => {
           ...mockServices,
           wavesurferService: {
             ...mockWavesurferService,
-            seekToTime: jest.fn(() => {
+            seekToRegion: jest.fn(() => {
               throw new Error('Seek failed');
             }),
           },
@@ -206,7 +206,7 @@ describe('SelectAndPlayRegion', () => {
 
       // Should not call any services if validation fails
       expect(mockBrowserService.setSelectedRegion).not.toHaveBeenCalled();
-      expect(mockWavesurferService.seekToTime).not.toHaveBeenCalled();
+      expect(mockWavesurferService.seekToRegion).not.toHaveBeenCalled();
       expect(mockWavesurferService.play).not.toHaveBeenCalled();
     });
 
@@ -216,14 +216,14 @@ describe('SelectAndPlayRegion', () => {
         regionId: 'different-region-id',
         store: {
           ...mockStore,
-          regionById: jest.fn().mockReturnValue({ start: 42.7 }),
+          regionById: jest.fn().mockReturnValue({ id: 'different-region-id', start: 42.7, end: 50.3 }),
         },
       });
 
       await useCase.execute();
 
       expect(mockBrowserService.setSelectedRegion).toHaveBeenCalledWith('different-region-id');
-      expect(mockWavesurferService.seekToTime).toHaveBeenCalledWith(42.7);
+      expect(mockWavesurferService.seekToRegion).toHaveBeenCalledWith({ id: 'different-region-id', start: 42.7, end: 50.3 });
     });
   });
 }); 
