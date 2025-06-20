@@ -13,12 +13,14 @@ class WaveSurferService {
   private muteEvents: boolean = false;
   private ready: boolean = false;
   private _delayedRegions: any[] = []
-  private _delayedSeekTime: number | null = null
+  private _delayedSeekRegion: { id: string, start: number, end: number } | null = null
   // Inbound region highlighting state management
   // Used to ignore region-out events immediately after seeking to prevent unwanted highlight removal
   private _inboundRegionIgnoreNextOut: boolean = false
   // Tracks the currently highlighted region in the wavesurfer player for inbound region management
   private _inboundRegionCurrentHighlighted: any = null
+  // Tracks the region we want to stop playback at (for region-bounded playback)
+  private _playbackBoundRegion: { id: string, start: number, end: number } | null = null
 
   private REGION_BACKGROUND_COLOR = 'rgba(0, 0, 0, 0.1)'
   private REGION_HIGHLIGHTED_COLOR = 'rgba(0, 213, 255, 0.1)'
@@ -69,7 +71,9 @@ class WaveSurferService {
   }
 
   registerEvents(): void {
-    // Wavesurfer events
+    /**
+     * WAVESURFER EVENTS
+     */
     this.wavesurfer?.on('ready', (event) => {
       console.log('📋 Wavesurfer ready event fired!', event)
       this.ready = true
@@ -81,10 +85,10 @@ class WaveSurferService {
         console.log('📋 No delayed regions to process')
       }
 
-      if (this._delayedSeekTime !== null) {
-        console.log(`📋 Processing delayed seek to time: ${this._delayedSeekTime}`)
-        this.wavesurfer?.setTime(this._delayedSeekTime)
-        this._delayedSeekTime = null
+      if (this._delayedSeekRegion !== null) {
+        console.log(`📋 Processing delayed seek to region: ${this._delayedSeekRegion.id} (${this._delayedSeekRegion.start}s - ${this._delayedSeekRegion.end}s)`)
+        this.wavesurfer?.setTime(this._delayedSeekRegion.start)
+        this._delayedSeekRegion = null
         // Ignore the next region-out event since we're seeking to a region intentionally
         this._inboundRegionIgnoreNextOut = true
       }
@@ -100,6 +104,29 @@ class WaveSurferService {
 
     this.wavesurfer?.on('error', (event) => {
       console.log('Wavesurfer error event', event)
+    })
+
+    // Listen for timeupdate to enforce region-bounded playback
+    this.wavesurfer?.on('timeupdate', (currentTime) => {
+      if (!this._playbackBoundRegion) return;        // guard not armed
+      if (!this.wavesurfer?.isPlaying()) return;     // only act during playback
+
+      if (currentTime >= this._playbackBoundRegion.end) {
+        console.log(`📋 Reached end of bounded region ${this._playbackBoundRegion.id} at ${this._playbackBoundRegion.end}s, stopping playback`);
+        this.wavesurfer.pause();
+        this._playbackBoundRegion = null;            // disarm the guard
+      }
+    })
+
+    // Listen for user interactions to clear bounded playback when user seeks outside the region
+    this.wavesurfer?.on('interaction', (newTime) => {
+      if (!this._playbackBoundRegion) return;        // guard not armed
+
+      // If user seeks outside the bounded region, clear the guard (enable free playback)
+      if (newTime < this._playbackBoundRegion.start || newTime > this._playbackBoundRegion.end) {
+        console.log(`📋 User seeked outside bounded region ${this._playbackBoundRegion.id} (${newTime}s), clearing region-bounded playback`);
+        this._playbackBoundRegion = null;
+      }
     })
 
     // Region events
@@ -237,14 +264,32 @@ class WaveSurferService {
   setZoom(value: number): void {
     this.wavesurfer?.zoom(value);
   }
-  
-  seekToTime(timeInSeconds: number): void {
+
+  // seekToTime went away, replaced by seekToRegion
+
+  seekToRegion(region: { id: string, start: number, end: number }): void {
+    console.log(`📋 Seeking to region: ${region.id} (${region.start}s - ${region.end}s)`);
+    
+    // Arm the region-bounded playback guard
+    this._playbackBoundRegion = region;
+    console.log(`📋 Armed region-bounded playback for region ${region.id} (will stop at ${region.end}s)`);
+    
+    // Seek to the region start
     if (this.wavesurfer && this.ready) {
-      console.log(`📋 Seeking to time: ${timeInSeconds}`)
-      this.wavesurfer.setTime(timeInSeconds);
+      this.wavesurfer.setTime(region.start);
     } else {
-      console.log(`📋 Wavesurfer not ready, delaying seek to time: ${timeInSeconds}`)
-      this._delayedSeekTime = timeInSeconds;
+      console.log(`📋 Wavesurfer not ready, delaying seek to region: ${region.id}`)
+      this._delayedSeekRegion = region;
+    }
+  }
+
+  /**
+   * Clears the region-bounded playback guard, allowing free playback
+   */
+  clearRegionBoundedPlayback(): void {
+    if (this._playbackBoundRegion) {
+      console.log(`📋 Clearing region-bounded playback for region ${this._playbackBoundRegion.id}`);
+      this._playbackBoundRegion = null;
     }
   }
 
@@ -280,9 +325,10 @@ class WaveSurferService {
     // Reset state
     this.ready = false;
     this._delayedRegions = [];
-    this._delayedSeekTime = null;
+    this._delayedSeekRegion = null;
     this._inboundRegionIgnoreNextOut = false;
     this._inboundRegionCurrentHighlighted = null;
+    this._playbackBoundRegion = null;
     this.muteEvents = false;
     this.clearAllListeners();
   }

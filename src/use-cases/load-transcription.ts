@@ -44,7 +44,7 @@ export class LoadTranscription {
       if (selectedRegionId) {
         const selectedRegion = data.regions.find((region: any) => region.id === selectedRegionId);
         if (selectedRegion) {
-          wavesurferService.seekToTime(selectedRegion.start);
+          wavesurferService.seekToRegion(selectedRegion);
           // Apply selected region styling
           browserService.setSelectedRegion(selectedRegionId);
         }
