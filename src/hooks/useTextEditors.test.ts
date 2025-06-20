@@ -2,13 +2,35 @@ import { renderHook, act } from '@testing-library/react';
 import { useTextEditors } from './useTextEditors';
 import { rteService } from '../services/rteService';
 
+// Mock the use case
+jest.mock('../use-cases/update-region-text', () => ({
+  UpdateRegionTextUseCase: jest.fn().mockImplementation(() => ({
+    execute: jest.fn()
+  }))
+}));
+
+// Mock the store
+jest.mock('../stores/useEditorStore', () => ({
+  useEditorStore: jest.fn().mockReturnValue({
+    regionById: jest.fn().mockReturnValue({
+      id: 'test-region',
+      regionText: 'Test content',
+      translation: 'Test translation'
+    })
+  })
+}));
+
 // Mock the rteService
 jest.mock('../services/rteService', () => ({
   rteService: {
     createOrGet: jest.fn(),
     attach: jest.fn(),
     detach: jest.fn(),
-    destroy: jest.fn()
+    destroy: jest.fn(),
+    onTextChange: jest.fn(),
+    offTextChange: jest.fn(),
+    setContent: jest.fn(),
+    hasEditor: jest.fn().mockReturnValue(true)
   }
 }));
 

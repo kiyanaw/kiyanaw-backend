@@ -66,7 +66,7 @@ export const RegionList = React.memo(({
             className="border-b border-gray-300 last:border-b-0"
           >
             <RegionItem
-              region={region}
+              regionId={region.id}
               index={index}
               onClick={handleRegionClick}
             />

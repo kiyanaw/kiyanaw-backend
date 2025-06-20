@@ -43,6 +43,9 @@ export class SelectAndPlayRegion {
       );
     }
 
+    // Update the selected region in the store
+    this.config.store.setSelectedRegion(this.config.regionId);
+
     // Apply selected region styling
     this.config.services.browserService.setSelectedRegion(this.config.regionId);
 

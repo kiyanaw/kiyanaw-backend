@@ -37,7 +37,7 @@ export const WaveformPlayer = ({
   onRegionUpdate,
   onLookup,
 }: WaveformPlayerProps) => {
-  console.log('--- WaveformPlayer Render ---', { source, hasPeaks: !!peaks });
+  // console.log('--- WaveformPlayer Render ---', { source, hasPeaks: !!peaks });
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const waveformContainerRef = useRef<HTMLDivElement | null>(null);

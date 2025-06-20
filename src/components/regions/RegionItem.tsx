@@ -1,25 +1,21 @@
 import { useMemo } from 'react';
+import { useEditorStore } from '../../stores/useEditorStore';
 
 interface RegionItemProps {
-  region: {
-    id: string;
-    start: number;
-    end: number;
-    isNote?: boolean;
-    regionText?: string;
-    translation?: string;
-  };
+  regionId: string;
   index: number;
   editingUsers?: Array<{ user: string; color: string }>;
-  onClick: (regionId: string, index: number) => void;
+  onClick: (regionId: string) => void;
 }
 
 export const RegionItem = ({
-  region,
+  regionId,
   index,
   editingUsers = [],
   onClick,
 }: RegionItemProps) => {
+  // Get region data from store using selector
+  const region = useEditorStore((state) => state.regionById(regionId));
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
@@ -43,13 +39,18 @@ export const RegionItem = ({
   }, [editingUsers]);
 
   const handleClick = () => {
-    onClick(region.id, index);
+    onClick(regionId);
   };
+
+  // Return early if region not found
+  if (!region) {
+    return null;
+  }
 
   return (
     <div
       className="min-h-[25px] border border-gray-400 relative cursor-pointer transition-colors hover:bg-gray-50"
-      id={`regionitem-${region.id}`}
+      id={`regionitem-${regionId}`}
       onClick={handleClick}
     >
       {!region.isNote && (

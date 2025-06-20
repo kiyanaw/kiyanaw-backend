@@ -19,6 +19,7 @@ describe('SelectAndPlayRegion', () => {
   const mockStore = {
     regionById: jest.fn(),
     transcription: { id: 'test-transcription-id' },
+    setSelectedRegion: jest.fn(),
   };
 
   const validConfig = {
@@ -76,6 +77,13 @@ describe('SelectAndPlayRegion', () => {
       expect(mockBrowserService.updateUrl).toHaveBeenCalledWith('/transcribe-edit/test-transcription-id/test-region-id');
     });
 
+    it('should update selected region in store', async () => {
+      const useCase = new SelectAndPlayRegion(validConfig);
+      await useCase.execute();
+
+      expect(mockStore.setSelectedRegion).toHaveBeenCalledWith('test-region-id');
+    });
+
     it('should apply selected region styling', async () => {
       const useCase = new SelectAndPlayRegion(validConfig);
       await useCase.execute();
@@ -100,6 +108,11 @@ describe('SelectAndPlayRegion', () => {
     it('should execute operations in correct order', async () => {
       const callOrder: string[] = [];
 
+      const mockStoreWithTracking = {
+        ...mockStore,
+        setSelectedRegion: jest.fn(() => callOrder.push('setSelectedRegion')),
+      };
+
       const mockWavesurferServiceWithTracking = {
         seekToRegion: jest.fn(() => callOrder.push('seekToRegion')),
         play: jest.fn(() => {
@@ -110,11 +123,12 @@ describe('SelectAndPlayRegion', () => {
 
       const mockBrowserServiceWithTracking = {
         updateUrl: jest.fn(() => callOrder.push('updateUrl')),
-        setSelectedRegion: jest.fn(() => callOrder.push('setSelectedRegion')),
+        setSelectedRegion: jest.fn(() => callOrder.push('setBrowserSelectedRegion')),
       };
 
       const useCase = new SelectAndPlayRegion({
         ...validConfig,
+        store: mockStoreWithTracking,
         services: {
           wavesurferService: mockWavesurferServiceWithTracking,
           browserService: mockBrowserServiceWithTracking,
@@ -123,7 +137,7 @@ describe('SelectAndPlayRegion', () => {
 
       await useCase.execute();
 
-      expect(callOrder).toEqual(['updateUrl', 'setSelectedRegion', 'seekToRegion', 'play']);
+      expect(callOrder).toEqual(['updateUrl', 'setSelectedRegion', 'setBrowserSelectedRegion', 'seekToRegion', 'play']);
     });
 
     it('should not update URL when transcription is missing', async () => {
@@ -172,7 +186,8 @@ describe('SelectAndPlayRegion', () => {
 
       await expect(useCase.execute()).rejects.toThrow('Play failed');
 
-      // Should still have applied styling before the error
+      // Should still have updated store and applied styling before the error
+      expect(mockStore.setSelectedRegion).toHaveBeenCalledWith('test-region-id');
       expect(mockBrowserService.setSelectedRegion).toHaveBeenCalledWith('test-region-id');
     });
 
@@ -192,7 +207,8 @@ describe('SelectAndPlayRegion', () => {
 
       await expect(useCase.execute()).rejects.toThrow('Seek failed');
 
-      // Should still have applied styling before the error
+      // Should still have updated store and applied styling before the error
+      expect(mockStore.setSelectedRegion).toHaveBeenCalledWith('test-region-id');
       expect(mockBrowserService.setSelectedRegion).toHaveBeenCalledWith('test-region-id');
     });
 
@@ -204,7 +220,8 @@ describe('SelectAndPlayRegion', () => {
 
       await expect(useCase.execute()).rejects.toThrow('regionId is required');
 
-      // Should not call any services if validation fails
+      // Should not call any services or store updates if validation fails
+      expect(mockStore.setSelectedRegion).not.toHaveBeenCalled();
       expect(mockBrowserService.setSelectedRegion).not.toHaveBeenCalled();
       expect(mockWavesurferService.seekToRegion).not.toHaveBeenCalled();
       expect(mockWavesurferService.play).not.toHaveBeenCalled();
@@ -222,6 +239,7 @@ describe('SelectAndPlayRegion', () => {
 
       await useCase.execute();
 
+      expect(mockStore.setSelectedRegion).toHaveBeenCalledWith('different-region-id');
       expect(mockBrowserService.setSelectedRegion).toHaveBeenCalledWith('different-region-id');
       expect(mockWavesurferService.seekToRegion).toHaveBeenCalledWith({ id: 'different-region-id', start: 42.7, end: 50.3 });
     });

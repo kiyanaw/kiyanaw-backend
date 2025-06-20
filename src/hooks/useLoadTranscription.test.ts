@@ -5,7 +5,15 @@ import { LoadTranscription } from '../use-cases/load-transcription';
 import { useEditorStore } from '../stores/useEditorStore';
 
 // Mock the dependencies
-jest.mock('../services');
+jest.mock('../services', () => ({
+  services: {
+    transcriptionService: {},
+    regionService: {},
+    wavesurferService: {},
+    browserService: {},
+    rteService: {}
+  }
+}));
 jest.mock('../use-cases/load-transcription');
 jest.mock('../stores/useEditorStore');
 
