@@ -7,6 +7,7 @@ import { services } from '../services';
 
 
 import { CreateRegion } from '../use-cases/create-region';
+import { UpdateRegionBounds } from '../use-cases/update-region-bounds';
 
 export const useWavesurferEvents = (transcriptionId: string): void => {
   const lastCalledRef = useRef<string | undefined>(undefined);
@@ -41,6 +42,20 @@ export const useWavesurferEvents = (transcriptionId: string): void => {
           end: event.end
         },
         regions,
+        services,
+        store
+      })
+      usecase.execute()
+    })
+
+    wavesurferService.on('region-update-end', (event) => {
+      console.log('Region Updated', event)
+      const store = useEditorStore.getState();
+      const usecase = new UpdateRegionBounds({
+        transcriptionId,
+        regionId: event.id,
+        start: event.start,
+        end: event.end,
         services,
         store
       })

@@ -139,6 +139,15 @@ class WaveSurferService {
       this.updateRegionIndices()
     });
 
+    this.regionsPlugin?.on('region-updated', (event: any) => {
+      this.emitEvent('region-update-end', {
+        id: event.id,
+        start: event.start,
+        end: event.end
+      });
+      this.updateRegionIndices();
+    });
+
 
     /**
      * For `region-in` we have a little extra checking because there is some additional

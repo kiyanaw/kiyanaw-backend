@@ -87,8 +87,9 @@ describe('useWavesurferEvents', () => {
       renderHook(() => useWavesurferEvents(transcriptionId));
 
       expect(mockClearAllListeners).toHaveBeenCalledTimes(1);
-      expect(mockOn).toHaveBeenCalledTimes(5);
+      expect(mockOn).toHaveBeenCalledTimes(6);
       expect(mockOn).toHaveBeenCalledWith('region-created', expect.any(Function));
+      expect(mockOn).toHaveBeenCalledWith('region-update-end', expect.any(Function));
       expect(mockOn).toHaveBeenCalledWith('play', expect.any(Function));
       expect(mockOn).toHaveBeenCalledWith('pause', expect.any(Function));
       expect(mockOn).toHaveBeenCalledWith('region-in', expect.any(Function));
@@ -125,7 +126,7 @@ describe('useWavesurferEvents', () => {
 
       // Verify first initialization
       expect(mockClearAllListeners).toHaveBeenCalledTimes(1);
-      expect(mockOn).toHaveBeenCalledTimes(5);
+      expect(mockOn).toHaveBeenCalledTimes(6);
 
       // Clear mocks and change to new ID
       jest.clearAllMocks();
@@ -133,7 +134,7 @@ describe('useWavesurferEvents', () => {
 
       // Verify second initialization
       expect(mockClearAllListeners).toHaveBeenCalledTimes(1);
-      expect(mockOn).toHaveBeenCalledTimes(5);
+      expect(mockOn).toHaveBeenCalledTimes(6);
       expect(mockOn).toHaveBeenCalledWith('region-created', expect.any(Function));
     });
 
@@ -152,7 +153,7 @@ describe('useWavesurferEvents', () => {
 
       // Should only initialize once (from initial render)
       expect(mockClearAllListeners).toHaveBeenCalledTimes(1);
-      expect(mockOn).toHaveBeenCalledTimes(5);
+      expect(mockOn).toHaveBeenCalledTimes(6);
     });
 
     it('should handle undefined transcriptionId correctly', () => {
@@ -174,7 +175,7 @@ describe('useWavesurferEvents', () => {
       renderHook(() => useWavesurferEvents(transcriptionId));
 
       expect(mockClearAllListeners).toHaveBeenCalledTimes(1);
-      expect(mockOn).toHaveBeenCalledTimes(5);
+      expect(mockOn).toHaveBeenCalledTimes(6);
       
       // Verify clearAllListeners is called before registering new listeners
       const clearCallOrder = mockClearAllListeners.mock.invocationCallOrder[0];
@@ -294,7 +295,7 @@ describe('useWavesurferEvents', () => {
 
       // Should initialize now
       expect(mockClearAllListeners).toHaveBeenCalledTimes(1);
-      expect(mockOn).toHaveBeenCalledTimes(5);
+      expect(mockOn).toHaveBeenCalledTimes(6);
     });
 
     it('should work correctly when transcriptionId changes from defined to undefined', () => {
@@ -305,7 +306,7 @@ describe('useWavesurferEvents', () => {
 
       // Should initialize on first defined value
       expect(mockClearAllListeners).toHaveBeenCalledTimes(1);
-      expect(mockOn).toHaveBeenCalledTimes(5);
+      expect(mockOn).toHaveBeenCalledTimes(6);
 
       // Clear mocks
       jest.clearAllMocks();
@@ -315,7 +316,7 @@ describe('useWavesurferEvents', () => {
 
       // Should initialize again because 'defined-transcription-id' !== undefined
       expect(mockClearAllListeners).toHaveBeenCalledTimes(1);
-      expect(mockOn).toHaveBeenCalledTimes(5);
+      expect(mockOn).toHaveBeenCalledTimes(6);
     });
 
     it('should handle empty string transcriptionId', () => {
@@ -325,7 +326,7 @@ describe('useWavesurferEvents', () => {
 
       // Should initialize with empty string
       expect(mockClearAllListeners).toHaveBeenCalledTimes(1);
-      expect(mockOn).toHaveBeenCalledTimes(5);
+      expect(mockOn).toHaveBeenCalledTimes(6);
 
       // Verify event handler works with empty transcriptionId
       const eventHandler = mockOn.mock.calls[0][1];
