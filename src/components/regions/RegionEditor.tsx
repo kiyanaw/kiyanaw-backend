@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
+import { useState, useEffect, useRef, useMemo, memo } from 'react';
 import ReactQuill, { Quill } from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import debounce from 'lodash.debounce';
@@ -124,383 +124,43 @@ export const RegionEditor = memo(({
 
   const translationEditorFormats: string[] = []; // Plain text only
 
-  // Save queue system with debouncing
-  const debouncedSave = useCallback(
-    debounce((regionId: string, updates: any) => {
-      if (saveState.DS_OUTBOX_BUSY) {
-        setTimeout(() => debouncedSave(regionId, updates), saveState.SAVE_RETRY);
-      } else {
-        // Strip suggestion formats before saving - not needed for plain text
-        // Since regionText is plain text, no need to strip formatting
-        onUpdate(regionId, updates);
-      }
-    }, 250),
-    [onUpdate]
-  );
 
-  // Reconcile text and issues - update issue indices when text changes
-  const reconcileTextAndIssues = (newText: string, oldText: string, issues: any[]) => {
-    if (!issues || issues.length === 0) return issues;
-    
-    // If text length hasn't changed significantly, keep issues as-is
-    if (Math.abs(newText.length - oldText.length) < 2) {
-      return issues;
-    }
-
-    // For now, we'll use a simple approach - remove issues if text changed dramatically
-    // TODO: Implement more sophisticated text diff and issue position tracking
-    const lengthChange = Math.abs(newText.length - oldText.length);
-    const percentageChange = lengthChange / Math.max(oldText.length, 1);
-    
-    // If more than 50% of text changed, clear issues to avoid positioning errors
-    if (percentageChange > 0.5) {
-      console.warn('Text changed significantly, clearing issues to prevent positioning errors');
-      return [];
-    }
-
-    // Otherwise keep issues but log warning about potential position drift
-    if (lengthChange > 0) {
-      console.warn('Text length changed, issue positions may need adjustment');
-    }
-
-    return issues;
-  };
 
   // Handle main editor content changes
-  const handleMainEditorChange = (_content: string, _delta: any, source: string, editor: any) => {
-    if (source === 'user') {
-      const plainText = editor.getText();
-      const oldText = region.regionText || '';
-      
-      // Reconcile issues with text changes
-      const reconciledIssues = reconcileTextAndIssues(plainText.trim(), oldText, region.issues || []);
-      
-      debouncedSave(region.id, {
-        regionText: plainText.trim(),
-        ...(reconciledIssues.length !== (region.issues || []).length && { issues: reconciledIssues })
-      });
-
-      // Check for known words after content change
-      checkForKnownWords(true);
-    }
+  const handleMainEditorChange = () => {
   };
 
   // Handle translation editor content changes  
-  const handleTranslationChange = (_content: string, _delta: any, source: string, editor: any) => {
-    if (source === 'user') {
-      const plainText = editor.getText().trim();
-      debouncedSave(region.id, { translation: plainText });
-    }
-  };
+  const handleTranslationChange = () => {};
 
   // Handle selection changes for toolbar state
-  const handleSelectionChange = (range: any, _source: string, editor: any) => {
-    if (range && range.length > 0) {
-      const text = editor.getText(range.index, range.length);
-      setSelectedRange({
-        index: range.index,
-        length: range.length,
-        text: text
-      });
-
-      // Check if selected text has suggestion formatting and show dropdown
-      if (activeTab === 'main' && text.trim().length > 0) {
-        const format = editor.getFormat(range.index, range.length);
-        // Check for suggestion class in various possible format representations
-        const hasSuggestion = format.class === 'suggestion' || 
-                            (typeof format.class === 'string' && format.class.includes('suggestion')) ||
-                            format.suggestion;
-        if (hasSuggestion) {
-          showSuggestionDropdown(text.trim(), { index: range.index, length: range.length });
-        }
-      }
-    } else {
-      setSelectedRange(null);
-      hideSuggestionDropdown();
-    }
-  };
+  const handleSelectionChange = () => {};
 
   // Toolbar actions
-  const handlePlay = () => {
-    if (onPlay) {
-      setIsPlaying(true);
-      onPlay(region.start, region.end);
-      setTimeout(
-        () => setIsPlaying(false),
-        (region.end - region.start) * 1000 + 500
-      );
-    }
-  };
+  const handlePlay = () => {};
 
-  const handleToggleNote = () => {
-    if (onToggleNote) {
-      // Check if region has content
-      const quill = mainEditorRef.current?.getEditor();
-      if (quill) {
-        const text = quill.getText().trim();
-        if (text.length > 0) {
-          alert('Cannot convert non-empty region to note!');
-          return;
-        }
-      }
-      onToggleNote(region.id);
-    }
-  };
+  const handleToggleNote = () => {};
 
-  const handleCreateIssue = () => {
-    if (selectedRange && onCreateIssue) {
-      onCreateIssue(region.id, selectedRange.text, selectedRange.index);
-    } else if (onShowCreateIssueForm) {
-      onShowCreateIssueForm();
-    }
-  };
+  const handleCreateIssue = () => {};
 
   const handleIgnoreWord = () => {
-    if (selectedRange && activeTab === 'main') {
-      const quill = mainEditorRef.current?.getEditor();
-      if (quill) {
-        quill.formatText(selectedRange.index, selectedRange.length, 'class', 'ignore-word');
-      }
-    }
+
   };
 
   const handleClearFormat = () => {
-    if (selectedRange) {
-      const quill = activeTab === 'main' 
-        ? mainEditorRef.current?.getEditor()
-        : translationEditorRef.current?.getEditor();
-      
-      if (quill) {
-        // Clear all custom format classes
-        customFormats.forEach(format => {
-          quill.formatText(selectedRange.index, selectedRange.length, format, false);
-        });
-        quill.formatText(selectedRange.index, selectedRange.length, 'class', false);
-      }
-    }
+
   };
 
   const handleDeleteRegion = () => {
-    if (onDeleteRegion && window.confirm('Are you sure you want to delete this region?')) {
-      onDeleteRegion(region.id);
-    }
+
   };
 
-  // Initialize editor content when region changes
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (mainEditorRef.current && region.regionText) {
-        const quill = mainEditorRef.current.getEditor();
-        quill.setText(region.regionText);
-      }
-
-      if (translationEditorRef.current && region.translation) {
-        const quill = translationEditorRef.current.getEditor();
-        quill.setText(region.translation);
-      }
-    }, 25); // Micro-delay as specified
-
-    return () => clearTimeout(timer);
-  }, [region.id, region.regionText, region.translation]);
-
-  // Handle permissions
-  useEffect(() => {
-    if (mainEditorRef.current) {
-      const quill = mainEditorRef.current.getEditor();
-      disableInputs ? quill.disable() : quill.enable();
-    }
-    if (translationEditorRef.current) {
-      const quill = translationEditorRef.current.getEditor();
-      disableInputs ? quill.disable() : quill.enable();
-    }
-  }, [disableInputs]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = (seconds % 60).toFixed(2);
     return `${mins}:${secs.padStart(5, '0')}`;
   };
-
-  // State for text analysis
-  const [checkTimer, setCheckTimer] = useState<NodeJS.Timeout | null>(null);
-  const [knownWords, setKnownWords] = useState<string[]>([]);
-  const [suggestionDropdown, setSuggestionDropdown] = useState<{
-    visible: boolean;
-    suggestions: string[];
-    position: { top: number; left: number };
-    range: { index: number; length: number };
-    word: string;
-  } | null>(null);
-  
-  // Extract words from plain text for analysis
-  const getTextMapFromPlainText = (text: string) => {
-    const textMap: { [word: string]: { index: number; length: number; original: string } } = {};
-    
-    if (!text) return textMap;
-    
-    // Extract words, handling special characters: [],.?() etc
-    const words = text.match(/[a-zA-ZÀ-ÿ-]+/g) || [];
-    
-    words.forEach((word: string) => {
-      const cleanWord = word.toLowerCase().trim();
-      if (cleanWord.length > 1) { // Only check words longer than 1 character
-        const wordIndex = text.indexOf(word);
-        textMap[cleanWord] = {
-          index: wordIndex,
-          length: word.length,
-          original: word
-        };
-      }
-    });
-    
-    return textMap;
-  };
-
-  // Memoized text map for performance
-  const textMap = useMemo(() => {
-    return getTextMapFromPlainText(region.regionText || '');
-  }, [region.regionText]);
-
-  // Check for known words and apply formatting
-  const checkForKnownWords = useCallback((doUpdate = false) => {
-    if (transcription?.disableAnalyzer || region.isNote) return;
-    
-    if (checkTimer) {
-      clearTimeout(checkTimer);
-    }
-    
-    const timer = setTimeout(() => {
-      const quill = mainEditorRef.current?.getEditor();
-      if (!quill || !region.regionText) return;
-      
-      const words = Object.keys(textMap);
-      const unknownWords = words.filter(w => !knownWords.includes(w));
-      
-      // Mock lexicon check for now - in real implementation this would call Lexicon.wordSearch
-      // For now, we'll mark common English words as "known"
-      const commonWords = ['the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by'];
-      const newKnownWords = [...knownWords];
-      
-      unknownWords.forEach((word: string) => {
-        if (commonWords.includes(word.toLowerCase())) {
-          newKnownWords.push(word);
-        }
-      });
-      
-      if (newKnownWords.length > knownWords.length) {
-        setKnownWords(newKnownWords);
-        if (doUpdate) {
-          applyKnownWords();
-          applySuggestions();
-        }
-      }
-    }, 750); // 750ms delay as specified
-    
-    setCheckTimer(timer);
-  }, [transcription?.disableAnalyzer, region.isNote, region.regionText, textMap, knownWords, checkTimer]);
-
-  // Apply known word formatting
-  const applyKnownWords = useCallback(() => {
-    const quill = mainEditorRef.current?.getEditor();
-    if (!quill || !region.regionText) return;
-    
-    Object.entries(textMap).forEach(([word, position]) => {
-      if (knownWords.includes(word)) {
-        // Use CSS class approach for now - simpler than complex Quill format registration
-        quill.formatText(position.index, position.length, 'class', 'known-word');
-      }
-    });
-  }, [region.regionText, textMap, knownWords]);
-
-  // Apply suggestion formatting to unknown words
-  const applySuggestions = useCallback(() => {
-    const quill = mainEditorRef.current?.getEditor();
-    if (!quill || !region.regionText) return;
-    
-    Object.entries(textMap).forEach(([word, position]) => {
-      if (!knownWords.includes(word) && word.length > 2) {
-        // Mock suggestions - in real implementation this would come from Lexicon.getSuggestions()
-        const mockSuggestions = [`${word}s`, `${word}ed`, `${word}ing`];
-        if (mockSuggestions.length > 0) {
-          quill.formatText(position.index, position.length, 'class', 'suggestion');
-        }
-      }
-    });
-  }, [region.regionText, textMap, knownWords]);
-
-  // Show suggestion dropdown for a word
-  const showSuggestionDropdown = useCallback((word: string, range: { index: number; length: number }) => {
-    const quill = mainEditorRef.current?.getEditor();
-    if (!quill) return;
-
-    // Get cursor position for dropdown placement
-    const bounds = quill.getBounds(range.index, range.length);
-    if (!bounds) return;
-    
-    const editorRect = quill.container.getBoundingClientRect();
-    
-    // Mock suggestions - in real implementation this would come from Lexicon.getSuggestions()
-    const mockSuggestions = [`${word}s`, `${word}ed`, `${word}ing`, word.toLowerCase(), word.toUpperCase()];
-    
-    setSuggestionDropdown({
-      visible: true,
-      suggestions: mockSuggestions,
-      position: {
-        top: bounds.bottom + editorRect.top + 5,
-        left: bounds.left + editorRect.left
-      },
-      range,
-      word
-    });
-  }, []);
-
-  // Handle suggestion selection
-  const handleSuggestionSelect = useCallback((suggestion: string) => {
-    if (!suggestionDropdown) return;
-    
-    const quill = mainEditorRef.current?.getEditor();
-    if (!quill) return;
-
-    // Replace the word with the selected suggestion
-    quill.deleteText(suggestionDropdown.range.index, suggestionDropdown.range.length);
-    quill.insertText(suggestionDropdown.range.index, suggestion);
-    
-    // Clear suggestion formatting and hide dropdown
-    setSuggestionDropdown(null);
-  }, [suggestionDropdown]);
-
-  // Hide suggestion dropdown
-  const hideSuggestionDropdown = useCallback(() => {
-    setSuggestionDropdown(null);
-  }, []);
-
-  // Cleanup timers on unmount
-  useEffect(() => {
-    return () => {
-      if (checkTimer) {
-        clearTimeout(checkTimer);
-      }
-    };
-  }, [checkTimer]);
-
-  // Cleanup on unmount - prevent memory leaks
-  useEffect(() => {
-    return () => {
-      // Clear all timers
-      if (checkTimer) {
-        clearTimeout(checkTimer);
-      }
-      
-      // Cancel any pending debounced saves
-      debouncedSave.cancel();
-      
-      // Hide suggestion dropdown
-      setSuggestionDropdown(null);
-      
-      // Clean up Quill instances if needed
-      // Note: ReactQuill handles most cleanup automatically
-    };
-  }, [checkTimer, debouncedSave]);
 
   if (!region) {
     return (
@@ -679,35 +339,6 @@ export const RegionEditor = memo(({
         </div>
       )}
 
-      {/* Suggestion Dropdown */}
-      {suggestionDropdown && suggestionDropdown.visible && (
-        <div
-          className="fixed z-50 bg-white border border-gray-300 rounded-md shadow-lg max-w-xs"
-          style={{
-            top: suggestionDropdown.position.top,
-            left: suggestionDropdown.position.left
-          }}
-        >
-          <div className="p-2">
-            <div className="text-xs text-gray-500 mb-2">Suggestions for "{suggestionDropdown.word}":</div>
-            {suggestionDropdown.suggestions.map((suggestion, index) => (
-              <button
-                key={index}
-                className="block w-full text-left px-2 py-1 text-sm hover:bg-blue-50 hover:text-blue-600 rounded transition-colors duration-150"
-                onClick={() => handleSuggestionSelect(suggestion)}
-              >
-                {suggestion}
-              </button>
-            ))}
-            <button
-              className="block w-full text-left px-2 py-1 text-xs text-gray-400 hover:bg-gray-50 rounded mt-1 border-t border-gray-200"
-              onClick={hideSuggestionDropdown}
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 });
