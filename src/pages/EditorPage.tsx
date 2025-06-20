@@ -13,16 +13,14 @@ export const EditorPage = () => {
     id: string;
   }>();
   
-  console.log('editor')
   useLoadTranscription(transcriptionId!);
   useWavesurferEvents(transcriptionId!);
   
-  const selectedRegion = {}
-
   // Editor store selectors
   const transcription = useEditorStore((state) => state.transcription);
   const peaks = useEditorStore((state) => state.peaks);
   const regions = useEditorStore((state) => state.regions);
+  const selectedRegion = useEditorStore((state) => state.selectedRegion);
 
   const isVideo = transcription?.isVideo
 

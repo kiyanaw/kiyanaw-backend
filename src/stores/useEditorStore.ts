@@ -49,6 +49,8 @@ interface EditorState {
   createRegion: (regionData: any) => Promise<void>;
   deleteRegion: (regionId: string) => Promise<void>;
   addNewRegion: (region: any) => void;
+  setRegionText: (regionId: string, text: string) => void;
+  setRegionTranslation: (regionId: string, translation: string) => void;
 
   // Issue actions
   createIssue: (issueData: {
@@ -268,6 +270,40 @@ export const useEditorStore = create<EditorState>()(
         set({
           regions: newRegions,
           regionMap: newRegionMap,
+        });
+      },
+
+      setRegionText: (regionId, text) => {
+        const { regionMap, regions } = get();
+        const existingRegion = regionMap[regionId];
+        
+        if (!existingRegion || existingRegion.regionText === text) {
+          return; // No change needed
+        }
+
+        // Create updated region with new text
+        const updatedRegion = { ...existingRegion, regionText: text };
+        
+        set({
+          regionMap: { ...regionMap, [regionId]: updatedRegion },
+          regions: regions.map(r => r.id === regionId ? updatedRegion : r)
+        });
+      },
+
+      setRegionTranslation: (regionId, translation) => {
+        const { regionMap, regions } = get();
+        const existingRegion = regionMap[regionId];
+        
+        if (!existingRegion || existingRegion.translation === translation) {
+          return; // No change needed
+        }
+
+        // Create updated region with new translation
+        const updatedRegion = { ...existingRegion, translation };
+        
+        set({
+          regionMap: { ...regionMap, [regionId]: updatedRegion },
+          regions: regions.map(r => r.id === regionId ? updatedRegion : r)
         });
       },
 

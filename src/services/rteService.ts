@@ -49,6 +49,7 @@ interface RTEInstance {
   quill: any; // Quill instance
   container: HTMLElement; // Off-screen container
   config: RTEConfig;
+  textChangeCallback?: (text: string) => void;
 }
 
 class RTEServiceImpl {
@@ -191,6 +192,47 @@ class RTEServiceImpl {
   // Utility method to check if an editor exists
   hasEditor(key: EditorKey): boolean {
     return this.registry.has(key);
+  }
+
+  // Content management
+  setContent(key: EditorKey, content: string): void {
+    const instance = this.registry.get(key);
+    if (!instance) {
+      throw new Error(`RTE instance not found for key: ${key}`);
+    }
+
+    // Use 'api' source to avoid triggering text-change events
+    instance.quill.setText(content || '', 'api');
+  }
+
+  // Text change event management
+  onTextChange(key: EditorKey, callback: (text: string) => void): void {
+    const instance = this.registry.get(key);
+    if (!instance) {
+      throw new Error(`RTE instance not found for key: ${key}`);
+    }
+
+    // Store callback
+    instance.textChangeCallback = callback;
+
+    // Set up Quill text-change listener
+    instance.quill.on('text-change', () => {
+      const plainText = instance.quill.getText().trim();
+      callback(plainText);
+    });
+  }
+
+  offTextChange(key: EditorKey): void {
+    const instance = this.registry.get(key);
+    if (!instance) {
+      return; // Already removed or never existed
+    }
+
+    // Remove callback
+    instance.textChangeCallback = undefined;
+
+    // Remove Quill listeners (Quill will remove all listeners for 'text-change')
+    instance.quill.off('text-change');
   }
 
   // Clean up all editors (useful for testing or app shutdown)
