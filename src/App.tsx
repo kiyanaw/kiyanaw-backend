@@ -22,8 +22,8 @@ function App() {
           <Route path="/" element={<AppLayout />}>
             {/* <Route index element={<Navigate to="/transcribe-list" replace />} /> */}
             {/* <Route path="transcribe-list" element={<TranscribeListPage />} />
-            <Route path="transcribe-add" element={<UploadForm />} />
-            <Route path="transcribe-edit/:id" element={<EditorPage />} /> */}
+            <Route path="transcribe-add" element={<UploadForm />} />  */}
+            <Route path="transcribe-edit/:id" element={<EditorPage />} /> 
             <Route
               path="transcribe-edit/:id/:regionId"
               element={<EditorPage />}
