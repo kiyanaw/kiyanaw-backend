@@ -37,6 +37,7 @@ export interface LightRegion {
   end: number;
   text?: string;
   translation?: string;
+  isNote?: boolean;
 }
 
 function pad(num: number, size: number): string {

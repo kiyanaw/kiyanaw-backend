@@ -3,6 +3,7 @@ import * as regionService from './regionService'
 import * as transcriptionService from './transcriptionService';
 import { wavesurferService } from './wavesurferService'
 import { browserService } from './browserService';
+import { rteService } from './rteService';
 
 export const services = {
   authService,
@@ -10,4 +11,5 @@ export const services = {
   transcriptionService,
   wavesurferService,
   browserService,
+  rteService,
 };

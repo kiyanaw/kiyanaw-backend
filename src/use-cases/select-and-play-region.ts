@@ -14,7 +14,10 @@ interface SelectAndPlayRegionConfig {
 }
 
 export class SelectAndPlayRegion {
-  constructor(private config: SelectAndPlayRegionConfig) {}
+  private config: SelectAndPlayRegionConfig;
+  constructor(config: SelectAndPlayRegionConfig) {
+    this.config = config;
+  }
 
   validate() {
     if (!this.config.regionId) {
