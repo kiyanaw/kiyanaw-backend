@@ -15,8 +15,6 @@ export const useTextEditors = (regionId: string, activeTab: 'main' | 'translatio
   useLayoutEffect(() => {
     if (!mainEditorRef.current || activeTab !== 'main') return;
 
-    console.log('creating Main editor')
-
     const config = {
       readonly: false,
       placeholder: "Enter original text..."
@@ -35,8 +33,6 @@ export const useTextEditors = (regionId: string, activeTab: 'main' | 'translatio
    */
   useLayoutEffect(() => {
     if (!translationEditorRef.current || activeTab !== 'translation') return;
-
-    console.log('creating Translation editor')
 
     const config = {
       readonly: false,

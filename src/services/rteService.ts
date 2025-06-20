@@ -130,7 +130,7 @@ class RTEServiceImpl {
       throw new Error(`RTE instance not found for key: ${key}`);
     }
 
-    console.log(' - editor is readonly', key, instance.config.readonly)
+
 
     // Remove from current parent (if any)
     if (instance.container.parentNode) {
