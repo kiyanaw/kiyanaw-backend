@@ -1,8 +1,6 @@
-
 import { useParams } from 'react-router-dom';
 
 import { useEditorStore } from '../stores/useEditorStore';
-import { usePlayerStore } from '../stores/usePlayerStore';
 import { useLoadTranscription } from '../hooks/useLoadTranscription';
 import { useWavesurferEvents } from '../hooks/useWavesurferEvents';
 
@@ -11,41 +9,26 @@ import { RegionList } from '../components/regions/RegionList';
 import { StationaryInspector } from '../components/inspector/StationaryInspector';
 
 export const EditorPage = () => {
-  const { id: transcriptionId, regionId } = useParams<{
+  const { id: transcriptionId } = useParams<{
     id: string;
-    regionId?: string;
   }>();
   
   console.log('editor')
   useLoadTranscription(transcriptionId!);
-  // NOT sure we need this yet
   useWavesurferEvents(transcriptionId!);
   
-  // const regions = []
   const selectedRegion = {}
 
-  // TODO: 
-  const canEdit = true
-  const isTranscriptionAuthor = true 
-  const user = 'aaronfay'
-  const issues = []
-  
   // Editor store selectors
-  // const user = useAuthStore((state) => state.user);
   const transcription = useEditorStore((state) => state.transcription);
   const peaks = useEditorStore((state) => state.peaks);
   const regions = useEditorStore((state) => state.regions);
-  const playing = usePlayerStore((state) => state.playing)
-  
 
   const isVideo = transcription?.isVideo
-
-  // const issues = useEditorStore((state) => state.issues);
 
   return (
     <div className="flex flex-col h-full overflow-hidden relative">
       {/* Loading/Error/Not Found Overlay */}
-      {/* {(isLoading || queryError || (!isLoading && !transcription)) && ( */}
       {(!transcription) && (
         <div className="absolute inset-0 bg-white flex flex-col items-center justify-center z-10">
           <div className="flex flex-col items-center justify-center h-full p-8 text-center">
@@ -57,10 +40,6 @@ export const EditorPage = () => {
 
       {(transcription) && (
         <>
-        {/* <div className="absolute inset-0 bg-white flex flex-col items-center justify-center z-10">
-          Got Transcription!
-        </div> */}
-        
         {/* Waveform/Video Player Section */}
         <div className="flex-shrink-0 bg-gray-100 border-b border-gray-300">
           <div className="h-[223px] flex items-center justify-center">
@@ -80,29 +59,12 @@ export const EditorPage = () => {
         </>
       )}
 
-
       {/* Main Editor Layout */}
       <div className="flex flex-1 overflow-hidden min-h-0">
         {/* Stationary Inspector */}
         <div className="flex-1 bg-white border-r border-gray-300 overflow-hidden flex flex-col">
           <StationaryInspector
-            transcription={transcription}
-            regions={regions}
             selectedRegion={selectedRegion}
-            canEdit={canEdit}
-            isTranscriptionAuthor={isTranscriptionAuthor}
-            user={user}
-            onTranscriptionUpdate={() => {}}
-            onRegionUpdate={() => {}}
-            onRegionPlay={() => {}}
-            onRegionToggleNote={() => {}}
-            onRegionCreateIssue={() => {}}
-            onRegionDelete={() => {}}
-            onShowCreateIssueForm={() => {}}
-            onIssueCreate={() => {}}
-            onIssueUpdate={() => {}}
-            onIssueDelete={() => {}}
-            onIssueAddComment={() => {}}
           />
         </div>
 
@@ -111,8 +73,6 @@ export const EditorPage = () => {
           <RegionList
             regions={regions}
             disableAnalyzer={transcription?.disableAnalyzer}
-            onRegionClick={()=>{}}
-            onPlayRegion={()=>{}}
           />
         </div>
       </div>
