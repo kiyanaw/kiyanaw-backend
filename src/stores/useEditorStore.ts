@@ -51,6 +51,7 @@ interface EditorState {
   addNewRegion: (region: any) => void;
   setRegionText: (regionId: string, text: string) => void;
   setRegionTranslation: (regionId: string, translation: string) => void;
+  updateRegionBounds: (regionId: string, start: number, end: number) => void;
 
   // Issue actions
   createIssue: (issueData: {
@@ -274,7 +275,7 @@ export const useEditorStore = create<EditorState>()(
       },
 
       setRegionText: (regionId, text) => {
-        const { regionMap, regions } = get();
+        const { regionMap, regions, selectedRegionId } = get();
         const existingRegion = regionMap[regionId];
         
         if (!existingRegion || existingRegion.regionText === text) {
@@ -284,14 +285,22 @@ export const useEditorStore = create<EditorState>()(
         // Create updated region with new text
         const updatedRegion = { ...existingRegion, regionText: text };
         
-        set({
+        // Prepare the update object
+        const updateObj: any = {
           regionMap: { ...regionMap, [regionId]: updatedRegion },
           regions: regions.map(r => r.id === regionId ? updatedRegion : r)
-        });
+        };
+        
+        // If this is the currently selected region, update selectedRegion too
+        if (selectedRegionId === regionId) {
+          updateObj.selectedRegion = updatedRegion;
+        }
+        
+        set(updateObj);
       },
 
       setRegionTranslation: (regionId, translation) => {
-        const { regionMap, regions } = get();
+        const { regionMap, regions, selectedRegionId } = get();
         const existingRegion = regionMap[regionId];
         
         if (!existingRegion || existingRegion.translation === translation) {
@@ -301,10 +310,47 @@ export const useEditorStore = create<EditorState>()(
         // Create updated region with new translation
         const updatedRegion = { ...existingRegion, translation };
         
-        set({
+        // Prepare the update object
+        const updateObj: any = {
           regionMap: { ...regionMap, [regionId]: updatedRegion },
           regions: regions.map(r => r.id === regionId ? updatedRegion : r)
-        });
+        };
+        
+        // If this is the currently selected region, update selectedRegion too
+        if (selectedRegionId === regionId) {
+          updateObj.selectedRegion = updatedRegion;
+        }
+        
+        set(updateObj);
+      },
+
+      updateRegionBounds: (regionId, start, end) => {
+        const { regionMap, regions, selectedRegionId } = get();
+        const existingRegion = regionMap[regionId];
+        
+        if (!existingRegion || (existingRegion.start === start && existingRegion.end === end)) {
+          return; // No change needed
+        }
+
+        // Create updated region with new bounds
+        const updatedRegion = { ...existingRegion, start, end };
+        
+        // Update regionMap and regions array, then re-sort by start time
+        const newRegions = regions.map(r => r.id === regionId ? updatedRegion : r);
+        newRegions.sort((a, b) => a.start - b.start);
+        
+        // Prepare the update object
+        const updateObj: any = {
+          regionMap: { ...regionMap, [regionId]: updatedRegion },
+          regions: newRegions
+        };
+        
+        // If this is the currently selected region, update selectedRegion too
+        if (selectedRegionId === regionId) {
+          updateObj.selectedRegion = updatedRegion;
+        }
+        
+        set(updateObj);
       },
 
       // Issue actions
