@@ -31,7 +31,7 @@ export const useWavesurferEvents = (transcriptionId: string): void => {
 
     // handle events
     wavesurferService.on('region-created', (event) => {
-      console.log('got event here', event)
+      console.log('Region Created', event)
       const store = useEditorStore.getState();
       const usecase = new CreateRegion({
         transcriptionId,
@@ -56,9 +56,15 @@ export const useWavesurferEvents = (transcriptionId: string): void => {
     })
 
     wavesurferService.on('region-in', ({regionId}) => {
-      // INBOUND REGION HIGHLIGHTING: Clear any previous region's highlight before applying new one
-      // This ensures only one region is highlighted in the list at a time, even when
-      // region-out events are ignored (which happens for wavesurfer highlighting preservation)
+      /**
+       * INBOUND REGION HIGHLIGHTING
+       * ---------------------------
+       * Used to clear previous "inbound region" highlight.
+       * On "normal" playback or clicking around the wavesurfer interface, we get both
+       * a 'region-in' and 'region-out' event so the highlight will clear naturally. 
+       * However on "inbound region" we ignore the first 'region-out' event, so we 
+       * need to manually keep track of it and clear it here.
+       */
       if (highlightedInboundRegionRef.current) {
         const previousStyleId = styleIdRef.current.get(highlightedInboundRegionRef.current);
         if (previousStyleId) {
@@ -78,9 +84,11 @@ export const useWavesurferEvents = (transcriptionId: string): void => {
     })
 
     wavesurferService.on('region-out', ({regionId}) => {
-      // INBOUND REGION HIGHLIGHTING: Remove highlighting when leaving a region
-      // Note: This event may be ignored for some regions (to preserve wavesurfer highlighting)
-      // but the manual cleanup in region-in ensures we don't get stuck highlights
+      /** 
+       * INBOUND REGION HIGHLIGHTING
+       * ---------------------------
+       * See note above.
+       */
       const styleId = styleIdRef.current.get(regionId);
       if (styleId) {
         browserService.removeCustomStyle(styleId);

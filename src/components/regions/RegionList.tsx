@@ -2,7 +2,7 @@ import { useRef, useEffect } from 'react';
 import React from 'react';
 import { RegionItem } from './RegionItem';
 import type { LightRegion } from '../../services/adt';
-import { usePlayRegion } from '../../hooks/usePlayRegion';
+import { useSelectAndPlayRegion } from '../../hooks/useSelectAndPlayRegion';
 import { useEditorStore } from '../../stores/useEditorStore';
 
 
@@ -20,9 +20,9 @@ export const RegionList = React.memo(({
 
   const selectedRegionId = useEditorStore((state) => state.selectedRegionId);
 
-  const playRegion = usePlayRegion()
+  const playRegion = useSelectAndPlayRegion()
 
-  // Scroll to selected region
+  // THE ONE AND ONLY TIME WE CAN USE USEEFFECT, OTHERWISE BANNED!
   useEffect(() => {
     if (selectedRegionId && listRef.current) {
       const selectedElement = listRef.current.querySelector(

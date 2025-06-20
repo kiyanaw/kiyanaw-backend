@@ -1,13 +1,19 @@
-import { services } from '../services';
-
-interface PlayRegionConfig {
+interface SelectAndPlayRegionConfig {
   regionId: string;
-  services: typeof services;
+  services: {
+    wavesurferService: {
+      seekToTime: (time: number) => void;
+      play: () => Promise<void>;
+    };
+    browserService: {
+      updateUrl: (url: string) => void;
+    };
+  };
   store: any; // whole store object
 }
 
-export class PlayRegion {
-  constructor(private config: PlayRegionConfig) {}
+export class SelectAndPlayRegion {
+  constructor(private config: SelectAndPlayRegionConfig) {}
 
   validate() {
     if (!this.config.regionId) {
