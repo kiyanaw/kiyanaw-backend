@@ -68,7 +68,6 @@ export const RegionList = React.memo(({
             <RegionItem
               region={region}
               index={index}
-              isSelected={region.id === selectedRegionId}
               onClick={handleRegionClick}
             />
           </div>

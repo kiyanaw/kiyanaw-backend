@@ -17,6 +17,7 @@ jest.mock('../services', () => ({
     },
     browserService: {
       getRegionIdFromUrl: jest.fn(),
+      setSelectedRegion: jest.fn(),
     },
   },
 }));
@@ -360,24 +361,12 @@ describe('LoadTranscription', () => {
         
         // Should seek to the region's start time
         expect(services.wavesurferService.seekToTime).toHaveBeenCalledWith(10); // region-1 starts at 10
+        
+        // Should apply selected region styling
+        expect(services.browserService.setSelectedRegion).toHaveBeenCalledWith(selectedRegionId);
       });
 
-      it('should handle URL region selection when regionId is not found in regions', async () => {
-        const unknownRegionId = 'unknown-region';
-        (services.browserService.getRegionIdFromUrl as jest.Mock).mockReturnValue(unknownRegionId);
-        const useCase = new LoadTranscription(mockConfig);
-        
-        await useCase.execute();
-        
-        // Should call browserService to get regionId
-        expect(services.browserService.getRegionIdFromUrl).toHaveBeenCalled();
-        
-        // Should still pass regionId to store
-        expect(mockStore.setFullTranscriptionData).toHaveBeenCalledWith(mockTranscriptionData, unknownRegionId);
-        
-        // Should not seek since region was not found
-        expect(services.wavesurferService.seekToTime).not.toHaveBeenCalled();
-      });
+
 
       it('should handle when no regionId is in URL', async () => {
         (services.browserService.getRegionIdFromUrl as jest.Mock).mockReturnValue(null);
@@ -393,6 +382,29 @@ describe('LoadTranscription', () => {
         
         // Should not seek
         expect(services.wavesurferService.seekToTime).not.toHaveBeenCalled();
+        
+        // Should not apply selected region styling
+        expect(services.browserService.setSelectedRegion).not.toHaveBeenCalled();
+      });
+      
+      it('should not apply styling when regionId is not found in regions', async () => {
+        const unknownRegionId = 'unknown-region';
+        (services.browserService.getRegionIdFromUrl as jest.Mock).mockReturnValue(unknownRegionId);
+        const useCase = new LoadTranscription(mockConfig);
+        
+        await useCase.execute();
+        
+        // Should call browserService to get regionId
+        expect(services.browserService.getRegionIdFromUrl).toHaveBeenCalled();
+        
+        // Should still pass regionId to store
+        expect(mockStore.setFullTranscriptionData).toHaveBeenCalledWith(mockTranscriptionData, unknownRegionId);
+        
+        // Should not seek since region was not found
+        expect(services.wavesurferService.seekToTime).not.toHaveBeenCalled();
+        
+        // Should not apply selected region styling since region was not found
+        expect(services.browserService.setSelectedRegion).not.toHaveBeenCalled();
       });
     });
   });

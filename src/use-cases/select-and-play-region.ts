@@ -7,6 +7,7 @@ interface SelectAndPlayRegionConfig {
     };
     browserService: {
       updateUrl: (url: string) => void;
+      setSelectedRegion: (regionId: string) => void;
     };
   };
   store: any; // whole store object
@@ -38,6 +39,9 @@ export class SelectAndPlayRegion {
         `/transcribe-edit/${transcription.id}/${this.config.regionId}`
       );
     }
+
+    // Apply selected region styling
+    this.config.services.browserService.setSelectedRegion(this.config.regionId);
 
     // Seek to the region's start time using the service
     this.config.services.wavesurferService.seekToTime(region.start);

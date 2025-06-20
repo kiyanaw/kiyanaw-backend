@@ -352,4 +352,197 @@ describe('BrowserService', () => {
       });
     });
   });
+
+  describe('Selected Region Management', () => {
+    // Mock DOM elements and CSSStyleSheet for selected region tests
+    let mockStylesheet: any;
+    let mockStyleElement: any;
+    let mockHead: any;
+
+    beforeEach(() => {
+      // Clean up any existing stylesheet
+      const existingStylesheet = document.getElementById('dynamic-styles');
+      if (existingStylesheet) {
+        existingStylesheet.remove();
+      }
+
+      // Reset the service's internal state by calling clearAllCustomStyles
+      browserService.clearAllCustomStyles();
+
+      // Create mocks
+      mockStylesheet = {
+        cssRules: { length: 0 },
+        insertRule: jest.fn((rule, index) => {
+          mockStylesheet.cssRules.length++;
+          return index;
+        }),
+        deleteRule: jest.fn((index) => {
+          mockStylesheet.cssRules.length--;
+        })
+      };
+
+      mockStyleElement = {
+        id: '',
+        sheet: mockStylesheet
+      };
+
+      mockHead = {
+        appendChild: jest.fn()
+      };
+
+      // Mock DOM methods
+      jest.spyOn(document, 'createElement').mockReturnValue(mockStyleElement as any);
+      jest.spyOn(document, 'getElementById').mockImplementation((id) => {
+        if (id === 'dynamic-styles') {
+          return mockStyleElement as any;
+        }
+        return null;
+      });
+      Object.defineProperty(document, 'head', {
+        value: mockHead,
+        writable: true,
+      });
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    describe('setSelectedRegion', () => {
+      it('should apply selected region styling with correct selector and styles', () => {
+        const regionId = 'test-region-123';
+
+        browserService.setSelectedRegion(regionId);
+
+        expect(mockStylesheet.insertRule).toHaveBeenCalledWith(
+          'div#regionitem-test-region-123 { border: 2px solid rgb(0, 170, 204) !important; }',
+          0
+        );
+      });
+
+      it('should clear previous selection before setting new one', () => {
+        // Set first region
+        browserService.setSelectedRegion('region-1');
+        
+        // Mock the CSS rules to simulate the first rule being added
+        const mockRule1 = { selectorText: 'div#regionitem-region-1' };
+        mockStylesheet.cssRules = [mockRule1];
+        mockStylesheet.cssRules.length = 1;
+
+        // Set second region - should clear first then add second
+        browserService.setSelectedRegion('region-2');
+
+        expect(mockStylesheet.deleteRule).toHaveBeenCalledWith(0); // Clear first
+        expect(mockStylesheet.insertRule).toHaveBeenCalledWith(
+          'div#regionitem-region-2 { border: 2px solid rgb(0, 170, 204) !important; }',
+          0
+        ); // Add second
+      });
+
+      it('should handle same region being selected multiple times', () => {
+        const regionId = 'same-region';
+
+        // Select same region twice
+        browserService.setSelectedRegion(regionId);
+        
+        // Mock the rule being added
+        const mockRule = { selectorText: 'div#regionitem-same-region' };
+        mockStylesheet.cssRules = [mockRule];
+        mockStylesheet.cssRules.length = 1;
+        
+        browserService.setSelectedRegion(regionId);
+
+        // Should clear the previous and add new one
+        expect(mockStylesheet.deleteRule).toHaveBeenCalledWith(0);
+        expect(mockStylesheet.insertRule).toHaveBeenCalledTimes(2);
+      });
+
+      it('should handle empty regionId gracefully', () => {
+        expect(() => browserService.setSelectedRegion('')).not.toThrow();
+        
+        // Should not try to add a style for empty regionId
+        expect(mockStylesheet.insertRule).not.toHaveBeenCalled();
+      });
+
+      it('should handle whitespace-only regionId gracefully', () => {
+        expect(() => browserService.setSelectedRegion('   ')).not.toThrow();
+        
+        // Should not try to add a style for whitespace-only regionId
+        expect(mockStylesheet.insertRule).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('clearSelectedRegion', () => {
+      it('should remove the selected region styling', () => {
+        // First set a selected region
+        browserService.setSelectedRegion('test-region');
+        
+        // Mock the CSS rule
+        const mockRule = { selectorText: 'div#regionitem-test-region' };
+        mockStylesheet.cssRules = [mockRule];
+        mockStylesheet.cssRules.length = 1;
+
+        // Clear the selection
+        browserService.clearSelectedRegion();
+
+        expect(mockStylesheet.deleteRule).toHaveBeenCalledWith(0);
+      });
+
+      it('should handle being called when no region is selected', () => {
+        // Call clear without setting any region first
+        browserService.clearSelectedRegion();
+
+        // Should not crash and not try to delete anything
+        expect(mockStylesheet.deleteRule).not.toHaveBeenCalled();
+      });
+
+      it('should handle being called multiple times', () => {
+        // Set and clear a region
+        browserService.setSelectedRegion('test-region');
+        
+        const mockRule = { selectorText: 'div#regionitem-test-region' };
+        mockStylesheet.cssRules = [mockRule];
+        mockStylesheet.cssRules.length = 1;
+        
+        browserService.clearSelectedRegion();
+
+        // Call clear again
+        browserService.clearSelectedRegion();
+
+        // Should only have been called once (for the first clear)
+        expect(mockStylesheet.deleteRule).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    describe('Selected Region Integration', () => {
+      it('should maintain internal state correctly through multiple operations', () => {
+        // Set first region
+        browserService.setSelectedRegion('region-1');
+        expect(mockStylesheet.insertRule).toHaveBeenCalledTimes(1);
+
+        // Mock the rule
+        const mockRule1 = { selectorText: 'div#regionitem-region-1' };
+        mockStylesheet.cssRules = [mockRule1];
+        mockStylesheet.cssRules.length = 1;
+
+        // Set second region (should clear first automatically)
+        browserService.setSelectedRegion('region-2');
+        expect(mockStylesheet.deleteRule).toHaveBeenCalledTimes(1);
+        expect(mockStylesheet.insertRule).toHaveBeenCalledTimes(2);
+
+        // Mock the second rule
+        const mockRule2 = { selectorText: 'div#regionitem-region-2' };
+        mockStylesheet.cssRules = [mockRule2];
+        mockStylesheet.cssRules.length = 1;
+
+        // Clear explicitly
+        browserService.clearSelectedRegion();
+        expect(mockStylesheet.deleteRule).toHaveBeenCalledTimes(2);
+
+        // Clear again (should be no-op)
+        browserService.clearSelectedRegion();
+        expect(mockStylesheet.deleteRule).toHaveBeenCalledTimes(2); // Still 2, not 3
+      });
+    });
+  });
 }); 
