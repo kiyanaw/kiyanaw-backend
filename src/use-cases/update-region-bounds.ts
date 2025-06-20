@@ -55,8 +55,6 @@ export class UpdateRegionBounds {
       return;
     }
 
-    console.log(`📋 Updating region ${regionId} bounds: ${start.toFixed(2)}s - ${end.toFixed(2)}s`);
-
     // Update store optimistically (for immediate UI feedback)
     store.updateRegionBounds(regionId, start, end);
 
@@ -72,7 +70,6 @@ export class UpdateRegionBounds {
         username
       );
 
-      console.log(`✅ Region ${regionId} bounds saved`);
     } catch (error) {
       console.error(`❌ Failed to save region ${regionId} bounds:`, error);
       
