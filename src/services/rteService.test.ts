@@ -2,7 +2,10 @@
 const mockQuill = {
   enable: jest.fn(),
   disable: jest.fn(),
-  off: jest.fn()
+  off: jest.fn(),
+  on: jest.fn(),
+  setText: jest.fn(),
+  getText: jest.fn().mockReturnValue('mock text content')
 };
 
 const mockQuillConstructor = jest.fn(() => mockQuill) as jest.MockedFunction<any> & { register: jest.MockedFunction<any> };
@@ -255,6 +258,182 @@ describe('rteService', () => {
       
       expect(rteService.hasEditor('region1:main')).toBe(false);
       expect(rteService.hasEditor('region2:translation')).toBe(false);
+    });
+  });
+
+  describe('setContent', () => {
+    beforeEach(() => {
+      rteService.createOrGet('test-region:main', {});
+    });
+
+    it('sets content using setText with api source', () => {
+      const content = 'Test content';
+      
+      rteService.setContent('test-region:main', content);
+      
+      expect(mockQuill.setText).toHaveBeenCalledWith('Test content', 'api');
+    });
+
+    it('handles empty content', () => {
+      rteService.setContent('test-region:main', '');
+      
+      expect(mockQuill.setText).toHaveBeenCalledWith('', 'api');
+    });
+
+    it('handles null content', () => {
+      rteService.setContent('test-region:main', null as any);
+      
+      expect(mockQuill.setText).toHaveBeenCalledWith('', 'api');
+    });
+
+    it('handles undefined content', () => {
+      rteService.setContent('test-region:main', undefined as any);
+      
+      expect(mockQuill.setText).toHaveBeenCalledWith('', 'api');
+    });
+
+    it('throws error for non-existent editor', () => {
+      expect(() => {
+        rteService.setContent('non-existent:main', 'content');
+      }).toThrow('RTE instance not found for key: non-existent:main');
+    });
+  });
+
+  describe('onTextChange', () => {
+    beforeEach(() => {
+      rteService.createOrGet('test-region:main', {});
+    });
+
+    it('sets up text change listener', () => {
+      const callback = jest.fn();
+      
+      rteService.onTextChange('test-region:main', callback);
+      
+      expect(mockQuill.on).toHaveBeenCalledWith('text-change', expect.any(Function));
+    });
+
+    it('calls callback only for user-initiated changes', () => {
+      const callback = jest.fn();
+      rteService.onTextChange('test-region:main', callback);
+      
+      // Get the listener function that was passed to quill.on
+      const textChangeListener = mockQuill.on.mock.calls[0][1];
+      
+      // Simulate user change
+      textChangeListener({}, {}, 'user');
+      expect(callback).toHaveBeenCalledWith('mock text content');
+      
+      // Reset mock
+      callback.mockClear();
+      
+      // Simulate API change
+      textChangeListener({}, {}, 'api');
+      expect(callback).not.toHaveBeenCalled();
+    });
+
+    it('ignores API changes to prevent race conditions', () => {
+      const callback = jest.fn();
+      rteService.onTextChange('test-region:main', callback);
+      
+      const textChangeListener = mockQuill.on.mock.calls[0][1];
+      
+      // Test various non-user sources
+      textChangeListener({}, {}, 'api');
+      textChangeListener({}, {}, 'silent');
+      textChangeListener({}, {}, undefined);
+      textChangeListener({}, {}, null);
+      
+      expect(callback).not.toHaveBeenCalled();
+    });
+
+    it('trims text content before calling callback', () => {
+      mockQuill.getText.mockReturnValue('  trimmed text  ');
+      const callback = jest.fn();
+      rteService.onTextChange('test-region:main', callback);
+      
+      const textChangeListener = mockQuill.on.mock.calls[0][1];
+      textChangeListener({}, {}, 'user');
+      
+      expect(callback).toHaveBeenCalledWith('trimmed text');
+    });
+
+    it('throws error for non-existent editor', () => {
+      const callback = jest.fn();
+      
+      expect(() => {
+        rteService.onTextChange('non-existent:main', callback);
+      }).toThrow('RTE instance not found for key: non-existent:main');
+    });
+  });
+
+  describe('offTextChange', () => {
+    beforeEach(() => {
+      rteService.createOrGet('test-region:main', {});
+    });
+
+    it('removes text change listener', () => {
+      rteService.offTextChange('test-region:main');
+      
+      expect(mockQuill.off).toHaveBeenCalledWith('text-change');
+    });
+
+    it('handles removal for non-existent editor gracefully', () => {
+      expect(() => {
+        rteService.offTextChange('non-existent:main');
+      }).not.toThrow();
+    });
+
+    it('clears callback reference', () => {
+      const callback = jest.fn();
+      rteService.onTextChange('test-region:main', callback);
+      
+      // The callback should be stored (we can't directly test this, but we can test the behavior)
+      rteService.offTextChange('test-region:main');
+      
+      // After removing, the callback should be cleared
+      expect(mockQuill.off).toHaveBeenCalledWith('text-change');
+    });
+  });
+
+  describe('text change integration (race condition prevention)', () => {
+    it('prevents saves during content initialization', () => {
+      const callback = jest.fn();
+      
+      // Create editor and set up listener
+      rteService.createOrGet('test-region:main', {});
+      rteService.onTextChange('test-region:main', callback);
+      
+      // Set content (simulates initialization)
+      rteService.setContent('test-region:main', 'Initial content');
+      
+      // Get the text change listener
+      const textChangeListener = mockQuill.on.mock.calls[0][1];
+      
+      // Simulate what happens when setText is called with 'api' source
+      textChangeListener({}, {}, 'api');
+      
+      // Callback should NOT be called (preventing unwanted save)
+      expect(callback).not.toHaveBeenCalled();
+    });
+
+    it('allows saves during user typing', () => {
+      // Reset mock to default value for this test
+      mockQuill.getText.mockReturnValue('mock text content');
+      
+      const callback = jest.fn();
+      
+      // Create editor and set up listener  
+      rteService.createOrGet('test-region:main', {});
+      rteService.onTextChange('test-region:main', callback);
+      
+      // Get the text change listener
+      const textChangeListener = mockQuill.on.mock.calls[0][1];
+      
+      // Simulate user typing
+      textChangeListener({}, {}, 'user');
+      
+      // Callback SHOULD be called (allowing legitimate save)
+      expect(callback).toHaveBeenCalledWith('mock text content');
     });
   });
 }); 

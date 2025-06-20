@@ -11,15 +11,75 @@ describe('UpdateRegionTextUseCase', () => {
     })
   } as any; // Type assertion to bypass strict typing for testing
 
+  const mockServices = {
+    authService: {
+      currentUser: jest.fn().mockReturnValue({ username: 'test-user' })
+    },
+    regionService: {
+      updateRegion: jest.fn()
+    }
+  } as any;
+
   const validConfig = {
     regionId: 'test-region-id',
     text: 'Test text content',
     field: 'regionText' as const,
-    store: mockStore
+    store: mockStore,
+    services: mockServices
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  describe('save functionality', () => {
+    it('should call regionService.updateRegion with correct parameters when user is authenticated', () => {
+      const useCase = new UpdateRegionTextUseCase(validConfig);
+      
+      useCase.execute();
+      
+      expect(mockServices.regionService.updateRegion).toHaveBeenCalledWith(
+        'test-region-id',
+        { regionText: 'Test text content' },
+        'test-user'
+      );
+    });
+
+    it('should not call regionService.updateRegion when user is not authenticated', () => {
+      const configWithoutUser = {
+        ...validConfig,
+        services: {
+          ...mockServices,
+          authService: {
+            currentUser: jest.fn().mockReturnValue(null)
+          }
+        }
+      };
+      
+      const useCase = new UpdateRegionTextUseCase(configWithoutUser);
+      
+      useCase.execute();
+      
+      expect(mockServices.regionService.updateRegion).not.toHaveBeenCalled();
+    });
+
+    it('should call regionService.updateRegion with translation field', () => {
+      const translationConfig = {
+        ...validConfig,
+        field: 'translation' as const,
+        text: 'Translation text'
+      };
+      
+      const useCase = new UpdateRegionTextUseCase(translationConfig);
+      
+      useCase.execute();
+      
+      expect(mockServices.regionService.updateRegion).toHaveBeenCalledWith(
+        'test-region-id',
+        { translation: 'Translation text' },
+        'test-user'
+      );
+    });
   });
 
   describe('constructor', () => {
@@ -214,7 +274,8 @@ describe('UpdateRegionTextUseCase', () => {
         regionId: 'translation-region-id',
         text: 'Translated content',
         field: 'translation' as const,
-        store: mockStore
+        store: mockStore,
+        services: mockServices
       };
       
       const useCase = new UpdateRegionTextUseCase(translationConfig);

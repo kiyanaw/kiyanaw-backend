@@ -215,10 +215,13 @@ class RTEServiceImpl {
     // Store callback
     instance.textChangeCallback = callback;
 
-    // Set up Quill text-change listener
-    instance.quill.on('text-change', () => {
-      const plainText = instance.quill.getText().trim();
-      callback(plainText);
+    // Set up Quill text-change listener that only responds to user changes
+    instance.quill.on('text-change', (delta: any, oldDelta: any, source: string) => {
+      // Only trigger callback for user-initiated changes, not API changes
+      if (source === 'user') {
+        const plainText = instance.quill.getText().trim();
+        callback(plainText);
+      }
     });
   }
 

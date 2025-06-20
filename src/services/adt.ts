@@ -35,7 +35,7 @@ export interface LightRegion {
   id: string;
   start: number;
   end: number;
-  text?: string;
+  regionText?: string;
   translation?: string;
   isNote?: boolean;
 }
@@ -134,7 +134,7 @@ export class RegionModel {
   public end: number;
   public start: number;
   public isNote: boolean;
-  public text: any[];
+  public regionText: string;
   public transcriptionId: string;
   public translation: string;
   public userLastUpdated?: string;
@@ -153,16 +153,8 @@ export class RegionModel {
       this.userLastUpdated = data.userLastUpdated;
       this.index = data.index;
 
-      // Handle text - support both old and new format
-      if (data.regionText) {
-        this.text = [{ insert: data.regionText }];
-      } else if (data.text && data.text !== '--not used--') {
-        this.text = typeof data.text === 'string' 
-          ? JSON.parse(data.text) 
-          : data.text;
-      } else {
-        this.text = [];
-      }
+      // Use regionText as plain text (new approach)
+      this.regionText = data.regionText || '';
 
     } catch (e) {
       console.error('Error constructing RegionModel:', e);
