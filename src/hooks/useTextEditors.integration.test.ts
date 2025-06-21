@@ -13,7 +13,8 @@ jest.mock('../services/rteService', () => ({
     onTextChange: jest.fn(),
     offTextChange: jest.fn(),
     setContent: jest.fn(),
-    hasEditor: jest.fn().mockReturnValue(true)
+    hasEditor: jest.fn().mockReturnValue(true),
+    applyKnownWordsFormatting: jest.fn()
   }
 }));
 
@@ -25,9 +26,14 @@ jest.mock('../use-cases/update-region-text', () => ({
 }));
 
 // Mock the store
-jest.mock('../stores/useEditorStore', () => ({
-  useEditorStore: jest.fn()
-}));
+jest.mock('../stores/useEditorStore', () => {
+  const mockGetState = jest.fn();
+  const mockStore = jest.fn() as any;
+  mockStore.getState = mockGetState;
+  return {
+    useEditorStore: mockStore
+  };
+});
 
 const mockRteService = rteService as jest.Mocked<typeof rteService>;
 
@@ -105,14 +111,19 @@ describe('useTextEditors Integration Test', () => {
     });
 
     // Mock the zustand hook to return our mock data
+    const mockState = {
+      regionById: mockRegionById,
+      setRegionText: mockSetRegionText,
+      setRegionTranslation: mockSetRegionTranslation,
+      knownWords: new Set(['cached', 'word'])
+    };
+    
     (useEditorStore as unknown as jest.Mock).mockImplementation((selector) => {
-      const state = {
-        regionById: mockRegionById,
-        setRegionText: mockSetRegionText,
-        setRegionTranslation: mockSetRegionTranslation
-      };
-      return selector ? selector(state) : state;
+      return selector ? selector(mockState) : mockState;
     });
+    
+    // Mock the getState method for static calls
+    (useEditorStore as any).getState.mockReturnValue(mockState);
   });
 
   it('should prove the complete flow: region selection → content population → text changes update correct region', async () => {

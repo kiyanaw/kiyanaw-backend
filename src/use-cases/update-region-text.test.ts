@@ -16,7 +16,8 @@ describe('UpdateRegionTextUseCase', () => {
       currentUser: jest.fn().mockReturnValue({ username: 'test-user' })
     },
     regionService: {
-      updateRegion: jest.fn()
+      updateRegion: jest.fn(),
+      // updateRegion: jest.fn()
     }
   } as any;
 
@@ -41,7 +42,9 @@ describe('UpdateRegionTextUseCase', () => {
       expect(mockServices.regionService.updateRegion).toHaveBeenCalledWith(
         'test-region-id',
         { regionText: 'Test text content' },
-        'test-user'
+        'test-user',
+        3000,
+        mockStore
       );
     });
 
@@ -77,7 +80,9 @@ describe('UpdateRegionTextUseCase', () => {
       expect(mockServices.regionService.updateRegion).toHaveBeenCalledWith(
         'test-region-id',
         { translation: 'Translation text' },
-        'test-user'
+        'test-user',
+        3000,
+        mockStore
       );
     });
   });

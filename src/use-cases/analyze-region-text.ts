@@ -39,11 +39,11 @@ export class AnalyzeRegionTextUseCase {
       clearTimeout(existingTimeout);
     }
 
-    // Set up debounced analysis (2 seconds)
+    // Set up debounced analysis (1.5 seconds - faster than before to complete before save)
     const timeout = setTimeout(async () => {
       await this.performAnalysis(text);
       pendingAnalysis.delete(regionId);
-    }, 2000);
+    }, 500);
 
     pendingAnalysis.set(regionId, timeout);
   }
@@ -54,6 +54,8 @@ export class AnalyzeRegionTextUseCase {
     // Tokenize the text
     const words = spellCheckerService.tokenize(text);
     if (words.length === 0) {
+      // Set empty analysis for empty text
+      store.getState().setRegionAnalysis(regionId, []);
       return;
     }
 
@@ -92,26 +94,13 @@ export class AnalyzeRegionTextUseCase {
       }
     }
 
-    // Apply formatting and update region if we have any known words
-    if (allKnownWords.length > 0) {
-      // Update region analysis in store
-      store.getState().setRegionAnalysis(regionId, allKnownWords);
+    // Update region analysis in store (this will be picked up by the coordinated save)
+    store.getState().setRegionAnalysis(regionId, allKnownWords);
 
-      // Apply formatting to the main editor
-      const mainEditorKey: EditorKey = `${regionId}:main`;
-      if (rteService.hasEditor(mainEditorKey)) {
-        rteService.applyKnownWordsFormatting(mainEditorKey, allKnownWords);
-      }
-
-      // Update region with new analysis (this will be debounced)
-      const user = this.config.services.userService.currentUser();
-      if (user) {
-        await this.config.services.regionService.updateRegion(
-          regionId,
-          { regionAnalysis: JSON.stringify(allKnownWords) },
-          user.username
-        );
-      }
+    // Apply formatting to the main editor
+    const mainEditorKey: EditorKey = `${regionId}:main`;
+    if (rteService.hasEditor(mainEditorKey)) {
+      rteService.applyKnownWordsFormatting(mainEditorKey, allKnownWords);
     }
 
     console.log(`Analyzed "${text.slice(0, 50)}..." - Found ${allKnownWords.length} known words (${alreadyKnownWords.length} cached, ${allKnownWords.length - alreadyKnownWords.length} from API):`, allKnownWords);
