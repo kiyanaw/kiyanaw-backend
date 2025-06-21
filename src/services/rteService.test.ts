@@ -1,15 +1,35 @@
 // Mock Quill
+const mockRoot = {
+  setAttribute: jest.fn(),
+  appendChild: jest.fn(),
+  removeChild: jest.fn()
+};
+
 const mockQuill = {
   enable: jest.fn(),
   disable: jest.fn(),
   off: jest.fn(),
   on: jest.fn(),
   setText: jest.fn(),
-  getText: jest.fn().mockReturnValue('mock text content')
+  getText: jest.fn().mockReturnValue('mock text content'),
+  root: mockRoot
 };
 
-const mockQuillConstructor = jest.fn(() => mockQuill) as jest.MockedFunction<any> & { register: jest.MockedFunction<any> };
+const mockQuillConstructor = jest.fn(() => mockQuill) as jest.MockedFunction<any> & { 
+  register: jest.MockedFunction<any>;
+  import: jest.MockedFunction<any>;
+};
 mockQuillConstructor.register = jest.fn();
+mockQuillConstructor.import = jest.fn(() => {
+  // Mock the Inline blot class
+  return class MockInline {
+    static blotName = 'mock-inline';
+    static tagName = 'span';
+    static create() { return document.createElement('span'); }
+    static formats() { return true; }
+    format() {}
+  };
+});
 
 // Mock react-quill
 jest.mock('react-quill', () => ({
@@ -71,7 +91,7 @@ describe('rteService', () => {
             toolbar: false,
             cursors: expect.any(Object)
           }),
-          formats: ['bold', 'italic', 'underline', 'color', 'background'],
+          formats: ['bold', 'italic', 'underline', 'color', 'background', 'known-word'],
           readonly: false,
           placeholder: 'Test'
         })
@@ -100,7 +120,7 @@ describe('rteService', () => {
       expect(mockQuillConstructor).toHaveBeenNthCalledWith(1, 
         expect.any(HTMLElement),
         expect.objectContaining({
-          formats: ['bold', 'italic', 'underline', 'color', 'background']
+          formats: ['bold', 'italic', 'underline', 'color', 'background', 'known-word']
         })
       );
       
@@ -434,6 +454,185 @@ describe('rteService', () => {
       
       // Callback SHOULD be called (allowing legitimate save)
       expect(callback).toHaveBeenCalledWith('mock text content');
+    });
+  });
+
+  describe('applyKnownWordsFormatting', () => {
+    let mockFormatText: jest.Mock;
+    let mockGetText: jest.Mock;
+
+    beforeEach(() => {
+      mockFormatText = jest.fn();
+      mockGetText = jest.fn();
+      
+      // Extend the mock quill with formatting methods
+      Object.assign(mockQuill, {
+        formatText: mockFormatText,
+        getText: mockGetText
+      });
+      
+      rteService.createOrGet('test-region:main', {});
+    });
+
+    it('applies formatting to known words in text', () => {
+      mockGetText.mockReturnValue('hello world êkwa test');
+      const knownWords = ['hello', 'êkwa'];
+      
+      rteService.applyKnownWordsFormatting('test-region:main', knownWords);
+      
+      // Should first clear existing formatting
+      expect(mockFormatText).toHaveBeenCalledWith(0, 21, 'known-word', false, 'api');
+      // Should format 'hello' at position 0, length 5
+      expect(mockFormatText).toHaveBeenCalledWith(0, 5, 'known-word', true, 'api');
+      // Should format 'êkwa' at position 12, length 4  
+      expect(mockFormatText).toHaveBeenCalledWith(12, 4, 'known-word', true, 'api');
+      expect(mockFormatText).toHaveBeenCalledTimes(3);
+    });
+
+    it('handles empty known words array', () => {
+      mockGetText.mockReturnValue('hello world');
+      
+      rteService.applyKnownWordsFormatting('test-region:main', []);
+      
+      expect(mockFormatText).not.toHaveBeenCalled();
+    });
+
+    it('handles empty text', () => {
+      mockGetText.mockReturnValue('');
+      const knownWords = ['hello', 'world'];
+      
+      rteService.applyKnownWordsFormatting('test-region:main', knownWords);
+      
+      expect(mockFormatText).not.toHaveBeenCalled();
+    });
+
+    it('handles text with no matching known words', () => {
+      mockGetText.mockReturnValue('unknown words only');
+      const knownWords = ['hello', 'world'];
+      
+      rteService.applyKnownWordsFormatting('test-region:main', knownWords);
+      
+      // Should still clear existing formatting even if no matches found
+      expect(mockFormatText).toHaveBeenCalledWith(0, 18, 'known-word', false, 'api');
+      expect(mockFormatText).toHaveBeenCalledTimes(1);
+    });
+
+    it('handles Unicode characters correctly', () => {
+      mockGetText.mockReturnValue('itwêw êkwa tâpwê');
+      const knownWords = ['itwêw', 'tâpwê'];
+      
+      rteService.applyKnownWordsFormatting('test-region:main', knownWords);
+      
+      // Should first clear existing formatting
+      expect(mockFormatText).toHaveBeenCalledWith(0, 16, 'known-word', false, 'api');
+      // Should format 'itwêw' at position 0, length 5
+      expect(mockFormatText).toHaveBeenCalledWith(0, 5, 'known-word', true, 'api');
+      // Should format 'tâpwê' at position 11, length 5
+      expect(mockFormatText).toHaveBeenCalledWith(11, 5, 'known-word', true, 'api');
+      expect(mockFormatText).toHaveBeenCalledTimes(3);
+    });
+
+    it('handles multiple occurrences of same word', () => {
+      mockGetText.mockReturnValue('hello test hello world');
+      const knownWords = ['hello'];
+      
+      rteService.applyKnownWordsFormatting('test-region:main', knownWords);
+      
+      // Should first clear existing formatting
+      expect(mockFormatText).toHaveBeenCalledWith(0, 22, 'known-word', false, 'api');
+      // Should format both occurrences of 'hello'
+      expect(mockFormatText).toHaveBeenCalledWith(0, 5, 'known-word', true, 'api');
+      expect(mockFormatText).toHaveBeenCalledWith(11, 5, 'known-word', true, 'api');
+      expect(mockFormatText).toHaveBeenCalledTimes(3);
+    });
+
+    it('handles overlapping word boundaries correctly', () => {
+      mockGetText.mockReturnValue('testing test tests');
+      const knownWords = ['test'];
+      
+      rteService.applyKnownWordsFormatting('test-region:main', knownWords);
+      
+      // Should first clear existing formatting
+      expect(mockFormatText).toHaveBeenCalledWith(0, 18, 'known-word', false, 'api');
+      // Should only format the standalone 'test', not parts of 'testing' or 'tests'
+      expect(mockFormatText).toHaveBeenCalledWith(8, 4, 'known-word', true, 'api');
+      expect(mockFormatText).toHaveBeenCalledTimes(2);
+    });
+
+    it('handles punctuation correctly', () => {
+      mockGetText.mockReturnValue('Hello, world! How are you?');
+      const knownWords = ['hello', 'world'];
+      
+      rteService.applyKnownWordsFormatting('test-region:main', knownWords);
+      
+      // Should first clear existing formatting
+      expect(mockFormatText).toHaveBeenCalledWith(0, 26, 'known-word', false, 'api');
+      // Should format 'Hello' and 'world' despite punctuation
+      expect(mockFormatText).toHaveBeenCalledWith(0, 5, 'known-word', true, 'api');
+      expect(mockFormatText).toHaveBeenCalledWith(7, 5, 'known-word', true, 'api');
+      expect(mockFormatText).toHaveBeenCalledTimes(3);
+    });
+
+    it('sorts words by length (longest first) to prevent partial matches', () => {
+      mockGetText.mockReturnValue('test testing');
+      const knownWords = ['test', 'testing']; // shorter word first
+      
+      rteService.applyKnownWordsFormatting('test-region:main', knownWords);
+      
+      // Should first clear existing formatting
+      expect(mockFormatText).toHaveBeenCalledWith(0, 12, 'known-word', false, 'api');
+      // Should format both 'test' and 'testing' as separate words
+      expect(mockFormatText).toHaveBeenCalledWith(0, 4, 'known-word', true, 'api');
+      expect(mockFormatText).toHaveBeenCalledWith(5, 7, 'known-word', true, 'api');
+      expect(mockFormatText).toHaveBeenCalledTimes(3);
+    });
+
+    it('uses api source to prevent triggering save events', () => {
+      mockGetText.mockReturnValue('hello world');
+      const knownWords = ['hello'];
+      
+      rteService.applyKnownWordsFormatting('test-region:main', knownWords);
+      
+      // All formatText calls should use 'api' source
+      expect(mockFormatText).toHaveBeenCalledWith(0, 5, 'known-word', true, 'api');
+    });
+
+    it('handles non-existent editor gracefully', () => {
+      const knownWords = ['hello'];
+      
+      // Should not throw - just return early
+      expect(() => {
+        rteService.applyKnownWordsFormatting('non-existent:main', knownWords);
+      }).not.toThrow();
+    });
+
+    it('handles case insensitive matching', () => {
+      mockGetText.mockReturnValue('Hello WORLD êKWA');
+      const knownWords = ['hello', 'world', 'êkwa']; // lowercase in known words
+      
+      rteService.applyKnownWordsFormatting('test-region:main', knownWords);
+      
+      // Should first clear existing formatting
+      expect(mockFormatText).toHaveBeenCalledWith(0, 16, 'known-word', false, 'api');
+      // Should format all words regardless of case
+      expect(mockFormatText).toHaveBeenCalledWith(0, 5, 'known-word', true, 'api');
+      expect(mockFormatText).toHaveBeenCalledWith(6, 5, 'known-word', true, 'api');
+      expect(mockFormatText).toHaveBeenCalledWith(12, 4, 'known-word', true, 'api');
+      expect(mockFormatText).toHaveBeenCalledTimes(4);
+    });
+
+    it('handles special regex characters in words', () => {
+      mockGetText.mockReturnValue('test (word) with.punctuation');
+      const knownWords = ['test', 'word'];
+      
+      rteService.applyKnownWordsFormatting('test-region:main', knownWords);
+      
+      // Should first clear existing formatting
+      expect(mockFormatText).toHaveBeenCalledWith(0, 28, 'known-word', false, 'api');
+      // Should properly escape special characters and match
+      expect(mockFormatText).toHaveBeenCalledWith(0, 4, 'known-word', true, 'api');
+      expect(mockFormatText).toHaveBeenCalledWith(6, 4, 'known-word', true, 'api');
+      expect(mockFormatText).toHaveBeenCalledTimes(3);
     });
   });
 }); 

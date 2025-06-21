@@ -111,4 +111,138 @@ describe('useEditorStore selectedRegion updates', () => {
     const currentState = useEditorStore.getState();
     expect(currentState.selectedRegion.translation).toBe('Updated translation');
   });
+});
+
+describe('useEditorStore known words functionality', () => {
+  beforeEach(() => {
+    // Reset store state before each test
+    useEditorStore.setState({
+      regions: [],
+      regionMap: {},
+      selectedRegionId: null,
+      selectedRegion: null,
+      knownWords: new Set()
+    });
+  });
+
+  describe('addKnownWords', () => {
+    it('should add new known words to the set', () => {
+      const store = useEditorStore.getState();
+      
+      store.addKnownWords(['hello', 'world', 'êkwa']);
+      
+      const state = useEditorStore.getState();
+      expect(state.knownWords.has('hello')).toBe(true);
+      expect(state.knownWords.has('world')).toBe(true);
+      expect(state.knownWords.has('êkwa')).toBe(true);
+      expect(state.knownWords.size).toBe(3);
+    });
+
+    it('should not add duplicates', () => {
+      const store = useEditorStore.getState();
+      
+      store.addKnownWords(['hello', 'world']);
+      store.addKnownWords(['hello', 'êkwa']); // hello is duplicate
+      
+      const state = useEditorStore.getState();
+      expect(state.knownWords.size).toBe(3); // hello, world, êkwa
+      expect(state.knownWords.has('hello')).toBe(true);
+      expect(state.knownWords.has('world')).toBe(true);
+      expect(state.knownWords.has('êkwa')).toBe(true);
+    });
+
+    it('should handle empty array', () => {
+      const store = useEditorStore.getState();
+      
+      store.addKnownWords([]);
+      
+      const state = useEditorStore.getState();
+      expect(state.knownWords.size).toBe(0);
+    });
+
+    it('should handle Unicode characters', () => {
+      const store = useEditorStore.getState();
+      
+      store.addKnownWords(['itwêw', 'êkwa', 'tâpwê', 'ohci']);
+      
+      const state = useEditorStore.getState();
+      expect(state.knownWords.has('itwêw')).toBe(true);
+      expect(state.knownWords.has('êkwa')).toBe(true);
+      expect(state.knownWords.has('tâpwê')).toBe(true);
+      expect(state.knownWords.has('ohci')).toBe(true);
+      expect(state.knownWords.size).toBe(4);
+    });
+  });
+
+  describe('setRegionAnalysis', () => {
+    it('should set region analysis for existing region', () => {
+      const store = useEditorStore.getState();
+      
+      // Add a region first
+      const testRegion = {
+        id: 'region-1',
+        start: 10.0,
+        end: 20.0,
+        regionText: 'hello world êkwa',
+        translation: 'test translation'
+      };
+      store.addNewRegion(testRegion);
+      
+      // Set analysis
+      store.setRegionAnalysis('region-1', ['hello', 'êkwa']);
+      
+      const state = useEditorStore.getState();
+      const region = state.regionMap['region-1'];
+      expect(region.regionAnalysis).toEqual(['hello', 'êkwa']);
+    });
+
+    it('should update selectedRegion if it matches', () => {
+      const store = useEditorStore.getState();
+      
+      // Add and select region
+      const testRegion = {
+        id: 'region-1',
+        start: 10.0,
+        end: 20.0,
+        regionText: 'hello world êkwa',
+        translation: 'test translation'
+      };
+      store.addNewRegion(testRegion);
+      store.setSelectedRegion('region-1');
+      
+      // Set analysis
+      store.setRegionAnalysis('region-1', ['hello', 'êkwa']);
+      
+      const state = useEditorStore.getState();
+      expect(state.selectedRegion?.regionAnalysis).toEqual(['hello', 'êkwa']);
+    });
+
+    it('should handle non-existent region gracefully', () => {
+      const store = useEditorStore.getState();
+      
+      // This should not throw
+      store.setRegionAnalysis('non-existent', ['hello']);
+      
+      const state = useEditorStore.getState();
+      expect(state.regionMap['non-existent']).toBeUndefined();
+    });
+
+    it('should handle empty analysis array', () => {
+      const store = useEditorStore.getState();
+      
+      const testRegion = {
+        id: 'region-1',
+        start: 10.0,
+        end: 20.0,
+        regionText: 'unknown words',
+        translation: 'test translation'
+      };
+      store.addNewRegion(testRegion);
+      
+      store.setRegionAnalysis('region-1', []);
+      
+      const state = useEditorStore.getState();
+      expect(state.regionMap['region-1'].regionAnalysis).toEqual([]);
+    });
+  });
 }); 
