@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useEditorStore } from '../../stores/useEditorStore';
+import { textHighlightService } from '../../services/textHighlightService';
 
 interface RegionItemProps {
   regionId: string;
@@ -8,27 +9,7 @@ interface RegionItemProps {
   onClick: (regionId: string) => void;
 }
 
-// Helper function to render text with known words highlighted
-const renderTextWithKnownWords = (text: string, knownWords: string[] = []): string => {
-  if (!text || knownWords.length === 0) {
-    return text || '';
-  }
-
-  let highlightedText = text;
-  
-  // Sort known words by length (longest first) to avoid partial matches
-  const sortedKnownWords = [...knownWords].sort((a, b) => b.length - a.length);
-  
-  for (const word of sortedKnownWords) {
-    // Escape special regex characters
-    const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    // Use Unicode-aware word boundaries instead of \b
-    const regex = new RegExp(`(?<![\\p{L}\\p{N}_])${escapedWord}(?![\\p{L}\\p{N}_])`, 'giu');
-    highlightedText = highlightedText.replace(regex, `<span class="known-word">${escapedWord}</span>`);
-  }
-  
-  return highlightedText;
-};
+// This function is now replaced by the centralized textHighlightService
 
 export const RegionItem = ({
   regionId,
@@ -47,9 +28,12 @@ export const RegionItem = ({
   const renderTextContent = useMemo(() => {
     if (!region.regionText) return '';
 
-    // Apply known words highlighting
-    return renderTextWithKnownWords(region.regionText, region.regionAnalysis);
-  }, [region.regionText, region.regionAnalysis]);
+    // Get known words from store cache (more comprehensive than just region analysis)
+    const knownWords = useEditorStore.getState().knownWords;
+    
+    // Apply known words highlighting using centralized service
+    return textHighlightService.generateHTML(region.regionText, knownWords);
+  }, [region.regionText]);
 
   const editorIndicator = useMemo(() => {
     if (editingUsers.length === 0) return '';
