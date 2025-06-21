@@ -25,6 +25,7 @@ export class LoadTranscription {
     const transcriptionService = this.config.services.transcriptionService
     const wavesurferService = this.config.services.wavesurferService
     const browserService = this.config.services.browserService
+    const spellCheckerService = this.config.services.spellCheckerService
     
     try {
       const data = await transcriptionService.loadInFull(this.config.transcriptionId);
@@ -34,7 +35,17 @@ export class LoadTranscription {
       // Check if there's a regionId in the URL that we should select
       const selectedRegionId = browserService.getRegionIdFromUrl();
       
+      // Set transcription data in store
       this.config.store.setFullTranscriptionData(data, selectedRegionId);
+
+      // Extract and populate known words from existing regions (business logic)
+      const allKnownWords = this.extractKnownWordsFromRegions(data.regions);
+      if (allKnownWords.length > 0) {
+        // Populate spell checker service cache
+        spellCheckerService.addKnownWords(allKnownWords);
+        // Update store with known words
+        this.config.store.addKnownWords(allKnownWords);
+      }
 
       // load wavesurfer details _outside_ the React system
       wavesurferService.load(data.transcription.source, data.peaks)
@@ -53,5 +64,19 @@ export class LoadTranscription {
     } catch (error) {
       throw error;
     }
+  }
+
+  private extractKnownWordsFromRegions(regions: any[]): string[] {
+    const allKnownWords = new Set<string>();
+    if (regions && Array.isArray(regions)) {
+      regions.forEach((region) => {
+        if (region.regionAnalysis && Array.isArray(region.regionAnalysis)) {
+          region.regionAnalysis.forEach((word: string) => {
+            allKnownWords.add(word);
+          });
+        }
+      });
+    }
+    return Array.from(allKnownWords);
   }
 } 

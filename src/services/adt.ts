@@ -29,6 +29,7 @@ export interface RegionData {
   translation?: string;
   userLastUpdated?: string;
   index?: number;
+  regionAnalysis?: string; // JSON string of known words array
 }
 
 export interface LightRegion {
@@ -38,6 +39,7 @@ export interface LightRegion {
   regionText?: string;
   translation?: string;
   isNote?: boolean;
+  regionAnalysis?: string[]; // Array of known words
 }
 
 function pad(num: number, size: number): string {
@@ -139,6 +141,7 @@ export class RegionModel {
   public translation: string;
   public userLastUpdated?: string;
   public index?: number;
+  public regionAnalysis: string[];
 
   constructor(data: RegionData) {
     try {
@@ -155,6 +158,16 @@ export class RegionModel {
 
       // Use regionText as plain text (new approach)
       this.regionText = data.regionText || '';
+
+      // Parse regionAnalysis from JSON string
+      this.regionAnalysis = [];
+      if (data.regionAnalysis) {
+        try {
+          this.regionAnalysis = JSON.parse(data.regionAnalysis);
+        } catch (e) {
+          console.warn('Failed to parse regionAnalysis:', data.regionAnalysis);
+        }
+      }
 
     } catch (e) {
       console.error('Error constructing RegionModel:', e);

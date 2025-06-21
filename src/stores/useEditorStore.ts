@@ -26,6 +26,9 @@ interface EditorState {
   selectedRegion: any | null;
   playbackWithinRegion: string | null;
 
+  // Known words for spell checking
+  knownWords: Set<string>;
+
   // Issues state
   issues: any[];
   issueMap: Record<string, any>;
@@ -52,6 +55,10 @@ interface EditorState {
   setRegionText: (regionId: string, text: string) => void;
   setRegionTranslation: (regionId: string, translation: string) => void;
   updateRegionBounds: (regionId: string, start: number, end: number) => void;
+
+  // Spell checking actions
+  addKnownWords: (words: string[]) => void;
+  setRegionAnalysis: (regionId: string, knownWords: string[]) => void;
 
   // Issue actions
   createIssue: (issueData: {
@@ -95,6 +102,7 @@ export const useEditorStore = create<EditorState>()(
       selectedRegionId: null,
       selectedRegion: null,
       playbackWithinRegion: null,
+      knownWords: new Set<string>(),
       issues: [],
       issueMap: {},
       _subscriptions: [],
@@ -133,7 +141,8 @@ export const useEditorStore = create<EditorState>()(
           regionMap,
           issues,
           issueMap,
-          peaks: peaks
+          peaks: peaks,
+          knownWords: new Set<string>() // Will be populated by use-case
         };
 
         // If we have a selectedRegionId and it exists in our regions, set it as selected
@@ -153,6 +162,7 @@ export const useEditorStore = create<EditorState>()(
           peaks: null,
           regions: [],
           regionMap: {},
+          knownWords: new Set<string>(),
           issues: [],
           issueMap: {},
           selectedRegionId: null,
@@ -443,6 +453,39 @@ export const useEditorStore = create<EditorState>()(
       issuesByRegion: (regionId) => {
         const { issues } = get();
         return issues.filter(issue => issue.regionId === regionId);
+      },
+
+      // Spell checking actions
+      addKnownWords: (words) => {
+        const { knownWords } = get();
+        const newKnownWords = new Set(knownWords);
+        words.forEach(word => newKnownWords.add(word));
+        set({ knownWords: newKnownWords });
+      },
+
+      setRegionAnalysis: (regionId, knownWords) => {
+        const { regionMap, regions, selectedRegionId } = get();
+        const existingRegion = regionMap[regionId];
+        
+        if (!existingRegion) {
+          return; // Region not found
+        }
+
+        // Create updated region with new analysis
+        const updatedRegion = { ...existingRegion, regionAnalysis: knownWords };
+        
+        // Prepare the update object
+        const updateObj: any = {
+          regionMap: { ...regionMap, [regionId]: updatedRegion },
+          regions: regions.map(r => r.id === regionId ? updatedRegion : r)
+        };
+        
+        // If this is the currently selected region, update selectedRegion too
+        if (selectedRegionId === regionId) {
+          updateObj.selectedRegion = updatedRegion;
+        }
+        
+        set(updateObj);
       },
     }),
     { name: 'EditorStore' }

@@ -1,6 +1,7 @@
 import { useLayoutEffect, useEffect, useRef } from 'react';
 import { rteService, type EditorKey } from '../services/rteService';
 import { UpdateRegionTextUseCase } from '../use-cases/update-region-text';
+import { AnalyzeRegionTextUseCase } from '../use-cases/analyze-region-text';
 import { useEditorStore } from '../stores/useEditorStore';
 import { services } from '../services';
 
@@ -32,16 +33,36 @@ export const useTextEditors = (regionId: string, activeTab: 'main' | 'translatio
     // Populate with existing content (after editor is attached)
     if (currentRegion?.regionText) {
       rteService.setContent(mainEditorKey, currentRegion.regionText);
+      
+      // Apply known words formatting from cache immediately
+      const knownWords = Array.from(useEditorStore.getState().knownWords);
+      if (knownWords.length > 0) {
+        rteService.applyKnownWordsFormatting(mainEditorKey, knownWords);
+      }
     }
 
     // Set up text change listener
     rteService.onTextChange(mainEditorKey, (text) => {
+      // Update region text
       new UpdateRegionTextUseCase({
         regionId,
         text,
         field: 'regionText',
         store: useEditorStore,
         services
+      }).execute();
+
+      // IMMEDIATELY apply cached known words formatting
+      // This solves format inheritance and word splitting issues
+      const knownWords = Array.from(useEditorStore.getState().knownWords);
+      rteService.applyKnownWordsFormatting(mainEditorKey, knownWords);
+
+      // Analyze text for known words (debounced, for API calls)
+      new AnalyzeRegionTextUseCase({
+        regionId,
+        text,
+        services,
+        store: useEditorStore
       }).execute();
     });
 

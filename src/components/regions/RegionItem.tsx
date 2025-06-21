@@ -8,6 +8,28 @@ interface RegionItemProps {
   onClick: (regionId: string) => void;
 }
 
+// Helper function to render text with known words highlighted
+const renderTextWithKnownWords = (text: string, knownWords: string[] = []): string => {
+  if (!text || knownWords.length === 0) {
+    return text || '';
+  }
+
+  let highlightedText = text;
+  
+  // Sort known words by length (longest first) to avoid partial matches
+  const sortedKnownWords = [...knownWords].sort((a, b) => b.length - a.length);
+  
+  for (const word of sortedKnownWords) {
+    // Escape special regex characters
+    const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // Use Unicode-aware word boundaries instead of \b
+    const regex = new RegExp(`(?<![\\p{L}\\p{N}_])${escapedWord}(?![\\p{L}\\p{N}_])`, 'giu');
+    highlightedText = highlightedText.replace(regex, `<span class="known-word">${escapedWord}</span>`);
+  }
+  
+  return highlightedText;
+};
+
 export const RegionItem = ({
   regionId,
   index,
@@ -25,8 +47,9 @@ export const RegionItem = ({
   const renderTextContent = useMemo(() => {
     if (!region.regionText) return '';
 
-    return region.regionText;
-  }, [region.regionText]);
+    // Apply known words highlighting
+    return renderTextWithKnownWords(region.regionText, region.regionAnalysis);
+  }, [region.regionText, region.regionAnalysis]);
 
   const editorIndicator = useMemo(() => {
     if (editingUsers.length === 0) return '';
@@ -63,7 +86,7 @@ export const RegionItem = ({
             <span className="block font-mono font-bold text-red-600">{formatTime(region.end)}</span>
           </div>
           <div
-            className="pr-4 leading-relaxed [&_.known-word]:bg-green-50 [&_.known-word]:text-green-800 [&_.unknown-word]:bg-red-50 [&_.unknown-word]:text-red-800 [&_.proper-noun]:font-bold [&_.proper-noun]:text-blue-700 [&_.emphasis]:italic [&_.strong]:font-bold empty:before:content-['No_text_content'] empty:before:text-gray-400 empty:before:italic"
+            className="pr-4 leading-relaxed [&_.known-word]:text-blue-600 [&_.unknown-word]:bg-red-50 [&_.unknown-word]:text-red-800 [&_.proper-noun]:font-bold [&_.proper-noun]:text-blue-700 [&_.emphasis]:italic [&_.strong]:font-bold empty:before:content-['No_text_content'] empty:before:text-gray-400 empty:before:italic"
             dangerouslySetInnerHTML={{ __html: renderTextContent }}
           />
           <span className="absolute top-0 right-1 text-3xl font-black text-gray-200 pointer-events-none">{index + 1}</span>

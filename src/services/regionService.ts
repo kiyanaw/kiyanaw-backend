@@ -114,6 +114,7 @@ export const updateRegion = async (regionId: string, updates: {
   start?: number;
   end?: number;
   isNote?: boolean;
+  regionAnalysis?: string;
 }, username: string, debounceMs = 1500) => {
   // Clear existing timeout for this region
   const existing = pendingSaves.get(regionId);
@@ -152,6 +153,9 @@ export const updateRegion = async (regionId: string, updates: {
           }
           if (mergedUpdates.isNote !== undefined) {
             draft.isNote = mergedUpdates.isNote;
+          }
+          if (mergedUpdates.regionAnalysis !== undefined) {
+            draft.regionAnalysis = mergedUpdates.regionAnalysis;
           }
           
           // Always update metadata
