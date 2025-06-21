@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { DataStore } from '@aws-amplify/datastore';
 import { Transcription, Region, Issue } from '../models';
+import { useAuthStore } from './useAuthStore';
+import Timeout from 'smart-timeout';
 
 
 interface EditorDataPayload {
@@ -178,7 +180,7 @@ export const useEditorStore = create<EditorState>()(
       setSaved: (saved) => {
         set({ saved });
         if (saved) {
-          setTimeout(() => set({ saved: false }), 2000);
+          Timeout.set('editor-saved-reset', () => set({ saved: false }), 2000);
         }
       },
 

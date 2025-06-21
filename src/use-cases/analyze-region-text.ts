@@ -1,6 +1,7 @@
 import { spellCheckerService } from '../services/spellCheckerService';
 import { rteService, type EditorKey } from '../services/rteService';
 import { services } from '../services';
+import Timeout from 'smart-timeout';
 
 interface AnalyzeRegionTextConfig {
   regionId: string;
@@ -9,8 +10,8 @@ interface AnalyzeRegionTextConfig {
   store: any; // whole store object
 }
 
-// Debounced analysis state
-const pendingAnalysis = new Map<string, NodeJS.Timeout>();
+// Debounced analysis state - now stores timeout keys instead of timeout objects
+const pendingAnalysis = new Map<string, string>();
 
 export class AnalyzeRegionTextUseCase {
   private config: AnalyzeRegionTextConfig;
@@ -34,18 +35,21 @@ export class AnalyzeRegionTextUseCase {
     const { regionId, text } = this.config;
 
     // Clear any existing timeout for this region
-    const existingTimeout = pendingAnalysis.get(regionId);
-    if (existingTimeout) {
-      clearTimeout(existingTimeout);
+    const existingTimeoutKey = pendingAnalysis.get(regionId);
+    if (existingTimeoutKey) {
+      Timeout.clear(existingTimeoutKey);
     }
 
+    // Create unique timeout key for this analysis
+    const timeoutKey = `analyze-region-${regionId}`;
+
     // Set up debounced analysis (1.5 seconds - faster than before to complete before save)
-    const timeout = setTimeout(async () => {
+    Timeout.set(timeoutKey, async () => {
       await this.performAnalysis(text);
       pendingAnalysis.delete(regionId);
     }, 500);
 
-    pendingAnalysis.set(regionId, timeout);
+    pendingAnalysis.set(regionId, timeoutKey);
   }
 
   private async performAnalysis(text: string): Promise<void> {

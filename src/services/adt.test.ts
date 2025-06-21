@@ -1,5 +1,6 @@
 import { TranscriptionModel, RegionModel } from './adt';
 import type { TranscriptionData, RegionData } from './adt';
+import Timeout from 'smart-timeout';
 
 describe('ADT Models', () => {
   describe('TranscriptionModel', () => {
@@ -112,7 +113,7 @@ describe('ADT Models', () => {
         const model = new TranscriptionModel(dataWithContributors);
 
         // Wait for async contributors loading
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise(resolve => Timeout.set('test-delay', resolve, 0));
 
         expect(mockContributors.toArray).toHaveBeenCalled();
         expect(model.editors).toEqual(['user1', 'user2', 'user3']);

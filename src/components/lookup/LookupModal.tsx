@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import Timeout from 'smart-timeout';
 
 interface LookupResult {
   word: string;
@@ -30,8 +31,8 @@ export const LookupModal = ({
 
   // Mock API function - replace with actual dictionary API
   const searchDictionary = async (term: string): Promise<LookupResult[]> => {
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    // Simulate API delay using smart-timeout
+    await new Promise((resolve) => Timeout.set('api-delay', resolve, 1000));
 
     // Mock results - replace with actual API call
     return [
