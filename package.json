@@ -21,6 +21,7 @@
     "aws-amplify": "^6.14.4",
     "javascript-time-ago": "^2.5.11",
     "lodash.debounce": "^4.0.8",
+    "lucide-react": "^0.522.0",
     "mitt": "^3.0.1",
     "quill": "^2.0.3",
     "quill-cursors": "^4.0.4",

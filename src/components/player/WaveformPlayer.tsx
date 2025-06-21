@@ -1,4 +1,5 @@
 import { useRef, useCallback } from 'react';
+import { Play, Pause, Target, X, Search, ZoomIn, Gauge } from 'lucide-react';
 import { eventBus } from '../../lib/eventBus';
 import { wavesurferService } from '../../services/wavesurferService';
 import { usePlayerStore } from '../../stores/usePlayerStore';
@@ -133,28 +134,28 @@ export const WaveformPlayer = ({
       <div className="flex items-center justify-between h-10 bg-gray-100 px-5 border-t border-gray-300 md:flex-row md:h-10 md:px-5 flex-col h-auto px-2.5 py-2.5 gap-2.5">
         <div className="flex items-center gap-2">
           <button
-            className="bg-none border-none text-base cursor-pointer px-2 py-1 rounded transition-colors hover:bg-black hover:bg-opacity-10 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-none border-none text-base cursor-pointer px-2 py-1 rounded transition-colors hover:bg-gray-200 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={handlePlayPause}
             data-testid="play-button"
           >
-            {isPlaying ? '⏸️' : '▶️'}
+            {isPlaying ? <Pause size={16} /> : <Play size={16} />}
           </button>
 
           {canEdit && (
             <>
               <button
-                className="bg-none border-none text-base cursor-pointer px-2 py-1 rounded transition-colors hover:bg-black hover:bg-opacity-10 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-none border-none text-base cursor-pointer px-2 py-1 rounded transition-colors hover:bg-gray-200 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={handleMarkRegion}
                 data-testid="mark-region"
               >
-                🎯
+                <Target size={16} />
               </button>
 
               <button
-                className="bg-none border-none text-base cursor-pointer px-2 py-1 rounded transition-colors hover:bg-black hover:bg-opacity-10 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-none border-none text-base cursor-pointer px-2 py-1 rounded transition-colors hover:bg-gray-200 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={handleCancelRegion}
               >
-                ❌
+                <X size={16} />
               </button>
             </>
           )}
@@ -162,10 +163,10 @@ export const WaveformPlayer = ({
           <span className="mx-2 text-gray-600 font-bold">|</span>
 
           <button 
-            className="bg-none border-none text-base cursor-pointer px-2 py-1 rounded transition-colors hover:bg-black hover:bg-opacity-10"
+            className="bg-none border-none text-base cursor-pointer px-2 py-1 rounded transition-colors hover:bg-gray-200 hover:text-gray-700"
             onClick={onLookup}
           >
-            🔍
+            <Search size={16} />
           </button>
         </div>
 
@@ -180,10 +181,10 @@ export const WaveformPlayer = ({
             className="w-25"
           />
           <button 
-            className="bg-none border-none text-sm cursor-pointer px-1 py-0.5 rounded transition-colors hover:bg-black hover:bg-opacity-10"
+            className="bg-none border-none text-sm cursor-pointer px-1 py-0.5 rounded transition-colors hover:bg-gray-200 hover:text-gray-700"
             onClick={() => handleZoomChange(40)}
           >
-            🔍
+            <ZoomIn size={14} />
           </button>
         </div>
 
@@ -198,10 +199,10 @@ export const WaveformPlayer = ({
             className="w-25"
           />
           <button 
-            className="bg-none border-none text-sm cursor-pointer px-1 py-0.5 rounded transition-colors hover:bg-black hover:bg-opacity-10"
+            className="bg-none border-none text-sm cursor-pointer px-1 py-0.5 rounded transition-colors hover:bg-gray-200 hover:text-gray-700"
             onClick={() => handleSpeedChange(100)}
           >
-            🏃
+            <Gauge size={14} />
           </button>
         </div>
       </div>
