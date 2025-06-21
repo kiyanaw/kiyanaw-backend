@@ -3,6 +3,7 @@ import 'react-quill/dist/quill.snow.css';
 
 // Import quill-cursors for collaborative editing
 import QuillCursors from 'quill-cursors';
+import { textHighlightService } from './textHighlightService';
 
 // Extend window for debugging
 declare global {
@@ -274,38 +275,14 @@ class RTEServiceImpl {
     // Clear any existing known-word formatting first
     instance.quill.formatText(0, text.length, 'known-word', false, 'api');
 
-    // Apply formatting for each known word
-    // Sort by length (longest first) to avoid partial matches
-    const sortedKnownWords = [...knownWords].sort((a, b) => b.length - a.length);
+    // Use centralized service to find matches
+    const knownWordsSet = new Set(knownWords);
+    const matches = textHighlightService.findMatches(text, knownWordsSet);
     
-    // Deduplicate known words
-    const uniqueKnownWords = Array.from(new Set(sortedKnownWords));
-    
-    for (const word of uniqueKnownWords) {
-      // Escape special regex characters
-      const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      // Use Unicode-aware word boundaries instead of \b
-      const regex = new RegExp(`(?<![\\p{L}\\p{N}_])${escapedWord}(?![\\p{L}\\p{N}_])`, 'giu');
-      
-      let match;
-      const matches: Array<{index: number, length: number}> = [];
-      
-      // Find all matches first
-      while ((match = regex.exec(text)) !== null) {
-        matches.push({
-          index: match.index,
-          length: match[0].length
-        });
-        
-        // Prevent infinite loop
-        if (regex.lastIndex === 0) break;
-      }
-      
-      // Apply known-word class to all matches
-      matches.forEach(({ index, length }) => {
-        instance.quill.formatText(index, length, 'known-word', true, 'api');
-      });
-    }
+    // Apply known-word class to all matches
+    matches.forEach(({ index, length }) => {
+      instance.quill.formatText(index, length, 'known-word', true, 'api');
+    });
   }
 
   // Clean up all editors (useful for testing or app shutdown)
