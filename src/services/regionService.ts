@@ -107,6 +107,7 @@ const pendingSaves = new Map<string, {
  * @param updates The fields to update
  * @param username The username of the user making the update
  * @param debounceMs Debounce time in milliseconds (default: 1500)
+ * @param store Optional editor store to automatically include analysis when updating text
  */
 export const updateRegion = async (regionId: string, updates: {
   regionText?: string;
@@ -115,7 +116,7 @@ export const updateRegion = async (regionId: string, updates: {
   end?: number;
   isNote?: boolean;
   regionAnalysis?: string;
-}, username: string, debounceMs = 1500) => {
+}, username: string, debounceMs = 1500, store?: any) => {
   // Clear existing timeout for this region
   const existing = pendingSaves.get(regionId);
   if (existing) {
@@ -130,6 +131,21 @@ export const updateRegion = async (regionId: string, updates: {
   // Set up debounced save
   const timeout = setTimeout(async () => {
     try {
+      // Get current analysis from store when save actually happens (if store provided and updating text)
+      let finalUpdates = { ...mergedUpdates };
+      
+      if (store && updates.regionText !== undefined) {
+        try {
+          const region = store.getState().regionById(regionId);
+          if (region?.regionAnalysis) {
+            finalUpdates.regionAnalysis = JSON.stringify(region.regionAnalysis);
+          }
+        } catch (storeError) {
+          console.warn('Could not access store for analysis, continuing without:', storeError);
+          // Continue with save without analysis
+        }
+      }
+
       const originalRegion = await DataStore.query(DSRegion, regionId);
       if (!originalRegion) {
         console.error(`Region with ID ${regionId} not found`);
@@ -139,23 +155,23 @@ export const updateRegion = async (regionId: string, updates: {
       await DataStore.save(
         DSRegion.copyOf(originalRegion, (draft) => {
           // Update provided fields
-          if (mergedUpdates.regionText !== undefined) {
-            draft.regionText = mergedUpdates.regionText;
+          if (finalUpdates.regionText !== undefined) {
+            draft.regionText = finalUpdates.regionText;
           }
-          if (mergedUpdates.translation !== undefined) {
-            draft.translation = mergedUpdates.translation;
+          if (finalUpdates.translation !== undefined) {
+            draft.translation = finalUpdates.translation;
           }
-          if (mergedUpdates.start !== undefined) {
-            draft.start = mergedUpdates.start;
+          if (finalUpdates.start !== undefined) {
+            draft.start = finalUpdates.start;
           }
-          if (mergedUpdates.end !== undefined) {
-            draft.end = mergedUpdates.end;
+          if (finalUpdates.end !== undefined) {
+            draft.end = finalUpdates.end;
           }
-          if (mergedUpdates.isNote !== undefined) {
-            draft.isNote = mergedUpdates.isNote;
+          if (finalUpdates.isNote !== undefined) {
+            draft.isNote = finalUpdates.isNote;
           }
-          if (mergedUpdates.regionAnalysis !== undefined) {
-            draft.regionAnalysis = mergedUpdates.regionAnalysis;
+          if (finalUpdates.regionAnalysis !== undefined) {
+            draft.regionAnalysis = finalUpdates.regionAnalysis;
           }
           
           // Always update metadata
@@ -164,9 +180,112 @@ export const updateRegion = async (regionId: string, updates: {
         })
       );
 
-      console.log(`✅ Saved region ${regionId}`);
-      // Simple toast spike - just show a temporary message
-      showToast(`Saved region ${regionId.slice(0, 8)}...`, 'success');
+      const analysisInfo = finalUpdates.regionAnalysis && finalUpdates.regionAnalysis !== mergedUpdates.regionAnalysis ? ` + analysis` : '';
+      console.log(`✅ Saved region ${regionId}${analysisInfo}`);
+      showToast(`Saved region ${regionId.slice(0, 8)}...${analysisInfo}`, 'success');
+      
+      // Remove from pending saves
+      pendingSaves.delete(regionId);
+      
+    } catch (error) {
+      console.error(`❌ Failed to save region ${regionId}:`, error);
+      showToast(`Failed to save region ${regionId.slice(0, 8)}...`, 'error');
+      pendingSaves.delete(regionId);
+    }
+  }, debounceMs);
+
+  // Store the pending save
+  pendingSaves.set(regionId, {
+    updates: mergedUpdates,
+    timeout
+  });
+};
+
+/**
+ * Updates an existing region in DataStore with debouncing and automatic analysis inclusion.
+ * This method coordinates with the analysis system to ensure both text and analysis
+ * are saved together in a single operation, avoiding duplicate saves.
+ * 
+ * @param regionId The ID of the region to update
+ * @param updates The fields to update (text, translation, etc.)
+ * @param username The username of the user making the update
+ * @param store The editor store to get current analysis from
+ * @param debounceMs Debounce time in milliseconds (default: 3000)
+ */
+export const updateRegionWithAnalysis = async (regionId: string, updates: {
+  regionText?: string;
+  translation?: string;
+  start?: number;
+  end?: number;
+  isNote?: boolean;
+}, username: string, store: any, debounceMs = 3000) => {
+  // Clear existing timeout for this region
+  const existing = pendingSaves.get(regionId);
+  if (existing) {
+    clearTimeout(existing.timeout);
+  }
+
+  // Merge with existing pending updates
+  const mergedUpdates = existing 
+    ? { ...existing.updates, ...updates }
+    : updates;
+
+  // Set up debounced save with analysis inclusion
+  const timeout = setTimeout(async () => {
+    try {
+      // Get current analysis from store when save actually happens
+      let finalUpdates = { ...mergedUpdates };
+      
+      // Try to include analysis if available and we're updating main text
+      if (updates.regionText !== undefined) {
+        try {
+          const region = store.getState().regionById(regionId);
+          if (region?.regionAnalysis) {
+            finalUpdates.regionAnalysis = JSON.stringify(region.regionAnalysis);
+          }
+        } catch (storeError) {
+          console.warn('Could not access store for analysis, continuing without:', storeError);
+          // Continue with save without analysis
+        }
+      }
+
+      const originalRegion = await DataStore.query(DSRegion, regionId);
+      if (!originalRegion) {
+        console.error(`Region with ID ${regionId} not found`);
+        return;
+      }
+
+      await DataStore.save(
+        DSRegion.copyOf(originalRegion, (draft) => {
+          // Update provided fields
+          if (finalUpdates.regionText !== undefined) {
+            draft.regionText = finalUpdates.regionText;
+          }
+          if (finalUpdates.translation !== undefined) {
+            draft.translation = finalUpdates.translation;
+          }
+          if (finalUpdates.start !== undefined) {
+            draft.start = finalUpdates.start;
+          }
+          if (finalUpdates.end !== undefined) {
+            draft.end = finalUpdates.end;
+          }
+          if (finalUpdates.isNote !== undefined) {
+            draft.isNote = finalUpdates.isNote;
+          }
+          if (finalUpdates.regionAnalysis !== undefined) {
+            draft.regionAnalysis = finalUpdates.regionAnalysis;
+          }
+          
+          // Always update metadata
+          draft.dateLastUpdated = `${Date.now()}`;
+          draft.userLastUpdated = username;
+        })
+      );
+
+      const analysisInfo = finalUpdates.regionAnalysis ? ` + analysis` : '';
+      console.log(`✅ Saved region ${regionId}${analysisInfo}`);
+      showToast(`Saved region ${regionId.slice(0, 8)}...${analysisInfo}`, 'success');
       
       // Remove from pending saves
       pendingSaves.delete(regionId);

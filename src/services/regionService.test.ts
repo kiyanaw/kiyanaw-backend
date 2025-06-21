@@ -1,4 +1,4 @@
-import { loadRegionsForTranscription, createRegion, updateRegion } from './regionService';
+import { loadRegionsForTranscription, createRegion, updateRegion, updateRegionWithAnalysis } from './regionService';
 import { DataStore } from '@aws-amplify/datastore';
 import { Region as DSRegion, Transcription as DSTranscription } from '../models';
 import { RegionModel } from './adt';
@@ -810,6 +810,264 @@ describe('RegionService', () => {
 
         expect(draft.regionText).toBe('abcd');
       });
+    });
+  });
+
+  describe('updateRegionWithAnalysis', () => {
+    const mockRegionId = 'test-region-id';
+    const mockUsername = 'test-user';
+    const mockOriginalRegion = {
+      id: mockRegionId,
+      regionText: 'original text',
+      translation: 'original translation',
+      start: 10,
+      end: 20,
+      isNote: false,
+      regionAnalysis: null,
+      dateLastUpdated: '1234567890',
+      userLastUpdated: 'old-user'
+    };
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+      jest.useFakeTimers();
+      
+      // Mock DataStore.query to return original region
+      (DataStore.query as jest.Mock).mockResolvedValue(mockOriginalRegion);
+      
+      // Mock DataStore.save
+      (DataStore.save as jest.Mock).mockResolvedValue(mockOriginalRegion);
+      
+      // Mock DSRegion.copyOf
+      (DSRegion.copyOf as jest.Mock) = jest.fn((original, updater) => {
+        const draft = { ...original };
+        updater(draft);
+        return draft;
+      });
+
+      // Mock DOM methods for toast
+      const mockToastElement = {
+        style: {},
+        textContent: '',
+        remove: jest.fn()
+      };
+      jest.spyOn(document, 'createElement').mockReturnValue(mockToastElement as any);
+      jest.spyOn(document.body, 'appendChild').mockImplementation(() => mockToastElement as any);
+      jest.spyOn(document.body, 'removeChild').mockImplementation(() => mockToastElement as any);
+      
+      // Mock console methods
+      jest.spyOn(console, 'log').mockImplementation();
+      jest.spyOn(console, 'error').mockImplementation();
+      jest.spyOn(console, 'warn').mockImplementation();
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+      jest.restoreAllMocks();
+    });
+
+    it('should update region with text and automatically include analysis from store', async () => {
+      const mockStore = {
+        getState: jest.fn().mockReturnValue({
+          regionById: jest.fn().mockReturnValue({
+            regionAnalysis: ['hello', 'world']
+          })
+        })
+      };
+
+      updateRegionWithAnalysis(
+        mockRegionId,
+        { regionText: 'new text' },
+        mockUsername,
+        mockStore,
+        100
+      );
+
+      // Run timers to trigger debounced save
+      jest.runAllTimers();
+      await Promise.resolve();
+
+      expect(DataStore.save).toHaveBeenCalledTimes(1);
+      expect(DSRegion.copyOf).toHaveBeenCalledWith(mockOriginalRegion, expect.any(Function));
+      
+      // Check that the updater function properly sets the fields
+      const updaterFunction = (DSRegion.copyOf as jest.Mock).mock.calls[0][1];
+      const draft = { ...mockOriginalRegion };
+      updaterFunction(draft);
+
+      expect(draft.regionText).toBe('new text');
+      expect(draft.regionAnalysis).toBe(JSON.stringify(['hello', 'world']));
+      expect(draft.userLastUpdated).toBe(mockUsername);
+    });
+
+    it('should update region without analysis when regionAnalysis is not available', async () => {
+      const mockStore = {
+        getState: jest.fn().mockReturnValue({
+          regionById: jest.fn().mockReturnValue({
+            regionAnalysis: null
+          })
+        })
+      };
+
+      updateRegionWithAnalysis(
+        mockRegionId,
+        { regionText: 'new text' },
+        mockUsername,
+        mockStore,
+        100
+      );
+
+      // Run timers to trigger debounced save
+      jest.runAllTimers();
+      await Promise.resolve();
+
+      expect(DataStore.save).toHaveBeenCalledTimes(1);
+      expect(DSRegion.copyOf).toHaveBeenCalledWith(mockOriginalRegion, expect.any(Function));
+      
+      // Check that the updater function properly sets the fields
+      const updaterFunction = (DSRegion.copyOf as jest.Mock).mock.calls[0][1];
+      const draft = { ...mockOriginalRegion };
+      updaterFunction(draft);
+
+      expect(draft.regionText).toBe('new text');
+      expect(draft.userLastUpdated).toBe(mockUsername);
+      // Should not have regionAnalysis set
+      expect(draft.regionAnalysis).toBeNull();
+    });
+
+    it('should not include analysis when updating translation field', async () => {
+      const mockStore = {
+        getState: jest.fn().mockReturnValue({
+          regionById: jest.fn().mockReturnValue({
+            regionAnalysis: ['hello', 'world']
+          })
+        })
+      };
+
+      updateRegionWithAnalysis(
+        mockRegionId,
+        { translation: 'new translation' },
+        mockUsername,
+        mockStore,
+        100
+      );
+
+      // Run timers to trigger debounced save
+      jest.runAllTimers();
+      await Promise.resolve();
+
+      expect(DataStore.save).toHaveBeenCalledTimes(1);
+      expect(DSRegion.copyOf).toHaveBeenCalledWith(mockOriginalRegion, expect.any(Function));
+      
+      // Check that the updater function properly sets the fields
+      const updaterFunction = (DSRegion.copyOf as jest.Mock).mock.calls[0][1];
+      const draft = { ...mockOriginalRegion };
+      updaterFunction(draft);
+
+      expect(draft.translation).toBe('new translation');
+      expect(draft.userLastUpdated).toBe(mockUsername);
+      // Should not include regionAnalysis when updating translation
+      expect(draft.regionAnalysis).toBeNull(); // Should remain original value
+    });
+
+    it('should merge multiple updates and include latest analysis', async () => {
+      const mockStore = {
+        getState: jest.fn().mockReturnValue({
+          regionById: jest.fn().mockReturnValue({
+            regionAnalysis: ['final', 'analysis']
+          })
+        })
+      };
+
+      // Make multiple rapid updates
+      updateRegionWithAnalysis(mockRegionId, { regionText: 'first update' }, mockUsername, mockStore, 100);
+      updateRegionWithAnalysis(mockRegionId, { translation: 'translation update' }, mockUsername, mockStore, 100);
+      updateRegionWithAnalysis(mockRegionId, { regionText: 'final update' }, mockUsername, mockStore, 100);
+
+      // Run timers to trigger debounced save
+      jest.runAllTimers();
+      await Promise.resolve();
+
+      expect(DataStore.save).toHaveBeenCalledTimes(1);
+      expect(DSRegion.copyOf).toHaveBeenCalledWith(mockOriginalRegion, expect.any(Function));
+      
+      // Check that the updater function properly sets the merged fields
+      const updaterFunction = (DSRegion.copyOf as jest.Mock).mock.calls[0][1];
+      const draft = { ...mockOriginalRegion };
+      updaterFunction(draft);
+
+      expect(draft.regionText).toBe('final update');
+      expect(draft.translation).toBe('translation update');
+      expect(draft.regionAnalysis).toBe(JSON.stringify(['final', 'analysis']));
+      expect(draft.userLastUpdated).toBe(mockUsername);
+    });
+
+    it('should handle store errors gracefully', async () => {
+      const mockStore = {
+        getState: jest.fn().mockImplementation(() => {
+          throw new Error('Store error');
+        })
+      };
+
+      // Should not throw, should continue with save without analysis
+      updateRegionWithAnalysis(
+        mockRegionId,
+        { regionText: 'new text' },
+        mockUsername,
+        mockStore,
+        100
+      );
+
+      // Run timers to trigger debounced save
+      jest.runAllTimers();
+      await Promise.resolve();
+
+      expect(DataStore.save).toHaveBeenCalledTimes(1);
+      expect(DSRegion.copyOf).toHaveBeenCalledWith(mockOriginalRegion, expect.any(Function));
+      
+      // Check that the updater function properly sets the fields
+      const updaterFunction = (DSRegion.copyOf as jest.Mock).mock.calls[0][1];
+      const draft = { ...mockOriginalRegion };
+      updaterFunction(draft);
+
+      expect(draft.regionText).toBe('new text');
+      expect(draft.userLastUpdated).toBe(mockUsername);
+      // Should not have regionAnalysis set due to store error
+      expect(draft.regionAnalysis).toBeNull();
+    });
+
+    it('should handle empty analysis array', async () => {
+      const mockStore = {
+        getState: jest.fn().mockReturnValue({
+          regionById: jest.fn().mockReturnValue({
+            regionAnalysis: []
+          })
+        })
+      };
+
+      updateRegionWithAnalysis(
+        mockRegionId,
+        { regionText: 'new text' },
+        mockUsername,
+        mockStore,
+        100
+      );
+
+      // Run timers to trigger debounced save
+      jest.runAllTimers();
+      await Promise.resolve();
+
+      expect(DataStore.save).toHaveBeenCalledTimes(1);
+      expect(DSRegion.copyOf).toHaveBeenCalledWith(mockOriginalRegion, expect.any(Function));
+      
+      // Check that the updater function properly sets the fields
+      const updaterFunction = (DSRegion.copyOf as jest.Mock).mock.calls[0][1];
+      const draft = { ...mockOriginalRegion };
+      updaterFunction(draft);
+
+      expect(draft.regionText).toBe('new text');
+      expect(draft.regionAnalysis).toBe(JSON.stringify([]));
+      expect(draft.userLastUpdated).toBe(mockUsername);
     });
   });
 }); 
