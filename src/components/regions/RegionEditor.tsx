@@ -1,4 +1,5 @@
 import { useState, memo } from 'react';
+import { Play, Pause, FileText, AlertTriangle, EyeOff, RotateCcw, Trash2 } from 'lucide-react';
 import { type LightRegion as Region } from '../../services/adt';
 import { useTextEditors } from '../../hooks/useTextEditors';
 
@@ -54,53 +55,53 @@ export const RegionEditor = memo(({
         {/* Custom Toolbar */}
         <div className="flex gap-2">
           <button
-            className={`flex items-center justify-center w-9 h-9 border border-gray-300 rounded-md bg-white cursor-pointer transition-all duration-200 text-base hover:bg-gray-50 hover:border-gray-400 ${
-              isPlaying ? 'bg-green-600 text-white border-green-600' : ''
+            className={`flex items-center justify-center w-9 h-9 border border-gray-300 rounded-md bg-white cursor-pointer transition-all duration-200 text-base hover:bg-gray-100 hover:border-gray-400 ${
+              isPlaying ? 'bg-green-600 text-white border-green-600 hover:bg-green-700' : ''
             }`}
             onClick={handlePlay}
             title="Play region"
           >
-            {isPlaying ? '⏸️' : '▶️'}
+            {isPlaying ? <Pause size={16} /> : <Play size={16} />}
           </button>
 
           <button
-            className="flex items-center justify-center w-9 h-9 border border-gray-300 rounded-md bg-white cursor-pointer transition-all duration-200 text-base hover:bg-cyan-600 hover:text-white hover:border-cyan-600"
+            className="flex items-center justify-center w-9 h-9 border border-gray-300 rounded-md bg-white cursor-pointer transition-all duration-200 text-base hover:bg-cyan-50 hover:text-cyan-700 hover:border-cyan-300"
             onClick={handleToggleNote}
             title={region.isNote ? 'Convert to transcription' : 'Convert to note'}
           >
-            📝
+            <FileText size={16} />
           </button>
 
           <button
-            className="flex items-center justify-center w-9 h-9 border border-gray-300 rounded-md bg-white cursor-pointer transition-all duration-200 text-base hover:bg-yellow-400 hover:text-gray-800 hover:border-yellow-400"
+            className="flex items-center justify-center w-9 h-9 border border-gray-300 rounded-md bg-white cursor-pointer transition-all duration-200 text-base hover:bg-yellow-50 hover:text-yellow-700 hover:border-yellow-300"
             onClick={handleCreateIssue}
             title="Create issue"
           >
-            ⚠️
+            <AlertTriangle size={16} />
           </button>
 
           <button
-            className="flex items-center justify-center w-9 h-9 border border-gray-300 rounded-md bg-white cursor-pointer transition-all duration-200 text-base hover:bg-purple-600 hover:text-white hover:border-purple-600"
+            className="flex items-center justify-center w-9 h-9 border border-gray-300 rounded-md bg-white cursor-pointer transition-all duration-200 text-base hover:bg-purple-50 hover:text-purple-700 hover:border-purple-300"
             onClick={handleIgnoreWord}
             title="Ignore word"
           >
-            👁️‍🗨️
+            <EyeOff size={16} />
           </button>
 
           <button
-            className="flex items-center justify-center w-9 h-9 border border-gray-300 rounded-md bg-white cursor-pointer transition-all duration-200 text-base hover:bg-orange-500 hover:text-white hover:border-orange-500"
+            className="flex items-center justify-center w-9 h-9 border border-gray-300 rounded-md bg-white cursor-pointer transition-all duration-200 text-base hover:bg-orange-50 hover:text-orange-700 hover:border-orange-300"
             onClick={handleClearFormat}
             title="Clear format"
           >
-            🚫
+            <RotateCcw size={16} />
           </button>
 
           <button
-            className="flex items-center justify-center w-9 h-9 border border-gray-300 rounded-md bg-white cursor-pointer transition-all duration-200 text-base hover:bg-red-600 hover:text-white hover:border-red-600"
+            className="flex items-center justify-center w-9 h-9 border border-gray-300 rounded-md bg-white cursor-pointer transition-all duration-200 text-base hover:bg-red-50 hover:text-red-700 hover:border-red-300"
             onClick={handleDeleteRegion}
             title="Delete region"
           >
-            🗑️
+            <Trash2 size={16} />
           </button>
         </div>
       </div>
