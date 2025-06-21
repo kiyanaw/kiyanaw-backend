@@ -107,6 +107,6 @@ export class AnalyzeRegionTextUseCase {
       rteService.applyKnownWordsFormatting(mainEditorKey, allKnownWords);
     }
 
-    console.log(`Analyzed "${text.slice(0, 50)}..." - Found ${allKnownWords.length} known words (${alreadyKnownWords.length} cached, ${allKnownWords.length - alreadyKnownWords.length} from API):`, allKnownWords);
+    //console.log(`Analyzed "${text.slice(0, 50)}..." - Found ${allKnownWords.length} known words (${alreadyKnownWords.length} cached, ${allKnownWords.length - alreadyKnownWords.length} from API):`, allKnownWords);
   }
 } 

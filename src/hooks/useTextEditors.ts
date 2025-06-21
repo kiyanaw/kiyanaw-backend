@@ -57,7 +57,7 @@ export const useTextEditors = (regionId: string, activeTab: 'main' | 'translatio
       const knownWords = Array.from(useEditorStore.getState().knownWords);
       rteService.applyKnownWordsFormatting(mainEditorKey, knownWords);
 
-      // Analyze text for known words (debounced, for API calls)
+      // Analyze text for known words
       new AnalyzeRegionTextUseCase({
         regionId,
         text,
