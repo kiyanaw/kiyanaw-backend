@@ -20,9 +20,8 @@ export const useWavesurferEvents = (transcriptionId: string): void => {
 
   const playerStore = usePlayerStore.getState()
   
-  // const peaks = useEditorStore((state) => state.peaks);
   
-  // Clear highlighting state when component unmounts or transcription changes
+  // THE ONLY TIME USEEFFECT IS ALLOWED
   useEffect(() => {
     return () => {
       // Clear any remaining highlighting styles
