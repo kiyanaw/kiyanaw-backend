@@ -567,4 +567,96 @@ describe('useWavesurferEvents', () => {
 
   describe('complete event flow', () => {
   });
+
+  describe('cleanup', () => {
+    let mockAddCustomStyle: jest.Mock;
+    let mockRemoveCustomStyle: jest.Mock;
+
+    beforeEach(() => {
+      // Get references to the mocked functions
+      mockAddCustomStyle = browserService.addCustomStyle as jest.Mock;
+      mockRemoveCustomStyle = browserService.removeCustomStyle as jest.Mock;
+      
+      // Set up default return value
+      mockAddCustomStyle.mockReturnValue('test-style-id');
+    });
+
+    it('should clean up highlighting styles when component unmounts', () => {
+      const transcriptionId = 'test-transcription-1';
+      const regionId = 'test-region-1';
+
+      const { unmount } = renderHook(() => useWavesurferEvents(transcriptionId));
+
+      // Get the region-in event handler and simulate highlighting
+      const regionInHandler = mockOn.mock.calls.find(call => call[0] === 'region-in')[1];
+      regionInHandler({ regionId });
+
+      expect(mockAddCustomStyle).toHaveBeenCalledWith(
+        `div#regionitem-${regionId}`,
+        { 'background-color': 'rgba(0, 213, 255, 0.1) !important' }
+      );
+
+      // Unmount the component
+      unmount();
+
+      // Should clean up the highlighting style
+      expect(mockRemoveCustomStyle).toHaveBeenCalledWith('test-style-id');
+    });
+
+    it('should clean up highlighting styles when transcription changes', () => {
+      const transcriptionId1 = 'test-transcription-1';
+      const transcriptionId2 = 'test-transcription-2';
+      const regionId = 'test-region-1';
+
+      const { rerender } = renderHook(
+        ({ transcriptionId }) => useWavesurferEvents(transcriptionId),
+        { initialProps: { transcriptionId: transcriptionId1 } }
+      );
+
+      // Get the region-in event handler and simulate highlighting
+      const regionInHandler = mockOn.mock.calls.find(call => call[0] === 'region-in')[1];
+      regionInHandler({ regionId });
+
+      expect(mockAddCustomStyle).toHaveBeenCalledWith(
+        `div#regionitem-${regionId}`,
+        { 'background-color': 'rgba(0, 213, 255, 0.1) !important' }
+      );
+
+      // Change transcription (this triggers cleanup)
+      rerender({ transcriptionId: transcriptionId2 });
+
+      // Should clean up the highlighting style
+      expect(mockRemoveCustomStyle).toHaveBeenCalledWith('test-style-id');
+    });
+
+    it('should clean up multiple highlighting styles', () => {
+      const transcriptionId = 'test-transcription-1';
+      const region1 = 'test-region-1';
+      const region2 = 'test-region-2';
+
+      mockAddCustomStyle
+        .mockReturnValueOnce('style-id-1')
+        .mockReturnValueOnce('style-id-2');
+
+      const { unmount } = renderHook(() => useWavesurferEvents(transcriptionId));
+
+      // Get the region-in event handler and simulate multiple highlights
+      const regionInHandler = mockOn.mock.calls.find(call => call[0] === 'region-in')[1];
+      
+      // Add two highlights (the second one should automatically clear the first)
+      regionInHandler({ regionId: region1 });
+      regionInHandler({ regionId: region2 });
+
+      // Only the second style should remain active
+      expect(mockRemoveCustomStyle).toHaveBeenCalledWith('style-id-1');
+
+      // Reset mocks to see only cleanup calls
+      mockRemoveCustomStyle.mockClear();
+
+      // Unmount should clean up the remaining style
+      unmount();
+
+      expect(mockRemoveCustomStyle).toHaveBeenCalledWith('style-id-2');
+    });
+  });
 }); 

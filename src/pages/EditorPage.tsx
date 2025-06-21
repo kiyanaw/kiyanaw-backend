@@ -1,8 +1,10 @@
 import { useParams } from 'react-router-dom';
+import { useEffect } from 'react';
 
 import { useEditorStore } from '../stores/useEditorStore';
 import { useLoadTranscription } from '../hooks/useLoadTranscription';
 import { useWavesurferEvents } from '../hooks/useWavesurferEvents';
+import { browserService } from '../services/browserService';
 
 import { WaveformPlayer } from '../components/player/WaveformPlayer';
 import { RegionList } from '../components/regions/RegionList';
@@ -21,6 +23,18 @@ export const EditorPage = () => {
   const peaks = useEditorStore((state) => state.peaks);
   const regions = useEditorStore((state) => state.regions);
   const selectedRegion = useEditorStore((state) => state.selectedRegion);
+
+  // Clear state when component unmounts (when navigating away)
+  useEffect(() => {
+    return () => {
+      // Clear editor store state
+      const store = useEditorStore.getState();
+      store.cleanup();
+      
+      // Clear any remaining region highlighting styles
+      browserService.clearAllCustomStyles();
+    };
+  }, []);
 
   const isVideo = transcription?.isVideo
 

@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useEffect } from 'react';
 import { useEditorStore } from '../stores/useEditorStore';
 import { usePlayerStore } from '../stores/usePlayerStore';
 import { wavesurferService } from '../services/wavesurferService';
@@ -21,6 +21,20 @@ export const useWavesurferEvents = (transcriptionId: string): void => {
   const playerStore = usePlayerStore.getState()
   
   // const peaks = useEditorStore((state) => state.peaks);
+  
+  // Clear highlighting state when component unmounts or transcription changes
+  useEffect(() => {
+    return () => {
+      // Clear any remaining highlighting styles
+      styleIdRef.current.forEach((styleId) => {
+        browserService.removeCustomStyle(styleId);
+      });
+      
+      // Reset internal state
+      styleIdRef.current.clear();
+      highlightedInboundRegionRef.current = null;
+    };
+  }, [transcriptionId]);
   
   // Only run region update when transcription changes or regions change
   if (lastCalledRef.current !== transcriptionId) {
