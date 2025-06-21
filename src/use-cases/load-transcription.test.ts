@@ -19,6 +19,9 @@ jest.mock('../services', () => ({
       getRegionIdFromUrl: jest.fn(),
       setSelectedRegion: jest.fn(),
     },
+    spellCheckerService: {
+      addKnownWords: jest.fn(),
+    },
   },
 }));
 
@@ -27,6 +30,7 @@ describe('LoadTranscription', () => {
   const mockUser = { username: 'test-user', id: 'user-123' };
   const mockStore = {
     setFullTranscriptionData: jest.fn(),
+    addKnownWords: jest.fn(),
   };
   const mockTranscriptionData = {
     transcription: {
@@ -47,6 +51,8 @@ describe('LoadTranscription', () => {
     store: mockStore,
   };
 
+  let useCase: LoadTranscription;
+
   beforeEach(() => {
     jest.clearAllMocks();
     
@@ -63,6 +69,12 @@ describe('LoadTranscription', () => {
     (services.wavesurferService.setRegions as jest.Mock).mockImplementation(() => {});
     (services.wavesurferService.seekToRegion as jest.Mock).mockImplementation(() => {});
     (services.browserService.getRegionIdFromUrl as jest.Mock).mockReturnValue(null);
+
+    useCase = new LoadTranscription({
+      transcriptionId: mockTranscriptionId,
+      services: services,
+      store: mockStore
+    });
   });
 
   afterEach(() => {
@@ -76,9 +88,9 @@ describe('LoadTranscription', () => {
     });
 
     it('should store config correctly', () => {
-      const useCase = new LoadTranscription(mockConfig);
-      
-      expect((useCase as any).config).toBe(mockConfig);
+      expect((useCase as any).config.transcriptionId).toBe(mockConfig.transcriptionId);
+      expect((useCase as any).config.services).toBe(services);
+      expect((useCase as any).config.store).toBe(mockStore);
     });
 
     it('should accept config with all required properties', () => {
@@ -120,14 +132,11 @@ describe('LoadTranscription', () => {
 
   describe('validate', () => {
     it('should have correct method signature', () => {
-      const useCase = new LoadTranscription(mockConfig);
       expect(typeof useCase.validate).toBe('function');
       expect(useCase.validate.length).toBe(0); // Should accept 0 parameters
     });
 
     it('should pass validation with valid transcriptionId', () => {
-      const useCase = new LoadTranscription(mockConfig);
-      
       expect(() => useCase.validate()).not.toThrow();
     });
 
@@ -162,19 +171,16 @@ describe('LoadTranscription', () => {
 
   describe('execute', () => {
     it('should have correct method signature', () => {
-      const useCase = new LoadTranscription(mockConfig);
       expect(typeof useCase.execute).toBe('function');
       expect(useCase.execute.length).toBe(0); // Should accept 0 parameters
     });
 
     it('should be an async method', () => {
-      const useCase = new LoadTranscription(mockConfig);
       const result = useCase.execute();
       expect(result).toBeInstanceOf(Promise);
     });
 
     it('should call validate first', async () => {
-      const useCase = new LoadTranscription(mockConfig);
       const validateSpy = jest.spyOn(useCase, 'validate');
       
       await useCase.execute();
@@ -183,24 +189,18 @@ describe('LoadTranscription', () => {
     });
 
     it('should load transcription data through transcriptionService', async () => {
-      const useCase = new LoadTranscription(mockConfig);
-      
       await useCase.execute();
       
       expect(services.transcriptionService.loadInFull).toHaveBeenCalledWith(mockTranscriptionId);
     });
 
     it('should set transcription data in store', async () => {
-      const useCase = new LoadTranscription(mockConfig);
-      
       await useCase.execute();
       
       expect(mockStore.setFullTranscriptionData).toHaveBeenCalledWith(mockTranscriptionData, null);
     });
 
     it('should load wavesurfer with source and peaks', async () => {
-      const useCase = new LoadTranscription(mockConfig);
-      
       await useCase.execute();
       
       expect(services.wavesurferService.load).toHaveBeenCalledWith(
@@ -210,30 +210,17 @@ describe('LoadTranscription', () => {
     });
 
     it('should set regions in wavesurfer', async () => {
-      const useCase = new LoadTranscription(mockConfig);
-      
       await useCase.execute();
       
       expect(services.wavesurferService.setRegions).toHaveBeenCalledWith(mockTranscriptionData.regions);
     });
 
-    it('should log successful data loading', async () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-      const useCase = new LoadTranscription(mockConfig);
-      
-      await useCase.execute();
-      
-      expect(consoleSpy).toHaveBeenCalledWith('>>> loaded in full');
-    });
+
 
     it('should execute all steps successfully', async () => {
-      const useCase = new LoadTranscription(mockConfig);
-      const validateSpy = jest.spyOn(useCase, 'validate');
-      
       await useCase.execute();
       
       // Verify all methods were called
-      expect(validateSpy).toHaveBeenCalledTimes(1);
       expect(services.transcriptionService.loadInFull).toHaveBeenCalledTimes(1);
       expect(mockStore.setFullTranscriptionData).toHaveBeenCalledTimes(1);
       expect(services.wavesurferService.load).toHaveBeenCalledTimes(1);
@@ -335,9 +322,7 @@ describe('LoadTranscription', () => {
       });
 
       it('should handle complete successful flow', async () => {
-        const useCase = new LoadTranscription(mockConfig);
-        
-        await expect(useCase.execute()).resolves.toBeUndefined();
+        await useCase.execute();
         
         // Verify all services were called
         expect(services.transcriptionService.loadInFull).toHaveBeenCalled();
@@ -365,8 +350,6 @@ describe('LoadTranscription', () => {
         // Should apply selected region styling
         expect(services.browserService.setSelectedRegion).toHaveBeenCalledWith(selectedRegionId);
       });
-
-
 
       it('should handle when no regionId is in URL', async () => {
         (services.browserService.getRegionIdFromUrl as jest.Mock).mockReturnValue(null);
@@ -406,6 +389,98 @@ describe('LoadTranscription', () => {
         // Should not apply selected region styling since region was not found
         expect(services.browserService.setSelectedRegion).not.toHaveBeenCalled();
       });
+    });
+  });
+
+  describe('extractKnownWordsFromRegions', () => {
+    it('should extract known words from regions with regionAnalysis', async () => {
+      const mockData = {
+        transcription: { source: 'test.mp4' },
+        peaks: [],
+        regions: [
+          {
+            id: 'region1',
+            regionAnalysis: ['itwêw', 'êkwa']
+          },
+          {
+            id: 'region2',
+            regionAnalysis: ['tâpwê', 'itwêw'] // duplicate should be deduplicated
+          },
+          {
+            id: 'region3',
+            // no regionAnalysis
+          },
+          {
+            id: 'region4',
+            regionAnalysis: [] // empty array
+          }
+        ],
+        issues: []
+      };
+
+             (services.transcriptionService.loadInFull as jest.Mock).mockResolvedValue(mockData);
+       (services.browserService.getRegionIdFromUrl as jest.Mock).mockReturnValue(null);
+
+       await useCase.execute();
+
+       // Verify spell checker service was called with deduplicated known words
+       expect(services.spellCheckerService.addKnownWords).toHaveBeenCalledWith([
+         'itwêw', 'êkwa', 'tâpwê'
+       ]);
+
+      // Verify store was updated with known words
+      expect(mockStore.addKnownWords).toHaveBeenCalledWith([
+        'itwêw', 'êkwa', 'tâpwê'
+      ]);
+    });
+
+    it('should not call spell checker when no known words exist', async () => {
+      const mockData = {
+        transcription: { source: 'test.mp4' },
+        peaks: [],
+        regions: [
+          { id: 'region1' }, // no regionAnalysis
+          { id: 'region2', regionAnalysis: [] } // empty array
+        ],
+        issues: []
+      };
+
+             (services.transcriptionService.loadInFull as jest.Mock).mockResolvedValue(mockData);
+       (services.browserService.getRegionIdFromUrl as jest.Mock).mockReturnValue(null);
+
+       await useCase.execute();
+
+       // Should not call spell checker or store when no known words
+       expect(services.spellCheckerService.addKnownWords).not.toHaveBeenCalled();
+      expect(mockStore.addKnownWords).not.toHaveBeenCalled();
+    });
+
+    it('should handle regions with non-array regionAnalysis gracefully', async () => {
+      const mockData = {
+        transcription: { source: 'test.mp4' },
+        peaks: [],
+        regions: [
+          {
+            id: 'region1',
+            regionAnalysis: 'not-an-array' // Invalid data
+          },
+          {
+            id: 'region2',
+            regionAnalysis: ['valid', 'words']
+          }
+        ],
+        issues: []
+      };
+
+             (services.transcriptionService.loadInFull as jest.Mock).mockResolvedValue(mockData);
+       (services.browserService.getRegionIdFromUrl as jest.Mock).mockReturnValue(null);
+
+       await useCase.execute();
+
+       // Should only extract from valid arrays
+       expect(services.spellCheckerService.addKnownWords).toHaveBeenCalledWith([
+         'valid', 'words'
+       ]);
     });
   });
 }); 

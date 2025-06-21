@@ -3,37 +3,45 @@ import 'react-quill/dist/quill.snow.css';
 
 // Import quill-cursors for collaborative editing
 import QuillCursors from 'quill-cursors';
+
+// Extend window for debugging
+declare global {
+  interface Window {
+    debugEditors?: Record<string, any>;
+  }
+}
 Quill.register('modules/cursors', QuillCursors);
 
-// Custom formats registration
-const customFormats = [
-  'known-word',
-  'ignore-word', 
-  'issue-needs-help',
-  'issue-indexing',
-  'issue-new-word',
-  'suggestion',
-  'suggestion-known'
-];
+// Register custom formats with Quill
+const Inline = Quill.import('blots/inline') as any;
 
-// Add CSS for custom formats
-const customFormatStyles = `
-  .known-word { color: #3b82f6; }
-  .ignore-word { color: #777; }
-  .issue-needs-help { background-color: #ffe6e6; }
-  .issue-indexing { background-color: #fff9e6; }
-  .issue-new-word { background-color: #e6f3ff; }
-  .suggestion { text-decoration: underline; text-decoration-color: #f97316; }
-  .suggestion-known { text-decoration: underline; text-decoration-color: #3b82f6; }
-`;
-
-// Inject styles if not already present
-if (typeof document !== 'undefined' && !document.getElementById('quill-custom-formats')) {
-  const style = document.createElement('style');
-  style.id = 'quill-custom-formats';
-  style.textContent = customFormatStyles;
-  document.head.appendChild(style);
+class KnownWordBlot extends Inline {
+  static blotName = 'known-word';
+  static tagName = 'span';
+  static className = 'known-word';
+  
+  static create(value: any) {
+    const node = super.create();
+    node.setAttribute('class', 'known-word');
+    return node;
+  }
+  
+  static formats(node: any) {
+    return node.getAttribute('class') === 'known-word';
+  }
+  
+  format(name: string, value: any) {
+    if (name !== 'known-word' || !value) {
+      super.format(name, value);
+    } else {
+      this.domNode.setAttribute('class', 'known-word');
+    }
+  }
 }
+
+Quill.register('formats/known-word', KnownWordBlot);
+
+// Custom formats are now defined in src/index.css
 
 export type EditorKey = `${string}:${'main' | 'translation'}`;
 
@@ -93,7 +101,7 @@ class RTEServiceImpl {
           matchVisual: false,
         },
       },
-      formats: ['bold', 'italic', 'underline', 'color', 'background']
+      formats: ['bold', 'italic', 'underline', 'color', 'background', 'known-word']
     };
 
     const defaultTranslationConfig = {
@@ -113,6 +121,12 @@ class RTEServiceImpl {
     // Create Quill instance
     const quill = new Quill(container, finalConfig);
 
+    // Disable browser spell checking
+    const editor = quill.root;
+    editor.setAttribute('spellcheck', 'false');
+    editor.setAttribute('autocorrect', 'off');
+    editor.setAttribute('autocapitalize', 'off');
+
     // Store in registry
     const rteInstance: RTEInstance = {
       quill,
@@ -121,6 +135,15 @@ class RTEServiceImpl {
     };
     
     this.registry.set(key, rteInstance);
+
+    // Add to window for debugging
+    if (typeof window !== 'undefined') {
+      if (!window.debugEditors) {
+        window.debugEditors = {};
+      }
+      window.debugEditors[key] = quill;
+      console.log(`Added editor "${key}" to window.debugEditors`);
+    }
 
     return quill;
   }
@@ -236,6 +259,53 @@ class RTEServiceImpl {
 
     // Remove Quill listeners (Quill will remove all listeners for 'text-change')
     instance.quill.off('text-change');
+  }
+
+  // Apply known words formatting to editor
+  applyKnownWordsFormatting(key: EditorKey, knownWords: string[]): void {
+    const instance = this.registry.get(key);
+    if (!instance || knownWords.length === 0) {
+      return;
+    }
+
+    const text = instance.quill.getText();
+    if (!text) return;
+
+    // Clear any existing known-word formatting first
+    instance.quill.formatText(0, text.length, 'known-word', false, 'api');
+
+    // Apply formatting for each known word
+    // Sort by length (longest first) to avoid partial matches
+    const sortedKnownWords = [...knownWords].sort((a, b) => b.length - a.length);
+    
+    // Deduplicate known words
+    const uniqueKnownWords = Array.from(new Set(sortedKnownWords));
+    
+    for (const word of uniqueKnownWords) {
+      // Escape special regex characters
+      const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      // Use Unicode-aware word boundaries instead of \b
+      const regex = new RegExp(`(?<![\\p{L}\\p{N}_])${escapedWord}(?![\\p{L}\\p{N}_])`, 'giu');
+      
+      let match;
+      const matches: Array<{index: number, length: number}> = [];
+      
+      // Find all matches first
+      while ((match = regex.exec(text)) !== null) {
+        matches.push({
+          index: match.index,
+          length: match[0].length
+        });
+        
+        // Prevent infinite loop
+        if (regex.lastIndex === 0) break;
+      }
+      
+      // Apply known-word class to all matches
+      matches.forEach(({ index, length }) => {
+        instance.quill.formatText(index, length, 'known-word', true, 'api');
+      });
+    }
   }
 
   // Clean up all editors (useful for testing or app shutdown)

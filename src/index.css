@@ -26,3 +26,41 @@
     min-height: 100vh;
   }
 }
+
+@layer components {
+  /* Quill editor styling */
+  .ql-editor {
+    font-size: 1.4em;
+  }
+  
+  /* Quill editor custom formats */
+  .ql-editor .known-word {
+    color: #3b82f6;
+  }
+  
+  .ql-editor .ignore-word {
+    color: #777;
+  }
+  
+  .ql-editor .issue-needs-help {
+    background-color: #ffe6e6;
+  }
+  
+  .ql-editor .issue-indexing {
+    background-color: #fff9e6;
+  }
+  
+  .ql-editor .issue-new-word {
+    background-color: #e6f3ff;
+  }
+  
+  .ql-editor .suggestion {
+    text-decoration: underline;
+    text-decoration-color: #f97316;
+  }
+  
+  .ql-editor .suggestion-known {
+    text-decoration: underline;
+    text-decoration-color: #3b82f6;
+  }
+}
