@@ -25,15 +25,15 @@ export const RegionItem = ({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Get known words reactively from store
+  const knownWords = useEditorStore((state) => state.knownWords);
+  
   const renderTextContent = useMemo(() => {
-    if (!region.regionText) return '';
-
-    // Get known words from store cache (more comprehensive than just region analysis)
-    const knownWords = useEditorStore.getState().knownWords;
+    if (!region?.regionText) return '';
     
     // Apply known words highlighting using centralized service
     return textHighlightService.generateHTML(region.regionText, knownWords);
-  }, [region.regionText]);
+  }, [region?.regionText, knownWords]);
 
   const editorIndicator = useMemo(() => {
     if (editingUsers.length === 0) return '';
@@ -58,6 +58,7 @@ export const RegionItem = ({
     <div
       className="min-h-[25px] border border-gray-400 relative cursor-pointer transition-colors hover:bg-gray-50"
       id={`regionitem-${regionId}`}
+      data-testid={`regionitem-${regionId}`}
       onClick={handleClick}
     >
       {!region.isNote && (
