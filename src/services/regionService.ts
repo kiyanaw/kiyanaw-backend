@@ -1,5 +1,6 @@
 import { DataStore } from '@aws-amplify/datastore';
 import { Region as DSRegion, Transcription as DSTranscription } from '../models';
+import Timeout from 'smart-timeout';
 
 import { RegionModel } from './adt';
 
@@ -27,16 +28,16 @@ const showToast = (message: string, type: 'success' | 'error' = 'success') => {
   document.body.appendChild(toast);
   
   // Animate in
-  setTimeout(() => {
+  Timeout.set('toast-animate-in', () => {
     toast.style.opacity = '1';
     toast.style.transform = 'translateX(0)';
   }, 10);
   
   // Remove after 3 seconds
-  setTimeout(() => {
+  Timeout.set('toast-remove', () => {
     toast.style.opacity = '0';
     toast.style.transform = 'translateX(100%)';
-    setTimeout(() => {
+    Timeout.set('toast-cleanup', () => {
       document.body.removeChild(toast);
     }, 300);
   }, 3000);
@@ -98,7 +99,7 @@ export const createRegion = async (transcriptionId: string, region: {
 // Debounced save state
 const pendingSaves = new Map<string, {
   updates: any;
-  timeout: NodeJS.Timeout;
+  timeoutKey: string;
 }>();
 
 /**
@@ -120,7 +121,7 @@ export const updateRegion = async (regionId: string, updates: {
   // Clear existing timeout for this region
   const existing = pendingSaves.get(regionId);
   if (existing) {
-    clearTimeout(existing.timeout);
+    Timeout.clear(existing.timeoutKey);
   }
 
   // Merge with existing pending updates
@@ -128,8 +129,11 @@ export const updateRegion = async (regionId: string, updates: {
     ? { ...existing.updates, ...updates }
     : updates;
 
+  // Create unique timeout key for this region save
+  const timeoutKey = `region-save-${regionId}`;
+
   // Set up debounced save
-  const timeout = setTimeout(async () => {
+  Timeout.set(timeoutKey, async () => {
     try {
       // Get current analysis from store when save actually happens (if store provided and updating text)
       let finalUpdates = { ...mergedUpdates };
@@ -197,7 +201,7 @@ export const updateRegion = async (regionId: string, updates: {
   // Store the pending save
   pendingSaves.set(regionId, {
     updates: mergedUpdates,
-    timeout
+    timeoutKey
   });
 };
 
@@ -222,7 +226,7 @@ export const updateRegionWithAnalysis = async (regionId: string, updates: {
   // Clear existing timeout for this region
   const existing = pendingSaves.get(regionId);
   if (existing) {
-    clearTimeout(existing.timeout);
+    Timeout.clear(existing.timeoutKey);
   }
 
   // Merge with existing pending updates
@@ -230,8 +234,11 @@ export const updateRegionWithAnalysis = async (regionId: string, updates: {
     ? { ...existing.updates, ...updates }
     : updates;
 
+  // Create unique timeout key for this region save with analysis
+  const timeoutKey = `region-save-analysis-${regionId}`;
+
   // Set up debounced save with analysis inclusion
-  const timeout = setTimeout(async () => {
+  Timeout.set(timeoutKey, async () => {
     try {
       // Get current analysis from store when save actually happens
       let finalUpdates = { ...mergedUpdates };
@@ -300,7 +307,7 @@ export const updateRegionWithAnalysis = async (regionId: string, updates: {
   // Store the pending save
   pendingSaves.set(regionId, {
     updates: mergedUpdates,
-    timeout
+    timeoutKey
   });
 };
 

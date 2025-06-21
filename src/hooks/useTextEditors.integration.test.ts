@@ -2,6 +2,7 @@ import { renderHook, act } from '@testing-library/react';
 import { useTextEditors } from './useTextEditors';
 import { rteService } from '../services/rteService';
 import { useEditorStore } from '../stores/useEditorStore';
+import Timeout from 'smart-timeout';
 
 // Mock the rteService
 jest.mock('../services/rteService', () => ({
@@ -164,10 +165,10 @@ describe('useTextEditors Integration Test', () => {
     expect(mockRteService.attach).toHaveBeenCalledWith('region-1:main', mockMainDiv);
 
     // VERIFY: Content was populated with region-1's text
-    await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 20)); // Wait for timeout
-    });
-    expect(mockRteService.setContent).toHaveBeenCalledWith('region-1:main', 'Original text 1');
+          await act(async () => {
+        await new Promise(resolve => Timeout.set('test-timeout-1', resolve, 20)); // Wait for timeout
+      });
+      expect(mockRteService.setContent).toHaveBeenCalledWith('region-1:main', 'Original text 1');
 
     // VERIFY: Text change listener was set up
     expect(mockRteService.onTextChange).toHaveBeenCalledWith('region-1:main', expect.any(Function));
@@ -195,10 +196,10 @@ describe('useTextEditors Integration Test', () => {
     expect(mockRteService.createOrGet).toHaveBeenCalledWith('region-2:main', expect.any(Object));
 
     // VERIFY: Content was populated with region-2's text (NOT region-1's text)
-    await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 20)); // Wait for timeout
-    });
-    expect(mockRteService.setContent).toHaveBeenCalledWith('region-2:main', 'Original text 2');
+          await act(async () => {
+        await new Promise(resolve => Timeout.set('test-timeout-2', resolve, 20)); // Wait for timeout
+      });
+      expect(mockRteService.setContent).toHaveBeenCalledWith('region-2:main', 'Original text 2');
 
     // STEP 4: Simulate user typing in region-2 editor
     const newTextChangeCallback = mockRteService.onTextChange.mock.calls.find(
@@ -244,9 +245,9 @@ describe('useTextEditors Integration Test', () => {
     expect(mockRteService.attach).toHaveBeenCalledWith('region-1:translation', mockTranslationDiv);
 
     // VERIFY: Translation content was populated
-    await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 20));
-    });
-    expect(mockRteService.setContent).toHaveBeenCalledWith('region-1:translation', 'Translation 1');
+          await act(async () => {
+        await new Promise(resolve => Timeout.set('test-timeout-3', resolve, 20));
+      });
+      expect(mockRteService.setContent).toHaveBeenCalledWith('region-1:translation', 'Translation 1');
   });
 }); 
