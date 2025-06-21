@@ -14,6 +14,9 @@ class WaveSurferService {
   private ready: boolean = false;
   private _delayedRegions: any[] = []
   private _delayedSeekRegion: { id: string, start: number, end: number } | null = null
+  // Store references to current containers for comparison
+  private currentContainer: HTMLElement | null = null;
+  private currentTimelineContainer: HTMLElement | null = null;
   // Inbound region highlighting state management
   // Used to ignore region-out events immediately after seeking to prevent unwanted highlight removal
   private _inboundRegionIgnoreNextOut: boolean = false
@@ -37,10 +40,45 @@ class WaveSurferService {
   }
 
   initialize(container: HTMLElement, timelineContainer: HTMLElement): WaveSurfer {
+    // Check if containers have changed
+    const containersChanged = this.currentContainer !== container || this.currentTimelineContainer !== timelineContainer;
+    
+    if (this.wavesurfer && containersChanged) {
+      console.log('📋 Containers changed, recreating WaveSurfer instance');
+      
+      // Preserve delayed regions before destroying
+      const preservedDelayedRegions = [...this._delayedRegions];
+      const preservedDelayedSeekRegion = this._delayedSeekRegion;
+      
+      // Destroy the old instance
+      this.destroy();
+      
+      // Restore preserved delayed regions
+      this._delayedRegions = preservedDelayedRegions;
+      this._delayedSeekRegion = preservedDelayedSeekRegion;
+      
+      // Create new instance with new containers
+      this._createNewInstance(container, timelineContainer);
+      
+      console.log('📋 Will need to reload media after container change');
+      
+      return this.wavesurfer!;
+    }
+    
     if (this.wavesurfer) {
       console.log('📋 WaveSurfer singleton already initialized, returning existing instance');
       return this.wavesurfer;
     }
+
+    // Create new instance
+    this._createNewInstance(container, timelineContainer);
+    return this.wavesurfer!;
+  }
+
+  private _createNewInstance(container: HTMLElement, timelineContainer: HTMLElement): void {
+    // Store container references
+    this.currentContainer = container;
+    this.currentTimelineContainer = timelineContainer;
 
     // Create plugins
     this.regionsPlugin = Regions.create();
@@ -67,7 +105,6 @@ class WaveSurferService {
     (window as any).ws = this;
 
     console.log('📋 WaveSurfer singleton initialized');
-    return this.wavesurfer;
   }
 
   registerEvents(): void {
@@ -234,6 +271,8 @@ class WaveSurferService {
     if (this.wavesurfer) {
       if (this.ready) {
         console.log('📋 Rendering regions immediately, total: ', regions.length)
+        // Clear existing regions first
+        this.regionsPlugin.clearRegions();
         // Clear delayed regions first since we're processing them now
         this._delayedRegions = []
 
@@ -255,6 +294,22 @@ class WaveSurferService {
     } else {
       this._delayedRegions = regions
     }
+  }
+
+  /**
+   * Check if the WaveSurfer instance needs to be reloaded due to container changes
+   * This is used by components to determine if they need to reload media
+   */
+  needsReload(): boolean {
+    // If we have delayed regions but no ready state, we likely need a reload
+    return this._delayedRegions.length > 0 && !this.ready;
+  }
+
+  /**
+   * Get the current delayed regions (useful for state restoration)
+   */
+  getDelayedRegions(): any[] {
+    return this._delayedRegions;
   }
 
   /**
@@ -333,6 +388,8 @@ class WaveSurferService {
     }
     // Reset state
     this.ready = false;
+    this.currentContainer = null;
+    this.currentTimelineContainer = null;
     this._delayedRegions = [];
     this._delayedSeekRegion = null;
     this._inboundRegionIgnoreNextOut = false;

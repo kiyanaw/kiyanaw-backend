@@ -61,6 +61,7 @@ describe('WaveSurferService', () => {
     mockRegionsInstance = {
       enableDragSelection: jest.fn(),
       addRegion: jest.fn(),
+      clearRegions: jest.fn(),
       on: jest.fn(),
       getRegions: jest.fn().mockReturnValue([]),
     };
@@ -107,12 +108,73 @@ describe('WaveSurferService', () => {
       expect(mockRegionsInstance.enableDragSelection).toHaveBeenCalledWith({}, 5);
     });
 
-    it('should return existing instance if already initialized', () => {
+    it('should return existing instance if already initialized with same containers', () => {
       const instance1 = wavesurferService.initialize(mockContainer, mockTimelineContainer);
       const instance2 = wavesurferService.initialize(mockContainer, mockTimelineContainer);
       
       expect(instance1).toBe(instance2);
       expect(mockWaveSurfer.create).toHaveBeenCalledTimes(1);
+    });
+
+    it('should detect container changes and recreate instance', () => {
+      // First initialization
+      const instance1 = wavesurferService.initialize(mockContainer, mockTimelineContainer);
+      expect(mockWaveSurfer.create).toHaveBeenCalledTimes(1);
+      expect(mockWaveSurferInstance.destroy).not.toHaveBeenCalled();
+      
+      // Create new containers
+      const newContainer = document.createElement('div');
+      const newTimelineContainer = document.createElement('div');
+      
+      // Second initialization with different containers
+      const instance2 = wavesurferService.initialize(newContainer, newTimelineContainer);
+      
+      // Should destroy old instance
+      expect(mockWaveSurferInstance.destroy).toHaveBeenCalled();
+      // Should create new instance
+      expect(mockWaveSurfer.create).toHaveBeenCalledTimes(2);
+      // Should be called with new containers
+      expect(mockWaveSurfer.create).toHaveBeenLastCalledWith({
+        container: newContainer,
+        waveColor: '#305880',
+        progressColor: '#162738',
+        barWidth: 2,
+        height: 128,
+        minPxPerSec: 20,
+        plugins: [mockRegionsInstance, mockTimelineInstance],
+      });
+    });
+
+    it('should recreate instance when only waveform container changes', () => {
+      // First initialization
+      wavesurferService.initialize(mockContainer, mockTimelineContainer);
+      expect(mockWaveSurfer.create).toHaveBeenCalledTimes(1);
+      
+      // Create new waveform container but keep same timeline container
+      const newContainer = document.createElement('div');
+      
+      // Second initialization with different waveform container
+      wavesurferService.initialize(newContainer, mockTimelineContainer);
+      
+      // Should destroy and recreate
+      expect(mockWaveSurferInstance.destroy).toHaveBeenCalled();
+      expect(mockWaveSurfer.create).toHaveBeenCalledTimes(2);
+    });
+
+    it('should recreate instance when only timeline container changes', () => {
+      // First initialization
+      wavesurferService.initialize(mockContainer, mockTimelineContainer);
+      expect(mockWaveSurfer.create).toHaveBeenCalledTimes(1);
+      
+      // Create new timeline container but keep same waveform container
+      const newTimelineContainer = document.createElement('div');
+      
+      // Second initialization with different timeline container
+      wavesurferService.initialize(mockContainer, newTimelineContainer);
+      
+      // Should destroy and recreate
+      expect(mockWaveSurferInstance.destroy).toHaveBeenCalled();
+      expect(mockWaveSurfer.create).toHaveBeenCalledTimes(2);
     });
 
     it('should register event listeners', () => {
@@ -141,8 +203,8 @@ describe('WaveSurferService', () => {
 
     it('should delay regions when wavesurfer is not ready', () => {
       const testRegions = [
-        { start: 1, end: 3, displayIndex: 1 },
-        { start: 5, end: 7, displayIndex: 2 },
+        { id: 'region-1', start: 1, end: 3, displayIndex: 1 },
+        { id: 'region-2', start: 5, end: 7, displayIndex: 2 },
       ];
       
       // Call setRegions before ready event
@@ -157,8 +219,8 @@ describe('WaveSurferService', () => {
 
     it('should process delayed regions when wavesurfer becomes ready', () => {
       const testRegions = [
-        { start: 1, end: 3, displayIndex: 1 },
-        { start: 5, end: 7, displayIndex: 2 },
+        { id: 'region-1', start: 1, end: 3, displayIndex: 1 },
+        { id: 'region-2', start: 5, end: 7, displayIndex: 2 },
       ];
       
       // Set regions before ready
@@ -170,12 +232,14 @@ describe('WaveSurferService', () => {
       // Should process delayed regions
       expect(mockRegionsInstance.addRegion).toHaveBeenCalledTimes(2);
       expect(mockRegionsInstance.addRegion).toHaveBeenCalledWith({
+        id: 'region-1',
         start: 1,
         end: 3,
         content: '1',
         resize: true,
       });
       expect(mockRegionsInstance.addRegion).toHaveBeenCalledWith({
+        id: 'region-2',
         start: 5,
         end: 7,
         content: '2',
@@ -188,7 +252,7 @@ describe('WaveSurferService', () => {
 
     it('should add regions immediately when wavesurfer is ready', () => {
       const testRegions = [
-        { start: 1, end: 3, displayIndex: 1 },
+        { id: 'region-1', start: 1, end: 3, displayIndex: 1 },
       ];
       
       // Trigger ready event first
@@ -197,8 +261,12 @@ describe('WaveSurferService', () => {
       // Now set regions
       wavesurferService.setRegions(testRegions);
       
+      // Should clear existing regions first
+      expect(mockRegionsInstance.clearRegions).toHaveBeenCalled();
+      
       // Should add regions immediately
       expect(mockRegionsInstance.addRegion).toHaveBeenCalledWith({
+        id: 'region-1',
         start: 1,
         end: 3,
         content: '1',
@@ -257,6 +325,35 @@ describe('WaveSurferService', () => {
       
       // Should not crash or add any regions
       expect(mockRegionsInstance.addRegion).not.toHaveBeenCalled();
+    });
+
+    it('should preserve delayed regions when containers change', () => {
+      const testRegions = [
+        { id: 'region-1', start: 1, end: 3, displayIndex: 1 },
+        { id: 'region-2', start: 5, end: 7, displayIndex: 2 },
+      ];
+      
+      // Set regions before ready (they will be delayed)
+      wavesurferService.setRegions(testRegions);
+      expect(wavesurferService['_delayedRegions']).toEqual(testRegions);
+      
+      // Change containers (this will destroy and recreate the instance)
+      const newContainer = document.createElement('div');
+      const newTimelineContainer = document.createElement('div');
+      wavesurferService.initialize(newContainer, newTimelineContainer);
+      
+      // Delayed regions should still be preserved after container change
+      expect(wavesurferService['_delayedRegions']).toEqual(testRegions);
+      
+      // When wavesurfer becomes ready, it should process the preserved delayed regions
+      const readyCall = mockWaveSurferInstance.on.mock.calls.find(
+        (call: any) => call[0] === 'ready'
+      );
+      const newReadyCallback = readyCall[1];
+      newReadyCallback();
+      
+      // Should process the delayed regions
+      expect(mockRegionsInstance.addRegion).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -411,6 +508,9 @@ describe('WaveSurferService', () => {
       
       expect(mockWaveSurferInstance.destroy).toHaveBeenCalled();
       expect(wavesurferService.getWaveSurfer()).toBeNull();
+      // Should also clear container references
+      expect(wavesurferService['currentContainer']).toBeNull();
+      expect(wavesurferService['currentTimelineContainer']).toBeNull();
     });
 
     it('should return wavesurfer instance', () => {

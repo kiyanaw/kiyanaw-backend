@@ -14,22 +14,21 @@ import { EditorPage } from './pages/EditorPage';
 import './App.css';
 
 function App() {
-  console.log('app')
   return (
     <AuthenticatorShell>
       <Router>
         <Routes>
           <Route path="/" element={<AppLayout />}>
-            {/* <Route index element={<Navigate to="/transcribe-list" replace />} /> */}
-            {/* <Route path="transcribe-list" element={<TranscribeListPage />} />
-            <Route path="transcribe-add" element={<UploadForm />} />  */}
+            <Route index element={<Navigate to="/transcribe-list" replace />} /> 
+            <Route path="transcribe-list" element={<TranscribeListPage />} />
+            <Route path="transcribe-add" element={<UploadForm />} /> 
             <Route path="transcribe-edit/:id" element={<EditorPage />} /> 
             <Route
               path="transcribe-edit/:id/:regionId"
               element={<EditorPage />}
             />
-            {/* <Route path="stats" element={<StatsPage />} />
-            <Route path="about" element={<AboutPage />} /> */}
+            <Route path="stats" element={<StatsPage />} />
+            <Route path="about" element={<AboutPage />} />
           </Route>
         </Routes>
       </Router>
