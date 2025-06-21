@@ -5,6 +5,7 @@ import { useEditorStore } from '../stores/useEditorStore';
 import { useLoadTranscription } from '../hooks/useLoadTranscription';
 import { useWavesurferEvents } from '../hooks/useWavesurferEvents';
 import { browserService } from '../services/browserService';
+import { wavesurferService } from '../services/wavesurferService';
 
 import { WaveformPlayer } from '../components/player/WaveformPlayer';
 import { RegionList } from '../components/regions/RegionList';
@@ -24,15 +25,16 @@ export const EditorPage = () => {
   const regions = useEditorStore((state) => state.regions);
   const selectedRegion = useEditorStore((state) => state.selectedRegion);
 
-  // Clear state when component unmounts (when navigating away)
+  // THE ONLY TIME USEEFFECT IS ALLOWED, TO RETURN A CLEAN UP FUNCTION
   useEffect(() => {
     return () => {
       // Clear editor store state
       const store = useEditorStore.getState();
       store.cleanup();
-      
       // Clear any remaining region highlighting styles
       browserService.clearAllCustomStyles();
+      // Destroy the wavesurfer instance and reset the service state
+      wavesurferService.destroy();
     };
   }, []);
 
