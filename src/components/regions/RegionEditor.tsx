@@ -11,7 +11,7 @@ export const RegionEditor = memo(({
   region,
 }: RegionEditorProps) => {
   const [activeTab, setActiveTab] = useState<'main' | 'translation'>('main');
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPlaying] = useState(false);
 
   const { mainEditorRef, translationEditorRef } = useTextEditors(region.id, activeTab);
 

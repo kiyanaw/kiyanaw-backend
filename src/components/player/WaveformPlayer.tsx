@@ -1,4 +1,4 @@
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useState } from 'react';
 import { Play, Pause, Target, X, Search, ZoomIn, Gauge } from 'lucide-react';
 import { eventBus } from '../../lib/eventBus';
 import { wavesurferService } from '../../services/wavesurferService';
@@ -45,6 +45,10 @@ export const WaveformPlayer = ({
   const timelineContainerRef = useRef<HTMLDivElement | null>(null);
   const containersReadyRef = useRef({ waveform: false, timeline: false });
 
+  /** RARE PERMITTED LOCAL STATE */
+  const [speed, setSpeed] = useState(100);
+  const [zoom, setZoom] = useState(20);
+
   const isPlaying = usePlayerStore((state) => state.playing)
   const play = usePlay()
   const pause = usePause()
@@ -86,7 +90,7 @@ export const WaveformPlayer = ({
     if (isPlaying) {
       pause();
     } else {
-      play();
+      play({ playInFull: true });
     }
   };
 
@@ -99,17 +103,20 @@ export const WaveformPlayer = ({
   };
 
   const handleZoomChange = (value: number) => {
+    setZoom(value);
     wavesurferService.setZoom(value)
   };
 
   const handleSpeedChange = (value: number) => {
-    eventBus.emit('waveform-speed-change', value);
+    setSpeed(value);
+    wavesurferService.setPlaybackRate(value);
   };
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    const secsStr = secs < 10 ? `0${secs}` : `${secs}`;
+    return `${mins}:${secsStr}`;
   };
 
   return (
@@ -176,13 +183,14 @@ export const WaveformPlayer = ({
             type="range"
             min="5"
             max="75"
-            defaultValue={20}
+            value={zoom}
             onChange={(e) => handleZoomChange(parseInt(e.target.value))}
             className="w-25"
           />
           <button 
             className="bg-none border-none text-sm cursor-pointer px-1 py-0.5 rounded transition-colors hover:bg-gray-200 hover:text-gray-700"
-            onClick={() => handleZoomChange(40)}
+            onClick={() => handleZoomChange(20)}
+            title="Reset zoom"
           >
             <ZoomIn size={14} />
           </button>
@@ -194,13 +202,14 @@ export const WaveformPlayer = ({
             type="range"
             min="50"
             max="150"
-            defaultValue={100}
+            value={speed}
             onChange={(e) => handleSpeedChange(parseInt(e.target.value))}
             className="w-25"
           />
           <button 
             className="bg-none border-none text-sm cursor-pointer px-1 py-0.5 rounded transition-colors hover:bg-gray-200 hover:text-gray-700"
             onClick={() => handleSpeedChange(100)}
+            title="Reset speed"
           >
             <Gauge size={14} />
           </button>

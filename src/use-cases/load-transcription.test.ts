@@ -7,6 +7,9 @@ jest.mock('../services', () => ({
     authService: {
       currentUser: jest.fn(),
     },
+    userService: {
+      currentUser: jest.fn(),
+    },
     transcriptionService: {
       loadInFull: jest.fn(),
     },
@@ -64,6 +67,7 @@ describe('LoadTranscription', () => {
     
     // Setup default mocks
     (services.authService.currentUser as jest.Mock).mockReturnValue(mockUser);
+    (services.userService.currentUser as jest.Mock).mockReturnValue(mockUser);
     (services.transcriptionService.loadInFull as jest.Mock).mockResolvedValue(mockTranscriptionData);
     (services.wavesurferService.load as jest.Mock).mockImplementation(() => {});
     (services.wavesurferService.setRegions as jest.Mock).mockImplementation(() => {});
@@ -214,8 +218,6 @@ describe('LoadTranscription', () => {
       
       expect(services.wavesurferService.setRegions).toHaveBeenCalledWith(mockTranscriptionData.regions);
     });
-
-
 
     it('should execute all steps successfully', async () => {
       await useCase.execute();

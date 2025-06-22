@@ -3,7 +3,7 @@ interface SelectAndPlayRegionConfig {
   services: {
     wavesurferService: {
       seekToRegion: (region: { id: string, start: number, end: number }) => void;
-      play: () => Promise<void>;
+      play: (options?: { playInFull?: boolean }) => Promise<void>;
     };
     browserService: {
       updateUrl: (url: string) => void;

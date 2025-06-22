@@ -29,8 +29,11 @@ export class LoadTranscription {
     
     try {
       const data = await transcriptionService.loadInFull(this.config.transcriptionId);
+      const user = services.userService.currentUser()
 
-      console.log('>>> loaded in full', data)
+      console.log('>>> loaded in full', data, user)
+      // editors is a set of IDs so we need to resolve those
+
       
       // Check if there's a regionId in the URL that we should select
       const selectedRegionId = browserService.getRegionIdFromUrl();

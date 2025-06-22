@@ -461,6 +461,72 @@ describe('WaveSurferService', () => {
       expect(playMockCallback).not.toHaveBeenCalled();
       expect(pauseMockCallback).not.toHaveBeenCalled();
     });
+
+    it('should play audio', async () => {
+      mockWaveSurferInstance.play = jest.fn().mockResolvedValue(undefined);
+      
+      await wavesurferService.play();
+      
+      expect(mockWaveSurferInstance.play).toHaveBeenCalled();
+    });
+
+    it('should play audio with empty options object', async () => {
+      mockWaveSurferInstance.play = jest.fn().mockResolvedValue(undefined);
+      
+      await wavesurferService.play({});
+      
+      expect(mockWaveSurferInstance.play).toHaveBeenCalled();
+    });
+
+    it('should play audio with playInFull false', async () => {
+      mockWaveSurferInstance.play = jest.fn().mockResolvedValue(undefined);
+      
+      // Set up a bounded region first
+      const testRegion = { id: 'test-region', start: 25.5, end: 35.2 };
+      wavesurferService.seekToRegion(testRegion);
+      
+      // Verify region is bounded
+      expect(wavesurferService['_playbackBoundRegion']).toEqual(testRegion);
+      
+      // Play with playInFull explicitly false
+      await wavesurferService.play({ playInFull: false });
+      
+      // Should NOT clear the bounded region
+      expect(wavesurferService['_playbackBoundRegion']).toEqual(testRegion);
+      expect(mockWaveSurferInstance.play).toHaveBeenCalled();
+    });
+
+    it('should play audio in full mode and clear bounded regions', async () => {
+      mockWaveSurferInstance.play = jest.fn().mockResolvedValue(undefined);
+      
+      // Set up a bounded region first
+      const testRegion = { id: 'test-region', start: 25.5, end: 35.2 };
+      wavesurferService.seekToRegion(testRegion);
+      
+      // Verify region is bounded
+      expect(wavesurferService['_playbackBoundRegion']).toEqual(testRegion);
+      
+      // Play in full mode
+      await wavesurferService.play({ playInFull: true });
+      
+      // Should clear the bounded region and play
+      expect(wavesurferService['_playbackBoundRegion']).toBeNull();
+      expect(mockWaveSurferInstance.play).toHaveBeenCalled();
+    });
+
+    it('should not affect playback when playInFull is true but no bounded region exists', async () => {
+      mockWaveSurferInstance.play = jest.fn().mockResolvedValue(undefined);
+      
+      // Ensure no bounded region exists
+      expect(wavesurferService['_playbackBoundRegion']).toBeNull();
+      
+      // Play in full mode
+      await wavesurferService.play({ playInFull: true });
+      
+      // Should still be null and play normally
+      expect(wavesurferService['_playbackBoundRegion']).toBeNull();
+      expect(mockWaveSurferInstance.play).toHaveBeenCalled();
+    });
   });
 
   describe('Other Methods', () => {
@@ -520,8 +586,6 @@ describe('WaveSurferService', () => {
     it('should return regions plugin', () => {
       expect(wavesurferService.getRegionsPlugin()).toBe(mockRegionsInstance);
     });
-
-
 
     it('should seek to region start when wavesurfer is ready', () => {
       mockWaveSurferInstance.setTime = jest.fn();
@@ -754,14 +818,6 @@ describe('WaveSurferService', () => {
       
       // Tracking should be cleared
       expect(wavesurferService['_inboundRegionCurrentHighlighted']).toBeNull();
-    });
-
-    it('should play audio', async () => {
-      mockWaveSurferInstance.play = jest.fn().mockResolvedValue(undefined);
-      
-      await wavesurferService.play();
-      
-      expect(mockWaveSurferInstance.play).toHaveBeenCalled();
     });
 
     it('should pause audio', () => {

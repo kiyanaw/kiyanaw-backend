@@ -329,6 +329,12 @@ class WaveSurferService {
     this.wavesurfer?.zoom(value);
   }
 
+  setPlaybackRate(rate: number): void {
+    // Convert percentage to decimal (e.g., 100 -> 1.0, 150 -> 1.5, 50 -> 0.5)
+    const normalizedRate = rate / 100;
+    this.wavesurfer?.setPlaybackRate(normalizedRate);
+  }
+
   // seekToTime went away, replaced by seekToRegion
 
   seekToRegion(region: { id: string, start: number, end: number }): void {
@@ -357,7 +363,11 @@ class WaveSurferService {
     }
   }
 
-  async play(): Promise<void> {
+  async play(options: { playInFull?: boolean } = {}): Promise<void> {
+    if (options.playInFull) {
+      // Clear any region-bounded playback restrictions for full playback
+      this.clearRegionBoundedPlayback();
+    }
     await this.wavesurfer?.play();
   }
 
