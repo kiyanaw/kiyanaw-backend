@@ -61,6 +61,9 @@
             },
             "REGION": {
               "Ref": "AWS::Region"
+            },
+            "ACCOUNT_ID": {
+              "Ref": "AWS::AccountId"
             }
           }
         },
@@ -188,10 +191,16 @@
               ],
               "Resource": {
                 "Fn::Sub": [
-                  "arn:aws:sqs:us-east-1:494185203413:enqueueRegionChanges-${env}",
+                  "arn:aws:sqs:${region}:${account}:enqueueRegionChanges-${env}",
                   {
+                    "region": {
+                      "Ref": "AWS::Region"
+                    },
                     "env": {
                       "Ref": "env"
+                    },
+                    "account": {
+                      "Ref": "AWS::AccountId"
                     }
                   }
                 ]

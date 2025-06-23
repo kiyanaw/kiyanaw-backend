@@ -15,7 +15,7 @@ const config = {
   staging: {
     transcriptionTable: 'Transcription-m2zepok2hrhxrlp4jpo52kh774-staging',
     regionTable: 'Region-m2zepok2hrhxrlp4jpo52kh774-staging',
-    domain: 'https://transcribe.kiyanaw.dev',
+    domain: 'https://transcribe-dev.kiyanaw.net',
   },
 }
 
