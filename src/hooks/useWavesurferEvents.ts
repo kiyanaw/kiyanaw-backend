@@ -9,10 +9,15 @@ import { services } from '../services';
 import { CreateRegion } from '../use-cases/create-region';
 import { UpdateRegionBounds } from '../use-cases/update-region-bounds';
 
-export const useWavesurferEvents = (transcriptionId: string): void => {
+export const useWavesurferEvents = (transcriptionId: string, source?: string): void => {
   const styleIdRef = useRef<Map<string, string>>(new Map()); // Maps regionId to styleId
   const highlightedInboundRegionRef = useRef<string | null>(null);
   const regions = useEditorStore((state) => state.regions);
+
+  // Reset loading state when source changes
+  useEffect(() => {
+    usePlayerStore.getState().setLoadedAndReady(false);
+  }, [source]);
 
   useEffect(() => {
     if (transcriptionId === undefined || transcriptionId === null) {
@@ -81,12 +86,17 @@ export const useWavesurferEvents = (transcriptionId: string): void => {
       }
     };
 
+    const handleReady = () => {
+      usePlayerStore.getState().setLoadedAndReady(true);
+    };
+
     wavesurferService.on('region-created', handleRegionCreated);
     wavesurferService.on('region-update-end', handleRegionUpdateEnd);
     wavesurferService.on('play', handlePlay);
     wavesurferService.on('pause', handlePause);
     wavesurferService.on('region-in', handleRegionIn);
     wavesurferService.on('region-out', handleRegionOut);
+    wavesurferService.on('ready', handleReady);
 
     return () => {
       wavesurferService.clearAllListeners();

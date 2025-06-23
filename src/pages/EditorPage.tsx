@@ -17,10 +17,11 @@ export const EditorPage = () => {
   }>();
   
   useLoadTranscription(transcriptionId!);
-  useWavesurferEvents(transcriptionId!);
   
   // Editor store selectors
   const transcription = useEditorStore((state) => state.transcription);
+  
+  useWavesurferEvents(transcriptionId!, transcription?.source);
   const peaks = useEditorStore((state) => state.peaks);
   const regions = useEditorStore((state) => state.regions);
   const selectedRegion = useEditorStore((state) => state.selectedRegion);

@@ -1,5 +1,5 @@
 import { useRef, useCallback, useState } from 'react';
-import { Play, Pause, Target, X, Search, ZoomIn, Gauge } from 'lucide-react';
+import { Play, Pause, Target, X, Search, ZoomIn, Gauge, Loader2 } from 'lucide-react';
 import { eventBus } from '../../lib/eventBus';
 import { wavesurferService } from '../../services/wavesurferService';
 import { usePlayerStore } from '../../stores/usePlayerStore';
@@ -40,7 +40,7 @@ export const WaveformPlayer = ({
 }: WaveformPlayerProps) => {
   // console.log('--- WaveformPlayer Render ---', { source, hasPeaks: !!peaks });
 
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   const waveformContainerRef = useRef<HTMLDivElement | null>(null);
   const timelineContainerRef = useRef<HTMLDivElement | null>(null);
   const containersReadyRef = useRef({ waveform: false, timeline: false });
@@ -48,25 +48,20 @@ export const WaveformPlayer = ({
   /** RARE PERMITTED LOCAL STATE */
   const [speed, setSpeed] = useState(100);
   const [zoom, setZoom] = useState(20);
-
+  const [videoElementReady, setVideoElementReady] = useState(false);
   const isPlaying = usePlayerStore((state) => state.playing)
+  const loadedAndReady = usePlayerStore((state) => state.loadedAndReady)
   const play = usePlay()
   const pause = usePause()
-
 
   // Initialize WaveSurfer when both containers are ready
   const initializeWaveSurfer = useCallback(() => {
     const { waveform, timeline } = containersReadyRef.current;
     if (waveform && timeline && waveformContainerRef.current && timelineContainerRef.current) {
-      console.log('🎵 Initializing WaveSurfer with containers');
-      wavesurferService.initialize(waveformContainerRef.current, timelineContainerRef.current);
-      
-      // Handle video media element if needed
-      if (isVideo && videoRef.current) {
-        wavesurferService.updateMediaElement(videoRef.current);
-      }
+      const mediaEl = isVideo && videoRef.current ? videoRef.current : undefined;
+      wavesurferService.initialize(waveformContainerRef.current, timelineContainerRef.current, mediaEl);
     }
-  }, [isVideo]);
+  }, [isVideo, videoElementReady]);
 
   // Callback refs to get DOM elements and initialize WaveSurfer
   const setWaveformContainer = useCallback((node: HTMLDivElement | null) => {
@@ -81,6 +76,16 @@ export const WaveformPlayer = ({
     if (node) {
       timelineContainerRef.current = node;
       containersReadyRef.current.timeline = true;
+      initializeWaveSurfer();
+    }
+  }, [initializeWaveSurfer]);
+
+  // Callback ref for video element
+  const setVideoElement = useCallback((node: HTMLVideoElement | null) => {
+    videoRef.current = node;
+    if (node) {
+      setVideoElementReady(true);
+      // Reinitialize WaveSurfer now that we have the video element
       initializeWaveSurfer();
     }
   }, [initializeWaveSurfer]);
@@ -132,7 +137,16 @@ export const WaveformPlayer = ({
       </div>
 
       {/* Waveform */}
-      <div ref={setWaveformContainer} className="w-full h-32 bg-white" />
+      <div ref={setWaveformContainer} className="w-full h-32 bg-white relative">
+        {!loadedAndReady && (
+          <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-90">
+            <div className="flex items-center gap-2 text-gray-600">
+              <Loader2 size={20} className="animate-spin" data-testid="loading-spinner" />
+              <span className="text-sm">Loading audio...</span>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Timeline */}
       <div ref={setTimelineContainer} className="w-full h-5 bg-gray-100 border-t border-gray-300" />
@@ -143,6 +157,7 @@ export const WaveformPlayer = ({
           <button
             className="bg-none border-none text-base cursor-pointer px-2 py-1 rounded transition-colors hover:bg-gray-200 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={handlePlayPause}
+            disabled={!loadedAndReady}
             data-testid="play-button"
           >
             {isPlaying ? <Pause size={16} /> : <Play size={16} />}
@@ -153,6 +168,7 @@ export const WaveformPlayer = ({
               <button
                 className="bg-none border-none text-base cursor-pointer px-2 py-1 rounded transition-colors hover:bg-gray-200 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={handleMarkRegion}
+                disabled={!loadedAndReady}
                 data-testid="mark-region"
               >
                 <Target size={16} />
@@ -161,6 +177,7 @@ export const WaveformPlayer = ({
               <button
                 className="bg-none border-none text-base cursor-pointer px-2 py-1 rounded transition-colors hover:bg-gray-200 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={handleCancelRegion}
+                disabled={!loadedAndReady}
               >
                 <X size={16} />
               </button>
@@ -170,8 +187,9 @@ export const WaveformPlayer = ({
           <span className="mx-2 text-gray-600 font-bold">|</span>
 
           <button 
-            className="bg-none border-none text-base cursor-pointer px-2 py-1 rounded transition-colors hover:bg-gray-200 hover:text-gray-700"
+            className="bg-none border-none text-base cursor-pointer px-2 py-1 rounded transition-colors hover:bg-gray-200 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={onLookup}
+            disabled={!loadedAndReady}
           >
             <Search size={16} />
           </button>
@@ -185,11 +203,13 @@ export const WaveformPlayer = ({
             max="75"
             value={zoom}
             onChange={(e) => handleZoomChange(parseInt(e.target.value))}
+            disabled={!loadedAndReady}
             className="w-25"
           />
           <button 
-            className="bg-none border-none text-sm cursor-pointer px-1 py-0.5 rounded transition-colors hover:bg-gray-200 hover:text-gray-700"
+            className="bg-none border-none text-sm cursor-pointer px-1 py-0.5 rounded transition-colors hover:bg-gray-200 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={() => handleZoomChange(20)}
+            disabled={!loadedAndReady}
             title="Reset zoom"
           >
             <ZoomIn size={14} />
@@ -204,11 +224,13 @@ export const WaveformPlayer = ({
             max="150"
             value={speed}
             onChange={(e) => handleSpeedChange(parseInt(e.target.value))}
+            disabled={!loadedAndReady}
             className="w-25"
           />
           <button 
-            className="bg-none border-none text-sm cursor-pointer px-1 py-0.5 rounded transition-colors hover:bg-gray-200 hover:text-gray-700"
+            className="bg-none border-none text-sm cursor-pointer px-1 py-0.5 rounded transition-colors hover:bg-gray-200 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={() => handleSpeedChange(100)}
+            disabled={!loadedAndReady}
             title="Reset speed"
           >
             <Gauge size={14} />
@@ -219,7 +241,7 @@ export const WaveformPlayer = ({
       {/* Video element for video files */}
       {isVideo && (
         <video
-          ref={videoRef}
+          ref={setVideoElement}
           src={source}
           muted
           crossOrigin="anonymous"

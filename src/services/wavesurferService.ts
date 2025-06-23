@@ -14,9 +14,11 @@ class WaveSurferService {
   private ready: boolean = false;
   private _delayedRegions: any[] = []
   private _delayedSeekRegion: { id: string, start: number, end: number } | null = null
+  private _delayedLoad: { source: string, peaks: any } | null = null
   // Store references to current containers for comparison
   private currentContainer: HTMLElement | null = null;
   private currentTimelineContainer: HTMLElement | null = null;
+  private currentMediaElement: HTMLMediaElement | null = null;
   // Inbound region highlighting state management
   // Used to ignore region-out events immediately after seeking to prevent unwanted highlight removal
   private _inboundRegionIgnoreNextOut: boolean = false
@@ -39,16 +41,18 @@ class WaveSurferService {
     return WaveSurferService.instance;
   }
 
-  initialize(container: HTMLElement, timelineContainer: HTMLElement): WaveSurfer {
+  initialize(container: HTMLElement, timelineContainer: HTMLElement, mediaElement?: HTMLMediaElement): WaveSurfer {
     // Check if containers have changed
-    const containersChanged = this.currentContainer !== container || this.currentTimelineContainer !== timelineContainer;
-    
+    const containersChanged =
+      this.currentContainer !== container ||
+      this.currentTimelineContainer !== timelineContainer ||
+      this.currentMediaElement !== (mediaElement || null);
+
     if (this.wavesurfer && containersChanged) {
-      console.log('📋 Containers changed, recreating WaveSurfer instance');
-      
       // Preserve delayed regions before destroying
       const preservedDelayedRegions = [...this._delayedRegions];
       const preservedDelayedSeekRegion = this._delayedSeekRegion;
+      const preservedDelayedLoad = this._delayedLoad;
       
       // Destroy the old instance
       this.destroy();
@@ -56,29 +60,30 @@ class WaveSurferService {
       // Restore preserved delayed regions
       this._delayedRegions = preservedDelayedRegions;
       this._delayedSeekRegion = preservedDelayedSeekRegion;
+      this._delayedLoad = preservedDelayedLoad;
       
       // Create new instance with new containers
-      this._createNewInstance(container, timelineContainer);
-      
-      console.log('📋 Will need to reload media after container change');
+      this._createNewInstance(container, timelineContainer, mediaElement);
       
       return this.wavesurfer!;
     }
     
     if (this.wavesurfer) {
-      console.log('📋 WaveSurfer singleton already initialized, returning existing instance');
       return this.wavesurfer;
     }
 
     // Create new instance
-    this._createNewInstance(container, timelineContainer);
+    this._createNewInstance(container, timelineContainer, mediaElement);
     return this.wavesurfer!;
   }
 
-  private _createNewInstance(container: HTMLElement, timelineContainer: HTMLElement): void {
+  private _createNewInstance(container: HTMLElement, timelineContainer: HTMLElement, mediaElement?: HTMLMediaElement): void {
     // Store container references
     this.currentContainer = container;
     this.currentTimelineContainer = timelineContainer;
+    this.currentMediaElement = mediaElement || null;
+
+
 
     // Create plugins
     this.regionsPlugin = Regions.create();
@@ -89,6 +94,7 @@ class WaveSurferService {
     // Initialize WaveSurfer without media - we'll load it later
     this.wavesurfer = WaveSurfer.create({
       container,
+      media: mediaElement,
       waveColor: '#305880',
       progressColor: '#162738',
       barWidth: 2,
@@ -103,8 +109,6 @@ class WaveSurferService {
     this.registerEvents();
 
     (window as any).ws = this;
-
-    console.log('📋 WaveSurfer singleton initialized');
   }
 
   registerEvents(): void {
@@ -112,23 +116,26 @@ class WaveSurferService {
      * WAVESURFER EVENTS
      */
     this.wavesurfer?.on('ready', (event) => {
-      console.log('📋 Wavesurfer ready event fired!', event)
       this.ready = true
       
+      if (this._delayedLoad !== null) {
+        this.wavesurfer?.load(this._delayedLoad.source, this._delayedLoad.peaks)
+        this._delayedLoad = null
+      }
+      
       if (this._delayedRegions.length) {
-        console.log(`📋 Processing ${this._delayedRegions.length} delayed regions`)
         this.setRegions(this._delayedRegions)
-      } else {
-        console.log('📋 No delayed regions to process')
       }
 
       if (this._delayedSeekRegion !== null) {
-        console.log(`📋 Processing delayed seek to region: ${this._delayedSeekRegion.id} (${this._delayedSeekRegion.start}s - ${this._delayedSeekRegion.end}s)`)
         this.wavesurfer?.setTime(this._delayedSeekRegion.start)
         this._delayedSeekRegion = null
         // Ignore the next region-out event since we're seeking to a region intentionally
         this._inboundRegionIgnoreNextOut = true
       }
+      
+      // Emit the ready event so other components can listen to it
+      this.emitEvent('ready');
     })
 
     this.wavesurfer?.on('play', () => {
@@ -149,7 +156,6 @@ class WaveSurferService {
       if (!this.wavesurfer?.isPlaying()) return;     // only act during playback
 
       if (currentTime >= this._playbackBoundRegion.end) {
-        console.log(`📋 Reached end of bounded region ${this._playbackBoundRegion.id} at ${this._playbackBoundRegion.end}s, stopping playback`);
         this.wavesurfer.pause();
         this._playbackBoundRegion = null;            // disarm the guard
       }
@@ -161,7 +167,6 @@ class WaveSurferService {
 
       // If user seeks outside the bounded region, clear the guard (enable free playback)
       if (newTime < this._playbackBoundRegion.start || newTime > this._playbackBoundRegion.end) {
-        console.log(`📋 User seeked outside bounded region ${this._playbackBoundRegion.id} (${newTime}s), clearing region-bounded playback`);
         this._playbackBoundRegion = null;
       }
     })
@@ -198,7 +203,6 @@ class WaveSurferService {
       const newRegionInIsDifferent = previouslyHighlightedInboundRegion && this._inboundRegionCurrentHighlighted.id !== event.id;
       const needToClearHighlight = newRegionInIsDifferent;
       if (needToClearHighlight) {
-        console.log(`📋 Manually clearing highlight from previous region: ${this._inboundRegionCurrentHighlighted.id}`)
         this._inboundRegionCurrentHighlighted.element.style.backgroundColor = this.REGION_BACKGROUND_COLOR;
       }
       // Set highlight color when entering region
@@ -264,13 +268,26 @@ class WaveSurferService {
 
   // Set a new source URL and peaks data
   load(source:string, peaks: any): void{
-    this.wavesurfer?.load(source, peaks)
+    if (!this.wavesurfer || !this.ready) {
+      this._delayedLoad = { source, peaks };
+      return;
+    }
+    
+    if (this.currentMediaElement) {
+      // If we have a media element, we just need to load the peaks.
+      // The media is already being loaded by the video tag's src attribute.
+      // Passing the source URL again to load() would cause a second fetch.
+      // We pass the source here so wavesurfer can show a timeline, but it won't re-fetch.
+      this.wavesurfer?.load(source, peaks)
+    } else {
+      // For audio-only, load the media source directly.
+      this.wavesurfer?.load(source, peaks)
+    }
   }
 
   setRegions(regions:any) {
     if (this.wavesurfer) {
       if (this.ready) {
-        console.log('📋 Rendering regions immediately, total: ', regions.length)
         // Clear existing regions first
         this.regionsPlugin.clearRegions();
         // Clear delayed regions first since we're processing them now
@@ -338,17 +355,13 @@ class WaveSurferService {
   // seekToTime went away, replaced by seekToRegion
 
   seekToRegion(region: { id: string, start: number, end: number }): void {
-    console.log(`📋 Seeking to region: ${region.id} (${region.start}s - ${region.end}s)`);
-    
     // Arm the region-bounded playback guard
     this._playbackBoundRegion = region;
-    console.log(`📋 Armed region-bounded playback for region ${region.id} (will stop at ${region.end}s)`);
     
     // Seek to the region start
     if (this.wavesurfer && this.ready) {
       this.wavesurfer.setTime(region.start);
     } else {
-      console.log(`📋 Wavesurfer not ready, delaying seek to region: ${region.id}`)
       this._delayedSeekRegion = region;
     }
   }
@@ -358,7 +371,6 @@ class WaveSurferService {
    */
   clearRegionBoundedPlayback(): void {
     if (this._playbackBoundRegion) {
-      console.log(`📋 Clearing region-bounded playback for region ${this._playbackBoundRegion.id}`);
       this._playbackBoundRegion = null;
     }
   }
@@ -379,18 +391,8 @@ class WaveSurferService {
     return this.wavesurfer?.playPause() || Promise.resolve();
   }
   
-  updateMediaElement(mediaElement: HTMLMediaElement): void {
-    if (!this.wavesurfer) {
-      console.warn('📋 WaveSurfer not initialized, cannot update media element');
-      return;
-    }
-
-    this.wavesurfer.setMediaElement(mediaElement);
-  }
-
   destroy(): void {
     if (this.wavesurfer) {
-      console.log('📋 Destroying WaveSurfer singleton');
       this.wavesurfer.destroy();
       this.wavesurfer = null;
       this.regionsPlugin = null;
@@ -400,8 +402,10 @@ class WaveSurferService {
     this.ready = false;
     this.currentContainer = null;
     this.currentTimelineContainer = null;
+    this.currentMediaElement = null;
     this._delayedRegions = [];
     this._delayedSeekRegion = null;
+    this._delayedLoad = null;
     this._inboundRegionIgnoreNextOut = false;
     this._inboundRegionCurrentHighlighted = null;
     this._playbackBoundRegion = null;

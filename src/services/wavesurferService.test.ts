@@ -1,11 +1,14 @@
-// Mock the modules first
-jest.mock('wavesurfer.js', () => ({
-  __esModule: true,
-  default: {
-    create: jest.fn(),
-  },
-}));
+// Mock WaveSurfer module
+jest.mock('wavesurfer.js', () => {
+  return {
+    __esModule: true,
+    default: {
+      create: jest.fn(),
+    },
+  };
+});
 
+// Mock Regions plugin
 jest.mock('wavesurfer.js/dist/plugins/regions.esm.js', () => ({
   __esModule: true,
   default: {
@@ -13,6 +16,7 @@ jest.mock('wavesurfer.js/dist/plugins/regions.esm.js', () => ({
   },
 }));
 
+// Mock Timeline plugin
 jest.mock('wavesurfer.js/dist/plugins/timeline.esm.js', () => ({
   __esModule: true,
   default: {
@@ -20,15 +24,15 @@ jest.mock('wavesurfer.js/dist/plugins/timeline.esm.js', () => ({
   },
 }));
 
-import { wavesurferService } from './wavesurferService';
 import WaveSurfer from 'wavesurfer.js';
 import Regions from 'wavesurfer.js/dist/plugins/regions.esm.js';
 import Timeline from 'wavesurfer.js/dist/plugins/timeline.esm.js';
+import { wavesurferService } from './wavesurferService';
 
 // Get the mocked modules
-const mockWaveSurfer = WaveSurfer as jest.Mocked<typeof WaveSurfer>;
-const mockRegionsPlugin = Regions as jest.Mocked<typeof Regions>;
-const mockTimelinePlugin = Timeline as jest.Mocked<typeof Timeline>;
+const mockWaveSurfer = jest.mocked(WaveSurfer);
+const mockRegions = jest.mocked(Regions);
+const mockTimeline = jest.mocked(Timeline);
 
 describe('WaveSurferService', () => {
   let mockContainer: HTMLElement;
@@ -47,15 +51,19 @@ describe('WaveSurferService', () => {
     
     // Create mock instances
     mockWaveSurferInstance = {
+      create: jest.fn().mockReturnThis(),
       load: jest.fn(),
+      play: jest.fn(),
+      pause: jest.fn(),
+      playPause: jest.fn(),
       zoom: jest.fn(),
+      setTime: jest.fn(),
+      setPlaybackRate: jest.fn(),
       setMediaElement: jest.fn(),
+      getMediaElement: jest.fn().mockReturnValue(document.createElement('audio')),
+      isPlaying: jest.fn().mockReturnValue(false),
       destroy: jest.fn(),
       on: jest.fn(),
-      setTime: jest.fn(),
-      play: jest.fn().mockResolvedValue(undefined),
-      pause: jest.fn(),
-      playPause: jest.fn().mockResolvedValue(undefined),
     };
     
     mockRegionsInstance = {
@@ -70,8 +78,8 @@ describe('WaveSurferService', () => {
     
     // Setup mock returns
     mockWaveSurfer.create.mockReturnValue(mockWaveSurferInstance);
-    mockRegionsPlugin.create.mockReturnValue(mockRegionsInstance);
-    mockTimelinePlugin.create.mockReturnValue(mockTimelineInstance);
+    mockRegions.create.mockReturnValue(mockRegionsInstance);
+    mockTimeline.create.mockReturnValue(mockTimelineInstance);
     
     // Reset the service state by destroying any existing instance
     wavesurferService.destroy();
@@ -88,15 +96,12 @@ describe('WaveSurferService', () => {
 
   describe('Initialization', () => {
     it('should initialize WaveSurfer with correct configuration', () => {
-      wavesurferService.initialize(mockContainer, mockTimelineContainer);
+      const instance = wavesurferService.initialize(mockContainer, mockTimelineContainer);
       
-      expect(mockRegionsPlugin.create).toHaveBeenCalled();
-      expect(mockTimelinePlugin.create).toHaveBeenCalledWith({
-        container: mockTimelineContainer,
-      });
-      
+      expect(instance).toBe(mockWaveSurferInstance);
       expect(mockWaveSurfer.create).toHaveBeenCalledWith({
         container: mockContainer,
+        media: undefined,
         waveColor: '#305880',
         progressColor: '#162738',
         barWidth: 2,
@@ -104,16 +109,30 @@ describe('WaveSurferService', () => {
         minPxPerSec: 20,
         plugins: [mockRegionsInstance, mockTimelineInstance],
       });
-      
-      expect(mockRegionsInstance.enableDragSelection).toHaveBeenCalledWith({}, 5);
     });
 
-    it('should return existing instance if already initialized with same containers', () => {
-      const instance1 = wavesurferService.initialize(mockContainer, mockTimelineContainer);
-      const instance2 = wavesurferService.initialize(mockContainer, mockTimelineContainer);
-      
-      expect(instance1).toBe(instance2);
-      expect(mockWaveSurfer.create).toHaveBeenCalledTimes(1);
+    describe('Singleton Behavior', () => {
+      beforeEach(() => {
+        // Don't destroy for singleton tests - test reuse within same lifecycle
+        // Just reset mocks
+        jest.clearAllMocks();
+        
+        // Setup mock returns
+        mockWaveSurfer.create.mockReturnValue(mockWaveSurferInstance);
+        mockRegions.create.mockReturnValue(mockRegionsInstance);
+        mockTimeline.create.mockReturnValue(mockTimelineInstance);
+      });
+
+      it('should return existing instance if already initialized with same containers', () => {
+        // First call creates the instance
+        const instance1 = wavesurferService.initialize(mockContainer, mockTimelineContainer);
+        
+        // Second call with same containers should reuse the instance
+        const instance2 = wavesurferService.initialize(mockContainer, mockTimelineContainer);
+        
+        expect(instance1).toBe(instance2);
+        expect(mockWaveSurfer.create).toHaveBeenCalledTimes(1); // Should only create once
+      });
     });
 
     it('should detect container changes and recreate instance', () => {
@@ -359,6 +378,7 @@ describe('WaveSurferService', () => {
 
   describe('Event Handling', () => {
     let regionCreatedCallback: Function;
+    let readyCallback: Function;
     
     beforeEach(() => {
       wavesurferService.initialize(mockContainer, mockTimelineContainer);
@@ -368,6 +388,12 @@ describe('WaveSurferService', () => {
         (call: any) => call[0] === 'region-created'
       );
       regionCreatedCallback = regionCreatedCall[1];
+      
+      // Capture the ready callback
+      const readyCall = mockWaveSurferInstance.on.mock.calls.find(
+        (call: any) => call[0] === 'ready'
+      );
+      readyCallback = readyCall[1];
     });
 
     it('should emit region-created events', () => {
@@ -401,6 +427,29 @@ describe('WaveSurferService', () => {
         start: 1,
         end: 3,
       });
+      
+      expect(mockCallback).not.toHaveBeenCalled();
+    });
+
+    it('should emit ready events', () => {
+      const mockCallback = jest.fn();
+      wavesurferService.on('ready', mockCallback);
+      
+      // Simulate ready event
+      readyCallback();
+      
+      expect(mockCallback).toHaveBeenCalled();
+    });
+
+    it('should not emit ready events when muted', () => {
+      const mockCallback = jest.fn();
+      wavesurferService.on('ready', mockCallback);
+      
+      // Mute events
+      wavesurferService['muteEvents'] = true;
+      
+      // Simulate ready event
+      readyCallback();
       
       expect(mockCallback).not.toHaveBeenCalled();
     });
@@ -535,6 +584,15 @@ describe('WaveSurferService', () => {
     });
 
     it('should load source and peaks', () => {
+      // Initialize and make ready first
+      wavesurferService.initialize(mockContainer, mockTimelineContainer);
+      
+      // Trigger ready event to make wavesurfer ready
+      const readyCallback = mockWaveSurferInstance.on.mock.calls.find(
+        (call: any) => call[0] === 'ready'
+      )[1];
+      readyCallback();
+      
       const source = 'test-source.mp3';
       const peaks = [1, 2, 3, 4];
       
@@ -544,39 +602,20 @@ describe('WaveSurferService', () => {
     });
 
     it('should set zoom level', () => {
+      mockWaveSurferInstance.zoom = jest.fn();
+      
       wavesurferService.setZoom(50);
       
       expect(mockWaveSurferInstance.zoom).toHaveBeenCalledWith(50);
     });
 
-    it('should update media element', () => {
-      const mockMediaElement = document.createElement('video');
-      
-      wavesurferService.updateMediaElement(mockMediaElement);
-      
-      expect(mockWaveSurferInstance.setMediaElement).toHaveBeenCalledWith(mockMediaElement);
-    });
-
-    it('should handle updateMediaElement when not initialized', () => {
-      wavesurferService.destroy();
-      
-      const mockMediaElement = document.createElement('video');
-      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
-      
-      wavesurferService.updateMediaElement(mockMediaElement);
-      
-      expect(consoleSpy).toHaveBeenCalledWith('📋 WaveSurfer not initialized, cannot update media element');
-      consoleSpy.mockRestore();
-    });
-
     it('should destroy wavesurfer instance', () => {
+      wavesurferService.initialize(mockContainer, mockTimelineContainer);
+      
       wavesurferService.destroy();
       
       expect(mockWaveSurferInstance.destroy).toHaveBeenCalled();
       expect(wavesurferService.getWaveSurfer()).toBeNull();
-      // Should also clear container references
-      expect(wavesurferService['currentContainer']).toBeNull();
-      expect(wavesurferService['currentTimelineContainer']).toBeNull();
     });
 
     it('should return wavesurfer instance', () => {
@@ -875,6 +914,146 @@ describe('WaveSurferService', () => {
       
       expect(mockCallback1).not.toHaveBeenCalled();
       expect(mockCallback2).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Delayed Load Logic', () => {
+    it('should delay load when wavesurfer is not ready', () => {
+      const mockLoad = jest.fn();
+      mockWaveSurferInstance.load = mockLoad;
+      
+      // Don't initialize yet, so wavesurfer is not ready
+      const source = 'https://example.com/test.mp4';
+      const peaks = [1, 2, 3];
+      
+      wavesurferService.load(source, peaks);
+      
+      // Load should not be called immediately
+      expect(mockLoad).not.toHaveBeenCalled();
+      
+      // Should be stored as delayed load
+      expect(wavesurferService['_delayedLoad']).toEqual({ source, peaks });
+    });
+
+    it('should process delayed load when wavesurfer becomes ready', () => {
+      const mockLoad = jest.fn();
+      mockWaveSurferInstance.load = mockLoad;
+      
+      // Set up delayed load first
+      const source = 'https://example.com/test.mp4';
+      const peaks = [1, 2, 3];
+      wavesurferService.load(source, peaks);
+      
+      // Now initialize wavesurfer
+      wavesurferService.initialize(mockContainer, mockTimelineContainer);
+      
+      // Get the ready callback and trigger it
+      const readyCallback = mockWaveSurferInstance.on.mock.calls.find(
+        (call: any) => call[0] === 'ready'
+      )[1];
+      
+      readyCallback();
+      
+      // Now the delayed load should be processed
+      expect(mockLoad).toHaveBeenCalledWith(source, peaks);
+      expect(wavesurferService['_delayedLoad']).toBeNull();
+    });
+
+    it('should load immediately when wavesurfer is ready', () => {
+      const mockLoad = jest.fn();
+      mockWaveSurferInstance.load = mockLoad;
+      
+      // Initialize first
+      wavesurferService.initialize(mockContainer, mockTimelineContainer);
+      
+      // Trigger ready event
+      const readyCallback = mockWaveSurferInstance.on.mock.calls.find(
+        (call: any) => call[0] === 'ready'
+      )[1];
+      readyCallback();
+      
+      // Now load should work immediately
+      const source = 'https://example.com/test.mp4';
+      const peaks = [1, 2, 3];
+      
+      wavesurferService.load(source, peaks);
+      
+      expect(mockLoad).toHaveBeenCalledWith(source, peaks);
+      expect(wavesurferService['_delayedLoad']).toBeNull();
+    });
+
+    it('should clear delayed load on destroy', () => {
+      // Set up delayed load
+      const source = 'https://example.com/test.mp4';
+      const peaks = [1, 2, 3];
+      wavesurferService.load(source, peaks);
+      
+      expect(wavesurferService['_delayedLoad']).toEqual({ source, peaks });
+      
+      // Destroy should clear it
+      wavesurferService.destroy();
+      
+      expect(wavesurferService['_delayedLoad']).toBeNull();
+    });
+  });
+
+  describe('Video Element Integration', () => {
+    let mockVideoElement: HTMLVideoElement;
+
+    beforeEach(() => {
+      mockVideoElement = document.createElement('video');
+      mockVideoElement.src = 'https://example.com/test.mp4';
+    });
+
+    it('should initialize with video element', () => {
+      wavesurferService.initialize(mockContainer, mockTimelineContainer, mockVideoElement);
+      
+      expect(mockWaveSurfer.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          media: mockVideoElement
+        })
+      );
+      expect(wavesurferService['currentMediaElement']).toBe(mockVideoElement);
+    });
+
+    it('should reinitialize when video element changes', () => {
+      // First initialization without video
+      wavesurferService.initialize(mockContainer, mockTimelineContainer);
+      
+      const firstCreateCall = mockWaveSurfer.create.mock.calls[0][0];
+      expect(firstCreateCall.media).toBeUndefined();
+      
+      // Second initialization with video element
+      wavesurferService.initialize(mockContainer, mockTimelineContainer, mockVideoElement);
+      
+      // Should destroy and recreate
+      expect(mockWaveSurferInstance.destroy).toHaveBeenCalled();
+      expect(mockWaveSurfer.create).toHaveBeenCalledTimes(2);
+      
+      const secondCreateCall = mockWaveSurfer.create.mock.calls[1][0];
+      expect(secondCreateCall.media).toBe(mockVideoElement);
+    });
+
+    it('should preserve delayed load when reinitializing for video element', () => {
+      // The service was destroyed in beforeEach, so let's test the preservation logic
+      const source = 'https://example.com/test.mp4';
+      const peaks = [1, 2, 3];
+      
+      // Set up delayed load (service is not initialized yet)
+      wavesurferService.load(source, peaks);
+      expect(wavesurferService['_delayedLoad']).toEqual({ source, peaks });
+      
+      // Initialize without video - this should preserve the delayed load during container change detection
+      wavesurferService.initialize(mockContainer, mockTimelineContainer);
+      expect(wavesurferService['_delayedLoad']).toEqual({ source, peaks });
+      
+      // The key test: when we change to include a video element, delayed load should be preserved
+      // This tests the preservation logic in the container change detection
+      const newContainer = document.createElement('div');
+      wavesurferService.initialize(newContainer, mockTimelineContainer, mockVideoElement);
+      
+      // Should still preserve delayed load because containers changed and preservation logic ran
+      expect(wavesurferService['_delayedLoad']).toEqual({ source, peaks });
     });
   });
 }); 

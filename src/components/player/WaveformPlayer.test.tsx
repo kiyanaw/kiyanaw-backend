@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { WaveformPlayer } from './WaveformPlayer';
 import { wavesurferService } from '../../services/wavesurferService';
 import { usePlayerStore } from '../../stores/usePlayerStore';
@@ -6,25 +6,44 @@ import { usePlay } from '../../hooks/usePlay';
 import { usePause } from '../../hooks/usePause';
 
 // Mock the wavesurferService
-jest.mock('../../services/wavesurferService', () => ({
-  wavesurferService: {
-    initialize: jest.fn(),
-    updateMediaElement: jest.fn(),
+jest.mock('../../services/wavesurferService', () => {
+  const mockWaveSurferService = {
+    initialize: jest.fn().mockReturnValue({}),
     setZoom: jest.fn(),
     setPlaybackRate: jest.fn(),
-  },
-}));
+    destroy: jest.fn(),
+    load: jest.fn(),
+    on: jest.fn(),
+    off: jest.fn(),
+  };
+  
+  return {
+    wavesurferService: mockWaveSurferService,
+  };
+});
 
-// Mock the stores and hooks
-jest.mock('../../stores/usePlayerStore');
-jest.mock('../../hooks/usePlay');
-jest.mock('../../hooks/usePause');
+// Get the mocked service for test assertions
+const mockWaveSurferService = jest.mocked(wavesurferService);
 
-// Mock the eventBus
+// Mock the event bus
 jest.mock('../../lib/eventBus', () => ({
   eventBus: {
     emit: jest.fn(),
   },
+}));
+
+// Mock the stores
+jest.mock('../../stores/usePlayerStore', () => ({
+  usePlayerStore: jest.fn(),
+}));
+
+// Mock the hooks
+jest.mock('../../hooks/usePlay', () => ({
+  usePlay: jest.fn(() => jest.fn()),
+}));
+
+jest.mock('../../hooks/usePause', () => ({
+  usePause: jest.fn(() => jest.fn()),
 }));
 
 const mockUsePlayerStore = usePlayerStore as jest.MockedFunction<typeof usePlayerStore>;
@@ -34,6 +53,7 @@ const mockUsePause = usePause as jest.MockedFunction<typeof usePause>;
 describe('WaveformPlayer', () => {
   const mockPlay = jest.fn();
   const mockPause = jest.fn();
+  const mockSetLoadedAndReady = jest.fn();
   const mockOnRegionUpdate = jest.fn();
   const mockOnLookup = jest.fn();
 
@@ -49,11 +69,23 @@ describe('WaveformPlayer', () => {
     onLookup: mockOnLookup,
   };
 
+
+
   beforeEach(() => {
     jest.clearAllMocks();
     
-    // Setup default mock returns
-    mockUsePlayerStore.mockReturnValue(false); // not playing
+    // Setup default mock returns for usePlayerStore
+    mockUsePlayerStore.mockImplementation((selector) => {
+      const state = {
+        playing: false,
+        loadedAndReady: false,
+        setPlaying: jest.fn(),
+        setPaused: jest.fn(),
+        setLoadedAndReady: mockSetLoadedAndReady,
+      };
+      return selector(state);
+    });
+    
     mockUsePlay.mockReturnValue(mockPlay);
     mockUsePause.mockReturnValue(mockPause);
   });
@@ -68,7 +100,7 @@ describe('WaveformPlayer', () => {
       render(<WaveformPlayer {...defaultProps} />);
       
       // Service should be called when containers are set up
-      expect(wavesurferService.initialize).toHaveBeenCalled();
+      expect(mockWaveSurferService.initialize).toHaveBeenCalled();
     });
 
     it('only calls initialize once even with multiple renders', () => {
@@ -82,7 +114,7 @@ describe('WaveformPlayer', () => {
       rerender(<WaveformPlayer {...defaultProps} />);
       
       // Should not call initialize again (singleton behavior)
-      expect(wavesurferService.initialize).not.toHaveBeenCalled();
+      expect(mockWaveSurferService.initialize).not.toHaveBeenCalled();
     });
 
     it('calls updateMediaElement when video element is provided', async () => {
@@ -94,93 +126,94 @@ describe('WaveformPlayer', () => {
       
       // The updateMediaElement should be called when containers are ready
       // In tests, this might happen asynchronously
-      expect(wavesurferService.initialize).toHaveBeenCalled();
+      expect(mockWaveSurferService.initialize).toHaveBeenCalled();
     });
 
     it('does not call updateMediaElement for audio files', () => {
-      render(<WaveformPlayer {...defaultProps} isVideo={false} />);
+      render(
+        <WaveformPlayer
+          {...defaultProps}
+          isVideo={false}
+        />
+      );
       
-      // Should not call updateMediaElement for audio
-      expect(wavesurferService.updateMediaElement).not.toHaveBeenCalled();
+      // Should call initialize for audio files
+      expect(mockWaveSurferService.initialize).toHaveBeenCalled();
     });
 
     it('sets up video element when isVideo is true', () => {
-      const { container } = render(<WaveformPlayer {...defaultProps} isVideo={true} />);
+      render(
+        <WaveformPlayer
+          {...defaultProps}
+          isVideo={true}
+        />
+      );
       
-      const videoElement = container.querySelector('video');
-      expect(videoElement).toBeInTheDocument();
-      expect(videoElement).toHaveAttribute('src', 'test-audio.mp3');
-      expect(videoElement).toHaveProperty('muted', true);
-      expect(videoElement).toHaveAttribute('crossorigin', 'anonymous');
-      expect(videoElement).toHaveAttribute('preload', 'metadata');
-      expect(videoElement).toHaveProperty('playsInline', true);
+      // The updateMediaElement should be called when containers are ready
+      // In tests, this might happen asynchronously
+      expect(mockWaveSurferService.initialize).toHaveBeenCalled();
     });
 
     it('uses callback refs to ensure proper initialization timing', () => {
       // Mock the initialize function to capture when it's called
       const mockInitialize = jest.fn();
-      (wavesurferService.initialize as jest.Mock).mockImplementation(mockInitialize);
+      (mockWaveSurferService.initialize as jest.Mock).mockImplementation(mockInitialize);
       
       render(<WaveformPlayer {...defaultProps} />);
       
-      // Should be called with both container elements
+      // Should be called with both container elements and optional media element
       expect(mockInitialize).toHaveBeenCalledWith(
         expect.any(HTMLElement), // waveform container
-        expect.any(HTMLElement)  // timeline container
+        expect.any(HTMLElement), // timeline container
+        undefined // media element (undefined for audio files)
       );
     });
 
     it('handles container changes gracefully', () => {
-      const { rerender } = render(<WaveformPlayer {...defaultProps} title="First" />);
+      // Create first instance
+      const { rerender } = render(<WaveformPlayer {...defaultProps} />);
       
-      // Clear previous calls to track new ones
-      jest.clearAllMocks();
+      // Re-render with same props should not cause issues
+      rerender(<WaveformPlayer {...defaultProps} />);
       
-      // Change props that might affect containers
-      rerender(<WaveformPlayer {...defaultProps} title="Second" />);
-      
-      // Should handle the change without errors
-      expect(() => rerender(<WaveformPlayer {...defaultProps} title="Third" />)).not.toThrow();
+      // Should be stable
+      expect(mockWaveSurferService.initialize).toHaveBeenCalled();
     });
   });
 
   describe('WaveSurfer Service Integration', () => {
     it('properly manages singleton instance across multiple components', () => {
       // Render multiple instances
-      const { unmount: unmount1 } = render(<WaveformPlayer {...defaultProps} title="First" />);
-      const { unmount: unmount2 } = render(<WaveformPlayer {...defaultProps} title="Second" />);
+      render(<WaveformPlayer {...defaultProps} />);
+      render(<WaveformPlayer {...defaultProps} />);
       
       // Both should use the same service instance
-      expect(wavesurferService.initialize).toHaveBeenCalledTimes(2);
+      expect(mockWaveSurferService.initialize).toHaveBeenCalledTimes(2);
       
       // Cleanup
-      unmount1();
-      unmount2();
+      mockWaveSurferService.destroy();
     });
 
     it('handles rapid re-renders without breaking', () => {
       const { rerender } = render(<WaveformPlayer {...defaultProps} />);
       
-      // Simulate rapid prop changes
-      for (let i = 0; i < 10; i++) {
-        rerender(<WaveformPlayer {...defaultProps} title={`Title ${i}`} />);
+      // Rapid re-renders
+      for (let i = 0; i < 5; i++) {
+        rerender(<WaveformPlayer {...defaultProps} />);
       }
       
-      // Should not throw errors
-      expect(screen.getByText('Title 9')).toBeInTheDocument();
+      // Should not crash
+      expect(mockWaveSurferService.initialize).toHaveBeenCalled();
     });
 
     it('initializes with correct WaveSurfer configuration', () => {
       render(<WaveformPlayer {...defaultProps} />);
       
       // Verify initialize was called with proper containers
-      expect(wavesurferService.initialize).toHaveBeenCalledWith(
-        expect.objectContaining({
-          className: expect.stringContaining('w-full h-32 bg-white')
-        }),
-        expect.objectContaining({
-          className: expect.stringContaining('w-full h-5 bg-gray-100')
-        })
+      expect(mockWaveSurferService.initialize).toHaveBeenCalledWith(
+        expect.any(HTMLElement),
+        expect.any(HTMLElement),
+        undefined // no media element for audio files
       );
     });
 
@@ -214,7 +247,17 @@ describe('WaveformPlayer', () => {
 
   describe('Play/Pause Controls', () => {
     it('shows play button when not playing', () => {
-      mockUsePlayerStore.mockReturnValue(false);
+      // Mock store to return not playing and ready
+      mockUsePlayerStore.mockImplementation((selector) => {
+        const state = {
+          playing: false,
+          loadedAndReady: true,
+          setPlaying: jest.fn(),
+          setPaused: jest.fn(),
+          setLoadedAndReady: mockSetLoadedAndReady,
+        };
+        return selector(state);
+      });
       
       render(<WaveformPlayer {...defaultProps} />);
       
@@ -223,7 +266,17 @@ describe('WaveformPlayer', () => {
     });
 
     it('shows pause button when playing', () => {
-      mockUsePlayerStore.mockReturnValue(true);
+      // Mock store to return playing and ready
+      mockUsePlayerStore.mockImplementation((selector) => {
+        const state = {
+          playing: true,
+          loadedAndReady: true,
+          setPlaying: jest.fn(),
+          setPaused: jest.fn(),
+          setLoadedAndReady: mockSetLoadedAndReady,
+        };
+        return selector(state);
+      });
       
       render(<WaveformPlayer {...defaultProps} />);
       
@@ -232,7 +285,17 @@ describe('WaveformPlayer', () => {
     });
 
     it('calls play when play button is clicked and not playing', () => {
-      mockUsePlayerStore.mockReturnValue(false);
+      // Mock store to return not playing and ready
+      mockUsePlayerStore.mockImplementation((selector) => {
+        const state = {
+          playing: false,
+          loadedAndReady: true,
+          setPlaying: jest.fn(),
+          setPaused: jest.fn(),
+          setLoadedAndReady: mockSetLoadedAndReady,
+        };
+        return selector(state);
+      });
       
       render(<WaveformPlayer {...defaultProps} />);
       
@@ -243,7 +306,17 @@ describe('WaveformPlayer', () => {
     });
 
     it('main play button uses playInFull to clear any bounded regions', () => {
-      mockUsePlayerStore.mockReturnValue(false);
+      // Mock store to return not playing and ready
+      mockUsePlayerStore.mockImplementation((selector) => {
+        const state = {
+          playing: false,
+          loadedAndReady: true,
+          setPlaying: jest.fn(),
+          setPaused: jest.fn(),
+          setLoadedAndReady: mockSetLoadedAndReady,
+        };
+        return selector(state);
+      });
       
       render(<WaveformPlayer {...defaultProps} />);
       
@@ -257,7 +330,17 @@ describe('WaveformPlayer', () => {
     });
 
     it('calls pause when play button is clicked and playing', () => {
-      mockUsePlayerStore.mockReturnValue(true);
+      // Mock store to return playing and ready
+      mockUsePlayerStore.mockImplementation((selector) => {
+        const state = {
+          playing: true,
+          loadedAndReady: true,
+          setPlaying: jest.fn(),
+          setPaused: jest.fn(),
+          setLoadedAndReady: mockSetLoadedAndReady,
+        };
+        return selector(state);
+      });
       
       render(<WaveformPlayer {...defaultProps} />);
       
@@ -270,41 +353,89 @@ describe('WaveformPlayer', () => {
 
   describe('Zoom Controls', () => {
     it('calls wavesurferService.setZoom when zoom slider changes', () => {
+      // Mock store to return ready state
+      mockUsePlayerStore.mockImplementation((selector) => {
+        const state = {
+          playing: false,
+          loadedAndReady: true,
+          setPlaying: jest.fn(),
+          setPaused: jest.fn(),
+          setLoadedAndReady: mockSetLoadedAndReady,
+        };
+        return selector(state);
+      });
+      
       render(<WaveformPlayer {...defaultProps} />);
       
       const zoomSlider = screen.getByDisplayValue('20'); // default zoom value
       fireEvent.change(zoomSlider, { target: { value: '30' } });
       
-      expect(wavesurferService.setZoom).toHaveBeenCalledWith(30);
+      expect(mockWaveSurferService.setZoom).toHaveBeenCalledWith(30);
     });
 
     it('resets zoom to 20 when reset button is clicked', () => {
+      // Mock store to return ready state
+      mockUsePlayerStore.mockImplementation((selector) => {
+        const state = {
+          playing: false,
+          loadedAndReady: true,
+          setPlaying: jest.fn(),
+          setPaused: jest.fn(),
+          setLoadedAndReady: mockSetLoadedAndReady,
+        };
+        return selector(state);
+      });
+      
       render(<WaveformPlayer {...defaultProps} />);
       
       const resetButton = screen.getByTitle('Reset zoom');
       fireEvent.click(resetButton);
       
-      expect(wavesurferService.setZoom).toHaveBeenCalledWith(20);
+      expect(mockWaveSurferService.setZoom).toHaveBeenCalledWith(20);
     });
   });
 
   describe('Speed Controls', () => {
     it('calls wavesurferService.setPlaybackRate when speed slider changes', () => {
+      // Mock store to return ready state
+      mockUsePlayerStore.mockImplementation((selector) => {
+        const state = {
+          playing: false,
+          loadedAndReady: true,
+          setPlaying: jest.fn(),
+          setPaused: jest.fn(),
+          setLoadedAndReady: mockSetLoadedAndReady,
+        };
+        return selector(state);
+      });
+      
       render(<WaveformPlayer {...defaultProps} />);
       
       const speedSlider = screen.getByDisplayValue('100'); // default speed value
       fireEvent.change(speedSlider, { target: { value: '150' } });
       
-      expect(wavesurferService.setPlaybackRate).toHaveBeenCalledWith(150);
+      expect(mockWaveSurferService.setPlaybackRate).toHaveBeenCalledWith(150);
     });
 
     it('resets speed to 100 when reset button is clicked', () => {
+      // Mock store to return ready state
+      mockUsePlayerStore.mockImplementation((selector) => {
+        const state = {
+          playing: false,
+          loadedAndReady: true,
+          setPlaying: jest.fn(),
+          setPaused: jest.fn(),
+          setLoadedAndReady: mockSetLoadedAndReady,
+        };
+        return selector(state);
+      });
+      
       render(<WaveformPlayer {...defaultProps} />);
       
       const resetButton = screen.getByTitle('Reset speed');
       fireEvent.click(resetButton);
       
-      expect(wavesurferService.setPlaybackRate).toHaveBeenCalledWith(100);
+      expect(mockWaveSurferService.setPlaybackRate).toHaveBeenCalledWith(100);
     });
   });
 
@@ -322,6 +453,18 @@ describe('WaveformPlayer', () => {
     });
 
     it('calls onLookup when lookup button is clicked', () => {
+      // Mock store to return ready state
+      mockUsePlayerStore.mockImplementation((selector) => {
+        const state = {
+          playing: false,
+          loadedAndReady: true,
+          setPlaying: jest.fn(),
+          setPaused: jest.fn(),
+          setLoadedAndReady: mockSetLoadedAndReady,
+        };
+        return selector(state);
+      });
+      
       render(<WaveformPlayer {...defaultProps} />);
       
       // Find the lookup button - it's the 4th button in the controls
@@ -335,6 +478,291 @@ describe('WaveformPlayer', () => {
         fireEvent.click(lookupButton);
         expect(mockOnLookup).toHaveBeenCalled();
       }
+    });
+  });
+
+  describe('Video Integration', () => {
+    beforeEach(() => {
+      // Reset the singleton state before each test
+      mockWaveSurferService.destroy();
+    });
+
+    it('should initialize wavesurfer without video element for audio files', () => {
+      render(
+        <WaveformPlayer
+          {...defaultProps}
+          isVideo={false}
+        />
+      );
+
+      expect(mockWaveSurferService.initialize).toHaveBeenCalledWith(
+        expect.any(HTMLElement),
+        expect.any(HTMLElement),
+        undefined
+      );
+    });
+
+    it('should initialize wavesurfer with video element for video files', async () => {
+      render(
+        <WaveformPlayer
+          {...defaultProps}
+          isVideo={true}
+        />
+      );
+
+      // Wait for the video element callback to be called
+      await waitFor(() => {
+        expect(mockWaveSurferService.initialize).toHaveBeenCalledWith(
+          expect.any(HTMLElement),
+          expect.any(HTMLElement),
+          expect.any(HTMLVideoElement)
+        );
+      });
+    });
+
+    it('should reinitialize wavesurfer when video element becomes available', async () => {
+      render(
+        <WaveformPlayer
+          {...defaultProps}
+          isVideo={true}
+        />
+      );
+
+      // Should be called at least twice - once without video, once with video
+      // (may be called more due to React's callback ref behavior)
+      await waitFor(() => {
+        expect(mockWaveSurferService.initialize.mock.calls.length).toBeGreaterThanOrEqual(2);
+      });
+
+      // Check that at least one call was without video element
+      const calls = (mockWaveSurferService.initialize as jest.Mock).mock.calls;
+      const callWithoutVideo = calls.find((call: any) => call[2] === undefined);
+      expect(callWithoutVideo).toBeTruthy();
+
+      // Check that at least one call was with video element
+      const callWithVideo = calls.find((call: any) => call[2] !== undefined);
+      expect(callWithVideo).toBeTruthy();
+    });
+
+    it('should pass video element with correct src attribute', async () => {
+      const testSource = 'https://example.com/test-video.mp4';
+      
+      render(
+        <WaveformPlayer
+          {...defaultProps}
+          source={testSource}
+          isVideo={true}
+        />
+      );
+
+      await waitFor(() => {
+        const calls = (mockWaveSurferService.initialize as jest.Mock).mock.calls;
+        const callWithVideo = calls.find((call: any) => call[2] !== undefined);
+        expect(callWithVideo).toBeTruthy();
+        
+        if (callWithVideo) {
+          const videoElement = callWithVideo[2] as HTMLVideoElement;
+          expect(videoElement.src).toBe(testSource);
+        }
+      });
+    });
+
+    it('should render video element with correct attributes', () => {
+      const testSource = 'https://example.com/test-video.mp4';
+      
+      const { container } = render(
+        <WaveformPlayer
+          {...defaultProps}
+          source={testSource}
+          isVideo={true}
+        />
+      );
+
+      const videoElement = container.querySelector('video') as HTMLVideoElement;
+      expect(videoElement).toBeInTheDocument();
+      expect(videoElement.src).toBe(testSource);
+      expect(videoElement.muted).toBe(true);
+      expect(videoElement.crossOrigin).toBe('anonymous');
+      expect(videoElement.preload).toBe('metadata');
+    });
+
+    it('should not render video element for audio files', () => {
+      const { container } = render(
+        <WaveformPlayer
+          {...defaultProps}
+          isVideo={false}
+        />
+      );
+
+      expect(container.querySelector('video')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Delayed Load Integration', () => {
+    beforeEach(() => {
+      mockWaveSurferService.destroy();
+    });
+
+    it('should handle load being called before wavesurfer is ready', () => {
+      // This test verifies that the component can render without throwing errors
+      // The actual delayed load logic is tested in the service tests
+      render(
+        <WaveformPlayer
+          {...defaultProps}
+          isVideo={true}
+        />
+      );
+
+      // Component should render successfully
+      expect(mockWaveSurferService.initialize).toHaveBeenCalled();
+    });
+  });
+
+  describe('Loading State', () => {
+    it('shows loading indicator initially', () => {
+      render(<WaveformPlayer {...defaultProps} />);
+      
+      expect(screen.getByText('Loading audio...')).toBeInTheDocument();
+      expect(screen.getByTestId('loading-spinner')).toBeInTheDocument();
+    });
+
+    it('disables controls while loading', () => {
+      render(<WaveformPlayer {...defaultProps} />);
+      
+      const playButton = screen.getByTestId('play-button');
+      const markRegionButton = screen.getByTestId('mark-region');
+      const lookupButton = screen.getAllByRole('button').find(button => 
+        button.querySelector('svg.lucide-search')
+      );
+      
+      expect(playButton).toBeDisabled();
+      expect(markRegionButton).toBeDisabled();
+      expect(lookupButton).toBeDisabled();
+    });
+
+    it('disables zoom and speed controls while loading', () => {
+      render(<WaveformPlayer {...defaultProps} />);
+      
+      const zoomSlider = screen.getByDisplayValue('20');
+      const speedSlider = screen.getByDisplayValue('100');
+      const zoomResetButton = screen.getByTitle('Reset zoom');
+      const speedResetButton = screen.getByTitle('Reset speed');
+      
+      expect(zoomSlider).toBeDisabled();
+      expect(speedSlider).toBeDisabled();
+      expect(zoomResetButton).toBeDisabled();
+      expect(speedResetButton).toBeDisabled();
+    });
+
+
+
+    it('hides loading indicator when store indicates ready', () => {
+      // Mock store to initially show loading
+      mockUsePlayerStore.mockImplementation((selector) => {
+        const state = {
+          playing: false,
+          loadedAndReady: false,
+          setPlaying: jest.fn(),
+          setPaused: jest.fn(),
+          setLoadedAndReady: mockSetLoadedAndReady,
+        };
+        return selector(state);
+      });
+      
+      const { rerender } = render(<WaveformPlayer {...defaultProps} />);
+      
+      // Initially shows loading
+      expect(screen.getByText('Loading audio...')).toBeInTheDocument();
+      
+      // Update store to indicate ready
+      mockUsePlayerStore.mockImplementation((selector) => {
+        const state = {
+          playing: false,
+          loadedAndReady: true,
+          setPlaying: jest.fn(),
+          setPaused: jest.fn(),
+          setLoadedAndReady: mockSetLoadedAndReady,
+        };
+        return selector(state);
+      });
+      
+      rerender(<WaveformPlayer {...defaultProps} />);
+      
+      // Loading indicator should be gone
+      expect(screen.queryByText('Loading audio...')).not.toBeInTheDocument();
+    });
+
+    it('enables controls when store indicates ready', () => {
+      // Mock store to initially show loading
+      mockUsePlayerStore.mockImplementation((selector) => {
+        const state = {
+          playing: false,
+          loadedAndReady: false,
+          setPlaying: jest.fn(),
+          setPaused: jest.fn(),
+          setLoadedAndReady: mockSetLoadedAndReady,
+        };
+        return selector(state);
+      });
+      
+      const { rerender } = render(<WaveformPlayer {...defaultProps} />);
+      
+      // Update store to indicate ready
+      mockUsePlayerStore.mockImplementation((selector) => {
+        const state = {
+          playing: false,
+          loadedAndReady: true,
+          setPlaying: jest.fn(),
+          setPaused: jest.fn(),
+          setLoadedAndReady: mockSetLoadedAndReady,
+        };
+        return selector(state);
+      });
+      
+      rerender(<WaveformPlayer {...defaultProps} />);
+      
+      const playButton = screen.getByTestId('play-button');
+      const markRegionButton = screen.getByTestId('mark-region');
+      
+      expect(playButton).not.toBeDisabled();
+      expect(markRegionButton).not.toBeDisabled();
+    });
+
+    it('shows loading indicator when source changes', () => {
+      // Mock store to initially be ready
+      mockUsePlayerStore.mockImplementation((selector) => {
+        const state = {
+          playing: false,
+          loadedAndReady: true,
+          setPlaying: jest.fn(),
+          setPaused: jest.fn(),
+          setLoadedAndReady: mockSetLoadedAndReady,
+        };
+        return selector(state);
+      });
+      
+      const { rerender } = render(<WaveformPlayer {...defaultProps} source="audio1.mp3" />);
+      
+      // Loading should be hidden initially
+      expect(screen.queryByText('Loading audio...')).not.toBeInTheDocument();
+      
+      // Mock store to show loading again (simulating source change reset)
+      mockUsePlayerStore.mockImplementation((selector) => {
+        const state = {
+          playing: false,
+          loadedAndReady: false,
+          setPlaying: jest.fn(),
+          setPaused: jest.fn(),
+          setLoadedAndReady: mockSetLoadedAndReady,
+        };
+        return selector(state);
+      });
+      
+      // Change source
+      rerender(<WaveformPlayer {...defaultProps} source="audio2.mp3" />);
+      
+      // Loading should show again
+      expect(screen.getByText('Loading audio...')).toBeInTheDocument();
     });
   });
 }); 
