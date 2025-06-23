@@ -243,7 +243,6 @@ export const WaveformPlayer = ({
         <video
           ref={setVideoElement}
           src={source}
-          muted
           crossOrigin="anonymous"
           preload="metadata"
           className="fixed bottom-4 right-4 max-w-[350px] max-h-[350px] z-[190] shadow-lg cursor-pointer rounded md:max-w-[350px] md:max-h-[350px] max-w-[250px] max-h-[200px]"
