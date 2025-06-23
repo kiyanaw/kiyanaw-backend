@@ -255,13 +255,32 @@ export const useEditorStore = create<EditorState>()(
 
       deleteRegion: async (regionId) => {
         try {
-          const { regionMap } = get();
+          const { regionMap, regions, selectedRegionId } = get();
           const region = regionMap[regionId];
           if (!region) return;
 
-          await DataStore.delete(region);
+          // Remove from local state immediately (optimistic update)
+          const newRegionMap = { ...regionMap };
+          delete newRegionMap[regionId];
+          
+          const newRegions = regions.filter(r => r.id !== regionId);
+          
+          // Clear selected region if it's the one being deleted
+          const updates: any = {
+            regionMap: newRegionMap,
+            regions: newRegions,
+          };
+          
+          if (selectedRegionId === regionId) {
+            updates.selectedRegionId = null;
+            updates.selectedRegion = null;
+          }
+          
+          set(updates);
+
+          // Note: Backend deletion is now handled by the use-case, not here
         } catch (error) {
-          console.error('Error deleting region:', error);
+          console.error('Error deleting region from store:', error);
         }
       },
 

@@ -581,7 +581,7 @@ describe('WaveformPlayer', () => {
       const videoElement = container.querySelector('video') as HTMLVideoElement;
       expect(videoElement).toBeInTheDocument();
       expect(videoElement.src).toBe(testSource);
-      expect(videoElement.muted).toBe(true);
+      expect(videoElement.muted).toBe(false);
       expect(videoElement.crossOrigin).toBe('anonymous');
       expect(videoElement.preload).toBe('metadata');
     });

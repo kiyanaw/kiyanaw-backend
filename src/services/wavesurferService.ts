@@ -199,10 +199,15 @@ class WaveSurferService {
      * media or click somewhere else. 
      */
     this.regionsPlugin?.on('region-in', (event: any) => {
+      // Guard against deleted regions
+      if (!event?.element) {
+        return;
+      }
+      
       const previouslyHighlightedInboundRegion = this._inboundRegionCurrentHighlighted !== null;
       const newRegionInIsDifferent = previouslyHighlightedInboundRegion && this._inboundRegionCurrentHighlighted.id !== event.id;
       const needToClearHighlight = newRegionInIsDifferent;
-      if (needToClearHighlight) {
+      if (needToClearHighlight && this._inboundRegionCurrentHighlighted?.element) {
         this._inboundRegionCurrentHighlighted.element.style.backgroundColor = this.REGION_BACKGROUND_COLOR;
       }
       // Set highlight color when entering region
@@ -226,6 +231,11 @@ class WaveSurferService {
         this._inboundRegionIgnoreNextOut = false
         return
       }
+      // Guard against deleted regions
+      if (!event?.element) {
+        return;
+      }
+      
       // Restore original background color when leaving region
       event.element.style.backgroundColor = this.REGION_BACKGROUND_COLOR
       // Clear current highlighted region tracking if this is the one leaving

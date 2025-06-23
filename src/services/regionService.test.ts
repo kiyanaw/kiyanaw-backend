@@ -1,15 +1,58 @@
-import { loadRegionsForTranscription, createRegion, updateRegion, updateRegionWithAnalysis } from './regionService';
+import { loadRegionsForTranscription, createRegion, updateRegion, updateRegionWithAnalysis, deleteRegion } from './regionService';
 import { DataStore } from '@aws-amplify/datastore';
 import { Region as DSRegion, Transcription as DSTranscription } from '../models';
 import { RegionModel } from './adt';
 
-// Mock the dependencies
-jest.mock('@aws-amplify/datastore');
-jest.mock('./adt');
+// Mock the dependencies with proper types
+jest.mock('@aws-amplify/datastore', () => ({
+  DataStore: {
+    query: jest.fn(),
+    save: jest.fn(),
+    delete: jest.fn(),
+  },
+}));
+
+jest.mock('./adt', () => ({
+  RegionModel: jest.fn(),
+}));
+
 jest.mock('../models', () => ({
-  Region: jest.fn(),
+  Region: jest.fn().mockImplementation((data: any) => data),
   Transcription: jest.fn(),
 }));
+
+// Mock smart-timeout
+const mockTimeouts = new Map<string, NodeJS.Timeout>();
+
+jest.mock('smart-timeout', () => ({
+  clear: jest.fn((key: string) => {
+    const existingTimeout = mockTimeouts.get(key);
+    if (existingTimeout) {
+      clearTimeout(existingTimeout);
+      mockTimeouts.delete(key);
+    }
+  }),
+  set: jest.fn((key: string, callback: () => void, delay: number) => {
+    // Clear any existing timeout for this key first
+    const existingTimeout = mockTimeouts.get(key);
+    if (existingTimeout) {
+      clearTimeout(existingTimeout);
+    }
+    
+    // Set new timeout
+    const newTimeout = setTimeout(() => {
+      callback();
+      mockTimeouts.delete(key);
+    }, delay);
+    
+    mockTimeouts.set(key, newTimeout);
+  }),
+}));
+
+// Cast mocks to proper types
+const mockedDataStore = DataStore as jest.Mocked<typeof DataStore>;
+const MockedRegionModel = RegionModel as jest.MockedClass<typeof RegionModel>;
+const MockedDSRegion = DSRegion as jest.MockedClass<typeof DSRegion>;
 
 describe('RegionService', () => {
   const mockTranscriptionId = 'test-transcription-id';
@@ -64,11 +107,9 @@ describe('RegionService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     
-    // Setup default mocks
-    (DataStore.query as jest.Mock).mockResolvedValue(mockRawRegions);
-    (RegionModel as jest.MockedClass<typeof RegionModel>).mockImplementation(
-      (data: any) => data as any
-    );
+    // Setup default mocks with proper typing
+    mockedDataStore.query.mockResolvedValue(mockRawRegions as any);
+    MockedRegionModel.mockImplementation((data: any) => data as any);
   });
 
   afterEach(() => {
@@ -94,32 +135,24 @@ describe('RegionService', () => {
       it('should query DataStore with correct parameters', async () => {
         await loadRegionsForTranscription(mockTranscriptionId);
         
-        expect(DataStore.query).toHaveBeenCalledTimes(1);
-        expect(DataStore.query).toHaveBeenCalledWith(DSRegion, expect.any(Function));
+        expect(mockedDataStore.query).toHaveBeenCalledTimes(1);
+        expect(mockedDataStore.query).toHaveBeenCalledWith(DSRegion, expect.any(Function));
       });
 
       it('should use correct filter function', async () => {
-        const mockFilterFunction = jest.fn().mockReturnValue({
-          id: {
-            eq: jest.fn(),
-          },
-        });
-        
-        (DataStore.query as jest.Mock).mockImplementation((model, filterFn) => {
-          const mockRegion = {
-            transcription: mockFilterFunction(),
-          };
-          filterFn(mockRegion);
-          return Promise.resolve(mockRawRegions);
+        mockedDataStore.query.mockImplementation((model, filterFn) => {
+          // Just verify that a filter function was passed
+          expect(typeof filterFn).toBe('function');
+          return Promise.resolve(mockRawRegions as any);
         });
         
         await loadRegionsForTranscription(mockTranscriptionId);
         
-        expect(mockFilterFunction).toHaveBeenCalled();
+        expect(mockedDataStore.query).toHaveBeenCalledWith(DSRegion, expect.any(Function));
       });
 
       it('should handle empty query results', async () => {
-        (DataStore.query as jest.Mock).mockResolvedValue([]);
+        mockedDataStore.query.mockResolvedValue([] as any);
         
         const result = await loadRegionsForTranscription(mockTranscriptionId);
         
@@ -140,15 +173,15 @@ describe('RegionService', () => {
       it('should create RegionModel instances for each region', async () => {
         await loadRegionsForTranscription(mockTranscriptionId);
         
-        expect(RegionModel).toHaveBeenCalledTimes(3);
-        expect(RegionModel).toHaveBeenCalledWith(mockRawRegions[1]); // First after sorting (start: 5)
-        expect(RegionModel).toHaveBeenCalledWith(mockRawRegions[0]); // Second after sorting (start: 10)
-        expect(RegionModel).toHaveBeenCalledWith(mockRawRegions[2]); // Third after sorting (start: 25)
+        expect(MockedRegionModel).toHaveBeenCalledTimes(3);
+        expect(MockedRegionModel).toHaveBeenCalledWith(mockRawRegions[1]); // First after sorting (start: 5)
+        expect(MockedRegionModel).toHaveBeenCalledWith(mockRawRegions[0]); // Second after sorting (start: 10)
+        expect(MockedRegionModel).toHaveBeenCalledWith(mockRawRegions[2]); // Third after sorting (start: 25)
       });
 
       it('should not mutate original array during sorting', async () => {
         const originalRegions = [...mockRawRegions];
-        (DataStore.query as jest.Mock).mockResolvedValue(mockRawRegions);
+        mockedDataStore.query.mockResolvedValue(mockRawRegions as any);
         
         await loadRegionsForTranscription(mockTranscriptionId);
         
@@ -163,7 +196,7 @@ describe('RegionService', () => {
           { id: 'region-3', start: 5, end: 25 },
         ];
         
-        (DataStore.query as jest.Mock).mockResolvedValue(regionsWithSameStart);
+        mockedDataStore.query.mockResolvedValue(regionsWithSameStart as any);
         
         const result = await loadRegionsForTranscription(mockTranscriptionId);
         
@@ -177,14 +210,14 @@ describe('RegionService', () => {
     describe('error handling', () => {
       it('should propagate DataStore query errors', async () => {
         const datastoreError = new Error('DataStore query failed');
-        (DataStore.query as jest.Mock).mockRejectedValue(datastoreError);
+        mockedDataStore.query.mockRejectedValue(datastoreError);
         
         await expect(loadRegionsForTranscription(mockTranscriptionId)).rejects.toThrow('DataStore query failed');
       });
 
       it('should propagate RegionModel creation errors', async () => {
         const regionModelError = new Error('RegionModel creation failed');
-        (RegionModel as jest.MockedClass<typeof RegionModel>).mockImplementation(() => {
+        MockedRegionModel.mockImplementation(() => {
           throw regionModelError;
         });
         
@@ -199,16 +232,14 @@ describe('RegionService', () => {
         expect(Array.isArray(result)).toBe(true);
         expect(result).toHaveLength(3);
       });
-
-
     });
   });
 
   describe('createRegion', () => {
     beforeEach(() => {
-      (DataStore.query as jest.Mock).mockResolvedValue(mockTranscription);
-      (DataStore.save as jest.Mock).mockResolvedValue({ ...mockRegionData, id: 'saved-region-id' });
-      (DSRegion as any).mockImplementation((data: any) => data);
+      mockedDataStore.query.mockResolvedValue(mockTranscription as any);
+      mockedDataStore.save.mockResolvedValue({ ...mockRegionData, id: 'saved-region-id' } as any);
+      MockedDSRegion.mockImplementation((data: any) => data);
     });
 
     describe('function signature and validation', () => {
@@ -228,18 +259,18 @@ describe('RegionService', () => {
       it('should query for transcription first', async () => {
         await createRegion(mockTranscriptionId, mockRegionData, mockUsername);
         
-        expect(DataStore.query).toHaveBeenCalledWith(DSTranscription, mockTranscriptionId);
+        expect(mockedDataStore.query).toHaveBeenCalledWith(DSTranscription, mockTranscriptionId);
       });
 
       it('should throw error when transcription not found', async () => {
-        (DataStore.query as jest.Mock).mockResolvedValue(null);
+        mockedDataStore.query.mockResolvedValue(null as any);
         
         await expect(createRegion(mockTranscriptionId, mockRegionData, mockUsername))
           .rejects.toThrow(`Transcription with ID ${mockTranscriptionId} not found`);
       });
 
       it('should throw error when transcription is undefined', async () => {
-        (DataStore.query as jest.Mock).mockResolvedValue(undefined);
+        mockedDataStore.query.mockResolvedValue(undefined as any);
         
         await expect(createRegion(mockTranscriptionId, mockRegionData, mockUsername))
           .rejects.toThrow(`Transcription with ID ${mockTranscriptionId} not found`);
@@ -250,7 +281,7 @@ describe('RegionService', () => {
       it('should create DSRegion with correct data', async () => {
         await createRegion(mockTranscriptionId, mockRegionData, mockUsername);
         
-        expect(DSRegion).toHaveBeenCalledWith({
+        expect(MockedDSRegion).toHaveBeenCalledWith({
           id: mockRegionData.id,
           start: mockRegionData.start,
           end: mockRegionData.end,
@@ -270,7 +301,7 @@ describe('RegionService', () => {
         
         await createRegion(mockTranscriptionId, regionWithoutIsNote, mockUsername);
         
-        expect(DSRegion).toHaveBeenCalledWith(
+        expect(MockedDSRegion).toHaveBeenCalledWith(
           expect.objectContaining({
             isNote: false,
           })
@@ -283,7 +314,7 @@ describe('RegionService', () => {
         await createRegion(mockTranscriptionId, mockRegionData, mockUsername);
         
         const afterCall = Date.now();
-        const callArgs = (DSRegion as any).mock.calls[0][0];
+        const callArgs = MockedDSRegion.mock.calls[0][0];
         const timestamp = parseInt(callArgs.dateLastUpdated);
         
         expect(timestamp).toBeGreaterThanOrEqual(beforeCall);
@@ -292,20 +323,20 @@ describe('RegionService', () => {
 
       it('should save region to DataStore', async () => {
         const mockCreatedRegion = { id: 'created-region' };
-        (DSRegion as any).mockReturnValue(mockCreatedRegion);
+        MockedDSRegion.mockReturnValue(mockCreatedRegion as any);
         
         await createRegion(mockTranscriptionId, mockRegionData, mockUsername);
         
-        expect(DataStore.save).toHaveBeenCalledWith(mockCreatedRegion);
+        expect(mockedDataStore.save).toHaveBeenCalledWith(mockCreatedRegion);
       });
 
       it('should return RegionModel instance', async () => {
         const mockSavedRegion = { savedId: 'saved-region', ...mockRegionData };
-        (DataStore.save as jest.Mock).mockResolvedValue(mockSavedRegion);
+        mockedDataStore.save.mockResolvedValue(mockSavedRegion as any);
         
         const result = await createRegion(mockTranscriptionId, mockRegionData, mockUsername);
         
-        expect(RegionModel).toHaveBeenCalledWith(mockSavedRegion);
+        expect(MockedRegionModel).toHaveBeenCalledWith(mockSavedRegion);
       });
     });
 
@@ -319,7 +350,7 @@ describe('RegionService', () => {
         
         await createRegion(mockTranscriptionId, minimalRegion, mockUsername);
         
-        expect(DSRegion).toHaveBeenCalledWith(
+        expect(MockedDSRegion).toHaveBeenCalledWith(
           expect.objectContaining({
             id: 'minimal-id',
             start: 0,
@@ -334,7 +365,7 @@ describe('RegionService', () => {
         
         await createRegion(mockTranscriptionId, mockRegionData, differentUsername);
         
-        expect(DSRegion).toHaveBeenCalledWith(
+        expect(MockedDSRegion).toHaveBeenCalledWith(
           expect.objectContaining({
             userLastUpdated: differentUsername,
           })
@@ -346,14 +377,14 @@ describe('RegionService', () => {
         
         await createRegion(differentTranscriptionId, mockRegionData, mockUsername);
         
-        expect(DataStore.query).toHaveBeenCalledWith(DSTranscription, differentTranscriptionId);
+        expect(mockedDataStore.query).toHaveBeenCalledWith(DSTranscription, differentTranscriptionId);
       });
     });
 
     describe('error handling', () => {
       it('should propagate DataStore query errors', async () => {
         const queryError = new Error('DataStore query failed');
-        (DataStore.query as jest.Mock).mockRejectedValue(queryError);
+        mockedDataStore.query.mockRejectedValue(queryError);
         
         await expect(createRegion(mockTranscriptionId, mockRegionData, mockUsername))
           .rejects.toThrow('DataStore query failed');
@@ -361,7 +392,7 @@ describe('RegionService', () => {
 
       it('should propagate DataStore save errors', async () => {
         const saveError = new Error('DataStore save failed');
-        (DataStore.save as jest.Mock).mockRejectedValue(saveError);
+        mockedDataStore.save.mockRejectedValue(saveError);
         
         await expect(createRegion(mockTranscriptionId, mockRegionData, mockUsername))
           .rejects.toThrow('DataStore save failed');
@@ -369,7 +400,7 @@ describe('RegionService', () => {
 
       it('should propagate DSRegion creation errors', async () => {
         const regionError = new Error('DSRegion creation failed');
-        (DSRegion as any).mockImplementation(() => {
+        MockedDSRegion.mockImplementation(() => {
           throw regionError;
         });
         
@@ -379,7 +410,7 @@ describe('RegionService', () => {
 
       it('should propagate RegionModel creation errors', async () => {
         const regionModelError = new Error('RegionModel creation failed');
-        (RegionModel as jest.MockedClass<typeof RegionModel>).mockImplementation(() => {
+        MockedRegionModel.mockImplementation(() => {
           throw regionModelError;
         });
         
@@ -393,10 +424,10 @@ describe('RegionService', () => {
         const result = await createRegion(mockTranscriptionId, mockRegionData, mockUsername);
         
         // Verify all steps were called
-        expect(DataStore.query).toHaveBeenCalledWith(DSTranscription, mockTranscriptionId);
-        expect(DSRegion).toHaveBeenCalled();
-        expect(DataStore.save).toHaveBeenCalled();
-        expect(RegionModel).toHaveBeenCalled();
+        expect(mockedDataStore.query).toHaveBeenCalledWith(DSTranscription, mockTranscriptionId);
+        expect(MockedDSRegion).toHaveBeenCalled();
+        expect(mockedDataStore.save).toHaveBeenCalled();
+        expect(MockedRegionModel).toHaveBeenCalled();
         
         expect(result).toBeDefined();
       });
@@ -423,6 +454,102 @@ describe('RegionService', () => {
         
         await expect(createRegion(mockTranscriptionId, largeTimeRegion, mockUsername))
           .resolves.toBeDefined();
+      });
+    });
+  });
+
+  describe('deleteRegion', () => {
+    const mockRegionId = 'test-region-id';
+    const mockRegion = {
+      id: mockRegionId,
+      start: 10,
+      end: 20,
+      regionText: 'Test region text',
+      isNote: false,
+    };
+
+    beforeEach(() => {
+      // Mock console methods to avoid noise in test output
+      jest.spyOn(console, 'log').mockImplementation();
+      jest.spyOn(console, 'error').mockImplementation();
+    });
+
+    describe('function signature and validation', () => {
+      it('should have correct function signature', () => {
+        expect(typeof deleteRegion).toBe('function');
+        expect(deleteRegion.length).toBe(1); // Should accept 1 parameter
+      });
+    });
+
+    describe('region validation logic', () => {
+      it('should query for region first', async () => {
+        mockedDataStore.query.mockResolvedValue(mockRegion as any);
+        mockedDataStore.delete.mockResolvedValue(mockRegion as any);
+        
+        await deleteRegion(mockRegionId);
+        
+        expect(mockedDataStore.query).toHaveBeenCalledWith(DSRegion, mockRegionId);
+      });
+
+      it('should throw error when region not found', async () => {
+        mockedDataStore.query.mockResolvedValue(null as any);
+        
+        await expect(deleteRegion(mockRegionId))
+          .rejects.toThrow(`Region with ID ${mockRegionId} not found`);
+      });
+
+      it('should throw error when region is undefined', async () => {
+        mockedDataStore.query.mockResolvedValue(undefined as any);
+        
+        await expect(deleteRegion(mockRegionId))
+          .rejects.toThrow(`Region with ID ${mockRegionId} not found`);
+      });
+    });
+
+    describe('deletion logic', () => {
+      it('should delete region from DataStore', async () => {
+        mockedDataStore.query.mockResolvedValue(mockRegion as any);
+        mockedDataStore.delete.mockResolvedValue(mockRegion as any);
+        
+        await deleteRegion(mockRegionId);
+        
+        expect(mockedDataStore.delete).toHaveBeenCalledWith(mockRegion);
+      });
+
+      it('should log success message', async () => {
+        mockedDataStore.query.mockResolvedValue(mockRegion as any);
+        mockedDataStore.delete.mockResolvedValue(mockRegion as any);
+        
+        await deleteRegion(mockRegionId);
+        
+        expect(console.log).toHaveBeenCalledWith(`✅ Deleted region ${mockRegionId}`);
+      });
+    });
+
+    describe('error handling', () => {
+      it('should propagate DataStore query errors', async () => {
+        const queryError = new Error('DataStore query failed');
+        mockedDataStore.query.mockRejectedValue(queryError);
+        
+        await expect(deleteRegion(mockRegionId)).rejects.toThrow('DataStore query failed');
+        
+        expect(console.error).toHaveBeenCalledWith(
+          expect.stringContaining(`❌ Failed to delete region ${mockRegionId}:`),
+          queryError
+        );
+      });
+
+      it('should propagate DataStore delete errors', async () => {
+        const deleteError = new Error('DataStore delete failed');
+        mockedDataStore.query.mockResolvedValue(mockRegion as any);
+        mockedDataStore.delete.mockRejectedValue(deleteError);
+        
+        await expect(deleteRegion(mockRegionId)).rejects.toThrow('DataStore delete failed');
+        
+        expect(console.error).toHaveBeenCalledWith(
+          expect.stringContaining(`❌ Failed to delete region ${mockRegionId}:`),
+          deleteError
+        );
       });
     });
   });

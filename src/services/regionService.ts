@@ -311,3 +311,34 @@ export const updateRegionWithAnalysis = async (regionId: string, updates: {
   });
 };
 
+/**
+ * Deletes a region from DataStore.
+ * @param regionId The ID of the region to delete
+ * @returns Promise that resolves when deletion is complete
+ */
+export const deleteRegion = async (regionId: string) => {
+  try {
+    // Clear any pending saves for this region
+    const existing = pendingSaves.get(regionId);
+    if (existing) {
+      Timeout.clear(existing.timeoutKey);
+      pendingSaves.delete(regionId);
+    }
+
+    const region = await DataStore.query(DSRegion, regionId);
+    if (!region) {
+      throw new Error(`Region with ID ${regionId} not found`);
+    }
+
+    await DataStore.delete(region);
+    
+    console.log(`✅ Deleted region ${regionId}`);
+    showToast(`Deleted region ${regionId.slice(0, 8)}...`, 'success');
+    
+  } catch (error) {
+    console.error(`❌ Failed to delete region ${regionId}:`, error);
+    showToast(`Failed to delete region ${regionId.slice(0, 8)}...`, 'error');
+    throw error;
+  }
+};
+

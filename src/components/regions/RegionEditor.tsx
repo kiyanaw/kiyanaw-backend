@@ -2,6 +2,7 @@ import { useState, memo } from 'react';
 import { Play, Pause, FileText, AlertTriangle, EyeOff, RotateCcw, Trash2 } from 'lucide-react';
 import { type LightRegion as Region } from '../../services/adt';
 import { useTextEditors } from '../../hooks/useTextEditors';
+import { useDeleteRegion } from '../../hooks/useDeleteRegion';
 
 interface RegionEditorProps {
   region: Region;
@@ -14,6 +15,7 @@ export const RegionEditor = memo(({
   const [isPlaying] = useState(false);
 
   const { mainEditorRef, translationEditorRef } = useTextEditors(region.id, activeTab);
+  const { deleteRegion } = useDeleteRegion();
 
   // Toolbar actions - simplified for now
   const handlePlay = () => {};
@@ -21,7 +23,9 @@ export const RegionEditor = memo(({
   const handleCreateIssue = () => {};
   const handleIgnoreWord = () => {};
   const handleClearFormat = () => {};
-  const handleDeleteRegion = () => {};
+  const handleDeleteRegion = () => {
+    deleteRegion(region.id);
+  };
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);

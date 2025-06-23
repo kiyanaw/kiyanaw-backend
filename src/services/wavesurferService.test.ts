@@ -859,6 +859,51 @@ describe('WaveSurferService', () => {
       expect(wavesurferService['_inboundRegionCurrentHighlighted']).toBeNull();
     });
 
+    it('should handle region events safely when element is null (deleted regions)', () => {
+      wavesurferService.initialize(mockContainer, mockTimelineContainer);
+      
+      // Get the callbacks
+      const regionInCallback = mockRegionsInstance.on.mock.calls.find(
+        (call: any) => call[0] === 'region-in'
+      )[1];
+      const regionOutCallback = mockRegionsInstance.on.mock.calls.find(
+        (call: any) => call[0] === 'region-out'
+      )[1];
+      
+      // Create console spy to verify no errors
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      
+      // Test region-in with null element (should not crash)
+      expect(() => {
+        regionInCallback({
+          id: 'deleted-region',
+          element: null
+        });
+      }).not.toThrow();
+      
+      // Test region-out with null element (should not crash)
+      expect(() => {
+        regionOutCallback({
+          id: 'deleted-region',
+          element: null
+        });
+      }).not.toThrow();
+      
+      // Test with undefined event (should not crash)
+      expect(() => {
+        regionInCallback(null);
+      }).not.toThrow();
+      
+      expect(() => {
+        regionOutCallback(undefined);
+      }).not.toThrow();
+      
+      // Should not have any console errors
+      expect(consoleSpy).not.toHaveBeenCalled();
+      
+      consoleSpy.mockRestore();
+    });
+
     it('should pause audio', () => {
       mockWaveSurferInstance.pause = jest.fn();
       
