@@ -239,6 +239,55 @@ describe('RegionItem', () => {
     expect(mockOnClick).toHaveBeenCalledWith('test-region-1');
   });
 
+  it('should not call onClick when disabled and clicked', () => {
+    render(
+      <RegionItem
+        regionId="test-region-1"
+        index={0}
+        onClick={mockOnClick}
+        disabled={true}
+      />
+    );
+
+    const regionElement = screen.getByTestId('regionitem-test-region-1');
+    fireEvent.click(regionElement);
+
+    expect(mockOnClick).not.toHaveBeenCalled();
+  });
+
+  it('should apply disabled styling when disabled', () => {
+    render(
+      <RegionItem
+        regionId="test-region-1"
+        index={0}
+        onClick={mockOnClick}
+        disabled={true}
+      />
+    );
+
+    const regionElement = screen.getByTestId('regionitem-test-region-1');
+    expect(regionElement).toHaveClass('cursor-not-allowed');
+    expect(regionElement).toHaveClass('opacity-50');
+    expect(regionElement).not.toHaveClass('hover:bg-gray-50');
+  });
+
+  it('should apply normal styling when not disabled', () => {
+    render(
+      <RegionItem
+        regionId="test-region-1"
+        index={0}
+        onClick={mockOnClick}
+        disabled={false}
+      />
+    );
+
+    const regionElement = screen.getByTestId('regionitem-test-region-1');
+    expect(regionElement).toHaveClass('cursor-pointer');
+    expect(regionElement).toHaveClass('hover:bg-gray-50');
+    expect(regionElement).not.toHaveClass('cursor-not-allowed');
+    expect(regionElement).not.toHaveClass('opacity-50');
+  });
+
   it('should show editing users indicator', () => {
     const editingUsers = [
       { user: 'user1', color: '#ff0000' },

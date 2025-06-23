@@ -7,6 +7,7 @@ interface RegionItemProps {
   index: number;
   editingUsers?: Array<{ user: string; color: string }>;
   onClick: (regionId: string) => void;
+  disabled?: boolean;
 }
 
 // This function is now replaced by the centralized textHighlightService
@@ -16,6 +17,7 @@ export const RegionItem = ({
   index,
   editingUsers = [],
   onClick,
+  disabled = false,
 }: RegionItemProps) => {
   // Get region data from store using selector
   const region = useEditorStore((state) => state.regionById(regionId));
@@ -46,7 +48,9 @@ export const RegionItem = ({
   }, [editingUsers]);
 
   const handleClick = () => {
-    onClick(regionId);
+    if (!disabled) {
+      onClick(regionId);
+    }
   };
 
   // Return early if region not found
@@ -56,7 +60,9 @@ export const RegionItem = ({
 
   return (
     <div
-      className="min-h-[25px] border border-gray-400 relative cursor-pointer transition-colors hover:bg-gray-50"
+      className={`min-h-[25px] border border-gray-400 relative transition-colors ${
+        disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-gray-50'
+      }`}
       id={`regionitem-${regionId}`}
       data-testid={`regionitem-${regionId}`}
       onClick={handleClick}

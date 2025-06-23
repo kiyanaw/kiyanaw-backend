@@ -4,6 +4,7 @@ import { RegionItem } from './RegionItem';
 import type { LightRegion } from '../../services/adt';
 import { useSelectAndPlayRegion } from '../../hooks/useSelectAndPlayRegion';
 import { useEditorStore } from '../../stores/useEditorStore';
+import { usePlayerStore } from '../../stores/usePlayerStore';
 
 
 interface RegionListProps {
@@ -19,6 +20,7 @@ export const RegionList = React.memo(({
   const selectedItemRef = useRef<HTMLDivElement>(null);
 
   const selectedRegionId = useEditorStore((state) => state.selectedRegionId);
+  const loadedAndReady = usePlayerStore((state) => state.loadedAndReady);
 
   const playRegion = useSelectAndPlayRegion()
 
@@ -38,7 +40,10 @@ export const RegionList = React.memo(({
   }, [selectedRegionId]);
 
   const handleRegionClick = (regionId: string) => {
-    playRegion(regionId);
+    // Only allow region clicks when audio/video is loaded and ready
+    if (loadedAndReady) {
+      playRegion(regionId);
+    }
   };
 
   if (regions.length === 0) {
@@ -53,7 +58,13 @@ export const RegionList = React.memo(({
   }
 
   return (
-    <div className="h-full flex flex-col bg-white border border-gray-300 rounded overflow-hidden min-h-0" ref={listRef}>
+    <div className={`h-full flex flex-col bg-white border border-gray-300 rounded overflow-hidden min-h-0 relative ${!loadedAndReady ? 'opacity-60' : ''}`} ref={listRef}>
+      {!loadedAndReady && (
+        <div className="absolute inset-0 bg-gray-100 bg-opacity-50 z-10 flex items-center justify-center">
+          <div className="text-sm text-gray-600 font-medium">Loading audio...</div>
+        </div>
+      )}
+      
       <div className="py-3 px-4 bg-gray-100 border-b border-gray-300 flex-shrink-0">
         <h4 className="m-0 text-sm font-semibold text-gray-800 uppercase tracking-wide">Regions ({regions.length})</h4>
       </div>
@@ -69,6 +80,7 @@ export const RegionList = React.memo(({
               regionId={region.id}
               index={index}
               onClick={handleRegionClick}
+              disabled={!loadedAndReady}
             />
           </div>
         ))}
