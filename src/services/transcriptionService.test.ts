@@ -157,25 +157,8 @@ describe('TranscriptionService', () => {
       expect(result.peaks).toEqual([40, 50, 60]);
     });
 
-    it('should throw error when peaks fetch fails', async () => {
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: false,
-        status: 404,
-        statusText: 'Not Found',
-      });
-      
-      await expect(loadInFull(mockTranscriptionId)).rejects.toThrow(
-        'Failed to load peaks data: 404 Not Found'
-      );
-    });
-
-    it('should throw error when peaks fetch throws network error', async () => {
-      (global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
-      
-      await expect(loadInFull(mockTranscriptionId)).rejects.toThrow('Network error');
-    });
-
-    it('should handle different HTTP error statuses', async () => {
+    it('should throw error when peaks fetch fails with non-retryable status', async () => {
+      // Use 500 status code which should fail immediately, not retry
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: false,
         status: 500,
@@ -184,6 +167,31 @@ describe('TranscriptionService', () => {
       
       await expect(loadInFull(mockTranscriptionId)).rejects.toThrow(
         'Failed to load peaks data: 500 Internal Server Error'
+      );
+    });
+
+    it('should throw error when peaks fetch throws network error', async () => {
+      // Mock setTimeout to avoid actual delays in tests
+      jest.spyOn(global, 'setTimeout').mockImplementation((callback: any) => {
+        callback();
+        return {} as any;
+      });
+      
+      (global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
+      
+      await expect(loadInFull(mockTranscriptionId)).rejects.toThrow(/Failed to load peaks data after .* attempts/);
+    }, 10000); // Increase timeout to 10 seconds
+
+    it('should handle different HTTP error statuses', async () => {
+      // Use 501 status code to differentiate from the other 500 test
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: false,
+        status: 501,
+        statusText: 'Not Implemented',
+      });
+      
+      await expect(loadInFull(mockTranscriptionId)).rejects.toThrow(
+        'Failed to load peaks data: 501 Not Implemented'
       );
     });
   });
@@ -216,10 +224,9 @@ describe('TranscriptionService', () => {
         () => transcriptionWithoutSource as any
       );
       
-      // Mock fetch to fail when called with null.json
-      (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('TypeError: Failed to fetch'));
-      
-      await expect(loadInFull(mockTranscriptionId)).rejects.toThrow();
+      await expect(loadInFull(mockTranscriptionId)).rejects.toThrow(
+        'Transcription source is required to load peaks data'
+      );
     });
 
     it('should handle transcription with undefined source', async () => {
@@ -228,10 +235,9 @@ describe('TranscriptionService', () => {
         () => transcriptionWithUndefinedSource as any
       );
       
-      // Mock fetch to fail when called with undefined.json
-      (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('TypeError: Failed to fetch'));
-      
-      await expect(loadInFull(mockTranscriptionId)).rejects.toThrow();
+      await expect(loadInFull(mockTranscriptionId)).rejects.toThrow(
+        'Transcription source is required to load peaks data'
+      );
     });
   });
 

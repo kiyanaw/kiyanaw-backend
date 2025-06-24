@@ -6,6 +6,9 @@ import { browserService } from './browserService';
 import { rteService } from './rteService';
 import { spellCheckerService } from './spellCheckerService';
 import { textHighlightService } from './textHighlightService';
+import { awsConfigService } from './awsConfigService';
+import { uploadService } from './uploadService';
+import { contributorService } from './contributorService';
 
 export const services = {
   userService: authService,
@@ -17,4 +20,7 @@ export const services = {
   rteService,
   spellCheckerService,
   textHighlightService,
+  awsConfigService,
+  uploadService,
+  contributorService,
 };

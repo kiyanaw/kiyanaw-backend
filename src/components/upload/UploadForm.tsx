@@ -1,16 +1,10 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { uploadData } from 'aws-amplify/storage';
-
-import { DataStore } from '@aws-amplify/datastore';
-import {
-  Transcription,
-  TranscriptionContributor,
-  Contributor,
-} from '../../models';
 import { useAuth } from '../../hooks/useAuth';
+import { CreateTranscriptionUseCase } from '../../use-cases/create-transcription';
+import { services } from '../../services';
+import type { UploadProgress } from '../../services/uploadService';
 
-// TODO: refactor this to clean architecture
 export const UploadForm = () => {
   const [title, setTitle] = useState('');
   const [inputFile, setInputFile] = useState<File | null>(null);
@@ -27,6 +21,10 @@ export const UploadForm = () => {
     setInputFile(file);
   };
 
+  const handleProgressUpdate = (progress: UploadProgress) => {
+    setProgress(progress.percentage);
+  };
+
   const uploadFile = async () => {
     if (!inputFile || !title.trim() || !user) return;
 
@@ -34,76 +32,21 @@ export const UploadForm = () => {
       setLoading(true);
       setProgress(0);
 
-      // Upload file to S3 using Amplify v6 Storage API
-      const timestamp = Date.now();
-      const key = `${timestamp}-${inputFile.name}`;
+      const useCase = new CreateTranscriptionUseCase({
+        title,
+        file: inputFile,
+        username: user.username,
+        userId: user.userId,
+        services,
+        onProgress: handleProgressUpdate,
+      });
 
-      await uploadData({
-        key,
-        data: inputFile,
-        options: {
-          // TODO: move this to restricted access
-          accessLevel: 'guest', // equivalent to 'public' in v5
-          onProgress: ({ transferredBytes, totalBytes }) => {
-            if (totalBytes) {
-              const percentage = (transferredBytes / totalBytes) * 100;
-              setProgress(percentage);
-            }
-          },
-        },
-      }).result;
+      const result = await useCase.execute();
 
-      // Construct the source URL
-      // Note: In production, you might want to get this from environment variables
-      const source = `https://s3.amazonaws.com/public/${key}`;
-
-      // Create the transcription record (DataStore will auto-generate ID)
-      const transcription = await DataStore.save(
-        new Transcription({
-          title: title.trim(),
-          // TODO: move this to signed URLs to acccess
-          source,
-          type: inputFile.type,
-          dateLastUpdated: `${Date.now()}`,
-          author: user.username,
-          userLastUpdated: user.username,
-          issues: '',
-          length: 0,
-          coverage: 0,
-          disableAnalyzer: false,
-          isPrivate: false,
-        })
-      );
-
-      console.log('Transcription uploaded:', transcription);
-
-      // Find or create contributor record
-      let contributor = await DataStore.query(Contributor, user.username);
-      if (!contributor) {
-        contributor = await DataStore.save(
-          new Contributor({
-            email: user.userId, // Using userId as email placeholder
-            username: user.username,
-          })
-        );
-      }
-
-      // Create the transcription-contributor link
-      const link = await DataStore.save(
-        new TranscriptionContributor({
-          transcription,
-          contributor,
-        })
-      );
-
-      console.log('Owner added to transcription:', link);
-
-      // Navigate to the editor
-      if (link) {
-        navigate(`/transcribe-edit/${transcription.id}`);
-      }
+      console.log('Transcription created:', result.transcription);
+      navigate(`/transcribe-edit/${result.transcriptionId}`);
     } catch (error) {
-      console.error('Error uploading file:', error);
+      console.error('Error creating transcription:', error);
       // TODO: Show error message to user
     } finally {
       setLoading(false);

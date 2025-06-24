@@ -20,7 +20,11 @@ interface UpdateRegionBoundsConfig {
 }
 
 export class UpdateRegionBounds {
-  constructor(private config: UpdateRegionBoundsConfig) {}
+  private config: UpdateRegionBoundsConfig;
+
+  constructor(config: UpdateRegionBoundsConfig) {
+    this.config = config;
+  }
 
   validate() {
     if (!this.config.regionId) {
