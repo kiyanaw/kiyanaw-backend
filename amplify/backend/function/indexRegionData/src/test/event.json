@@ -13,7 +13,7 @@
       "messageAttributes": {},
       "md5OfBody": "fcf456526e8bf48232818552fa60cd53",
       "eventSource": "aws:sqs",
-      "eventSourceARN": "arn:aws:sqs:us-east-1:494185203413:enqueueRegionChanges",
+      "eventSourceARN": "arn:aws:sqs:us-east-1:*:enqueueRegionChanges",
       "awsRegion": "us-east-1"
     }
   ]

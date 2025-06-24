@@ -18,6 +18,7 @@ export const getTranscription = /* GraphQL */ `
       title
       type
       isPrivate
+      isPublished
       disableAnalyzer
       contributors {
         items {
@@ -29,11 +30,9 @@ export const getTranscription = /* GraphQL */ `
           _version
           _deleted
           _lastChangedAt
-          __typename
         }
         nextToken
         startedAt
-        __typename
       }
       regions {
         items {
@@ -41,6 +40,8 @@ export const getTranscription = /* GraphQL */ `
           start
           end
           text
+          regionText
+          regionAnalysis
           issues
           isNote
           comments
@@ -53,18 +54,35 @@ export const getTranscription = /* GraphQL */ `
           _version
           _deleted
           _lastChangedAt
-          __typename
         }
         nextToken
         startedAt
-        __typename
+      }
+      issueList {
+        items {
+          id
+          text
+          owner
+          index
+          resolved
+          type
+          comments
+          regionId
+          transcriptionId
+          createdAt
+          updatedAt
+          _version
+          _deleted
+          _lastChangedAt
+        }
+        nextToken
+        startedAt
       }
       createdAt
       updatedAt
       _version
       _deleted
       _lastChangedAt
-      __typename
     }
   }
 `;
@@ -98,27 +116,28 @@ export const listTranscriptions = /* GraphQL */ `
         title
         type
         isPrivate
+        isPublished
         disableAnalyzer
         contributors {
           nextToken
           startedAt
-          __typename
         }
         regions {
           nextToken
           startedAt
-          __typename
+        }
+        issueList {
+          nextToken
+          startedAt
         }
         createdAt
         updatedAt
         _version
         _deleted
         _lastChangedAt
-        __typename
       }
       nextToken
       startedAt
-      __typename
     }
   }
 `;
@@ -150,27 +169,28 @@ export const syncTranscriptions = /* GraphQL */ `
         title
         type
         isPrivate
+        isPublished
         disableAnalyzer
         contributors {
           nextToken
           startedAt
-          __typename
         }
         regions {
           nextToken
           startedAt
-          __typename
+        }
+        issueList {
+          nextToken
+          startedAt
         }
         createdAt
         updatedAt
         _version
         _deleted
         _lastChangedAt
-        __typename
       }
       nextToken
       startedAt
-      __typename
     }
   }
 `;
@@ -181,6 +201,8 @@ export const getRegion = /* GraphQL */ `
       start
       end
       text
+      regionText
+      regionAnalysis
       issues
       isNote
       comments
@@ -202,51 +224,32 @@ export const getRegion = /* GraphQL */ `
         title
         type
         isPrivate
+        isPublished
         disableAnalyzer
         contributors {
           nextToken
           startedAt
-          __typename
         }
         regions {
           nextToken
           startedAt
-          __typename
+        }
+        issueList {
+          nextToken
+          startedAt
         }
         createdAt
         updatedAt
         _version
         _deleted
         _lastChangedAt
-        __typename
       }
       transcriptionId
-      issueList {
-        items {
-          id
-          text
-          owner
-          index
-          type
-          comments
-          regionId
-          createdAt
-          updatedAt
-          _version
-          _deleted
-          _lastChangedAt
-          __typename
-        }
-        nextToken
-        startedAt
-        __typename
-      }
       createdAt
       updatedAt
       _version
       _deleted
       _lastChangedAt
-      __typename
     }
   }
 `;
@@ -270,6 +273,8 @@ export const listRegions = /* GraphQL */ `
         start
         end
         text
+        regionText
+        regionAnalysis
         issues
         isNote
         comments
@@ -291,30 +296,23 @@ export const listRegions = /* GraphQL */ `
           title
           type
           isPrivate
+          isPublished
           disableAnalyzer
           createdAt
           updatedAt
           _version
           _deleted
           _lastChangedAt
-          __typename
         }
         transcriptionId
-        issueList {
-          nextToken
-          startedAt
-          __typename
-        }
         createdAt
         updatedAt
         _version
         _deleted
         _lastChangedAt
-        __typename
       }
       nextToken
       startedAt
-      __typename
     }
   }
 `;
@@ -336,6 +334,8 @@ export const syncRegions = /* GraphQL */ `
         start
         end
         text
+        regionText
+        regionAnalysis
         issues
         isNote
         comments
@@ -357,30 +357,23 @@ export const syncRegions = /* GraphQL */ `
           title
           type
           isPrivate
+          isPublished
           disableAnalyzer
           createdAt
           updatedAt
           _version
           _deleted
           _lastChangedAt
-          __typename
         }
         transcriptionId
-        issueList {
-          nextToken
-          startedAt
-          __typename
-        }
         createdAt
         updatedAt
         _version
         _deleted
         _lastChangedAt
-        __typename
       }
       nextToken
       startedAt
-      __typename
     }
   }
 `;
@@ -391,62 +384,51 @@ export const getIssue = /* GraphQL */ `
       text
       owner
       index
+      resolved
       type
       comments
-      region {
+      regionId
+      transcription {
         id
-        start
-        end
-        text
-        issues
-        isNote
-        comments
-        translation
+        author
+        coverage
         dateLastUpdated
         userLastUpdated
-        transcription {
-          id
-          author
-          coverage
-          dateLastUpdated
-          userLastUpdated
-          length
-          issues
-          comments
-          tags
-          source
-          index
-          title
-          type
-          isPrivate
-          disableAnalyzer
-          createdAt
-          updatedAt
-          _version
-          _deleted
-          _lastChangedAt
-          __typename
+        length
+        issues
+        comments
+        tags
+        source
+        index
+        title
+        type
+        isPrivate
+        isPublished
+        disableAnalyzer
+        contributors {
+          nextToken
+          startedAt
         }
-        transcriptionId
+        regions {
+          nextToken
+          startedAt
+        }
         issueList {
           nextToken
           startedAt
-          __typename
         }
         createdAt
         updatedAt
         _version
         _deleted
         _lastChangedAt
-        __typename
       }
-      regionId
+      transcriptionId
       createdAt
       updatedAt
       _version
       _deleted
       _lastChangedAt
-      __typename
     }
   }
 `;
@@ -470,38 +452,42 @@ export const listIssues = /* GraphQL */ `
         text
         owner
         index
+        resolved
         type
         comments
-        region {
+        regionId
+        transcription {
           id
-          start
-          end
-          text
-          issues
-          isNote
-          comments
-          translation
+          author
+          coverage
           dateLastUpdated
           userLastUpdated
-          transcriptionId
+          length
+          issues
+          comments
+          tags
+          source
+          index
+          title
+          type
+          isPrivate
+          isPublished
+          disableAnalyzer
           createdAt
           updatedAt
           _version
           _deleted
           _lastChangedAt
-          __typename
         }
-        regionId
+        transcriptionId
         createdAt
         updatedAt
         _version
         _deleted
         _lastChangedAt
-        __typename
       }
       nextToken
       startedAt
-      __typename
     }
   }
 `;
@@ -523,197 +509,42 @@ export const syncIssues = /* GraphQL */ `
         text
         owner
         index
+        resolved
         type
         comments
-        region {
+        regionId
+        transcription {
           id
-          start
-          end
-          text
-          issues
-          isNote
-          comments
-          translation
+          author
+          coverage
           dateLastUpdated
           userLastUpdated
-          transcriptionId
+          length
+          issues
+          comments
+          tags
+          source
+          index
+          title
+          type
+          isPrivate
+          isPublished
+          disableAnalyzer
           createdAt
           updatedAt
           _version
           _deleted
           _lastChangedAt
-          __typename
         }
-        regionId
+        transcriptionId
         createdAt
         updatedAt
         _version
         _deleted
         _lastChangedAt
-        __typename
       }
       nextToken
       startedAt
-      __typename
-    }
-  }
-`;
-export const getCursor = /* GraphQL */ `
-  query GetCursor($id: ID!, $user: String!) {
-    getCursor(id: $id, user: $user) {
-      id
-      user
-      cursor
-      createdAt
-      updatedAt
-      _version
-      _deleted
-      _lastChangedAt
-      __typename
-    }
-  }
-`;
-export const listCursors = /* GraphQL */ `
-  query ListCursors(
-    $id: ID
-    $user: ModelStringKeyConditionInput
-    $filter: ModelCursorFilterInput
-    $limit: Int
-    $nextToken: String
-    $sortDirection: ModelSortDirection
-  ) {
-    listCursors(
-      id: $id
-      user: $user
-      filter: $filter
-      limit: $limit
-      nextToken: $nextToken
-      sortDirection: $sortDirection
-    ) {
-      items {
-        id
-        user
-        cursor
-        createdAt
-        updatedAt
-        _version
-        _deleted
-        _lastChangedAt
-        __typename
-      }
-      nextToken
-      startedAt
-      __typename
-    }
-  }
-`;
-export const syncCursors = /* GraphQL */ `
-  query SyncCursors(
-    $filter: ModelCursorFilterInput
-    $limit: Int
-    $nextToken: String
-    $lastSync: AWSTimestamp
-  ) {
-    syncCursors(
-      filter: $filter
-      limit: $limit
-      nextToken: $nextToken
-      lastSync: $lastSync
-    ) {
-      items {
-        id
-        user
-        cursor
-        createdAt
-        updatedAt
-        _version
-        _deleted
-        _lastChangedAt
-        __typename
-      }
-      nextToken
-      startedAt
-      __typename
-    }
-  }
-`;
-export const getUserCursor = /* GraphQL */ `
-  query GetUserCursor($id: ID!) {
-    getUserCursor(id: $id) {
-      id
-      transcription
-      region
-      cursor
-      createdAt
-      updatedAt
-      _version
-      _deleted
-      _lastChangedAt
-      __typename
-    }
-  }
-`;
-export const listUserCursors = /* GraphQL */ `
-  query ListUserCursors(
-    $id: ID
-    $filter: ModelUserCursorFilterInput
-    $limit: Int
-    $nextToken: String
-    $sortDirection: ModelSortDirection
-  ) {
-    listUserCursors(
-      id: $id
-      filter: $filter
-      limit: $limit
-      nextToken: $nextToken
-      sortDirection: $sortDirection
-    ) {
-      items {
-        id
-        transcription
-        region
-        cursor
-        createdAt
-        updatedAt
-        _version
-        _deleted
-        _lastChangedAt
-        __typename
-      }
-      nextToken
-      startedAt
-      __typename
-    }
-  }
-`;
-export const syncUserCursors = /* GraphQL */ `
-  query SyncUserCursors(
-    $filter: ModelUserCursorFilterInput
-    $limit: Int
-    $nextToken: String
-    $lastSync: AWSTimestamp
-  ) {
-    syncUserCursors(
-      filter: $filter
-      limit: $limit
-      nextToken: $nextToken
-      lastSync: $lastSync
-    ) {
-      items {
-        id
-        transcription
-        region
-        cursor
-        createdAt
-        updatedAt
-        _version
-        _deleted
-        _lastChangedAt
-        __typename
-      }
-      nextToken
-      startedAt
-      __typename
     }
   }
 `;
@@ -724,12 +555,12 @@ export const getPointer = /* GraphQL */ `
       transcription
       region
       cursor
+      owner
       createdAt
       updatedAt
       _version
       _deleted
       _lastChangedAt
-      __typename
     }
   }
 `;
@@ -753,16 +584,15 @@ export const listPointers = /* GraphQL */ `
         transcription
         region
         cursor
+        owner
         createdAt
         updatedAt
         _version
         _deleted
         _lastChangedAt
-        __typename
       }
       nextToken
       startedAt
-      __typename
     }
   }
 `;
@@ -784,16 +614,15 @@ export const syncPointers = /* GraphQL */ `
         transcription
         region
         cursor
+        owner
         createdAt
         updatedAt
         _version
         _deleted
         _lastChangedAt
-        __typename
       }
       nextToken
       startedAt
-      __typename
     }
   }
 `;
@@ -809,7 +638,6 @@ export const getRegionLock = /* GraphQL */ `
       _version
       _deleted
       _lastChangedAt
-      __typename
     }
   }
 `;
@@ -840,11 +668,9 @@ export const listRegionLocks = /* GraphQL */ `
         _version
         _deleted
         _lastChangedAt
-        __typename
       }
       nextToken
       startedAt
-      __typename
     }
   }
 `;
@@ -871,11 +697,9 @@ export const syncRegionLocks = /* GraphQL */ `
         _version
         _deleted
         _lastChangedAt
-        __typename
       }
       nextToken
       startedAt
-      __typename
     }
   }
 `;
@@ -895,18 +719,15 @@ export const getContributor = /* GraphQL */ `
           _version
           _deleted
           _lastChangedAt
-          __typename
         }
         nextToken
         startedAt
-        __typename
       }
       createdAt
       updatedAt
       _version
       _deleted
       _lastChangedAt
-      __typename
     }
   }
 `;
@@ -932,18 +753,15 @@ export const listContributors = /* GraphQL */ `
         transcriptions {
           nextToken
           startedAt
-          __typename
         }
         createdAt
         updatedAt
         _version
         _deleted
         _lastChangedAt
-        __typename
       }
       nextToken
       startedAt
-      __typename
     }
   }
 `;
@@ -967,18 +785,164 @@ export const syncContributors = /* GraphQL */ `
         transcriptions {
           nextToken
           startedAt
-          __typename
         }
         createdAt
         updatedAt
         _version
         _deleted
         _lastChangedAt
-        __typename
       }
       nextToken
       startedAt
-      __typename
+    }
+  }
+`;
+export const getCursor = /* GraphQL */ `
+  query GetCursor($id: ID!, $user: String!) {
+    getCursor(id: $id, user: $user) {
+      id
+      user
+      cursor
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+    }
+  }
+`;
+export const listCursors = /* GraphQL */ `
+  query ListCursors(
+    $id: ID
+    $user: ModelStringKeyConditionInput
+    $filter: ModelCursorFilterInput
+    $limit: Int
+    $nextToken: String
+    $sortDirection: ModelSortDirection
+  ) {
+    listCursors(
+      id: $id
+      user: $user
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+      sortDirection: $sortDirection
+    ) {
+      items {
+        id
+        user
+        cursor
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+      }
+      nextToken
+      startedAt
+    }
+  }
+`;
+export const syncCursors = /* GraphQL */ `
+  query SyncCursors(
+    $filter: ModelCursorFilterInput
+    $limit: Int
+    $nextToken: String
+    $lastSync: AWSTimestamp
+  ) {
+    syncCursors(
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+      lastSync: $lastSync
+    ) {
+      items {
+        id
+        user
+        cursor
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+      }
+      nextToken
+      startedAt
+    }
+  }
+`;
+export const getUserCursor = /* GraphQL */ `
+  query GetUserCursor($id: ID!) {
+    getUserCursor(id: $id) {
+      id
+      transcription
+      region
+      cursor
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+    }
+  }
+`;
+export const listUserCursors = /* GraphQL */ `
+  query ListUserCursors(
+    $id: ID
+    $filter: ModelUserCursorFilterInput
+    $limit: Int
+    $nextToken: String
+    $sortDirection: ModelSortDirection
+  ) {
+    listUserCursors(
+      id: $id
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+      sortDirection: $sortDirection
+    ) {
+      items {
+        id
+        transcription
+        region
+        cursor
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+      }
+      nextToken
+      startedAt
+    }
+  }
+`;
+export const syncUserCursors = /* GraphQL */ `
+  query SyncUserCursors(
+    $filter: ModelUserCursorFilterInput
+    $limit: Int
+    $nextToken: String
+    $lastSync: AWSTimestamp
+  ) {
+    syncUserCursors(
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+      lastSync: $lastSync
+    ) {
+      items {
+        id
+        transcription
+        region
+        cursor
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+      }
+      nextToken
+      startedAt
     }
   }
 `;
@@ -1003,23 +967,25 @@ export const getTranscriptionContributor = /* GraphQL */ `
         title
         type
         isPrivate
+        isPublished
         disableAnalyzer
         contributors {
           nextToken
           startedAt
-          __typename
         }
         regions {
           nextToken
           startedAt
-          __typename
+        }
+        issueList {
+          nextToken
+          startedAt
         }
         createdAt
         updatedAt
         _version
         _deleted
         _lastChangedAt
-        __typename
       }
       contributor {
         id
@@ -1028,21 +994,18 @@ export const getTranscriptionContributor = /* GraphQL */ `
         transcriptions {
           nextToken
           startedAt
-          __typename
         }
         createdAt
         updatedAt
         _version
         _deleted
         _lastChangedAt
-        __typename
       }
       createdAt
       updatedAt
       _version
       _deleted
       _lastChangedAt
-      __typename
     }
   }
 `;
@@ -1076,13 +1039,13 @@ export const listTranscriptionContributors = /* GraphQL */ `
           title
           type
           isPrivate
+          isPublished
           disableAnalyzer
           createdAt
           updatedAt
           _version
           _deleted
           _lastChangedAt
-          __typename
         }
         contributor {
           id
@@ -1093,18 +1056,15 @@ export const listTranscriptionContributors = /* GraphQL */ `
           _version
           _deleted
           _lastChangedAt
-          __typename
         }
         createdAt
         updatedAt
         _version
         _deleted
         _lastChangedAt
-        __typename
       }
       nextToken
       startedAt
-      __typename
     }
   }
 `;
@@ -1140,13 +1100,13 @@ export const syncTranscriptionContributors = /* GraphQL */ `
           title
           type
           isPrivate
+          isPublished
           disableAnalyzer
           createdAt
           updatedAt
           _version
           _deleted
           _lastChangedAt
-          __typename
         }
         contributor {
           id
@@ -1157,18 +1117,15 @@ export const syncTranscriptionContributors = /* GraphQL */ `
           _version
           _deleted
           _lastChangedAt
-          __typename
         }
         createdAt
         updatedAt
         _version
         _deleted
         _lastChangedAt
-        __typename
       }
       nextToken
       startedAt
-      __typename
     }
   }
 `;
@@ -1202,60 +1159,28 @@ export const byTitle = /* GraphQL */ `
         title
         type
         isPrivate
+        isPublished
         disableAnalyzer
         contributors {
           nextToken
           startedAt
-          __typename
         }
         regions {
           nextToken
           startedAt
-          __typename
+        }
+        issueList {
+          nextToken
+          startedAt
         }
         createdAt
         updatedAt
         _version
         _deleted
         _lastChangedAt
-        __typename
       }
       nextToken
       startedAt
-      __typename
-    }
-  }
-`;
-export const byTranscription = /* GraphQL */ `
-  query ByTranscription(
-    $transcription: String!
-    $sortDirection: ModelSortDirection
-    $filter: ModelUserCursorFilterInput
-    $limit: Int
-    $nextToken: String
-  ) {
-    byTranscription(
-      transcription: $transcription
-      sortDirection: $sortDirection
-      filter: $filter
-      limit: $limit
-      nextToken: $nextToken
-    ) {
-      items {
-        id
-        transcription
-        region
-        cursor
-        createdAt
-        updatedAt
-        _version
-        _deleted
-        _lastChangedAt
-        __typename
-      }
-      nextToken
-      startedAt
-      __typename
     }
   }
 `;
@@ -1279,16 +1204,15 @@ export const byTrans = /* GraphQL */ `
         transcription
         region
         cursor
+        owner
         createdAt
         updatedAt
         _version
         _deleted
         _lastChangedAt
-        __typename
       }
       nextToken
       startedAt
-      __typename
     }
   }
 `;
