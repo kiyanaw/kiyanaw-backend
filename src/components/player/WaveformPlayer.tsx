@@ -42,8 +42,7 @@ export const WaveformPlayer = ({
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const waveformContainerRef = useRef<HTMLDivElement | null>(null);
-  const timelineContainerRef = useRef<HTMLDivElement | null>(null);
-  const containersReadyRef = useRef({ waveform: false, timeline: false });
+  const containersReadyRef = useRef({ waveform: false });
 
   /** RARE PERMITTED LOCAL STATE */
   const [speed, setSpeed] = useState(100);
@@ -54,28 +53,20 @@ export const WaveformPlayer = ({
   const play = usePlay()
   const pause = usePause()
 
-  // Initialize WaveSurfer when both containers are ready
+  // Initialize WaveSurfer when container is ready
   const initializeWaveSurfer = useCallback(() => {
-    const { waveform, timeline } = containersReadyRef.current;
-    if (waveform && timeline && waveformContainerRef.current && timelineContainerRef.current) {
+    const { waveform } = containersReadyRef.current;
+    if (waveform && waveformContainerRef.current) {
       const mediaEl = isVideo && videoRef.current ? videoRef.current : undefined;
-      wavesurferService.initialize(waveformContainerRef.current, timelineContainerRef.current, mediaEl);
+      wavesurferService.initialize(waveformContainerRef.current, waveformContainerRef.current, mediaEl);
     }
   }, [isVideo, videoElementReady]);
 
-  // Callback refs to get DOM elements and initialize WaveSurfer
+  // Callback ref to get DOM element and initialize WaveSurfer
   const setWaveformContainer = useCallback((node: HTMLDivElement | null) => {
     if (node) {
       waveformContainerRef.current = node;
       containersReadyRef.current.waveform = true;
-      initializeWaveSurfer();
-    }
-  }, [initializeWaveSurfer]);
-
-  const setTimelineContainer = useCallback((node: HTMLDivElement | null) => {
-    if (node) {
-      timelineContainerRef.current = node;
-      containersReadyRef.current.timeline = true;
       initializeWaveSurfer();
     }
   }, [initializeWaveSurfer]);
@@ -125,7 +116,7 @@ export const WaveformPlayer = ({
   };
 
   return (
-    <div className="w-full bg-white border border-gray-300 rounded-lg overflow-hidden relative">
+    <div className="w-full bg-white border border-gray-300 rounded-lg relative">
       {/* Header */}
       <div className="flex justify-between items-center bg-[#dbdbdb] h-8 px-4 text-gray-900 font-bold text-sm">
         <div className="uppercase overflow-hidden text-ellipsis whitespace-nowrap flex-1">
@@ -148,11 +139,8 @@ export const WaveformPlayer = ({
         )}
       </div>
 
-      {/* Timeline */}
-      <div ref={setTimelineContainer} className="w-full h-5 bg-gray-100 border-t border-gray-300" />
-
       {/* Controls */}
-      <div className="flex items-center justify-between h-10 bg-gray-100 px-5 border-t border-gray-300 md:flex-row md:h-10 md:px-5 flex-col h-auto px-2.5 py-2.5 gap-2.5">
+      <div className="flex items-center justify-between mt-[20px] h-10 bg-gray-100 px-5 border-t border-gray-300 md:flex-row md:h-10 md:px-5 flex-col h-auto px-2.5 py-2.5 gap-2.5">
         <div className="flex items-center gap-2">
           <button
             className="bg-none border-none text-base cursor-pointer px-2 py-1 rounded transition-colors hover:bg-gray-200 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"

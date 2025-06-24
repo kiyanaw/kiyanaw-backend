@@ -88,7 +88,8 @@ class WaveSurferService {
     // Create plugins
     this.regionsPlugin = Regions.create();
     this.timelinePlugin = Timeline.create({
-      container: timelineContainer,
+      // container: timelineContainer,
+      height: 20,  // Explicit height to ensure proper rendering
     });
     
     // Initialize WaveSurfer without media - we'll load it later
