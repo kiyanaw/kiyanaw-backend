@@ -584,14 +584,8 @@ describe('WaveSurferService', () => {
     });
 
     it('should load source and peaks', () => {
-      // Initialize and make ready first
+      // Initialize wavesurfer first
       wavesurferService.initialize(mockContainer, mockTimelineContainer);
-      
-      // Trigger ready event to make wavesurfer ready
-      const readyCallback = mockWaveSurferInstance.on.mock.calls.find(
-        (call: any) => call[0] === 'ready'
-      )[1];
-      readyCallback();
       
       const source = 'test-source.mp3';
       const peaks = [1, 2, 3, 4];
@@ -963,11 +957,11 @@ describe('WaveSurferService', () => {
   });
 
   describe('Delayed Load Logic', () => {
-    it('should delay load when wavesurfer is not ready', () => {
+    it('should delay load when wavesurfer instance does not exist', () => {
       const mockLoad = jest.fn();
       mockWaveSurferInstance.load = mockLoad;
       
-      // Don't initialize yet, so wavesurfer is not ready
+      // Don't initialize yet, so wavesurfer instance doesn't exist
       const source = 'https://example.com/test.mp4';
       const peaks = [1, 2, 3];
       
@@ -980,7 +974,7 @@ describe('WaveSurferService', () => {
       expect(wavesurferService['_delayedLoad']).toEqual({ source, peaks });
     });
 
-    it('should process delayed load when wavesurfer becomes ready', () => {
+    it('should process delayed load immediately when wavesurfer instance is created', () => {
       const mockLoad = jest.fn();
       mockWaveSurferInstance.load = mockLoad;
       
@@ -989,35 +983,25 @@ describe('WaveSurferService', () => {
       const peaks = [1, 2, 3];
       wavesurferService.load(source, peaks);
       
-      // Now initialize wavesurfer
+      // Should be stored as delayed load
+      expect(wavesurferService['_delayedLoad']).toEqual({ source, peaks });
+      
+      // Now initialize wavesurfer - this should process the delayed load immediately
       wavesurferService.initialize(mockContainer, mockTimelineContainer);
       
-      // Get the ready callback and trigger it
-      const readyCallback = mockWaveSurferInstance.on.mock.calls.find(
-        (call: any) => call[0] === 'ready'
-      )[1];
-      
-      readyCallback();
-      
-      // Now the delayed load should be processed
+      // The delayed load should be processed immediately after instance creation
       expect(mockLoad).toHaveBeenCalledWith(source, peaks);
       expect(wavesurferService['_delayedLoad']).toBeNull();
     });
 
-    it('should load immediately when wavesurfer is ready', () => {
+    it('should load immediately when wavesurfer instance exists', () => {
       const mockLoad = jest.fn();
       mockWaveSurferInstance.load = mockLoad;
       
       // Initialize first
       wavesurferService.initialize(mockContainer, mockTimelineContainer);
       
-      // Trigger ready event
-      const readyCallback = mockWaveSurferInstance.on.mock.calls.find(
-        (call: any) => call[0] === 'ready'
-      )[1];
-      readyCallback();
-      
-      // Now load should work immediately
+      // Now load should work immediately (no need to wait for ready)
       const source = 'https://example.com/test.mp4';
       const peaks = [1, 2, 3];
       
@@ -1080,7 +1064,10 @@ describe('WaveSurferService', () => {
     });
 
     it('should preserve delayed load when reinitializing for video element', () => {
-      // The service was destroyed in beforeEach, so let's test the preservation logic
+      const mockLoad = jest.fn();
+      mockWaveSurferInstance.load = mockLoad;
+      
+      // Test the preservation logic when containers change while there's a delayed load
       const source = 'https://example.com/test.mp4';
       const peaks = [1, 2, 3];
       
@@ -1088,17 +1075,28 @@ describe('WaveSurferService', () => {
       wavesurferService.load(source, peaks);
       expect(wavesurferService['_delayedLoad']).toEqual({ source, peaks });
       
-      // Initialize without video - this should preserve the delayed load during container change detection
+      // Initialize with one set of containers
       wavesurferService.initialize(mockContainer, mockTimelineContainer);
-      expect(wavesurferService['_delayedLoad']).toEqual({ source, peaks });
       
-      // The key test: when we change to include a video element, delayed load should be preserved
-      // This tests the preservation logic in the container change detection
+      // Should have processed the delayed load immediately
+      expect(mockLoad).toHaveBeenCalledWith(source, peaks);
+      expect(wavesurferService['_delayedLoad']).toBeNull();
+      
+      // Now destroy the instance and set up a new delayed load to test preservation
+      wavesurferService.destroy();
+      
+      const source2 = 'https://example.com/test2.mp4';
+      const peaks2 = [4, 5, 6];
+      wavesurferService.load(source2, peaks2);
+      expect(wavesurferService['_delayedLoad']).toEqual({ source: source2, peaks: peaks2 });
+      
+      // Initialize with different containers (including video element)
       const newContainer = document.createElement('div');
       wavesurferService.initialize(newContainer, mockTimelineContainer, mockVideoElement);
       
-      // Should still preserve delayed load because containers changed and preservation logic ran
-      expect(wavesurferService['_delayedLoad']).toEqual({ source, peaks });
+      // Should process the delayed load with the new containers
+      expect(mockLoad).toHaveBeenCalledWith(source2, peaks2);
+      expect(wavesurferService['_delayedLoad']).toBeNull();
     });
   });
 }); 

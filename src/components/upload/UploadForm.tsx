@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { uploadData } from 'aws-amplify/storage';
+
 import { DataStore } from '@aws-amplify/datastore';
 import {
   Transcription,
@@ -9,6 +10,7 @@ import {
 } from '../../models';
 import { useAuth } from '../../hooks/useAuth';
 
+// TODO: refactor this to clean architecture
 export const UploadForm = () => {
   const [title, setTitle] = useState('');
   const [inputFile, setInputFile] = useState<File | null>(null);
@@ -40,6 +42,7 @@ export const UploadForm = () => {
         key,
         data: inputFile,
         options: {
+          // TODO: move this to restricted access
           accessLevel: 'guest', // equivalent to 'public' in v5
           onProgress: ({ transferredBytes, totalBytes }) => {
             if (totalBytes) {
@@ -58,6 +61,7 @@ export const UploadForm = () => {
       const transcription = await DataStore.save(
         new Transcription({
           title: title.trim(),
+          // TODO: move this to signed URLs to acccess
           source,
           type: inputFile.type,
           dateLastUpdated: `${Date.now()}`,

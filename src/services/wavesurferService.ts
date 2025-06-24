@@ -108,6 +108,12 @@ class WaveSurferService {
 
     this.registerEvents();
 
+    // If we have a delayed load waiting, process it immediately after creation
+    if (this._delayedLoad) {
+      this.wavesurfer.load(this._delayedLoad.source, this._delayedLoad.peaks);
+      this._delayedLoad = null;
+    }
+
     (window as any).ws = this;
   }
 
@@ -147,7 +153,7 @@ class WaveSurferService {
     })
 
     this.wavesurfer?.on('error', (event) => {
-      console.log('Wavesurfer error event', event)
+      console.error('Wavesurfer error event', event)
     })
 
     // Listen for timeupdate to enforce region-bounded playback
@@ -247,6 +253,7 @@ class WaveSurferService {
       this.emitEvent('region-out', {regionId: event.id})
     })
 
+
   }
 
   emitEvent(eventName: string, data?: any): void {
@@ -278,7 +285,7 @@ class WaveSurferService {
 
   // Set a new source URL and peaks data
   load(source:string, peaks: any): void{
-    if (!this.wavesurfer || !this.ready) {
+    if (!this.wavesurfer) {
       this._delayedLoad = { source, peaks };
       return;
     }
