@@ -62,6 +62,7 @@ describe('WaveSurferService', () => {
       setMediaElement: jest.fn(),
       getMediaElement: jest.fn().mockReturnValue(document.createElement('audio')),
       isPlaying: jest.fn().mockReturnValue(false),
+      getDuration: jest.fn().mockReturnValue(120), // Mock 2 minutes duration
       destroy: jest.fn(),
       on: jest.fn(),
     };

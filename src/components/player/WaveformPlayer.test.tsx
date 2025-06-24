@@ -57,6 +57,20 @@ describe('WaveformPlayer', () => {
   const mockOnRegionUpdate = jest.fn();
   const mockOnLookup = jest.fn();
 
+  // Utility function to create complete mock PlayerState
+  const createMockPlayerState = (overrides: Partial<any> = {}) => ({
+    playing: false,
+    loadedAndReady: false,
+    currentTime: 0,
+    duration: 0,
+    setPlaying: jest.fn(),
+    setPaused: jest.fn(),
+    setLoadedAndReady: mockSetLoadedAndReady,
+    setCurrentTime: jest.fn(),
+    setDuration: jest.fn(),
+    ...overrides,
+  });
+
   const defaultProps = {
     source: 'test-audio.mp3',
     peaks: null,
@@ -69,20 +83,12 @@ describe('WaveformPlayer', () => {
     onLookup: mockOnLookup,
   };
 
-
-
   beforeEach(() => {
     jest.clearAllMocks();
     
     // Setup default mock returns for usePlayerStore
     mockUsePlayerStore.mockImplementation((selector) => {
-      const state = {
-        playing: false,
-        loadedAndReady: false,
-        setPlaying: jest.fn(),
-        setPaused: jest.fn(),
-        setLoadedAndReady: mockSetLoadedAndReady,
-      };
+      const state = createMockPlayerState();
       return selector(state);
     });
     
@@ -249,13 +255,10 @@ describe('WaveformPlayer', () => {
     it('shows play button when not playing', () => {
       // Mock store to return not playing and ready
       mockUsePlayerStore.mockImplementation((selector) => {
-        const state = {
+        const state = createMockPlayerState({
           playing: false,
           loadedAndReady: true,
-          setPlaying: jest.fn(),
-          setPaused: jest.fn(),
-          setLoadedAndReady: mockSetLoadedAndReady,
-        };
+        });
         return selector(state);
       });
       
@@ -268,13 +271,10 @@ describe('WaveformPlayer', () => {
     it('shows pause button when playing', () => {
       // Mock store to return playing and ready
       mockUsePlayerStore.mockImplementation((selector) => {
-        const state = {
+        const state = createMockPlayerState({
           playing: true,
           loadedAndReady: true,
-          setPlaying: jest.fn(),
-          setPaused: jest.fn(),
-          setLoadedAndReady: mockSetLoadedAndReady,
-        };
+        });
         return selector(state);
       });
       
@@ -287,13 +287,10 @@ describe('WaveformPlayer', () => {
     it('calls play when play button is clicked and not playing', () => {
       // Mock store to return not playing and ready
       mockUsePlayerStore.mockImplementation((selector) => {
-        const state = {
+        const state = createMockPlayerState({
           playing: false,
           loadedAndReady: true,
-          setPlaying: jest.fn(),
-          setPaused: jest.fn(),
-          setLoadedAndReady: mockSetLoadedAndReady,
-        };
+        });
         return selector(state);
       });
       
@@ -308,13 +305,10 @@ describe('WaveformPlayer', () => {
     it('main play button uses playInFull to clear any bounded regions', () => {
       // Mock store to return not playing and ready
       mockUsePlayerStore.mockImplementation((selector) => {
-        const state = {
+        const state = createMockPlayerState({
           playing: false,
           loadedAndReady: true,
-          setPlaying: jest.fn(),
-          setPaused: jest.fn(),
-          setLoadedAndReady: mockSetLoadedAndReady,
-        };
+        });
         return selector(state);
       });
       
@@ -332,13 +326,10 @@ describe('WaveformPlayer', () => {
     it('calls pause when play button is clicked and playing', () => {
       // Mock store to return playing and ready
       mockUsePlayerStore.mockImplementation((selector) => {
-        const state = {
+        const state = createMockPlayerState({
           playing: true,
           loadedAndReady: true,
-          setPlaying: jest.fn(),
-          setPaused: jest.fn(),
-          setLoadedAndReady: mockSetLoadedAndReady,
-        };
+        });
         return selector(state);
       });
       
@@ -355,13 +346,10 @@ describe('WaveformPlayer', () => {
     it('calls wavesurferService.setZoom when zoom slider changes', () => {
       // Mock store to return ready state
       mockUsePlayerStore.mockImplementation((selector) => {
-        const state = {
+        const state = createMockPlayerState({
           playing: false,
           loadedAndReady: true,
-          setPlaying: jest.fn(),
-          setPaused: jest.fn(),
-          setLoadedAndReady: mockSetLoadedAndReady,
-        };
+        });
         return selector(state);
       });
       
@@ -376,13 +364,10 @@ describe('WaveformPlayer', () => {
     it('resets zoom to 20 when reset button is clicked', () => {
       // Mock store to return ready state
       mockUsePlayerStore.mockImplementation((selector) => {
-        const state = {
+        const state = createMockPlayerState({
           playing: false,
           loadedAndReady: true,
-          setPlaying: jest.fn(),
-          setPaused: jest.fn(),
-          setLoadedAndReady: mockSetLoadedAndReady,
-        };
+        });
         return selector(state);
       });
       
@@ -399,13 +384,10 @@ describe('WaveformPlayer', () => {
     it('calls wavesurferService.setPlaybackRate when speed slider changes', () => {
       // Mock store to return ready state
       mockUsePlayerStore.mockImplementation((selector) => {
-        const state = {
+        const state = createMockPlayerState({
           playing: false,
           loadedAndReady: true,
-          setPlaying: jest.fn(),
-          setPaused: jest.fn(),
-          setLoadedAndReady: mockSetLoadedAndReady,
-        };
+        });
         return selector(state);
       });
       
@@ -420,13 +402,10 @@ describe('WaveformPlayer', () => {
     it('resets speed to 100 when reset button is clicked', () => {
       // Mock store to return ready state
       mockUsePlayerStore.mockImplementation((selector) => {
-        const state = {
+        const state = createMockPlayerState({
           playing: false,
           loadedAndReady: true,
-          setPlaying: jest.fn(),
-          setPaused: jest.fn(),
-          setLoadedAndReady: mockSetLoadedAndReady,
-        };
+        });
         return selector(state);
       });
       
@@ -455,13 +434,10 @@ describe('WaveformPlayer', () => {
     it('calls onLookup when lookup button is clicked', () => {
       // Mock store to return ready state
       mockUsePlayerStore.mockImplementation((selector) => {
-        const state = {
+        const state = createMockPlayerState({
           playing: false,
           loadedAndReady: true,
-          setPlaying: jest.fn(),
-          setPaused: jest.fn(),
-          setLoadedAndReady: mockSetLoadedAndReady,
-        };
+        });
         return selector(state);
       });
       
@@ -654,18 +630,13 @@ describe('WaveformPlayer', () => {
       expect(speedResetButton).toBeDisabled();
     });
 
-
-
     it('hides loading indicator when store indicates ready', () => {
       // Mock store to initially show loading
       mockUsePlayerStore.mockImplementation((selector) => {
-        const state = {
+        const state = createMockPlayerState({
           playing: false,
           loadedAndReady: false,
-          setPlaying: jest.fn(),
-          setPaused: jest.fn(),
-          setLoadedAndReady: mockSetLoadedAndReady,
-        };
+        });
         return selector(state);
       });
       
@@ -676,13 +647,10 @@ describe('WaveformPlayer', () => {
       
       // Update store to indicate ready
       mockUsePlayerStore.mockImplementation((selector) => {
-        const state = {
+        const state = createMockPlayerState({
           playing: false,
           loadedAndReady: true,
-          setPlaying: jest.fn(),
-          setPaused: jest.fn(),
-          setLoadedAndReady: mockSetLoadedAndReady,
-        };
+        });
         return selector(state);
       });
       
@@ -695,13 +663,10 @@ describe('WaveformPlayer', () => {
     it('enables controls when store indicates ready', () => {
       // Mock store to initially show loading
       mockUsePlayerStore.mockImplementation((selector) => {
-        const state = {
+        const state = createMockPlayerState({
           playing: false,
           loadedAndReady: false,
-          setPlaying: jest.fn(),
-          setPaused: jest.fn(),
-          setLoadedAndReady: mockSetLoadedAndReady,
-        };
+        });
         return selector(state);
       });
       
@@ -709,13 +674,10 @@ describe('WaveformPlayer', () => {
       
       // Update store to indicate ready
       mockUsePlayerStore.mockImplementation((selector) => {
-        const state = {
+        const state = createMockPlayerState({
           playing: false,
           loadedAndReady: true,
-          setPlaying: jest.fn(),
-          setPaused: jest.fn(),
-          setLoadedAndReady: mockSetLoadedAndReady,
-        };
+        });
         return selector(state);
       });
       
@@ -729,40 +691,83 @@ describe('WaveformPlayer', () => {
     });
 
     it('shows loading indicator when source changes', () => {
-      // Mock store to initially be ready
+      // Mock store to return ready state initially
       mockUsePlayerStore.mockImplementation((selector) => {
-        const state = {
+        const state = createMockPlayerState({
           playing: false,
           loadedAndReady: true,
-          setPlaying: jest.fn(),
-          setPaused: jest.fn(),
-          setLoadedAndReady: mockSetLoadedAndReady,
-        };
+        });
         return selector(state);
       });
-      
-      const { rerender } = render(<WaveformPlayer {...defaultProps} source="audio1.mp3" />);
-      
-      // Loading should be hidden initially
-      expect(screen.queryByText('Loading audio...')).not.toBeInTheDocument();
-      
-      // Mock store to show loading again (simulating source change reset)
+
+      const { rerender } = render(<WaveformPlayer {...defaultProps} />);
+
+      // Should not show loading initially (already loaded)
+      expect(screen.queryByTestId('loading-spinner')).not.toBeInTheDocument();
+
+      // Mock store to return not ready when source changes
       mockUsePlayerStore.mockImplementation((selector) => {
-        const state = {
+        const state = createMockPlayerState({
           playing: false,
           loadedAndReady: false,
-          setPlaying: jest.fn(),
-          setPaused: jest.fn(),
-          setLoadedAndReady: mockSetLoadedAndReady,
-        };
+        });
         return selector(state);
       });
-      
-      // Change source
-      rerender(<WaveformPlayer {...defaultProps} source="audio2.mp3" />);
-      
-      // Loading should show again
-      expect(screen.getByText('Loading audio...')).toBeInTheDocument();
+
+      // Change source (simulate rerender with new source)
+      rerender(<WaveformPlayer {...defaultProps} source="new-audio.mp3" />);
+
+      // Should show loading indicator for new source
+      expect(screen.getByTestId('loading-spinner')).toBeInTheDocument();
+    });
+
+    it('displays correct timer with current time and duration', () => {
+      // Mock store with specific time values
+      mockUsePlayerStore.mockImplementation((selector) => {
+        const state = createMockPlayerState({
+          playing: false,
+          loadedAndReady: true,
+          currentTime: 45.5, // 45.5 seconds
+          duration: 180.25,  // 3 minutes 0.25 seconds
+        });
+        return selector(state);
+      });
+
+      render(<WaveformPlayer {...defaultProps} />);
+
+      // Should display the formatted time
+      expect(screen.getByText('0:45/3:00')).toBeInTheDocument();
+    });
+
+    it('updates timer display when time changes', () => {
+      let mockState = createMockPlayerState({
+        playing: true,
+        loadedAndReady: true,
+        currentTime: 0,
+        duration: 120,
+      });
+
+      mockUsePlayerStore.mockImplementation((selector) => {
+        return selector(mockState);
+      });
+
+      const { rerender } = render(<WaveformPlayer {...defaultProps} />);
+
+      // Initial time
+      expect(screen.getByText('0:00/2:00')).toBeInTheDocument();
+
+      // Update mock state
+      mockState = createMockPlayerState({
+        playing: true,
+        loadedAndReady: true,
+        currentTime: 75,
+        duration: 120,
+      });
+
+      rerender(<WaveformPlayer {...defaultProps} />);
+
+      // Updated time
+      expect(screen.getByText('1:15/2:00')).toBeInTheDocument();
     });
   });
 }); 

@@ -90,13 +90,23 @@ export const useWavesurferEvents = (transcriptionId: string, source?: string): v
       usePlayerStore.getState().setLoadedAndReady(true);
     };
 
+    const handleTimeUpdate = (data: any) => {
+      usePlayerStore.getState().setCurrentTime(data.currentTime);
+    };
+
+    const handleReadyWithDuration = (data: any) => {
+      usePlayerStore.getState().setLoadedAndReady(true);
+      usePlayerStore.getState().setDuration(data.duration);
+    };
+
     wavesurferService.on('region-created', handleRegionCreated);
     wavesurferService.on('region-update-end', handleRegionUpdateEnd);
     wavesurferService.on('play', handlePlay);
     wavesurferService.on('pause', handlePause);
     wavesurferService.on('region-in', handleRegionIn);
     wavesurferService.on('region-out', handleRegionOut);
-    wavesurferService.on('ready', handleReady);
+    wavesurferService.on('ready', handleReadyWithDuration);
+    wavesurferService.on('timeupdate', handleTimeUpdate);
 
     return () => {
       wavesurferService.clearAllListeners();

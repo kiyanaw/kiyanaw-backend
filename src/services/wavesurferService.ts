@@ -141,8 +141,8 @@ class WaveSurferService {
         this._inboundRegionIgnoreNextOut = true
       }
       
-      // Emit the ready event so other components can listen to it
-      this.emitEvent('ready');
+      // Emit the ready event and duration so other components can listen to it
+      this.emitEvent('ready', { duration: this.wavesurfer?.getDuration() || 0 });
     })
 
     this.wavesurfer?.on('play', () => {
@@ -157,8 +157,11 @@ class WaveSurferService {
       console.error('Wavesurfer error event', event)
     })
 
-    // Listen for timeupdate to enforce region-bounded playback
+    // Listen for timeupdate to enforce region-bounded playback AND emit time updates
     this.wavesurfer?.on('timeupdate', (currentTime) => {
+      // Emit current time for components to listen
+      this.emitEvent('timeupdate', { currentTime });
+      
       if (!this._playbackBoundRegion) return;        // guard not armed
       if (!this.wavesurfer?.isPlaying()) return;     // only act during playback
 

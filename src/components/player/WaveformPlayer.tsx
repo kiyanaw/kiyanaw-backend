@@ -50,6 +50,8 @@ export const WaveformPlayer = ({
   const [videoElementReady, setVideoElementReady] = useState(false);
   const isPlaying = usePlayerStore((state) => state.playing)
   const loadedAndReady = usePlayerStore((state) => state.loadedAndReady)
+  const currentTime = usePlayerStore((state) => state.currentTime)
+  const duration = usePlayerStore((state) => state.duration)
   const play = usePlay()
   const pause = usePause()
 
@@ -123,7 +125,7 @@ export const WaveformPlayer = ({
           <span>{title}</span>
         </div>
         <div className="font-bold text-sm">
-          {formatTime(0)}/{formatTime(0)}
+          {formatTime(currentTime)}/{formatTime(duration)}
         </div>
       </div>
 
