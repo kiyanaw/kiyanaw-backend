@@ -1,10 +1,13 @@
 import { useRef, useCallback, useState } from 'react';
-import { Play, Pause, Target, X, Search, ZoomIn, Gauge, Loader2 } from 'lucide-react';
+import { Play, Pause, Target, X, Search, ZoomIn, Gauge, Loader2, Settings } from 'lucide-react';
 import { eventBus } from '../../lib/eventBus';
 import { wavesurferService } from '../../services/wavesurferService';
 import { usePlayerStore } from '../../stores/usePlayerStore';
 import { usePlay } from '../../hooks/usePlay';
 import { usePause } from '../../hooks/usePause';
+import { useUpdateTranscription } from '../../hooks/useUpdateTranscription';
+import { useEditorStore } from '../../stores/useEditorStore';
+import { TranscriptionSettingsPage } from '../forms/TranscriptionSettingsPage';
 
 interface Region {
   id: string;
@@ -17,25 +20,25 @@ interface Region {
 
 interface WaveformPlayerProps {
   source: string;
-  peaks?: any;
+  peaks?: any; // Currently unused but may be needed later
   canEdit: boolean;
-  inboundRegion?: string | null;
-  regions: Region[];
+  inboundRegion?: string | null; // Currently unused but may be needed later
+  regions: Region[]; // Now using this for region count
   isVideo: boolean;
   title: string;
-  onRegionUpdate: (region: any) => void;
+  onRegionUpdate: (region: any) => void; // Currently unused but may be needed later
   onLookup: () => void;
 }
 
 export const WaveformPlayer = ({
   source,
-  peaks,
+  // peaks, // Currently unused but may be needed later
   canEdit,
-  inboundRegion,
-  regions,
+  // inboundRegion, // Currently unused but may be needed later
+  regions, // Now using this for region count
   isVideo,
   title,
-  onRegionUpdate,
+  // onRegionUpdate, // Currently unused but may be needed later
   onLookup,
 }: WaveformPlayerProps) => {
   // console.log('--- WaveformPlayer Render ---', { source, hasPeaks: !!peaks });
@@ -48,12 +51,17 @@ export const WaveformPlayer = ({
   const [speed, setSpeed] = useState(100);
   const [zoom, setZoom] = useState(20);
   const [videoElementReady, setVideoElementReady] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  
   const isPlaying = usePlayerStore((state) => state.playing)
   const loadedAndReady = usePlayerStore((state) => state.loadedAndReady)
   const currentTime = usePlayerStore((state) => state.currentTime)
   const duration = usePlayerStore((state) => state.duration)
+  const transcription = useEditorStore((state) => state.transcription);
+  
   const play = usePlay()
   const pause = usePause()
+  const updateTranscription = useUpdateTranscription(transcription?.id || '');
 
   // Initialize WaveSurfer when container is ready
   const initializeWaveSurfer = useCallback(() => {
@@ -117,128 +125,156 @@ export const WaveformPlayer = ({
     return `${mins}:${secsStr}`;
   };
 
-  return (
-    <div className="w-full bg-white border border-gray-300 rounded-lg relative">
-      {/* Header */}
-      <div className="flex justify-between items-center bg-[#dbdbdb] h-8 px-4 text-gray-900 font-bold text-sm">
-        <div className="uppercase overflow-hidden text-ellipsis whitespace-nowrap flex-1">
-          <span>{title}</span>
-        </div>
-        <div className="font-bold text-sm">
-          {formatTime(currentTime)}/{formatTime(duration)}
-        </div>
-      </div>
+  const handleOpenSettings = () => {
+    setIsSettingsOpen(true);
+  };
 
-      {/* Waveform */}
-      <div ref={setWaveformContainer} className="w-full h-32 bg-white relative">
-        {!loadedAndReady && (
-          <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-90">
-            <div className="flex items-center gap-2 text-gray-600">
-              <Loader2 size={20} className="animate-spin" data-testid="loading-spinner" />
-              <span className="text-sm">Loading audio...</span>
+  const handleCloseSettings = () => {
+    setIsSettingsOpen(false);
+  };
+
+  const handleSaveChanges = (updates: { title?: string; comments?: string }) => {
+    updateTranscription(updates);
+  };
+
+  return (
+    <>
+      <div className="w-full bg-white border border-gray-300 rounded-lg relative">
+        {/* Header */}
+        <div className="flex justify-between items-center bg-[#dbdbdb] h-8 px-4 text-gray-900 font-bold text-sm">
+          <div className="uppercase overflow-hidden text-ellipsis whitespace-nowrap flex-1">
+            {canEdit ? (
+              <button
+                onClick={handleOpenSettings}
+                className="flex items-center gap-2 text-left hover:text-gray-700 transition-colors cursor-pointer"
+                title="Click to open transcription settings"
+              >
+                <span>{title}</span>
+                <Settings size={14} className="flex-shrink-0" />
+              </button>
+            ) : (
+              <span>{title}</span>
+            )}
+          </div>
+          <div className="font-bold text-sm">
+            {formatTime(currentTime)}/{formatTime(duration)}
+          </div>
+        </div>
+
+        {/* Waveform */}
+        <div ref={setWaveformContainer} className="w-full h-32 bg-white relative">
+          {!loadedAndReady && (
+            <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-90">
+              <div className="flex items-center gap-2 text-gray-600">
+                <Loader2 size={20} className="animate-spin" data-testid="loading-spinner" />
+                <span className="text-sm">Loading audio...</span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Controls */}
+        <div className="flex items-center justify-between mt-[20px] h-10 bg-gray-100 px-5 border-t border-gray-300 md:flex-row md:h-10 md:px-5 flex-col h-auto px-2.5 py-2.5 gap-2.5">
+          <div className="flex items-center gap-2">
+            <button
+              className="bg-none border-none text-base cursor-pointer px-2 py-1 rounded transition-colors hover:bg-gray-200 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handlePlayPause}
+              disabled={!loadedAndReady}
+              data-testid="play-button"
+            >
+              {isPlaying ? <Pause size={16} /> : <Play size={16} />}
+            </button>
+
+            {canEdit && (
+              <>
+                <button
+                  className="bg-none border-none text-base cursor-pointer px-2 py-1 rounded transition-colors hover:bg-gray-200 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={handleMarkRegion}
+                  disabled={!loadedAndReady}
+                  data-testid="mark-region"
+                >
+                  <Target size={16} />
+                </button>
+
+                <button
+                  className="bg-none border-none text-base cursor-pointer px-2 py-1 rounded transition-colors hover:bg-gray-200 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={handleCancelRegion}
+                  disabled={!loadedAndReady}
+                >
+                  <X size={16} />
+                </button>
+              </>
+            )}
+
+            <span className="mx-2 text-gray-600 font-bold">|</span>
+
+            <button 
+              className="bg-none border-none text-base cursor-pointer px-2 py-1 rounded transition-colors hover:bg-gray-200 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={onLookup}
+              disabled={!loadedAndReady}
+            >
+              <Search size={16} />
+            </button>
+          </div>
+
+          <div className="flex items-center gap-4 md:gap-4 gap-2 flex-col md:flex-row">
+            <div className="flex items-center gap-2">
+              <ZoomIn size={16} className="text-gray-600" />
+              <input
+                type="range"
+                min="5"
+                max="75"
+                value={zoom}
+                onChange={(e) => handleZoomChange(parseInt(e.target.value))}
+                className="w-20 md:w-24 accent-blue-600"
+                disabled={!loadedAndReady}
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Gauge size={16} className="text-gray-600" />
+              <input
+                type="range"
+                min="50"
+                max="150"
+                value={speed}
+                onChange={(e) => handleSpeedChange(parseInt(e.target.value))}
+                className="w-20 md:w-24 accent-blue-600"
+                disabled={!loadedAndReady}
+              />
+              <span className="text-xs text-gray-600 min-w-[35px]">{speed}%</span>
             </div>
           </div>
+        </div>
+
+        {/* Video Element */}
+        {isVideo && (
+          <video
+            ref={setVideoElement}
+            className="hidden"
+            preload="auto"
+            title="Video playback"
+            controls={false}
+            playsInline
+            webkit-playsinline=""
+          >
+            <source src={source} />
+          </video>
         )}
       </div>
 
-      {/* Controls */}
-      <div className="flex items-center justify-between mt-[20px] h-10 bg-gray-100 px-5 border-t border-gray-300 md:flex-row md:h-10 md:px-5 flex-col h-auto px-2.5 py-2.5 gap-2.5">
-        <div className="flex items-center gap-2">
-          <button
-            className="bg-none border-none text-base cursor-pointer px-2 py-1 rounded transition-colors hover:bg-gray-200 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            onClick={handlePlayPause}
-            disabled={!loadedAndReady}
-            data-testid="play-button"
-          >
-            {isPlaying ? <Pause size={16} /> : <Play size={16} />}
-          </button>
-
-          {canEdit && (
-            <>
-              <button
-                className="bg-none border-none text-base cursor-pointer px-2 py-1 rounded transition-colors hover:bg-gray-200 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                onClick={handleMarkRegion}
-                disabled={!loadedAndReady}
-                data-testid="mark-region"
-              >
-                <Target size={16} />
-              </button>
-
-              <button
-                className="bg-none border-none text-base cursor-pointer px-2 py-1 rounded transition-colors hover:bg-gray-200 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                onClick={handleCancelRegion}
-                disabled={!loadedAndReady}
-              >
-                <X size={16} />
-              </button>
-            </>
-          )}
-
-          <span className="mx-2 text-gray-600 font-bold">|</span>
-
-          <button 
-            className="bg-none border-none text-base cursor-pointer px-2 py-1 rounded transition-colors hover:bg-gray-200 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            onClick={onLookup}
-            disabled={!loadedAndReady}
-          >
-            <Search size={16} />
-          </button>
-        </div>
-
-        <div className="md:flex hidden items-center gap-2">
-          <label className="text-xs font-bold text-gray-600 min-w-[40px]">Zoom:</label>
-          <input
-            type="range"
-            min="5"
-            max="75"
-            value={zoom}
-            onChange={(e) => handleZoomChange(parseInt(e.target.value))}
-            disabled={!loadedAndReady}
-            className="w-25"
-          />
-          <button 
-            className="bg-none border-none text-sm cursor-pointer px-1 py-0.5 rounded transition-colors hover:bg-gray-200 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            onClick={() => handleZoomChange(20)}
-            disabled={!loadedAndReady}
-            title="Reset zoom"
-          >
-            <ZoomIn size={14} />
-          </button>
-        </div>
-
-        <div className="md:flex hidden items-center gap-2">
-          <label className="text-xs font-bold text-gray-600 min-w-[40px]">Speed:</label>
-          <input
-            type="range"
-            min="50"
-            max="150"
-            value={speed}
-            onChange={(e) => handleSpeedChange(parseInt(e.target.value))}
-            disabled={!loadedAndReady}
-            className="w-25"
-          />
-          <button 
-            className="bg-none border-none text-sm cursor-pointer px-1 py-0.5 rounded transition-colors hover:bg-gray-200 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            onClick={() => handleSpeedChange(100)}
-            disabled={!loadedAndReady}
-            title="Reset speed"
-          >
-            <Gauge size={14} />
-          </button>
-        </div>
-      </div>
-
-      {/* Video element for video files */}
-      {isVideo && (
-        <video
-          ref={setVideoElement}
-          src={source}
-          crossOrigin="anonymous"
-          preload="metadata"
-          className="fixed bottom-4 right-4 max-w-[350px] max-h-[350px] z-[190] shadow-lg cursor-pointer rounded md:max-w-[350px] md:max-h-[350px] max-w-[250px] max-h-[200px]"
-          playsInline
-        />
-      )}
-    </div>
+      {/* Settings Page */}
+      <TranscriptionSettingsPage
+        isOpen={isSettingsOpen}
+        onClose={handleCloseSettings}
+        title={transcription?.title || title}
+        comments={transcription?.comments}
+        author={transcription?.author || 'Unknown'}
+        dateLastUpdated={transcription?.dateLastUpdated || '0'}
+        regionCount={regions.length}
+        onSave={handleSaveChanges}
+        canEdit={canEdit}
+      />
+    </>
   );
 };

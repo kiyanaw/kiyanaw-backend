@@ -143,4 +143,34 @@ export const create = async (data: CreateTranscriptionData): Promise<DSTranscrip
       isPrivate: true,
     })
   );
+};
+
+/**
+ * Update a transcription record
+ */
+export const updateTranscription = async (
+  transcriptionId: string, 
+  updates: {
+    title?: string;
+    comments?: string;
+    userLastUpdated: string;
+  }
+): Promise<DSTranscription> => {
+  const original = await DataStore.query(DSTranscription, transcriptionId);
+  if (!original) {
+    throw new Error(`Transcription with ID ${transcriptionId} not found`);
+  }
+
+  const updated = DSTranscription.copyOf(original, (draft) => {
+    if (updates.title !== undefined) {
+      draft.title = updates.title.trim();
+    }
+    if (updates.comments !== undefined) {
+      draft.comments = updates.comments;
+    }
+    draft.userLastUpdated = updates.userLastUpdated;
+    draft.dateLastUpdated = `${Date.now()}`;
+  });
+
+  return await DataStore.save(updated);
 }; 

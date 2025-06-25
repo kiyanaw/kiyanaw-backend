@@ -2,6 +2,7 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { WaveformPlayer } from './WaveformPlayer';
 import { wavesurferService } from '../../services/wavesurferService';
 import { usePlayerStore } from '../../stores/usePlayerStore';
+import { useEditorStore } from '../../stores/useEditorStore';
 import { usePlay } from '../../hooks/usePlay';
 import { usePause } from '../../hooks/usePause';
 
@@ -37,6 +38,10 @@ jest.mock('../../stores/usePlayerStore', () => ({
   usePlayerStore: jest.fn(),
 }));
 
+jest.mock('../../stores/useEditorStore', () => ({
+  useEditorStore: jest.fn(),
+}));
+
 // Mock the hooks
 jest.mock('../../hooks/usePlay', () => ({
   usePlay: jest.fn(() => jest.fn()),
@@ -46,7 +51,12 @@ jest.mock('../../hooks/usePause', () => ({
   usePause: jest.fn(() => jest.fn()),
 }));
 
+jest.mock('../../hooks/useUpdateTranscription', () => ({
+  useUpdateTranscription: jest.fn(() => jest.fn()),
+}));
+
 const mockUsePlayerStore = usePlayerStore as jest.MockedFunction<typeof usePlayerStore>;
+const mockUseEditorStore = useEditorStore as jest.MockedFunction<typeof useEditorStore>;
 const mockUsePlay = usePlay as jest.MockedFunction<typeof usePlay>;
 const mockUsePause = usePause as jest.MockedFunction<typeof usePause>;
 
@@ -89,6 +99,51 @@ describe('WaveformPlayer', () => {
     // Setup default mock returns for usePlayerStore
     mockUsePlayerStore.mockImplementation((selector) => {
       const state = createMockPlayerState();
+      return selector(state);
+    });
+    
+    // Setup default mock returns for useEditorStore
+    mockUseEditorStore.mockImplementation((selector) => {
+      const state = {
+        transcription: { id: 'test-transcription-id', title: 'Test Transcription' },
+        saved: false,
+        peaks: null,
+        regions: [],
+        regionMap: {},
+        selectedRegionId: null,
+        selectedRegion: null,
+        playbackWithinRegion: null,
+        knownWords: new Set<string>(),
+        issues: [],
+        issueMap: {},
+        _subscriptions: [],
+        setFullTranscriptionData: jest.fn(),
+        cleanup: jest.fn(),
+        updateTranscription: jest.fn(),
+        setTranscription: jest.fn(),
+        setSaved: jest.fn(),
+        setSelectedRegion: jest.fn(),
+        setPlaybackWithinRegion: jest.fn(),
+        updateRegion: jest.fn(),
+        createRegion: jest.fn(),
+        deleteRegion: jest.fn(),
+        addNewRegion: jest.fn(),
+        setRegionText: jest.fn(),
+        setRegionTranslation: jest.fn(),
+        updateRegionBounds: jest.fn(),
+        addKnownWords: jest.fn(),
+        setRegionAnalysis: jest.fn(),
+        createIssue: jest.fn(),
+        updateIssue: jest.fn(),
+        deleteIssue: jest.fn(),
+        addComment: jest.fn(),
+        isVideo: false,
+        isTranscriptionAuthor: jest.fn(() => false),
+        transcriptionTitle: 'Test Transcription',
+        regionById: jest.fn(() => null),
+        issueById: jest.fn(() => null),
+        issuesByRegion: jest.fn(() => []),
+      };
       return selector(state);
     });
     
@@ -361,7 +416,7 @@ describe('WaveformPlayer', () => {
       expect(mockWaveSurferService.setZoom).toHaveBeenCalledWith(30);
     });
 
-    it('resets zoom to 20 when reset button is clicked', () => {
+    it('sets zoom value when zoom slider changes', () => {
       // Mock store to return ready state
       mockUsePlayerStore.mockImplementation((selector) => {
         const state = createMockPlayerState({
@@ -373,10 +428,10 @@ describe('WaveformPlayer', () => {
       
       render(<WaveformPlayer {...defaultProps} />);
       
-      const resetButton = screen.getByTitle('Reset zoom');
-      fireEvent.click(resetButton);
+      const zoomSlider = screen.getByDisplayValue('20');
+      fireEvent.change(zoomSlider, { target: { value: '50' } });
       
-      expect(mockWaveSurferService.setZoom).toHaveBeenCalledWith(20);
+      expect(mockWaveSurferService.setZoom).toHaveBeenCalledWith(50);
     });
   });
 
@@ -399,7 +454,7 @@ describe('WaveformPlayer', () => {
       expect(mockWaveSurferService.setPlaybackRate).toHaveBeenCalledWith(150);
     });
 
-    it('resets speed to 100 when reset button is clicked', () => {
+    it('displays current speed percentage', () => {
       // Mock store to return ready state
       mockUsePlayerStore.mockImplementation((selector) => {
         const state = createMockPlayerState({
@@ -411,10 +466,8 @@ describe('WaveformPlayer', () => {
       
       render(<WaveformPlayer {...defaultProps} />);
       
-      const resetButton = screen.getByTitle('Reset speed');
-      fireEvent.click(resetButton);
-      
-      expect(mockWaveSurferService.setPlaybackRate).toHaveBeenCalledWith(100);
+      // Should display default speed percentage
+      expect(screen.getByText('100%')).toBeInTheDocument();
     });
   });
 
@@ -538,7 +591,9 @@ describe('WaveformPlayer', () => {
         
         if (callWithVideo) {
           const videoElement = callWithVideo[2] as HTMLVideoElement;
-          expect(videoElement.src).toBe(testSource);
+          // Check that the video element has a source child with the correct src
+          const sourceElement = videoElement.querySelector('source');
+          expect(sourceElement?.src).toBe(testSource);
         }
       });
     });
@@ -556,10 +611,13 @@ describe('WaveformPlayer', () => {
 
       const videoElement = container.querySelector('video') as HTMLVideoElement;
       expect(videoElement).toBeInTheDocument();
-      expect(videoElement.src).toBe(testSource);
+      
+      // Check the source element for the src attribute
+      const sourceElement = videoElement.querySelector('source');
+      expect(sourceElement?.src).toBe(testSource);
+      
       expect(videoElement.muted).toBe(false);
-      expect(videoElement.crossOrigin).toBe('anonymous');
-      expect(videoElement.preload).toBe('metadata');
+      expect(videoElement.preload).toBe('auto');
     });
 
     it('should not render video element for audio files', () => {
@@ -621,13 +679,9 @@ describe('WaveformPlayer', () => {
       
       const zoomSlider = screen.getByDisplayValue('20');
       const speedSlider = screen.getByDisplayValue('100');
-      const zoomResetButton = screen.getByTitle('Reset zoom');
-      const speedResetButton = screen.getByTitle('Reset speed');
       
       expect(zoomSlider).toBeDisabled();
       expect(speedSlider).toBeDisabled();
-      expect(zoomResetButton).toBeDisabled();
-      expect(speedResetButton).toBeDisabled();
     });
 
     it('hides loading indicator when store indicates ready', () => {
