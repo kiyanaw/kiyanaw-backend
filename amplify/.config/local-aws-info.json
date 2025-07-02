@@ -21,5 +21,10 @@
     "configLevel": "project",
     "useProfile": true,
     "profileName": "kiyanaw"
+  },
+  "newauth": {
+    "configLevel": "project",
+    "useProfile": true,
+    "profileName": "kiyanaw"
   }
 }
