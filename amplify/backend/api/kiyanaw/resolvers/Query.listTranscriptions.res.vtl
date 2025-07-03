@@ -20,6 +20,12 @@
     ## PRIVATE item - check ACLs
     #set($editOk = false)
     #set($viewOk = false)
+    #set($authorOk = false)
+    
+    ## Check author (owner) access
+    #if(!$util.isNull($item.author) && $item.author == $userSub)
+      #set($authorOk = true)
+    #end
     
     ## Check editor access
     #if(!$util.isNull($item.editorGroups) && $util.list.copyAndRetain($item.editorGroups, $userGroups).size() > 0)
@@ -37,7 +43,7 @@
       #set($viewOk = true)
     #end
     
-    #if($editOk || $viewOk)
+    #if($editOk || $viewOk || $authorOk)
       #set($ok = true)
     #end
   #else

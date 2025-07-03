@@ -1,4 +1,4 @@
-type Transcription @aws_cognito_user_pools @aws_iam {
+type Transcription @aws_iam @aws_cognito_user_pools {
   id: ID!
   author: String!
   coverage: Float
@@ -21,6 +21,7 @@ type Transcription @aws_cognito_user_pools @aws_iam {
   viewerGroups: [String]
   regions(filter: ModelRegionFilterInput, sortDirection: ModelSortDirection, limit: Int, nextToken: String): ModelRegionConnection
   issueList(filter: ModelIssueFilterInput, sortDirection: ModelSortDirection, limit: Int, nextToken: String): ModelIssueConnection
+  contributors(filter: ModelTranscriptionContributorFilterInput, sortDirection: ModelSortDirection, limit: Int, nextToken: String): ModelTranscriptionContributorConnection
   createdAt: AWSDateTime!
   updatedAt: AWSDateTime!
   _version: Int!
@@ -28,7 +29,7 @@ type Transcription @aws_cognito_user_pools @aws_iam {
   _lastChangedAt: AWSTimestamp!
 }
 
-type Region @aws_cognito_user_pools @aws_iam {
+type Region @aws_iam @aws_cognito_user_pools {
   id: ID!
   start: Float!
   end: Float!
@@ -47,7 +48,7 @@ type Region @aws_cognito_user_pools @aws_iam {
   _lastChangedAt: AWSTimestamp!
 }
 
-type Issue @aws_cognito_user_pools @aws_iam {
+type Issue @aws_iam @aws_cognito_user_pools {
   id: ID!
   text: String!
   owner: String!
@@ -65,9 +66,24 @@ type Issue @aws_cognito_user_pools @aws_iam {
   _lastChangedAt: AWSTimestamp!
 }
 
-type Contributor @aws_cognito_user_pools @aws_iam {
+type Contributor @aws_iam @aws_cognito_user_pools {
   id: ID!
-  name: String
+  email: String!
+  username: String!
+  transcriptions(filter: ModelTranscriptionContributorFilterInput, sortDirection: ModelSortDirection, limit: Int, nextToken: String): ModelTranscriptionContributorConnection
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+  _version: Int!
+  _deleted: Boolean
+  _lastChangedAt: AWSTimestamp!
+}
+
+type TranscriptionContributor @aws_iam @aws_cognito_user_pools {
+  id: ID!
+  transcriptionID: ID!
+  contributorID: ID!
+  transcription: Transcription!
+  contributor: Contributor!
   createdAt: AWSDateTime!
   updatedAt: AWSDateTime!
   _version: Int!
@@ -225,7 +241,7 @@ enum ModelSortDirection {
   DESC
 }
 
-type ModelTranscriptionConnection @aws_cognito_user_pools @aws_iam {
+type ModelTranscriptionConnection @aws_iam @aws_cognito_user_pools {
   items: [Transcription]!
   nextToken: String
   startedAt: AWSTimestamp
@@ -261,19 +277,22 @@ input ModelTranscriptionFilterInput {
 }
 
 type Query {
-  getTranscription(id: ID!): Transcription @aws_cognito_user_pools @aws_iam
-  listTranscriptions(id: ID, filter: ModelTranscriptionFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelTranscriptionConnection @aws_cognito_user_pools @aws_iam
-  syncTranscriptions(filter: ModelTranscriptionFilterInput, limit: Int, nextToken: String, lastSync: AWSTimestamp): ModelTranscriptionConnection @aws_cognito_user_pools @aws_iam
-  byTitle(title: String!, sortDirection: ModelSortDirection, filter: ModelTranscriptionFilterInput, limit: Int, nextToken: String): ModelTranscriptionConnection @aws_cognito_user_pools @aws_iam
-  getRegion(id: ID!): Region @aws_cognito_user_pools @aws_iam
-  listRegions(id: ID, filter: ModelRegionFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelRegionConnection @aws_cognito_user_pools @aws_iam
-  syncRegions(filter: ModelRegionFilterInput, limit: Int, nextToken: String, lastSync: AWSTimestamp): ModelRegionConnection @aws_cognito_user_pools @aws_iam
-  getIssue(id: ID!): Issue @aws_cognito_user_pools @aws_iam
-  listIssues(id: ID, filter: ModelIssueFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelIssueConnection @aws_cognito_user_pools @aws_iam
-  syncIssues(filter: ModelIssueFilterInput, limit: Int, nextToken: String, lastSync: AWSTimestamp): ModelIssueConnection @aws_cognito_user_pools @aws_iam
-  getContributor(id: ID!): Contributor @aws_cognito_user_pools @aws_iam
-  listContributors(id: ID, filter: ModelContributorFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelContributorConnection @aws_cognito_user_pools @aws_iam
-  syncContributors(filter: ModelContributorFilterInput, limit: Int, nextToken: String, lastSync: AWSTimestamp): ModelContributorConnection @aws_cognito_user_pools @aws_iam
+  getTranscription(id: ID!): Transcription @aws_iam @aws_cognito_user_pools
+  listTranscriptions(id: ID, filter: ModelTranscriptionFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelTranscriptionConnection @aws_iam @aws_cognito_user_pools
+  syncTranscriptions(filter: ModelTranscriptionFilterInput, limit: Int, nextToken: String, lastSync: AWSTimestamp): ModelTranscriptionConnection @aws_iam @aws_cognito_user_pools
+  byTitle(title: String!, sortDirection: ModelSortDirection, filter: ModelTranscriptionFilterInput, limit: Int, nextToken: String): ModelTranscriptionConnection @aws_iam @aws_cognito_user_pools
+  getRegion(id: ID!): Region @aws_iam @aws_cognito_user_pools
+  listRegions(id: ID, filter: ModelRegionFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelRegionConnection @aws_iam @aws_cognito_user_pools
+  syncRegions(filter: ModelRegionFilterInput, limit: Int, nextToken: String, lastSync: AWSTimestamp): ModelRegionConnection @aws_iam @aws_cognito_user_pools
+  getIssue(id: ID!): Issue @aws_iam @aws_cognito_user_pools
+  listIssues(id: ID, filter: ModelIssueFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelIssueConnection @aws_iam @aws_cognito_user_pools
+  syncIssues(filter: ModelIssueFilterInput, limit: Int, nextToken: String, lastSync: AWSTimestamp): ModelIssueConnection @aws_iam @aws_cognito_user_pools
+  getContributor(id: ID!): Contributor @aws_iam @aws_cognito_user_pools
+  listContributors(id: ID, filter: ModelContributorFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelContributorConnection @aws_iam @aws_cognito_user_pools
+  syncContributors(filter: ModelContributorFilterInput, limit: Int, nextToken: String, lastSync: AWSTimestamp): ModelContributorConnection @aws_iam @aws_cognito_user_pools
+  getTranscriptionContributor(id: ID!): TranscriptionContributor @aws_iam @aws_cognito_user_pools
+  listTranscriptionContributors(id: ID, filter: ModelTranscriptionContributorFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelTranscriptionContributorConnection @aws_iam @aws_cognito_user_pools
+  syncTranscriptionContributors(filter: ModelTranscriptionContributorFilterInput, limit: Int, nextToken: String, lastSync: AWSTimestamp): ModelTranscriptionContributorConnection @aws_iam @aws_cognito_user_pools
 }
 
 input ModelTranscriptionConditionInput {
@@ -358,18 +377,21 @@ input DeleteTranscriptionInput {
 }
 
 type Mutation {
-  deleteTranscription(input: DeleteTranscriptionInput!, condition: ModelTranscriptionConditionInput): Transcription
-  createTranscription(input: CreateTranscriptionInput!, condition: ModelTranscriptionConditionInput): Transcription @aws_cognito_user_pools @aws_iam
-  updateTranscription(input: UpdateTranscriptionInput!, condition: ModelTranscriptionConditionInput): Transcription @aws_cognito_user_pools @aws_iam
-  createRegion(input: CreateRegionInput!, condition: ModelRegionConditionInput): Region @aws_cognito_user_pools @aws_iam
-  updateRegion(input: UpdateRegionInput!, condition: ModelRegionConditionInput): Region @aws_cognito_user_pools @aws_iam
-  deleteRegion(input: DeleteRegionInput!, condition: ModelRegionConditionInput): Region @aws_cognito_user_pools @aws_iam
-  createIssue(input: CreateIssueInput!, condition: ModelIssueConditionInput): Issue @aws_cognito_user_pools @aws_iam
-  updateIssue(input: UpdateIssueInput!, condition: ModelIssueConditionInput): Issue @aws_cognito_user_pools @aws_iam
-  deleteIssue(input: DeleteIssueInput!, condition: ModelIssueConditionInput): Issue @aws_cognito_user_pools @aws_iam
-  createContributor(input: CreateContributorInput!, condition: ModelContributorConditionInput): Contributor @aws_cognito_user_pools @aws_iam
-  updateContributor(input: UpdateContributorInput!, condition: ModelContributorConditionInput): Contributor @aws_cognito_user_pools @aws_iam
-  deleteContributor(input: DeleteContributorInput!, condition: ModelContributorConditionInput): Contributor @aws_cognito_user_pools @aws_iam
+  createTranscription(input: CreateTranscriptionInput!, condition: ModelTranscriptionConditionInput): Transcription @aws_iam @aws_cognito_user_pools
+  updateTranscription(input: UpdateTranscriptionInput!, condition: ModelTranscriptionConditionInput): Transcription @aws_iam @aws_cognito_user_pools
+  deleteTranscription(input: DeleteTranscriptionInput!, condition: ModelTranscriptionConditionInput): Transcription @aws_iam @aws_cognito_user_pools
+  createRegion(input: CreateRegionInput!, condition: ModelRegionConditionInput): Region @aws_iam
+  updateRegion(input: UpdateRegionInput!, condition: ModelRegionConditionInput): Region @aws_iam @aws_cognito_user_pools
+  deleteRegion(input: DeleteRegionInput!, condition: ModelRegionConditionInput): Region @aws_iam
+  createIssue(input: CreateIssueInput!, condition: ModelIssueConditionInput): Issue @aws_iam
+  updateIssue(input: UpdateIssueInput!, condition: ModelIssueConditionInput): Issue @aws_iam @aws_cognito_user_pools
+  deleteIssue(input: DeleteIssueInput!, condition: ModelIssueConditionInput): Issue @aws_iam
+  createContributor(input: CreateContributorInput!, condition: ModelContributorConditionInput): Contributor @aws_iam
+  updateContributor(input: UpdateContributorInput!, condition: ModelContributorConditionInput): Contributor @aws_iam @aws_cognito_user_pools
+  deleteContributor(input: DeleteContributorInput!, condition: ModelContributorConditionInput): Contributor @aws_iam
+  createTranscriptionContributor(input: CreateTranscriptionContributorInput!, condition: ModelTranscriptionContributorConditionInput): TranscriptionContributor @aws_iam
+  updateTranscriptionContributor(input: UpdateTranscriptionContributorInput!, condition: ModelTranscriptionContributorConditionInput): TranscriptionContributor @aws_iam @aws_cognito_user_pools
+  deleteTranscriptionContributor(input: DeleteTranscriptionContributorInput!, condition: ModelTranscriptionContributorConditionInput): TranscriptionContributor @aws_iam
 }
 
 input ModelSubscriptionTranscriptionFilterInput {
@@ -388,32 +410,37 @@ input ModelSubscriptionTranscriptionFilterInput {
   isPrivate: ModelSubscriptionBooleanInput
   isPublished: ModelSubscriptionBooleanInput
   disableAnalyzer: ModelSubscriptionBooleanInput
-  editors: ModelSubscriptionStringInput
-  viewers: ModelSubscriptionStringInput
+  editorGroups: ModelSubscriptionStringInput
+  viewerGroups: ModelSubscriptionStringInput
   createdAt: ModelSubscriptionStringInput
   updatedAt: ModelSubscriptionStringInput
   and: [ModelSubscriptionTranscriptionFilterInput]
   or: [ModelSubscriptionTranscriptionFilterInput]
   _deleted: ModelBooleanInput
   author: ModelStringInput
+  editors: ModelStringInput
+  viewers: ModelStringInput
 }
 
 type Subscription {
-  onCreateTranscription(filter: ModelSubscriptionTranscriptionFilterInput, author: String): Transcription @aws_subscribe(mutations: ["createTranscription"]) @aws_cognito_user_pools @aws_iam
-  onUpdateTranscription(filter: ModelSubscriptionTranscriptionFilterInput, author: String): Transcription @aws_subscribe(mutations: ["updateTranscription"]) @aws_cognito_user_pools @aws_iam
-  onDeleteTranscription(filter: ModelSubscriptionTranscriptionFilterInput, author: String): Transcription @aws_subscribe(mutations: ["deleteTranscription"]) @aws_cognito_user_pools @aws_iam
-  onCreateRegion(filter: ModelSubscriptionRegionFilterInput): Region @aws_subscribe(mutations: ["createRegion"]) @aws_cognito_user_pools @aws_iam
-  onUpdateRegion(filter: ModelSubscriptionRegionFilterInput): Region @aws_subscribe(mutations: ["updateRegion"]) @aws_cognito_user_pools @aws_iam
-  onDeleteRegion(filter: ModelSubscriptionRegionFilterInput): Region @aws_subscribe(mutations: ["deleteRegion"]) @aws_cognito_user_pools @aws_iam
-  onCreateIssue(filter: ModelSubscriptionIssueFilterInput): Issue @aws_subscribe(mutations: ["createIssue"]) @aws_cognito_user_pools @aws_iam
-  onUpdateIssue(filter: ModelSubscriptionIssueFilterInput): Issue @aws_subscribe(mutations: ["updateIssue"]) @aws_cognito_user_pools @aws_iam
-  onDeleteIssue(filter: ModelSubscriptionIssueFilterInput): Issue @aws_subscribe(mutations: ["deleteIssue"]) @aws_cognito_user_pools @aws_iam
-  onCreateContributor(filter: ModelSubscriptionContributorFilterInput): Contributor @aws_subscribe(mutations: ["createContributor"]) @aws_cognito_user_pools @aws_iam
-  onUpdateContributor(filter: ModelSubscriptionContributorFilterInput): Contributor @aws_subscribe(mutations: ["updateContributor"]) @aws_cognito_user_pools @aws_iam
-  onDeleteContributor(filter: ModelSubscriptionContributorFilterInput): Contributor @aws_subscribe(mutations: ["deleteContributor"]) @aws_cognito_user_pools @aws_iam
+  onCreateTranscription(filter: ModelSubscriptionTranscriptionFilterInput, author: String): Transcription @aws_subscribe(mutations: ["createTranscription"]) @aws_iam @aws_cognito_user_pools
+  onUpdateTranscription(filter: ModelSubscriptionTranscriptionFilterInput, author: String): Transcription @aws_subscribe(mutations: ["updateTranscription"]) @aws_iam @aws_cognito_user_pools
+  onDeleteTranscription(filter: ModelSubscriptionTranscriptionFilterInput, author: String): Transcription @aws_subscribe(mutations: ["deleteTranscription"]) @aws_iam @aws_cognito_user_pools
+  onCreateRegion(filter: ModelSubscriptionRegionFilterInput): Region @aws_subscribe(mutations: ["createRegion"]) @aws_iam @aws_cognito_user_pools
+  onUpdateRegion(filter: ModelSubscriptionRegionFilterInput): Region @aws_subscribe(mutations: ["updateRegion"]) @aws_iam @aws_cognito_user_pools
+  onDeleteRegion(filter: ModelSubscriptionRegionFilterInput): Region @aws_subscribe(mutations: ["deleteRegion"]) @aws_iam @aws_cognito_user_pools
+  onCreateIssue(filter: ModelSubscriptionIssueFilterInput): Issue @aws_subscribe(mutations: ["createIssue"]) @aws_iam @aws_cognito_user_pools
+  onUpdateIssue(filter: ModelSubscriptionIssueFilterInput): Issue @aws_subscribe(mutations: ["updateIssue"]) @aws_iam @aws_cognito_user_pools
+  onDeleteIssue(filter: ModelSubscriptionIssueFilterInput): Issue @aws_subscribe(mutations: ["deleteIssue"]) @aws_iam @aws_cognito_user_pools
+  onCreateContributor(filter: ModelSubscriptionContributorFilterInput): Contributor @aws_subscribe(mutations: ["createContributor"]) @aws_iam @aws_cognito_user_pools
+  onUpdateContributor(filter: ModelSubscriptionContributorFilterInput): Contributor @aws_subscribe(mutations: ["updateContributor"]) @aws_iam @aws_cognito_user_pools
+  onDeleteContributor(filter: ModelSubscriptionContributorFilterInput): Contributor @aws_subscribe(mutations: ["deleteContributor"]) @aws_iam @aws_cognito_user_pools
+  onCreateTranscriptionContributor(filter: ModelSubscriptionTranscriptionContributorFilterInput): TranscriptionContributor @aws_subscribe(mutations: ["createTranscriptionContributor"]) @aws_iam @aws_cognito_user_pools
+  onUpdateTranscriptionContributor(filter: ModelSubscriptionTranscriptionContributorFilterInput): TranscriptionContributor @aws_subscribe(mutations: ["updateTranscriptionContributor"]) @aws_iam @aws_cognito_user_pools
+  onDeleteTranscriptionContributor(filter: ModelSubscriptionTranscriptionContributorFilterInput): TranscriptionContributor @aws_subscribe(mutations: ["deleteTranscriptionContributor"]) @aws_iam @aws_cognito_user_pools
 }
 
-type ModelRegionConnection @aws_cognito_user_pools @aws_iam {
+type ModelRegionConnection @aws_iam @aws_cognito_user_pools {
   items: [Region]!
   nextToken: String
   startedAt: AWSTimestamp
@@ -507,7 +534,7 @@ input ModelSubscriptionRegionFilterInput {
   _deleted: ModelBooleanInput
 }
 
-type ModelIssueConnection @aws_cognito_user_pools @aws_iam {
+type ModelIssueConnection @aws_iam @aws_cognito_user_pools {
   items: [Issue]!
   nextToken: String
   startedAt: AWSTimestamp
@@ -596,7 +623,7 @@ input ModelSubscriptionIssueFilterInput {
   _deleted: ModelBooleanInput
 }
 
-type ModelContributorConnection @aws_cognito_user_pools @aws_iam {
+type ModelContributorConnection @aws_iam @aws_cognito_user_pools {
   items: [Contributor]!
   nextToken: String
   startedAt: AWSTimestamp
@@ -604,7 +631,8 @@ type ModelContributorConnection @aws_cognito_user_pools @aws_iam {
 
 input ModelContributorFilterInput {
   id: ModelIDInput
-  name: ModelStringInput
+  email: ModelStringInput
+  username: ModelStringInput
   createdAt: ModelStringInput
   updatedAt: ModelStringInput
   and: [ModelContributorFilterInput]
@@ -614,7 +642,8 @@ input ModelContributorFilterInput {
 }
 
 input ModelContributorConditionInput {
-  name: ModelStringInput
+  email: ModelStringInput
+  username: ModelStringInput
   and: [ModelContributorConditionInput]
   or: [ModelContributorConditionInput]
   not: ModelContributorConditionInput
@@ -625,13 +654,15 @@ input ModelContributorConditionInput {
 
 input CreateContributorInput {
   id: ID
-  name: String
+  email: String!
+  username: String!
   _version: Int
 }
 
 input UpdateContributorInput {
   id: ID!
-  name: String
+  email: String
+  username: String
   _version: Int
 }
 
@@ -642,10 +673,70 @@ input DeleteContributorInput {
 
 input ModelSubscriptionContributorFilterInput {
   id: ModelSubscriptionIDInput
-  name: ModelSubscriptionStringInput
+  email: ModelSubscriptionStringInput
+  username: ModelSubscriptionStringInput
   createdAt: ModelSubscriptionStringInput
   updatedAt: ModelSubscriptionStringInput
   and: [ModelSubscriptionContributorFilterInput]
   or: [ModelSubscriptionContributorFilterInput]
+  _deleted: ModelBooleanInput
+}
+
+type ModelTranscriptionContributorConnection @aws_iam @aws_cognito_user_pools {
+  items: [TranscriptionContributor]!
+  nextToken: String
+  startedAt: AWSTimestamp
+}
+
+input ModelTranscriptionContributorFilterInput {
+  id: ModelIDInput
+  transcriptionID: ModelIDInput
+  contributorID: ModelIDInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+  and: [ModelTranscriptionContributorFilterInput]
+  or: [ModelTranscriptionContributorFilterInput]
+  not: ModelTranscriptionContributorFilterInput
+  _deleted: ModelBooleanInput
+}
+
+input ModelTranscriptionContributorConditionInput {
+  transcriptionID: ModelIDInput
+  contributorID: ModelIDInput
+  and: [ModelTranscriptionContributorConditionInput]
+  or: [ModelTranscriptionContributorConditionInput]
+  not: ModelTranscriptionContributorConditionInput
+  _deleted: ModelBooleanInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+}
+
+input CreateTranscriptionContributorInput {
+  id: ID
+  transcriptionID: ID!
+  contributorID: ID!
+  _version: Int
+}
+
+input UpdateTranscriptionContributorInput {
+  id: ID!
+  transcriptionID: ID
+  contributorID: ID
+  _version: Int
+}
+
+input DeleteTranscriptionContributorInput {
+  id: ID!
+  _version: Int
+}
+
+input ModelSubscriptionTranscriptionContributorFilterInput {
+  id: ModelSubscriptionIDInput
+  transcriptionID: ModelSubscriptionIDInput
+  contributorID: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+  and: [ModelSubscriptionTranscriptionContributorFilterInput]
+  or: [ModelSubscriptionTranscriptionContributorFilterInput]
   _deleted: ModelBooleanInput
 }

@@ -9,23 +9,12 @@ $util.qr($ctx.stash.put("hasAuth", true))
       #return($util.toJson({}))
     #end
   #end
-$util.unauthorized()
+  #if( ($ctx.identity.userArn == $ctx.stash.authRole) || ($ctx.identity.cognitoIdentityPoolId == $ctx.stash.identityPoolId && $ctx.identity.cognitoIdentityAuthType == "authenticated") )
+    #set( $isAuthorized = true )
+  #end
 #end
 #if( $util.authType() == "User Pool Authorization" )
-  #if( !$isAuthorized )
-    #set( $staticGroupRoles = [{"claim":"cognito:groups","entity":"Admins","allowedFields":["id","text","owner","index","resolved","type","comments","regionId","transcription","transcriptionId","transcriptionIssueListId","_version","_deleted","_lastChangedAt"],"isAuthorizedOnAllFields":true}] )
-    #foreach( $groupRole in $staticGroupRoles )
-      #set( $groupsInToken = $util.defaultIfNull($ctx.identity.claims.get($groupRole.claim), []) )
-      #if( $groupsInToken.contains($groupRole.entity) )
-        #if( $groupRole.isAuthorizedOnAllFields )
-          #set( $isAuthorized = true )
-          #break
-        #else
-          $util.qr($allowedFields.addAll($groupRole.allowedFields))
-        #end
-      #end
-    #end
-  #end
+
 #end
 #if( !$isAuthorized && $allowedFields.isEmpty() )
 $util.unauthorized()

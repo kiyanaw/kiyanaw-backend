@@ -7,7 +7,11 @@ $util.qr($ctx.stash.put("hasAuth", true))
       #return($util.toJson({}))
     #end
   #end
-$util.unauthorized()
+  #if( !$isAuthorized )
+    #if( ($ctx.identity.userArn == $ctx.stash.authRole) || ($ctx.identity.cognitoIdentityPoolId == $ctx.stash.identityPoolId && $ctx.identity.cognitoIdentityAuthType == "authenticated") )
+      #set( $isAuthorized = true )
+    #end
+  #end
 #end
 #if( $util.authType() == "User Pool Authorization" )
   #set( $isAuthorized = true )
@@ -39,13 +43,37 @@ $util.unauthorized()
     #if( !$util.isNull($role0_1) )
       $util.qr($authFilter.add({"author": { "eq": $role0_1 }}))
     #end
-    #foreach( $group in $util.defaultIfNull($ctx.identity.claims.get("cognito:groups"), []) )
-      #if( !$group.isEmpty() )
-        $util.qr($authFilter.add({"editorGroups": { "contains": $group }}))
+    #set( $ownerClaim1 = $util.defaultIfNull($ctx.identity.claims.get("sub"), null) )
+    #set( $currentClaim1 = $util.defaultIfNull($ctx.identity.claims.get("username"), $util.defaultIfNull($ctx.identity.claims.get("cognito:username"), null)) )
+    #if( !$util.isNull($ownerClaim1) && !$util.isNull($currentClaim1) )
+      #set( $ownerClaim1 = "$ownerClaim1::$currentClaim1" )
+      #if( !$util.isNull($ownerClaim1) )
+        $util.qr($authFilter.add({"editors": { "contains": $ownerClaim1 }}))
       #end
-      #if( !$group.isEmpty() )
-        $util.qr($authFilter.add({"viewerGroups": { "contains": $group }}))
+    #end
+    #set( $role1_0 = $util.defaultIfNull($ctx.identity.claims.get("sub"), null) )
+    #if( !$util.isNull($role1_0) )
+      $util.qr($authFilter.add({"editors": { "contains": $role1_0 }}))
+    #end
+    #set( $role1_1 = $util.defaultIfNull($ctx.identity.claims.get("username"), $util.defaultIfNull($ctx.identity.claims.get("cognito:username"), null)) )
+    #if( !$util.isNull($role1_1) )
+      $util.qr($authFilter.add({"editors": { "contains": $role1_1 }}))
+    #end
+    #set( $ownerClaim2 = $util.defaultIfNull($ctx.identity.claims.get("sub"), null) )
+    #set( $currentClaim1 = $util.defaultIfNull($ctx.identity.claims.get("username"), $util.defaultIfNull($ctx.identity.claims.get("cognito:username"), null)) )
+    #if( !$util.isNull($ownerClaim2) && !$util.isNull($currentClaim1) )
+      #set( $ownerClaim2 = "$ownerClaim2::$currentClaim1" )
+      #if( !$util.isNull($ownerClaim2) )
+        $util.qr($authFilter.add({"viewers": { "contains": $ownerClaim2 }}))
       #end
+    #end
+    #set( $role2_0 = $util.defaultIfNull($ctx.identity.claims.get("sub"), null) )
+    #if( !$util.isNull($role2_0) )
+      $util.qr($authFilter.add({"viewers": { "contains": $role2_0 }}))
+    #end
+    #set( $role2_1 = $util.defaultIfNull($ctx.identity.claims.get("username"), $util.defaultIfNull($ctx.identity.claims.get("cognito:username"), null)) )
+    #if( !$util.isNull($role2_1) )
+      $util.qr($authFilter.add({"viewers": { "contains": $role2_1 }}))
     #end
     #if( !$authFilter.isEmpty() )
       $util.qr($ctx.stash.put("authFilter", { "or": $authFilter }))

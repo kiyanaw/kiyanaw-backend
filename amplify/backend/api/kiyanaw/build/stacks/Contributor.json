@@ -70,13 +70,13 @@
     "referencetotransformerrootstackTranscriptionNestedStackTranscriptionNestedStackResource46557E60OutputstransformerrootstackTranscriptionQuerysyncTranscriptionspreAuth1FunctionQuerysyncTranscriptionspreAuth1FunctionAppSyncFunctionFA43FBEFFunctionId": {
       "Type": "String"
     },
-    "referencetotransformerrootstackGraphQLAPINONEDS2BA9D1C8Name": {
-      "Type": "String"
-    },
     "referencetotransformerrootstackTranscriptionNestedStackTranscriptionNestedStackResource46557E60OutputstransformerrootstackTranscriptionMutationcreateTranscriptioninit0FunctionMutationcreateTranscriptioninit0FunctionAppSyncFunction642E615BFunctionId": {
       "Type": "String"
     },
     "referencetotransformerrootstackTranscriptionNestedStackTranscriptionNestedStackResource46557E60OutputstransformerrootstackTranscriptionMutationcreateTranscriptionpreAuth0FunctionMutationcreateTranscriptionpreAuth0FunctionAppSyncFunction3CF6B395FunctionId": {
+      "Type": "String"
+    },
+    "referencetotransformerrootstackRegionNestedStackRegionNestedStackResourceCFE5F41AOutputstransformerrootstackRegionMutationcreateRegionauth0FunctionMutationcreateRegionauth0FunctionAppSyncFunction7976FC31FunctionId": {
       "Type": "String"
     },
     "referencetotransformerrootstackTranscriptionNestedStackTranscriptionNestedStackResource46557E60OutputstransformerrootstackTranscriptionMutationupdateTranscriptioninit0FunctionMutationupdateTranscriptioninit0FunctionAppSyncFunction92616DEBFunctionId": {
@@ -811,36 +811,6 @@
         "TypeName": "Query"
       }
     },
-    "MutationcreateContributorauth0FunctionMutationcreateContributorauth0FunctionAppSyncFunction758489A7": {
-      "Type": "AWS::AppSync::FunctionConfiguration",
-      "Properties": {
-        "ApiId": {
-          "Ref": "referencetotransformerrootstackGraphQLAPI20497F53ApiId"
-        },
-        "DataSourceName": {
-          "Ref": "referencetotransformerrootstackGraphQLAPINONEDS2BA9D1C8Name"
-        },
-        "FunctionVersion": "2018-05-29",
-        "Name": "MutationcreateContributorauth0Function",
-        "RequestMappingTemplateS3Location": {
-          "Fn::Join": [
-            "",
-            [
-              "s3://",
-              {
-                "Ref": "referencetotransformerrootstackS3DeploymentBucket7592718ARef"
-              },
-              "/",
-              {
-                "Ref": "referencetotransformerrootstackS3DeploymentRootKeyA71EA735Ref"
-              },
-              "/resolvers/Mutation.createContributor.auth.1.req.vtl"
-            ]
-          ]
-        },
-        "ResponseMappingTemplate": "$util.toJson({})"
-      }
-    },
     "MutationCreateContributorDataResolverFnMutationCreateContributorDataResolverFnAppSyncFunction90D9F52D": {
       "Type": "AWS::AppSync::FunctionConfiguration",
       "Properties": {
@@ -913,10 +883,7 @@
               "Ref": "referencetotransformerrootstackTranscriptionNestedStackTranscriptionNestedStackResource46557E60OutputstransformerrootstackTranscriptionMutationcreateTranscriptionpreAuth0FunctionMutationcreateTranscriptionpreAuth0FunctionAppSyncFunction3CF6B395FunctionId"
             },
             {
-              "Fn::GetAtt": [
-                "MutationcreateContributorauth0FunctionMutationcreateContributorauth0FunctionAppSyncFunction758489A7",
-                "FunctionId"
-              ]
+              "Ref": "referencetotransformerrootstackRegionNestedStackRegionNestedStackResourceCFE5F41AOutputstransformerrootstackRegionMutationcreateRegionauth0FunctionMutationcreateRegionauth0FunctionAppSyncFunction7976FC31FunctionId"
             },
             {
               "Ref": "referencetotransformerrootstackTranscriptionNestedStackTranscriptionNestedStackResource46557E60OutputstransformerrootstackTranscriptionQuerygetTranscriptionpostAuth0FunctionQuerygetTranscriptionpostAuth0FunctionAppSyncFunction7D4E9972FunctionId"
@@ -1534,6 +1501,19 @@
             ]
           ]
         }
+      }
+    },
+    "transformerrootstackContributorContributorDataSource9484AC1FName": {
+      "Value": {
+        "Fn::GetAtt": [
+          "ContributorDataSource",
+          "Name"
+        ]
+      }
+    },
+    "transformerrootstackContributorContributorTable8F5D750FRef": {
+      "Value": {
+        "Ref": "ContributorTable"
       }
     }
   }

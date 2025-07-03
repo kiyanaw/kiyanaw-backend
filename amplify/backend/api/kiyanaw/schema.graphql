@@ -1,19 +1,22 @@
 type Transcription
   @model
-  @auth(
-    rules: [
-      # Base read authentication - any authenticated user can read
-      # (custom resolvers will enforce isPrivate restrictions)
-      { allow: private, operations: [read] }
-      # Owner access for document creators
-      { allow: owner, ownerField: "author" }
-      # Admin access for system management  
-      { allow: groups, groups: ["Admins"] }
-      # Dynamic organization-based access (for isPrivate=true cases)
-      { allow: groups, groupsField: "editorGroups" }
-      { allow: groups, groupsField: "viewerGroups", operations: [read] }
-    ]
-  ) {
+  @auth(rules: [
+    # 1) Allow IAM callers full CRUD (e.g. DataStore sync, Lambda functions)
+    { allow: private, provider: identityPool, operations: [create, read, update, delete] }
+
+    # 2) Allow any signed-in Cognito user to read public items
+    { allow: private, operations: [read] }
+
+    # 3) Owners (by author) via User Pools
+    { allow: owner, ownerField: "author", operations: [create, read, update, delete] }
+
+    # 4) List-based owners via User Pools
+    { allow: owner, ownerField: "editors", operations: [read, update] }
+    { allow: owner, ownerField: "viewers", operations: [read] }
+
+    # 5) Static Admin group via User Pools
+    { allow: groups, groups: ["Admins"], operations: [create, read, update, delete] }
+  ]) {
   id: ID! @primaryKey
   author: String!
   coverage: Float
@@ -30,27 +33,19 @@ type Transcription
   isPrivate: Boolean
   isPublished: Boolean
   disableAnalyzer: Boolean
-  # ACL fields with restricted update access
-  editors: [String] 
+  # ACL fields (no field-level auth, handled in custom resolvers)
+  editors: [String]
     @auth(rules: [
-      { allow: owner, ownerField: "author", operations: [create, update] }
-      { allow: groups, groups: ["Admins"], operations: [create, update] }
+      { allow: owner, ownerField: "author", operations: [create, read, update] }
+      { allow: groups, groups: ["Admins"], operations: [create, read, update] }
     ])
   viewers: [String]
     @auth(rules: [
-      { allow: owner, ownerField: "author", operations: [create, update] }
-      { allow: groups, groups: ["Admins"], operations: [create, update] }
+      { allow: owner, ownerField: "author", operations: [create, read, update] }
+      { allow: groups, groups: ["Admins"], operations: [create, read, update] }
     ])
   editorGroups: [String]
-    @auth(rules: [
-      { allow: owner, ownerField: "author", operations: [create, update] }
-      { allow: groups, groups: ["Admins"], operations: [create, update] }
-    ])
   viewerGroups: [String]
-    @auth(rules: [
-      { allow: owner, ownerField: "author", operations: [create, update] }
-      { allow: groups, groups: ["Admins"], operations: [create, update] }
-    ])
   regions: [Region] @hasMany(indexName: "ByTranscription", fields: ["id"])
   issueList: [Issue] @hasMany(indexName: "ByTranscription", fields: ["id"])
   contributors: [TranscriptionContributor] @hasMany(indexName: "byTranscription", fields: ["id"])
@@ -58,13 +53,10 @@ type Transcription
 
 type Region
   @model
-  @auth(
-    rules: [
-      # Base read authentication - access controlled via parent Transcription in custom resolvers
-      { allow: private, operations: [read] }
-      { allow: groups, groups: ["Admins"] }
-    ]
-  ) {
+  @auth(rules: [
+    { allow: private, provider: identityPool, operations: [create, read, update, delete] },
+    { allow: private, operations: [read, update] }
+  ]) {
   id: ID! @primaryKey
   start: Float!
   end: Float!
@@ -80,13 +72,10 @@ type Region
 
 type Issue
   @model
-  @auth(
-    rules: [
-      # Basic read access for authenticated users
-      { allow: private, operations: [read] }
-      { allow: groups, groups: ["Admins"] }
-    ]
-  ) {
+  @auth(rules: [
+    { allow: private, provider: identityPool, operations: [create, read, update, delete] },
+    { allow: private, operations: [read, update] }
+  ]) {
   id: ID! @primaryKey
   text: String!
   owner: String! @index(name: "ByOwner")
@@ -101,13 +90,10 @@ type Issue
 
 type Contributor 
   @model
-  @auth(
-    rules: [
-      # Basic read access for authenticated users
-      { allow: private, operations: [read] }
-      { allow: groups, groups: ["Admins"] }
-    ]
-  ) {
+  @auth(rules: [
+    { allow: private, provider: identityPool, operations: [create, read, update, delete] },
+    { allow: private, operations: [read, update] }
+  ]) {
   id: ID! @primaryKey
   email: String!
   username: String!
@@ -116,13 +102,10 @@ type Contributor
 
 type TranscriptionContributor
   @model
-  @auth(
-    rules: [
-      # Basic read access for authenticated users
-      { allow: private, operations: [read] }
-      { allow: groups, groups: ["Admins"] }
-    ]
-  ) {
+  @auth(rules: [
+    { allow: private, provider: identityPool, operations: [create, read, update, delete] },
+    { allow: private, operations: [read, update] }
+  ]) {
   id: ID! @primaryKey
   transcriptionID: ID! @index(name: "byTranscription")
   contributorID: ID! @index(name: "byContributor")

@@ -22,6 +22,11 @@
     ## PRIVATE → enforce ACLs
     #set($hasAccess = false)
     
+    ## Check if user is author
+    #if(!$util.isNull($t.author) && $t.author == $userSub)
+      #set($hasAccess = true)
+    #end
+    
     ## Check if user is in editors array
     #if(!$util.isNull($t.editors) && $t.editors.contains($userSub))
       #set($hasAccess = true)

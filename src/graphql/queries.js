@@ -34,6 +34,11 @@ export const getTranscription = /* GraphQL */ `
         startedAt
         __typename
       }
+      contributors {
+        nextToken
+        startedAt
+        __typename
+      }
       createdAt
       updatedAt
       _version
@@ -441,7 +446,13 @@ export const getContributor = /* GraphQL */ `
   query GetContributor($id: ID!) {
     getContributor(id: $id) {
       id
-      name
+      email
+      username
+      transcriptions {
+        nextToken
+        startedAt
+        __typename
+      }
       createdAt
       updatedAt
       _version
@@ -468,7 +479,8 @@ export const listContributors = /* GraphQL */ `
     ) {
       items {
         id
-        name
+        email
+        username
         createdAt
         updatedAt
         _version
@@ -497,7 +509,124 @@ export const syncContributors = /* GraphQL */ `
     ) {
       items {
         id
-        name
+        email
+        username
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      nextToken
+      startedAt
+      __typename
+    }
+  }
+`;
+export const getTranscriptionContributor = /* GraphQL */ `
+  query GetTranscriptionContributor($id: ID!) {
+    getTranscriptionContributor(id: $id) {
+      id
+      transcriptionID
+      contributorID
+      transcription {
+        id
+        author
+        coverage
+        dateLastUpdated
+        userLastUpdated
+        length
+        issues
+        comments
+        tags
+        source
+        index
+        title
+        type
+        isPrivate
+        isPublished
+        disableAnalyzer
+        editors
+        viewers
+        editorGroups
+        viewerGroups
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      contributor {
+        id
+        email
+        username
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;
+export const listTranscriptionContributors = /* GraphQL */ `
+  query ListTranscriptionContributors(
+    $id: ID
+    $filter: ModelTranscriptionContributorFilterInput
+    $limit: Int
+    $nextToken: String
+    $sortDirection: ModelSortDirection
+  ) {
+    listTranscriptionContributors(
+      id: $id
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+      sortDirection: $sortDirection
+    ) {
+      items {
+        id
+        transcriptionID
+        contributorID
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      nextToken
+      startedAt
+      __typename
+    }
+  }
+`;
+export const syncTranscriptionContributors = /* GraphQL */ `
+  query SyncTranscriptionContributors(
+    $filter: ModelTranscriptionContributorFilterInput
+    $limit: Int
+    $nextToken: String
+    $lastSync: AWSTimestamp
+  ) {
+    syncTranscriptionContributors(
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+      lastSync: $lastSync
+    ) {
+      items {
+        id
+        transcriptionID
+        contributorID
         createdAt
         updatedAt
         _version

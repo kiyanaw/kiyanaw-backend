@@ -37,6 +37,11 @@ export const onCreateTranscription = /* GraphQL */ `
         startedAt
         __typename
       }
+      contributors {
+        nextToken
+        startedAt
+        __typename
+      }
       createdAt
       updatedAt
       _version
@@ -82,6 +87,11 @@ export const onUpdateTranscription = /* GraphQL */ `
         startedAt
         __typename
       }
+      contributors {
+        nextToken
+        startedAt
+        __typename
+      }
       createdAt
       updatedAt
       _version
@@ -123,6 +133,11 @@ export const onDeleteTranscription = /* GraphQL */ `
         __typename
       }
       issueList {
+        nextToken
+        startedAt
+        __typename
+      }
+      contributors {
         nextToken
         startedAt
         __typename
@@ -439,7 +454,13 @@ export const onCreateContributor = /* GraphQL */ `
   ) {
     onCreateContributor(filter: $filter) {
       id
-      name
+      email
+      username
+      transcriptions {
+        nextToken
+        startedAt
+        __typename
+      }
       createdAt
       updatedAt
       _version
@@ -455,7 +476,13 @@ export const onUpdateContributor = /* GraphQL */ `
   ) {
     onUpdateContributor(filter: $filter) {
       id
-      name
+      email
+      username
+      transcriptions {
+        nextToken
+        startedAt
+        __typename
+      }
       createdAt
       updatedAt
       _version
@@ -471,7 +498,181 @@ export const onDeleteContributor = /* GraphQL */ `
   ) {
     onDeleteContributor(filter: $filter) {
       id
-      name
+      email
+      username
+      transcriptions {
+        nextToken
+        startedAt
+        __typename
+      }
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;
+export const onCreateTranscriptionContributor = /* GraphQL */ `
+  subscription OnCreateTranscriptionContributor(
+    $filter: ModelSubscriptionTranscriptionContributorFilterInput
+  ) {
+    onCreateTranscriptionContributor(filter: $filter) {
+      id
+      transcriptionID
+      contributorID
+      transcription {
+        id
+        author
+        coverage
+        dateLastUpdated
+        userLastUpdated
+        length
+        issues
+        comments
+        tags
+        source
+        index
+        title
+        type
+        isPrivate
+        isPublished
+        disableAnalyzer
+        editors
+        viewers
+        editorGroups
+        viewerGroups
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      contributor {
+        id
+        email
+        username
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;
+export const onUpdateTranscriptionContributor = /* GraphQL */ `
+  subscription OnUpdateTranscriptionContributor(
+    $filter: ModelSubscriptionTranscriptionContributorFilterInput
+  ) {
+    onUpdateTranscriptionContributor(filter: $filter) {
+      id
+      transcriptionID
+      contributorID
+      transcription {
+        id
+        author
+        coverage
+        dateLastUpdated
+        userLastUpdated
+        length
+        issues
+        comments
+        tags
+        source
+        index
+        title
+        type
+        isPrivate
+        isPublished
+        disableAnalyzer
+        editors
+        viewers
+        editorGroups
+        viewerGroups
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      contributor {
+        id
+        email
+        username
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;
+export const onDeleteTranscriptionContributor = /* GraphQL */ `
+  subscription OnDeleteTranscriptionContributor(
+    $filter: ModelSubscriptionTranscriptionContributorFilterInput
+  ) {
+    onDeleteTranscriptionContributor(filter: $filter) {
+      id
+      transcriptionID
+      contributorID
+      transcription {
+        id
+        author
+        coverage
+        dateLastUpdated
+        userLastUpdated
+        length
+        issues
+        comments
+        tags
+        source
+        index
+        title
+        type
+        isPrivate
+        isPublished
+        disableAnalyzer
+        editors
+        viewers
+        editorGroups
+        viewerGroups
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      contributor {
+        id
+        email
+        username
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
       createdAt
       updatedAt
       _version

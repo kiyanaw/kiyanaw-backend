@@ -14,24 +14,13 @@ $util.qr($ctx.stash.put("hasAuth", true))
       #return($util.toJson({}))
     #end
   #end
-$util.unauthorized()
+  #if( ($ctx.identity.userArn == $ctx.stash.authRole) || ($ctx.identity.cognitoIdentityPoolId == $ctx.stash.identityPoolId && $ctx.identity.cognitoIdentityAuthType == "authenticated") )
+    #set( $isAuthorized = true )
+  #end
 #end
 #if( $util.authType() == "User Pool Authorization" )
-  #if( !$isAuthorized )
-    #set( $staticGroupRoles = [{"claim":"cognito:groups","entity":"Admins","allowedFields":["id","text","owner","index","resolved","type","comments","regionId","transcription","transcriptionId","transcriptionIssueListId","_version","_deleted","_lastChangedAt"],"nullAllowedFields":["id","text","owner","index","resolved","type","comments","regionId","transcription","transcriptionId"],"isAuthorizedOnAllFields":true}] )
-    #foreach( $groupRole in $staticGroupRoles )
-      #set( $groupsInToken = $util.defaultIfNull($ctx.identity.claims.get($groupRole.claim), []) )
-      #if( $groupsInToken.contains($groupRole.entity) )
-        #if( $groupRole.isAuthorizedOnAllFields )
-          #set( $isAuthorized = true )
-          #break
-        #else
-          $util.qr($allowedFields.addAll($groupRole.allowedFields))
-          $util.qr($nullAllowedFields.addAll($groupRole.nullAllowedFields))
-        #end
-      #end
-    #end
-  #end
+  $util.qr($allowedFields.addAll(["id","text","owner","index","resolved","type","comments","regionId","transcription","transcriptionId","transcriptionIssueListId","_version","_deleted","_lastChangedAt"]))
+  $util.qr($nullAllowedFields.addAll([]))
 #end
 #if( !$isAuthorized && $allowedFields.isEmpty() && $nullAllowedFields.isEmpty() )
 $util.unauthorized()

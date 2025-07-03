@@ -79,6 +79,9 @@
     "referencetotransformerrootstackTranscriptionNestedStackTranscriptionNestedStackResource46557E60OutputstransformerrootstackTranscriptionMutationcreateTranscriptionpreAuth0FunctionMutationcreateTranscriptionpreAuth0FunctionAppSyncFunction3CF6B395FunctionId": {
       "Type": "String"
     },
+    "referencetotransformerrootstackRegionNestedStackRegionNestedStackResourceCFE5F41AOutputstransformerrootstackRegionMutationcreateRegionauth0FunctionMutationcreateRegionauth0FunctionAppSyncFunction7976FC31FunctionId": {
+      "Type": "String"
+    },
     "referencetotransformerrootstackTranscriptionNestedStackTranscriptionNestedStackResource46557E60OutputstransformerrootstackTranscriptionMutationupdateTranscriptioninit0FunctionMutationupdateTranscriptioninit0FunctionAppSyncFunction92616DEBFunctionId": {
       "Type": "String"
     },
@@ -956,36 +959,6 @@
         "TypeName": "Query"
       }
     },
-    "MutationcreateIssueauth0FunctionMutationcreateIssueauth0FunctionAppSyncFunction130EBB69": {
-      "Type": "AWS::AppSync::FunctionConfiguration",
-      "Properties": {
-        "ApiId": {
-          "Ref": "referencetotransformerrootstackGraphQLAPI20497F53ApiId"
-        },
-        "DataSourceName": {
-          "Ref": "referencetotransformerrootstackGraphQLAPINONEDS2BA9D1C8Name"
-        },
-        "FunctionVersion": "2018-05-29",
-        "Name": "MutationcreateIssueauth0Function",
-        "RequestMappingTemplateS3Location": {
-          "Fn::Join": [
-            "",
-            [
-              "s3://",
-              {
-                "Ref": "referencetotransformerrootstackS3DeploymentBucket7592718ARef"
-              },
-              "/",
-              {
-                "Ref": "referencetotransformerrootstackS3DeploymentRootKeyA71EA735Ref"
-              },
-              "/resolvers/Mutation.createIssue.auth.1.req.vtl"
-            ]
-          ]
-        },
-        "ResponseMappingTemplate": "$util.toJson({})"
-      }
-    },
     "MutationCreateIssueDataResolverFnMutationCreateIssueDataResolverFnAppSyncFunction609EECD4": {
       "Type": "AWS::AppSync::FunctionConfiguration",
       "Properties": {
@@ -1058,10 +1031,7 @@
               "Ref": "referencetotransformerrootstackTranscriptionNestedStackTranscriptionNestedStackResource46557E60OutputstransformerrootstackTranscriptionMutationcreateTranscriptionpreAuth0FunctionMutationcreateTranscriptionpreAuth0FunctionAppSyncFunction3CF6B395FunctionId"
             },
             {
-              "Fn::GetAtt": [
-                "MutationcreateIssueauth0FunctionMutationcreateIssueauth0FunctionAppSyncFunction130EBB69",
-                "FunctionId"
-              ]
+              "Ref": "referencetotransformerrootstackRegionNestedStackRegionNestedStackResourceCFE5F41AOutputstransformerrootstackRegionMutationcreateRegionauth0FunctionMutationcreateRegionauth0FunctionAppSyncFunction7976FC31FunctionId"
             },
             {
               "Ref": "referencetotransformerrootstackTranscriptionNestedStackTranscriptionNestedStackResource46557E60OutputstransformerrootstackTranscriptionQuerygetTranscriptionpostAuth0FunctionQuerygetTranscriptionpostAuth0FunctionAppSyncFunction7D4E9972FunctionId"

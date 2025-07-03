@@ -1697,6 +1697,14 @@
         ]
       }
     },
+    "transformerrootstackRegionMutationcreateRegionauth0FunctionMutationcreateRegionauth0FunctionAppSyncFunction7976FC31FunctionId": {
+      "Value": {
+        "Fn::GetAtt": [
+          "MutationcreateRegionauth0FunctionMutationcreateRegionauth0FunctionAppSyncFunction1977D974",
+          "FunctionId"
+        ]
+      }
+    },
     "transformerrootstackRegionSubscriptiononCreateRegionauth0FunctionSubscriptiononCreateRegionauth0FunctionAppSyncFunction568D8C68FunctionId": {
       "Value": {
         "Fn::GetAtt": [

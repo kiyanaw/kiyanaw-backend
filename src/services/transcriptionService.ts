@@ -1,10 +1,16 @@
 import { DataStore } from '@aws-amplify/datastore';
+import { generateClient } from 'aws-amplify/api';
 import { getUrl } from 'aws-amplify/storage';
 import { Transcription as DSTranscription } from '../models';
+// @ts-ignore - GraphQL queries are generated as JS files
+import { getTranscription } from '../graphql/queries.js';
 
 import { loadRegionsForTranscription } from './regionService';
 import { loadIssuesForTranscription } from './issueService';
 import { TranscriptionModel } from './adt';
+
+// Create GraphQL client
+const client = generateClient();
 
 export interface CreateTranscriptionData {
   title: string;
@@ -160,10 +166,23 @@ export const loadInFull = async (transcriptionId: string) => {
     throw new Error('transcriptionId is required');
   }
 
+  // Load via DataStore (existing method)
   const raw = await DataStore.query(DSTranscription, transcriptionId)
   const transcription = new TranscriptionModel(raw as any);
   if (!transcription) {
     throw new Error('Transcription not found');
+  }
+
+  // Load via GraphQL API (for comparison/testing)
+  try {
+    console.log('🔍 Loading transcription via GraphQL API...');
+    const graphqlResult = await client.graphql({
+      query: getTranscription,
+      variables: { id: transcriptionId }
+    });
+    console.log('📊 GraphQL API result:', JSON.stringify(graphqlResult, null, 2));
+  } catch (error) {
+    console.error('❌ GraphQL API query failed:', error);
   }
 
   // Handle missing source

@@ -1,51 +1,6 @@
 /* eslint-disable */
 // this is an auto generated file. This will be overwritten
 
-export const deleteTranscription = /* GraphQL */ `
-  mutation DeleteTranscription(
-    $input: DeleteTranscriptionInput!
-    $condition: ModelTranscriptionConditionInput
-  ) {
-    deleteTranscription(input: $input, condition: $condition) {
-      id
-      author
-      coverage
-      dateLastUpdated
-      userLastUpdated
-      length
-      issues
-      comments
-      tags
-      source
-      index
-      title
-      type
-      isPrivate
-      isPublished
-      disableAnalyzer
-      editors
-      viewers
-      editorGroups
-      viewerGroups
-      regions {
-        nextToken
-        startedAt
-        __typename
-      }
-      issueList {
-        nextToken
-        startedAt
-        __typename
-      }
-      createdAt
-      updatedAt
-      _version
-      _deleted
-      _lastChangedAt
-      __typename
-    }
-  }
-`;
 export const createTranscription = /* GraphQL */ `
   mutation CreateTranscription(
     $input: CreateTranscriptionInput!
@@ -78,6 +33,11 @@ export const createTranscription = /* GraphQL */ `
         __typename
       }
       issueList {
+        nextToken
+        startedAt
+        __typename
+      }
+      contributors {
         nextToken
         startedAt
         __typename
@@ -123,6 +83,61 @@ export const updateTranscription = /* GraphQL */ `
         __typename
       }
       issueList {
+        nextToken
+        startedAt
+        __typename
+      }
+      contributors {
+        nextToken
+        startedAt
+        __typename
+      }
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;
+export const deleteTranscription = /* GraphQL */ `
+  mutation DeleteTranscription(
+    $input: DeleteTranscriptionInput!
+    $condition: ModelTranscriptionConditionInput
+  ) {
+    deleteTranscription(input: $input, condition: $condition) {
+      id
+      author
+      coverage
+      dateLastUpdated
+      userLastUpdated
+      length
+      issues
+      comments
+      tags
+      source
+      index
+      title
+      type
+      isPrivate
+      isPublished
+      disableAnalyzer
+      editors
+      viewers
+      editorGroups
+      viewerGroups
+      regions {
+        nextToken
+        startedAt
+        __typename
+      }
+      issueList {
+        nextToken
+        startedAt
+        __typename
+      }
+      contributors {
         nextToken
         startedAt
         __typename
@@ -458,7 +473,13 @@ export const createContributor = /* GraphQL */ `
   ) {
     createContributor(input: $input, condition: $condition) {
       id
-      name
+      email
+      username
+      transcriptions {
+        nextToken
+        startedAt
+        __typename
+      }
       createdAt
       updatedAt
       _version
@@ -475,7 +496,13 @@ export const updateContributor = /* GraphQL */ `
   ) {
     updateContributor(input: $input, condition: $condition) {
       id
-      name
+      email
+      username
+      transcriptions {
+        nextToken
+        startedAt
+        __typename
+      }
       createdAt
       updatedAt
       _version
@@ -492,7 +519,184 @@ export const deleteContributor = /* GraphQL */ `
   ) {
     deleteContributor(input: $input, condition: $condition) {
       id
-      name
+      email
+      username
+      transcriptions {
+        nextToken
+        startedAt
+        __typename
+      }
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;
+export const createTranscriptionContributor = /* GraphQL */ `
+  mutation CreateTranscriptionContributor(
+    $input: CreateTranscriptionContributorInput!
+    $condition: ModelTranscriptionContributorConditionInput
+  ) {
+    createTranscriptionContributor(input: $input, condition: $condition) {
+      id
+      transcriptionID
+      contributorID
+      transcription {
+        id
+        author
+        coverage
+        dateLastUpdated
+        userLastUpdated
+        length
+        issues
+        comments
+        tags
+        source
+        index
+        title
+        type
+        isPrivate
+        isPublished
+        disableAnalyzer
+        editors
+        viewers
+        editorGroups
+        viewerGroups
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      contributor {
+        id
+        email
+        username
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;
+export const updateTranscriptionContributor = /* GraphQL */ `
+  mutation UpdateTranscriptionContributor(
+    $input: UpdateTranscriptionContributorInput!
+    $condition: ModelTranscriptionContributorConditionInput
+  ) {
+    updateTranscriptionContributor(input: $input, condition: $condition) {
+      id
+      transcriptionID
+      contributorID
+      transcription {
+        id
+        author
+        coverage
+        dateLastUpdated
+        userLastUpdated
+        length
+        issues
+        comments
+        tags
+        source
+        index
+        title
+        type
+        isPrivate
+        isPublished
+        disableAnalyzer
+        editors
+        viewers
+        editorGroups
+        viewerGroups
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      contributor {
+        id
+        email
+        username
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;
+export const deleteTranscriptionContributor = /* GraphQL */ `
+  mutation DeleteTranscriptionContributor(
+    $input: DeleteTranscriptionContributorInput!
+    $condition: ModelTranscriptionContributorConditionInput
+  ) {
+    deleteTranscriptionContributor(input: $input, condition: $condition) {
+      id
+      transcriptionID
+      contributorID
+      transcription {
+        id
+        author
+        coverage
+        dateLastUpdated
+        userLastUpdated
+        length
+        issues
+        comments
+        tags
+        source
+        index
+        title
+        type
+        isPrivate
+        isPublished
+        disableAnalyzer
+        editors
+        viewers
+        editorGroups
+        viewerGroups
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      contributor {
+        id
+        email
+        username
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
       createdAt
       updatedAt
       _version
