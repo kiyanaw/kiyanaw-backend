@@ -2,6 +2,7 @@ import WaveSurfer from 'wavesurfer.js';
 import Regions from 'wavesurfer.js/dist/plugins/regions.esm.js';
 import Timeline from 'wavesurfer.js/dist/plugins/timeline.esm.js';
 import mitt from 'mitt';
+import { generateSignedUrl } from './transcriptionService';
 
 
 class WaveSurferService {
@@ -111,7 +112,7 @@ class WaveSurferService {
 
     // If we have a delayed load waiting, process it immediately after creation
     if (this._delayedLoad) {
-      this.wavesurfer.load(this._delayedLoad.source, this._delayedLoad.peaks);
+      this.load(this._delayedLoad.source, this._delayedLoad.peaks);
       this._delayedLoad = null;
     }
 
@@ -126,8 +127,8 @@ class WaveSurferService {
       this.ready = true
       
       if (this._delayedLoad !== null) {
-        this.wavesurfer?.load(this._delayedLoad.source, this._delayedLoad.peaks)
-        this._delayedLoad = null
+        this.load(this._delayedLoad.source, this._delayedLoad.peaks);
+        this._delayedLoad = null;
       }
       
       if (this._delayedRegions.length) {
@@ -288,21 +289,35 @@ class WaveSurferService {
   }
 
   // Set a new source URL and peaks data
-  load(source:string, peaks: any): void{
+  async load(source: string, peaks: any): Promise<void> {
     if (!this.wavesurfer) {
       this._delayedLoad = { source, peaks };
       return;
     }
     
-    if (this.currentMediaElement) {
-      // If we have a media element, we just need to load the peaks.
-      // The media is already being loaded by the video tag's src attribute.
-      // Passing the source URL again to load() would cause a second fetch.
-      // We pass the source here so wavesurfer can show a timeline, but it won't re-fetch.
-      this.wavesurfer?.load(source, peaks)
-    } else {
-      // For audio-only, load the media source directly.
-      this.wavesurfer?.load(source, peaks)
+    try {
+      let signedMediaUrl: string;
+      
+      if (this.currentMediaElement) {
+        // If we have a media element, we need to set the src attribute to the signed URL
+        // and then load peaks only in wavesurfer
+        signedMediaUrl = await generateSignedUrl(source);
+        this.currentMediaElement.src = signedMediaUrl;
+        this.wavesurfer?.load(signedMediaUrl, peaks);
+      } else {
+        // For audio-only, load the signed media source directly.
+        signedMediaUrl = await generateSignedUrl(source);
+        this.wavesurfer?.load(signedMediaUrl, peaks);
+      }
+    } catch (error) {
+      console.error('Failed to load media with signed URL:', error);
+      // Fallback to original URL if signing fails
+      if (this.currentMediaElement) {
+        this.currentMediaElement.src = source;
+        this.wavesurfer?.load(source, peaks);
+      } else {
+        this.wavesurfer?.load(source, peaks);
+      }
     }
   }
 

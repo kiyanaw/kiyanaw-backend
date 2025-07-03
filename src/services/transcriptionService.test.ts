@@ -103,11 +103,12 @@ describe('TranscriptionService', () => {
 
 
 
-    it('should fetch peaks data using transcription source', async () => {
+    it('should fetch peaks data using signed URL', async () => {
       await loadInFull(mockTranscriptionId);
       
       expect(global.fetch).toHaveBeenCalledTimes(1);
-      expect(global.fetch).toHaveBeenCalledWith(`${mockTranscriptionModel.source}.json`);
+      // Should use signed URL, not direct URL construction
+      expect(global.fetch).toHaveBeenCalledWith('https://fake.s3.amazonaws.com/public/audio.mp3.json');
     });
 
     it('should load regions and issues in parallel', async () => {
@@ -309,7 +310,7 @@ describe('TranscriptionService', () => {
       expect(result.issues).toEqual([]);
     });
 
-    it('should handle different transcription sources', async () => {
+    it('should handle different transcription sources with signed URLs', async () => {
       const differentSource = 'https://different.com/media.wav';
       const differentTranscription = { ...mockTranscriptionModel, source: differentSource };
       (TranscriptionModel as jest.MockedClass<typeof TranscriptionModel>).mockImplementation(
@@ -318,7 +319,104 @@ describe('TranscriptionService', () => {
       
       await loadInFull(mockTranscriptionId);
       
-      expect(global.fetch).toHaveBeenCalledWith(`${differentSource}.json`);
+      // Should generate signed URL for the different source
+      expect(global.fetch).toHaveBeenCalledWith('https://fake.s3.amazonaws.com/public/media.wav.json');
+    });
+  });
+
+  describe('generateSignedUrl', () => {
+    // Import the function for direct testing
+    const { generateSignedUrl } = require('./transcriptionService');
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('should generate signed URL for media file without suffix', async () => {
+      const sourceUrl = 'https://bucket.s3.amazonaws.com/public/test-audio.mp3';
+      
+      const result = await generateSignedUrl(sourceUrl);
+      
+      expect(result).toBe('https://fake.s3.amazonaws.com/public/test-audio.mp3');
+    });
+
+    it('should generate signed URL for peaks file with .json suffix', async () => {
+      const sourceUrl = 'https://bucket.s3.amazonaws.com/public/test-audio.mp3';
+      
+      const result = await generateSignedUrl(sourceUrl, '.json');
+      
+      expect(result).toBe('https://fake.s3.amazonaws.com/public/test-audio.mp3.json');
+    });
+
+    it('should handle different file types', async () => {
+      const videoUrl = 'https://bucket.s3.amazonaws.com/public/video.mp4';
+      
+      const result = await generateSignedUrl(videoUrl);
+      
+      expect(result).toBe('https://fake.s3.amazonaws.com/public/video.mp4');
+    });
+
+    it('should handle URLs with public prefix correctly', async () => {
+      const urlWithPublic = 'https://bucket.s3.amazonaws.com/public/folder/file.wav';
+      
+      const result = await generateSignedUrl(urlWithPublic, '.json');
+      
+      expect(result).toBe('https://fake.s3.amazonaws.com/public/folder/file.wav.json');
+    });
+
+    it('should handle URLs without public prefix', async () => {
+      const urlWithoutPublic = 'https://bucket.s3.amazonaws.com/direct-file.mp3';
+      
+      const result = await generateSignedUrl(urlWithoutPublic);
+      
+      expect(result).toBe('https://fake.s3.amazonaws.com/public/direct-file.mp3');
+    });
+
+    it('should throw error for invalid URL format', async () => {
+      const invalidUrl = 'not-a-valid-url';
+      
+      await expect(generateSignedUrl(invalidUrl)).rejects.toThrow('Invalid source URL format');
+    });
+
+    it('should handle getUrl errors gracefully', async () => {
+      // Mock getUrl to throw an error
+      const mockGetUrl = require('aws-amplify/storage').getUrl;
+      mockGetUrl.mockRejectedValueOnce(new Error('S3 access denied'));
+      
+      const sourceUrl = 'https://bucket.s3.amazonaws.com/public/test.mp3';
+      
+      await expect(generateSignedUrl(sourceUrl)).rejects.toThrow('Failed to generate signed URL for file');
+    });
+
+    it('should use correct expiration time and options', async () => {
+      const mockGetUrl = require('aws-amplify/storage').getUrl;
+      const sourceUrl = 'https://bucket.s3.amazonaws.com/public/test.mp3';
+      
+      await generateSignedUrl(sourceUrl);
+      
+      expect(mockGetUrl).toHaveBeenCalledWith({
+        path: 'public/test.mp3',
+        options: {
+          expiresIn: 3600, // 1 hour
+          useAccelerateEndpoint: false
+        }
+      });
+    });
+
+    it('should handle complex S3 URLs with timestamps', async () => {
+      const complexUrl = 'https://bucket.s3.amazonaws.com/public/1234567890-user-audio.mp3';
+      
+      const result = await generateSignedUrl(complexUrl, '.json');
+      
+      expect(result).toBe('https://fake.s3.amazonaws.com/public/1234567890-user-audio.mp3.json');
+    });
+
+    it('should preserve file extensions in key extraction', async () => {
+      const sourceUrl = 'https://bucket.s3.amazonaws.com/public/test.file.with.dots.mp4';
+      
+      const result = await generateSignedUrl(sourceUrl);
+      
+      expect(result).toBe('https://fake.s3.amazonaws.com/public/test.file.with.dots.mp4');
     });
   });
 }); 

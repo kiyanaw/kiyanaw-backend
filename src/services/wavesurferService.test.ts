@@ -584,16 +584,99 @@ describe('WaveSurferService', () => {
       wavesurferService.initialize(mockContainer, mockTimelineContainer);
     });
 
-    it('should load source and peaks', () => {
+    it('should load source and peaks with signed URLs for audio', async () => {
       // Initialize wavesurfer first
       wavesurferService.initialize(mockContainer, mockTimelineContainer);
       
-      const source = 'test-source.mp3';
+      const source = 'https://bucket.s3.amazonaws.com/public/test-source.mp3';
       const peaks = [1, 2, 3, 4];
       
-      wavesurferService.load(source, peaks);
+      await wavesurferService.load(source, peaks);
       
+      // Should call wavesurfer load with signed URL
+      expect(mockWaveSurferInstance.load).toHaveBeenCalledWith(
+        'https://fake.s3.amazonaws.com/public/test-source.mp3',
+        peaks
+      );
+    });
+
+    it('should load source and peaks with signed URLs for video', async () => {
+      // Create mock video element
+      const mockVideoElement = document.createElement('video');
+      
+      // Initialize wavesurfer with video element
+      wavesurferService.initialize(mockContainer, mockTimelineContainer, mockVideoElement);
+      
+      const source = 'https://bucket.s3.amazonaws.com/public/test-video.mp4';
+      const peaks = [1, 2, 3, 4];
+      
+      await wavesurferService.load(source, peaks);
+      
+      // Should set signed URL on video element src
+      expect(mockVideoElement.src).toBe('https://fake.s3.amazonaws.com/public/test-video.mp4');
+      // Should call wavesurfer load with signed URL
+      expect(mockWaveSurferInstance.load).toHaveBeenCalledWith(
+        'https://fake.s3.amazonaws.com/public/test-video.mp4',
+        peaks
+      );
+    });
+
+    it('should handle signed URL generation errors gracefully', async () => {
+      // Mock the generateSignedUrl function to throw an error
+      const transcriptionService = require('../services/transcriptionService');
+      const originalGenerateSignedUrl = transcriptionService.generateSignedUrl;
+      transcriptionService.generateSignedUrl = jest.fn().mockRejectedValueOnce(new Error('S3 access denied'));
+      
+      wavesurferService.initialize(mockContainer, mockTimelineContainer);
+      
+      const source = 'https://bucket.s3.amazonaws.com/public/test-source.mp3';
+      const peaks = [1, 2, 3, 4];
+      
+      await wavesurferService.load(source, peaks);
+      
+      // Should fallback to original URL
       expect(mockWaveSurferInstance.load).toHaveBeenCalledWith(source, peaks);
+      
+      // Restore original function
+      transcriptionService.generateSignedUrl = originalGenerateSignedUrl;
+    });
+
+    it('should handle signed URL generation errors gracefully for video', async () => {
+      // Mock the generateSignedUrl function to throw an error
+      const transcriptionService = require('../services/transcriptionService');
+      const originalGenerateSignedUrl = transcriptionService.generateSignedUrl;
+      transcriptionService.generateSignedUrl = jest.fn().mockRejectedValueOnce(new Error('S3 access denied'));
+      
+      const mockVideoElement = document.createElement('video');
+      wavesurferService.initialize(mockContainer, mockTimelineContainer, mockVideoElement);
+      
+      const source = 'https://bucket.s3.amazonaws.com/public/test-video.mp4';
+      const peaks = [1, 2, 3, 4];
+      
+      await wavesurferService.load(source, peaks);
+      
+      // Should fallback to original URL
+      expect(mockVideoElement.src).toBe(source);
+      expect(mockWaveSurferInstance.load).toHaveBeenCalledWith(source, peaks);
+      
+      // Restore original function
+      transcriptionService.generateSignedUrl = originalGenerateSignedUrl;
+    });
+
+    it('should delay load when wavesurfer instance does not exist', async () => {
+      // Ensure wavesurfer instance is null by destroying it
+      wavesurferService.destroy();
+      
+      const source = 'https://bucket.s3.amazonaws.com/public/test.mp4';
+      const peaks = [1, 2, 3];
+      
+      await wavesurferService.load(source, peaks);
+      
+      // Load should not be called immediately since wavesurfer instance is null
+      expect(mockWaveSurferInstance.load).not.toHaveBeenCalled();
+      
+      // Should be stored as delayed load
+      expect(wavesurferService['_delayedLoad']).toEqual({ source, peaks });
     });
 
     it('should set zoom level', () => {
@@ -958,31 +1041,36 @@ describe('WaveSurferService', () => {
   });
 
   describe('Delayed Load Logic', () => {
-    it('should delay load when wavesurfer instance does not exist', () => {
+    it('should delay load when wavesurfer instance does not exist', async () => {
       const mockLoad = jest.fn();
       mockWaveSurferInstance.load = mockLoad;
       
-      // Don't initialize yet, so wavesurfer instance doesn't exist
+      // Ensure wavesurfer instance is null by destroying it
+      wavesurferService.destroy();
+      
       const source = 'https://example.com/test.mp4';
       const peaks = [1, 2, 3];
       
-      wavesurferService.load(source, peaks);
+      await wavesurferService.load(source, peaks);
       
-      // Load should not be called immediately
+      // Load should not be called immediately since wavesurfer instance is null
       expect(mockLoad).not.toHaveBeenCalled();
       
       // Should be stored as delayed load
       expect(wavesurferService['_delayedLoad']).toEqual({ source, peaks });
     });
 
-    it('should process delayed load immediately when wavesurfer instance is created', () => {
+    it('should process delayed load immediately when wavesurfer instance is created', async () => {
       const mockLoad = jest.fn();
       mockWaveSurferInstance.load = mockLoad;
+      
+      // Ensure wavesurfer instance is null by destroying it
+      wavesurferService.destroy();
       
       // Set up delayed load first
       const source = 'https://example.com/test.mp4';
       const peaks = [1, 2, 3];
-      wavesurferService.load(source, peaks);
+      await wavesurferService.load(source, peaks);
       
       // Should be stored as delayed load
       expect(wavesurferService['_delayedLoad']).toEqual({ source, peaks });
@@ -990,12 +1078,15 @@ describe('WaveSurferService', () => {
       // Now initialize wavesurfer - this should process the delayed load immediately
       wavesurferService.initialize(mockContainer, mockTimelineContainer);
       
-      // The delayed load should be processed immediately after instance creation
-      expect(mockLoad).toHaveBeenCalledWith(source, peaks);
+      // Wait a tick for async load to complete
+      await new Promise(resolve => setTimeout(resolve, 0));
+      
+      // The delayed load should be processed immediately after instance creation with signed URL
+      expect(mockLoad).toHaveBeenCalledWith('https://fake.s3.amazonaws.com/public/test.mp4', peaks);
       expect(wavesurferService['_delayedLoad']).toBeNull();
     });
 
-    it('should load immediately when wavesurfer instance exists', () => {
+    it('should load immediately when wavesurfer instance exists', async () => {
       const mockLoad = jest.fn();
       mockWaveSurferInstance.load = mockLoad;
       
@@ -1006,17 +1097,18 @@ describe('WaveSurferService', () => {
       const source = 'https://example.com/test.mp4';
       const peaks = [1, 2, 3];
       
-      wavesurferService.load(source, peaks);
+      await wavesurferService.load(source, peaks);
       
-      expect(mockLoad).toHaveBeenCalledWith(source, peaks);
+      // Should use signed URL
+      expect(mockLoad).toHaveBeenCalledWith('https://fake.s3.amazonaws.com/public/test.mp4', peaks);
       expect(wavesurferService['_delayedLoad']).toBeNull();
     });
 
-    it('should clear delayed load on destroy', () => {
+    it('should clear delayed load on destroy', async () => {
       // Set up delayed load
       const source = 'https://example.com/test.mp4';
       const peaks = [1, 2, 3];
-      wavesurferService.load(source, peaks);
+      await wavesurferService.load(source, peaks);
       
       expect(wavesurferService['_delayedLoad']).toEqual({ source, peaks });
       
@@ -1064,23 +1156,29 @@ describe('WaveSurferService', () => {
       expect(secondCreateCall.media).toBe(mockVideoElement);
     });
 
-    it('should preserve delayed load when reinitializing for video element', () => {
+    it('should preserve delayed load when reinitializing for video element', async () => {
       const mockLoad = jest.fn();
       mockWaveSurferInstance.load = mockLoad;
+      
+      // Ensure wavesurfer instance is null by destroying it
+      wavesurferService.destroy();
       
       // Test the preservation logic when containers change while there's a delayed load
       const source = 'https://example.com/test.mp4';
       const peaks = [1, 2, 3];
       
       // Set up delayed load (service is not initialized yet)
-      wavesurferService.load(source, peaks);
+      await wavesurferService.load(source, peaks);
       expect(wavesurferService['_delayedLoad']).toEqual({ source, peaks });
       
       // Initialize with one set of containers
       wavesurferService.initialize(mockContainer, mockTimelineContainer);
       
-      // Should have processed the delayed load immediately
-      expect(mockLoad).toHaveBeenCalledWith(source, peaks);
+      // Wait a tick for async load to complete
+      await new Promise(resolve => setTimeout(resolve, 0));
+      
+      // Should have processed the delayed load immediately with signed URL
+      expect(mockLoad).toHaveBeenCalledWith('https://fake.s3.amazonaws.com/public/test.mp4', peaks);
       expect(wavesurferService['_delayedLoad']).toBeNull();
       
       // Now destroy the instance and set up a new delayed load to test preservation
@@ -1088,15 +1186,18 @@ describe('WaveSurferService', () => {
       
       const source2 = 'https://example.com/test2.mp4';
       const peaks2 = [4, 5, 6];
-      wavesurferService.load(source2, peaks2);
+      await wavesurferService.load(source2, peaks2);
       expect(wavesurferService['_delayedLoad']).toEqual({ source: source2, peaks: peaks2 });
       
       // Initialize with different containers (including video element)
       const newContainer = document.createElement('div');
       wavesurferService.initialize(newContainer, mockTimelineContainer, mockVideoElement);
       
-      // Should process the delayed load with the new containers
-      expect(mockLoad).toHaveBeenCalledWith(source2, peaks2);
+      // Wait a tick for async load to complete
+      await new Promise(resolve => setTimeout(resolve, 0));
+      
+      // Should process the delayed load with the new containers with signed URL
+      expect(mockLoad).toHaveBeenCalledWith('https://fake.s3.amazonaws.com/public/test2.mp4', peaks2);
       expect(wavesurferService['_delayedLoad']).toBeNull();
     });
   });

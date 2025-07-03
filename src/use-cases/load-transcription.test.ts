@@ -69,7 +69,7 @@ describe('LoadTranscription', () => {
     (services.authService.currentUser as jest.Mock).mockReturnValue(mockUser);
     (services.userService.currentUser as jest.Mock).mockReturnValue(mockUser);
     (services.transcriptionService.loadInFull as jest.Mock).mockResolvedValue(mockTranscriptionData);
-    (services.wavesurferService.load as jest.Mock).mockImplementation(() => {});
+    (services.wavesurferService.load as jest.Mock).mockResolvedValue(undefined);
     (services.wavesurferService.setRegions as jest.Mock).mockImplementation(() => {});
     (services.wavesurferService.seekToRegion as jest.Mock).mockImplementation(() => {});
     (services.browserService.getRegionIdFromUrl as jest.Mock).mockReturnValue(null);

@@ -1,4 +1,5 @@
 import { DataStore } from '@aws-amplify/datastore';
+import { getUrl } from 'aws-amplify/storage';
 import { Transcription as DSTranscription } from '../models';
 
 import { loadRegionsForTranscription } from './regionService';
@@ -12,6 +13,66 @@ export interface CreateTranscriptionData {
   author: string;
   userLastUpdated: string;
 }
+
+/**
+ * Extracts the S3 key from a source URL
+ * @param sourceUrl The full S3 URL (e.g., https://bucket.s3.amazonaws.com/public/key.mp3)
+ * @returns The S3 key (e.g., key.mp3)
+ */
+const extractS3KeyFromUrl = (sourceUrl: string): string => {
+  try {
+    const url = new URL(sourceUrl);
+    const pathname = url.pathname;
+    
+    // Remove leading slash and 'public/' prefix if present
+    let key = pathname.startsWith('/') ? pathname.slice(1) : pathname;
+    if (key.startsWith('public/')) {
+      key = key.slice(7); // Remove 'public/' prefix
+    }
+    
+    return key;
+  } catch (error) {
+    console.error('Failed to extract S3 key from URL:', sourceUrl, error);
+    throw new Error(`Invalid source URL format: ${sourceUrl}`);
+  }
+};
+
+/**
+ * Generates a signed URL for any S3 file using Amplify Storage
+ * @param sourceUrl The source URL of the file
+ * @param fileSuffix Optional suffix to append to the key (e.g., '.json' for peaks files)
+ * @returns The signed URL for the file
+ */
+export const generateSignedUrl = async (sourceUrl: string, fileSuffix: string = ''): Promise<string> => {
+  try {
+    const fileKey = extractS3KeyFromUrl(sourceUrl);
+    const targetKey = `${fileKey}${fileSuffix}`;
+    
+    console.log(`Generating signed URL for file: ${targetKey}`);
+    
+    const { url } = await getUrl({
+      path: `public/${targetKey}`,
+      options: {
+        expiresIn: 3600, // 1 hour
+        useAccelerateEndpoint: false
+      }
+    });
+    
+    return url.toString();
+  } catch (error) {
+    console.error(`Failed to generate signed URL for file: ${sourceUrl}${fileSuffix}`, error);
+    throw new Error(`Failed to generate signed URL for file: ${error}`);
+  }
+};
+
+/**
+ * Generates a signed URL for a peaks file using Amplify Storage
+ * @param sourceUrl The source URL of the media file
+ * @returns The signed URL for the peaks file
+ */
+const generateSignedPeaksUrl = async (sourceUrl: string): Promise<string> => {
+  return generateSignedUrl(sourceUrl, '.json');
+};
 
 /**
  * Fetches peaks data for a given audio/video source with retry logic.
@@ -29,9 +90,11 @@ const fetchPeaksData = async (
   
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      console.log(`Fetching peaks data (attempt ${attempt + 1}/${maxRetries + 1}): ${source}.json`);
+      // Generate signed URL for the peaks file
+      const signedPeaksUrl = await generateSignedPeaksUrl(source);
+      console.log(`Fetching peaks data (attempt ${attempt + 1}/${maxRetries + 1}): ${signedPeaksUrl}`);
       
-      const peaksResponse = await fetch(`${source}.json`);
+      const peaksResponse = await fetch(signedPeaksUrl);
       
       if (peaksResponse.ok) {
         const peaksObject = await peaksResponse.json();
