@@ -1,14 +1,17 @@
 type Transcription
-  @model(queries: null, subscriptions: null)
+  @model
   @auth(
     rules: [
-      # Basic CUD access - authenticated users can create/update/delete their own
-      # (reads handled via custom pipeline resolvers)
-      { allow: owner, ownerField: "author", operations: [create, update, delete] }
-      # Admin access for system-wide management
-      { allow: groups, groups: ["Admins"], operations: [create, update, delete] }
-      # Dynamic organization-based access (groups configured in Cognito)
-      { allow: groups, groupsField: "editorGroups", operations: [create, update, delete] }
+      # Base read authentication - any authenticated user can read
+      # (custom resolvers will enforce isPrivate restrictions)
+      { allow: private, operations: [read] }
+      # Owner access for document creators
+      { allow: owner, ownerField: "author" }
+      # Admin access for system management  
+      { allow: groups, groups: ["Admins"] }
+      # Dynamic organization-based access (for isPrivate=true cases)
+      { allow: groups, groupsField: "editorGroups" }
+      { allow: groups, groupsField: "viewerGroups", operations: [read] }
     ]
   ) {
   id: ID! @primaryKey
@@ -50,11 +53,18 @@ type Transcription
     ])
   regions: [Region] @hasMany(indexName: "ByTranscription", fields: ["id"])
   issueList: [Issue] @hasMany(indexName: "ByTranscription", fields: ["id"])
+  contributors: [TranscriptionContributor] @hasMany(indexName: "byTranscription", fields: ["id"])
 }
 
-# Region has no @auth - all authorization handled via custom pipeline resolvers
 type Region
-  @model(queries: null, mutations: null, subscriptions: null) {
+  @model
+  @auth(
+    rules: [
+      # Base read authentication - access controlled via parent Transcription in custom resolvers
+      { allow: private, operations: [read] }
+      { allow: groups, groups: ["Admins"] }
+    ]
+  ) {
   id: ID! @primaryKey
   start: Float!
   end: Float!
@@ -72,7 +82,9 @@ type Issue
   @model
   @auth(
     rules: [
-      { allow: private }
+      # Basic read access for authenticated users
+      { allow: private, operations: [read] }
+      { allow: groups, groups: ["Admins"] }
     ]
   ) {
   id: ID! @primaryKey
@@ -87,204 +99,35 @@ type Issue
   transcriptionId: ID! @index(name: "ByTranscription")
 }
 
-type Contributor @model(queries: null, mutations: null, subscriptions: null)
+type Contributor 
+  @model
   @auth(
     rules: [
-      { allow: private }
+      # Basic read access for authenticated users
+      { allow: private, operations: [read] }
+      { allow: groups, groups: ["Admins"] }
     ]
   ) {
   id: ID! @primaryKey
-  name: String
+  email: String!
+  username: String!
+  transcriptions: [TranscriptionContributor] @hasMany(indexName: "byContributor", fields: ["id"])
 }
 
-# Custom queries with pipeline resolvers for dynamic ACL
-type Query {
-  getTranscription(id: ID!): Transcription
-  listTranscriptions(filter: ModelTranscriptionFilterInput, limit: Int, nextToken: String): ModelTranscriptionConnection
-  
-  # Custom queries for Region with dynamic ACL via pipeline resolvers
-  getRegion(id: ID!): Region
-  listRegions(transcriptionId: ID!, filter: ModelRegionFilterInput, limit: Int, nextToken: String): ModelRegionConnection
+type TranscriptionContributor
+  @model
+  @auth(
+    rules: [
+      # Basic read access for authenticated users
+      { allow: private, operations: [read] }
+      { allow: groups, groups: ["Admins"] }
+    ]
+  ) {
+  id: ID! @primaryKey
+  transcriptionID: ID! @index(name: "byTranscription")
+  contributorID: ID! @index(name: "byContributor")
+  transcription: Transcription! @belongsTo(fields: ["transcriptionID"])
+  contributor: Contributor! @belongsTo(fields: ["contributorID"])
 }
 
-# Custom mutations for Region with dynamic ACL via pipeline resolvers
-type Mutation {
-  createRegion(input: CreateRegionInput!, condition: ModelRegionConditionInput): Region
-  updateRegion(input: UpdateRegionInput!, condition: ModelRegionConditionInput): Region
-  deleteRegion(input: DeleteRegionInput!, condition: ModelRegionConditionInput): Region
-}
 
-# Custom subscriptions with dynamic ACL via pipeline resolvers
-type Subscription {
-  # Region subscriptions
-  onCreateRegionByTranscription(transcriptionId: ID!): Region
-    @aws_subscribe(mutations: ["createRegion"])
-  onUpdateRegionByTranscription(transcriptionId: ID!): Region
-    @aws_subscribe(mutations: ["updateRegion"])
-  onDeleteRegionByTranscription(transcriptionId: ID!): Region
-    @aws_subscribe(mutations: ["deleteRegion"])
-  
-  # Transcription subscriptions (optional - can be added later if needed)
-  # onCreateTranscription: Transcription
-  #   @aws_subscribe(mutations: ["createTranscription"])
-  # onUpdateTranscription: Transcription
-  #   @aws_subscribe(mutations: ["updateTranscription"])
-  # onDeleteTranscription: Transcription
-  #   @aws_subscribe(mutations: ["deleteTranscription"])
-}
-
-# Input types for Region operations (excluding ACL fields to prevent client manipulation)
-input CreateRegionInput {
-  id: ID
-  start: Float!
-  end: Float!
-  regionText: String
-  regionAnalysis: String
-  isNote: Boolean
-  translation: String
-  dateLastUpdated: String!
-  userLastUpdated: String!
-  transcriptionId: ID!
-}
-
-input UpdateRegionInput {
-  id: ID!
-  start: Float
-  end: Float
-  regionText: String
-  regionAnalysis: String
-  isNote: Boolean
-  translation: String
-  dateLastUpdated: String
-  userLastUpdated: String
-  transcriptionId: ID
-}
-
-input DeleteRegionInput {
-  id: ID!
-}
-
-# Filter and connection types for custom queries
-input ModelTranscriptionFilterInput {
-  id: ModelIDInput
-  author: ModelStringInput
-  title: ModelStringInput
-  type: ModelStringInput
-  isPrivate: ModelBooleanInput
-  isPublished: ModelBooleanInput
-  and: [ModelTranscriptionFilterInput]
-  or: [ModelTranscriptionFilterInput]
-  not: ModelTranscriptionFilterInput
-}
-
-input ModelRegionFilterInput {
-  id: ModelIDInput
-  start: ModelFloatInput
-  end: ModelFloatInput
-  regionText: ModelStringInput
-  isNote: ModelBooleanInput
-  transcriptionId: ModelIDInput
-  and: [ModelRegionFilterInput]
-  or: [ModelRegionFilterInput]
-  not: ModelRegionFilterInput
-}
-
-type ModelTranscriptionConnection {
-  items: [Transcription]!
-  nextToken: String
-}
-
-type ModelRegionConnection {
-  items: [Region]!
-  nextToken: String
-}
-
-input ModelRegionConditionInput {
-  start: ModelFloatInput
-  end: ModelFloatInput
-  regionText: ModelStringInput
-  regionAnalysis: ModelStringInput
-  isNote: ModelBooleanInput
-  translation: ModelStringInput
-  dateLastUpdated: ModelStringInput
-  userLastUpdated: ModelStringInput
-  transcriptionId: ModelIDInput
-  and: [ModelRegionConditionInput]
-  or: [ModelRegionConditionInput]
-  not: ModelRegionConditionInput
-}
-
-# Base input types
-input ModelIDInput {
-  ne: ID
-  eq: ID
-  le: ID
-  lt: ID
-  ge: ID
-  gt: ID
-  contains: ID
-  notContains: ID
-  between: [ID]
-  beginsWith: ID
-  attributeExists: Boolean
-  attributeType: ModelAttributeTypes
-  size: ModelSizeInput
-}
-
-input ModelStringInput {
-  ne: String
-  eq: String
-  le: String
-  lt: String
-  ge: String
-  gt: String
-  contains: String
-  notContains: String
-  between: [String]
-  beginsWith: String
-  attributeExists: Boolean
-  attributeType: ModelAttributeTypes
-  size: ModelSizeInput
-}
-
-input ModelFloatInput {
-  ne: Float
-  eq: Float
-  le: Float
-  lt: Float
-  ge: Float
-  gt: Float
-  between: [Float]
-  attributeExists: Boolean
-  attributeType: ModelAttributeTypes
-}
-
-input ModelBooleanInput {
-  ne: Boolean
-  eq: Boolean
-  attributeExists: Boolean
-  attributeType: ModelAttributeTypes
-}
-
-input ModelSizeInput {
-  ne: Int
-  eq: Int
-  le: Int
-  lt: Int
-  ge: Int
-  gt: Int
-  between: [Int]
-}
-
-enum ModelAttributeTypes {
-  binary
-  binarySet
-  bool
-  list
-  map
-  number
-  numberSet
-  string
-  stringSet
-  _null
-}

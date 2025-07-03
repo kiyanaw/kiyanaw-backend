@@ -1,0 +1,8 @@
+## Request mapping template for Query.getTranscription
+{
+  "version": "2018-05-29",
+  "operation": "GetItem",
+  "key": {
+    "id": $util.dynamodb.toDynamoDBJson($ctx.arguments.id)
+  }
+} 

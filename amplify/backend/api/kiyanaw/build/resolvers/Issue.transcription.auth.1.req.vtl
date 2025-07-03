@@ -10,7 +10,47 @@ $util.qr($ctx.stash.put("hasAuth", true))
 $util.unauthorized()
 #end
 #if( $util.authType() == "User Pool Authorization" )
-
+  #set( $isAuthorized = true )
+  #if( !$isAuthorized )
+    #set( $staticGroupRoles = [{"claim":"cognito:groups","entity":"Admins"}] )
+    #foreach( $groupRole in $staticGroupRoles )
+      #set( $groupsInToken = $util.defaultIfNull($ctx.identity.claims.get($groupRole.claim), []) )
+      #if( $groupsInToken.contains($groupRole.entity) )
+        #set( $isAuthorized = true )
+        #break
+      #end
+    #end
+  #end
+  #if( !$isAuthorized )
+    #set( $authFilter = [] )
+    #set( $ownerClaim0 = $util.defaultIfNull($ctx.identity.claims.get("sub"), null) )
+    #set( $currentClaim1 = $util.defaultIfNull($ctx.identity.claims.get("username"), $util.defaultIfNull($ctx.identity.claims.get("cognito:username"), null)) )
+    #if( !$util.isNull($ownerClaim0) && !$util.isNull($currentClaim1) )
+      #set( $ownerClaim0 = "$ownerClaim0::$currentClaim1" )
+      #if( !$util.isNull($ownerClaim0) )
+        $util.qr($authFilter.add({"author": { "eq": $ownerClaim0 }}))
+      #end
+    #end
+    #set( $role0_0 = $util.defaultIfNull($ctx.identity.claims.get("sub"), null) )
+    #if( !$util.isNull($role0_0) )
+      $util.qr($authFilter.add({"author": { "eq": $role0_0 }}))
+    #end
+    #set( $role0_1 = $util.defaultIfNull($ctx.identity.claims.get("username"), $util.defaultIfNull($ctx.identity.claims.get("cognito:username"), null)) )
+    #if( !$util.isNull($role0_1) )
+      $util.qr($authFilter.add({"author": { "eq": $role0_1 }}))
+    #end
+    #foreach( $group in $util.defaultIfNull($ctx.identity.claims.get("cognito:groups"), []) )
+      #if( !$group.isEmpty() )
+        $util.qr($authFilter.add({"editorGroups": { "contains": $group }}))
+      #end
+      #if( !$group.isEmpty() )
+        $util.qr($authFilter.add({"viewerGroups": { "contains": $group }}))
+      #end
+    #end
+    #if( !$authFilter.isEmpty() )
+      $util.qr($ctx.stash.put("authFilter", { "or": $authFilter }))
+    #end
+  #end
 #end
 #if( !$isAuthorized && $util.isNull($ctx.stash.authFilter) )
 $util.unauthorized()

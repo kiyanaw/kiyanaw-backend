@@ -1,6 +1,141 @@
 /* eslint-disable */
 // this is an auto generated file. This will be overwritten
 
+export const deleteTranscription = /* GraphQL */ `
+  mutation DeleteTranscription(
+    $input: DeleteTranscriptionInput!
+    $condition: ModelTranscriptionConditionInput
+  ) {
+    deleteTranscription(input: $input, condition: $condition) {
+      id
+      author
+      coverage
+      dateLastUpdated
+      userLastUpdated
+      length
+      issues
+      comments
+      tags
+      source
+      index
+      title
+      type
+      isPrivate
+      isPublished
+      disableAnalyzer
+      editors
+      viewers
+      editorGroups
+      viewerGroups
+      regions {
+        nextToken
+        startedAt
+        __typename
+      }
+      issueList {
+        nextToken
+        startedAt
+        __typename
+      }
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;
+export const createTranscription = /* GraphQL */ `
+  mutation CreateTranscription(
+    $input: CreateTranscriptionInput!
+    $condition: ModelTranscriptionConditionInput
+  ) {
+    createTranscription(input: $input, condition: $condition) {
+      id
+      author
+      coverage
+      dateLastUpdated
+      userLastUpdated
+      length
+      issues
+      comments
+      tags
+      source
+      index
+      title
+      type
+      isPrivate
+      isPublished
+      disableAnalyzer
+      editors
+      viewers
+      editorGroups
+      viewerGroups
+      regions {
+        nextToken
+        startedAt
+        __typename
+      }
+      issueList {
+        nextToken
+        startedAt
+        __typename
+      }
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;
+export const updateTranscription = /* GraphQL */ `
+  mutation UpdateTranscription(
+    $input: UpdateTranscriptionInput!
+    $condition: ModelTranscriptionConditionInput
+  ) {
+    updateTranscription(input: $input, condition: $condition) {
+      id
+      author
+      coverage
+      dateLastUpdated
+      userLastUpdated
+      length
+      issues
+      comments
+      tags
+      source
+      index
+      title
+      type
+      isPrivate
+      isPublished
+      disableAnalyzer
+      editors
+      viewers
+      editorGroups
+      viewerGroups
+      regions {
+        nextToken
+        startedAt
+        __typename
+      }
+      issueList {
+        nextToken
+        startedAt
+        __typename
+      }
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;
 export const createRegion = /* GraphQL */ `
   mutation CreateRegion(
     $input: CreateRegionInput!
@@ -160,138 +295,6 @@ export const deleteRegion = /* GraphQL */ `
     }
   }
 `;
-export const deleteTranscription = /* GraphQL */ `
-  mutation DeleteTranscription(
-    $input: DeleteTranscriptionInput!
-    $condition: ModelTranscriptionConditionInput
-  ) {
-    deleteTranscription(input: $input, condition: $condition) {
-      id
-      author
-      coverage
-      dateLastUpdated
-      userLastUpdated
-      length
-      issues
-      comments
-      tags
-      source
-      index
-      title
-      type
-      isPrivate
-      isPublished
-      disableAnalyzer
-      editors
-      viewers
-      editorGroups
-      viewerGroups
-      regions {
-        nextToken
-        __typename
-      }
-      issueList {
-        nextToken
-        startedAt
-        __typename
-      }
-      createdAt
-      updatedAt
-      _version
-      _deleted
-      _lastChangedAt
-      __typename
-    }
-  }
-`;
-export const createTranscription = /* GraphQL */ `
-  mutation CreateTranscription(
-    $input: CreateTranscriptionInput!
-    $condition: ModelTranscriptionConditionInput
-  ) {
-    createTranscription(input: $input, condition: $condition) {
-      id
-      author
-      coverage
-      dateLastUpdated
-      userLastUpdated
-      length
-      issues
-      comments
-      tags
-      source
-      index
-      title
-      type
-      isPrivate
-      isPublished
-      disableAnalyzer
-      editors
-      viewers
-      editorGroups
-      viewerGroups
-      regions {
-        nextToken
-        __typename
-      }
-      issueList {
-        nextToken
-        startedAt
-        __typename
-      }
-      createdAt
-      updatedAt
-      _version
-      _deleted
-      _lastChangedAt
-      __typename
-    }
-  }
-`;
-export const updateTranscription = /* GraphQL */ `
-  mutation UpdateTranscription(
-    $input: UpdateTranscriptionInput!
-    $condition: ModelTranscriptionConditionInput
-  ) {
-    updateTranscription(input: $input, condition: $condition) {
-      id
-      author
-      coverage
-      dateLastUpdated
-      userLastUpdated
-      length
-      issues
-      comments
-      tags
-      source
-      index
-      title
-      type
-      isPrivate
-      isPublished
-      disableAnalyzer
-      editors
-      viewers
-      editorGroups
-      viewerGroups
-      regions {
-        nextToken
-        __typename
-      }
-      issueList {
-        nextToken
-        startedAt
-        __typename
-      }
-      createdAt
-      updatedAt
-      _version
-      _deleted
-      _lastChangedAt
-      __typename
-    }
-  }
-`;
 export const createIssue = /* GraphQL */ `
   mutation CreateIssue(
     $input: CreateIssueInput!
@@ -439,6 +442,57 @@ export const deleteIssue = /* GraphQL */ `
         __typename
       }
       transcriptionId
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;
+export const createContributor = /* GraphQL */ `
+  mutation CreateContributor(
+    $input: CreateContributorInput!
+    $condition: ModelContributorConditionInput
+  ) {
+    createContributor(input: $input, condition: $condition) {
+      id
+      name
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;
+export const updateContributor = /* GraphQL */ `
+  mutation UpdateContributor(
+    $input: UpdateContributorInput!
+    $condition: ModelContributorConditionInput
+  ) {
+    updateContributor(input: $input, condition: $condition) {
+      id
+      name
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;
+export const deleteContributor = /* GraphQL */ `
+  mutation DeleteContributor(
+    $input: DeleteContributorInput!
+    $condition: ModelContributorConditionInput
+  ) {
+    deleteContributor(input: $input, condition: $condition) {
+      id
+      name
       createdAt
       updatedAt
       _version

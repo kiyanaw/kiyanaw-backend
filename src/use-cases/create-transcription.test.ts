@@ -13,10 +13,6 @@ describe('CreateTranscriptionUseCase', () => {
     },
     transcriptionService: {
       create: jest.fn()
-    },
-    contributorService: {
-      findOrCreate: jest.fn(),
-      linkToTranscription: jest.fn()
     }
   };
 
@@ -114,14 +110,10 @@ describe('CreateTranscriptionUseCase', () => {
     it('should orchestrate the complete transcription creation workflow', async () => {
       const mockFile = createMockFile('test-audio.mp3', 'audio/mpeg');
       const mockTranscription = { id: 'transcription-id', title: 'Test Title' };
-      const mockContributor = { id: 'contributor-id', username: 'testuser' };
-      const mockLink = { id: 'link-id' };
 
       mockServices.uploadService.uploadFile.mockResolvedValue('file-key.mp3');
       mockServices.uploadService.constructPublicUrl.mockReturnValue('https://example.com/file-key.mp3');
       mockServices.transcriptionService.create.mockResolvedValue(mockTranscription);
-      mockServices.contributorService.findOrCreate.mockResolvedValue(mockContributor);
-      mockServices.contributorService.linkToTranscription.mockResolvedValue(mockLink);
 
       const config = {
         title: 'Test Title',
@@ -151,15 +143,6 @@ describe('CreateTranscriptionUseCase', () => {
         userLastUpdated: 'testuser'
       });
 
-      // Verify contributor management
-      expect(mockServices.contributorService.findOrCreate).toHaveBeenCalledWith('testuser', 'user-id');
-
-      // Verify linking
-      expect(mockServices.contributorService.linkToTranscription).toHaveBeenCalledWith(
-        mockContributor,
-        mockTranscription
-      );
-
       // Verify result
       expect(result).toEqual({
         transcriptionId: 'transcription-id',
@@ -188,13 +171,10 @@ describe('CreateTranscriptionUseCase', () => {
       const progressCallback = jest.fn();
       const mockFile = createMockFile();
       const mockTranscription = { id: 'transcription-id', title: 'Test' };
-      const mockContributor = { id: 'contributor-id' };
 
       mockServices.uploadService.uploadFile.mockResolvedValue('file-key');
       mockServices.uploadService.constructPublicUrl.mockReturnValue('https://example.com/file');
       mockServices.transcriptionService.create.mockResolvedValue(mockTranscription);
-      mockServices.contributorService.findOrCreate.mockResolvedValue(mockContributor);
-      mockServices.contributorService.linkToTranscription.mockResolvedValue({});
 
       const config = {
         title: 'Test',
@@ -250,59 +230,15 @@ describe('CreateTranscriptionUseCase', () => {
       await expect(useCase.execute()).rejects.toThrow('Transcription creation failed');
     });
 
-    it('should handle contributor creation errors', async () => {
-      const contributorError = new Error('Contributor creation failed');
-      
-      mockServices.uploadService.uploadFile.mockResolvedValue('file-key');
-      mockServices.uploadService.constructPublicUrl.mockReturnValue('https://example.com/file');
-      mockServices.transcriptionService.create.mockResolvedValue({ id: 'transcription-id' });
-      mockServices.contributorService.findOrCreate.mockRejectedValue(contributorError);
 
-      const config = {
-        title: 'Test Title',
-        file: createMockFile(),
-        username: 'testuser',
-        userId: 'user-id',
-        services: mockServices as any
-      };
-
-      const useCase = new CreateTranscriptionUseCase(config);
-      
-      await expect(useCase.execute()).rejects.toThrow('Contributor creation failed');
-    });
-
-    it('should handle linking errors', async () => {
-      const linkError = new Error('Linking failed');
-      
-      mockServices.uploadService.uploadFile.mockResolvedValue('file-key');
-      mockServices.uploadService.constructPublicUrl.mockReturnValue('https://example.com/file');
-      mockServices.transcriptionService.create.mockResolvedValue({ id: 'transcription-id' });
-      mockServices.contributorService.findOrCreate.mockResolvedValue({ id: 'contributor-id' });
-      mockServices.contributorService.linkToTranscription.mockRejectedValue(linkError);
-
-      const config = {
-        title: 'Test Title',
-        file: createMockFile(),
-        username: 'testuser',
-        userId: 'user-id',
-        services: mockServices as any
-      };
-
-      const useCase = new CreateTranscriptionUseCase(config);
-      
-      await expect(useCase.execute()).rejects.toThrow('Linking failed');
-    });
 
     it('should work with different file types', async () => {
       const videoFile = createMockFile('video.mp4', 'video/mp4');
       const mockTranscription = { id: 'transcription-id' };
-      const mockContributor = { id: 'contributor-id' };
 
       mockServices.uploadService.uploadFile.mockResolvedValue('video-key.mp4');
       mockServices.uploadService.constructPublicUrl.mockReturnValue('https://example.com/video-key.mp4');
       mockServices.transcriptionService.create.mockResolvedValue(mockTranscription);
-      mockServices.contributorService.findOrCreate.mockResolvedValue(mockContributor);
-      mockServices.contributorService.linkToTranscription.mockResolvedValue({});
 
       const config = {
         title: 'Video Test',
@@ -328,7 +264,6 @@ describe('CreateTranscriptionUseCase', () => {
     it('should be stateless - multiple instances should not interfere', async () => {
       const mockTranscription1 = { id: 'transcription-1' };
       const mockTranscription2 = { id: 'transcription-2' };
-      const mockContributor = { id: 'contributor-id' };
 
       mockServices.uploadService.uploadFile
         .mockResolvedValueOnce('file-1')
@@ -339,8 +274,6 @@ describe('CreateTranscriptionUseCase', () => {
       mockServices.transcriptionService.create
         .mockResolvedValueOnce(mockTranscription1)
         .mockResolvedValueOnce(mockTranscription2);
-      mockServices.contributorService.findOrCreate.mockResolvedValue(mockContributor);
-      mockServices.contributorService.linkToTranscription.mockResolvedValue({});
 
       const config1 = {
         title: 'Test 1',
@@ -377,8 +310,6 @@ describe('CreateTranscriptionUseCase', () => {
       mockServices.uploadService.uploadFile.mockResolvedValue('file-key');
       mockServices.uploadService.constructPublicUrl.mockReturnValue('https://example.com/file');
       mockServices.transcriptionService.create.mockResolvedValue({ id: 'transcription-id' });
-      mockServices.contributorService.findOrCreate.mockResolvedValue({ id: 'contributor-id' });
-      mockServices.contributorService.linkToTranscription.mockResolvedValue({});
 
       const config = {
         title: originalTitle,

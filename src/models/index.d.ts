@@ -2,47 +2,6 @@ import { ModelInit, MutableModel } from "@aws-amplify/datastore";
 // @ts-ignore
 import { LazyLoading, LazyLoadingDisabled, AsyncCollection, AsyncItem } from "@aws-amplify/datastore";
 
-export enum ModelAttributeTypes {
-  BINARY = "binary",
-  BINARY_SET = "binarySet",
-  BOOL = "bool",
-  LIST = "list",
-  MAP = "map",
-  NUMBER = "number",
-  NUMBER_SET = "numberSet",
-  STRING = "string",
-  STRING_SET = "stringSet",
-  NULL = "_null"
-}
-
-type EagerModelTranscriptionConnection = {
-  readonly items: (Transcription | null)[];
-  readonly nextToken?: string | null;
-}
-
-type LazyModelTranscriptionConnection = {
-  readonly items: AsyncCollection<Transcription>;
-  readonly nextToken?: string | null;
-}
-
-export declare type ModelTranscriptionConnection = LazyLoading extends LazyLoadingDisabled ? EagerModelTranscriptionConnection : LazyModelTranscriptionConnection
-
-export declare const ModelTranscriptionConnection: (new (init: ModelInit<ModelTranscriptionConnection>) => ModelTranscriptionConnection)
-
-type EagerModelRegionConnection = {
-  readonly items: (Region | null)[];
-  readonly nextToken?: string | null;
-}
-
-type LazyModelRegionConnection = {
-  readonly items: AsyncCollection<Region>;
-  readonly nextToken?: string | null;
-}
-
-export declare type ModelRegionConnection = LazyLoading extends LazyLoadingDisabled ? EagerModelRegionConnection : LazyModelRegionConnection
-
-export declare const ModelRegionConnection: (new (init: ModelInit<ModelRegionConnection>) => ModelRegionConnection)
-
 type TranscriptionMetaData = {
   readOnlyFields: 'createdAt' | 'updatedAt';
 }

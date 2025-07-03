@@ -197,10 +197,7 @@ export const schema = {
             "attributes": [
                 {
                     "type": "model",
-                    "properties": {
-                        "queries": null,
-                        "subscriptions": null
-                    }
+                    "properties": {}
                 },
                 {
                     "type": "key",
@@ -225,15 +222,22 @@ export const schema = {
                     "properties": {
                         "rules": [
                             {
+                                "allow": "private",
+                                "operations": [
+                                    "read"
+                                ]
+                            },
+                            {
                                 "provider": "userPools",
                                 "ownerField": "author",
                                 "allow": "owner",
+                                "identityClaim": "cognito:username",
                                 "operations": [
                                     "create",
                                     "update",
-                                    "delete"
-                                ],
-                                "identityClaim": "cognito:username"
+                                    "delete",
+                                    "read"
+                                ]
                             },
                             {
                                 "groupClaim": "cognito:groups",
@@ -245,7 +249,8 @@ export const schema = {
                                 "operations": [
                                     "create",
                                     "update",
-                                    "delete"
+                                    "delete",
+                                    "read"
                                 ]
                             },
                             {
@@ -253,10 +258,21 @@ export const schema = {
                                 "provider": "userPools",
                                 "allow": "groups",
                                 "groupsField": "editorGroups",
+                                "groupField": "groups",
                                 "operations": [
                                     "create",
                                     "update",
-                                    "delete"
+                                    "delete",
+                                    "read"
+                                ]
+                            },
+                            {
+                                "groupClaim": "cognito:groups",
+                                "provider": "userPools",
+                                "allow": "groups",
+                                "groupsField": "viewerGroups",
+                                "operations": [
+                                    "read"
                                 ],
                                 "groupField": "groups"
                             }
@@ -366,11 +382,7 @@ export const schema = {
             "attributes": [
                 {
                     "type": "model",
-                    "properties": {
-                        "queries": null,
-                        "mutations": null,
-                        "subscriptions": null
-                    }
+                    "properties": {}
                 },
                 {
                     "type": "key",
@@ -386,6 +398,33 @@ export const schema = {
                         "name": "ByTranscription",
                         "fields": [
                             "transcriptionId"
+                        ]
+                    }
+                },
+                {
+                    "type": "auth",
+                    "properties": {
+                        "rules": [
+                            {
+                                "allow": "private",
+                                "operations": [
+                                    "read"
+                                ]
+                            },
+                            {
+                                "groupClaim": "cognito:groups",
+                                "provider": "userPools",
+                                "allow": "groups",
+                                "groups": [
+                                    "Admins"
+                                ],
+                                "operations": [
+                                    "create",
+                                    "update",
+                                    "delete",
+                                    "read"
+                                ]
+                            }
                         ]
                     }
                 }
@@ -529,6 +568,17 @@ export const schema = {
                             {
                                 "allow": "private",
                                 "operations": [
+                                    "read"
+                                ]
+                            },
+                            {
+                                "groupClaim": "cognito:groups",
+                                "provider": "userPools",
+                                "allow": "groups",
+                                "groups": [
+                                    "Admins"
+                                ],
+                                "operations": [
                                     "create",
                                     "update",
                                     "delete",
@@ -579,11 +629,7 @@ export const schema = {
             "attributes": [
                 {
                     "type": "model",
-                    "properties": {
-                        "queries": null,
-                        "mutations": null,
-                        "subscriptions": null
-                    }
+                    "properties": {}
                 },
                 {
                     "type": "key",
@@ -600,6 +646,17 @@ export const schema = {
                             {
                                 "allow": "private",
                                 "operations": [
+                                    "read"
+                                ]
+                            },
+                            {
+                                "groupClaim": "cognito:groups",
+                                "provider": "userPools",
+                                "allow": "groups",
+                                "groups": [
+                                    "Admins"
+                                ],
+                                "operations": [
                                     "create",
                                     "update",
                                     "delete",
@@ -612,69 +669,8 @@ export const schema = {
             ]
         }
     },
-    "enums": {
-        "ModelAttributeTypes": {
-            "name": "ModelAttributeTypes",
-            "values": [
-                "binary",
-                "binarySet",
-                "bool",
-                "list",
-                "map",
-                "number",
-                "numberSet",
-                "string",
-                "stringSet",
-                "_null"
-            ]
-        }
-    },
-    "nonModels": {
-        "ModelTranscriptionConnection": {
-            "name": "ModelTranscriptionConnection",
-            "fields": {
-                "items": {
-                    "name": "items",
-                    "isArray": true,
-                    "type": {
-                        "model": "Transcription"
-                    },
-                    "isRequired": false,
-                    "attributes": [],
-                    "isArrayNullable": false
-                },
-                "nextToken": {
-                    "name": "nextToken",
-                    "isArray": false,
-                    "type": "String",
-                    "isRequired": false,
-                    "attributes": []
-                }
-            }
-        },
-        "ModelRegionConnection": {
-            "name": "ModelRegionConnection",
-            "fields": {
-                "items": {
-                    "name": "items",
-                    "isArray": true,
-                    "type": {
-                        "model": "Region"
-                    },
-                    "isRequired": false,
-                    "attributes": [],
-                    "isArrayNullable": false
-                },
-                "nextToken": {
-                    "name": "nextToken",
-                    "isArray": false,
-                    "type": "String",
-                    "isRequired": false,
-                    "attributes": []
-                }
-            }
-        }
-    },
+    "enums": {},
+    "nonModels": {},
     "codegenVersion": "3.4.4",
-    "version": "4ada738d0e05f86f5290dca1d87ae7a0"
+    "version": "c2ae2b4f2fae78f97f934291187416bd"
 };

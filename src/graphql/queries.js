@@ -26,6 +26,7 @@ export const getTranscription = /* GraphQL */ `
       viewerGroups
       regions {
         nextToken
+        startedAt
         __typename
       }
       issueList {
@@ -86,6 +87,103 @@ export const listTranscriptions = /* GraphQL */ `
         __typename
       }
       nextToken
+      startedAt
+      __typename
+    }
+  }
+`;
+export const syncTranscriptions = /* GraphQL */ `
+  query SyncTranscriptions(
+    $filter: ModelTranscriptionFilterInput
+    $limit: Int
+    $nextToken: String
+    $lastSync: AWSTimestamp
+  ) {
+    syncTranscriptions(
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+      lastSync: $lastSync
+    ) {
+      items {
+        id
+        author
+        coverage
+        dateLastUpdated
+        userLastUpdated
+        length
+        issues
+        comments
+        tags
+        source
+        index
+        title
+        type
+        isPrivate
+        isPublished
+        disableAnalyzer
+        editors
+        viewers
+        editorGroups
+        viewerGroups
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      nextToken
+      startedAt
+      __typename
+    }
+  }
+`;
+export const byTitle = /* GraphQL */ `
+  query ByTitle(
+    $title: String!
+    $sortDirection: ModelSortDirection
+    $filter: ModelTranscriptionFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    byTitle(
+      title: $title
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        author
+        coverage
+        dateLastUpdated
+        userLastUpdated
+        length
+        issues
+        comments
+        tags
+        source
+        index
+        title
+        type
+        isPrivate
+        isPublished
+        disableAnalyzer
+        editors
+        viewers
+        editorGroups
+        viewerGroups
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      nextToken
+      startedAt
       __typename
     }
   }
@@ -143,7 +241,6 @@ export const getRegion = /* GraphQL */ `
 export const listRegions = /* GraphQL */ `
   query ListRegions(
     $id: ID
-    $transcriptionId: ID!
     $filter: ModelRegionFilterInput
     $limit: Int
     $nextToken: String
@@ -151,7 +248,6 @@ export const listRegions = /* GraphQL */ `
   ) {
     listRegions(
       id: $id
-      transcriptionId: $transcriptionId
       filter: $filter
       limit: $limit
       nextToken: $nextToken
@@ -176,46 +272,35 @@ export const listRegions = /* GraphQL */ `
         __typename
       }
       nextToken
+      startedAt
       __typename
     }
   }
 `;
-export const byTitle = /* GraphQL */ `
-  query ByTitle(
-    $title: String!
-    $sortDirection: ModelSortDirection
-    $filter: ModelTranscriptionFilterInput
+export const syncRegions = /* GraphQL */ `
+  query SyncRegions(
+    $filter: ModelRegionFilterInput
     $limit: Int
     $nextToken: String
+    $lastSync: AWSTimestamp
   ) {
-    byTitle(
-      title: $title
-      sortDirection: $sortDirection
+    syncRegions(
       filter: $filter
       limit: $limit
       nextToken: $nextToken
+      lastSync: $lastSync
     ) {
       items {
         id
-        author
-        coverage
+        start
+        end
+        regionText
+        regionAnalysis
+        isNote
+        translation
         dateLastUpdated
         userLastUpdated
-        length
-        issues
-        comments
-        tags
-        source
-        index
-        title
-        type
-        isPrivate
-        isPublished
-        disableAnalyzer
-        editors
-        viewers
-        editorGroups
-        viewerGroups
+        transcriptionId
         createdAt
         updatedAt
         _version
@@ -224,6 +309,7 @@ export const byTitle = /* GraphQL */ `
         __typename
       }
       nextToken
+      startedAt
       __typename
     }
   }
@@ -338,6 +424,80 @@ export const syncIssues = /* GraphQL */ `
         comments
         regionId
         transcriptionId
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      nextToken
+      startedAt
+      __typename
+    }
+  }
+`;
+export const getContributor = /* GraphQL */ `
+  query GetContributor($id: ID!) {
+    getContributor(id: $id) {
+      id
+      name
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;
+export const listContributors = /* GraphQL */ `
+  query ListContributors(
+    $id: ID
+    $filter: ModelContributorFilterInput
+    $limit: Int
+    $nextToken: String
+    $sortDirection: ModelSortDirection
+  ) {
+    listContributors(
+      id: $id
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+      sortDirection: $sortDirection
+    ) {
+      items {
+        id
+        name
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      nextToken
+      startedAt
+      __typename
+    }
+  }
+`;
+export const syncContributors = /* GraphQL */ `
+  query SyncContributors(
+    $filter: ModelContributorFilterInput
+    $limit: Int
+    $nextToken: String
+    $lastSync: AWSTimestamp
+  ) {
+    syncContributors(
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+      lastSync: $lastSync
+    ) {
+      items {
+        id
+        name
         createdAt
         updatedAt
         _version

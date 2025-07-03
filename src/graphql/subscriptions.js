@@ -1,9 +1,144 @@
 /* eslint-disable */
 // this is an auto generated file. This will be overwritten
 
-export const onCreateRegionByTranscription = /* GraphQL */ `
-  subscription OnCreateRegionByTranscription($transcriptionId: ID!) {
-    onCreateRegionByTranscription(transcriptionId: $transcriptionId) {
+export const onCreateTranscription = /* GraphQL */ `
+  subscription OnCreateTranscription(
+    $filter: ModelSubscriptionTranscriptionFilterInput
+    $author: String
+  ) {
+    onCreateTranscription(filter: $filter, author: $author) {
+      id
+      author
+      coverage
+      dateLastUpdated
+      userLastUpdated
+      length
+      issues
+      comments
+      tags
+      source
+      index
+      title
+      type
+      isPrivate
+      isPublished
+      disableAnalyzer
+      editors
+      viewers
+      editorGroups
+      viewerGroups
+      regions {
+        nextToken
+        startedAt
+        __typename
+      }
+      issueList {
+        nextToken
+        startedAt
+        __typename
+      }
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;
+export const onUpdateTranscription = /* GraphQL */ `
+  subscription OnUpdateTranscription(
+    $filter: ModelSubscriptionTranscriptionFilterInput
+    $author: String
+  ) {
+    onUpdateTranscription(filter: $filter, author: $author) {
+      id
+      author
+      coverage
+      dateLastUpdated
+      userLastUpdated
+      length
+      issues
+      comments
+      tags
+      source
+      index
+      title
+      type
+      isPrivate
+      isPublished
+      disableAnalyzer
+      editors
+      viewers
+      editorGroups
+      viewerGroups
+      regions {
+        nextToken
+        startedAt
+        __typename
+      }
+      issueList {
+        nextToken
+        startedAt
+        __typename
+      }
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;
+export const onDeleteTranscription = /* GraphQL */ `
+  subscription OnDeleteTranscription(
+    $filter: ModelSubscriptionTranscriptionFilterInput
+    $author: String
+  ) {
+    onDeleteTranscription(filter: $filter, author: $author) {
+      id
+      author
+      coverage
+      dateLastUpdated
+      userLastUpdated
+      length
+      issues
+      comments
+      tags
+      source
+      index
+      title
+      type
+      isPrivate
+      isPublished
+      disableAnalyzer
+      editors
+      viewers
+      editorGroups
+      viewerGroups
+      regions {
+        nextToken
+        startedAt
+        __typename
+      }
+      issueList {
+        nextToken
+        startedAt
+        __typename
+      }
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;
+export const onCreateRegion = /* GraphQL */ `
+  subscription OnCreateRegion($filter: ModelSubscriptionRegionFilterInput) {
+    onCreateRegion(filter: $filter) {
       id
       start
       end
@@ -51,9 +186,9 @@ export const onCreateRegionByTranscription = /* GraphQL */ `
     }
   }
 `;
-export const onUpdateRegionByTranscription = /* GraphQL */ `
-  subscription OnUpdateRegionByTranscription($transcriptionId: ID!) {
-    onUpdateRegionByTranscription(transcriptionId: $transcriptionId) {
+export const onUpdateRegion = /* GraphQL */ `
+  subscription OnUpdateRegion($filter: ModelSubscriptionRegionFilterInput) {
+    onUpdateRegion(filter: $filter) {
       id
       start
       end
@@ -101,9 +236,9 @@ export const onUpdateRegionByTranscription = /* GraphQL */ `
     }
   }
 `;
-export const onDeleteRegionByTranscription = /* GraphQL */ `
-  subscription OnDeleteRegionByTranscription($transcriptionId: ID!) {
-    onDeleteRegionByTranscription(transcriptionId: $transcriptionId) {
+export const onDeleteRegion = /* GraphQL */ `
+  subscription OnDeleteRegion($filter: ModelSubscriptionRegionFilterInput) {
+    onDeleteRegion(filter: $filter) {
       id
       start
       end
@@ -289,6 +424,54 @@ export const onDeleteIssue = /* GraphQL */ `
         __typename
       }
       transcriptionId
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;
+export const onCreateContributor = /* GraphQL */ `
+  subscription OnCreateContributor(
+    $filter: ModelSubscriptionContributorFilterInput
+  ) {
+    onCreateContributor(filter: $filter) {
+      id
+      name
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;
+export const onUpdateContributor = /* GraphQL */ `
+  subscription OnUpdateContributor(
+    $filter: ModelSubscriptionContributorFilterInput
+  ) {
+    onUpdateContributor(filter: $filter) {
+      id
+      name
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;
+export const onDeleteContributor = /* GraphQL */ `
+  subscription OnDeleteContributor(
+    $filter: ModelSubscriptionContributorFilterInput
+  ) {
+    onDeleteContributor(filter: $filter) {
+      id
+      name
       createdAt
       updatedAt
       _version

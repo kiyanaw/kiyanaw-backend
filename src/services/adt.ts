@@ -12,7 +12,6 @@ export interface TranscriptionData {
   dateLastUpdated?: string;
   userLastUpdated?: string;
   length: number;
-  contributors?: any;
 }
 
 export interface RegionData {
@@ -94,13 +93,6 @@ export class TranscriptionModel {
     this.userLastUpdated = data.userLastUpdated;
     this.isVideo = data.type.includes('video');
     this._length = data.length;
-
-    // Load editors dynamically if contributors exist
-    if (data.contributors?.toArray) {
-      data.contributors.toArray().then((items: any[]) => {
-        this.editors = items.map((item) => item.contributorID);
-      });
-    }
   }
 
   /**
