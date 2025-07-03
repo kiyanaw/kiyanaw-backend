@@ -1,5 +1,5 @@
 {
-  "Description": "{\"createdOn\":\"Mac\",\"createdBy\":\"Amplify\",\"createdWith\":\"11.1.1\",\"stackType\":\"auth-Cognito\",\"metadata\":{}}",
+  "Description": "{\"createdOn\":\"Mac\",\"createdBy\":\"Amplify\",\"createdWith\":\"14.0.0\",\"stackType\":\"auth-Cognito\",\"metadata\":{\"whyContinueWithGen1\":\"\"}}",
   "AWSTemplateFormatVersion": "2010-09-09",
   "Parameters": {
     "env": {
@@ -112,6 +112,21 @@
     },
     "permissions": {
       "Type": "CommaDelimitedList"
+    },
+    "thirdPartyAuth": {
+      "Type": "String"
+    },
+    "userPoolGroups": {
+      "Type": "String"
+    },
+    "adminQueries": {
+      "Type": "String"
+    },
+    "hostedUI": {
+      "Type": "String"
+    },
+    "authProviders": {
+      "Type": "CommaDelimitedList"
     }
   },
   "Conditions": {
@@ -121,14 +136,6 @@
           "Ref": "env"
         },
         "NONE"
-      ]
-    },
-    "ShouldOutputAppClientSecrets": {
-      "Fn::Equals": [
-        {
-          "Ref": "userpoolClientGenerateSecret"
-        },
-        true
       ]
     }
   },
@@ -281,20 +288,23 @@
             }
           ]
         }
-      }
+      },
+      "DependsOn": [
+        "SNSRole"
+      ]
     },
     "UserPoolClientWeb": {
       "Type": "AWS::Cognito::UserPoolClient",
       "Properties": {
-        "UserPoolId": {
-          "Ref": "UserPool"
-        },
         "ClientName": "kiyanad20b7994_app_clientWeb",
         "RefreshTokenValidity": {
           "Ref": "userpoolClientRefreshTokenValidity"
         },
         "TokenValidityUnits": {
           "RefreshToken": "days"
+        },
+        "UserPoolId": {
+          "Ref": "UserPool"
         }
       },
       "DependsOn": [
@@ -304,9 +314,6 @@
     "UserPoolClient": {
       "Type": "AWS::Cognito::UserPoolClient",
       "Properties": {
-        "UserPoolId": {
-          "Ref": "UserPool"
-        },
         "ClientName": "kiyanad20b7994_app_client",
         "GenerateSecret": {
           "Ref": "userpoolClientGenerateSecret"
@@ -316,6 +323,9 @@
         },
         "TokenValidityUnits": {
           "RefreshToken": "days"
+        },
+        "UserPoolId": {
+          "Ref": "UserPool"
         }
       },
       "DependsOn": [
@@ -370,32 +380,119 @@
             }
           ]
         }
+      }
+    },
+    "MFALambdaRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "iam:PassRole"
+                  ],
+                  "Resource": {
+                    "Fn::If": [
+                      "ShouldNotCreateEnvResources",
+                      "arn:aws:iam:::role/kiyanad20b7994_totp_lambda_role",
+                      {
+                        "Fn::Join": [
+                          "",
+                          [
+                            "arn:aws:iam:::role/kiyanad20b7994__totp_lambda_role-",
+                            {
+                              "Ref": "env"
+                            }
+                          ]
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "PolicyName": "kiyanad20b7994_totp_pass_role_policy"
+          },
+          {
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "iam:PassRole"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "SNSRole",
+                      "Arn"
+                    ]
+                  }
+                }
+              ]
+            },
+            "PolicyName": "kiyanad20b7994_sns_pass_role_policy"
+          }
+        ],
+        "RoleName": {
+          "Fn::If": [
+            "ShouldNotCreateEnvResources",
+            "kiyanad20b7994_totp_lambda_role",
+            {
+              "Fn::Join": [
+                "",
+                [
+                  "kiyanad20b7994_totp_lambda_role-",
+                  {
+                    "Ref": "env"
+                  }
+                ]
+              ]
+            }
+          ]
+        }
       },
       "DependsOn": [
-        "UserPoolClient"
+        "SNSRole"
       ]
     },
-    "UserPoolClientLambda": {
+    "MFALambda": {
       "Type": "AWS::Lambda::Function",
       "Properties": {
         "Code": {
-          "ZipFile": "const response = require('cfn-response');\nconst aws = require('aws-sdk');\nconst identity = new aws.CognitoIdentityServiceProvider();\nexports.handler = (event, context, callback) => {\n  if (event.RequestType == 'Delete') {\n    response.send(event, context, response.SUCCESS, {});\n  }\n  if (event.RequestType == 'Update' || event.RequestType == 'Create') {\n    const params = {\n      ClientId: event.ResourceProperties.clientId,\n      UserPoolId: event.ResourceProperties.userpoolId,\n    };\n    identity\n      .describeUserPoolClient(params)\n      .promise()\n      .then((res) => {\n        response.send(event, context, response.SUCCESS, { appSecret: res.UserPoolClient.ClientSecret });\n      })\n      .catch((err) => {\n        response.send(event, context, response.FAILED, { err });\n      });\n  }\n};\n"
+          "ZipFile": "const response = require('cfn-response');\nconst { CognitoIdentityProviderClient, SetUserPoolMfaConfigCommand } = require('@aws-sdk/client-cognito-identity-provider');\nconst identity = new CognitoIdentityProviderClient({});\n\nexports.handler = (event, context) => {\n  // Don't return promise, response.send() marks context as done internally\n  void tryHandleEvent(event, context);\n};\n\nasync function tryHandleEvent(event, context) {\n  try {\n    await handleEvent(event);\n    response.send(event, context, response.SUCCESS, {});\n  } catch (e) {\n    response.send(event, context, response.FAILED, { e });\n  }\n}\n\nasync function handleEvent(event) {\n  if (event.RequestType === 'Update' || event.RequestType === 'Create') {\n    const totpParams = {\n      UserPoolId: event.ResourceProperties.userPoolId,\n      MfaConfiguration: event.ResourceProperties.mfaConfiguration,\n      SmsMfaConfiguration: {\n        SmsAuthenticationMessage: event.ResourceProperties.smsAuthenticationMessage,\n        SmsConfiguration: {\n          SnsCallerArn: event.ResourceProperties.smsConfigCaller,\n          ExternalId: event.ResourceProperties.smsConfigExternalId,\n        },\n      },\n      SoftwareTokenMfaConfiguration: { Enabled: event.ResourceProperties.totpEnabled.toLowerCase() === 'true' },\n    };\n    console.log(totpParams);\n\n    await identity.send(new SetUserPoolMfaConfigCommand(totpParams));\n  }\n}\n"
         },
+        "Handler": "index.handler",
         "Role": {
           "Fn::GetAtt": [
-            "UserPoolClientRole",
+            "MFALambdaRole",
             "Arn"
           ]
         },
-        "Handler": "index.handler",
-        "Runtime": "nodejs16.x",
+        "Runtime": "nodejs22.x",
         "Timeout": 300
       },
       "DependsOn": [
-        "UserPoolClientRole"
+        "MFALambdaRole"
       ]
     },
-    "UserPoolClientLambdaPolicy": {
+    "MFALambdaPolicy": {
       "Type": "AWS::IAM::Policy",
       "Properties": {
         "PolicyDocument": {
@@ -404,7 +501,7 @@
             {
               "Effect": "Allow",
               "Action": [
-                "cognito-idp:DescribeUserPoolClient"
+                "cognito-idp:SetUserPoolMfaConfig"
               ],
               "Resource": {
                 "Fn::GetAtt": [
@@ -415,18 +512,32 @@
             }
           ]
         },
-        "PolicyName": "kiyanad20b7994_userpoolclient_lambda_iam_policy",
+        "PolicyName": "kiyanad20b7994_totp_lambda_iam_policy",
         "Roles": [
           {
-            "Ref": "UserPoolClientRole"
+            "Fn::If": [
+              "ShouldNotCreateEnvResources",
+              "kiyanad20b7994_totp_lambda_role",
+              {
+                "Fn::Join": [
+                  "",
+                  [
+                    "kiyanad20b7994_totp_lambda_role-",
+                    {
+                      "Ref": "env"
+                    }
+                  ]
+                ]
+              }
+            ]
           }
         ]
       },
       "DependsOn": [
-        "UserPoolClientLambda"
+        "MFALambda"
       ]
     },
-    "UserPoolClientLogPolicy": {
+    "MFALogPolicy": {
       "Type": "AWS::IAM::Policy",
       "Properties": {
         "PolicyDocument": {
@@ -450,7 +561,7 @@
                       "Ref": "AWS::AccountId"
                     },
                     "lambda": {
-                      "Ref": "UserPoolClientLambda"
+                      "Ref": "MFALambda"
                     }
                   }
                 ]
@@ -458,35 +569,60 @@
             }
           ]
         },
-        "PolicyName": "kiyanad20b7994_userpoolclient_lambda_log_policy",
+        "PolicyName": "kiyanad20b7994_totp_lambda_log_policy",
         "Roles": [
           {
-            "Ref": "UserPoolClientRole"
+            "Fn::If": [
+              "ShouldNotCreateEnvResources",
+              "kiyanad20b7994_totp_lambda_role",
+              {
+                "Fn::Join": [
+                  "",
+                  [
+                    "kiyanad20b7994_totp_lambda_role-",
+                    {
+                      "Ref": "env"
+                    }
+                  ]
+                ]
+              }
+            ]
           }
         ]
       },
       "DependsOn": [
-        "UserPoolClientLambdaPolicy"
+        "MFALambdaPolicy"
       ]
     },
-    "UserPoolClientInputs": {
+    "MFALambdaInputs": {
       "Type": "Custom::LambdaCallout",
       "Properties": {
         "ServiceToken": {
           "Fn::GetAtt": [
-            "UserPoolClientLambda",
+            "MFALambda",
             "Arn"
           ]
         },
-        "clientId": {
-          "Ref": "UserPoolClient"
+        "mfaConfiguration": {
+          "Ref": "mfaConfiguration"
         },
-        "userpoolId": {
+        "totpEnabled": true,
+        "smsConfigCaller": {
+          "Fn::GetAtt": [
+            "SNSRole",
+            "Arn"
+          ]
+        },
+        "smsAuthenticationMessage": {
+          "Ref": "smsAuthenticationMessage"
+        },
+        "smsConfigExternalId": "kiyanad20b7994_role_external_id",
+        "userPoolId": {
           "Ref": "UserPool"
         }
       },
       "DependsOn": [
-        "UserPoolClientLogPolicy"
+        "MFALogPolicy"
       ],
       "UpdateReplacePolicy": "Delete",
       "DeletionPolicy": "Delete"
@@ -552,10 +688,7 @@
             }
           ]
         }
-      },
-      "DependsOn": [
-        "UserPoolClientInputs"
-      ]
+      }
     },
     "IdentityPoolRoleMap": {
       "Type": "AWS::Cognito::IdentityPoolRoleAttachment",
@@ -623,15 +756,6 @@
       "Value": {
         "Ref": "UserPoolClient"
       }
-    },
-    "AppClientSecret": {
-      "Value": {
-        "Fn::GetAtt": [
-          "UserPoolClientInputs",
-          "appSecret"
-        ]
-      },
-      "Condition": "ShouldOutputAppClientSecrets"
     },
     "CreatedSNSRole": {
       "Description": "role arn",

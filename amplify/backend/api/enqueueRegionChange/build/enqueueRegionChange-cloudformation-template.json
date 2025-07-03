@@ -368,7 +368,7 @@
         "Name": "enqueueRegionChange"
       }
     },
-    "enqueueRegionChangeDefault4XXResponsec7d1e853": {
+    "enqueueRegionChangeDefault4XXResponsebe399f6b": {
       "Type": "AWS::ApiGateway::GatewayResponse",
       "Properties": {
         "ResponseParameters": {
@@ -383,7 +383,7 @@
         }
       }
     },
-    "enqueueRegionChangeDefault5XXResponsec7d1e853": {
+    "enqueueRegionChangeDefault5XXResponsebe399f6b": {
       "Type": "AWS::ApiGateway::GatewayResponse",
       "Properties": {
         "ResponseParameters": {
@@ -398,7 +398,7 @@
         }
       }
     },
-    "DeploymentAPIGWenqueueRegionChange27653924": {
+    "DeploymentAPIGWenqueueRegionChangef9a87ee9": {
       "Type": "AWS::ApiGateway::Deployment",
       "Properties": {
         "Description": "The Development stage deployment of your API.",
@@ -416,8 +416,8 @@
         }
       },
       "DependsOn": [
-        "enqueueRegionChangeDefault4XXResponsec7d1e853",
-        "enqueueRegionChangeDefault5XXResponsec7d1e853"
+        "enqueueRegionChangeDefault4XXResponsebe399f6b",
+        "enqueueRegionChangeDefault5XXResponsebe399f6b"
       ]
     }
   }

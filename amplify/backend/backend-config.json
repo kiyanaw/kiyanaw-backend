@@ -29,7 +29,7 @@
     }
   },
   "auth": {
-    "kiyanawd20b7994": {
+    "kiyanaw4007d1974007d197": {
       "customAuth": false,
       "dependsOn": [],
       "frontendAuthConfig": {
@@ -45,7 +45,9 @@
           "EMAIL"
         ],
         "socialProviders": [],
-        "usernameAttributes": [],
+        "usernameAttributes": [
+          "EMAIL"
+        ],
         "verificationMechanisms": [
           "EMAIL"
         ]
@@ -75,6 +77,56 @@
     "S3AndCloudFront": {
       "providerPlugin": "awscloudformation",
       "service": "S3AndCloudFront"
+    }
+  },
+  "parameters": {
+    "AMPLIFY_function_enqueueRegionChange_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "enqueueRegionChange"
+        }
+      ]
+    },
+    "AMPLIFY_function_enqueueRegionChange_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "enqueueRegionChange"
+        }
+      ]
+    },
+    "AMPLIFY_function_indexRegionData_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "indexRegionData"
+        }
+      ]
+    },
+    "AMPLIFY_function_indexRegionData_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "indexRegionData"
+        }
+      ]
+    },
+    "AMPLIFY_function_notifyRegionChanges_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "notifyRegionChanges"
+        }
+      ]
+    },
+    "AMPLIFY_function_notifyRegionChanges_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "notifyRegionChanges"
+        }
+      ]
     }
   },
   "storage": {

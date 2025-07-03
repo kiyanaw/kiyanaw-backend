@@ -1,10 +1,10 @@
 {
   "version": "1",
   "cognitoConfig": {
-    "identityPoolName": "kiyanawd20b7994_identitypool_d20b7994",
+    "identityPoolName": "kiyanaw4007d197_identitypool_4007d197",
     "allowUnauthenticatedIdentities": false,
-    "resourceNameTruncated": "kiyanad20b7994",
-    "userPoolName": "kiyanawd20b7994_userpool_d20b7994",
+    "resourceNameTruncated": "kiyana4007d197",
+    "userPoolName": "kiyanaw4007d197_userpool_4007d197",
     "autoVerifiedAttributes": [
       "email"
     ],
@@ -31,33 +31,22 @@
     "userpoolClientReadAttributes": [
       "email"
     ],
-    "userpoolClientLambdaRole": "kiyanad20b7994_userpoolclient_lambda_role",
+    "userpoolClientLambdaRole": "kiyana4007d197_userpoolclient_lambda_role",
     "userpoolClientSetAttributes": false,
-    "sharedId": "d20b7994",
-    "resourceName": "kiyanawd20b7994",
+    "sharedId": "4007d197",
+    "resourceName": "kiyanaw4007d1974007d197",
     "authSelections": "identityPoolAndUserPool",
-    "useDefault": "default",
+    "useDefault": "manual",
+    "thirdPartyAuth": false,
+    "usernameAttributes": [
+      "email"
+    ],
+    "userPoolGroups": false,
+    "adminQueries": false,
     "triggers": {},
+    "hostedUI": false,
     "userPoolGroupList": [],
     "serviceName": "Cognito",
-    "useEnabledMfas": false,
-    "authRoleArn": {
-      "Fn::GetAtt": [
-        "AuthRole",
-        "Arn"
-      ]
-    },
-    "unauthRoleArn": {
-      "Fn::GetAtt": [
-        "UnauthRole",
-        "Arn"
-      ]
-    },
-    "breakCircularDependency": true,
-    "dependsOn": [],
-    "parentStack": {
-      "Ref": "AWS::StackId"
-    },
-    "permissions": []
+    "useEnabledMfas": false
   }
 }

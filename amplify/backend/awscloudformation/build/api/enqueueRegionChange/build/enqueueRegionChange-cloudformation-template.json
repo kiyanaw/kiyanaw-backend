@@ -1,5 +1,5 @@
 {
-  "Description": "{\"createdOn\":\"Mac\",\"createdBy\":\"Amplify\",\"createdWith\":\"11.1.1\",\"stackType\":\"api-API Gateway\",\"metadata\":{}}",
+  "Description": "{\"createdOn\":\"Mac\",\"createdBy\":\"Amplify\",\"createdWith\":\"14.0.0\",\"stackType\":\"api-API Gateway\",\"metadata\":{\"whyContinueWithGen1\":\"\"}}",
   "AWSTemplateFormatVersion": "2010-09-09",
   "Parameters": {
     "functionenqueueRegionChangeName": {
@@ -368,43 +368,43 @@
         "Name": "enqueueRegionChange"
       }
     },
-    "enqueueRegionChangeDefault4XXResponse85993007": {
+    "enqueueRegionChangeDefault4XXResponsee709e12d": {
       "Type": "AWS::ApiGateway::GatewayResponse",
       "Properties": {
+        "ResponseParameters": {
+          "gatewayresponse.header.Access-Control-Allow-Origin": "'*'",
+          "gatewayresponse.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'",
+          "gatewayresponse.header.Access-Control-Allow-Methods": "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'",
+          "gatewayresponse.header.Access-Control-Expose-Headers": "'Date,X-Amzn-ErrorType'"
+        },
         "ResponseType": "DEFAULT_4XX",
         "RestApiId": {
           "Ref": "enqueueRegionChange"
-        },
+        }
+      }
+    },
+    "enqueueRegionChangeDefault5XXResponsee709e12d": {
+      "Type": "AWS::ApiGateway::GatewayResponse",
+      "Properties": {
         "ResponseParameters": {
           "gatewayresponse.header.Access-Control-Allow-Origin": "'*'",
           "gatewayresponse.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'",
           "gatewayresponse.header.Access-Control-Allow-Methods": "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'",
           "gatewayresponse.header.Access-Control-Expose-Headers": "'Date,X-Amzn-ErrorType'"
-        }
-      }
-    },
-    "enqueueRegionChangeDefault5XXResponse85993007": {
-      "Type": "AWS::ApiGateway::GatewayResponse",
-      "Properties": {
+        },
         "ResponseType": "DEFAULT_5XX",
         "RestApiId": {
           "Ref": "enqueueRegionChange"
-        },
-        "ResponseParameters": {
-          "gatewayresponse.header.Access-Control-Allow-Origin": "'*'",
-          "gatewayresponse.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'",
-          "gatewayresponse.header.Access-Control-Allow-Methods": "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'",
-          "gatewayresponse.header.Access-Control-Expose-Headers": "'Date,X-Amzn-ErrorType'"
         }
       }
     },
-    "DeploymentAPIGWenqueueRegionChangedd6e1cab": {
+    "DeploymentAPIGWenqueueRegionChange7db12d45": {
       "Type": "AWS::ApiGateway::Deployment",
       "Properties": {
+        "Description": "The Development stage deployment of your API.",
         "RestApiId": {
           "Ref": "enqueueRegionChange"
         },
-        "Description": "The Development stage deployment of your API.",
         "StageName": {
           "Fn::If": [
             "ShouldNotCreateEnvResources",
@@ -416,8 +416,8 @@
         }
       },
       "DependsOn": [
-        "enqueueRegionChangeDefault4XXResponse85993007",
-        "enqueueRegionChangeDefault5XXResponse85993007"
+        "enqueueRegionChangeDefault4XXResponsee709e12d",
+        "enqueueRegionChangeDefault5XXResponsee709e12d"
       ]
     }
   }

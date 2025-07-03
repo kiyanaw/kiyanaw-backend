@@ -4591,5 +4591,6 @@
         }
       }
     }
-  }
+  },
+  "Description": "{\"createdOn\":\"Mac\",\"createdBy\":\"Amplify\",\"createdWith\":\"14.0.0\",\"stackType\":\"api-AppSync\",\"metadata\":{\"whyContinueWithGen1\":\"\"}}"
 }
