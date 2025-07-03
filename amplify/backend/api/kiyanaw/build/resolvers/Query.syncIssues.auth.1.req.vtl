@@ -8,16 +8,10 @@ $util.qr($ctx.stash.put("hasAuth", true))
       #return($util.toJson({}))
     #end
   #end
-  #if( !$isAuthorized )
-    #if( $ctx.identity.userArn == $ctx.stash.authRole )
-      #set( $isAuthorized = true )
-    #end
-  #end
-  #if( !$isAuthorized )
-    #if( $ctx.identity.userArn == $ctx.stash.unauthRole )
-      #set( $isAuthorized = true )
-    #end
-  #end
+$util.unauthorized()
+#end
+#if( $util.authType() == "User Pool Authorization" )
+  #set( $isAuthorized = true )
 #end
 #if( !$isAuthorized && $util.isNull($ctx.stash.authFilter) )
 $util.unauthorized()

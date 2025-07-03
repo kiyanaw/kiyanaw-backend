@@ -1,5 +1,5 @@
 {
-  "Description": "API Gateway Resource for AWS Amplify CLI",
+  "Description": "{\"createdOn\":\"Mac\",\"createdBy\":\"Amplify\",\"createdWith\":\"14.0.0\",\"stackType\":\"api-API Gateway\",\"metadata\":{\"whyContinueWithGen1\":\"\"}}",
   "AWSTemplateFormatVersion": "2010-09-09",
   "Parameters": {
     "functionenqueueRegionChangeName": {
@@ -368,7 +368,7 @@
         "Name": "enqueueRegionChange"
       }
     },
-    "enqueueRegionChangeDefault4XXResponsebe399f6b": {
+    "enqueueRegionChangeDefault4XXResponse75608316": {
       "Type": "AWS::ApiGateway::GatewayResponse",
       "Properties": {
         "ResponseParameters": {
@@ -383,7 +383,7 @@
         }
       }
     },
-    "enqueueRegionChangeDefault5XXResponsebe399f6b": {
+    "enqueueRegionChangeDefault5XXResponse75608316": {
       "Type": "AWS::ApiGateway::GatewayResponse",
       "Properties": {
         "ResponseParameters": {
@@ -398,7 +398,7 @@
         }
       }
     },
-    "DeploymentAPIGWenqueueRegionChangef9a87ee9": {
+    "DeploymentAPIGWenqueueRegionChange4b61a200": {
       "Type": "AWS::ApiGateway::Deployment",
       "Properties": {
         "Description": "The Development stage deployment of your API.",
@@ -416,8 +416,8 @@
         }
       },
       "DependsOn": [
-        "enqueueRegionChangeDefault4XXResponsebe399f6b",
-        "enqueueRegionChangeDefault5XXResponsebe399f6b"
+        "enqueueRegionChangeDefault4XXResponse75608316",
+        "enqueueRegionChangeDefault5XXResponse75608316"
       ]
     }
   }

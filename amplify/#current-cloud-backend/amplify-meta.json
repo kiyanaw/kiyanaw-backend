@@ -1,14 +1,14 @@
 {
   "providers": {
     "awscloudformation": {
-      "AuthRoleName": "amplify-kiyanaw-newauth-ae683-authRole",
-      "UnauthRoleArn": "arn:aws:iam::494185203413:role/amplify-kiyanaw-newauth-ae683-unauthRole",
-      "AuthRoleArn": "arn:aws:iam::494185203413:role/amplify-kiyanaw-newauth-ae683-authRole",
+      "AuthRoleName": "amplify-kiyanaw-auththree-6870f-authRole",
+      "UnauthRoleArn": "arn:aws:iam::494185203413:role/amplify-kiyanaw-auththree-6870f-unauthRole",
+      "AuthRoleArn": "arn:aws:iam::494185203413:role/amplify-kiyanaw-auththree-6870f-authRole",
       "Region": "us-east-1",
-      "DeploymentBucketName": "amplify-kiyanaw-newauth-ae683-deployment",
-      "UnauthRoleName": "amplify-kiyanaw-newauth-ae683-unauthRole",
-      "StackName": "amplify-kiyanaw-newauth-ae683",
-      "StackId": "arn:aws:cloudformation:us-east-1:494185203413:stack/amplify-kiyanaw-newauth-ae683/93239f80-579e-11f0-b1d2-0ef78fcee66d",
+      "DeploymentBucketName": "amplify-kiyanaw-auththree-6870f-deployment",
+      "UnauthRoleName": "amplify-kiyanaw-auththree-6870f-unauthRole",
+      "StackName": "amplify-kiyanaw-auththree-6870f",
+      "StackId": "arn:aws:cloudformation:us-east-1:494185203413:stack/amplify-kiyanaw-auththree-6870f/a70fec50-57ae-11f0-b7a4-12d75b4d988f",
       "AmplifyAppId": "d2vcnct5kwl6za"
     }
   },
@@ -27,78 +27,93 @@
       "providerPlugin": "awscloudformation",
       "service": "API Gateway",
       "providerMetadata": {
-        "s3TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-newauth-ae683-deployment/amplify-cfn-templates/api/enqueueRegionChange-cloudformation-template.json",
+        "s3TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-auththree-6870f-deployment/amplify-cfn-templates/api/enqueueRegionChange-cloudformation-template.json",
         "logicalId": "apienqueueRegionChange"
       },
-      "lastPushTimeStamp": "2025-07-03T00:18:24.182Z",
+      "lastPushTimeStamp": "2025-07-03T01:47:40.199Z",
       "output": {
         "ApiName": "enqueueRegionChange",
-        "RootUrl": "https://wuuycsex04.execute-api.us-east-1.amazonaws.com/newauth",
-        "ApiId": "wuuycsex04"
+        "RootUrl": "https://y5ofwcryxb.execute-api.us-east-1.amazonaws.com/auththree",
+        "ApiId": "y5ofwcryxb"
       },
       "lastPushDirHash": "0jWdZdM22kpU8PlJi5mwKYTdc68="
     },
     "kiyanaw": {
-      "dependsOn": [],
+      "dependsOn": [
+        {
+          "attributes": [
+            "UserPoolId"
+          ],
+          "category": "auth",
+          "resourceName": "kiyanaw4007d1974007d197"
+        }
+      ],
       "output": {
         "authConfig": {
-          "additionalAuthenticationProviders": [],
+          "additionalAuthenticationProviders": [
+            {
+              "authenticationType": "AMAZON_COGNITO_USER_POOLS",
+              "userPoolConfig": {
+                "userPoolId": "authkiyanaw4007d1974007d197"
+              }
+            }
+          ],
           "defaultAuthentication": {
             "authenticationType": "AWS_IAM"
           }
         },
-        "GraphQLAPIIdOutput": "seefo4igfvhhpi6joxdes6uizy",
-        "GraphQLAPIEndpointOutput": "https://jtfyaur5a5f2fjf4fd2c5nu2au.appsync-api.us-east-1.amazonaws.com/graphql"
+        "GraphQLAPIIdOutput": "rjpibsf6wncrjiduzc4bbv3gq4",
+        "GraphQLAPIEndpointOutput": "https://zy57szscwrajben2hic42hdf5a.appsync-api.us-east-1.amazonaws.com/graphql"
       },
       "providerPlugin": "awscloudformation",
       "service": "AppSync",
       "providerMetadata": {
-        "s3TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-newauth-ae683-deployment/amplify-cfn-templates/api/cloudformation-template.json",
+        "s3TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-auththree-6870f-deployment/amplify-cfn-templates/api/cloudformation-template.json",
         "logicalId": "apikiyanaw"
       },
-      "lastPushTimeStamp": "2025-07-03T00:18:24.186Z",
-      "lastPushDirHash": "yP6DlN1z2eu9kq1pikbE2+7QynE="
+      "lastPushTimeStamp": "2025-07-03T01:47:40.199Z",
+      "lastPushDirHash": "vXm0k0lk35bVNJBRfwEtj+JmOfw="
     }
   },
   "auth": {
     "kiyanaw4007d1974007d197": {
-      "service": "Cognito",
-      "providerPlugin": "awscloudformation",
-      "dependsOn": [],
       "customAuth": false,
+      "dependsOn": [],
       "frontendAuthConfig": {
-        "socialProviders": [],
-        "usernameAttributes": [
-          "EMAIL"
-        ],
-        "signupAttributes": [
-          "EMAIL"
+        "mfaConfiguration": "OFF",
+        "mfaTypes": [
+          "SMS"
         ],
         "passwordProtectionSettings": {
           "passwordPolicyMinLength": 8,
           "passwordPolicyCharacters": []
         },
-        "mfaConfiguration": "OFF",
-        "mfaTypes": [
-          "SMS"
+        "signupAttributes": [
+          "EMAIL"
+        ],
+        "socialProviders": [],
+        "usernameAttributes": [
+          "EMAIL"
         ],
         "verificationMechanisms": [
           "EMAIL"
         ]
       },
+      "providerPlugin": "awscloudformation",
+      "service": "Cognito",
       "providerMetadata": {
-        "s3TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-newauth-ae683-deployment/amplify-cfn-templates/auth/kiyanaw4007d1974007d197-cloudformation-template.json",
+        "s3TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-auththree-6870f-deployment/amplify-cfn-templates/auth/kiyanaw4007d1974007d197-cloudformation-template.json",
         "logicalId": "authkiyanaw4007d1974007d197"
       },
-      "lastPushTimeStamp": "2025-07-03T00:18:24.816Z",
+      "lastPushTimeStamp": "2025-07-03T01:47:40.199Z",
       "output": {
-        "CreatedSNSRole": "arn:aws:iam::494185203413:role/sns4007d197ae683-newauth",
-        "UserPoolId": "us-east-1_2rfGS52Gw",
-        "AppClientIDWeb": "6ebqh95ja6oa7pd7gfakgqkaia",
-        "AppClientID": "2g26vnieaj964ej2ca6ghj94s3",
-        "IdentityPoolId": "us-east-1:2b188fd4-e3ea-43a7-9bd7-e416faae9f3c",
-        "UserPoolArn": "arn:aws:cognito-idp:us-east-1:494185203413:userpool/us-east-1_2rfGS52Gw",
-        "IdentityPoolName": "kiyanaw4007d197_identitypool_4007d197__newauth",
+        "CreatedSNSRole": "arn:aws:iam::494185203413:role/sns4007d1976870f-auththree",
+        "UserPoolId": "us-east-1_wScN676j0",
+        "AppClientIDWeb": "77v0vu37idteja7g3svgv3l087",
+        "AppClientID": "7r64itk3u38pnikq9b5qclp4ec",
+        "IdentityPoolId": "us-east-1:da7d1689-008b-4a3f-b7d1-794fa1f30ef7",
+        "UserPoolArn": "arn:aws:cognito-idp:us-east-1:494185203413:userpool/us-east-1_wScN676j0",
+        "IdentityPoolName": "kiyanaw4007d197_identitypool_4007d197__auththree",
         "UserPoolName": "kiyanaw4007d197_userpool_4007d197"
       },
       "lastPushDirHash": "HWUUwzH46/viFNsEIKRKq8RZRTc="
@@ -109,25 +124,25 @@
       "build": true,
       "providerPlugin": "awscloudformation",
       "service": "Lambda",
-      "lastBuildTimeStamp": "2025-07-03T00:01:57.655Z",
+      "lastBuildTimeStamp": "2025-07-03T01:41:37.710Z",
       "lastBuildType": "PROD",
-      "lastPackageTimeStamp": "2025-07-03T00:01:57.688Z",
+      "lastPackageTimeStamp": "2025-07-03T01:41:37.742Z",
       "distZipFilename": "enqueueRegionChange-744b7442427247344a4d-build.zip",
       "s3Bucket": {
-        "deploymentBucketName": "amplify-kiyanaw-newauth-ae683-deployment",
+        "deploymentBucketName": "amplify-kiyanaw-auththree-6870f-deployment",
         "s3Key": "amplify-builds/enqueueRegionChange-744b7442427247344a4d-build.zip"
       },
       "providerMetadata": {
-        "s3TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-newauth-ae683-deployment/amplify-cfn-templates/function/enqueueRegionChange-cloudformation-template.json",
+        "s3TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-auththree-6870f-deployment/amplify-cfn-templates/function/enqueueRegionChange-cloudformation-template.json",
         "logicalId": "functionenqueueRegionChange"
       },
-      "lastPushTimeStamp": "2025-07-03T00:18:24.192Z",
+      "lastPushTimeStamp": "2025-07-03T01:47:40.199Z",
       "output": {
-        "LambdaExecutionRoleArn": "arn:aws:iam::494185203413:role/kiyanawLambdaRole4e645603-newauth",
+        "LambdaExecutionRoleArn": "arn:aws:iam::494185203413:role/kiyanawLambdaRole4e645603-auththree",
         "Region": "us-east-1",
-        "Arn": "arn:aws:lambda:us-east-1:494185203413:function:enqueueRegionChange-newauth",
-        "Name": "enqueueRegionChange-newauth",
-        "LambdaExecutionRole": "kiyanawLambdaRole4e645603-newauth"
+        "Arn": "arn:aws:lambda:us-east-1:494185203413:function:enqueueRegionChange-auththree",
+        "Name": "enqueueRegionChange-auththree",
+        "LambdaExecutionRole": "kiyanawLambdaRole4e645603-auththree"
       },
       "lastPushDirHash": "56RGQjwdtMPvl0D9CfUC6aXHY0U="
     },
@@ -135,51 +150,51 @@
       "build": true,
       "providerPlugin": "awscloudformation",
       "service": "Lambda",
-      "lastBuildTimeStamp": "2025-07-03T00:01:59.348Z",
+      "lastBuildTimeStamp": "2025-07-03T01:41:38.676Z",
       "lastBuildType": "PROD",
-      "lastPackageTimeStamp": "2025-07-03T00:02:00.790Z",
-      "distZipFilename": "indexRegionData-534554334c6d526d6438-build.zip",
+      "lastPackageTimeStamp": "2025-07-03T01:41:42.119Z",
+      "distZipFilename": "indexRegionData-6b4f4e354d5543347559-build.zip",
       "s3Bucket": {
-        "deploymentBucketName": "amplify-kiyanaw-newauth-ae683-deployment",
-        "s3Key": "amplify-builds/indexRegionData-534554334c6d526d6438-build.zip"
+        "deploymentBucketName": "amplify-kiyanaw-auththree-6870f-deployment",
+        "s3Key": "amplify-builds/indexRegionData-6b4f4e354d5543347559-build.zip"
       },
       "providerMetadata": {
-        "s3TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-newauth-ae683-deployment/amplify-cfn-templates/function/indexRegionData-cloudformation-template.json",
+        "s3TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-auththree-6870f-deployment/amplify-cfn-templates/function/indexRegionData-cloudformation-template.json",
         "logicalId": "functionindexRegionData"
       },
-      "lastPushTimeStamp": "2025-07-03T00:18:24.193Z",
+      "lastPushTimeStamp": "2025-07-03T01:47:40.199Z",
       "output": {
-        "LambdaExecutionRoleArn": "arn:aws:iam::494185203413:role/kiyanawLambdaRolebf3e5ddd-newauth",
+        "LambdaExecutionRoleArn": "arn:aws:iam::494185203413:role/kiyanawLambdaRolebf3e5ddd-auththree",
         "Region": "us-east-1",
-        "Arn": "arn:aws:lambda:us-east-1:494185203413:function:indexRegionData-newauth",
-        "Name": "indexRegionData-newauth",
-        "LambdaExecutionRole": "kiyanawLambdaRolebf3e5ddd-newauth"
+        "Arn": "arn:aws:lambda:us-east-1:494185203413:function:indexRegionData-auththree",
+        "Name": "indexRegionData-auththree",
+        "LambdaExecutionRole": "kiyanawLambdaRolebf3e5ddd-auththree"
       },
-      "lastPushDirHash": "oSKthjRu03aQlyt5saBe17qrkYk="
+      "lastPushDirHash": "mWTeIJNPT/IP25pVB7uolTUxnuQ="
     },
     "notifyRegionChanges": {
       "build": true,
       "providerPlugin": "awscloudformation",
       "service": "Lambda",
-      "lastBuildTimeStamp": "2025-07-03T00:02:02.957Z",
+      "lastBuildTimeStamp": "2025-07-03T01:41:47.119Z",
       "lastBuildType": "PROD",
-      "lastPackageTimeStamp": "2025-07-03T00:02:02.974Z",
+      "lastPackageTimeStamp": "2025-07-03T01:41:47.140Z",
       "distZipFilename": "notifyRegionChanges-55394376497645314a37-build.zip",
       "s3Bucket": {
-        "deploymentBucketName": "amplify-kiyanaw-newauth-ae683-deployment",
+        "deploymentBucketName": "amplify-kiyanaw-auththree-6870f-deployment",
         "s3Key": "amplify-builds/notifyRegionChanges-55394376497645314a37-build.zip"
       },
       "providerMetadata": {
-        "s3TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-newauth-ae683-deployment/amplify-cfn-templates/function/notifyRegionChanges-cloudformation-template.json",
+        "s3TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-auththree-6870f-deployment/amplify-cfn-templates/function/notifyRegionChanges-cloudformation-template.json",
         "logicalId": "functionnotifyRegionChanges"
       },
-      "lastPushTimeStamp": "2025-07-03T00:18:24.194Z",
+      "lastPushTimeStamp": "2025-07-03T01:47:40.199Z",
       "output": {
-        "LambdaExecutionRoleArn": "arn:aws:iam::494185203413:role/kiyanawLambdaRoleb46b8309-newauth",
+        "LambdaExecutionRoleArn": "arn:aws:iam::494185203413:role/kiyanawLambdaRoleb46b8309-auththree",
         "Region": "us-east-1",
-        "Arn": "arn:aws:lambda:us-east-1:494185203413:function:notifyRegionChanges-newauth",
-        "Name": "notifyRegionChanges-newauth",
-        "LambdaExecutionRole": "kiyanawLambdaRoleb46b8309-newauth"
+        "Arn": "arn:aws:lambda:us-east-1:494185203413:function:notifyRegionChanges-auththree",
+        "Name": "notifyRegionChanges-auththree",
+        "LambdaExecutionRole": "kiyanawLambdaRoleb46b8309-auththree"
       },
       "lastPushDirHash": "vmDicO/XNvCXO66Ft4gawaV2Th0="
     }
@@ -189,19 +204,19 @@
       "providerPlugin": "awscloudformation",
       "service": "S3AndCloudFront",
       "providerMetadata": {
-        "s3TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-newauth-ae683-deployment/amplify-cfn-templates/hosting/template.json",
+        "s3TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-auththree-6870f-deployment/amplify-cfn-templates/hosting/template.json",
         "logicalId": "hostingS3AndCloudFront"
       },
-      "lastPushTimeStamp": "2025-07-03T00:18:24.197Z",
+      "lastPushTimeStamp": "2025-07-03T01:47:40.199Z",
       "output": {
-        "CloudFrontSecureURL": "https://d1oe1ud125s3om.cloudfront.net",
-        "S3BucketSecureURL": "https://kiyanaw-20231209160100-hostingbucket-newauth.s3.amazonaws.com",
-        "CloudFrontOriginAccessIdentity": "E2XMCKQUDF7S87",
-        "WebsiteURL": "http://kiyanaw-20231209160100-hostingbucket-newauth.s3-website-us-east-1.amazonaws.com",
-        "CloudFrontDistributionID": "E2I4HU6GNYAMGI",
+        "CloudFrontSecureURL": "https://d2z307nxk0qs60.cloudfront.net",
+        "S3BucketSecureURL": "https://kiyanaw-20231209160100-hostingbucket-auththree.s3.amazonaws.com",
+        "CloudFrontOriginAccessIdentity": "E2YQILO3NZ66L5",
+        "WebsiteURL": "http://kiyanaw-20231209160100-hostingbucket-auththree.s3-website-us-east-1.amazonaws.com",
+        "CloudFrontDistributionID": "E2O02O1PPPQ0D8",
         "Region": "us-east-1",
-        "HostingBucketName": "kiyanaw-20231209160100-hostingbucket-newauth",
-        "CloudFrontDomainName": "d1oe1ud125s3om.cloudfront.net"
+        "HostingBucketName": "kiyanaw-20231209160100-hostingbucket-auththree",
+        "CloudFrontDomainName": "d2z307nxk0qs60.cloudfront.net"
       },
       "lastPushDirHash": "yTzsJg8DCZRNEDVCJ7V4V4E/OR8="
     }
@@ -211,12 +226,12 @@
       "providerPlugin": "awscloudformation",
       "service": "S3",
       "providerMetadata": {
-        "s3TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-newauth-ae683-deployment/amplify-cfn-templates/storage/s3-cloudformation-template.json",
+        "s3TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-auththree-6870f-deployment/amplify-cfn-templates/storage/s3-cloudformation-template.json",
         "logicalId": "storagetranscriptions"
       },
-      "lastPushTimeStamp": "2025-07-03T00:18:24.198Z",
+      "lastPushTimeStamp": "2025-07-03T01:47:40.199Z",
       "output": {
-        "BucketName": "kiyanawb9b0a37496e34efd8156e27ad4220e33-newauth",
+        "BucketName": "kiyanawb9b0a37496e34efd8156e27ad4220e33-auththree",
         "Region": "us-east-1"
       },
       "lastPushDirHash": "87qT+Qc8xDIGy5kPt11FYz3zCqA="

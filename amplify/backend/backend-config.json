@@ -15,10 +15,25 @@
       "service": "API Gateway"
     },
     "kiyanaw": {
-      "dependsOn": [],
+      "dependsOn": [
+        {
+          "attributes": [
+            "UserPoolId"
+          ],
+          "category": "auth",
+          "resourceName": "kiyanaw4007d1974007d197"
+        }
+      ],
       "output": {
         "authConfig": {
-          "additionalAuthenticationProviders": [],
+          "additionalAuthenticationProviders": [
+            {
+              "authenticationType": "AMAZON_COGNITO_USER_POOLS",
+              "userPoolConfig": {
+                "userPoolId": "authkiyanaw4007d1974007d197"
+              }
+            }
+          ],
           "defaultAuthentication": {
             "authenticationType": "AWS_IAM"
           }

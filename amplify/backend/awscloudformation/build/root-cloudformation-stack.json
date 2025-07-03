@@ -202,7 +202,7 @@
     "apienqueueRegionChange": {
       "Type": "AWS::CloudFormation::Stack",
       "Properties": {
-        "TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-newauth-ae683-deployment/amplify-cfn-templates/api/enqueueRegionChange-cloudformation-template.json",
+        "TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-auththree-6870f-deployment/amplify-cfn-templates/api/enqueueRegionChange-cloudformation-template.json",
         "Parameters": {
           "functionenqueueRegionChangeName": {
             "Fn::GetAtt": [
@@ -216,34 +216,40 @@
               "Outputs.Arn"
             ]
           },
-          "env": "newauth"
+          "env": "auththree"
         }
       }
     },
     "apikiyanaw": {
       "Type": "AWS::CloudFormation::Stack",
       "Properties": {
-        "TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-newauth-ae683-deployment/amplify-cfn-templates/api/cloudformation-template.json",
+        "TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-auththree-6870f-deployment/amplify-cfn-templates/api/cloudformation-template.json",
         "Parameters": {
           "AppSyncApiName": "kiyanaw",
           "DynamoDBBillingMode": "PAY_PER_REQUEST",
           "DynamoDBEnableServerSideEncryption": false,
+          "AuthCognitoUserPoolId": {
+            "Fn::GetAtt": [
+              "authkiyanaw4007d1974007d197",
+              "Outputs.UserPoolId"
+            ]
+          },
           "authRoleName": {
             "Ref": "AuthRoleName"
           },
           "unauthRoleName": {
             "Ref": "UnauthRoleName"
           },
-          "S3DeploymentBucket": "amplify-kiyanaw-newauth-ae683-deployment",
-          "S3DeploymentRootKey": "amplify-appsync-files/09402f45ec17c2694cd8791d9fb21ee9531ee824",
-          "env": "newauth"
+          "S3DeploymentBucket": "amplify-kiyanaw-auththree-6870f-deployment",
+          "S3DeploymentRootKey": "amplify-appsync-files/6a0945d1cbbb9cd6f0092dd0eb61f978b4d7f81c",
+          "env": "auththree"
         }
       }
     },
     "authkiyanaw4007d1974007d197": {
       "Type": "AWS::CloudFormation::Stack",
       "Properties": {
-        "TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-newauth-ae683-deployment/amplify-cfn-templates/auth/kiyanaw4007d1974007d197-cloudformation-template.json",
+        "TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-auththree-6870f-deployment/amplify-cfn-templates/auth/kiyanaw4007d1974007d197-cloudformation-template.json",
         "Parameters": {
           "identityPoolName": "kiyanaw4007d197_identitypool_4007d197",
           "allowUnauthenticatedIdentities": false,
@@ -294,57 +300,57 @@
           },
           "breakCircularDependency": true,
           "dependsOn": "",
-          "env": "newauth"
+          "env": "auththree"
         }
       }
     },
     "functionenqueueRegionChange": {
       "Type": "AWS::CloudFormation::Stack",
       "Properties": {
-        "TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-newauth-ae683-deployment/amplify-cfn-templates/function/enqueueRegionChange-cloudformation-template.json",
+        "TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-auththree-6870f-deployment/amplify-cfn-templates/function/enqueueRegionChange-cloudformation-template.json",
         "Parameters": {
-          "deploymentBucketName": "amplify-kiyanaw-newauth-ae683-deployment",
+          "deploymentBucketName": "amplify-kiyanaw-auththree-6870f-deployment",
           "s3Key": "amplify-builds/enqueueRegionChange-744b7442427247344a4d-build.zip",
-          "env": "newauth"
+          "env": "auththree"
         }
       }
     },
     "functionindexRegionData": {
       "Type": "AWS::CloudFormation::Stack",
       "Properties": {
-        "TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-newauth-ae683-deployment/amplify-cfn-templates/function/indexRegionData-cloudformation-template.json",
+        "TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-auththree-6870f-deployment/amplify-cfn-templates/function/indexRegionData-cloudformation-template.json",
         "Parameters": {
-          "deploymentBucketName": "amplify-kiyanaw-newauth-ae683-deployment",
-          "s3Key": "amplify-builds/indexRegionData-534554334c6d526d6438-build.zip",
-          "env": "newauth"
+          "deploymentBucketName": "amplify-kiyanaw-auththree-6870f-deployment",
+          "s3Key": "amplify-builds/indexRegionData-6b4f4e354d5543347559-build.zip",
+          "env": "auththree"
         }
       }
     },
     "functionnotifyRegionChanges": {
       "Type": "AWS::CloudFormation::Stack",
       "Properties": {
-        "TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-newauth-ae683-deployment/amplify-cfn-templates/function/notifyRegionChanges-cloudformation-template.json",
+        "TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-auththree-6870f-deployment/amplify-cfn-templates/function/notifyRegionChanges-cloudformation-template.json",
         "Parameters": {
-          "deploymentBucketName": "amplify-kiyanaw-newauth-ae683-deployment",
+          "deploymentBucketName": "amplify-kiyanaw-auththree-6870f-deployment",
           "s3Key": "amplify-builds/notifyRegionChanges-55394376497645314a37-build.zip",
-          "env": "newauth"
+          "env": "auththree"
         }
       }
     },
     "hostingS3AndCloudFront": {
       "Type": "AWS::CloudFormation::Stack",
       "Properties": {
-        "TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-newauth-ae683-deployment/amplify-cfn-templates/hosting/template.json",
+        "TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-auththree-6870f-deployment/amplify-cfn-templates/hosting/template.json",
         "Parameters": {
           "bucketName": "kiyanaw-20231209160100-hostingbucket",
-          "env": "newauth"
+          "env": "auththree"
         }
       }
     },
     "storagetranscriptions": {
       "Type": "AWS::CloudFormation::Stack",
       "Properties": {
-        "TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-newauth-ae683-deployment/amplify-cfn-templates/storage/s3-cloudformation-template.json",
+        "TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-auththree-6870f-deployment/amplify-cfn-templates/storage/s3-cloudformation-template.json",
         "Parameters": {
           "bucketName": "kiyanawb9b0a37496e34efd8156e27ad4220e33",
           "authPolicyName": "s3_amplify_9178e6b4",
@@ -371,7 +377,7 @@
           "s3PermissionsGuestUploads": "DISALLOW",
           "GuestAllowList": "ALLOW",
           "triggerFunction": "NONE",
-          "env": "newauth"
+          "env": "auththree"
         }
       }
     },

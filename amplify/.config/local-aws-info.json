@@ -26,5 +26,15 @@
     "configLevel": "project",
     "useProfile": true,
     "profileName": "kiyanaw"
+  },
+  "newauthtwo": {
+    "configLevel": "project",
+    "useProfile": true,
+    "profileName": "kiyanaw"
+  },
+  "auththree": {
+    "configLevel": "project",
+    "useProfile": true,
+    "profileName": "kiyanaw"
   }
 }
