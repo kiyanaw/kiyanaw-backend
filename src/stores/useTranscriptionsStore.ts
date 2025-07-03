@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import { DataStore } from '@aws-amplify/datastore';
 import { generateClient } from 'aws-amplify/api';
 import { Transcription } from '../models';
 // @ts-ignore - GraphQL queries are generated as JS files
@@ -16,6 +15,7 @@ interface TranscriptionsState {
   loadTranscriptions: () => Promise<void>;
 }
 
+// TODO: move this to use-case
 export const useTranscriptionsStore = create<TranscriptionsState>()(
   devtools(
     (set) => ({
@@ -24,22 +24,17 @@ export const useTranscriptionsStore = create<TranscriptionsState>()(
       error: null,
       loadTranscriptions: async () => {
         set({ loading: true, error: null });
-        try {
-          // Load via DataStore (existing method)
-          const transcriptions = await DataStore.query(Transcription);
-          set({ transcriptions: transcriptions as Transcription[], loading: false });
 
-          // Load via GraphQL API (for comparison/testing)
-          try {
-            console.log('🔍 Loading transcriptions via GraphQL API...');
-            const graphqlResult = await client.graphql({
-              query: listTranscriptions
-            });
-            console.log('📊 GraphQL API result:', JSON.stringify(graphqlResult, null, 2));
-          } catch (error) {
-            console.error('❌ GraphQL API query failed:', error);
-          }
+        try {
+          console.log('🔍 Loading transcriptions via GraphQL API...');
+          const { data } = await client.graphql({ query: listTranscriptions });
+
+          // The GraphQL result is of shape { listTranscriptions: { items: [...] } }
+          const items = (data as any)?.listTranscriptions?.items ?? [];
+
+          set({ transcriptions: items as Transcription[], loading: false });
         } catch (error) {
+          console.error('❌ GraphQL API query failed:', error);
           set({ error: 'Failed to load transcriptions', loading: false });
         }
       },

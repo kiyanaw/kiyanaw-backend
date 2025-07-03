@@ -1,9 +1,19 @@
 import { DataStore } from '@aws-amplify/datastore';
 import { Region as DSRegion, Transcription as DSTranscription } from '../models';
 import Timeout from 'smart-timeout';
+import { generateClient } from 'aws-amplify/api';
+// @ts-ignore generated JS GraphQL
+import { listRegions } from '../graphql/queries.js';
+// @ts-ignore generated JS GraphQL
+import { createRegion as createRegionMutation, updateRegion as updateRegionMutation } from '../graphql/mutations.js';
+// @ts-ignore generated JS GraphQL
+import { getRegion as getRegionQuery } from '../graphql/queries.js';
 
 import { RegionModel } from './adt';
 import { showToast } from './toastService';
+
+// Create GraphQL client (re-use throughout)
+const client = generateClient();
 
 /**
  * Loads and processes regions for a given transcription.
@@ -11,15 +21,29 @@ import { showToast } from './toastService';
  * @returns Processed and sorted regions
  */
 export const loadRegionsForTranscription = async (transcriptionId: string) => {
-  const rawRegions = await DataStore.query(DSRegion, (r) => r.transcription.id.eq(transcriptionId));
-  
-  // Process and sort regions by start time
-  let regions = rawRegions
-    .slice()
-    .sort((a, b) => (a.start > b.start ? 1 : -1))
-    .map((r) => new RegionModel(r as any));
+  try {
+    // GraphQL filter: transcriptionId eq
+    const { data } = await client.graphql({
+      query: listRegions,
+      variables: {
+        filter: { transcriptionId: { eq: transcriptionId } },
+        limit: 1000 // arbitrarily high
+      }
+    });
 
-  return regions
+    const items = (data as any)?.listRegions?.items ?? [];
+
+    // Sort and map to RegionModel
+    const regions = items
+      .slice()
+      .sort((a: any, b: any) => (a.start > b.start ? 1 : -1))
+      .map((r: any) => new RegionModel(r));
+
+    return regions;
+  } catch (error) {
+    console.error('❌ Failed to load regions via API:', error);
+    throw error;
+  }
 }; 
 
 
@@ -30,32 +54,40 @@ export const loadRegionsForTranscription = async (transcriptionId: string) => {
  * @param username The username of the user creating the region
  * @returns The saved region as a RegionModel
  */
-export const createRegion = async (transcriptionId: string, region: {
-  id: string;
-  start: number;
-  end: number;
-  isNote?: boolean;
-}, username: string) => {
+export const createRegion = async (
+  transcriptionId: string,
+  region: {
+    id: string;
+    start: number;
+    end: number;
+    isNote?: boolean;
+  },
+  username: string
+) => {
+  try {
+    const input = {
+      id: region.id,
+      transcriptionId,
+      start: region.start,
+      end: region.end,
+      isNote: region.isNote ?? false,
+      dateLastUpdated: `${Date.now()}`,
+      userLastUpdated: username,
+    } as any;
 
-  const transcription = await DataStore.query(DSTranscription, transcriptionId)
-  if (!transcription) {
-    throw new Error(`Transcription with ID ${transcriptionId} not found`);
+    const { data } = await client.graphql({
+      query: createRegionMutation,
+      variables: { input },
+      authMode: 'iam',
+    });
+
+    const created = (data as any)?.createRegion;
+    return new RegionModel(created);
+  } catch (error) {
+    console.error('❌ Failed to create region via API:', error);
+    showToast('Failed to create region', 'error');
+    throw error;
   }
-
-  const newRegion = new DSRegion({
-    // @ts-ignore - id not in TS type
-    id: region.id, 
-    start: region.start,
-    end: region.end,
-    isNote: region.isNote || false, 
-    dateLastUpdated: `${Date.now()}`,
-    userLastUpdated: username,
-    transcription,
-  });
-  
-  const savedRegion = await DataStore.save(newRegion);
-
-  return new RegionModel(savedRegion as any);
 };
 
 // Debounced save state
@@ -112,39 +144,31 @@ export const updateRegion = async (regionId: string, updates: {
         }
       }
 
-      const originalRegion = await DataStore.query(DSRegion, regionId);
-      if (!originalRegion) {
+      // Fetch current version to satisfy conflict detection
+      const { data: getData } = await client.graphql({
+        query: getRegionQuery,
+        variables: { id: regionId },
+      });
+
+      const existing = (getData as any)?.getRegion;
+      if (!existing) {
         console.error(`Region with ID ${regionId} not found`);
         return;
       }
 
-      await DataStore.save(
-        DSRegion.copyOf(originalRegion, (draft) => {
-          // Update provided fields
-          if (finalUpdates.regionText !== undefined) {
-            draft.regionText = finalUpdates.regionText;
-          }
-          if (finalUpdates.translation !== undefined) {
-            draft.translation = finalUpdates.translation;
-          }
-          if (finalUpdates.start !== undefined) {
-            draft.start = finalUpdates.start;
-          }
-          if (finalUpdates.end !== undefined) {
-            draft.end = finalUpdates.end;
-          }
-          if (finalUpdates.isNote !== undefined) {
-            draft.isNote = finalUpdates.isNote;
-          }
-          if (finalUpdates.regionAnalysis !== undefined) {
-            draft.regionAnalysis = finalUpdates.regionAnalysis;
-          }
-          
-          // Always update metadata
-          draft.dateLastUpdated = `${Date.now()}`;
-          draft.userLastUpdated = username;
-        })
-      );
+      const input: any = {
+        id: regionId,
+        _version: existing._version,
+        ...finalUpdates,
+        dateLastUpdated: `${Date.now()}`,
+        userLastUpdated: username,
+      };
+
+      await client.graphql({
+        query: updateRegionMutation,
+        variables: { input },
+        authMode: 'iam',
+      });
 
       const analysisInfo = finalUpdates.regionAnalysis && finalUpdates.regionAnalysis !== mergedUpdates.regionAnalysis ? ` + analysis` : '';
       console.log(`✅ Saved region ${regionId}${analysisInfo}`);
@@ -218,39 +242,31 @@ export const updateRegionWithAnalysis = async (regionId: string, updates: {
         }
       }
 
-      const originalRegion = await DataStore.query(DSRegion, regionId);
-      if (!originalRegion) {
+      // Fetch current version to satisfy conflict detection
+      const { data: getData } = await client.graphql({
+        query: getRegionQuery,
+        variables: { id: regionId },
+      });
+
+      const existing = (getData as any)?.getRegion;
+      if (!existing) {
         console.error(`Region with ID ${regionId} not found`);
         return;
       }
 
-      await DataStore.save(
-        DSRegion.copyOf(originalRegion, (draft) => {
-          // Update provided fields
-          if (finalUpdates.regionText !== undefined) {
-            draft.regionText = finalUpdates.regionText;
-          }
-          if (finalUpdates.translation !== undefined) {
-            draft.translation = finalUpdates.translation;
-          }
-          if (finalUpdates.start !== undefined) {
-            draft.start = finalUpdates.start;
-          }
-          if (finalUpdates.end !== undefined) {
-            draft.end = finalUpdates.end;
-          }
-          if (finalUpdates.isNote !== undefined) {
-            draft.isNote = finalUpdates.isNote;
-          }
-          if (finalUpdates.regionAnalysis !== undefined) {
-            draft.regionAnalysis = finalUpdates.regionAnalysis;
-          }
-          
-          // Always update metadata
-          draft.dateLastUpdated = `${Date.now()}`;
-          draft.userLastUpdated = username;
-        })
-      );
+      const input: any = {
+        id: regionId,
+        _version: existing._version,
+        ...finalUpdates,
+        dateLastUpdated: `${Date.now()}`,
+        userLastUpdated: username,
+      };
+
+      await client.graphql({
+        query: updateRegionMutation,
+        variables: { input },
+        authMode: 'iam',
+      });
 
       const analysisInfo = finalUpdates.regionAnalysis ? ` + analysis` : '';
       console.log(`✅ Saved region ${regionId}${analysisInfo}`);

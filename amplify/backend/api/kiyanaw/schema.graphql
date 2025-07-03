@@ -38,11 +38,15 @@ type Transcription
     @auth(rules: [
       { allow: owner, ownerField: "author", operations: [create, read, update] }
       { allow: groups, groups: ["Admins"], operations: [create, read, update] }
+      { allow: private, operations: [read] }
+      { allow: private, provider: identityPool, operations: [read] }
     ])
   viewers: [String]
     @auth(rules: [
       { allow: owner, ownerField: "author", operations: [create, read, update] }
       { allow: groups, groups: ["Admins"], operations: [create, read, update] }
+      { allow: private, operations: [read] }
+      { allow: private, provider: identityPool, operations: [read] }
     ])
   editorGroups: [String]
   viewerGroups: [String]

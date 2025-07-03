@@ -30,7 +30,7 @@
         "s3TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-auththree-6870f-deployment/amplify-cfn-templates/api/enqueueRegionChange-cloudformation-template.json",
         "logicalId": "apienqueueRegionChange"
       },
-      "lastPushTimeStamp": "2025-07-03T22:31:59.553Z",
+      "lastPushTimeStamp": "2025-07-03T23:15:06.369Z",
       "output": {
         "ApiName": "enqueueRegionChange",
         "RootUrl": "https://y5ofwcryxb.execute-api.us-east-1.amazonaws.com/auththree",
@@ -71,8 +71,8 @@
         "s3TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-auththree-6870f-deployment/amplify-cfn-templates/api/cloudformation-template.json",
         "logicalId": "apikiyanaw"
       },
-      "lastPushTimeStamp": "2025-07-03T22:32:03.253Z",
-      "lastPushDirHash": "/69Ti6PK5p63PNsn5OFglViegBs="
+      "lastPushTimeStamp": "2025-07-03T23:15:10.121Z",
+      "lastPushDirHash": "Ku/+1XDn8kdNgFprkE6wuxfZy9Q="
     }
   },
   "auth": {
@@ -105,7 +105,7 @@
         "s3TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-auththree-6870f-deployment/amplify-cfn-templates/auth/kiyanaw4007d1974007d197-cloudformation-template.json",
         "logicalId": "authkiyanaw4007d1974007d197"
       },
-      "lastPushTimeStamp": "2025-07-03T22:31:59.558Z",
+      "lastPushTimeStamp": "2025-07-03T23:15:06.375Z",
       "output": {
         "CreatedSNSRole": "arn:aws:iam::494185203413:role/sns4007d1976870f-auththree",
         "UserPoolId": "us-east-1_wScN676j0",
@@ -136,7 +136,7 @@
         "s3TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-auththree-6870f-deployment/amplify-cfn-templates/function/enqueueRegionChange-cloudformation-template.json",
         "logicalId": "functionenqueueRegionChange"
       },
-      "lastPushTimeStamp": "2025-07-03T22:31:59.560Z",
+      "lastPushTimeStamp": "2025-07-03T23:15:06.377Z",
       "output": {
         "LambdaExecutionRoleArn": "arn:aws:iam::494185203413:role/kiyanawLambdaRole4e645603-auththree",
         "Region": "us-east-1",
@@ -162,7 +162,7 @@
         "s3TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-auththree-6870f-deployment/amplify-cfn-templates/function/indexRegionData-cloudformation-template.json",
         "logicalId": "functionindexRegionData"
       },
-      "lastPushTimeStamp": "2025-07-03T22:31:59.561Z",
+      "lastPushTimeStamp": "2025-07-03T23:15:06.378Z",
       "output": {
         "LambdaExecutionRoleArn": "arn:aws:iam::494185203413:role/kiyanawLambdaRolebf3e5ddd-auththree",
         "Region": "us-east-1",
@@ -188,7 +188,7 @@
         "s3TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-auththree-6870f-deployment/amplify-cfn-templates/function/notifyRegionChanges-cloudformation-template.json",
         "logicalId": "functionnotifyRegionChanges"
       },
-      "lastPushTimeStamp": "2025-07-03T22:31:59.562Z",
+      "lastPushTimeStamp": "2025-07-03T23:15:06.379Z",
       "output": {
         "LambdaExecutionRoleArn": "arn:aws:iam::494185203413:role/kiyanawLambdaRoleb46b8309-auththree",
         "Region": "us-east-1",
@@ -207,7 +207,7 @@
         "s3TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-auththree-6870f-deployment/amplify-cfn-templates/hosting/template.json",
         "logicalId": "hostingS3AndCloudFront"
       },
-      "lastPushTimeStamp": "2025-07-03T22:31:59.563Z",
+      "lastPushTimeStamp": "2025-07-03T23:15:06.381Z",
       "output": {
         "CloudFrontSecureURL": "https://d2z307nxk0qs60.cloudfront.net",
         "S3BucketSecureURL": "https://kiyanaw-20231209160100-hostingbucket-auththree.s3.amazonaws.com",
@@ -229,7 +229,7 @@
         "s3TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-auththree-6870f-deployment/amplify-cfn-templates/storage/s3-cloudformation-template.json",
         "logicalId": "storagetranscriptions"
       },
-      "lastPushTimeStamp": "2025-07-03T22:31:59.564Z",
+      "lastPushTimeStamp": "2025-07-03T23:15:06.382Z",
       "output": {
         "BucketName": "kiyanawb9b0a37496e34efd8156e27ad4220e33-auththree",
         "Region": "us-east-1"
