@@ -2,7 +2,6 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { DataStore } from '@aws-amplify/datastore';
 import { Transcription, Region, Issue } from '../models';
-import { useAuthStore } from './useAuthStore';
 import Timeout from 'smart-timeout';
 
 
