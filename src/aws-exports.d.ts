@@ -1,2 +1,2 @@
-declare const awsExports: Record<string, any>;
+declare const awsExports: Record<string, unknown>;
 export default awsExports;
