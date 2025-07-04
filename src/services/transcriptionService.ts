@@ -179,7 +179,7 @@ export const loadInFull = async (transcriptionId: string): Promise<false | {
     });
     console.log('📊 GraphQL API result:', JSON.stringify(graphqlResult, null, 2));
     
-    transcriptionData = graphqlResult.data.getTranscription;
+    transcriptionData = (graphqlResult as any).data.getTranscription;
     if (!transcriptionData) {
       return false; // Transcription not found
     }

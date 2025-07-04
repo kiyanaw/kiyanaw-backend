@@ -206,6 +206,18 @@ describe('WaveSurferService', () => {
       expect(mockWaveSurferInstance.on).toHaveBeenCalledWith('error', expect.any(Function));
       expect(mockRegionsInstance.on).toHaveBeenCalledWith('region-created', expect.any(Function));
     });
+
+    it('should enable drag selection when canEdit is true', () => {
+      wavesurferService.initialize(mockContainer, mockTimelineContainer, undefined, true);
+      
+      expect(mockRegionsInstance.enableDragSelection).toHaveBeenCalledWith({}, 5);
+    });
+
+    it('should not enable drag selection when canEdit is false', () => {
+      wavesurferService.initialize(mockContainer, mockTimelineContainer, undefined, false);
+      
+      expect(mockRegionsInstance.enableDragSelection).not.toHaveBeenCalled();
+    });
   });
 
   describe('Delayed Regions Logic', () => {
@@ -256,14 +268,16 @@ describe('WaveSurferService', () => {
         start: 1,
         end: 3,
         content: '1',
-        resize: true,
+        resize: false, // Default canEdit is false
+        drag: false,   // Default canEdit is false
       });
       expect(mockRegionsInstance.addRegion).toHaveBeenCalledWith({
         id: 'region-2',
         start: 5,
         end: 7,
         content: '2',
-        resize: true,
+        resize: false, // Default canEdit is false
+        drag: false,   // Default canEdit is false
       });
       
       // Should clear delayed regions
@@ -290,11 +304,41 @@ describe('WaveSurferService', () => {
         start: 1,
         end: 3,
         content: '1',
-        resize: true,
+        resize: false, // Default canEdit is false
+        drag: false,   // Default canEdit is false
       });
       
       // Should not store as delayed
       expect(wavesurferService['_delayedRegions']).toEqual([]);
+    });
+
+    it('should create regions with drag and resize enabled when canEdit is true', () => {
+      // Initialize with canEdit: true
+      wavesurferService.destroy();
+      wavesurferService.initialize(mockContainer, mockTimelineContainer, undefined, true);
+      
+      const testRegions = [
+        { id: 'region-1', start: 1, end: 3, displayIndex: 1 },
+      ];
+      
+      // Capture and trigger ready callback
+      const readyCall = mockWaveSurferInstance.on.mock.calls.find(
+        (call: any) => call[0] === 'ready'
+      );
+      readyCall[1](); // Trigger ready event
+      
+      // Set regions
+      wavesurferService.setRegions(testRegions);
+      
+      // Should add regions with drag and resize enabled
+      expect(mockRegionsInstance.addRegion).toHaveBeenCalledWith({
+        id: 'region-1',
+        start: 1,
+        end: 3,
+        content: '1',
+        resize: true,  // canEdit is true
+        drag: true,    // canEdit is true
+      });
     });
 
     it('should update region indices when region is created', () => {

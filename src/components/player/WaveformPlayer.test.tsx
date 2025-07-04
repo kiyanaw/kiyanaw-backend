@@ -82,14 +82,13 @@ describe('WaveformPlayer', () => {
   });
 
   const defaultProps = {
-    source: 'test-audio.mp3',
+    source: 'test-source.mp3',
     peaks: null,
-    canEdit: true,
     inboundRegion: null,
     regions: [],
     isVideo: false,
-    title: 'Test Audio',
-    onRegionUpdate: mockOnRegionUpdate,
+    title: 'Test Title',
+    onRegionUpdate: jest.fn(),
     onLookup: mockOnLookup,
   };
 
@@ -109,6 +108,7 @@ describe('WaveformPlayer', () => {
         saved: false,
         peaks: null,
         accessDenied: false,
+        canEdit: true,
         regions: [],
         regionMap: {},
         selectedRegionId: null,
@@ -120,6 +120,7 @@ describe('WaveformPlayer', () => {
         _subscriptions: [],
         setFullTranscriptionData: jest.fn(),
         setAccessDenied: jest.fn(),
+        setCanEdit: jest.fn(),
         cleanup: jest.fn(),
         updateTranscription: jest.fn(),
         setTranscription: jest.fn(),
@@ -156,7 +157,7 @@ describe('WaveformPlayer', () => {
   describe('Construction and Initialization', () => {
     it('renders without crashing', () => {
       render(<WaveformPlayer {...defaultProps} />);
-      expect(screen.getByText('Test Audio')).toBeInTheDocument();
+      expect(screen.getByText('Test Title')).toBeInTheDocument();
     });
 
     it('initializes wavesurfer service when containers are ready', () => {
@@ -228,7 +229,8 @@ describe('WaveformPlayer', () => {
       expect(mockInitialize).toHaveBeenCalledWith(
         expect.any(HTMLElement), // waveform container
         expect.any(HTMLElement), // timeline container
-        undefined // media element (undefined for audio files)
+        undefined, // media element (undefined for audio files)
+        true // canEdit (default from mock store)
       );
     });
 
@@ -276,7 +278,8 @@ describe('WaveformPlayer', () => {
       expect(mockWaveSurferService.initialize).toHaveBeenCalledWith(
         expect.any(HTMLElement),
         expect.any(HTMLElement),
-        undefined // no media element for audio files
+        undefined,
+        true
       );
     });
 
@@ -285,7 +288,7 @@ describe('WaveformPlayer', () => {
       render(<WaveformPlayer {...defaultProps} peaks={peaks} />);
       
       // Component should render with peaks data
-      expect(screen.getByText('Test Audio')).toBeInTheDocument();
+      expect(screen.getByText('Test Title')).toBeInTheDocument();
     });
 
     it('manages regions prop integration', () => {
@@ -297,14 +300,14 @@ describe('WaveformPlayer', () => {
       render(<WaveformPlayer {...defaultProps} regions={regions} />);
       
       // Should handle regions without errors
-      expect(screen.getByText('Test Audio')).toBeInTheDocument();
+      expect(screen.getByText('Test Title')).toBeInTheDocument();
     });
 
     it('handles inbound region prop for deep linking', () => {
       render(<WaveformPlayer {...defaultProps} inboundRegion="region-123" />);
       
       // Should render with inbound region
-      expect(screen.getByText('Test Audio')).toBeInTheDocument();
+      expect(screen.getByText('Test Title')).toBeInTheDocument();
     });
   });
 
@@ -475,14 +478,62 @@ describe('WaveformPlayer', () => {
 
   describe('Edit Controls', () => {
     it('shows edit controls when canEdit is true', () => {
-      render(<WaveformPlayer {...defaultProps} canEdit={true} />);
+      render(<WaveformPlayer {...defaultProps} />);
       
       expect(screen.getByTestId('mark-region')).toBeInTheDocument();
     });
 
     it('hides edit controls when canEdit is false', () => {
-      render(<WaveformPlayer {...defaultProps} canEdit={false} />);
+      // Create a separate test with canEdit: false
+      const mockStateWithNoEdit = {
+        transcription: { id: 'test-transcription-id', title: 'Test Transcription' },
+        saved: false,
+        peaks: null,
+        accessDenied: false,
+        canEdit: false,
+        regions: [],
+        regionMap: {},
+        selectedRegionId: null,
+        selectedRegion: null,
+        playbackWithinRegion: null,
+        knownWords: new Set<string>(),
+        issues: [],
+        issueMap: {},
+        _subscriptions: [],
+        setFullTranscriptionData: jest.fn(),
+        setAccessDenied: jest.fn(),
+        setCanEdit: jest.fn(),
+        cleanup: jest.fn(),
+        updateTranscription: jest.fn(),
+        setTranscription: jest.fn(),
+        setSaved: jest.fn(),
+        setSelectedRegion: jest.fn(),
+        setPlaybackWithinRegion: jest.fn(),
+        updateRegion: jest.fn(),
+        createRegion: jest.fn(),
+        deleteRegion: jest.fn(),
+        addNewRegion: jest.fn(),
+        setRegionText: jest.fn(),
+        setRegionTranslation: jest.fn(),
+        updateRegionBounds: jest.fn(),
+        addKnownWords: jest.fn(),
+        setRegionAnalysis: jest.fn(),
+        createIssue: jest.fn(),
+        updateIssue: jest.fn(),
+        deleteIssue: jest.fn(),
+        addComment: jest.fn(),
+        isVideo: false,
+        isTranscriptionAuthor: jest.fn(() => false),
+        transcriptionTitle: 'Test Transcription',
+        regionById: jest.fn(() => null),
+        issueById: jest.fn(() => null),
+        issuesByRegion: jest.fn(() => []),
+      };
       
+      mockUseEditorStore.mockImplementation((selector) => selector(mockStateWithNoEdit));
+      
+      const { rerender } = render(<WaveformPlayer {...defaultProps} />);
+       
       expect(screen.queryByTestId('mark-region')).not.toBeInTheDocument();
     });
 
@@ -510,6 +561,70 @@ describe('WaveformPlayer', () => {
         expect(mockOnLookup).toHaveBeenCalled();
       }
     });
+
+    it('uses canEdit from store and passes it to wavesurfer service', () => {
+      // Mock store to return canEdit: false
+      mockUseEditorStore.mockImplementation((selector) => {
+        const state = {
+          transcription: { id: 'test-transcription-id', title: 'Test Transcription' },
+          saved: false,
+          peaks: null,
+          accessDenied: false,
+          canEdit: false,
+          regions: [],
+          regionMap: {},
+          selectedRegionId: null,
+          selectedRegion: null,
+          playbackWithinRegion: null,
+          knownWords: new Set<string>(),
+          issues: [],
+          issueMap: {},
+          _subscriptions: [],
+          setFullTranscriptionData: jest.fn(),
+          setAccessDenied: jest.fn(),
+          setCanEdit: jest.fn(),
+          cleanup: jest.fn(),
+          updateTranscription: jest.fn(),
+          setTranscription: jest.fn(),
+          setSaved: jest.fn(),
+          setSelectedRegion: jest.fn(),
+          setPlaybackWithinRegion: jest.fn(),
+          updateRegion: jest.fn(),
+          createRegion: jest.fn(),
+          deleteRegion: jest.fn(),
+          addNewRegion: jest.fn(),
+          setRegionText: jest.fn(),
+          setRegionTranslation: jest.fn(),
+          updateRegionBounds: jest.fn(),
+          addKnownWords: jest.fn(),
+          setRegionAnalysis: jest.fn(),
+          createIssue: jest.fn(),
+          updateIssue: jest.fn(),
+          deleteIssue: jest.fn(),
+          addComment: jest.fn(),
+          isVideo: false,
+          isTranscriptionAuthor: jest.fn(() => false),
+          transcriptionTitle: 'Test Transcription',
+          regionById: jest.fn(() => null),
+          issueById: jest.fn(() => null),
+          issuesByRegion: jest.fn(() => []),
+        };
+        return selector(state);
+      });
+      
+      render(<WaveformPlayer {...defaultProps} />);
+      
+      // Should pass canEdit: false to wavesurfer service
+      expect(mockWaveSurferService.initialize).toHaveBeenCalledWith(
+        expect.any(HTMLElement),
+        expect.any(HTMLElement),
+        undefined,
+        false // canEdit should be false
+      );
+      
+      // Should hide edit controls
+      expect(screen.queryByTestId('mark-region')).not.toBeInTheDocument();
+    });
   });
 
   describe('Video Integration', () => {
@@ -529,7 +644,8 @@ describe('WaveformPlayer', () => {
       expect(mockWaveSurferService.initialize).toHaveBeenCalledWith(
         expect.any(HTMLElement),
         expect.any(HTMLElement),
-        undefined
+        undefined,
+        true
       );
     });
 
@@ -546,7 +662,8 @@ describe('WaveformPlayer', () => {
         expect(mockWaveSurferService.initialize).toHaveBeenCalledWith(
           expect.any(HTMLElement),
           expect.any(HTMLElement),
-          expect.any(HTMLVideoElement)
+          expect.any(HTMLVideoElement),
+          true
         );
       });
     });

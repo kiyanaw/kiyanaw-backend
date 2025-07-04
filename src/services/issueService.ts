@@ -19,7 +19,7 @@ export const loadIssuesForTranscription = async (transcriptionId: string) => {
       variables: { 
         filter: { transcriptionId: { eq: transcriptionId } }
       }
-    });
+    }) as any;
     
     const issues = result.data?.listIssues?.items || [];
     console.log(`📊 Found ${issues.length} issues for transcription ${transcriptionId}`);

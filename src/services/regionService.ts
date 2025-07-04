@@ -32,7 +32,7 @@ export const loadRegionsForTranscription = async (transcriptionId: string) => {
         },
         limit: 1000 // arbitrarily high
       }
-    });
+    }) as any;
 
     const items = (data as any)?.listRegions?.items ?? [];
 
@@ -85,7 +85,7 @@ export const createRegion = async (
       query: createRegionMutation,
       variables: { input },
       authMode: 'iam',
-    });
+    }) as any;
 
     const created = (data as any)?.createRegion;
     return new RegionModel(created);
@@ -154,7 +154,7 @@ export const updateRegion = async (regionId: string, updates: {
       const { data: getData } = await client.graphql({
         query: getRegionQuery,
         variables: { id: regionId },
-      });
+      }) as any;
 
       const existing = (getData as any)?.getRegion;
       if (!existing) {
@@ -252,7 +252,7 @@ export const updateRegionWithAnalysis = async (regionId: string, updates: {
       const { data: getData } = await client.graphql({
         query: getRegionQuery,
         variables: { id: regionId },
-      });
+      }) as any;
 
       const existing = (getData as any)?.getRegion;
       if (!existing) {
@@ -313,7 +313,7 @@ export const deleteRegion = async (regionId: string) => {
     const { data: getData } = await client.graphql({
       query: getRegionQuery,
       variables: { id: regionId },
-    });
+    }) as any;
 
     const region = (getData as any)?.getRegion;
     if (!region) {

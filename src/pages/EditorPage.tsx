@@ -73,14 +73,13 @@ export const EditorPage = () => {
             <WaveformPlayer
               source={transcription.source || ''}
               peaks={peaks}
-              canEdit={true}
               inboundRegion={''}
               regions={regions}
               isVideo={isVideo}
               title={transcription.title || ''}
               onRegionUpdate={() => {}}
               onLookup={() => {}}
-              />
+            />
           </div>
         </div>
         </>

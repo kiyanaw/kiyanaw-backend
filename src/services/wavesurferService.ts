@@ -27,6 +27,7 @@ class WaveSurferService {
   private _inboundRegionCurrentHighlighted: any = null
   // Tracks the region we want to stop playback at (for region-bounded playback)
   private _playbackBoundRegion: { id: string, start: number, end: number } | null = null
+  private _canEdit: boolean = false
 
   private REGION_BACKGROUND_COLOR = 'rgba(0, 0, 0, 0.1)'
   private REGION_HIGHLIGHTED_COLOR = 'rgba(0, 213, 255, 0.1)'
@@ -42,12 +43,14 @@ class WaveSurferService {
     return WaveSurferService.instance;
   }
 
-  initialize(container: HTMLElement, timelineContainer: HTMLElement, mediaElement?: HTMLMediaElement): WaveSurfer {
+  initialize(container: HTMLElement, timelineContainer: HTMLElement, mediaElement?: HTMLMediaElement, canEdit: boolean = false): WaveSurfer {
     // Check if containers have changed
     const containersChanged =
       this.currentContainer !== container ||
       this.currentTimelineContainer !== timelineContainer ||
       this.currentMediaElement !== (mediaElement || null);
+    
+    const canEditChanged = this._canEdit !== canEdit;
 
     if (this.wavesurfer && containersChanged) {
       // Preserve delayed regions before destroying
@@ -64,25 +67,32 @@ class WaveSurferService {
       this._delayedLoad = preservedDelayedLoad;
       
       // Create new instance with new containers
-      this._createNewInstance(container, timelineContainer, mediaElement);
+      this._createNewInstance(container, timelineContainer, mediaElement, canEdit);
       
       return this.wavesurfer!;
     }
     
     if (this.wavesurfer) {
+      // If only canEdit changed, we'd need to recreate the instance since 
+      // drag selection can only be enabled at creation time
+      if (canEditChanged && !containersChanged) {
+        // For now, just store the new value - drag selection state won't change
+        this._canEdit = canEdit;
+      }
       return this.wavesurfer;
     }
 
     // Create new instance
-    this._createNewInstance(container, timelineContainer, mediaElement);
+    this._createNewInstance(container, timelineContainer, mediaElement, canEdit);
     return this.wavesurfer!;
   }
 
-  private _createNewInstance(container: HTMLElement, timelineContainer: HTMLElement, mediaElement?: HTMLMediaElement): void {
+  private _createNewInstance(container: HTMLElement, timelineContainer: HTMLElement, mediaElement?: HTMLMediaElement, canEdit: boolean = false): void {
     // Store container references
     this.currentContainer = container;
     this.currentTimelineContainer = timelineContainer;
     this.currentMediaElement = mediaElement || null;
+    this._canEdit = canEdit;
 
 
 
@@ -105,8 +115,10 @@ class WaveSurferService {
       plugins: [this.regionsPlugin, this.timelinePlugin],
     });
 
-    // TODO: we'll need to check permissions for this, maybe add an .enableDragSelection()?
-    this.regionsPlugin.enableDragSelection({}, 5);
+    // Enable drag selection based on canEdit permissions
+    if (this._canEdit) {
+      this.regionsPlugin.enableDragSelection({}, 5);
+    }
 
     this.registerEvents();
 
@@ -336,7 +348,8 @@ class WaveSurferService {
             start: region.start,
             end: region.end,
             content: `${index + 1}`,
-            resize: true,
+            resize: this._canEdit, // Only allow resize if user can edit
+            drag: this._canEdit,   // Only allow drag if user can edit
           }
           this.regionsPlugin.addRegion(input);
         });
@@ -448,6 +461,8 @@ class WaveSurferService {
     this.muteEvents = false;
     this.clearAllListeners();
   }
+
+
 }
 
 // Export the singleton instance

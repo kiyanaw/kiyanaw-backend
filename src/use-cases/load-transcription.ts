@@ -33,7 +33,6 @@ export class LoadTranscription {
       
       // Check if access was denied
       if (data === false) {
-        console.log('❌ Access denied to transcription:', this.config.transcriptionId);
         this.config.store.setAccessDenied(true);
         return;
       }
@@ -44,7 +43,7 @@ export class LoadTranscription {
       
       // Check if user can edit this transcription
       const canEdit = userService.canEditTranscription(data.transcription);
-      console.log('can edit:', canEdit);
+      this.config.store.setCanEdit(canEdit);
       
       // Check if there's a regionId in the URL that we should select
       const selectedRegionId = browserService.getRegionIdFromUrl();

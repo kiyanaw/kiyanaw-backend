@@ -21,6 +21,7 @@ interface EditorState {
   saved: boolean;
   peaks: any | null;
   accessDenied: boolean;
+  canEdit: boolean;
 
   // Regions state
   regions: any[];
@@ -85,6 +86,9 @@ interface EditorState {
   regionById: (id: string) => any | null;
   issueById: (id: string) => any | null;
   issuesByRegion: (regionId: string) => any[];
+
+  // Permissions
+  setCanEdit: (canEdit: boolean) => void;
 }
 interface NewRegion {
   id: string;
@@ -102,6 +106,7 @@ export const useEditorStore = create<EditorState>()(
       saved: false,
       peaks: null,
       accessDenied: false,
+      canEdit: false,
       regions: [],
       regionMap: {},
       selectedRegionId: null,
@@ -161,6 +166,10 @@ export const useEditorStore = create<EditorState>()(
 
       setAccessDenied: (denied) => {
         set({ accessDenied: denied });
+      },
+
+      setCanEdit: (canEdit) => {
+        set({ canEdit });
       },
 
       cleanup: () => {

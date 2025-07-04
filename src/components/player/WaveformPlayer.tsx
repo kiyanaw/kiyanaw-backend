@@ -21,7 +21,6 @@ interface Region {
 interface WaveformPlayerProps {
   source: string;
   peaks?: any; // Currently unused but may be needed later
-  canEdit: boolean;
   inboundRegion?: string | null; // Currently unused but may be needed later
   regions: Region[]; // Now using this for region count
   isVideo: boolean;
@@ -33,8 +32,7 @@ interface WaveformPlayerProps {
 export const WaveformPlayer = ({
   source,
   // peaks, // Currently unused but may be needed later
-  canEdit,
-  // inboundRegion, // Currently unused but may be needed later
+  inboundRegion, // Currently unused but may be needed later
   regions, // Now using this for region count
   isVideo,
   title,
@@ -58,6 +56,7 @@ export const WaveformPlayer = ({
   const currentTime = usePlayerStore((state) => state.currentTime)
   const duration = usePlayerStore((state) => state.duration)
   const transcription = useEditorStore((state) => state.transcription);
+  const canEdit = useEditorStore((state) => state.canEdit);
   
   const play = usePlay()
   const pause = usePause()
@@ -68,9 +67,9 @@ export const WaveformPlayer = ({
     const { waveform } = containersReadyRef.current;
     if (waveform && waveformContainerRef.current) {
       const mediaEl = isVideo && videoRef.current ? videoRef.current : undefined;
-      wavesurferService.initialize(waveformContainerRef.current, waveformContainerRef.current, mediaEl);
+      wavesurferService.initialize(waveformContainerRef.current, waveformContainerRef.current, mediaEl, canEdit);
     }
-  }, [isVideo, videoElementReady]);
+  }, [isVideo, videoElementReady, canEdit]);
 
   // Callback ref to get DOM element and initialize WaveSurfer
   const setWaveformContainer = useCallback((node: HTMLDivElement | null) => {
