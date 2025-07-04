@@ -1,11 +1,10 @@
-import { DataStore } from '@aws-amplify/datastore';
-import { Region as DSRegion, Transcription as DSTranscription } from '../models';
+// DataStore imports removed - now using GraphQL API directly
 import Timeout from 'smart-timeout';
 import { generateClient } from 'aws-amplify/api';
 // @ts-ignore generated JS GraphQL
 import { listRegions } from '../graphql/queries.js';
 // @ts-ignore generated JS GraphQL
-import { createRegion as createRegionMutation, updateRegion as updateRegionMutation } from '../graphql/mutations.js';
+import { createRegion as createRegionMutation, updateRegion as updateRegionMutation, deleteRegion as deleteRegionMutation } from '../graphql/mutations.js';
 // @ts-ignore generated JS GraphQL
 import { getRegion as getRegionQuery } from '../graphql/queries.js';
 
@@ -26,12 +25,19 @@ export const loadRegionsForTranscription = async (transcriptionId: string) => {
     const { data } = await client.graphql({
       query: listRegions,
       variables: {
-        filter: { transcriptionId: { eq: transcriptionId } },
+        filter: { 
+          transcriptionId: { eq: transcriptionId },
+          _deleted: { ne: true }
+
+        },
         limit: 1000 // arbitrarily high
       }
     });
 
     const items = (data as any)?.listRegions?.items ?? [];
+
+    // Filter out soft-deleted regions (Amplify marks deleted items with _deleted = true)
+    // const filtered = items.filter((item: any) => !item._deleted);
 
     // Sort and map to RegionModel
     const regions = items
@@ -48,7 +54,7 @@ export const loadRegionsForTranscription = async (transcriptionId: string) => {
 
 
 /**
- * Saves a new region to DataStore.
+ * Saves a new region using GraphQL API.
  * @param transcriptionId The ID of the transcription this region belongs to
  * @param region The region data to save
  * @param username The username of the user creating the region
@@ -97,7 +103,7 @@ const pendingSaves = new Map<string, {
 }>();
 
 /**
- * Updates an existing region in DataStore with debouncing.
+ * Updates an existing region using GraphQL API with debouncing.
  * @param regionId The ID of the region to update
  * @param updates The fields to update
  * @param username The username of the user making the update
@@ -192,7 +198,7 @@ export const updateRegion = async (regionId: string, updates: {
 };
 
 /**
- * Updates an existing region in DataStore with debouncing and automatic analysis inclusion.
+ * Updates an existing region using GraphQL API with debouncing and automatic analysis inclusion.
  * This method coordinates with the analysis system to ensure both text and analysis
  * are saved together in a single operation, avoiding duplicate saves.
  * 
@@ -290,7 +296,7 @@ export const updateRegionWithAnalysis = async (regionId: string, updates: {
 };
 
 /**
- * Deletes a region from DataStore.
+ * Deletes a region using GraphQL API.
  * @param regionId The ID of the region to delete
  * @returns Promise that resolves when deletion is complete
  */
@@ -303,12 +309,27 @@ export const deleteRegion = async (regionId: string) => {
       pendingSaves.delete(regionId);
     }
 
-    const region = await DataStore.query(DSRegion, regionId);
+    // Fetch current version to satisfy conflict detection
+    const { data: getData } = await client.graphql({
+      query: getRegionQuery,
+      variables: { id: regionId },
+    });
+
+    const region = (getData as any)?.getRegion;
     if (!region) {
       throw new Error(`Region with ID ${regionId} not found`);
     }
 
-    await DataStore.delete(region);
+    const input = {
+      id: regionId,
+      _version: region._version,
+    };
+
+    await client.graphql({
+      query: deleteRegionMutation,
+      variables: { input },
+      authMode: 'iam',
+    });
     
     console.log(`✅ Deleted region ${regionId}`);
     showToast(`Deleted region ${regionId.slice(0, 8)}...`, 'success');
