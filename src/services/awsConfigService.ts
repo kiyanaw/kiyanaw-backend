@@ -11,84 +11,84 @@ class AwsConfigService {
    * Get the AWS project region
    */
   getRegion(): string {
-    return awsmobile.aws_project_region;
+    return awsmobile.aws_project_region || '';
   }
 
   /**
    * Get the S3 bucket name for user files
    */
   getUserFilesBucket(): string {
-    return awsmobile.aws_user_files_s3_bucket;
+    return awsmobile.aws_user_files_s3_bucket || '';
   }
 
   /**
    * Get the S3 bucket region for user files
    */
   getUserFilesBucketRegion(): string {
-    return awsmobile.aws_user_files_s3_bucket_region;
+    return awsmobile.aws_user_files_s3_bucket_region || '';
   }
 
   /**
    * Get the CloudFront distribution URL
    */
   getContentDeliveryUrl(): string {
-    return awsmobile.aws_content_delivery_url;
+    return awsmobile.aws_content_delivery_url || '';
   }
 
   /**
    * Get the CloudFront distribution bucket
    */
   getContentDeliveryBucket(): string {
-    return awsmobile.aws_content_delivery_bucket;
+    return awsmobile.aws_content_delivery_bucket || '';
   }
 
   /**
    * Get the AppSync GraphQL endpoint
    */
   getGraphQLEndpoint(): string {
-    return awsmobile.aws_appsync_graphqlEndpoint;
+    return awsmobile.aws_appsync_graphqlEndpoint || '';
   }
 
   /**
    * Get the AppSync region
    */
   getAppSyncRegion(): string {
-    return awsmobile.aws_appsync_region;
+    return awsmobile.aws_appsync_region || '';
   }
 
   /**
    * Get the AppSync authentication type
    */
   getAppSyncAuthType(): string {
-    return awsmobile.aws_appsync_authenticationType;
+    return awsmobile.aws_appsync_authenticationType || '';
   }
 
   /**
    * Get Cognito User Pool ID
    */
   getUserPoolId(): string {
-    return awsmobile.aws_user_pools_id;
+    return awsmobile.aws_user_pools_id || '';
   }
 
   /**
    * Get Cognito User Pool Web Client ID
    */
   getUserPoolWebClientId(): string {
-    return awsmobile.aws_user_pools_web_client_id;
+    return awsmobile.aws_user_pools_web_client_id || '';
   }
 
   /**
    * Get Cognito Identity Pool ID
    */
   getIdentityPoolId(): string {
-    return awsmobile.aws_cognito_identity_pool_id;
+    return awsmobile.aws_cognito_identity_pool_id || '';
   }
 
   /**
    * Get Cognito region
    */
   getCognitoRegion(): string {
-    return awsmobile.aws_cognito_region;
+    return awsmobile.aws_cognito_region || '';
   }
 
   /**
@@ -113,9 +113,10 @@ class AwsConfigService {
     minLength: number;
     characters: string[];
   } {
+    const settings = awsmobile.aws_cognito_password_protection_settings;
     return {
-      minLength: awsmobile.aws_cognito_password_protection_settings.passwordPolicyMinLength,
-      characters: awsmobile.aws_cognito_password_protection_settings.passwordPolicyCharacters
+      minLength: settings?.passwordPolicyMinLength || 8,
+      characters: settings?.passwordPolicyCharacters || []
     };
   }
 
@@ -127,8 +128,8 @@ class AwsConfigService {
     types: string[];
   } {
     return {
-      configuration: awsmobile.aws_cognito_mfa_configuration,
-      types: awsmobile.aws_cognito_mfa_types
+      configuration: awsmobile.aws_cognito_mfa_configuration || '',
+      types: awsmobile.aws_cognito_mfa_types || []
     };
   }
 
@@ -136,28 +137,28 @@ class AwsConfigService {
    * Get verification mechanisms
    */
   getVerificationMechanisms(): string[] {
-    return awsmobile.aws_cognito_verification_mechanisms;
+    return awsmobile.aws_cognito_verification_mechanisms || [];
   }
 
   /**
    * Get signup attributes
    */
   getSignupAttributes(): string[] {
-    return awsmobile.aws_cognito_signup_attributes;
+    return awsmobile.aws_cognito_signup_attributes || [];
   }
 
   /**
    * Get username attributes
    */
   getUsernameAttributes(): string[] {
-    return awsmobile.aws_cognito_username_attributes;
+    return awsmobile.aws_cognito_username_attributes || [];
   }
 
   /**
    * Get social providers
    */
   getSocialProviders(): string[] {
-    return awsmobile.aws_cognito_social_providers;
+    return awsmobile.aws_cognito_social_providers || [];
   }
 
   /**
