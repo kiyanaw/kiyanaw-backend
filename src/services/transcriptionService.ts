@@ -159,21 +159,19 @@ const fetchPeaksData = async (
  * Fetches all necessary data for the editor page.
  *
  * @param transcriptionId The ID of the transcription to load.
- * @returns An object containing the transcription, regions, and issues.
+ * @returns An object containing the transcription, regions, and issues, or false if access denied.
  */
-export const loadInFull = async (transcriptionId: string) => {
+export const loadInFull = async (transcriptionId: string): Promise<false | {
+  transcription: any;
+  peaks: number[];
+  regions: any[];
+  issues: any[];
+}> => {
   if (!transcriptionId) {
     throw new Error('transcriptionId is required');
   }
 
-  // Load via DataStore (existing method)
-  const raw = await DataStore.query(DSTranscription, transcriptionId)
-  const transcription = new TranscriptionModel(raw as any);
-  if (!transcription) {
-    throw new Error('Transcription not found');
-  }
-
-  // Load via GraphQL API (for comparison/testing)
+  // First check access via GraphQL API (this will enforce authorization)
   try {
     console.log('🔍 Loading transcription via GraphQL API...');
     const graphqlResult = await client.graphql({
@@ -181,8 +179,18 @@ export const loadInFull = async (transcriptionId: string) => {
       variables: { id: transcriptionId }
     });
     console.log('📊 GraphQL API result:', JSON.stringify(graphqlResult, null, 2));
+    
+    // If we get here, user has access - continue with DataStore loading
   } catch (error) {
-    console.error('❌ GraphQL API query failed:', error);
+    console.error('❌ GraphQL API query failed - access denied:', error);
+    return false; // Return false instead of throwing error
+  }
+
+  // Load via DataStore (existing method)
+  const raw = await DataStore.query(DSTranscription, transcriptionId)
+  const transcription = new TranscriptionModel(raw as any);
+  if (!transcription) {
+    return false; // Return false instead of throwing error
   }
 
   // Handle missing source
@@ -191,7 +199,6 @@ export const loadInFull = async (transcriptionId: string) => {
   }
   
   const peaks = await fetchPeaksData(transcription.source);
-  // const transcriptionWithPeaks = { ...transcription, peaks };
 
   const [regions, issues] = await Promise.all([
     loadRegionsForTranscription(transcriptionId),

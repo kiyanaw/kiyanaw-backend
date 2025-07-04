@@ -1,5 +1,6 @@
 ## Response mapping template for Query.listTranscriptions
-## Filters items based on isPrivate dynamic authorization
+## Filters items based on explicit ACL access only (author, editors, viewers, groups)
+## isPrivate flag does not affect listing - only direct access via getTranscription
 
 #set($out = [])
 #set($userSub = $ctx.identity.claims.get("sub"))
@@ -16,41 +17,35 @@
 #foreach($item in $ctx.result.items)
   #set($ok = false)
 
-  #if($item.isPrivate == true)
-    ## PRIVATE item - check ACLs
-    #set($editOk = false)
-    #set($viewOk = false)
-    #set($authorOk = false)
-    
-    ## Check author (owner) access
-    #if(!$util.isNull($item.author) && $item.author == $userSub)
-      #set($authorOk = true)
-    #end
-    
-    ## Check editor access
-    #if(!$util.isNull($item.editorGroups) && $util.list.copyAndRetain($item.editorGroups, $userGroups).size() > 0)
-      #set($editOk = true)
-    #end
-    #if(!$util.isNull($item.editors) && $item.editors.contains($userSub))
-      #set($editOk = true)
-    #end
-    
-    ## Check viewer access
-    #if(!$util.isNull($item.viewerGroups) && $util.list.copyAndRetain($item.viewerGroups, $userGroups).size() > 0)
-      #set($viewOk = true)
-    #end
-    #if(!$util.isNull($item.viewers) && $item.viewers.contains($userSub))
-      #set($viewOk = true)
-    #end
-    
-    #if($editOk || $viewOk || $authorOk)
-      #set($ok = true)
-    #end
-  #else
-    ## PUBLIC item - any authenticated user
-    #if(!$util.isNullOrEmpty($userSub))
-      #set($ok = true)
-    #end
+  ## Check ACLs for all items regardless of isPrivate flag
+  ## Only show transcriptions where user has explicit access
+  #set($editOk = false)
+  #set($viewOk = false)
+  #set($authorOk = false)
+  
+  ## Check author (owner) access
+  #if(!$util.isNull($item.author) && $item.author == $userSub)
+    #set($authorOk = true)
+  #end
+  
+  ## Check editor access
+  #if(!$util.isNull($item.editorGroups) && $util.list.copyAndRetain($item.editorGroups, $userGroups).size() > 0)
+    #set($editOk = true)
+  #end
+  #if(!$util.isNull($item.editors) && $item.editors.contains($userSub))
+    #set($editOk = true)
+  #end
+  
+  ## Check viewer access
+  #if(!$util.isNull($item.viewerGroups) && $util.list.copyAndRetain($item.viewerGroups, $userGroups).size() > 0)
+    #set($viewOk = true)
+  #end
+  #if(!$util.isNull($item.viewers) && $item.viewers.contains($userSub))
+    #set($viewOk = true)
+  #end
+  
+  #if($editOk || $viewOk || $authorOk)
+    #set($ok = true)
   #end
 
   #if($ok)

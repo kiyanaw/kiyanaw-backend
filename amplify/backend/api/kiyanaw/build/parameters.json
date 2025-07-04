@@ -15,5 +15,5 @@
         "Ref": "UnauthRoleName"
     },
     "S3DeploymentBucket": "amplify-kiyanaw-auththree-6870f-deployment",
-    "S3DeploymentRootKey": "amplify-appsync-files/8b90e6d049017c3ec0e6f807c46ee0652ed75d2c"
+    "S3DeploymentRootKey": "amplify-appsync-files/34e4c843c8b364a87aea49a8a504781f54bcb73b"
 }

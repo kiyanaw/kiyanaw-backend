@@ -4,17 +4,14 @@ type Transcription
     # 1) Allow IAM callers full CRUD (e.g. DataStore sync, Lambda functions)
     { allow: private, provider: identityPool, operations: [create, read, update, delete] }
 
-    # 2) Allow any signed-in Cognito user to read public items
-    { allow: private, operations: [read] }
-
-    # 3) Owners (by author) via User Pools
+    # 2) Owners (by author) via User Pools
     { allow: owner, ownerField: "author", operations: [create, read, update, delete] }
 
-    # 4) List-based owners via User Pools
+    # 3) List-based owners via User Pools
     { allow: owner, ownerField: "editors", operations: [read, update] }
     { allow: owner, ownerField: "viewers", operations: [read] }
 
-    # 5) Static Admin group via User Pools
+    # 4) Static Admin group via User Pools
     { allow: groups, groups: ["Admins"], operations: [create, read, update, delete] }
   ]) {
   id: ID! @primaryKey
@@ -35,19 +32,7 @@ type Transcription
   disableAnalyzer: Boolean
   # ACL fields (no field-level auth, handled in custom resolvers)
   editors: [String]
-    @auth(rules: [
-      { allow: owner, ownerField: "author", operations: [create, read, update] }
-      { allow: groups, groups: ["Admins"], operations: [create, read, update] }
-      { allow: private, operations: [read] }
-      { allow: private, provider: identityPool, operations: [read] }
-    ])
   viewers: [String]
-    @auth(rules: [
-      { allow: owner, ownerField: "author", operations: [create, read, update] }
-      { allow: groups, groups: ["Admins"], operations: [create, read, update] }
-      { allow: private, operations: [read] }
-      { allow: private, provider: identityPool, operations: [read] }
-    ])
   editorGroups: [String]
   viewerGroups: [String]
   regions: [Region] @hasMany(indexName: "ByTranscription", fields: ["id"])

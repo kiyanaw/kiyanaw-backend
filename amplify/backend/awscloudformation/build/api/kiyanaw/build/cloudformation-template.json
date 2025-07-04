@@ -1102,36 +1102,6 @@
                 },
                 {
                   "Fn::Sub": [
-                    "arn:aws:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
-                    {
-                      "apiId": {
-                        "Fn::GetAtt": [
-                          "GraphQLAPI",
-                          "ApiId"
-                        ]
-                      },
-                      "typeName": "Transcription",
-                      "fieldName": "editors"
-                    }
-                  ]
-                },
-                {
-                  "Fn::Sub": [
-                    "arn:aws:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
-                    {
-                      "apiId": {
-                        "Fn::GetAtt": [
-                          "GraphQLAPI",
-                          "ApiId"
-                        ]
-                      },
-                      "typeName": "Transcription",
-                      "fieldName": "viewers"
-                    }
-                  ]
-                },
-                {
-                  "Fn::Sub": [
                     "arn:aws:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/*",
                     {
                       "apiId": {
@@ -1812,6 +1782,21 @@
                       "fieldName": "listTranscriptionContributors"
                     }
                   ]
+                },
+                {
+                  "Fn::Sub": [
+                    "arn:aws:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
+                    {
+                      "apiId": {
+                        "Fn::GetAtt": [
+                          "GraphQLAPI",
+                          "ApiId"
+                        ]
+                      },
+                      "typeName": "Query",
+                      "fieldName": "syncTranscriptionContributors"
+                    }
+                  ]
                 }
               ]
             }
@@ -1836,21 +1821,6 @@
               "Action": "appsync:GraphQL",
               "Effect": "Allow",
               "Resource": [
-                {
-                  "Fn::Sub": [
-                    "arn:aws:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",
-                    {
-                      "apiId": {
-                        "Fn::GetAtt": [
-                          "GraphQLAPI",
-                          "ApiId"
-                        ]
-                      },
-                      "typeName": "Query",
-                      "fieldName": "syncTranscriptionContributors"
-                    }
-                  ]
-                },
                 {
                   "Fn::Sub": [
                     "arn:aws:appsync:${AWS::Region}:${AWS::AccountId}:apis/${apiId}/types/${typeName}/fields/${fieldName}",

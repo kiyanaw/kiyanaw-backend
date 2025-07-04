@@ -243,40 +243,65 @@ describe('TranscriptionService', () => {
   });
 
   describe('return value structure and types', () => {
-    it('should return object with required properties', async () => {
+    it('should return object with required properties when access is granted', async () => {
       const result = await loadInFull(mockTranscriptionId);
       
-      expect(result).toHaveProperty('transcription');
-      expect(result).toHaveProperty('peaks');
-      expect(result).toHaveProperty('regions');
-      expect(result).toHaveProperty('issues');
+      expect(result).not.toBe(false);
+      if (result !== false) {
+        expect(result).toHaveProperty('transcription');
+        expect(result).toHaveProperty('peaks');
+        expect(result).toHaveProperty('regions');
+        expect(result).toHaveProperty('issues');
+      }
     });
 
-    it('should return transcription as TranscriptionModel instance', async () => {
+    it('should return transcription as TranscriptionModel instance when access is granted', async () => {
       const result = await loadInFull(mockTranscriptionId);
       
-      expect(result.transcription).toBe(mockTranscriptionModel);
+      expect(result).not.toBe(false);
+      if (result !== false) {
+        expect(result.transcription).toBe(mockTranscriptionModel);
+      }
     });
 
-    it('should return peaks as array of numbers', async () => {
+    it('should return peaks as array of numbers when access is granted', async () => {
       const result = await loadInFull(mockTranscriptionId);
       
-      expect(Array.isArray(result.peaks)).toBe(true);
-      expect(result.peaks).toEqual(mockPeaksData);
+      expect(result).not.toBe(false);
+      if (result !== false) {
+        expect(Array.isArray(result.peaks)).toBe(true);
+        expect(result.peaks).toEqual(mockPeaksData);
+      }
     });
 
-    it('should return regions as array', async () => {
+    it('should return regions as array when access is granted', async () => {
       const result = await loadInFull(mockTranscriptionId);
       
-      expect(Array.isArray(result.regions)).toBe(true);
-      expect(result.regions).toBe(mockRegions);
+      expect(result).not.toBe(false);
+      if (result !== false) {
+        expect(Array.isArray(result.regions)).toBe(true);
+        expect(result.regions).toBe(mockRegions);
+      }
     });
 
-    it('should return issues as array', async () => {
+    it('should return issues as array when access is granted', async () => {
       const result = await loadInFull(mockTranscriptionId);
       
-      expect(Array.isArray(result.issues)).toBe(true);
-      expect(result.issues).toBe(mockIssues);
+      expect(result).not.toBe(false);
+      if (result !== false) {
+        expect(Array.isArray(result.issues)).toBe(true);
+        expect(result.issues).toBe(mockIssues);
+      }
+    });
+
+    it('should return false when GraphQL access is denied', async () => {
+      // Mock GraphQL client to throw authorization error
+      const mockGraphqlClient = require('aws-amplify/api').generateClient;
+      mockGraphqlClient().graphql.mockRejectedValueOnce(new Error('Not authorized'));
+      
+      const result = await loadInFull(mockTranscriptionId);
+      
+      expect(result).toBe(false);
     });
   });
 
@@ -292,12 +317,15 @@ describe('TranscriptionService', () => {
       expect(loadIssuesForTranscription).toHaveBeenCalledTimes(1);
       
       // Verify result structure
-      expect(result).toMatchObject({
-        transcription: expect.any(Object),
-        peaks: expect.any(Array),
-        regions: expect.any(Array),
-        issues: expect.any(Array),
-      });
+      expect(result).not.toBe(false);
+      if (result !== false) {
+        expect(result).toMatchObject({
+          transcription: expect.any(Object),
+          peaks: expect.any(Array),
+          regions: expect.any(Array),
+          issues: expect.any(Array),
+        });
+      }
     });
 
     it('should handle empty regions and issues arrays', async () => {
@@ -306,8 +334,11 @@ describe('TranscriptionService', () => {
       
       const result = await loadInFull(mockTranscriptionId);
       
-      expect(result.regions).toEqual([]);
-      expect(result.issues).toEqual([]);
+      expect(result).not.toBe(false);
+      if (result !== false) {
+        expect(result.regions).toEqual([]);
+        expect(result.issues).toEqual([]);
+      }
     });
 
     it('should handle different transcription sources with signed URLs', async () => {

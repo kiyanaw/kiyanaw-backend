@@ -357,6 +357,36 @@
         "TypeName": "Transcription"
       }
     },
+    "Contributortranscriptionsauth0FunctionContributortranscriptionsauth0FunctionAppSyncFunction3C435DCF": {
+      "Type": "AWS::AppSync::FunctionConfiguration",
+      "Properties": {
+        "ApiId": {
+          "Ref": "referencetotransformerrootstackGraphQLAPI20497F53ApiId"
+        },
+        "DataSourceName": {
+          "Ref": "referencetotransformerrootstackGraphQLAPINONEDS2BA9D1C8Name"
+        },
+        "FunctionVersion": "2018-05-29",
+        "Name": "Contributortranscriptionsauth0Function",
+        "RequestMappingTemplateS3Location": {
+          "Fn::Join": [
+            "",
+            [
+              "s3://",
+              {
+                "Ref": "referencetotransformerrootstackS3DeploymentBucket7592718ARef"
+              },
+              "/",
+              {
+                "Ref": "referencetotransformerrootstackS3DeploymentRootKeyA71EA735Ref"
+              },
+              "/resolvers/Contributor.transcriptions.auth.1.req.vtl"
+            ]
+          ]
+        },
+        "ResponseMappingTemplate": "$util.toJson({})"
+      }
+    },
     "ContributorTranscriptionsDataResolverFnContributorTranscriptionsDataResolverFnAppSyncFunction616DC896": {
       "Type": "AWS::AppSync::FunctionConfiguration",
       "Properties": {
@@ -418,7 +448,7 @@
           "Functions": [
             {
               "Fn::GetAtt": [
-                "Transcriptionregionsauth0FunctionTranscriptionregionsauth0FunctionAppSyncFunction1FBB7F90",
+                "Contributortranscriptionsauth0FunctionContributortranscriptionsauth0FunctionAppSyncFunction3C435DCF",
                 "FunctionId"
               ]
             },
@@ -835,7 +865,7 @@
           "Functions": [
             {
               "Fn::GetAtt": [
-                "Transcriptionregionsauth0FunctionTranscriptionregionsauth0FunctionAppSyncFunction1FBB7F90",
+                "Contributortranscriptionsauth0FunctionContributortranscriptionsauth0FunctionAppSyncFunction3C435DCF",
                 "FunctionId"
               ]
             },

@@ -20,6 +20,7 @@ interface EditorState {
   transcription: any | null;
   saved: boolean;
   peaks: any | null;
+  accessDenied: boolean;
 
   // Regions state
   regions: any[];
@@ -40,6 +41,7 @@ interface EditorState {
 
   // Actions
   setFullTranscriptionData: (data: EditorDataPayload, selectedRegionId?: string | null) => void;
+  setAccessDenied: (denied: boolean) => void;
   cleanup: () => void;
   
   // Transcription actions
@@ -99,6 +101,7 @@ export const useEditorStore = create<EditorState>()(
       transcription: null,
       saved: false,
       peaks: null,
+      accessDenied: false,
       regions: [],
       regionMap: {},
       selectedRegionId: null,
@@ -156,12 +159,17 @@ export const useEditorStore = create<EditorState>()(
         set(newState);
       },
 
+      setAccessDenied: (denied) => {
+        set({ accessDenied: denied });
+      },
+
       cleanup: () => {
         const { _subscriptions } = get();
         _subscriptions.forEach(sub => sub.unsubscribe());
         set({
           transcription: null,
           peaks: null,
+          accessDenied: false,
           regions: [],
           regionMap: {},
           knownWords: new Set<string>(),

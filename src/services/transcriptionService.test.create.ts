@@ -161,7 +161,10 @@ describe('TranscriptionService - New Functionality', () => {
       const result = await transcriptionService.loadInFull('test-id');
 
       expect(fetch).toHaveBeenCalledWith('https://example.com/audio.mp3.json');
-      expect(result.peaks).toEqual(mockPeaksData);
+      expect(result).not.toBe(false);
+      if (result !== false) {
+        expect(result.peaks).toEqual(mockPeaksData);
+      }
     });
 
     it('should handle peaks data without wrapper object', async () => {
@@ -181,7 +184,10 @@ describe('TranscriptionService - New Functionality', () => {
 
       const result = await transcriptionService.loadInFull('test-id');
 
-      expect(result.peaks).toEqual(mockPeaksData);
+      expect(result).not.toBe(false);
+      if (result !== false) {
+        expect(result.peaks).toEqual(mockPeaksData);
+      }
     });
 
     it('should retry on 403 errors and eventually succeed', async () => {
@@ -215,7 +221,10 @@ describe('TranscriptionService - New Functionality', () => {
       const result = await transcriptionService.loadInFull('test-id');
 
       expect(fetch).toHaveBeenCalledTimes(2);
-      expect(result.peaks).toEqual(mockPeaksData);
+      expect(result).not.toBe(false);
+      if (result !== false) {
+        expect(result.peaks).toEqual(mockPeaksData);
+      }
     });
 
     it('should retry on 404 errors', async () => {

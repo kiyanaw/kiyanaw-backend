@@ -26,14 +26,25 @@ export class LoadTranscription {
     const wavesurferService = this.config.services.wavesurferService
     const browserService = this.config.services.browserService
     const spellCheckerService = this.config.services.spellCheckerService
+    const userService = this.config.services.userService
     
     try {
       const data = await transcriptionService.loadInFull(this.config.transcriptionId);
-      const user = services.userService.currentUser()
+      
+      // Check if access was denied
+      if (data === false) {
+        console.log('❌ Access denied to transcription:', this.config.transcriptionId);
+        this.config.store.setAccessDenied(true);
+        return;
+      }
+      
+      const user = userService.currentUser()
 
       console.log('>>> loaded in full', data, user)
-      // editors is a set of IDs so we need to resolve those
-
+      
+      // Check if user can edit this transcription
+      const canEdit = userService.canEditTranscription(data.transcription);
+      console.log('can edit:', canEdit);
       
       // Check if there's a regionId in the URL that we should select
       const selectedRegionId = browserService.getRegionIdFromUrl();

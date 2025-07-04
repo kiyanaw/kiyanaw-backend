@@ -246,12 +246,6 @@ export const schema = {
                                 ]
                             },
                             {
-                                "allow": "private",
-                                "operations": [
-                                    "read"
-                                ]
-                            },
-                            {
                                 "provider": "userPools",
                                 "ownerField": "author",
                                 "allow": "owner",

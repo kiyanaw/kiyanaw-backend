@@ -9,8 +9,8 @@ $util.qr($ctx.stash.put("hasAuth", true))
       #return($util.toJson({}))
     #end
   #end
-  #if( $ctx.identity.userArn == $ctx.stash.authRole )
-    #set( $allowedFields = ["id","author","coverage","dateLastUpdated","userLastUpdated","length","issues","comments","tags","source","index","title","type","isPrivate","isPublished","disableAnalyzer","editorGroups","viewerGroups","regions","issueList","contributors","_version","_deleted","_lastChangedAt"] )
+  #if( ($ctx.identity.userArn == $ctx.stash.authRole) || ($ctx.identity.cognitoIdentityPoolId == $ctx.stash.identityPoolId && $ctx.identity.cognitoIdentityAuthType == "authenticated") )
+    #set( $isAuthorized = true )
   #end
 #end
 #if( $util.authType() == "User Pool Authorization" )
