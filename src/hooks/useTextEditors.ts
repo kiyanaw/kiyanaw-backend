@@ -13,8 +13,9 @@ export const useTextEditors = (regionId: string, activeTab: 'main' | 'translatio
   const mainEditorKey: EditorKey = `${regionId}:main`;
   const translationEditorKey: EditorKey = `${regionId}:translation`;
 
-  // Get current region data from store
+  // Get current region data and edit permissions from store
   const currentRegion = useEditorStore((state) => state.regionById(regionId));
+  const canEdit = useEditorStore((state) => state.canEdit);
 
   /**
    * MAIN EDITOR
@@ -23,8 +24,8 @@ export const useTextEditors = (regionId: string, activeTab: 'main' | 'translatio
     if (!mainEditorRef.current || activeTab !== 'main') return;
 
     const config = {
-      readonly: false,
-      placeholder: "Enter original text..."
+      readonly: !canEdit,
+      placeholder: canEdit ? "Enter original text..." : ""
     };
 
     rteService.createOrGet(mainEditorKey, config);
@@ -41,36 +42,40 @@ export const useTextEditors = (regionId: string, activeTab: 'main' | 'translatio
       }
     }
 
-    // Set up text change listener
-    rteService.onTextChange(mainEditorKey, (text) => {
-      // Update region text
-      new UpdateRegionTextUseCase({
-        regionId,
-        text,
-        field: 'regionText',
-        store: useEditorStore,
-        services
-      }).execute();
+    // Set up text change listener only if user can edit
+    if (canEdit) {
+      rteService.onTextChange(mainEditorKey, (text) => {
+        // Update region text
+        new UpdateRegionTextUseCase({
+          regionId,
+          text,
+          field: 'regionText',
+          store: useEditorStore,
+          services
+        }).execute();
 
-      // IMMEDIATELY apply cached known words formatting
-      // This solves format inheritance and word splitting issues
-      const knownWords = Array.from(useEditorStore.getState().knownWords);
-      rteService.applyKnownWordsFormatting(mainEditorKey, knownWords);
+        // IMMEDIATELY apply cached known words formatting
+        // This solves format inheritance and word splitting issues
+        const knownWords = Array.from(useEditorStore.getState().knownWords);
+        rteService.applyKnownWordsFormatting(mainEditorKey, knownWords);
 
-      // Analyze text for known words
-      new AnalyzeRegionTextUseCase({
-        regionId,
-        text,
-        services,
-        store: useEditorStore
-      }).execute();
-    });
+        // Analyze text for known words
+        new AnalyzeRegionTextUseCase({
+          regionId,
+          text,
+          services,
+          store: useEditorStore
+        }).execute();
+      });
+    }
 
     return () => {
-      rteService.offTextChange(mainEditorKey);
+      if (canEdit) {
+        rteService.offTextChange(mainEditorKey);
+      }
       rteService.detach(mainEditorKey);
     };
-  }, [mainEditorKey, activeTab]);
+  }, [mainEditorKey, activeTab, canEdit]);
 
   /**
    * TRANSLATION EDITOR
@@ -79,8 +84,8 @@ export const useTextEditors = (regionId: string, activeTab: 'main' | 'translatio
     if (!translationEditorRef.current || activeTab !== 'translation') return;
 
     const config = {
-      readonly: false,
-      placeholder: "Enter translation..."
+      readonly: !canEdit,
+      placeholder: canEdit ? "Enter translation..." : ""
     };
 
     rteService.createOrGet(translationEditorKey, config);
@@ -91,22 +96,26 @@ export const useTextEditors = (regionId: string, activeTab: 'main' | 'translatio
       rteService.setContent(translationEditorKey, currentRegion.translation);
     }
 
-    // Set up text change listener for translation
-    rteService.onTextChange(translationEditorKey, (text) => {
-      new UpdateRegionTextUseCase({
-        regionId,
-        text,
-        field: 'translation',
-        store: useEditorStore,
-        services
-      }).execute();
-    });
+    // Set up text change listener for translation only if user can edit
+    if (canEdit) {
+      rteService.onTextChange(translationEditorKey, (text) => {
+        new UpdateRegionTextUseCase({
+          regionId,
+          text,
+          field: 'translation',
+          store: useEditorStore,
+          services
+        }).execute();
+      });
+    }
 
     return () => {
-      rteService.offTextChange(translationEditorKey);
+      if (canEdit) {
+        rteService.offTextChange(translationEditorKey);
+      }
       rteService.detach(translationEditorKey);
     };
-  }, [translationEditorKey, activeTab]);
+  }, [translationEditorKey, activeTab, canEdit]);
 
 
 

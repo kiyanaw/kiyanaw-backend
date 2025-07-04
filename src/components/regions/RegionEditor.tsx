@@ -3,6 +3,7 @@ import { Play, Pause, FileText, AlertTriangle, EyeOff, RotateCcw, Trash2 } from 
 import { type LightRegion as Region } from '../../services/adt';
 import { useTextEditors } from '../../hooks/useTextEditors';
 import { useDeleteRegion } from '../../hooks/useDeleteRegion';
+import { useEditorStore } from '../../stores/useEditorStore';
 
 interface RegionEditorProps {
   region: Region;
@@ -16,6 +17,7 @@ export const RegionEditor = memo(({
 
   const { mainEditorRef, translationEditorRef } = useTextEditors(region.id, activeTab);
   const { deleteRegion } = useDeleteRegion();
+  const canEdit = useEditorStore((state) => state.canEdit);
 
   // Toolbar actions - simplified for now
   const handlePlay = () => {};
@@ -69,40 +71,65 @@ export const RegionEditor = memo(({
           </button>
 
           <button
-            className="flex items-center justify-center w-9 h-9 border border-gray-300 rounded-md bg-white cursor-pointer transition-all duration-200 text-base hover:bg-cyan-50 hover:text-cyan-700 hover:border-cyan-300"
-            onClick={handleToggleNote}
+            className={`flex items-center justify-center w-9 h-9 border border-gray-300 rounded-md bg-white transition-all duration-200 text-base ${
+              canEdit 
+                ? 'cursor-pointer hover:bg-cyan-50 hover:text-cyan-700 hover:border-cyan-300' 
+                : 'cursor-not-allowed opacity-50 text-gray-400'
+            }`}
+            onClick={canEdit ? handleToggleNote : undefined}
+            disabled={!canEdit}
             title={region.isNote ? 'Convert to transcription' : 'Convert to note'}
           >
             <FileText size={16} />
           </button>
 
           <button
-            className="flex items-center justify-center w-9 h-9 border border-gray-300 rounded-md bg-white cursor-pointer transition-all duration-200 text-base hover:bg-yellow-50 hover:text-yellow-700 hover:border-yellow-300"
-            onClick={handleCreateIssue}
+            className={`flex items-center justify-center w-9 h-9 border border-gray-300 rounded-md bg-white transition-all duration-200 text-base ${
+              canEdit 
+                ? 'cursor-pointer hover:bg-yellow-50 hover:text-yellow-700 hover:border-yellow-300' 
+                : 'cursor-not-allowed opacity-50 text-gray-400'
+            }`}
+            onClick={canEdit ? handleCreateIssue : undefined}
+            disabled={!canEdit}
             title="Create issue"
           >
             <AlertTriangle size={16} />
           </button>
 
           <button
-            className="flex items-center justify-center w-9 h-9 border border-gray-300 rounded-md bg-white cursor-pointer transition-all duration-200 text-base hover:bg-purple-50 hover:text-purple-700 hover:border-purple-300"
-            onClick={handleIgnoreWord}
+            className={`flex items-center justify-center w-9 h-9 border border-gray-300 rounded-md bg-white transition-all duration-200 text-base ${
+              canEdit 
+                ? 'cursor-pointer hover:bg-purple-50 hover:text-purple-700 hover:border-purple-300' 
+                : 'cursor-not-allowed opacity-50 text-gray-400'
+            }`}
+            onClick={canEdit ? handleIgnoreWord : undefined}
+            disabled={!canEdit}
             title="Ignore word"
           >
             <EyeOff size={16} />
           </button>
 
           <button
-            className="flex items-center justify-center w-9 h-9 border border-gray-300 rounded-md bg-white cursor-pointer transition-all duration-200 text-base hover:bg-orange-50 hover:text-orange-700 hover:border-orange-300"
-            onClick={handleClearFormat}
+            className={`flex items-center justify-center w-9 h-9 border border-gray-300 rounded-md bg-white transition-all duration-200 text-base ${
+              canEdit 
+                ? 'cursor-pointer hover:bg-orange-50 hover:text-orange-700 hover:border-orange-300' 
+                : 'cursor-not-allowed opacity-50 text-gray-400'
+            }`}
+            onClick={canEdit ? handleClearFormat : undefined}
+            disabled={!canEdit}
             title="Clear format"
           >
             <RotateCcw size={16} />
           </button>
 
           <button
-            className="flex items-center justify-center w-9 h-9 border border-gray-300 rounded-md bg-white cursor-pointer transition-all duration-200 text-base hover:bg-red-50 hover:text-red-700 hover:border-red-300"
-            onClick={handleDeleteRegion}
+            className={`flex items-center justify-center w-9 h-9 border border-gray-300 rounded-md bg-white transition-all duration-200 text-base ${
+              canEdit 
+                ? 'cursor-pointer hover:bg-red-50 hover:text-red-700 hover:border-red-300' 
+                : 'cursor-not-allowed opacity-50 text-gray-400'
+            }`}
+            onClick={canEdit ? handleDeleteRegion : undefined}
+            disabled={!canEdit}
             title="Delete region"
           >
             <Trash2 size={16} />
@@ -116,9 +143,12 @@ export const RegionEditor = memo(({
           className={`flex-1 py-3 px-4 text-sm font-medium transition-all duration-200 ${
             activeTab === 'main'
               ? 'bg-white text-blue-600 border-b-2 border-blue-600'
-              : 'text-gray-600 hover:text-gray-800 hover:bg-gray-200'
+              : canEdit 
+                ? 'text-gray-600 hover:text-gray-800 hover:bg-gray-200 cursor-pointer' 
+                : 'text-gray-400 cursor-not-allowed'
           }`}
-          onClick={() => setActiveTab('main')}
+          onClick={canEdit ? () => setActiveTab('main') : undefined}
+          disabled={!canEdit}
         >
           Original Text
         </button>
@@ -126,9 +156,12 @@ export const RegionEditor = memo(({
           className={`flex-1 py-3 px-4 text-sm font-medium transition-all duration-200 ${
             activeTab === 'translation'
               ? 'bg-white text-blue-600 border-b-2 border-blue-600'
-              : 'text-gray-600 hover:text-gray-800 hover:bg-gray-200'
+              : canEdit 
+                ? 'text-gray-600 hover:text-gray-800 hover:bg-gray-200 cursor-pointer' 
+                : 'text-gray-400 cursor-not-allowed'
           }`}
-          onClick={() => setActiveTab('translation')}
+          onClick={canEdit ? () => setActiveTab('translation') : undefined}
+          disabled={!canEdit}
         >
           Translation
         </button>
