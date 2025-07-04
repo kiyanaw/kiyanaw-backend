@@ -58,7 +58,7 @@ type Region
   isNote: Boolean
   translation: String
   dateLastUpdated: String!
-  userLastUpdated: String!git 
+  userLastUpdated: String!
   transcription: Transcription! @belongsTo(fields: ["transcriptionId"])
   transcriptionId: ID! @index(name: "ByTranscription")
 }
