@@ -20,6 +20,8 @@ interface EditorState {
   transcription: any | null;
   saved: boolean;
   peaks: any | null;
+  accessDenied: boolean;
+  canEdit: boolean;
 
   // Regions state
   regions: any[];
@@ -40,6 +42,7 @@ interface EditorState {
 
   // Actions
   setFullTranscriptionData: (data: EditorDataPayload, selectedRegionId?: string | null) => void;
+  setAccessDenied: (denied: boolean) => void;
   cleanup: () => void;
   
   // Transcription actions
@@ -83,6 +86,9 @@ interface EditorState {
   regionById: (id: string) => any | null;
   issueById: (id: string) => any | null;
   issuesByRegion: (regionId: string) => any[];
+
+  // Permissions
+  setCanEdit: (canEdit: boolean) => void;
 }
 interface NewRegion {
   id: string;
@@ -99,6 +105,8 @@ export const useEditorStore = create<EditorState>()(
       transcription: null,
       saved: false,
       peaks: null,
+      accessDenied: false,
+      canEdit: false,
       regions: [],
       regionMap: {},
       selectedRegionId: null,
@@ -156,12 +164,21 @@ export const useEditorStore = create<EditorState>()(
         set(newState);
       },
 
+      setAccessDenied: (denied) => {
+        set({ accessDenied: denied });
+      },
+
+      setCanEdit: (canEdit) => {
+        set({ canEdit });
+      },
+
       cleanup: () => {
         const { _subscriptions } = get();
         _subscriptions.forEach(sub => sub.unsubscribe());
         set({
           transcription: null,
           peaks: null,
+          accessDenied: false,
           regions: [],
           regionMap: {},
           knownWords: new Set<string>(),

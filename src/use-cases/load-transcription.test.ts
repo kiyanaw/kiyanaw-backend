@@ -9,6 +9,7 @@ jest.mock('../services', () => ({
     },
     userService: {
       currentUser: jest.fn(),
+      canEditTranscription: jest.fn(),
     },
     transcriptionService: {
       loadInFull: jest.fn(),
@@ -34,6 +35,8 @@ describe('LoadTranscription', () => {
   const mockStore = {
     setFullTranscriptionData: jest.fn(),
     addKnownWords: jest.fn(),
+    setAccessDenied: jest.fn(),
+    setCanEdit: jest.fn(),
   };
   const mockTranscriptionData = {
     transcription: {
@@ -68,8 +71,9 @@ describe('LoadTranscription', () => {
     // Setup default mocks
     (services.authService.currentUser as jest.Mock).mockReturnValue(mockUser);
     (services.userService.currentUser as jest.Mock).mockReturnValue(mockUser);
+    (services.userService.canEditTranscription as jest.Mock).mockReturnValue(true);
     (services.transcriptionService.loadInFull as jest.Mock).mockResolvedValue(mockTranscriptionData);
-    (services.wavesurferService.load as jest.Mock).mockImplementation(() => {});
+    (services.wavesurferService.load as jest.Mock).mockResolvedValue(undefined);
     (services.wavesurferService.setRegions as jest.Mock).mockImplementation(() => {});
     (services.wavesurferService.seekToRegion as jest.Mock).mockImplementation(() => {});
     (services.browserService.getRegionIdFromUrl as jest.Mock).mockReturnValue(null);
@@ -227,6 +231,22 @@ describe('LoadTranscription', () => {
       expect(mockStore.setFullTranscriptionData).toHaveBeenCalledTimes(1);
       expect(services.wavesurferService.load).toHaveBeenCalledTimes(1);
       expect(services.wavesurferService.setRegions).toHaveBeenCalledTimes(1);
+    });
+
+    it('should check canEdit and set it in store', async () => {
+      await useCase.execute();
+      
+      expect(services.userService.canEditTranscription).toHaveBeenCalledWith(mockTranscriptionData.transcription);
+      expect(mockStore.setCanEdit).toHaveBeenCalledWith(true);
+    });
+
+    it('should set canEdit to false when user cannot edit', async () => {
+      (services.userService.canEditTranscription as jest.Mock).mockReturnValue(false);
+      
+      await useCase.execute();
+      
+      expect(services.userService.canEditTranscription).toHaveBeenCalledWith(mockTranscriptionData.transcription);
+      expect(mockStore.setCanEdit).toHaveBeenCalledWith(false);
     });
 
     describe('error handling', () => {

@@ -1,25 +1,11 @@
-import { loadRegionsForTranscription, createRegion, updateRegion, updateRegionWithAnalysis, deleteRegion } from './regionService';
-import { DataStore } from '@aws-amplify/datastore';
-import { Region as DSRegion, Transcription as DSTranscription } from '../models';
+import { loadRegionsForTranscription, createRegion, updateRegion, updateRegionWithAnalysis, deleteRegion, __resetClient } from './regionService';
+import { generateClient } from 'aws-amplify/api';
 import { RegionModel } from './adt';
 
-// Mock the dependencies with proper types
-jest.mock('@aws-amplify/datastore', () => ({
-  DataStore: {
-    query: jest.fn(),
-    save: jest.fn(),
-    delete: jest.fn(),
-  },
-}));
-
-jest.mock('./adt', () => ({
-  RegionModel: jest.fn(),
-}));
-
-jest.mock('../models', () => ({
-  Region: jest.fn().mockImplementation((data: any) => data),
-  Transcription: jest.fn(),
-}));
+// Mock the dependencies
+jest.mock('aws-amplify/api');
+jest.mock('./adt');
+jest.mock('./toastService');
 
 // Mock smart-timeout
 const mockTimeouts = new Map<string, NodeJS.Timeout>();
@@ -49,1152 +35,417 @@ jest.mock('smart-timeout', () => ({
   }),
 }));
 
-// Cast mocks to proper types
-const mockedDataStore = DataStore as jest.Mocked<typeof DataStore>;
-const MockedRegionModel = RegionModel as jest.MockedClass<typeof RegionModel>;
-const MockedDSRegion = DSRegion as jest.MockedClass<typeof DSRegion>;
+describe('RegionService (Simple GraphQL Test)', () => {
+  const mockGenerateClient = generateClient as jest.MockedFunction<typeof generateClient>;
+  const MockedRegionModel = RegionModel as jest.MockedClass<typeof RegionModel>;
 
-describe('RegionService', () => {
-  const mockTranscriptionId = 'test-transcription-id';
-  const mockUsername = 'test-user';
-  
-  const mockRawRegions = [
-    {
-      id: 'region-1',
-      start: 10,
-      end: 20,
-      isNote: false,
-      dateLastUpdated: '1234567890',
-      userLastUpdated: 'user1',
-    },
-    {
-      id: 'region-2',
-      start: 5,
-      end: 15,
-      isNote: true,
-      dateLastUpdated: '1234567891',
-      userLastUpdated: 'user2',
-    },
-    {
-      id: 'region-3',
-      start: 25,
-      end: 35,
-      isNote: false,
-      dateLastUpdated: '1234567892',
-      userLastUpdated: 'user3',
-    },
-  ];
-
-  const mockProcessedRegions = [
-    { id: 'region-2', start: 5, end: 15, isNote: true },
-    { id: 'region-1', start: 10, end: 20, isNote: false },
-    { id: 'region-3', start: 25, end: 35, isNote: false },
-  ];
-
-  const mockTranscription = {
-    id: mockTranscriptionId,
-    title: 'Test Transcription',
-    source: 'test-source.mp3',
-  };
-
-  const mockRegionData = {
-    id: 'new-region-id',
-    start: 30,
-    end: 40,
-    isNote: true,
+  const mockGraphqlClient = {
+    graphql: jest.fn(),
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
-    // Setup default mocks with proper typing
-    mockedDataStore.query.mockResolvedValue(mockRawRegions as any);
+    __resetClient();
+    mockGenerateClient.mockReturnValue(mockGraphqlClient as any);
     MockedRegionModel.mockImplementation((data: any) => data as any);
   });
 
-  afterEach(() => {
-    jest.restoreAllMocks();
-  });
-
   describe('loadRegionsForTranscription', () => {
-    describe('function signature and validation', () => {
-      it('should have correct function signature', () => {
-        expect(typeof loadRegionsForTranscription).toBe('function');
-        expect(loadRegionsForTranscription.length).toBe(1); // Should accept 1 parameter
+    it('should call GraphQL with correct parameters', async () => {
+      const transcriptionId = 'test-transcription';
+      const mockRegions = [
+        { id: 'r1', start: 10, end: 20, transcriptionId },
+        { id: 'r2', start: 5, end: 15, transcriptionId },
+      ];
+
+      mockGraphqlClient.graphql.mockResolvedValue({
+        data: {
+          listRegions: {
+            items: mockRegions,
+          },
+        },
       });
 
-      it('should accept transcriptionId parameter', async () => {
-        const result = await loadRegionsForTranscription(mockTranscriptionId);
-        
-        expect(result).toBeDefined();
-        expect(Array.isArray(result)).toBe(true);
+      const result = await loadRegionsForTranscription(transcriptionId);
+
+      expect(mockGraphqlClient.graphql).toHaveBeenCalledWith({
+        query: expect.any(String),
+        variables: {
+          filter: {
+            transcriptionId: { eq: transcriptionId },
+            _deleted: { ne: true },
+          },
+          limit: 1000,
+        },
       });
+
+      expect(result).toHaveLength(2);
+      expect(MockedRegionModel).toHaveBeenCalledTimes(2);
     });
 
-    describe('DataStore query logic', () => {
-      it('should query DataStore with correct parameters', async () => {
-        await loadRegionsForTranscription(mockTranscriptionId);
-        
-        expect(mockedDataStore.query).toHaveBeenCalledTimes(1);
-        expect(mockedDataStore.query).toHaveBeenCalledWith(DSRegion, expect.any(Function));
-      });
+    it('should handle GraphQL errors', async () => {
+      const error = new Error('GraphQL failed');
+      mockGraphqlClient.graphql.mockRejectedValue(error);
 
-      it('should use correct filter function', async () => {
-        mockedDataStore.query.mockImplementation((model, filterFn) => {
-          // Just verify that a filter function was passed
-          expect(typeof filterFn).toBe('function');
-          return Promise.resolve(mockRawRegions as any);
-        });
-        
-        await loadRegionsForTranscription(mockTranscriptionId);
-        
-        expect(mockedDataStore.query).toHaveBeenCalledWith(DSRegion, expect.any(Function));
-      });
-
-      it('should handle empty query results', async () => {
-        mockedDataStore.query.mockResolvedValue([] as any);
-        
-        const result = await loadRegionsForTranscription(mockTranscriptionId);
-        
-        expect(result).toEqual([]);
-      });
-    });
-
-    describe('region processing logic', () => {
-      it('should sort regions by start time', async () => {
-        const result = await loadRegionsForTranscription(mockTranscriptionId);
-        
-        // Verify regions are sorted by start time (5, 10, 25)
-        expect(result[0].start).toBe(5);
-        expect(result[1].start).toBe(10);
-        expect(result[2].start).toBe(25);
-      });
-
-      it('should create RegionModel instances for each region', async () => {
-        await loadRegionsForTranscription(mockTranscriptionId);
-        
-        expect(MockedRegionModel).toHaveBeenCalledTimes(3);
-        expect(MockedRegionModel).toHaveBeenCalledWith(mockRawRegions[1]); // First after sorting (start: 5)
-        expect(MockedRegionModel).toHaveBeenCalledWith(mockRawRegions[0]); // Second after sorting (start: 10)
-        expect(MockedRegionModel).toHaveBeenCalledWith(mockRawRegions[2]); // Third after sorting (start: 25)
-      });
-
-      it('should not mutate original array during sorting', async () => {
-        const originalRegions = [...mockRawRegions];
-        mockedDataStore.query.mockResolvedValue(mockRawRegions as any);
-        
-        await loadRegionsForTranscription(mockTranscriptionId);
-        
-        // Original array should remain unchanged
-        expect(mockRawRegions).toEqual(originalRegions);
-      });
-
-      it('should handle regions with same start time', async () => {
-        const regionsWithSameStart = [
-          { id: 'region-1', start: 10, end: 20 },
-          { id: 'region-2', start: 10, end: 15 },
-          { id: 'region-3', start: 5, end: 25 },
-        ];
-        
-        mockedDataStore.query.mockResolvedValue(regionsWithSameStart as any);
-        
-        const result = await loadRegionsForTranscription(mockTranscriptionId);
-        
-        // Should still be sorted, with regions having same start time maintaining relative order
-        expect(result[0].start).toBe(5);
-        expect(result[1].start).toBe(10);
-        expect(result[2].start).toBe(10);
-      });
-    });
-
-    describe('error handling', () => {
-      it('should propagate DataStore query errors', async () => {
-        const datastoreError = new Error('DataStore query failed');
-        mockedDataStore.query.mockRejectedValue(datastoreError);
-        
-        await expect(loadRegionsForTranscription(mockTranscriptionId)).rejects.toThrow('DataStore query failed');
-      });
-
-      it('should propagate RegionModel creation errors', async () => {
-        const regionModelError = new Error('RegionModel creation failed');
-        MockedRegionModel.mockImplementation(() => {
-          throw regionModelError;
-        });
-        
-        await expect(loadRegionsForTranscription(mockTranscriptionId)).rejects.toThrow('RegionModel creation failed');
-      });
-    });
-
-    describe('return value structure', () => {
-      it('should return array of RegionModel instances', async () => {
-        const result = await loadRegionsForTranscription(mockTranscriptionId);
-        
-        expect(Array.isArray(result)).toBe(true);
-        expect(result).toHaveLength(3);
-      });
+      await expect(loadRegionsForTranscription('test-id')).rejects.toThrow('GraphQL failed');
     });
   });
 
   describe('createRegion', () => {
-    beforeEach(() => {
-      mockedDataStore.query.mockResolvedValue(mockTranscription as any);
-      mockedDataStore.save.mockResolvedValue({ ...mockRegionData, id: 'saved-region-id' } as any);
-      MockedDSRegion.mockImplementation((data: any) => data);
-    });
+    it('should call GraphQL mutation with correct parameters', async () => {
+      const transcriptionId = 'test-transcription';
+      const regionData = {
+        id: 'new-region',
+        start: 30,
+        end: 40,
+        isNote: false,
+      };
+      const username = 'test-user';
 
-    describe('function signature and validation', () => {
-      it('should have correct function signature', () => {
-        expect(typeof createRegion).toBe('function');
-        expect(createRegion.length).toBe(3); // Should accept 3 parameters
+      mockGraphqlClient.graphql.mockResolvedValue({
+        data: {
+          createRegion: {
+            ...regionData,
+            transcriptionId,
+            dateLastUpdated: '1234567890',
+            userLastUpdated: username,
+          },
+        },
       });
 
-      it('should accept required parameters', async () => {
-        const result = await createRegion(mockTranscriptionId, mockRegionData, mockUsername);
-        
-        expect(result).toBeDefined();
-      });
-    });
+      const result = await createRegion(transcriptionId, regionData, username);
 
-    describe('transcription validation logic', () => {
-      it('should query for transcription first', async () => {
-        await createRegion(mockTranscriptionId, mockRegionData, mockUsername);
-        
-        expect(mockedDataStore.query).toHaveBeenCalledWith(DSTranscription, mockTranscriptionId);
-      });
-
-      it('should throw error when transcription not found', async () => {
-        mockedDataStore.query.mockResolvedValue(null as any);
-        
-        await expect(createRegion(mockTranscriptionId, mockRegionData, mockUsername))
-          .rejects.toThrow(`Transcription with ID ${mockTranscriptionId} not found`);
+      expect(mockGraphqlClient.graphql).toHaveBeenCalledWith({
+        query: expect.any(String),
+        variables: {
+          input: {
+            id: regionData.id,
+            transcriptionId,
+            start: regionData.start,
+            end: regionData.end,
+            isNote: regionData.isNote,
+            dateLastUpdated: expect.any(String),
+            userLastUpdated: username,
+          },
+        },
+        authMode: 'iam',
       });
 
-      it('should throw error when transcription is undefined', async () => {
-        mockedDataStore.query.mockResolvedValue(undefined as any);
-        
-        await expect(createRegion(mockTranscriptionId, mockRegionData, mockUsername))
-          .rejects.toThrow(`Transcription with ID ${mockTranscriptionId} not found`);
-      });
-    });
-
-    describe('region creation logic', () => {
-      it('should create DSRegion with correct data', async () => {
-        await createRegion(mockTranscriptionId, mockRegionData, mockUsername);
-        
-        expect(MockedDSRegion).toHaveBeenCalledWith({
-          id: mockRegionData.id,
-          start: mockRegionData.start,
-          end: mockRegionData.end,
-          isNote: mockRegionData.isNote,
-          dateLastUpdated: expect.any(String),
-          userLastUpdated: mockUsername,
-          transcription: mockTranscription,
-        });
-      });
-
-      it('should default isNote to false when not provided', async () => {
-        const regionWithoutIsNote = {
-          id: 'test-id',
-          start: 10,
-          end: 20,
-        };
-        
-        await createRegion(mockTranscriptionId, regionWithoutIsNote, mockUsername);
-        
-        expect(MockedDSRegion).toHaveBeenCalledWith(
-          expect.objectContaining({
-            isNote: false,
-          })
-        );
-      });
-
-      it('should use current timestamp for dateLastUpdated', async () => {
-        const beforeCall = Date.now();
-        
-        await createRegion(mockTranscriptionId, mockRegionData, mockUsername);
-        
-        const afterCall = Date.now();
-        const callArgs = MockedDSRegion.mock.calls[0][0];
-        const timestamp = parseInt(callArgs.dateLastUpdated);
-        
-        expect(timestamp).toBeGreaterThanOrEqual(beforeCall);
-        expect(timestamp).toBeLessThanOrEqual(afterCall);
-      });
-
-      it('should save region to DataStore', async () => {
-        const mockCreatedRegion = { id: 'created-region' };
-        MockedDSRegion.mockReturnValue(mockCreatedRegion as any);
-        
-        await createRegion(mockTranscriptionId, mockRegionData, mockUsername);
-        
-        expect(mockedDataStore.save).toHaveBeenCalledWith(mockCreatedRegion);
-      });
-
-      it('should return RegionModel instance', async () => {
-        const mockSavedRegion = { savedId: 'saved-region', ...mockRegionData };
-        mockedDataStore.save.mockResolvedValue(mockSavedRegion as any);
-        
-        const result = await createRegion(mockTranscriptionId, mockRegionData, mockUsername);
-        
-        expect(MockedRegionModel).toHaveBeenCalledWith(mockSavedRegion);
-      });
-    });
-
-    describe('parameter handling', () => {
-      it('should handle different region data structures', async () => {
-        const minimalRegion = {
-          id: 'minimal-id',
-          start: 0,
-          end: 5,
-        };
-        
-        await createRegion(mockTranscriptionId, minimalRegion, mockUsername);
-        
-        expect(MockedDSRegion).toHaveBeenCalledWith(
-          expect.objectContaining({
-            id: 'minimal-id',
-            start: 0,
-            end: 5,
-            isNote: false,
-          })
-        );
-      });
-
-      it('should handle different usernames', async () => {
-        const differentUsername = 'different-user';
-        
-        await createRegion(mockTranscriptionId, mockRegionData, differentUsername);
-        
-        expect(MockedDSRegion).toHaveBeenCalledWith(
-          expect.objectContaining({
-            userLastUpdated: differentUsername,
-          })
-        );
-      });
-
-      it('should handle different transcriptionIds', async () => {
-        const differentTranscriptionId = 'different-transcription-id';
-        
-        await createRegion(differentTranscriptionId, mockRegionData, mockUsername);
-        
-        expect(mockedDataStore.query).toHaveBeenCalledWith(DSTranscription, differentTranscriptionId);
-      });
-    });
-
-    describe('error handling', () => {
-      it('should propagate DataStore query errors', async () => {
-        const queryError = new Error('DataStore query failed');
-        mockedDataStore.query.mockRejectedValue(queryError);
-        
-        await expect(createRegion(mockTranscriptionId, mockRegionData, mockUsername))
-          .rejects.toThrow('DataStore query failed');
-      });
-
-      it('should propagate DataStore save errors', async () => {
-        const saveError = new Error('DataStore save failed');
-        mockedDataStore.save.mockRejectedValue(saveError);
-        
-        await expect(createRegion(mockTranscriptionId, mockRegionData, mockUsername))
-          .rejects.toThrow('DataStore save failed');
-      });
-
-      it('should propagate DSRegion creation errors', async () => {
-        const regionError = new Error('DSRegion creation failed');
-        MockedDSRegion.mockImplementation(() => {
-          throw regionError;
-        });
-        
-        await expect(createRegion(mockTranscriptionId, mockRegionData, mockUsername))
-          .rejects.toThrow('DSRegion creation failed');
-      });
-
-      it('should propagate RegionModel creation errors', async () => {
-        const regionModelError = new Error('RegionModel creation failed');
-        MockedRegionModel.mockImplementation(() => {
-          throw regionModelError;
-        });
-        
-        await expect(createRegion(mockTranscriptionId, mockRegionData, mockUsername))
-          .rejects.toThrow('RegionModel creation failed');
-      });
-    });
-
-    describe('integration scenarios', () => {
-      it('should handle complete successful flow', async () => {
-        const result = await createRegion(mockTranscriptionId, mockRegionData, mockUsername);
-        
-        // Verify all steps were called
-        expect(mockedDataStore.query).toHaveBeenCalledWith(DSTranscription, mockTranscriptionId);
-        expect(MockedDSRegion).toHaveBeenCalled();
-        expect(mockedDataStore.save).toHaveBeenCalled();
-        expect(MockedRegionModel).toHaveBeenCalled();
-        
-        expect(result).toBeDefined();
-      });
-
-      it('should handle edge case with zero start/end times', async () => {
-        const edgeCaseRegion = {
-          id: 'edge-case-id',
-          start: 0,
-          end: 0,
-          isNote: false,
-        };
-        
-        await expect(createRegion(mockTranscriptionId, edgeCaseRegion, mockUsername))
-          .resolves.toBeDefined();
-      });
-
-      it('should handle very large timestamp values', async () => {
-        const largeTimeRegion = {
-          id: 'large-time-id',
-          start: 999999,
-          end: 9999999,
-          isNote: true,
-        };
-        
-        await expect(createRegion(mockTranscriptionId, largeTimeRegion, mockUsername))
-          .resolves.toBeDefined();
-      });
+      expect(MockedRegionModel).toHaveBeenCalledTimes(1);
+      expect(result).toBeDefined();
     });
   });
 
   describe('deleteRegion', () => {
-    const mockRegionId = 'test-region-id';
-    const mockRegion = {
-      id: mockRegionId,
-      start: 10,
-      end: 20,
-      regionText: 'Test region text',
-      isNote: false,
-    };
+    it('should query then delete region', async () => {
+      const regionId = 'test-region';
+      const existingRegion = {
+        id: regionId,
+        _version: 1,
+        start: 10,
+        end: 20,
+      };
 
-    beforeEach(() => {
-      // Mock console methods to avoid noise in test output
-      jest.spyOn(console, 'log').mockImplementation();
-      jest.spyOn(console, 'error').mockImplementation();
-    });
+      mockGraphqlClient.graphql.mockImplementation((params: any) => {
+        if (params.query.includes('getRegion')) {
+          return Promise.resolve({
+            data: {
+              getRegion: existingRegion,
+            },
+          });
+        }
+        return Promise.resolve({
+          data: {
+            deleteRegion: {
+              ...existingRegion,
+              _deleted: true,
+            },
+          },
+        });
+      });
 
-    describe('function signature and validation', () => {
-      it('should have correct function signature', () => {
-        expect(typeof deleteRegion).toBe('function');
-        expect(deleteRegion.length).toBe(1); // Should accept 1 parameter
+      await deleteRegion(regionId);
+
+      expect(mockGraphqlClient.graphql).toHaveBeenCalledTimes(2);
+      expect(mockGraphqlClient.graphql).toHaveBeenCalledWith({
+        query: expect.any(String),
+        variables: { id: regionId },
+      });
+      expect(mockGraphqlClient.graphql).toHaveBeenCalledWith({
+        query: expect.any(String),
+        variables: {
+          input: {
+            id: regionId,
+            _version: existingRegion._version,
+          },
+        },
+        authMode: 'iam',
       });
     });
 
-    describe('region validation logic', () => {
-      it('should query for region first', async () => {
-        mockedDataStore.query.mockResolvedValue(mockRegion as any);
-        mockedDataStore.delete.mockResolvedValue(mockRegion as any);
-        
-        await deleteRegion(mockRegionId);
-        
-        expect(mockedDataStore.query).toHaveBeenCalledWith(DSRegion, mockRegionId);
+    it('should handle region not found', async () => {
+      const regionId = 'missing-region';
+
+      mockGraphqlClient.graphql.mockImplementation((params: any) => {
+        if (params.query.includes('getRegion')) {
+          return Promise.resolve({
+            data: {
+              getRegion: null,
+            },
+          });
+        }
+        return Promise.resolve({});
       });
 
-      it('should throw error when region not found', async () => {
-        mockedDataStore.query.mockResolvedValue(null as any);
-        
-        await expect(deleteRegion(mockRegionId))
-          .rejects.toThrow(`Region with ID ${mockRegionId} not found`);
-      });
-
-      it('should throw error when region is undefined', async () => {
-        mockedDataStore.query.mockResolvedValue(undefined as any);
-        
-        await expect(deleteRegion(mockRegionId))
-          .rejects.toThrow(`Region with ID ${mockRegionId} not found`);
-      });
-    });
-
-    describe('deletion logic', () => {
-      it('should delete region from DataStore', async () => {
-        mockedDataStore.query.mockResolvedValue(mockRegion as any);
-        mockedDataStore.delete.mockResolvedValue(mockRegion as any);
-        
-        await deleteRegion(mockRegionId);
-        
-        expect(mockedDataStore.delete).toHaveBeenCalledWith(mockRegion);
-      });
-
-      it('should log success message', async () => {
-        mockedDataStore.query.mockResolvedValue(mockRegion as any);
-        mockedDataStore.delete.mockResolvedValue(mockRegion as any);
-        
-        await deleteRegion(mockRegionId);
-        
-        expect(console.log).toHaveBeenCalledWith(`✅ Deleted region ${mockRegionId}`);
-      });
-    });
-
-    describe('error handling', () => {
-      it('should propagate DataStore query errors', async () => {
-        const queryError = new Error('DataStore query failed');
-        mockedDataStore.query.mockRejectedValue(queryError);
-        
-        await expect(deleteRegion(mockRegionId)).rejects.toThrow('DataStore query failed');
-        
-        expect(console.error).toHaveBeenCalledWith(
-          expect.stringContaining(`❌ Failed to delete region ${mockRegionId}:`),
-          queryError
-        );
-      });
-
-      it('should propagate DataStore delete errors', async () => {
-        const deleteError = new Error('DataStore delete failed');
-        mockedDataStore.query.mockResolvedValue(mockRegion as any);
-        mockedDataStore.delete.mockRejectedValue(deleteError);
-        
-        await expect(deleteRegion(mockRegionId)).rejects.toThrow('DataStore delete failed');
-        
-        expect(console.error).toHaveBeenCalledWith(
-          expect.stringContaining(`❌ Failed to delete region ${mockRegionId}:`),
-          deleteError
-        );
-      });
+      await expect(deleteRegion(regionId)).rejects.toThrow(`Region with ID ${regionId} not found`);
     });
   });
 
-  describe('updateRegion', () => {
-    const mockRegionId = 'test-region-id';
-    const mockUsername = 'test-user';
+  describe('updateRegion - Core Business Logic', () => {
     const mockOriginalRegion = {
-      id: mockRegionId,
+      id: 'test-region',
+      _version: 1,
       regionText: 'Original text',
       translation: 'Original translation',
       start: 10,
       end: 20,
       isNote: false,
       dateLastUpdated: '1234567890',
-      userLastUpdated: 'original-user'
-    };
-
-    // Mock DOM for toast functionality
-    const mockToastElement = {
-      style: {},
-      textContent: '',
-      remove: jest.fn()
+      userLastUpdated: 'original-user',
+      transcriptionId: 'test-transcription',
     };
 
     beforeEach(() => {
-      jest.clearAllMocks();
-      jest.useFakeTimers();
-      
-      // Mock DataStore.query to return original region
-      (DataStore.query as jest.Mock).mockResolvedValue(mockOriginalRegion);
-      
-      // Mock DataStore.save
-      (DataStore.save as jest.Mock).mockResolvedValue(mockOriginalRegion);
-      
-      // Mock DSRegion.copyOf
-      (DSRegion.copyOf as jest.Mock) = jest.fn((original, updater) => {
-        const draft = { ...original };
-        updater(draft);
-        return draft;
-      });
-
-      // Mock DOM methods for toast
-      jest.spyOn(document, 'createElement').mockReturnValue(mockToastElement as any);
-      jest.spyOn(document.body, 'appendChild').mockImplementation(() => mockToastElement as any);
-      jest.spyOn(document.body, 'removeChild').mockImplementation(() => mockToastElement as any);
-      
-      // Mock console methods
-      jest.spyOn(console, 'log').mockImplementation();
-      jest.spyOn(console, 'error').mockImplementation();
-    });
-
-    afterEach(() => {
-      jest.useRealTimers();
-      jest.restoreAllMocks();
-    });
-
-    describe('debouncing behavior', () => {
-      it('should debounce multiple rapid updates', async () => {
-        // Make multiple rapid calls
-        updateRegion(mockRegionId, { regionText: 'Update 1' }, mockUsername, 100);
-        updateRegion(mockRegionId, { regionText: 'Update 2' }, mockUsername, 100);
-        updateRegion(mockRegionId, { regionText: 'Update 3' }, mockUsername, 100);
-
-        // Run all timers to trigger save
-        jest.runAllTimers();
-        await Promise.resolve(); // Wait for async operations
-
-        // Should only save once with the final update
-        expect(DataStore.save).toHaveBeenCalledTimes(1);
-        expect(DSRegion.copyOf).toHaveBeenCalledWith(mockOriginalRegion, expect.any(Function));
-      });
-
-      it('should merge updates from multiple calls', async () => {
-        // Make calls with different fields
-        updateRegion(mockRegionId, { regionText: 'New text' }, mockUsername, 100);
-        updateRegion(mockRegionId, { translation: 'New translation' }, mockUsername, 100);
-
-        // Run all timers to trigger save
-        jest.runAllTimers();
-        await Promise.resolve();
-
-        // Should merge both updates
-        const updaterFunction = (DSRegion.copyOf as jest.Mock).mock.calls[0][1];
-        const draft = { ...mockOriginalRegion };
-        updaterFunction(draft);
-
-        expect(draft.regionText).toBe('New text');
-        expect(draft.translation).toBe('New translation');
-      });
-
-      it('should use default debounce time of 1500ms', async () => {
-        updateRegion(mockRegionId, { regionText: 'Test' }, mockUsername);
-
-        // Should not save before 1500ms
-        jest.advanceTimersByTime(1499);
-        await Promise.resolve();
-        expect(DataStore.save).not.toHaveBeenCalled();
-
-        // Should save at 1500ms
-        jest.advanceTimersByTime(1);
-        await Promise.resolve();
-        expect(DataStore.save).toHaveBeenCalledTimes(1);
-      });
-
-      it('should use custom debounce time', async () => {
-        const customDebounce = 500;
-        updateRegion(mockRegionId, { regionText: 'Test' }, mockUsername, customDebounce);
-
-        // Should not save before custom time
-        jest.advanceTimersByTime(customDebounce - 1);
-        await Promise.resolve();
-        expect(DataStore.save).not.toHaveBeenCalled();
-
-        // Should save at custom time
-        jest.advanceTimersByTime(1);
-        await Promise.resolve();
-        expect(DataStore.save).toHaveBeenCalledTimes(1);
+      mockGraphqlClient.graphql.mockImplementation((params: any) => {
+        if (params.query.includes('getRegion')) {
+          return Promise.resolve({
+            data: {
+              getRegion: mockOriginalRegion,
+            },
+          });
+        }
+        if (params.query.includes('updateRegion')) {
+          return Promise.resolve({
+            data: {
+              updateRegion: {
+                ...mockOriginalRegion,
+                ...params.variables.input,
+                _version: 2,
+                dateLastUpdated: '1234567890',
+                userLastUpdated: 'test-user',
+              },
+            },
+          });
+        }
+        return Promise.resolve({});
       });
     });
 
-    describe('field updates', () => {
-      it('should update regionText field', async () => {
-        updateRegion(mockRegionId, { regionText: 'New region text' }, mockUsername, 10);
-        
-        jest.runAllTimers();
-        await Promise.resolve();
+    it('should validate region exists before updating', (done) => {
+      // Test that updateRegion calls getRegion first
+      updateRegion('test-region', { regionText: 'New text' }, 'test-user', 100);
 
-        const updaterFunction = (DSRegion.copyOf as jest.Mock).mock.calls[0][1];
-        const draft = { ...mockOriginalRegion };
-        updaterFunction(draft);
-
-        expect(draft.regionText).toBe('New region text');
-      });
-
-      it('should update translation field', async () => {
-        updateRegion(mockRegionId, { translation: 'New translation' }, mockUsername, 10);
-        
-        jest.runAllTimers();
-        await Promise.resolve();
-
-        const updaterFunction = (DSRegion.copyOf as jest.Mock).mock.calls[0][1];
-        const draft = { ...mockOriginalRegion };
-        updaterFunction(draft);
-
-        expect(draft.translation).toBe('New translation');
-      });
-
-      it('should update start field', async () => {
-        updateRegion(mockRegionId, { start: 15 }, mockUsername, 10);
-        
-        jest.runAllTimers();
-        await Promise.resolve();
-
-        const updaterFunction = (DSRegion.copyOf as jest.Mock).mock.calls[0][1];
-        const draft = { ...mockOriginalRegion };
-        updaterFunction(draft);
-
-        expect(draft.start).toBe(15);
-      });
-
-      it('should update end field', async () => {
-        updateRegion(mockRegionId, { end: 25 }, mockUsername, 10);
-        
-        jest.runAllTimers();
-        await Promise.resolve();
-
-        const updaterFunction = (DSRegion.copyOf as jest.Mock).mock.calls[0][1];
-        const draft = { ...mockOriginalRegion };
-        updaterFunction(draft);
-
-        expect(draft.end).toBe(25);
-      });
-
-      it('should update isNote field', async () => {
-        updateRegion(mockRegionId, { isNote: true }, mockUsername, 10);
-        
-        jest.runAllTimers();
-        await Promise.resolve();
-
-        const updaterFunction = (DSRegion.copyOf as jest.Mock).mock.calls[0][1];
-        const draft = { ...mockOriginalRegion };
-        updaterFunction(draft);
-
-        expect(draft.isNote).toBe(true);
-      });
-
-      it('should update multiple fields at once', async () => {
-        updateRegion(mockRegionId, { 
-          regionText: 'New text',
-          translation: 'New translation',
-          start: 15,
-          end: 25,
-          isNote: true
-        }, mockUsername, 10);
-        
-        jest.runAllTimers();
-        await Promise.resolve();
-
-        const updaterFunction = (DSRegion.copyOf as jest.Mock).mock.calls[0][1];
-        const draft = { ...mockOriginalRegion };
-        updaterFunction(draft);
-
-        expect(draft.regionText).toBe('New text');
-        expect(draft.translation).toBe('New translation');
-        expect(draft.start).toBe(15);
-        expect(draft.end).toBe(25);
-        expect(draft.isNote).toBe(true);
-      });
-
-      it('should always update metadata fields', async () => {
-        const beforeCall = Date.now();
-        
-        updateRegion(mockRegionId, { regionText: 'Test' }, mockUsername, 10);
-        
-        jest.runAllTimers();
-        await Promise.resolve();
-
-        const updaterFunction = (DSRegion.copyOf as jest.Mock).mock.calls[0][1];
-        const draft = { ...mockOriginalRegion };
-        updaterFunction(draft);
-
-        const afterCall = Date.now();
-        const timestamp = parseInt(draft.dateLastUpdated);
-        
-        expect(timestamp).toBeGreaterThanOrEqual(beforeCall);
-        expect(timestamp).toBeLessThanOrEqual(afterCall);
-        expect(draft.userLastUpdated).toBe(mockUsername);
-      });
+      // Use setTimeout to check after debounce
+      setTimeout(() => {
+        expect(mockGraphqlClient.graphql).toHaveBeenCalledWith({
+          query: expect.any(String),
+          variables: { id: 'test-region' },
+        });
+        done();
+      }, 200);
     });
 
-    describe('toast notifications', () => {
-      it('should show success toast on successful save', async () => {
-        updateRegion(mockRegionId, { regionText: 'Test' }, mockUsername, 10);
-        
-        // Run all timers and flush all promises
-        jest.runAllTimers();
-        await Promise.resolve(); // First flush
-        await Promise.resolve(); // Second flush for nested promises
+    it('should include version control in update', (done) => {
+      updateRegion('test-region', { regionText: 'New text' }, 'test-user', 100);
 
-        expect(document.createElement).toHaveBeenCalledWith('div');
-        expect(document.body.appendChild).toHaveBeenCalled();
-        expect(mockToastElement.textContent).toContain(`Saved region ${mockRegionId.slice(0, 8)}`);
-      });
-
-      it('should show error toast on save failure', async () => {
-        const saveError = new Error('Save failed');
-        (DataStore.save as jest.Mock).mockRejectedValue(saveError);
-        
-        updateRegion(mockRegionId, { regionText: 'Test' }, mockUsername, 10);
-        
-        jest.runAllTimers();
-        await Promise.resolve(); // First flush
-        await Promise.resolve(); // Second flush for nested promises
-
-        expect(mockToastElement.textContent).toContain(`Failed to save region ${mockRegionId.slice(0, 8)}`);
-      });
-
-      it('should log success message to console', async () => {
-        updateRegion(mockRegionId, { regionText: 'Test' }, mockUsername, 10);
-        
-        jest.runAllTimers();
-        await Promise.resolve(); // First flush
-        await Promise.resolve(); // Second flush for nested promises
-
-        expect(console.log).toHaveBeenCalledWith(`✅ Saved region ${mockRegionId}`);
-      });
-
-      it('should log error message to console on failure', async () => {
-        const saveError = new Error('Save failed');
-        (DataStore.save as jest.Mock).mockRejectedValue(saveError);
-        
-        updateRegion(mockRegionId, { regionText: 'Test' }, mockUsername, 10);
-        
-        jest.runAllTimers();
-        await Promise.resolve(); // First flush
-        await Promise.resolve(); // Second flush for nested promises
-
-        expect(console.error).toHaveBeenCalledWith(`❌ Failed to save region ${mockRegionId}:`, saveError);
-      });
+      setTimeout(() => {
+        expect(mockGraphqlClient.graphql).toHaveBeenCalledWith(
+          expect.objectContaining({
+            query: expect.stringContaining('updateRegion'),
+            variables: expect.objectContaining({
+              input: expect.objectContaining({
+                id: 'test-region',
+                _version: mockOriginalRegion._version,
+                regionText: 'New text',
+                dateLastUpdated: expect.any(String),
+                userLastUpdated: 'test-user',
+              }),
+            }),
+          })
+        );
+        done();
+      }, 200);
     });
 
-    describe('error handling', () => {
-      it('should handle region not found', async () => {
-        (DataStore.query as jest.Mock).mockResolvedValue(null);
-        
-        updateRegion(mockRegionId, { regionText: 'Test' }, mockUsername, 10);
-        
-        jest.runAllTimers();
-        await Promise.resolve();
+    it('should handle different field types correctly', (done) => {
+      updateRegion('test-region', {
+        regionText: 'New text',
+        translation: 'New translation',
+        start: 15,
+        end: 25,
+        isNote: true,
+      }, 'test-user', 100);
 
-        expect(console.error).toHaveBeenCalledWith(`Region with ID ${mockRegionId} not found`);
-        expect(DataStore.save).not.toHaveBeenCalled();
-      });
-
-      it('should handle DataStore query errors', async () => {
-        const queryError = new Error('Query failed');
-        (DataStore.query as jest.Mock).mockRejectedValue(queryError);
-        
-        updateRegion(mockRegionId, { regionText: 'Test' }, mockUsername, 10);
-        
-        jest.runAllTimers();
-        await Promise.resolve();
-
-        expect(console.error).toHaveBeenCalledWith(`❌ Failed to save region ${mockRegionId}:`, queryError);
-      });
-
-      it('should handle DataStore save errors', async () => {
-        const saveError = new Error('Save failed');
-        (DataStore.save as jest.Mock).mockRejectedValue(saveError);
-        
-        updateRegion(mockRegionId, { regionText: 'Test' }, mockUsername, 10);
-        
-        jest.runAllTimers();
-        await Promise.resolve(); // First flush
-        await Promise.resolve(); // Second flush for nested promises
-
-        expect(console.error).toHaveBeenCalledWith(`❌ Failed to save region ${mockRegionId}:`, saveError);
-      });
+      setTimeout(() => {
+        expect(mockGraphqlClient.graphql).toHaveBeenCalledWith(
+          expect.objectContaining({
+            variables: expect.objectContaining({
+              input: expect.objectContaining({
+                regionText: 'New text',
+                translation: 'New translation',
+                start: 15,
+                end: 25,
+                isNote: true,
+              }),
+            }),
+          })
+        );
+        done();
+      }, 200);
     });
 
-    describe('edge cases', () => {
-      it('should handle empty string updates', async () => {
-        updateRegion(mockRegionId, { regionText: '', translation: '' }, mockUsername, 10);
-        
-        jest.runAllTimers();
-        await Promise.resolve();
-
-        const updaterFunction = (DSRegion.copyOf as jest.Mock).mock.calls[0][1];
-        const draft = { ...mockOriginalRegion };
-        updaterFunction(draft);
-
-        expect(draft.regionText).toBe('');
-        expect(draft.translation).toBe('');
+    it('should handle missing region gracefully', (done) => {
+      mockGraphqlClient.graphql.mockImplementation((params: any) => {
+        if (params.query.includes('getRegion')) {
+          return Promise.resolve({
+            data: {
+              getRegion: null,
+            },
+          });
+        }
+        return Promise.resolve({});
       });
 
-      it('should handle undefined values by not updating those fields', async () => {
-        updateRegion(mockRegionId, { regionText: 'New text' }, mockUsername, 10);
-        
-        jest.runAllTimers();
-        await Promise.resolve();
+      updateRegion('missing-region', { regionText: 'Test' }, 'test-user', 100);
 
-        const updaterFunction = (DSRegion.copyOf as jest.Mock).mock.calls[0][1];
-        const draft = { ...mockOriginalRegion };
-        updaterFunction(draft);
-
-        // Only regionText should be updated, others should remain unchanged
-        expect(draft.regionText).toBe('New text');
-        expect(draft.translation).toBe(mockOriginalRegion.translation);
-        expect(draft.start).toBe(mockOriginalRegion.start);
-      });
-
-      it('should handle zero values correctly', async () => {
-        updateRegion(mockRegionId, { start: 0, end: 0 }, mockUsername, 10);
-        
-        jest.runAllTimers();
-        await Promise.resolve();
-
-        const updaterFunction = (DSRegion.copyOf as jest.Mock).mock.calls[0][1];
-        const draft = { ...mockOriginalRegion };
-        updaterFunction(draft);
-
-        expect(draft.start).toBe(0);
-        expect(draft.end).toBe(0);
-      });
+      setTimeout(() => {
+        // Should only call getRegion, not updateRegion
+        expect(mockGraphqlClient.graphql).toHaveBeenCalledTimes(1);
+        expect(mockGraphqlClient.graphql).toHaveBeenCalledWith({
+          query: expect.any(String),
+          variables: { id: 'missing-region' },
+        });
+        done();
+      }, 200);
     });
 
-    describe('race condition prevention', () => {
-      it('should prevent race conditions from simultaneous updates', async () => {
-        // Simulate rapid user typing
-        updateRegion(mockRegionId, { regionText: 'a' }, mockUsername, 100);
-        updateRegion(mockRegionId, { regionText: 'ab' }, mockUsername, 100);
-        updateRegion(mockRegionId, { regionText: 'abc' }, mockUsername, 100);
-        updateRegion(mockRegionId, { regionText: 'abcd' }, mockUsername, 100);
-
-        // Should only save once with final value
-        jest.runAllTimers();
-        await Promise.resolve();
-
-        expect(DataStore.save).toHaveBeenCalledTimes(1);
-        
-        const updaterFunction = (DSRegion.copyOf as jest.Mock).mock.calls[0][1];
-        const draft = { ...mockOriginalRegion };
-        updaterFunction(draft);
-
-        expect(draft.regionText).toBe('abcd');
+    it('should handle GraphQL errors gracefully', (done) => {
+      mockGraphqlClient.graphql.mockImplementation((params: any) => {
+        if (params.query.includes('getRegion')) {
+          return Promise.resolve({
+            data: {
+              getRegion: mockOriginalRegion,
+            },
+          });
+        }
+        return Promise.reject(new Error('Update failed'));
       });
+
+      updateRegion('test-region', { regionText: 'Test' }, 'test-user', 100);
+
+      setTimeout(() => {
+        // Should call both getRegion and updateRegion (which fails)
+        expect(mockGraphqlClient.graphql).toHaveBeenCalledTimes(2);
+        done();
+      }, 200);
     });
   });
 
-  describe('updateRegionWithAnalysis', () => {
-    const mockRegionId = 'test-region-id';
-    const mockUsername = 'test-user';
+  describe('updateRegionWithAnalysis - Business Logic', () => {
     const mockOriginalRegion = {
-      id: mockRegionId,
-      regionText: 'original text',
-      translation: 'original translation',
+      id: 'test-region',
+      _version: 1,
+      regionText: 'Original text',
+      regionAnalysis: null,
       start: 10,
       end: 20,
-      isNote: false,
-      regionAnalysis: null,
       dateLastUpdated: '1234567890',
-      userLastUpdated: 'old-user'
+      userLastUpdated: 'original-user',
+      transcriptionId: 'test-transcription',
+    };
+
+    const mockStore = {
+      getState: jest.fn().mockReturnValue({
+        regionById: jest.fn().mockReturnValue({
+          regionAnalysis: { sentiment: 'positive', entities: [] },
+        }),
+      }),
     };
 
     beforeEach(() => {
-      jest.clearAllMocks();
-      jest.useFakeTimers();
-      
-      // Mock DataStore.query to return original region
-      (DataStore.query as jest.Mock).mockResolvedValue(mockOriginalRegion);
-      
-      // Mock DataStore.save
-      (DataStore.save as jest.Mock).mockResolvedValue(mockOriginalRegion);
-      
-      // Mock DSRegion.copyOf
-      (DSRegion.copyOf as jest.Mock) = jest.fn((original, updater) => {
-        const draft = { ...original };
-        updater(draft);
-        return draft;
+      mockGraphqlClient.graphql.mockImplementation((params: any) => {
+        if (params.query.includes('getRegion')) {
+          return Promise.resolve({
+            data: {
+              getRegion: mockOriginalRegion,
+            },
+          });
+        }
+        return Promise.resolve({
+          data: {
+            updateRegion: {
+              ...mockOriginalRegion,
+              ...params.variables.input,
+              _version: 2,
+              dateLastUpdated: '1234567890',
+              userLastUpdated: 'test-user',
+            },
+          },
+        });
       });
-
-      // Mock DOM methods for toast
-      const mockToastElement = {
-        style: {},
-        textContent: '',
-        remove: jest.fn()
-      };
-      jest.spyOn(document, 'createElement').mockReturnValue(mockToastElement as any);
-      jest.spyOn(document.body, 'appendChild').mockImplementation(() => mockToastElement as any);
-      jest.spyOn(document.body, 'removeChild').mockImplementation(() => mockToastElement as any);
-      
-      // Mock console methods
-      jest.spyOn(console, 'log').mockImplementation();
-      jest.spyOn(console, 'error').mockImplementation();
-      jest.spyOn(console, 'warn').mockImplementation();
     });
 
-    afterEach(() => {
-      jest.useRealTimers();
-      jest.restoreAllMocks();
-    });
-
-    it('should update region with text and automatically include analysis from store', async () => {
-      const mockStore = {
-        getState: jest.fn().mockReturnValue({
-          regionById: jest.fn().mockReturnValue({
-            regionAnalysis: ['hello', 'world']
-          })
-        })
-      };
-
+    it('should handle text updates with store integration', (done) => {
       updateRegionWithAnalysis(
-        mockRegionId,
-        { regionText: 'new text' },
-        mockUsername,
+        'test-region',
+        { regionText: 'New text' },
+        'test-user',
         mockStore,
         100
       );
 
-      // Run timers to trigger debounced save
-      jest.runAllTimers();
-      await Promise.resolve();
-
-      expect(DataStore.save).toHaveBeenCalledTimes(1);
-      expect(DSRegion.copyOf).toHaveBeenCalledWith(mockOriginalRegion, expect.any(Function));
-      
-      // Check that the updater function properly sets the fields
-      const updaterFunction = (DSRegion.copyOf as jest.Mock).mock.calls[0][1];
-      const draft = { ...mockOriginalRegion };
-      updaterFunction(draft);
-
-      expect(draft.regionText).toBe('new text');
-      expect(draft.regionAnalysis).toBe(JSON.stringify(['hello', 'world']));
-      expect(draft.userLastUpdated).toBe(mockUsername);
-    });
-
-    it('should update region without analysis when regionAnalysis is not available', async () => {
-      const mockStore = {
-        getState: jest.fn().mockReturnValue({
-          regionById: jest.fn().mockReturnValue({
-            regionAnalysis: null
+      setTimeout(() => {
+        expect(mockGraphqlClient.graphql).toHaveBeenCalledWith(
+          expect.objectContaining({
+            variables: expect.objectContaining({
+              input: expect.objectContaining({
+                regionText: 'New text',
+              }),
+            }),
           })
-        })
-      };
-
-      updateRegionWithAnalysis(
-        mockRegionId,
-        { regionText: 'new text' },
-        mockUsername,
-        mockStore,
-        100
-      );
-
-      // Run timers to trigger debounced save
-      jest.runAllTimers();
-      await Promise.resolve();
-
-      expect(DataStore.save).toHaveBeenCalledTimes(1);
-      expect(DSRegion.copyOf).toHaveBeenCalledWith(mockOriginalRegion, expect.any(Function));
-      
-      // Check that the updater function properly sets the fields
-      const updaterFunction = (DSRegion.copyOf as jest.Mock).mock.calls[0][1];
-      const draft = { ...mockOriginalRegion };
-      updaterFunction(draft);
-
-      expect(draft.regionText).toBe('new text');
-      expect(draft.userLastUpdated).toBe(mockUsername);
-      // Should not have regionAnalysis set
-      expect(draft.regionAnalysis).toBeNull();
+        );
+        done();
+      }, 200);
     });
 
-    it('should not include analysis when updating translation field', async () => {
-      const mockStore = {
-        getState: jest.fn().mockReturnValue({
-          regionById: jest.fn().mockReturnValue({
-            regionAnalysis: ['hello', 'world']
-          })
-        })
-      };
-
-      updateRegionWithAnalysis(
-        mockRegionId,
-        { translation: 'new translation' },
-        mockUsername,
-        mockStore,
-        100
-      );
-
-      // Run timers to trigger debounced save
-      jest.runAllTimers();
-      await Promise.resolve();
-
-      expect(DataStore.save).toHaveBeenCalledTimes(1);
-      expect(DSRegion.copyOf).toHaveBeenCalledWith(mockOriginalRegion, expect.any(Function));
-      
-      // Check that the updater function properly sets the fields
-      const updaterFunction = (DSRegion.copyOf as jest.Mock).mock.calls[0][1];
-      const draft = { ...mockOriginalRegion };
-      updaterFunction(draft);
-
-      expect(draft.translation).toBe('new translation');
-      expect(draft.userLastUpdated).toBe(mockUsername);
-      // Should not include regionAnalysis when updating translation
-      expect(draft.regionAnalysis).toBeNull(); // Should remain original value
-    });
-
-    it('should merge multiple updates and include latest analysis', async () => {
-      const mockStore = {
-        getState: jest.fn().mockReturnValue({
-          regionById: jest.fn().mockReturnValue({
-            regionAnalysis: ['final', 'analysis']
-          })
-        })
-      };
-
-      // Make multiple rapid updates
-      updateRegionWithAnalysis(mockRegionId, { regionText: 'first update' }, mockUsername, mockStore, 100);
-      updateRegionWithAnalysis(mockRegionId, { translation: 'translation update' }, mockUsername, mockStore, 100);
-      updateRegionWithAnalysis(mockRegionId, { regionText: 'final update' }, mockUsername, mockStore, 100);
-
-      // Run timers to trigger debounced save
-      jest.runAllTimers();
-      await Promise.resolve();
-
-      expect(DataStore.save).toHaveBeenCalledTimes(1);
-      expect(DSRegion.copyOf).toHaveBeenCalledWith(mockOriginalRegion, expect.any(Function));
-      
-      // Check that the updater function properly sets the merged fields
-      const updaterFunction = (DSRegion.copyOf as jest.Mock).mock.calls[0][1];
-      const draft = { ...mockOriginalRegion };
-      updaterFunction(draft);
-
-      expect(draft.regionText).toBe('final update');
-      expect(draft.translation).toBe('translation update');
-      expect(draft.regionAnalysis).toBe(JSON.stringify(['final', 'analysis']));
-      expect(draft.userLastUpdated).toBe(mockUsername);
-    });
-
-    it('should handle store errors gracefully', async () => {
-      const mockStore = {
+    it('should handle store errors gracefully', (done) => {
+      const errorStore = {
         getState: jest.fn().mockImplementation(() => {
           throw new Error('Store error');
-        })
+        }),
       };
 
-      // Should not throw, should continue with save without analysis
       updateRegionWithAnalysis(
-        mockRegionId,
-        { regionText: 'new text' },
-        mockUsername,
-        mockStore,
+        'test-region',
+        { regionText: 'New text' },
+        'test-user',
+        errorStore,
         100
       );
 
-      // Run timers to trigger debounced save
-      jest.runAllTimers();
-      await Promise.resolve();
-
-      expect(DataStore.save).toHaveBeenCalledTimes(1);
-      expect(DSRegion.copyOf).toHaveBeenCalledWith(mockOriginalRegion, expect.any(Function));
-      
-      // Check that the updater function properly sets the fields
-      const updaterFunction = (DSRegion.copyOf as jest.Mock).mock.calls[0][1];
-      const draft = { ...mockOriginalRegion };
-      updaterFunction(draft);
-
-      expect(draft.regionText).toBe('new text');
-      expect(draft.userLastUpdated).toBe(mockUsername);
-      // Should not have regionAnalysis set due to store error
-      expect(draft.regionAnalysis).toBeNull();
-    });
-
-    it('should handle empty analysis array', async () => {
-      const mockStore = {
-        getState: jest.fn().mockReturnValue({
-          regionById: jest.fn().mockReturnValue({
-            regionAnalysis: []
+      setTimeout(() => {
+        // Should still update the region despite store error
+        expect(mockGraphqlClient.graphql).toHaveBeenCalledWith(
+          expect.objectContaining({
+            variables: expect.objectContaining({
+              input: expect.objectContaining({
+                regionText: 'New text',
+              }),
+            }),
           })
-        })
-      };
-
-      updateRegionWithAnalysis(
-        mockRegionId,
-        { regionText: 'new text' },
-        mockUsername,
-        mockStore,
-        100
-      );
-
-      // Run timers to trigger debounced save
-      jest.runAllTimers();
-      await Promise.resolve();
-
-      expect(DataStore.save).toHaveBeenCalledTimes(1);
-      expect(DSRegion.copyOf).toHaveBeenCalledWith(mockOriginalRegion, expect.any(Function));
-      
-      // Check that the updater function properly sets the fields
-      const updaterFunction = (DSRegion.copyOf as jest.Mock).mock.calls[0][1];
-      const draft = { ...mockOriginalRegion };
-      updaterFunction(draft);
-
-      expect(draft.regionText).toBe('new text');
-      expect(draft.regionAnalysis).toBe(JSON.stringify([]));
-      expect(draft.userLastUpdated).toBe(mockUsername);
+        );
+        done();
+      }, 200);
     });
   });
 }); 

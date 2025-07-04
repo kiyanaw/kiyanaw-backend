@@ -202,7 +202,7 @@
     "apienqueueRegionChange": {
       "Type": "AWS::CloudFormation::Stack",
       "Properties": {
-        "TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-upgradetwo-155254-deployment/amplify-cfn-templates/api/enqueueRegionChange-cloudformation-template.json",
+        "TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-auththree-6870f-deployment/amplify-cfn-templates/api/enqueueRegionChange-cloudformation-template.json",
         "Parameters": {
           "functionenqueueRegionChangeName": {
             "Fn::GetAtt": [
@@ -216,39 +216,45 @@
               "Outputs.Arn"
             ]
           },
-          "env": "upgradetwo"
+          "env": "auththree"
         }
       }
     },
     "apikiyanaw": {
       "Type": "AWS::CloudFormation::Stack",
       "Properties": {
-        "TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-upgradetwo-155254-deployment/amplify-cfn-templates/api/cloudformation-template.json",
+        "TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-auththree-6870f-deployment/amplify-cfn-templates/api/cloudformation-template.json",
         "Parameters": {
           "AppSyncApiName": "kiyanaw",
           "DynamoDBBillingMode": "PAY_PER_REQUEST",
           "DynamoDBEnableServerSideEncryption": false,
+          "AuthCognitoUserPoolId": {
+            "Fn::GetAtt": [
+              "authkiyanaw4007d1974007d197",
+              "Outputs.UserPoolId"
+            ]
+          },
           "authRoleName": {
             "Ref": "AuthRoleName"
           },
           "unauthRoleName": {
             "Ref": "UnauthRoleName"
           },
-          "S3DeploymentBucket": "amplify-kiyanaw-upgradetwo-155254-deployment",
-          "S3DeploymentRootKey": "amplify-appsync-files/09402f45ec17c2694cd8791d9fb21ee9531ee824",
-          "env": "upgradetwo"
+          "S3DeploymentBucket": "amplify-kiyanaw-auththree-6870f-deployment",
+          "S3DeploymentRootKey": "amplify-appsync-files/16af446601edfcda7ef24f5203ba6f701ea9bd9a",
+          "env": "auththree"
         }
       }
     },
-    "authkiyanawd20b7994": {
+    "authkiyanaw4007d1974007d197": {
       "Type": "AWS::CloudFormation::Stack",
       "Properties": {
-        "TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-upgradetwo-155254-deployment/amplify-cfn-templates/auth/kiyanawd20b7994-cloudformation-template.json",
+        "TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-auththree-6870f-deployment/amplify-cfn-templates/auth/kiyanaw4007d1974007d197-cloudformation-template.json",
         "Parameters": {
-          "identityPoolName": "kiyanawd20b7994_identitypool_d20b7994",
+          "identityPoolName": "kiyanaw4007d197_identitypool_4007d197",
           "allowUnauthenticatedIdentities": false,
-          "resourceNameTruncated": "kiyanad20b7994",
-          "userPoolName": "kiyanawd20b7994_userpool_d20b7994",
+          "resourceNameTruncated": "kiyana4007d197",
+          "userPoolName": "kiyanaw4007d197_userpool_4007d197",
           "autoVerifiedAttributes": "email",
           "mfaConfiguration": "OFF",
           "mfaTypes": "SMS Text Message",
@@ -265,13 +271,18 @@
           "userpoolClientRefreshTokenValidity": 30,
           "userpoolClientWriteAttributes": "email",
           "userpoolClientReadAttributes": "email",
-          "userpoolClientLambdaRole": "kiyanad20b7994_userpoolclient_lambda_role",
+          "userpoolClientLambdaRole": "kiyana4007d197_userpoolclient_lambda_role",
           "userpoolClientSetAttributes": false,
-          "sharedId": "d20b7994",
-          "resourceName": "kiyanawd20b7994",
+          "sharedId": "4007d197",
+          "resourceName": "kiyanaw4007d1974007d197",
           "authSelections": "identityPoolAndUserPool",
-          "useDefault": "default",
+          "useDefault": "manual",
+          "thirdPartyAuth": false,
+          "usernameAttributes": "email",
+          "userPoolGroups": false,
+          "adminQueries": false,
           "triggers": "{}",
+          "hostedUI": false,
           "userPoolGroupList": "",
           "serviceName": "Cognito",
           "useEnabledMfas": false,
@@ -289,72 +300,57 @@
           },
           "breakCircularDependency": true,
           "dependsOn": "",
-          "parentStack": {
-            "Ref": "AWS::StackId"
-          },
-          "permissions": "",
-          "env": "upgradetwo"
+          "env": "auththree"
         }
       }
     },
     "functionenqueueRegionChange": {
       "Type": "AWS::CloudFormation::Stack",
       "Properties": {
-        "TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-upgradetwo-155254-deployment/amplify-cfn-templates/function/enqueueRegionChange-cloudformation-template.json",
+        "TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-auththree-6870f-deployment/amplify-cfn-templates/function/enqueueRegionChange-cloudformation-template.json",
         "Parameters": {
-          "deploymentBucketName": "amplify-kiyanaw-upgradetwo-155254-deployment",
-          "s3Key": "amplify-builds/enqueueRegionChange-6f4a6e5932586868554f-build.zip",
-          "env": "upgradetwo"
+          "deploymentBucketName": "amplify-kiyanaw-auththree-6870f-deployment",
+          "s3Key": "amplify-builds/enqueueRegionChange-744b7442427247344a4d-build.zip",
+          "env": "auththree"
         }
       }
     },
     "functionindexRegionData": {
       "Type": "AWS::CloudFormation::Stack",
       "Properties": {
-        "TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-upgradetwo-155254-deployment/amplify-cfn-templates/function/indexRegionData-cloudformation-template.json",
+        "TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-auththree-6870f-deployment/amplify-cfn-templates/function/indexRegionData-cloudformation-template.json",
         "Parameters": {
-          "deploymentBucketName": "amplify-kiyanaw-upgradetwo-155254-deployment",
-          "s3Key": "amplify-builds/indexRegionData-453065364a7867754a67-build.zip",
-          "env": "upgradetwo"
+          "deploymentBucketName": "amplify-kiyanaw-auththree-6870f-deployment",
+          "s3Key": "amplify-builds/indexRegionData-6b4f4e354d5543347559-build.zip",
+          "env": "auththree"
         }
       }
     },
     "functionnotifyRegionChanges": {
       "Type": "AWS::CloudFormation::Stack",
       "Properties": {
-        "TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-upgradetwo-155254-deployment/amplify-cfn-templates/function/notifyRegionChanges-cloudformation-template.json",
+        "TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-auththree-6870f-deployment/amplify-cfn-templates/function/notifyRegionChanges-cloudformation-template.json",
         "Parameters": {
-          "deploymentBucketName": "amplify-kiyanaw-upgradetwo-155254-deployment",
-          "s3Key": "amplify-builds/notifyRegionChanges-3942386f532b46716a4a-build.zip",
-          "env": "upgradetwo"
-        }
-      }
-    },
-    "functionsyncConflictHandler092e0049": {
-      "Type": "AWS::CloudFormation::Stack",
-      "Properties": {
-        "TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-upgradetwo-155254-deployment/amplify-cfn-templates/function/syncConflictHandler092e0049-cloudformation-template.json",
-        "Parameters": {
-          "deploymentBucketName": "amplify-kiyanaw-upgradetwo-155254-deployment",
-          "s3Key": "amplify-builds/syncConflictHandler092e0049-7a4a755a424469687669-build.zip",
-          "env": "upgradetwo"
+          "deploymentBucketName": "amplify-kiyanaw-auththree-6870f-deployment",
+          "s3Key": "amplify-builds/notifyRegionChanges-55394376497645314a37-build.zip",
+          "env": "auththree"
         }
       }
     },
     "hostingS3AndCloudFront": {
       "Type": "AWS::CloudFormation::Stack",
       "Properties": {
-        "TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-upgradetwo-155254-deployment/amplify-cfn-templates/hosting/template.json",
+        "TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-auththree-6870f-deployment/amplify-cfn-templates/hosting/template.json",
         "Parameters": {
           "bucketName": "kiyanaw-20231209160100-hostingbucket",
-          "env": "upgradetwo"
+          "env": "auththree"
         }
       }
     },
     "storagetranscriptions": {
       "Type": "AWS::CloudFormation::Stack",
       "Properties": {
-        "TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-upgradetwo-155254-deployment/amplify-cfn-templates/storage/s3-cloudformation-template.json",
+        "TemplateURL": "https://s3.amazonaws.com/amplify-kiyanaw-auththree-6870f-deployment/amplify-cfn-templates/storage/s3-cloudformation-template.json",
         "Parameters": {
           "bucketName": "kiyanawb9b0a37496e34efd8156e27ad4220e33",
           "authPolicyName": "s3_amplify_9178e6b4",
@@ -381,7 +377,7 @@
           "s3PermissionsGuestUploads": "DISALLOW",
           "GuestAllowList": "ALLOW",
           "triggerFunction": "NONE",
-          "env": "upgradetwo"
+          "env": "auththree"
         }
       }
     },
@@ -389,7 +385,7 @@
       "DependsOn": [
         "AuthRole",
         "UnauthRole",
-        "authkiyanawd20b7994"
+        "authkiyanaw4007d1974007d197"
       ],
       "Type": "AWS::Lambda::Function",
       "Properties": {
@@ -499,7 +495,7 @@
         },
         "idpId": {
           "Fn::GetAtt": [
-            "authkiyanawd20b7994",
+            "authkiyanaw4007d1974007d197",
             "Outputs.IdentityPoolId"
           ]
         },

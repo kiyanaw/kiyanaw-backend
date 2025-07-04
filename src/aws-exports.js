@@ -6,19 +6,21 @@ const awsmobile = {
     "aws_cloud_logic_custom": [
         {
             "name": "enqueueRegionChange",
-            "endpoint": "https://mhh49qvn0g.execute-api.us-east-1.amazonaws.com/upgradetwo",
+            "endpoint": "https://y5ofwcryxb.execute-api.us-east-1.amazonaws.com/auththree",
             "region": "us-east-1"
         }
     ],
-    "aws_appsync_graphqlEndpoint": "https://ph2hhwbimjczvhda2sqpbaklau.appsync-api.us-east-1.amazonaws.com/graphql",
+    "aws_appsync_graphqlEndpoint": "https://zy57szscwrajben2hic42hdf5a.appsync-api.us-east-1.amazonaws.com/graphql",
     "aws_appsync_region": "us-east-1",
-    "aws_appsync_authenticationType": "AWS_IAM",
-    "aws_cognito_identity_pool_id": "us-east-1:2687d5bd-c9c9-41d7-8194-6ac5fbb2ae66",
+    "aws_appsync_authenticationType": "AMAZON_COGNITO_USER_POOLS",
+    "aws_cognito_identity_pool_id": "us-east-1:da7d1689-008b-4a3f-b7d1-794fa1f30ef7",
     "aws_cognito_region": "us-east-1",
-    "aws_user_pools_id": "us-east-1_mR8Pj0kJ6",
-    "aws_user_pools_web_client_id": "6t702k9be2nai50fe16bjhqsos",
+    "aws_user_pools_id": "us-east-1_wScN676j0",
+    "aws_user_pools_web_client_id": "77v0vu37idteja7g3svgv3l087",
     "oauth": {},
-    "aws_cognito_username_attributes": [],
+    "aws_cognito_username_attributes": [
+        "EMAIL"
+    ],
     "aws_cognito_social_providers": [],
     "aws_cognito_signup_attributes": [
         "EMAIL"
@@ -34,10 +36,10 @@ const awsmobile = {
     "aws_cognito_verification_mechanisms": [
         "EMAIL"
     ],
-    "aws_content_delivery_bucket": "kiyanaw-20231209160100-hostingbucket-upgradetwo",
+    "aws_content_delivery_bucket": "kiyanaw-20231209160100-hostingbucket-auththree",
     "aws_content_delivery_bucket_region": "us-east-1",
-    "aws_content_delivery_url": "https://d1tzcnq1t8nfb4.cloudfront.net",
-    "aws_user_files_s3_bucket": "kiyanawb9b0a37496e34efd8156e27ad4220e33-upgradetwo",
+    "aws_content_delivery_url": "https://d2z307nxk0qs60.cloudfront.net",
+    "aws_user_files_s3_bucket": "kiyanawb9b0a37496e34efd8156e27ad4220e33-auththree",
     "aws_user_files_s3_bucket_region": "us-east-1"
 };
 

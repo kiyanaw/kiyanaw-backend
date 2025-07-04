@@ -26,14 +26,24 @@ export class LoadTranscription {
     const wavesurferService = this.config.services.wavesurferService
     const browserService = this.config.services.browserService
     const spellCheckerService = this.config.services.spellCheckerService
+    const userService = this.config.services.userService
     
     try {
       const data = await transcriptionService.loadInFull(this.config.transcriptionId);
-      const user = services.userService.currentUser()
+      
+      // Check if access was denied
+      if (data === false) {
+        this.config.store.setAccessDenied(true);
+        return;
+      }
+      
+      const user = userService.currentUser()
 
       console.log('>>> loaded in full', data, user)
-      // editors is a set of IDs so we need to resolve those
-
+      
+      // Check if user can edit this transcription
+      const canEdit = userService.canEditTranscription(data.transcription);
+      this.config.store.setCanEdit(canEdit);
       
       // Check if there's a regionId in the URL that we should select
       const selectedRegionId = browserService.getRegionIdFromUrl();
@@ -51,7 +61,7 @@ export class LoadTranscription {
       }
 
       // load wavesurfer details _outside_ the React system
-      wavesurferService.load(data.transcription.source, data.peaks)
+      await wavesurferService.load(data.transcription.source, data.peaks)
       wavesurferService.setRegions(data.regions)
       
       // If we have a selected region, seek to it in the wavesurfer and apply styling

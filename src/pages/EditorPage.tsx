@@ -1,4 +1,4 @@
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 
 import { useEditorStore } from '../stores/useEditorStore';
@@ -16,15 +16,25 @@ export const EditorPage = () => {
     id: string;
   }>();
   
+  const navigate = useNavigate();
+  
   useLoadTranscription(transcriptionId!);
   
   // Editor store selectors
   const transcription = useEditorStore((state) => state.transcription);
+  const accessDenied = useEditorStore((state) => state.accessDenied);
   
   useWavesurferEvents(transcriptionId!, transcription?.source);
   const peaks = useEditorStore((state) => state.peaks);
   const regions = useEditorStore((state) => state.regions);
   const selectedRegion = useEditorStore((state) => state.selectedRegion);
+
+  // Redirect to 404 if access is denied
+  useEffect(() => {
+    if (accessDenied) {
+      navigate('/404', { replace: true });
+    }
+  }, [accessDenied, navigate]);
 
   // THE ONLY TIME USEEFFECT IS ALLOWED, TO RETURN A CLEAN UP FUNCTION
   useEffect(() => {
@@ -43,8 +53,10 @@ export const EditorPage = () => {
 
   return (
     <div className="flex flex-col h-full overflow-hidden relative">
-      {/* Loading/Error/Not Found Overlay */}
-      {(!transcription) && (
+      {/* Access denied handled */}
+
+      {/* Loading Overlay */}
+      {(!transcription && !accessDenied) && (
         <div className="absolute inset-0 bg-white flex flex-col items-center justify-center z-10">
           <div className="flex flex-col items-center justify-center h-full p-8 text-center">
             <div className="w-10 h-10 border-4 border-gray-300 border-t-ki-blue rounded-full animate-spin mb-4"></div>
@@ -61,14 +73,13 @@ export const EditorPage = () => {
             <WaveformPlayer
               source={transcription.source || ''}
               peaks={peaks}
-              canEdit={true}
               inboundRegion={''}
               regions={regions}
               isVideo={isVideo}
               title={transcription.title || ''}
               onRegionUpdate={() => {}}
               onLookup={() => {}}
-              />
+            />
           </div>
         </div>
         </>

@@ -8,7 +8,6 @@ import { spellCheckerService } from './spellCheckerService';
 import { textHighlightService } from './textHighlightService';
 import { awsConfigService } from './awsConfigService';
 import { uploadService } from './uploadService';
-import { contributorService } from './contributorService';
 import * as toastService from './toastService';
 
 export const services = {
@@ -23,6 +22,5 @@ export const services = {
   textHighlightService,
   awsConfigService,
   uploadService,
-  contributorService,
   toastService,
 };

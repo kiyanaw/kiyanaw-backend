@@ -23,17 +23,21 @@ export const createTranscription = /* GraphQL */ `
       isPrivate
       isPublished
       disableAnalyzer
-      contributors {
-        nextToken
-        startedAt
-        __typename
-      }
+      editors
+      viewers
+      editorGroups
+      viewerGroups
       regions {
         nextToken
         startedAt
         __typename
       }
       issueList {
+        nextToken
+        startedAt
+        __typename
+      }
+      contributors {
         nextToken
         startedAt
         __typename
@@ -69,17 +73,21 @@ export const updateTranscription = /* GraphQL */ `
       isPrivate
       isPublished
       disableAnalyzer
-      contributors {
-        nextToken
-        startedAt
-        __typename
-      }
+      editors
+      viewers
+      editorGroups
+      viewerGroups
       regions {
         nextToken
         startedAt
         __typename
       }
       issueList {
+        nextToken
+        startedAt
+        __typename
+      }
+      contributors {
         nextToken
         startedAt
         __typename
@@ -115,17 +123,21 @@ export const deleteTranscription = /* GraphQL */ `
       isPrivate
       isPublished
       disableAnalyzer
-      contributors {
-        nextToken
-        startedAt
-        __typename
-      }
+      editors
+      viewers
+      editorGroups
+      viewerGroups
       regions {
         nextToken
         startedAt
         __typename
       }
       issueList {
+        nextToken
+        startedAt
+        __typename
+      }
+      contributors {
         nextToken
         startedAt
         __typename
@@ -151,7 +163,6 @@ export const createRegion = /* GraphQL */ `
       regionText
       regionAnalysis
       isNote
-      comments
       translation
       dateLastUpdated
       userLastUpdated
@@ -172,6 +183,10 @@ export const createRegion = /* GraphQL */ `
         isPrivate
         isPublished
         disableAnalyzer
+        editors
+        viewers
+        editorGroups
+        viewerGroups
         createdAt
         updatedAt
         _version
@@ -201,7 +216,6 @@ export const updateRegion = /* GraphQL */ `
       regionText
       regionAnalysis
       isNote
-      comments
       translation
       dateLastUpdated
       userLastUpdated
@@ -222,6 +236,10 @@ export const updateRegion = /* GraphQL */ `
         isPrivate
         isPublished
         disableAnalyzer
+        editors
+        viewers
+        editorGroups
+        viewerGroups
         createdAt
         updatedAt
         _version
@@ -251,7 +269,6 @@ export const deleteRegion = /* GraphQL */ `
       regionText
       regionAnalysis
       isNote
-      comments
       translation
       dateLastUpdated
       userLastUpdated
@@ -272,6 +289,10 @@ export const deleteRegion = /* GraphQL */ `
         isPrivate
         isPublished
         disableAnalyzer
+        editors
+        viewers
+        editorGroups
+        viewerGroups
         createdAt
         updatedAt
         _version
@@ -320,6 +341,10 @@ export const createIssue = /* GraphQL */ `
         isPrivate
         isPublished
         disableAnalyzer
+        editors
+        viewers
+        editorGroups
+        viewerGroups
         createdAt
         updatedAt
         _version
@@ -368,6 +393,10 @@ export const updateIssue = /* GraphQL */ `
         isPrivate
         isPublished
         disableAnalyzer
+        editors
+        viewers
+        editorGroups
+        viewerGroups
         createdAt
         updatedAt
         _version
@@ -416,6 +445,10 @@ export const deleteIssue = /* GraphQL */ `
         isPrivate
         isPublished
         disableAnalyzer
+        editors
+        viewers
+        editorGroups
+        viewerGroups
         createdAt
         updatedAt
         _version
@@ -424,123 +457,6 @@ export const deleteIssue = /* GraphQL */ `
         __typename
       }
       transcriptionId
-      createdAt
-      updatedAt
-      _version
-      _deleted
-      _lastChangedAt
-      __typename
-    }
-  }
-`;
-export const createPointer = /* GraphQL */ `
-  mutation CreatePointer(
-    $input: CreatePointerInput!
-    $condition: ModelPointerConditionInput
-  ) {
-    createPointer(input: $input, condition: $condition) {
-      id
-      transcription
-      region
-      cursor
-      owner
-      createdAt
-      updatedAt
-      _version
-      _deleted
-      _lastChangedAt
-      __typename
-    }
-  }
-`;
-export const updatePointer = /* GraphQL */ `
-  mutation UpdatePointer(
-    $input: UpdatePointerInput!
-    $condition: ModelPointerConditionInput
-  ) {
-    updatePointer(input: $input, condition: $condition) {
-      id
-      transcription
-      region
-      cursor
-      owner
-      createdAt
-      updatedAt
-      _version
-      _deleted
-      _lastChangedAt
-      __typename
-    }
-  }
-`;
-export const deletePointer = /* GraphQL */ `
-  mutation DeletePointer(
-    $input: DeletePointerInput!
-    $condition: ModelPointerConditionInput
-  ) {
-    deletePointer(input: $input, condition: $condition) {
-      id
-      transcription
-      region
-      cursor
-      owner
-      createdAt
-      updatedAt
-      _version
-      _deleted
-      _lastChangedAt
-      __typename
-    }
-  }
-`;
-export const createRegionLock = /* GraphQL */ `
-  mutation CreateRegionLock(
-    $input: CreateRegionLockInput!
-    $condition: ModelRegionLockConditionInput
-  ) {
-    createRegionLock(input: $input, condition: $condition) {
-      id
-      transcriptionId
-      deleteTime
-      user
-      createdAt
-      updatedAt
-      _version
-      _deleted
-      _lastChangedAt
-      __typename
-    }
-  }
-`;
-export const updateRegionLock = /* GraphQL */ `
-  mutation UpdateRegionLock(
-    $input: UpdateRegionLockInput!
-    $condition: ModelRegionLockConditionInput
-  ) {
-    updateRegionLock(input: $input, condition: $condition) {
-      id
-      transcriptionId
-      deleteTime
-      user
-      createdAt
-      updatedAt
-      _version
-      _deleted
-      _lastChangedAt
-      __typename
-    }
-  }
-`;
-export const deleteRegionLock = /* GraphQL */ `
-  mutation DeleteRegionLock(
-    $input: DeleteRegionLockInput!
-    $condition: ModelRegionLockConditionInput
-  ) {
-    deleteRegionLock(input: $input, condition: $condition) {
-      id
-      transcriptionId
-      deleteTime
-      user
       createdAt
       updatedAt
       _version
@@ -619,117 +535,6 @@ export const deleteContributor = /* GraphQL */ `
     }
   }
 `;
-export const createCursor = /* GraphQL */ `
-  mutation CreateCursor(
-    $input: CreateCursorInput!
-    $condition: ModelCursorConditionInput
-  ) {
-    createCursor(input: $input, condition: $condition) {
-      id
-      user
-      cursor
-      createdAt
-      updatedAt
-      _version
-      _deleted
-      _lastChangedAt
-      __typename
-    }
-  }
-`;
-export const updateCursor = /* GraphQL */ `
-  mutation UpdateCursor(
-    $input: UpdateCursorInput!
-    $condition: ModelCursorConditionInput
-  ) {
-    updateCursor(input: $input, condition: $condition) {
-      id
-      user
-      cursor
-      createdAt
-      updatedAt
-      _version
-      _deleted
-      _lastChangedAt
-      __typename
-    }
-  }
-`;
-export const deleteCursor = /* GraphQL */ `
-  mutation DeleteCursor(
-    $input: DeleteCursorInput!
-    $condition: ModelCursorConditionInput
-  ) {
-    deleteCursor(input: $input, condition: $condition) {
-      id
-      user
-      cursor
-      createdAt
-      updatedAt
-      _version
-      _deleted
-      _lastChangedAt
-      __typename
-    }
-  }
-`;
-export const createUserCursor = /* GraphQL */ `
-  mutation CreateUserCursor(
-    $input: CreateUserCursorInput!
-    $condition: ModelUserCursorConditionInput
-  ) {
-    createUserCursor(input: $input, condition: $condition) {
-      id
-      transcription
-      region
-      cursor
-      createdAt
-      updatedAt
-      _version
-      _deleted
-      _lastChangedAt
-      __typename
-    }
-  }
-`;
-export const updateUserCursor = /* GraphQL */ `
-  mutation UpdateUserCursor(
-    $input: UpdateUserCursorInput!
-    $condition: ModelUserCursorConditionInput
-  ) {
-    updateUserCursor(input: $input, condition: $condition) {
-      id
-      transcription
-      region
-      cursor
-      createdAt
-      updatedAt
-      _version
-      _deleted
-      _lastChangedAt
-      __typename
-    }
-  }
-`;
-export const deleteUserCursor = /* GraphQL */ `
-  mutation DeleteUserCursor(
-    $input: DeleteUserCursorInput!
-    $condition: ModelUserCursorConditionInput
-  ) {
-    deleteUserCursor(input: $input, condition: $condition) {
-      id
-      transcription
-      region
-      cursor
-      createdAt
-      updatedAt
-      _version
-      _deleted
-      _lastChangedAt
-      __typename
-    }
-  }
-`;
 export const createTranscriptionContributor = /* GraphQL */ `
   mutation CreateTranscriptionContributor(
     $input: CreateTranscriptionContributorInput!
@@ -756,6 +561,10 @@ export const createTranscriptionContributor = /* GraphQL */ `
         isPrivate
         isPublished
         disableAnalyzer
+        editors
+        viewers
+        editorGroups
+        viewerGroups
         createdAt
         updatedAt
         _version
@@ -809,6 +618,10 @@ export const updateTranscriptionContributor = /* GraphQL */ `
         isPrivate
         isPublished
         disableAnalyzer
+        editors
+        viewers
+        editorGroups
+        viewerGroups
         createdAt
         updatedAt
         _version
@@ -862,6 +675,10 @@ export const deleteTranscriptionContributor = /* GraphQL */ `
         isPrivate
         isPublished
         disableAnalyzer
+        editors
+        viewers
+        editorGroups
+        viewerGroups
         createdAt
         updatedAt
         _version

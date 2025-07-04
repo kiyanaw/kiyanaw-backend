@@ -2,12 +2,18 @@
     "AppSyncApiName": "kiyanaw",
     "DynamoDBBillingMode": "PAY_PER_REQUEST",
     "DynamoDBEnableServerSideEncryption": false,
+    "AuthCognitoUserPoolId": {
+        "Fn::GetAtt": [
+            "authkiyanaw4007d1974007d197",
+            "Outputs.UserPoolId"
+        ]
+    },
     "authRoleName": {
         "Ref": "AuthRoleName"
     },
     "unauthRoleName": {
         "Ref": "UnauthRoleName"
     },
-    "S3DeploymentBucket": "amplify-kiyanaw-upgradetwo-155254-deployment",
-    "S3DeploymentRootKey": "amplify-appsync-files/09402f45ec17c2694cd8791d9fb21ee9531ee824"
+    "S3DeploymentBucket": "amplify-kiyanaw-auththree-6870f-deployment",
+    "S3DeploymentRootKey": "amplify-appsync-files/16af446601edfcda7ef24f5203ba6f701ea9bd9a"
 }

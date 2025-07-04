@@ -2,6 +2,7 @@ import WaveSurfer from 'wavesurfer.js';
 import Regions from 'wavesurfer.js/dist/plugins/regions.esm.js';
 import Timeline from 'wavesurfer.js/dist/plugins/timeline.esm.js';
 import mitt from 'mitt';
+import { generateSignedUrl } from './transcriptionService';
 
 
 class WaveSurferService {
@@ -26,6 +27,7 @@ class WaveSurferService {
   private _inboundRegionCurrentHighlighted: any = null
   // Tracks the region we want to stop playback at (for region-bounded playback)
   private _playbackBoundRegion: { id: string, start: number, end: number } | null = null
+  private _canEdit: boolean = false
 
   private REGION_BACKGROUND_COLOR = 'rgba(0, 0, 0, 0.1)'
   private REGION_HIGHLIGHTED_COLOR = 'rgba(0, 213, 255, 0.1)'
@@ -41,12 +43,14 @@ class WaveSurferService {
     return WaveSurferService.instance;
   }
 
-  initialize(container: HTMLElement, timelineContainer: HTMLElement, mediaElement?: HTMLMediaElement): WaveSurfer {
+  initialize(container: HTMLElement, timelineContainer: HTMLElement, mediaElement?: HTMLMediaElement, canEdit: boolean = false): WaveSurfer {
     // Check if containers have changed
     const containersChanged =
       this.currentContainer !== container ||
       this.currentTimelineContainer !== timelineContainer ||
       this.currentMediaElement !== (mediaElement || null);
+    
+    const canEditChanged = this._canEdit !== canEdit;
 
     if (this.wavesurfer && containersChanged) {
       // Preserve delayed regions before destroying
@@ -63,25 +67,32 @@ class WaveSurferService {
       this._delayedLoad = preservedDelayedLoad;
       
       // Create new instance with new containers
-      this._createNewInstance(container, timelineContainer, mediaElement);
+      this._createNewInstance(container, timelineContainer, mediaElement, canEdit);
       
       return this.wavesurfer!;
     }
     
     if (this.wavesurfer) {
+      // If only canEdit changed, we'd need to recreate the instance since 
+      // drag selection can only be enabled at creation time
+      if (canEditChanged && !containersChanged) {
+        // For now, just store the new value - drag selection state won't change
+        this._canEdit = canEdit;
+      }
       return this.wavesurfer;
     }
 
     // Create new instance
-    this._createNewInstance(container, timelineContainer, mediaElement);
+    this._createNewInstance(container, timelineContainer, mediaElement, canEdit);
     return this.wavesurfer!;
   }
 
-  private _createNewInstance(container: HTMLElement, timelineContainer: HTMLElement, mediaElement?: HTMLMediaElement): void {
+  private _createNewInstance(container: HTMLElement, timelineContainer: HTMLElement, mediaElement?: HTMLMediaElement, canEdit: boolean = false): void {
     // Store container references
     this.currentContainer = container;
     this.currentTimelineContainer = timelineContainer;
     this.currentMediaElement = mediaElement || null;
+    this._canEdit = canEdit;
 
 
 
@@ -104,14 +115,16 @@ class WaveSurferService {
       plugins: [this.regionsPlugin, this.timelinePlugin],
     });
 
-    // TODO: we'll need to check permissions for this, maybe add an .enableDragSelection()?
-    this.regionsPlugin.enableDragSelection({}, 5);
+    // Enable drag selection based on canEdit permissions
+    if (this._canEdit) {
+      this.regionsPlugin.enableDragSelection({}, 5);
+    }
 
     this.registerEvents();
 
     // If we have a delayed load waiting, process it immediately after creation
     if (this._delayedLoad) {
-      this.wavesurfer.load(this._delayedLoad.source, this._delayedLoad.peaks);
+      this.load(this._delayedLoad.source, this._delayedLoad.peaks);
       this._delayedLoad = null;
     }
 
@@ -126,8 +139,8 @@ class WaveSurferService {
       this.ready = true
       
       if (this._delayedLoad !== null) {
-        this.wavesurfer?.load(this._delayedLoad.source, this._delayedLoad.peaks)
-        this._delayedLoad = null
+        this.load(this._delayedLoad.source, this._delayedLoad.peaks);
+        this._delayedLoad = null;
       }
       
       if (this._delayedRegions.length) {
@@ -288,21 +301,35 @@ class WaveSurferService {
   }
 
   // Set a new source URL and peaks data
-  load(source:string, peaks: any): void{
+  async load(source: string, peaks: any): Promise<void> {
     if (!this.wavesurfer) {
       this._delayedLoad = { source, peaks };
       return;
     }
     
-    if (this.currentMediaElement) {
-      // If we have a media element, we just need to load the peaks.
-      // The media is already being loaded by the video tag's src attribute.
-      // Passing the source URL again to load() would cause a second fetch.
-      // We pass the source here so wavesurfer can show a timeline, but it won't re-fetch.
-      this.wavesurfer?.load(source, peaks)
-    } else {
-      // For audio-only, load the media source directly.
-      this.wavesurfer?.load(source, peaks)
+    try {
+      let signedMediaUrl: string;
+      
+      if (this.currentMediaElement) {
+        // If we have a media element, we need to set the src attribute to the signed URL
+        // and then load peaks only in wavesurfer
+        signedMediaUrl = await generateSignedUrl(source);
+        this.currentMediaElement.src = signedMediaUrl;
+        this.wavesurfer?.load(signedMediaUrl, peaks);
+      } else {
+        // For audio-only, load the signed media source directly.
+        signedMediaUrl = await generateSignedUrl(source);
+        this.wavesurfer?.load(signedMediaUrl, peaks);
+      }
+    } catch (error) {
+      console.error('Failed to load media with signed URL:', error);
+      // Fallback to original URL if signing fails
+      if (this.currentMediaElement) {
+        this.currentMediaElement.src = source;
+        this.wavesurfer?.load(source, peaks);
+      } else {
+        this.wavesurfer?.load(source, peaks);
+      }
     }
   }
 
@@ -321,7 +348,8 @@ class WaveSurferService {
             start: region.start,
             end: region.end,
             content: `${index + 1}`,
-            resize: true,
+            resize: this._canEdit, // Only allow resize if user can edit
+            drag: this._canEdit,   // Only allow drag if user can edit
           }
           this.regionsPlugin.addRegion(input);
         });
@@ -433,6 +461,8 @@ class WaveSurferService {
     this.muteEvents = false;
     this.clearAllListeners();
   }
+
+
 }
 
 // Export the singleton instance

@@ -20,17 +20,21 @@ export const getTranscription = /* GraphQL */ `
       isPrivate
       isPublished
       disableAnalyzer
-      contributors {
-        nextToken
-        startedAt
-        __typename
-      }
+      editors
+      viewers
+      editorGroups
+      viewerGroups
       regions {
         nextToken
         startedAt
         __typename
       }
       issueList {
+        nextToken
+        startedAt
+        __typename
+      }
+      contributors {
         nextToken
         startedAt
         __typename
@@ -76,6 +80,10 @@ export const listTranscriptions = /* GraphQL */ `
         isPrivate
         isPublished
         disableAnalyzer
+        editors
+        viewers
+        editorGroups
+        viewerGroups
         createdAt
         updatedAt
         _version
@@ -119,6 +127,59 @@ export const syncTranscriptions = /* GraphQL */ `
         isPrivate
         isPublished
         disableAnalyzer
+        editors
+        viewers
+        editorGroups
+        viewerGroups
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      nextToken
+      startedAt
+      __typename
+    }
+  }
+`;
+export const byTitle = /* GraphQL */ `
+  query ByTitle(
+    $title: String!
+    $sortDirection: ModelSortDirection
+    $filter: ModelTranscriptionFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    byTitle(
+      title: $title
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        author
+        coverage
+        dateLastUpdated
+        userLastUpdated
+        length
+        issues
+        comments
+        tags
+        source
+        index
+        title
+        type
+        isPrivate
+        isPublished
+        disableAnalyzer
+        editors
+        viewers
+        editorGroups
+        viewerGroups
         createdAt
         updatedAt
         _version
@@ -141,7 +202,6 @@ export const getRegion = /* GraphQL */ `
       regionText
       regionAnalysis
       isNote
-      comments
       translation
       dateLastUpdated
       userLastUpdated
@@ -162,6 +222,10 @@ export const getRegion = /* GraphQL */ `
         isPrivate
         isPublished
         disableAnalyzer
+        editors
+        viewers
+        editorGroups
+        viewerGroups
         createdAt
         updatedAt
         _version
@@ -201,7 +265,6 @@ export const listRegions = /* GraphQL */ `
         regionText
         regionAnalysis
         isNote
-        comments
         translation
         dateLastUpdated
         userLastUpdated
@@ -239,7 +302,6 @@ export const syncRegions = /* GraphQL */ `
         regionText
         regionAnalysis
         isNote
-        comments
         translation
         dateLastUpdated
         userLastUpdated
@@ -285,6 +347,10 @@ export const getIssue = /* GraphQL */ `
         isPrivate
         isPublished
         disableAnalyzer
+        editors
+        viewers
+        editorGroups
+        viewerGroups
         createdAt
         updatedAt
         _version
@@ -363,171 +429,6 @@ export const syncIssues = /* GraphQL */ `
         comments
         regionId
         transcriptionId
-        createdAt
-        updatedAt
-        _version
-        _deleted
-        _lastChangedAt
-        __typename
-      }
-      nextToken
-      startedAt
-      __typename
-    }
-  }
-`;
-export const getPointer = /* GraphQL */ `
-  query GetPointer($id: ID!) {
-    getPointer(id: $id) {
-      id
-      transcription
-      region
-      cursor
-      owner
-      createdAt
-      updatedAt
-      _version
-      _deleted
-      _lastChangedAt
-      __typename
-    }
-  }
-`;
-export const listPointers = /* GraphQL */ `
-  query ListPointers(
-    $id: ID
-    $filter: ModelPointerFilterInput
-    $limit: Int
-    $nextToken: String
-    $sortDirection: ModelSortDirection
-  ) {
-    listPointers(
-      id: $id
-      filter: $filter
-      limit: $limit
-      nextToken: $nextToken
-      sortDirection: $sortDirection
-    ) {
-      items {
-        id
-        transcription
-        region
-        cursor
-        owner
-        createdAt
-        updatedAt
-        _version
-        _deleted
-        _lastChangedAt
-        __typename
-      }
-      nextToken
-      startedAt
-      __typename
-    }
-  }
-`;
-export const syncPointers = /* GraphQL */ `
-  query SyncPointers(
-    $filter: ModelPointerFilterInput
-    $limit: Int
-    $nextToken: String
-    $lastSync: AWSTimestamp
-  ) {
-    syncPointers(
-      filter: $filter
-      limit: $limit
-      nextToken: $nextToken
-      lastSync: $lastSync
-    ) {
-      items {
-        id
-        transcription
-        region
-        cursor
-        owner
-        createdAt
-        updatedAt
-        _version
-        _deleted
-        _lastChangedAt
-        __typename
-      }
-      nextToken
-      startedAt
-      __typename
-    }
-  }
-`;
-export const getRegionLock = /* GraphQL */ `
-  query GetRegionLock($id: ID!, $transcriptionId: String!) {
-    getRegionLock(id: $id, transcriptionId: $transcriptionId) {
-      id
-      transcriptionId
-      deleteTime
-      user
-      createdAt
-      updatedAt
-      _version
-      _deleted
-      _lastChangedAt
-      __typename
-    }
-  }
-`;
-export const listRegionLocks = /* GraphQL */ `
-  query ListRegionLocks(
-    $id: ID
-    $transcriptionId: ModelStringKeyConditionInput
-    $filter: ModelRegionLockFilterInput
-    $limit: Int
-    $nextToken: String
-    $sortDirection: ModelSortDirection
-  ) {
-    listRegionLocks(
-      id: $id
-      transcriptionId: $transcriptionId
-      filter: $filter
-      limit: $limit
-      nextToken: $nextToken
-      sortDirection: $sortDirection
-    ) {
-      items {
-        id
-        transcriptionId
-        deleteTime
-        user
-        createdAt
-        updatedAt
-        _version
-        _deleted
-        _lastChangedAt
-        __typename
-      }
-      nextToken
-      startedAt
-      __typename
-    }
-  }
-`;
-export const syncRegionLocks = /* GraphQL */ `
-  query SyncRegionLocks(
-    $filter: ModelRegionLockFilterInput
-    $limit: Int
-    $nextToken: String
-    $lastSync: AWSTimestamp
-  ) {
-    syncRegionLocks(
-      filter: $filter
-      limit: $limit
-      nextToken: $nextToken
-      lastSync: $lastSync
-    ) {
-      items {
-        id
-        transcriptionId
-        deleteTime
-        user
         createdAt
         updatedAt
         _version
@@ -623,165 +524,6 @@ export const syncContributors = /* GraphQL */ `
     }
   }
 `;
-export const getCursor = /* GraphQL */ `
-  query GetCursor($id: ID!, $user: String!) {
-    getCursor(id: $id, user: $user) {
-      id
-      user
-      cursor
-      createdAt
-      updatedAt
-      _version
-      _deleted
-      _lastChangedAt
-      __typename
-    }
-  }
-`;
-export const listCursors = /* GraphQL */ `
-  query ListCursors(
-    $id: ID
-    $user: ModelStringKeyConditionInput
-    $filter: ModelCursorFilterInput
-    $limit: Int
-    $nextToken: String
-    $sortDirection: ModelSortDirection
-  ) {
-    listCursors(
-      id: $id
-      user: $user
-      filter: $filter
-      limit: $limit
-      nextToken: $nextToken
-      sortDirection: $sortDirection
-    ) {
-      items {
-        id
-        user
-        cursor
-        createdAt
-        updatedAt
-        _version
-        _deleted
-        _lastChangedAt
-        __typename
-      }
-      nextToken
-      startedAt
-      __typename
-    }
-  }
-`;
-export const syncCursors = /* GraphQL */ `
-  query SyncCursors(
-    $filter: ModelCursorFilterInput
-    $limit: Int
-    $nextToken: String
-    $lastSync: AWSTimestamp
-  ) {
-    syncCursors(
-      filter: $filter
-      limit: $limit
-      nextToken: $nextToken
-      lastSync: $lastSync
-    ) {
-      items {
-        id
-        user
-        cursor
-        createdAt
-        updatedAt
-        _version
-        _deleted
-        _lastChangedAt
-        __typename
-      }
-      nextToken
-      startedAt
-      __typename
-    }
-  }
-`;
-export const getUserCursor = /* GraphQL */ `
-  query GetUserCursor($id: ID!) {
-    getUserCursor(id: $id) {
-      id
-      transcription
-      region
-      cursor
-      createdAt
-      updatedAt
-      _version
-      _deleted
-      _lastChangedAt
-      __typename
-    }
-  }
-`;
-export const listUserCursors = /* GraphQL */ `
-  query ListUserCursors(
-    $id: ID
-    $filter: ModelUserCursorFilterInput
-    $limit: Int
-    $nextToken: String
-    $sortDirection: ModelSortDirection
-  ) {
-    listUserCursors(
-      id: $id
-      filter: $filter
-      limit: $limit
-      nextToken: $nextToken
-      sortDirection: $sortDirection
-    ) {
-      items {
-        id
-        transcription
-        region
-        cursor
-        createdAt
-        updatedAt
-        _version
-        _deleted
-        _lastChangedAt
-        __typename
-      }
-      nextToken
-      startedAt
-      __typename
-    }
-  }
-`;
-export const syncUserCursors = /* GraphQL */ `
-  query SyncUserCursors(
-    $filter: ModelUserCursorFilterInput
-    $limit: Int
-    $nextToken: String
-    $lastSync: AWSTimestamp
-  ) {
-    syncUserCursors(
-      filter: $filter
-      limit: $limit
-      nextToken: $nextToken
-      lastSync: $lastSync
-    ) {
-      items {
-        id
-        transcription
-        region
-        cursor
-        createdAt
-        updatedAt
-        _version
-        _deleted
-        _lastChangedAt
-        __typename
-      }
-      nextToken
-      startedAt
-      __typename
-    }
-  }
-`;
 export const getTranscriptionContributor = /* GraphQL */ `
   query GetTranscriptionContributor($id: ID!) {
     getTranscriptionContributor(id: $id) {
@@ -805,6 +547,10 @@ export const getTranscriptionContributor = /* GraphQL */ `
         isPrivate
         isPublished
         disableAnalyzer
+        editors
+        viewers
+        editorGroups
+        viewerGroups
         createdAt
         updatedAt
         _version
@@ -834,14 +580,18 @@ export const getTranscriptionContributor = /* GraphQL */ `
 `;
 export const listTranscriptionContributors = /* GraphQL */ `
   query ListTranscriptionContributors(
+    $id: ID
     $filter: ModelTranscriptionContributorFilterInput
     $limit: Int
     $nextToken: String
+    $sortDirection: ModelSortDirection
   ) {
     listTranscriptionContributors(
+      id: $id
       filter: $filter
       limit: $limit
       nextToken: $nextToken
+      sortDirection: $sortDirection
     ) {
       items {
         id
@@ -877,85 +627,6 @@ export const syncTranscriptionContributors = /* GraphQL */ `
         id
         transcriptionID
         contributorID
-        createdAt
-        updatedAt
-        _version
-        _deleted
-        _lastChangedAt
-        __typename
-      }
-      nextToken
-      startedAt
-      __typename
-    }
-  }
-`;
-export const byTitle = /* GraphQL */ `
-  query ByTitle(
-    $title: String!
-    $sortDirection: ModelSortDirection
-    $filter: ModelTranscriptionFilterInput
-    $limit: Int
-    $nextToken: String
-  ) {
-    byTitle(
-      title: $title
-      sortDirection: $sortDirection
-      filter: $filter
-      limit: $limit
-      nextToken: $nextToken
-    ) {
-      items {
-        id
-        author
-        coverage
-        dateLastUpdated
-        userLastUpdated
-        length
-        issues
-        comments
-        tags
-        source
-        index
-        title
-        type
-        isPrivate
-        isPublished
-        disableAnalyzer
-        createdAt
-        updatedAt
-        _version
-        _deleted
-        _lastChangedAt
-        __typename
-      }
-      nextToken
-      startedAt
-      __typename
-    }
-  }
-`;
-export const byTrans = /* GraphQL */ `
-  query ByTrans(
-    $transcription: String!
-    $sortDirection: ModelSortDirection
-    $filter: ModelPointerFilterInput
-    $limit: Int
-    $nextToken: String
-  ) {
-    byTrans(
-      transcription: $transcription
-      sortDirection: $sortDirection
-      filter: $filter
-      limit: $limit
-      nextToken: $nextToken
-    ) {
-      items {
-        id
-        transcription
-        region
-        cursor
-        owner
         createdAt
         updatedAt
         _version

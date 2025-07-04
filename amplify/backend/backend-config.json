@@ -15,12 +15,27 @@
       "service": "API Gateway"
     },
     "kiyanaw": {
-      "dependsOn": [],
+      "dependsOn": [
+        {
+          "attributes": [
+            "UserPoolId"
+          ],
+          "category": "auth",
+          "resourceName": "kiyanaw4007d1974007d197"
+        }
+      ],
       "output": {
         "authConfig": {
-          "additionalAuthenticationProviders": [],
+          "additionalAuthenticationProviders": [
+            {
+              "authenticationType": "AWS_IAM"
+            }
+          ],
           "defaultAuthentication": {
-            "authenticationType": "AWS_IAM"
+            "authenticationType": "AMAZON_COGNITO_USER_POOLS",
+            "userPoolConfig": {
+              "userPoolId": "authkiyanaw4007d1974007d197"
+            }
           }
         }
       },
@@ -29,7 +44,7 @@
     }
   },
   "auth": {
-    "kiyanawd20b7994": {
+    "kiyanaw4007d1974007d197": {
       "customAuth": false,
       "dependsOn": [],
       "frontendAuthConfig": {
@@ -45,7 +60,9 @@
           "EMAIL"
         ],
         "socialProviders": [],
-        "usernameAttributes": [],
+        "usernameAttributes": [
+          "EMAIL"
+        ],
         "verificationMechanisms": [
           "EMAIL"
         ]

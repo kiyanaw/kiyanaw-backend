@@ -18,7 +18,6 @@ describe('ADT Models', () => {
       dateLastUpdated: '2023-01-01T00:00:00Z',
       userLastUpdated: 'test-user',
       length: 123.45,
-      contributors: null,
     };
 
     beforeEach(() => {
@@ -100,30 +99,7 @@ describe('ADT Models', () => {
         expect(webmModel.isVideo).toBe(true);
       });
 
-      it('should handle contributors with toArray method', async () => {
-        const mockContributors = {
-          toArray: jest.fn().mockResolvedValue([
-            { contributorID: 'user1' },
-            { contributorID: 'user2' },
-            { contributorID: 'user3' },
-          ]),
-        };
 
-        const dataWithContributors = { ...mockTranscriptionData, contributors: mockContributors };
-        const model = new TranscriptionModel(dataWithContributors);
-
-        // Wait for async contributors loading
-        await new Promise(resolve => Timeout.set('test-delay', resolve, 0));
-
-        expect(mockContributors.toArray).toHaveBeenCalled();
-        expect(model.editors).toEqual(['user1', 'user2', 'user3']);
-      });
-
-      it('should handle contributors without toArray method', () => {
-        const dataWithoutToArray = { ...mockTranscriptionData, contributors: {} };
-        
-        expect(() => new TranscriptionModel(dataWithoutToArray)).not.toThrow();
-      });
     });
 
     describe('url getter', () => {

@@ -11,6 +11,7 @@ import { StatsPage } from './pages/StatsPage';
 import { AboutPage } from './pages/AboutPage';
 import { UploadForm } from './components/upload/UploadForm';
 import { EditorPage } from './pages/EditorPage';
+import { NotFoundPage } from './pages/NotFoundPage';
 import './App.css';
 
 function App() {
@@ -29,6 +30,7 @@ function App() {
             />
             <Route path="stats" element={<StatsPage />} />
             <Route path="about" element={<AboutPage />} />
+            <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Routes>
       </Router>

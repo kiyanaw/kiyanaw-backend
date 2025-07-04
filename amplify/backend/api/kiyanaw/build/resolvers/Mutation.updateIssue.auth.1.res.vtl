@@ -18,6 +18,10 @@ $util.qr($ctx.stash.put("hasAuth", true))
     #set( $isAuthorized = true )
   #end
 #end
+#if( $util.authType() == "User Pool Authorization" )
+  $util.qr($allowedFields.addAll(["id","text","owner","index","resolved","type","comments","regionId","transcription","transcriptionId","transcriptionIssueListId","_version","_deleted","_lastChangedAt"]))
+  $util.qr($nullAllowedFields.addAll([]))
+#end
 #if( !$isAuthorized && $allowedFields.isEmpty() && $nullAllowedFields.isEmpty() )
 $util.unauthorized()
 #end

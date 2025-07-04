@@ -60,15 +60,6 @@ export class CreateTranscriptionUseCase {
       userLastUpdated: username,
     });
 
-    // Step 4: Find or create contributor
-    const contributor = await services.contributorService.findOrCreate(
-      username,
-      userId // Using userId as email placeholder
-    );
-
-    // Step 5: Link contributor to transcription
-    await services.contributorService.linkToTranscription(contributor, transcription);
-
     return {
       transcriptionId: transcription.id,
       transcription,

@@ -43,6 +43,9 @@
     "referencetotransformerrootstackGraphQLAPI20497F53ApiId": {
       "Type": "String"
     },
+    "referencetotransformerrootstackGraphQLAPINONEDS2BA9D1C8Name": {
+      "Type": "String"
+    },
     "referencetotransformerrootstackS3DeploymentBucket7592718ARef": {
       "Type": "String"
     },
@@ -50,9 +53,6 @@
       "Type": "String"
     },
     "referencetotransformerrootstackTranscriptionNestedStackTranscriptionNestedStackResource46557E60OutputstransformerrootstackTranscriptionQuerygetTranscriptionpreAuth0FunctionQuerygetTranscriptionpreAuth0FunctionAppSyncFunction4EABC850FunctionId": {
-      "Type": "String"
-    },
-    "referencetotransformerrootstackTranscriptionNestedStackTranscriptionNestedStackResource46557E60OutputstransformerrootstackTranscriptionQuerygetTranscriptionauth0FunctionQuerygetTranscriptionauth0FunctionAppSyncFunctionDDA96176FunctionId": {
       "Type": "String"
     },
     "referencetotransformerrootstackTranscriptionNestedStackTranscriptionNestedStackResource46557E60OutputstransformerrootstackTranscriptionQuerygetTranscriptionpostAuth0FunctionQuerygetTranscriptionpostAuth0FunctionAppSyncFunction7D4E9972FunctionId": {
@@ -67,9 +67,6 @@
     "referencetotransformerrootstackTranscriptionNestedStackTranscriptionNestedStackResource46557E60OutputstransformerrootstackTranscriptionQuerylistTranscriptionspreAuth0FunctionQuerylistTranscriptionspreAuth0FunctionAppSyncFunction3DBFF297FunctionId": {
       "Type": "String"
     },
-    "referencetotransformerrootstackGraphQLAPINONEDS2BA9D1C8Name": {
-      "Type": "String"
-    },
     "referencetotransformerrootstackTranscriptionNestedStackTranscriptionNestedStackResource46557E60OutputstransformerrootstackTranscriptionQuerysyncTranscriptionspreAuth1FunctionQuerysyncTranscriptionspreAuth1FunctionAppSyncFunctionFA43FBEFFunctionId": {
       "Type": "String"
     },
@@ -79,16 +76,10 @@
     "referencetotransformerrootstackTranscriptionNestedStackTranscriptionNestedStackResource46557E60OutputstransformerrootstackTranscriptionMutationcreateTranscriptionpreAuth0FunctionMutationcreateTranscriptionpreAuth0FunctionAppSyncFunction3CF6B395FunctionId": {
       "Type": "String"
     },
-    "referencetotransformerrootstackTranscriptionNestedStackTranscriptionNestedStackResource46557E60OutputstransformerrootstackTranscriptionMutationcreateTranscriptionauth0FunctionMutationcreateTranscriptionauth0FunctionAppSyncFunction35D575BFFunctionId": {
-      "Type": "String"
-    },
     "referencetotransformerrootstackTranscriptionNestedStackTranscriptionNestedStackResource46557E60OutputstransformerrootstackTranscriptionMutationupdateTranscriptioninit0FunctionMutationupdateTranscriptioninit0FunctionAppSyncFunction92616DEBFunctionId": {
       "Type": "String"
     },
     "referencetotransformerrootstackTranscriptionNestedStackTranscriptionNestedStackResource46557E60OutputstransformerrootstackTranscriptionMutationdeleteTranscriptionpreAuth0FunctionMutationdeleteTranscriptionpreAuth0FunctionAppSyncFunction32A10F10FunctionId": {
-      "Type": "String"
-    },
-    "referencetotransformerrootstackTranscriptionNestedStackTranscriptionNestedStackResource46557E60OutputstransformerrootstackTranscriptionSubscriptiononCreateTranscriptionauth0FunctionSubscriptiononCreateTranscriptionauth0FunctionAppSyncFuncti44744A25": {
       "Type": "String"
     },
     "referencetotransformerrootstackTranscriptionNestedStackTranscriptionNestedStackResource46557E60OutputstransformerrootstackTranscriptionSubscriptionOnCreateTranscriptionDataResolverFnSubscriptionOnCreateTranscriptionDataResolverFnAppSyncFunc986CA2A9": {
@@ -505,6 +496,36 @@
         "RegionIAMRoleC7884DD1"
       ]
     },
+    "QuerygetRegionauth0FunctionQuerygetRegionauth0FunctionAppSyncFunction1E11D5A9": {
+      "Type": "AWS::AppSync::FunctionConfiguration",
+      "Properties": {
+        "ApiId": {
+          "Ref": "referencetotransformerrootstackGraphQLAPI20497F53ApiId"
+        },
+        "DataSourceName": {
+          "Ref": "referencetotransformerrootstackGraphQLAPINONEDS2BA9D1C8Name"
+        },
+        "FunctionVersion": "2018-05-29",
+        "Name": "QuerygetRegionauth0Function",
+        "RequestMappingTemplateS3Location": {
+          "Fn::Join": [
+            "",
+            [
+              "s3://",
+              {
+                "Ref": "referencetotransformerrootstackS3DeploymentBucket7592718ARef"
+              },
+              "/",
+              {
+                "Ref": "referencetotransformerrootstackS3DeploymentRootKeyA71EA735Ref"
+              },
+              "/resolvers/Query.getRegion.auth.1.req.vtl"
+            ]
+          ]
+        },
+        "ResponseMappingTemplate": "$util.toJson({})"
+      }
+    },
     "QueryGetRegionDataResolverFnQueryGetRegionDataResolverFnAppSyncFunction6CFDE3E8": {
       "Type": "AWS::AppSync::FunctionConfiguration",
       "Properties": {
@@ -574,7 +595,10 @@
               "Ref": "referencetotransformerrootstackTranscriptionNestedStackTranscriptionNestedStackResource46557E60OutputstransformerrootstackTranscriptionQuerygetTranscriptionpreAuth0FunctionQuerygetTranscriptionpreAuth0FunctionAppSyncFunction4EABC850FunctionId"
             },
             {
-              "Ref": "referencetotransformerrootstackTranscriptionNestedStackTranscriptionNestedStackResource46557E60OutputstransformerrootstackTranscriptionQuerygetTranscriptionauth0FunctionQuerygetTranscriptionauth0FunctionAppSyncFunctionDDA96176FunctionId"
+              "Fn::GetAtt": [
+                "QuerygetRegionauth0FunctionQuerygetRegionauth0FunctionAppSyncFunction1E11D5A9",
+                "FunctionId"
+              ]
             },
             {
               "Ref": "referencetotransformerrootstackTranscriptionNestedStackTranscriptionNestedStackResource46557E60OutputstransformerrootstackTranscriptionQuerygetTranscriptionpostAuth0FunctionQuerygetTranscriptionpostAuth0FunctionAppSyncFunction7D4E9972FunctionId"
@@ -615,7 +639,7 @@
               {
                 "Ref": "referencetotransformerrootstackunauthRoleName49F3C1FERef"
               },
-              "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"identityPoolId\", \"us-east-1:2687d5bd-c9c9-41d7-8194-6ac5fbb2ae66\"))\n$util.qr($ctx.stash.put(\"adminRoles\", [\"us-east-1_g1UtgJS4f_Full-access/CognitoIdentityCredentials\",\"us-east-1_g1UtgJS4f_Manage-only/CognitoIdentityCredentials\"]))\n$util.toJson({})"
+              "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"identityPoolId\", \"us-east-1:da7d1689-008b-4a3f-b7d1-794fa1f30ef7\"))\n$util.qr($ctx.stash.put(\"adminRoles\", [\"us-east-1_g1UtgJS4f_Full-access/CognitoIdentityCredentials\",\"us-east-1_g1UtgJS4f_Manage-only/CognitoIdentityCredentials\"]))\n$util.toJson({})"
             ]
           ]
         },
@@ -692,7 +716,10 @@
               "Ref": "referencetotransformerrootstackTranscriptionNestedStackTranscriptionNestedStackResource46557E60OutputstransformerrootstackTranscriptionQuerylistTranscriptionspreAuth0FunctionQuerylistTranscriptionspreAuth0FunctionAppSyncFunction3DBFF297FunctionId"
             },
             {
-              "Ref": "referencetotransformerrootstackTranscriptionNestedStackTranscriptionNestedStackResource46557E60OutputstransformerrootstackTranscriptionQuerygetTranscriptionauth0FunctionQuerygetTranscriptionauth0FunctionAppSyncFunctionDDA96176FunctionId"
+              "Fn::GetAtt": [
+                "QuerygetRegionauth0FunctionQuerygetRegionauth0FunctionAppSyncFunction1E11D5A9",
+                "FunctionId"
+              ]
             },
             {
               "Ref": "referencetotransformerrootstackTranscriptionNestedStackTranscriptionNestedStackResource46557E60OutputstransformerrootstackTranscriptionQuerygetTranscriptionpostAuth0FunctionQuerygetTranscriptionpostAuth0FunctionAppSyncFunction7D4E9972FunctionId"
@@ -733,7 +760,7 @@
               {
                 "Ref": "referencetotransformerrootstackunauthRoleName49F3C1FERef"
               },
-              "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"identityPoolId\", \"us-east-1:2687d5bd-c9c9-41d7-8194-6ac5fbb2ae66\"))\n$util.qr($ctx.stash.put(\"adminRoles\", [\"us-east-1_g1UtgJS4f_Full-access/CognitoIdentityCredentials\",\"us-east-1_g1UtgJS4f_Manage-only/CognitoIdentityCredentials\"]))\n$util.toJson({})"
+              "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"identityPoolId\", \"us-east-1:da7d1689-008b-4a3f-b7d1-794fa1f30ef7\"))\n$util.qr($ctx.stash.put(\"adminRoles\", [\"us-east-1_g1UtgJS4f_Full-access/CognitoIdentityCredentials\",\"us-east-1_g1UtgJS4f_Manage-only/CognitoIdentityCredentials\"]))\n$util.toJson({})"
             ]
           ]
         },
@@ -846,7 +873,10 @@
               "Ref": "referencetotransformerrootstackTranscriptionNestedStackTranscriptionNestedStackResource46557E60OutputstransformerrootstackTranscriptionQuerysyncTranscriptionspreAuth1FunctionQuerysyncTranscriptionspreAuth1FunctionAppSyncFunctionFA43FBEFFunctionId"
             },
             {
-              "Ref": "referencetotransformerrootstackTranscriptionNestedStackTranscriptionNestedStackResource46557E60OutputstransformerrootstackTranscriptionQuerygetTranscriptionauth0FunctionQuerygetTranscriptionauth0FunctionAppSyncFunctionDDA96176FunctionId"
+              "Fn::GetAtt": [
+                "QuerygetRegionauth0FunctionQuerygetRegionauth0FunctionAppSyncFunction1E11D5A9",
+                "FunctionId"
+              ]
             },
             {
               "Ref": "referencetotransformerrootstackTranscriptionNestedStackTranscriptionNestedStackResource46557E60OutputstransformerrootstackTranscriptionQuerygetTranscriptionpostAuth0FunctionQuerygetTranscriptionpostAuth0FunctionAppSyncFunction7D4E9972FunctionId"
@@ -887,12 +917,42 @@
               {
                 "Ref": "referencetotransformerrootstackunauthRoleName49F3C1FERef"
               },
-              "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"identityPoolId\", \"us-east-1:2687d5bd-c9c9-41d7-8194-6ac5fbb2ae66\"))\n$util.qr($ctx.stash.put(\"adminRoles\", [\"us-east-1_g1UtgJS4f_Full-access/CognitoIdentityCredentials\",\"us-east-1_g1UtgJS4f_Manage-only/CognitoIdentityCredentials\"]))\n$util.toJson({})"
+              "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"identityPoolId\", \"us-east-1:da7d1689-008b-4a3f-b7d1-794fa1f30ef7\"))\n$util.qr($ctx.stash.put(\"adminRoles\", [\"us-east-1_g1UtgJS4f_Full-access/CognitoIdentityCredentials\",\"us-east-1_g1UtgJS4f_Manage-only/CognitoIdentityCredentials\"]))\n$util.toJson({})"
             ]
           ]
         },
         "ResponseMappingTemplate": "$util.toJson($ctx.prev.result)",
         "TypeName": "Query"
+      }
+    },
+    "MutationcreateRegionauth0FunctionMutationcreateRegionauth0FunctionAppSyncFunction1977D974": {
+      "Type": "AWS::AppSync::FunctionConfiguration",
+      "Properties": {
+        "ApiId": {
+          "Ref": "referencetotransformerrootstackGraphQLAPI20497F53ApiId"
+        },
+        "DataSourceName": {
+          "Ref": "referencetotransformerrootstackGraphQLAPINONEDS2BA9D1C8Name"
+        },
+        "FunctionVersion": "2018-05-29",
+        "Name": "MutationcreateRegionauth0Function",
+        "RequestMappingTemplateS3Location": {
+          "Fn::Join": [
+            "",
+            [
+              "s3://",
+              {
+                "Ref": "referencetotransformerrootstackS3DeploymentBucket7592718ARef"
+              },
+              "/",
+              {
+                "Ref": "referencetotransformerrootstackS3DeploymentRootKeyA71EA735Ref"
+              },
+              "/resolvers/Mutation.createRegion.auth.1.req.vtl"
+            ]
+          ]
+        },
+        "ResponseMappingTemplate": "$util.toJson({})"
       }
     },
     "MutationCreateRegionDataResolverFnMutationCreateRegionDataResolverFnAppSyncFunctionD28983B3": {
@@ -967,7 +1027,10 @@
               "Ref": "referencetotransformerrootstackTranscriptionNestedStackTranscriptionNestedStackResource46557E60OutputstransformerrootstackTranscriptionMutationcreateTranscriptionpreAuth0FunctionMutationcreateTranscriptionpreAuth0FunctionAppSyncFunction3CF6B395FunctionId"
             },
             {
-              "Ref": "referencetotransformerrootstackTranscriptionNestedStackTranscriptionNestedStackResource46557E60OutputstransformerrootstackTranscriptionMutationcreateTranscriptionauth0FunctionMutationcreateTranscriptionauth0FunctionAppSyncFunction35D575BFFunctionId"
+              "Fn::GetAtt": [
+                "MutationcreateRegionauth0FunctionMutationcreateRegionauth0FunctionAppSyncFunction1977D974",
+                "FunctionId"
+              ]
             },
             {
               "Ref": "referencetotransformerrootstackTranscriptionNestedStackTranscriptionNestedStackResource46557E60OutputstransformerrootstackTranscriptionQuerygetTranscriptionpostAuth0FunctionQuerygetTranscriptionpostAuth0FunctionAppSyncFunction7D4E9972FunctionId"
@@ -1008,7 +1071,7 @@
               {
                 "Ref": "referencetotransformerrootstackunauthRoleName49F3C1FERef"
               },
-              "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"identityPoolId\", \"us-east-1:2687d5bd-c9c9-41d7-8194-6ac5fbb2ae66\"))\n$util.qr($ctx.stash.put(\"adminRoles\", [\"us-east-1_g1UtgJS4f_Full-access/CognitoIdentityCredentials\",\"us-east-1_g1UtgJS4f_Manage-only/CognitoIdentityCredentials\"]))\n$util.toJson({})"
+              "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"identityPoolId\", \"us-east-1:da7d1689-008b-4a3f-b7d1-794fa1f30ef7\"))\n$util.qr($ctx.stash.put(\"adminRoles\", [\"us-east-1_g1UtgJS4f_Full-access/CognitoIdentityCredentials\",\"us-east-1_g1UtgJS4f_Manage-only/CognitoIdentityCredentials\"]))\n$util.toJson({})"
             ]
           ]
         },
@@ -1183,7 +1246,7 @@
               {
                 "Ref": "referencetotransformerrootstackunauthRoleName49F3C1FERef"
               },
-              "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"identityPoolId\", \"us-east-1:2687d5bd-c9c9-41d7-8194-6ac5fbb2ae66\"))\n$util.qr($ctx.stash.put(\"adminRoles\", [\"us-east-1_g1UtgJS4f_Full-access/CognitoIdentityCredentials\",\"us-east-1_g1UtgJS4f_Manage-only/CognitoIdentityCredentials\"]))\n$util.toJson({})"
+              "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"identityPoolId\", \"us-east-1:da7d1689-008b-4a3f-b7d1-794fa1f30ef7\"))\n$util.qr($ctx.stash.put(\"adminRoles\", [\"us-east-1_g1UtgJS4f_Full-access/CognitoIdentityCredentials\",\"us-east-1_g1UtgJS4f_Manage-only/CognitoIdentityCredentials\"]))\n$util.toJson({})"
             ]
           ]
         },
@@ -1355,12 +1418,42 @@
               {
                 "Ref": "referencetotransformerrootstackunauthRoleName49F3C1FERef"
               },
-              "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"identityPoolId\", \"us-east-1:2687d5bd-c9c9-41d7-8194-6ac5fbb2ae66\"))\n$util.qr($ctx.stash.put(\"adminRoles\", [\"us-east-1_g1UtgJS4f_Full-access/CognitoIdentityCredentials\",\"us-east-1_g1UtgJS4f_Manage-only/CognitoIdentityCredentials\"]))\n$util.toJson({})"
+              "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"identityPoolId\", \"us-east-1:da7d1689-008b-4a3f-b7d1-794fa1f30ef7\"))\n$util.qr($ctx.stash.put(\"adminRoles\", [\"us-east-1_g1UtgJS4f_Full-access/CognitoIdentityCredentials\",\"us-east-1_g1UtgJS4f_Manage-only/CognitoIdentityCredentials\"]))\n$util.toJson({})"
             ]
           ]
         },
         "ResponseMappingTemplate": "$util.toJson($ctx.prev.result)",
         "TypeName": "Mutation"
+      }
+    },
+    "SubscriptiononCreateRegionauth0FunctionSubscriptiononCreateRegionauth0FunctionAppSyncFunction7B19078E": {
+      "Type": "AWS::AppSync::FunctionConfiguration",
+      "Properties": {
+        "ApiId": {
+          "Ref": "referencetotransformerrootstackGraphQLAPI20497F53ApiId"
+        },
+        "DataSourceName": {
+          "Ref": "referencetotransformerrootstackGraphQLAPINONEDS2BA9D1C8Name"
+        },
+        "FunctionVersion": "2018-05-29",
+        "Name": "SubscriptiononCreateRegionauth0Function",
+        "RequestMappingTemplateS3Location": {
+          "Fn::Join": [
+            "",
+            [
+              "s3://",
+              {
+                "Ref": "referencetotransformerrootstackS3DeploymentBucket7592718ARef"
+              },
+              "/",
+              {
+                "Ref": "referencetotransformerrootstackS3DeploymentRootKeyA71EA735Ref"
+              },
+              "/resolvers/Subscription.onCreateRegion.auth.1.req.vtl"
+            ]
+          ]
+        },
+        "ResponseMappingTemplate": "$util.toJson({})"
       }
     },
     "SubscriptiononCreateRegionResolver": {
@@ -1374,7 +1467,10 @@
         "PipelineConfig": {
           "Functions": [
             {
-              "Ref": "referencetotransformerrootstackTranscriptionNestedStackTranscriptionNestedStackResource46557E60OutputstransformerrootstackTranscriptionSubscriptiononCreateTranscriptionauth0FunctionSubscriptiononCreateTranscriptionauth0FunctionAppSyncFuncti44744A25"
+              "Fn::GetAtt": [
+                "SubscriptiononCreateRegionauth0FunctionSubscriptiononCreateRegionauth0FunctionAppSyncFunction7B19078E",
+                "FunctionId"
+              ]
             },
             {
               "Ref": "referencetotransformerrootstackTranscriptionNestedStackTranscriptionNestedStackResource46557E60OutputstransformerrootstackTranscriptionQuerygetTranscriptionpostAuth0FunctionQuerygetTranscriptionpostAuth0FunctionAppSyncFunction7D4E9972FunctionId"
@@ -1408,7 +1504,7 @@
               {
                 "Ref": "referencetotransformerrootstackunauthRoleName49F3C1FERef"
               },
-              "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"identityPoolId\", \"us-east-1:2687d5bd-c9c9-41d7-8194-6ac5fbb2ae66\"))\n$util.qr($ctx.stash.put(\"adminRoles\", [\"us-east-1_g1UtgJS4f_Full-access/CognitoIdentityCredentials\",\"us-east-1_g1UtgJS4f_Manage-only/CognitoIdentityCredentials\"]))\n$util.toJson({})"
+              "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"identityPoolId\", \"us-east-1:da7d1689-008b-4a3f-b7d1-794fa1f30ef7\"))\n$util.qr($ctx.stash.put(\"adminRoles\", [\"us-east-1_g1UtgJS4f_Full-access/CognitoIdentityCredentials\",\"us-east-1_g1UtgJS4f_Manage-only/CognitoIdentityCredentials\"]))\n$util.toJson({})"
             ]
           ]
         },
@@ -1427,7 +1523,10 @@
         "PipelineConfig": {
           "Functions": [
             {
-              "Ref": "referencetotransformerrootstackTranscriptionNestedStackTranscriptionNestedStackResource46557E60OutputstransformerrootstackTranscriptionSubscriptiononCreateTranscriptionauth0FunctionSubscriptiononCreateTranscriptionauth0FunctionAppSyncFuncti44744A25"
+              "Fn::GetAtt": [
+                "SubscriptiononCreateRegionauth0FunctionSubscriptiononCreateRegionauth0FunctionAppSyncFunction7B19078E",
+                "FunctionId"
+              ]
             },
             {
               "Ref": "referencetotransformerrootstackTranscriptionNestedStackTranscriptionNestedStackResource46557E60OutputstransformerrootstackTranscriptionQuerygetTranscriptionpostAuth0FunctionQuerygetTranscriptionpostAuth0FunctionAppSyncFunction7D4E9972FunctionId"
@@ -1461,7 +1560,7 @@
               {
                 "Ref": "referencetotransformerrootstackunauthRoleName49F3C1FERef"
               },
-              "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"identityPoolId\", \"us-east-1:2687d5bd-c9c9-41d7-8194-6ac5fbb2ae66\"))\n$util.qr($ctx.stash.put(\"adminRoles\", [\"us-east-1_g1UtgJS4f_Full-access/CognitoIdentityCredentials\",\"us-east-1_g1UtgJS4f_Manage-only/CognitoIdentityCredentials\"]))\n$util.toJson({})"
+              "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"identityPoolId\", \"us-east-1:da7d1689-008b-4a3f-b7d1-794fa1f30ef7\"))\n$util.qr($ctx.stash.put(\"adminRoles\", [\"us-east-1_g1UtgJS4f_Full-access/CognitoIdentityCredentials\",\"us-east-1_g1UtgJS4f_Manage-only/CognitoIdentityCredentials\"]))\n$util.toJson({})"
             ]
           ]
         },
@@ -1480,7 +1579,10 @@
         "PipelineConfig": {
           "Functions": [
             {
-              "Ref": "referencetotransformerrootstackTranscriptionNestedStackTranscriptionNestedStackResource46557E60OutputstransformerrootstackTranscriptionSubscriptiononCreateTranscriptionauth0FunctionSubscriptiononCreateTranscriptionauth0FunctionAppSyncFuncti44744A25"
+              "Fn::GetAtt": [
+                "SubscriptiononCreateRegionauth0FunctionSubscriptiononCreateRegionauth0FunctionAppSyncFunction7B19078E",
+                "FunctionId"
+              ]
             },
             {
               "Ref": "referencetotransformerrootstackTranscriptionNestedStackTranscriptionNestedStackResource46557E60OutputstransformerrootstackTranscriptionQuerygetTranscriptionpostAuth0FunctionQuerygetTranscriptionpostAuth0FunctionAppSyncFunction7D4E9972FunctionId"
@@ -1514,7 +1616,7 @@
               {
                 "Ref": "referencetotransformerrootstackunauthRoleName49F3C1FERef"
               },
-              "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"identityPoolId\", \"us-east-1:2687d5bd-c9c9-41d7-8194-6ac5fbb2ae66\"))\n$util.qr($ctx.stash.put(\"adminRoles\", [\"us-east-1_g1UtgJS4f_Full-access/CognitoIdentityCredentials\",\"us-east-1_g1UtgJS4f_Manage-only/CognitoIdentityCredentials\"]))\n$util.toJson({})"
+              "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"identityPoolId\", \"us-east-1:da7d1689-008b-4a3f-b7d1-794fa1f30ef7\"))\n$util.qr($ctx.stash.put(\"adminRoles\", [\"us-east-1_g1UtgJS4f_Full-access/CognitoIdentityCredentials\",\"us-east-1_g1UtgJS4f_Manage-only/CognitoIdentityCredentials\"]))\n$util.toJson({})"
             ]
           ]
         },
@@ -1585,6 +1687,30 @@
             ]
           ]
         }
+      }
+    },
+    "transformerrootstackRegionQuerygetRegionauth0FunctionQuerygetRegionauth0FunctionAppSyncFunction00FD817BFunctionId": {
+      "Value": {
+        "Fn::GetAtt": [
+          "QuerygetRegionauth0FunctionQuerygetRegionauth0FunctionAppSyncFunction1E11D5A9",
+          "FunctionId"
+        ]
+      }
+    },
+    "transformerrootstackRegionMutationcreateRegionauth0FunctionMutationcreateRegionauth0FunctionAppSyncFunction7976FC31FunctionId": {
+      "Value": {
+        "Fn::GetAtt": [
+          "MutationcreateRegionauth0FunctionMutationcreateRegionauth0FunctionAppSyncFunction1977D974",
+          "FunctionId"
+        ]
+      }
+    },
+    "transformerrootstackRegionSubscriptiononCreateRegionauth0FunctionSubscriptiononCreateRegionauth0FunctionAppSyncFunction568D8C68FunctionId": {
+      "Value": {
+        "Fn::GetAtt": [
+          "SubscriptiononCreateRegionauth0FunctionSubscriptiononCreateRegionauth0FunctionAppSyncFunction7B19078E",
+          "FunctionId"
+        ]
       }
     },
     "transformerrootstackRegionRegionDataSourceDD35B1C4Name": {

@@ -1,0 +1,61 @@
+## Response mapping template for Query.getTranscription
+## Enforces isPrivate dynamic authorization
+
+#set($t = $ctx.result)
+#if($util.isNull($t))
+  ## Item not found
+  $util.toJson(null)
+#else
+  #set($userSub = $ctx.identity.claims.get("sub"))
+  #set($userGroups = $ctx.identity.claims.get("cognito:groups"))
+  
+  ## Default userSub and userGroups to empty if null
+  #if($util.isNull($userSub))
+    #set($userSub = "")
+  #end
+  #if($util.isNull($userGroups))
+    #set($userGroups = [])
+  #end
+  
+  ## Check if item is private
+  #if($t.isPrivate == true)
+    ## PRIVATE → enforce ACLs
+    #set($hasAccess = false)
+    
+    ## Check if user is author
+    #if(!$util.isNull($t.author) && $t.author == $userSub)
+      #set($hasAccess = true)
+    #end
+    
+    ## Check if user is in editors array
+    #if(!$util.isNull($t.editors) && $t.editors.contains($userSub))
+      #set($hasAccess = true)
+    #end
+    
+    ## Check if user is in viewers array
+    #if(!$util.isNull($t.viewers) && $t.viewers.contains($userSub))
+      #set($hasAccess = true)
+    #end
+    
+    ## Check if user is in editorGroups
+    #if(!$util.isNull($t.editorGroups) && $util.list.copyAndRetain($t.editorGroups, $userGroups).size() > 0)
+      #set($hasAccess = true)
+    #end
+    
+    ## Check if user is in viewerGroups
+    #if(!$util.isNull($t.viewerGroups) && $util.list.copyAndRetain($t.viewerGroups, $userGroups).size() > 0)
+      #set($hasAccess = true)
+    #end
+    
+    #if(!$hasAccess)
+      $util.unauthorized()
+    #end
+  #else
+    ## PUBLIC → any authenticated user can read
+    #if($util.isNullOrEmpty($userSub))
+      $util.unauthorized()
+    #end
+  #end
+  
+  $util.toJson($t)
+#end 
