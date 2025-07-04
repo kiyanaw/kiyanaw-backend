@@ -5,7 +5,7 @@ export default {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
-    '^../aws-exports.js$': '<rootDir>/src/__mocks__/aws-exports.js',
+    '^../aws-exports.js$': '<rootDir>/src/__mocks__/aws-exports-mock.js',
   },
   transformIgnorePatterns: [
     'node_modules/(?!(@aws-amplify|aws-amplify)/)',
