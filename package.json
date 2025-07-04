@@ -12,7 +12,7 @@
     "lint": "eslint .",
     "format": "prettier --write src/",
     "preview": "vite preview",
-    "test": "jest",
+    "test": "jest --silent",
     "test:watch": "jest --watch"
   },
   "dependencies": {

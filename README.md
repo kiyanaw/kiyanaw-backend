@@ -1,54 +1,77 @@
-# React + TypeScript + Vite
+# kiyanaw-backend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## Install NVM
 
-Currently, two official plugins are available:
+Follow instructions [here](https://github.com/nvm-sh/nvm?tab=readme-ov-file#installing-and-updating)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+```
+nvm use
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
+## Install Dependancies
 ```
+npm install
+```
+
+## Setup Amplify and Pull `staging`
+```
+npx amplify pull
+
+? Please choose the profile you want to use: profile
+? Which app are you working on? d2vcnct5kwl6za
+? Pick a backend environment: auththree
+? Choose your default editor: Visual Studio Code
+✔ Choose the type of app that you're building: javascript
+Please tell us about your project
+? What javascript framework are you using: react
+? Source Directory Path:  src
+? Distribution Directory Path: dist
+? Build Command:  npm run-script build
+? Start Command: npm run-script dev
+```
+
+### Compiles and hot-reloads for development
+```
+npm run dev
+```
+
+### Run unit tests
+```
+npm run test
+```
+
+### Watch unit tests
+```
+npm run test:watch
+```
+
+### Run linter
+```
+npm run lint
+```
+
+### Deploy Backend
+```
+npx amplify push
+```
+
+### Deploy Frontend
+```
+npx amplify publish
+```
+
+
+# Infrastructure
+
+## Overview
+
+ * project built on Amplify
+ * DynamoDB in the backend
+ * uploaded media processed through Lambda (TODO: this is not modeled)
+
+
+Whenever changes are made to a region in a transcription, that region's data is streamed from DynamoDB to the `notifyRegionChanges` function, which actually does a couple things:
+
+ * reformat and push the data into the a "neutral" queue that will publish "known words" links
+ * send out email notifications to anyone who has an interest in that particular region
+ 
