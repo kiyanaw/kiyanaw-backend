@@ -11,8 +11,19 @@ import { getRegion as getRegionQuery } from '../graphql/queries.js';
 import { RegionModel } from './adt';
 import { showToast } from './toastService';
 
-// Create GraphQL client (re-use throughout)
-const client = generateClient();
+// Create GraphQL client lazily
+let client: any = null;
+const getClient = () => {
+  if (!client) {
+    client = generateClient();
+  }
+  return client;
+};
+
+// For testing: reset the client
+export const __resetClient = () => {
+  client = null;
+};
 
 /**
  * Loads and processes regions for a given transcription.
@@ -22,7 +33,7 @@ const client = generateClient();
 export const loadRegionsForTranscription = async (transcriptionId: string) => {
   try {
     // GraphQL filter: transcriptionId eq
-    const { data } = await client.graphql({
+    const { data } = await getClient().graphql({
       query: listRegions,
       variables: {
         filter: { 
@@ -47,7 +58,7 @@ export const loadRegionsForTranscription = async (transcriptionId: string) => {
 
     return regions;
   } catch (error) {
-    console.error('❌ Failed to load regions via API:', error);
+    // console.error('❌ Failed to load regions via API:', error);
     throw error;
   }
 }; 
@@ -81,7 +92,7 @@ export const createRegion = async (
       userLastUpdated: username,
     } as any;
 
-    const { data } = await client.graphql({
+    const { data } = await getClient().graphql({
       query: createRegionMutation,
       variables: { input },
       authMode: 'iam',
@@ -90,7 +101,7 @@ export const createRegion = async (
     const created = (data as any)?.createRegion;
     return new RegionModel(created);
   } catch (error) {
-    console.error('❌ Failed to create region via API:', error);
+    // console.error('❌ Failed to create region via API:', error);
     showToast('Failed to create region', 'error');
     throw error;
   }
@@ -145,20 +156,20 @@ export const updateRegion = async (regionId: string, updates: {
             finalUpdates.regionAnalysis = JSON.stringify(region.regionAnalysis);
           }
         } catch (storeError) {
-          console.warn('Could not access store for analysis, continuing without:', storeError);
+          // console.warn('Could not access store for analysis, continuing without:', storeError);
           // Continue with save without analysis
         }
       }
 
       // Fetch current version to satisfy conflict detection
-      const { data: getData } = await client.graphql({
+      const { data: getData } = await getClient().graphql({
         query: getRegionQuery,
         variables: { id: regionId },
       }) as any;
 
       const existing = (getData as any)?.getRegion;
       if (!existing) {
-        console.error(`Region with ID ${regionId} not found`);
+        // console.error(`Region with ID ${regionId} not found`);
         return;
       }
 
@@ -170,21 +181,21 @@ export const updateRegion = async (regionId: string, updates: {
         userLastUpdated: username,
       };
 
-      await client.graphql({
+      await getClient().graphql({
         query: updateRegionMutation,
         variables: { input },
         authMode: 'iam',
       });
 
       const analysisInfo = finalUpdates.regionAnalysis && finalUpdates.regionAnalysis !== mergedUpdates.regionAnalysis ? ` + analysis` : '';
-      console.log(`✅ Saved region ${regionId}${analysisInfo}`);
+      // console.log(`✅ Saved region ${regionId}${analysisInfo}`);
       showToast(`Saved region ${regionId.slice(0, 8)}...${analysisInfo}`, 'success');
       
       // Remove from pending saves
       pendingSaves.delete(regionId);
       
     } catch (error) {
-      console.error(`❌ Failed to save region ${regionId}:`, error);
+      // console.error(`❌ Failed to save region ${regionId}:`, error);
       showToast(`Failed to save region ${regionId.slice(0, 8)}...`, 'error');
       pendingSaves.delete(regionId);
     }
@@ -243,20 +254,20 @@ export const updateRegionWithAnalysis = async (regionId: string, updates: {
             finalUpdates.regionAnalysis = JSON.stringify(region.regionAnalysis);
           }
         } catch (storeError) {
-          console.warn('Could not access store for analysis, continuing without:', storeError);
+          // console.warn('Could not access store for analysis, continuing without:', storeError);
           // Continue with save without analysis
         }
       }
 
       // Fetch current version to satisfy conflict detection
-      const { data: getData } = await client.graphql({
+      const { data: getData } = await getClient().graphql({
         query: getRegionQuery,
         variables: { id: regionId },
       }) as any;
 
       const existing = (getData as any)?.getRegion;
       if (!existing) {
-        console.error(`Region with ID ${regionId} not found`);
+        // console.error(`Region with ID ${regionId} not found`);
         return;
       }
 
@@ -268,21 +279,21 @@ export const updateRegionWithAnalysis = async (regionId: string, updates: {
         userLastUpdated: username,
       };
 
-      await client.graphql({
+      await getClient().graphql({
         query: updateRegionMutation,
         variables: { input },
         authMode: 'iam',
       });
 
       const analysisInfo = finalUpdates.regionAnalysis ? ` + analysis` : '';
-      console.log(`✅ Saved region ${regionId}${analysisInfo}`);
+      // console.log(`✅ Saved region ${regionId}${analysisInfo}`);
       showToast(`Saved region ${regionId.slice(0, 8)}...${analysisInfo}`, 'success');
       
       // Remove from pending saves
       pendingSaves.delete(regionId);
       
     } catch (error) {
-      console.error(`❌ Failed to save region ${regionId}:`, error);
+      // console.error(`❌ Failed to save region ${regionId}:`, error);
       showToast(`Failed to save region ${regionId.slice(0, 8)}...`, 'error');
       pendingSaves.delete(regionId);
     }
@@ -310,7 +321,7 @@ export const deleteRegion = async (regionId: string) => {
     }
 
     // Fetch current version to satisfy conflict detection
-    const { data: getData } = await client.graphql({
+    const { data: getData } = await getClient().graphql({
       query: getRegionQuery,
       variables: { id: regionId },
     }) as any;
@@ -325,17 +336,17 @@ export const deleteRegion = async (regionId: string) => {
       _version: region._version,
     };
 
-    await client.graphql({
+    await getClient().graphql({
       query: deleteRegionMutation,
       variables: { input },
       authMode: 'iam',
     });
     
-    console.log(`✅ Deleted region ${regionId}`);
+    // console.log(`✅ Deleted region ${regionId}`);
     showToast(`Deleted region ${regionId.slice(0, 8)}...`, 'success');
     
   } catch (error) {
-    console.error(`❌ Failed to delete region ${regionId}:`, error);
+    // console.error(`❌ Failed to delete region ${regionId}:`, error);
     showToast(`Failed to delete region ${regionId.slice(0, 8)}...`, 'error');
     throw error;
   }

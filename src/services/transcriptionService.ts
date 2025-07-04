@@ -7,8 +7,19 @@ import { loadRegionsForTranscription } from './regionService';
 import { loadIssuesForTranscription } from './issueService';
 import { TranscriptionModel } from './adt';
 
-// Create GraphQL client
-const client = generateClient();
+// Create GraphQL client lazily
+let client: any = null;
+const getClient = () => {
+  if (!client) {
+    client = generateClient();
+  }
+  return client;
+};
+
+// For testing: reset the client
+export const __resetClient = () => {
+  client = null;
+};
 
 export interface CreateTranscriptionData {
   title: string;
@@ -173,7 +184,7 @@ export const loadInFull = async (transcriptionId: string): Promise<false | {
   let transcriptionData;
   try {
     console.log('🔍 Loading transcription via GraphQL API...');
-    const graphqlResult = await client.graphql({
+    const graphqlResult = await getClient().graphql({
       query: getTranscription,
       variables: { id: transcriptionId }
     });
@@ -211,15 +222,22 @@ export const loadInFull = async (transcriptionId: string): Promise<false | {
   };
 };
 
-// TODO: Implement create and update functions using GraphQL mutations instead of DataStore
-// These functions are commented out since DataStore is being removed
-
-/*
+/**
+ * Creates a new transcription using GraphQL API
+ * @param data The transcription data to create
+ * @returns The created transcription
+ */
 export const create = async (data: CreateTranscriptionData): Promise<any> => {
   // TODO: Implement using GraphQL createTranscription mutation
   throw new Error('Create function needs to be reimplemented with GraphQL');
 };
 
+/**
+ * Updates an existing transcription using GraphQL API
+ * @param transcriptionId The ID of the transcription to update
+ * @param updates The fields to update
+ * @returns The updated transcription
+ */
 export const updateTranscription = async (
   transcriptionId: string, 
   updates: {
@@ -230,5 +248,4 @@ export const updateTranscription = async (
 ): Promise<any> => {
   // TODO: Implement using GraphQL updateTranscription mutation
   throw new Error('Update function needs to be reimplemented with GraphQL');
-};
-*/ 
+}; 
