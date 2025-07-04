@@ -1,7 +1,5 @@
-import { DataStore } from '@aws-amplify/datastore';
 import { generateClient } from 'aws-amplify/api';
 import { getUrl } from 'aws-amplify/storage';
-import { Transcription as DSTranscription } from '../models';
 // @ts-ignore - GraphQL queries are generated as JS files
 import { getTranscription } from '../graphql/queries.js';
 
@@ -171,7 +169,8 @@ export const loadInFull = async (transcriptionId: string): Promise<false | {
     throw new Error('transcriptionId is required');
   }
 
-  // First check access via GraphQL API (this will enforce authorization)
+  // Load via GraphQL API (this will enforce authorization)
+  let transcriptionData;
   try {
     console.log('🔍 Loading transcription via GraphQL API...');
     const graphqlResult = await client.graphql({
@@ -180,18 +179,17 @@ export const loadInFull = async (transcriptionId: string): Promise<false | {
     });
     console.log('📊 GraphQL API result:', JSON.stringify(graphqlResult, null, 2));
     
-    // If we get here, user has access - continue with DataStore loading
+    transcriptionData = graphqlResult.data.getTranscription;
+    if (!transcriptionData) {
+      return false; // Transcription not found
+    }
   } catch (error) {
     console.error('❌ GraphQL API query failed - access denied:', error);
     return false; // Return false instead of throwing error
   }
 
-  // Load via DataStore (existing method)
-  const raw = await DataStore.query(DSTranscription, transcriptionId)
-  const transcription = new TranscriptionModel(raw as any);
-  if (!transcription) {
-    return false; // Return false instead of throwing error
-  }
+  // Create TranscriptionModel from GraphQL data
+  const transcription = new TranscriptionModel(transcriptionData as any);
 
   // Handle missing source
   if (!transcription.source) {
@@ -213,30 +211,15 @@ export const loadInFull = async (transcriptionId: string): Promise<false | {
   };
 };
 
-/**
- * Create a new transcription record
- */
-export const create = async (data: CreateTranscriptionData): Promise<DSTranscription> => {
-  return await DataStore.save(
-    new DSTranscription({
-      title: data.title.trim(),
-      source: data.source,
-      type: data.type,
-      dateLastUpdated: `${Date.now()}`,
-      author: data.author,
-      userLastUpdated: data.userLastUpdated,
-      issues: '',
-      length: 0,
-      coverage: 0,
-      disableAnalyzer: false,
-      isPrivate: true,
-    })
-  );
+// TODO: Implement create and update functions using GraphQL mutations instead of DataStore
+// These functions are commented out since DataStore is being removed
+
+/*
+export const create = async (data: CreateTranscriptionData): Promise<any> => {
+  // TODO: Implement using GraphQL createTranscription mutation
+  throw new Error('Create function needs to be reimplemented with GraphQL');
 };
 
-/**
- * Update a transcription record
- */
 export const updateTranscription = async (
   transcriptionId: string, 
   updates: {
@@ -244,22 +227,8 @@ export const updateTranscription = async (
     comments?: string;
     userLastUpdated: string;
   }
-): Promise<DSTranscription> => {
-  const original = await DataStore.query(DSTranscription, transcriptionId);
-  if (!original) {
-    throw new Error(`Transcription with ID ${transcriptionId} not found`);
-  }
-
-  const updated = DSTranscription.copyOf(original, (draft) => {
-    if (updates.title !== undefined) {
-      draft.title = updates.title.trim();
-    }
-    if (updates.comments !== undefined) {
-      draft.comments = updates.comments;
-    }
-    draft.userLastUpdated = updates.userLastUpdated;
-    draft.dateLastUpdated = `${Date.now()}`;
-  });
-
-  return await DataStore.save(updated);
-}; 
+): Promise<any> => {
+  // TODO: Implement using GraphQL updateTranscription mutation
+  throw new Error('Update function needs to be reimplemented with GraphQL');
+};
+*/ 

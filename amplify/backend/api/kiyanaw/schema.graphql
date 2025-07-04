@@ -43,8 +43,12 @@ type Transcription
 type Region
   @model
   @auth(rules: [
-    { allow: private, provider: identityPool, operations: [create, read, update, delete] },
-    { allow: private, operations: [read, update] }
+    # 1) Allow IAM callers full CRUD (e.g. DataStore sync, Lambda functions)
+    { allow: private, provider: identityPool, operations: [create, read, update, delete] }
+    
+    # 2) Regions inherit access from parent Transcription
+    # Users can only read regions - create/update requires explicit parent transcription access
+    { allow: private, operations: [read] }
   ]) {
   id: ID! @primaryKey
   start: Float!

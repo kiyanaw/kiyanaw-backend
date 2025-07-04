@@ -12,6 +12,8 @@ export interface TranscriptionData {
   dateLastUpdated?: string;
   userLastUpdated?: string;
   length: number;
+  editors?: string[] | null;
+  viewers?: string[] | null;
 }
 
 export interface RegionData {
@@ -74,10 +76,18 @@ export class TranscriptionModel {
   public dateLastUpdated?: string;
   public userLastUpdated?: string;
   public isVideo: boolean;
-  public editors?: string[];
+  public editors?: string[] | null;
+  public viewers?: string[] | null;
   private _length: number;
 
   constructor(data: TranscriptionData) {
+    if (!data) {
+      throw new Error('TranscriptionModel constructor: data parameter is required');
+    }
+    if (!data.id) {
+      throw new Error('TranscriptionModel constructor: data.id is required');
+    }
+    
     this.id = data.id;
     this.data = data;
     this.title = data.title;
@@ -91,8 +101,10 @@ export class TranscriptionModel {
     this.disableAnalyzer = !!data.disableAnalyzer;
     this.dateLastUpdated = data.dateLastUpdated;
     this.userLastUpdated = data.userLastUpdated;
-    this.isVideo = data.type.includes('video');
-    this._length = data.length;
+    this.editors = data.editors;
+    this.viewers = data.viewers;
+    this.isVideo = data.type?.includes('video') || false;
+    this._length = data.length || 0;
   }
 
   /**

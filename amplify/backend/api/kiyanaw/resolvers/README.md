@@ -27,6 +27,10 @@ This directory contains custom VTL (Velocity Template Language) resolvers that i
 - `Subscription.onUpdateRegion.res.vtl` - Update notifications with auth check  
 - `Subscription.onDeleteRegion.res.vtl` - Delete notifications with auth check
 
+### Note on Region Mutations
+Region mutations (create, update, delete) use auto-generated resolvers with schema-level authorization.
+Custom resolvers were removed due to VTL parsing issues and complexity with parent Transcription lookups.
+
 ## Deployment
 
 Deploy these resolvers with:

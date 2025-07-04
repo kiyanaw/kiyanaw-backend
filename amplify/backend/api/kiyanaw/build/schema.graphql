@@ -381,7 +381,7 @@ type Mutation {
   updateTranscription(input: UpdateTranscriptionInput!, condition: ModelTranscriptionConditionInput): Transcription @aws_iam @aws_cognito_user_pools
   deleteTranscription(input: DeleteTranscriptionInput!, condition: ModelTranscriptionConditionInput): Transcription @aws_iam @aws_cognito_user_pools
   createRegion(input: CreateRegionInput!, condition: ModelRegionConditionInput): Region @aws_iam
-  updateRegion(input: UpdateRegionInput!, condition: ModelRegionConditionInput): Region @aws_iam @aws_cognito_user_pools
+  updateRegion(input: UpdateRegionInput!, condition: ModelRegionConditionInput): Region @aws_iam
   deleteRegion(input: DeleteRegionInput!, condition: ModelRegionConditionInput): Region @aws_iam
   createIssue(input: CreateIssueInput!, condition: ModelIssueConditionInput): Issue @aws_iam
   updateIssue(input: UpdateIssueInput!, condition: ModelIssueConditionInput): Issue @aws_iam @aws_cognito_user_pools
