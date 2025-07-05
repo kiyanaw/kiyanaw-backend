@@ -1,6 +1,6 @@
 import { services } from '../services';
 import type { UploadProgress } from '../services/uploadService';
-import { Transcription } from '../models';
+import type { TranscriptionData } from '../types/shared';
 
 export interface CreateTranscriptionConfig {
   title: string;
@@ -13,7 +13,7 @@ export interface CreateTranscriptionConfig {
 
 export interface CreateTranscriptionResult {
   transcriptionId: string;
-  transcription: Transcription;
+  transcription: TranscriptionData;
 }
 
 export class CreateTranscriptionUseCase {

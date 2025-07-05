@@ -18,7 +18,9 @@ jest.mock('../stores/useEditorStore', () => ({
 jest.mock('../services', () => ({
   services: {
     regionService: {},
-    authService: {},
+    authService: {
+      currentUser: jest.fn(() => ({ username: 'test-user', userId: 'user-123' }))
+    },
     wavesurferService: {},
   },
 }));
@@ -99,6 +101,7 @@ describe('useDeleteRegion', () => {
       expect(MockedDeleteRegion).toHaveBeenCalledWith({
         regionId: 'test-region-id',
         transcriptionId: 'test-transcription-id',
+        user: expect.any(Object),
         services: expect.any(Object),
         store: mockStore,
       });

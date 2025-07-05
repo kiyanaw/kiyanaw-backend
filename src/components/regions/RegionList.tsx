@@ -1,14 +1,14 @@
 import { useRef, useEffect } from 'react';
 import React from 'react';
 import { RegionItem } from './RegionItem';
-import type { LightRegion } from '../../services/adt';
+import type { RegionData } from '../../services/adt';
 import { useSelectAndPlayRegion } from '../../hooks/useSelectAndPlayRegion';
 import { useEditorStore } from '../../stores/useEditorStore';
 import { usePlayerStore } from '../../stores/usePlayerStore';
 
 
 interface RegionListProps {
-  regions: LightRegion[];
+  regions: RegionData[];
   disableAnalyzer?: boolean;
 }
 

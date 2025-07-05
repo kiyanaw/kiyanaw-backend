@@ -1,22 +1,14 @@
+import { services } from '../services';
+import type { User } from '../types/shared';
+
 interface UpdateRegionBoundsConfig {
   regionId: string;
-  start: number;
-  end: number;
-  transcriptionId: string;
-  services: {
-    regionService: {
-      updateRegion: (regionId: string, updates: any, username: string) => Promise<any>;
-    };
-    authService: {
-      currentUser: () => { username: string } | null;
-    };
-  };
-  store: {
-    updateRegionBounds: (regionId: string, start: number, end: number) => void;
-    regionById: (regionId: string) => any;
-    regions: any[];
-    regionMap: Record<string, any>;
-  };
+  newStart: number;
+  newEnd: number;
+  user: User;
+  services: typeof services;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  store: any; // ZustandStore with region management capabilities
 }
 
 export class UpdateRegionBounds {
@@ -30,21 +22,18 @@ export class UpdateRegionBounds {
     if (!this.config.regionId) {
       throw new Error('regionId is required');
     }
-    if (this.config.start < 0) {
+    if (this.config.newStart < 0) {
       throw new Error('start time must be >= 0');
     }
-    if (this.config.end <= this.config.start) {
+    if (this.config.newEnd <= this.config.newStart) {
       throw new Error('end time must be greater than start time');
-    }
-    if (!this.config.transcriptionId) {
-      throw new Error('transcriptionId is required');
     }
   }
 
   async execute() {
     this.validate();
 
-    const { regionId, start, end, services, store } = this.config;
+    const { regionId, newStart, newEnd, services, store } = this.config;
 
     // Check if the region exists
     const existingRegion = store.regionById(regionId);
@@ -54,13 +43,13 @@ export class UpdateRegionBounds {
     }
 
     // Check if there's actually a change
-    if (existingRegion.start === start && existingRegion.end === end) {
+    if (existingRegion.start === newStart && existingRegion.end === newEnd) {
       console.log(`Region ${regionId} bounds unchanged, skipping update`);
       return;
     }
 
     // Update store optimistically (for immediate UI feedback)
-    store.updateRegionBounds(regionId, start, end);
+    store.updateRegionBounds(regionId, newStart, newEnd);
 
     try {
       // Get current user for audit trail
@@ -70,7 +59,7 @@ export class UpdateRegionBounds {
       // Save to database with debouncing
       await services.regionService.updateRegion(
         regionId,
-        { start, end },
+        { start: newStart, end: newEnd },
         username
       );
 

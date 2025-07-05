@@ -5,18 +5,50 @@ import 'react-quill/dist/quill.snow.css';
 import QuillCursors from 'quill-cursors';
 import { textHighlightService } from './textHighlightService';
 
+// Quill-related interfaces
+interface QuillModulesConfig extends Record<string, unknown> {
+  toolbar?: boolean | object;
+  cursors?: {
+    hideDelayMs?: number;
+    transformOnTextChange?: boolean;
+  };
+  clipboard?: {
+    matchVisual?: boolean;
+  };
+}
+
+interface QuillDelta {
+  ops?: Array<{
+    insert?: string;
+    delete?: number;
+    retain?: number;
+    attributes?: Record<string, unknown>;
+  }>;
+}
+
+// Quill instance type - using the constructor type
+type QuillInstance = InstanceType<typeof Quill>;
+
 // Extend window for debugging
 declare global {
   interface Window {
-    debugEditors?: Record<string, any>;
+    debugEditors?: Record<string, QuillInstance>;
   }
 }
 Quill.register('modules/cursors', QuillCursors);
 
 // Register custom formats with Quill
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const Inline = Quill.import('blots/inline') as any;
 
-class KnownWordBlot extends Inline {
+interface BlotInstance {
+  domNode: HTMLElement;
+  format(name: string, value: boolean | string): void;
+}
+
+class KnownWordBlot extends Inline implements BlotInstance {
+  declare domNode: HTMLElement;
+  
   static blotName = 'known-word';
   static tagName = 'span';
   static className = 'known-word';
@@ -27,11 +59,11 @@ class KnownWordBlot extends Inline {
     return node;
   }
   
-  static formats(node: any) {
+  static formats(node: HTMLElement) {
     return node.getAttribute('class') === 'known-word';
   }
   
-  format(name: string, value: any) {
+  format(name: string, value: boolean | string) {
     if (name !== 'known-word' || !value) {
       super.format(name, value);
     } else {
@@ -51,11 +83,11 @@ export interface RTEConfig {
   placeholder?: string;
   theme?: 'snow' | 'bubble';
   formats?: string[];
-  modules?: any;
+  modules?: QuillModulesConfig;
 }
 
 interface RTEInstance {
-  quill: any; // Quill instance
+  quill: QuillInstance; // Quill instance
   container: HTMLElement; // Off-screen container
   config: RTEConfig;
   textChangeCallback?: (text: string) => void;
@@ -77,7 +109,7 @@ class RTEServiceImpl {
     return this.offScreenParent!;
   }
 
-  createOrGet(key: EditorKey, config: RTEConfig): any {
+  createOrGet(key: EditorKey, config: RTEConfig): QuillInstance {
     if (this.registry.has(key)) {
       return this.registry.get(key)!.quill;
     }
@@ -193,11 +225,7 @@ class RTEServiceImpl {
       return;
     }
 
-    // Clean up event listeners
-    // Note: Quill doesn't have a standard off() method, but we can prepare for it
-    if (typeof instance.quill.off === 'function') {
-      instance.quill.off();
-    }
+    // Clean up event listeners - Quill will handle cleanup when DOM element is removed
 
     // Remove from DOM
     if (instance.container.parentNode) {
@@ -209,7 +237,7 @@ class RTEServiceImpl {
   }
 
   // Utility method to get quill instance (for direct manipulation if needed)
-  getInstance(key: EditorKey): any | null {
+  getInstance(key: EditorKey): QuillInstance | null {
     return this.registry.get(key)?.quill || null;
   }
 
@@ -240,7 +268,7 @@ class RTEServiceImpl {
     instance.textChangeCallback = callback;
 
     // Set up Quill text-change listener that only responds to user changes
-    instance.quill.on('text-change', (delta: any, oldDelta: any, source: string) => {
+    instance.quill.on('text-change', (delta: QuillDelta, oldDelta: QuillDelta, source: string) => {
       // Only trigger callback for user-initiated changes, not API changes
       if (source === 'user') {
         const plainText = instance.quill.getText().trim();

@@ -1,7 +1,8 @@
 import { RegionEditor } from '../regions/RegionEditor';
+import { type RegionData as Region } from '../../services/adt';
 
 interface StationaryInspectorProps {
-  selectedRegion: any | null;
+  selectedRegion: Region | null;
 }
 
 export const StationaryInspector = ({

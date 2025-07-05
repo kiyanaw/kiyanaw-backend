@@ -198,7 +198,6 @@ describe('useWavesurferEvents', () => {
           start: eventData.start,
           end: eventData.end,
         },
-        regions: mockRegions,
         services,
         store: mockStore,
       });
@@ -228,7 +227,6 @@ describe('useWavesurferEvents', () => {
           start: eventData.start,
           end: eventData.end,
         },
-        regions: mockRegions,
         services,
         store: mockStore,
       });
@@ -241,7 +239,12 @@ describe('useWavesurferEvents', () => {
 
       // Simulate first event
       eventHandler({ id: 'r1', start: 0, end: 1 });
-      expect(CreateRegion).toHaveBeenCalledWith(expect.objectContaining({ regions: mockRegions }));
+      expect(CreateRegion).toHaveBeenCalledWith(expect.objectContaining({ 
+        transcriptionId,
+        newRegion: { id: 'r1', start: 0, end: 1 },
+        services,
+        store: mockStore
+      }));
 
       // Simulate store update
       const newMockRegions = [...mockRegions, { id: 'r1', start: 0, end: 1 }];

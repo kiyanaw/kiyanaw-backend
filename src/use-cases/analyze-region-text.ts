@@ -7,7 +7,8 @@ interface AnalyzeRegionTextConfig {
   regionId: string;
   text: string;
   services: typeof services;
-  store: any; // whole store object
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  store: any; // ZustandStore with text editing capabilities
 }
 
 // Debounced analysis state - now stores timeout keys instead of timeout objects

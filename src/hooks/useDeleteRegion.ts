@@ -22,9 +22,15 @@ export const useDeleteRegion = () => {
         throw new Error('No transcription loaded');
       }
 
+      const user = services.authService.currentUser();
+      if (!user) {
+        throw new Error('User must be authenticated to delete a region');
+      }
+
       const useCase = new DeleteRegion({
         regionId,
         transcriptionId: transcription.id,
+        user,
         services,
         store,
       });

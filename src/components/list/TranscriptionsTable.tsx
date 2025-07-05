@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranscriptionsStore } from '../../stores/useTranscriptionsStore';
-// import type { Transcription } from '../../models';
 import TimeAgo from 'javascript-time-ago';
 import en from 'javascript-time-ago/locale/en';
 
@@ -50,8 +49,10 @@ export const TranscriptionsTable = () => {
 
     // Sort
     filtered.sort((a, b) => {
-      let aValue: any = (a as any)[sortBy];
-      let bValue: any = (b as any)[sortBy];
+      // @ts-expect-error - Needed for dynamic property access
+      let aValue = a[sortBy];
+      // @ts-expect-error - Needed for dynamic property access  
+      let bValue = b[sortBy];
 
       // Handle numeric values
       if (

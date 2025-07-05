@@ -1,6 +1,6 @@
 import { useState, memo } from 'react';
 import { Play, Pause, FileText, AlertTriangle, EyeOff, RotateCcw, Trash2 } from 'lucide-react';
-import { type LightRegion as Region } from '../../services/adt';
+import { type RegionData as Region } from '../../services/adt';
 import { useTextEditors } from '../../hooks/useTextEditors';
 import { useDeleteRegion } from '../../hooks/useDeleteRegion';
 import { useEditorStore } from '../../stores/useEditorStore';

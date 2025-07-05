@@ -4,18 +4,40 @@ import Timeline from 'wavesurfer.js/dist/plugins/timeline.esm.js';
 import mitt from 'mitt';
 import { generateSignedUrl } from './transcriptionService';
 
+// Type definitions for WaveSurfer service
+interface RegionEvent {
+  id: string;
+  start: number;
+  end: number;
+  element?: HTMLElement;
+  content?: string;
+  resize?: boolean;
+  drag?: boolean;
+}
+
+
+
+interface DelayedLoad {
+  source: string;
+  peaks: unknown;
+}
+
+// Type for regions plugin instance
+type RegionsPlugin = InstanceType<typeof Regions>;
+type TimelinePlugin = InstanceType<typeof Timeline>;
+
 
 class WaveSurferService {
   private static instance: WaveSurferService;
   private emitter = mitt();
   private wavesurfer: WaveSurfer | null = null;
-  private regionsPlugin: any = null;
-  private timelinePlugin: any = null;
+  private regionsPlugin: RegionsPlugin | null = null;
+  private timelinePlugin: TimelinePlugin | null = null;
   private muteEvents: boolean = false;
   private ready: boolean = false;
-  private _delayedRegions: any[] = []
-  private _delayedSeekRegion: { id: string, start: number, end: number } | null = null
-  private _delayedLoad: { source: string, peaks: any } | null = null
+  private _delayedRegions: RegionEvent[] = []
+  private _delayedSeekRegion: RegionEvent | null = null
+  private _delayedLoad: DelayedLoad | null = null
   // Store references to current containers for comparison
   private currentContainer: HTMLElement | null = null;
   private currentTimelineContainer: HTMLElement | null = null;
@@ -24,9 +46,9 @@ class WaveSurferService {
   // Used to ignore region-out events immediately after seeking to prevent unwanted highlight removal
   private _inboundRegionIgnoreNextOut: boolean = false
   // Tracks the currently highlighted region in the wavesurfer player for inbound region management
-  private _inboundRegionCurrentHighlighted: any = null
+  private _inboundRegionCurrentHighlighted: RegionEvent | null = null
   // Tracks the region we want to stop playback at (for region-bounded playback)
-  private _playbackBoundRegion: { id: string, start: number, end: number } | null = null
+  private _playbackBoundRegion: RegionEvent | null = null
   private _canEdit: boolean = false
 
   private REGION_BACKGROUND_COLOR = 'rgba(0, 0, 0, 0.1)'
@@ -128,7 +150,7 @@ class WaveSurferService {
       this._delayedLoad = null;
     }
 
-    (window as any).ws = this;
+    (window as { ws?: WaveSurferService }).ws = this;
   }
 
   registerEvents(): void {
@@ -195,20 +217,22 @@ class WaveSurferService {
     })
 
     // Region events
-    this.regionsPlugin?.on('region-created', (event: any) => {
+    this.regionsPlugin?.on('region-created', (event: unknown) => {
+      const regionEvent = event as RegionEvent;
       this.emitEvent('region-created', {
-        id: event.id,
-        start: event.start,
-        end: event.end
+        id: regionEvent.id,
+        start: regionEvent.start,
+        end: regionEvent.end
       });
       this.updateRegionIndices()
     });
 
-    this.regionsPlugin?.on('region-updated', (event: any) => {
+    this.regionsPlugin?.on('region-updated', (event: unknown) => {
+      const regionEvent = event as RegionEvent;
       this.emitEvent('region-update-end', {
-        id: event.id,
-        start: event.start,
-        end: event.end
+        id: regionEvent.id,
+        start: regionEvent.start,
+        end: regionEvent.end
       });
       this.updateRegionIndices();
     });
@@ -221,22 +245,23 @@ class WaveSurferService {
      * logic to make sure that the highlight gets cleared properly when we play the
      * media or click somewhere else. 
      */
-    this.regionsPlugin?.on('region-in', (event: any) => {
+    this.regionsPlugin?.on('region-in', (event: unknown) => {
+      const regionEvent = event as RegionEvent;
       // Guard against deleted regions
-      if (!event?.element) {
+      if (!regionEvent?.element) {
         return;
       }
       
       const previouslyHighlightedInboundRegion = this._inboundRegionCurrentHighlighted !== null;
-      const newRegionInIsDifferent = previouslyHighlightedInboundRegion && this._inboundRegionCurrentHighlighted.id !== event.id;
+      const newRegionInIsDifferent = previouslyHighlightedInboundRegion && this._inboundRegionCurrentHighlighted?.id !== regionEvent.id;
       const needToClearHighlight = newRegionInIsDifferent;
       if (needToClearHighlight && this._inboundRegionCurrentHighlighted?.element) {
         this._inboundRegionCurrentHighlighted.element.style.backgroundColor = this.REGION_BACKGROUND_COLOR;
       }
       // Set highlight color when entering region
-      event.element.style.backgroundColor = this.REGION_HIGHLIGHTED_COLOR;
-      this._inboundRegionCurrentHighlighted = event;
-      this.emitEvent('region-in', {regionId: event.id})
+      regionEvent.element.style.backgroundColor = this.REGION_HIGHLIGHTED_COLOR;
+      this._inboundRegionCurrentHighlighted = regionEvent;
+      this.emitEvent('region-in', {regionId: regionEvent.id})
     })
 
     /**
@@ -246,7 +271,8 @@ class WaveSurferService {
      * back-to-back when we seek to the initial region. It could possible be cleaner,
      * but this is where we are today :)
      */
-    this.regionsPlugin?.on('region-out', (event: any) => {
+    this.regionsPlugin?.on('region-out', (event: unknown) => {
+      const regionEvent = event as RegionEvent;
       // Check if we should ignore this region-out event
       const shouldIgnoreRegionOutEvent = this._inboundRegionIgnoreNextOut;
       if (shouldIgnoreRegionOutEvent) {
@@ -255,25 +281,25 @@ class WaveSurferService {
         return
       }
       // Guard against deleted regions
-      if (!event?.element) {
+      if (!regionEvent?.element) {
         return;
       }
       
       // Restore original background color when leaving region
-      event.element.style.backgroundColor = this.REGION_BACKGROUND_COLOR
+      regionEvent.element.style.backgroundColor = this.REGION_BACKGROUND_COLOR
       // Clear current highlighted region tracking if this is the one leaving
       const previouslyHighlightedInboundRegion = this._inboundRegionCurrentHighlighted !== null;
-      const isLeavingCurrentlyHighlightedRegion = previouslyHighlightedInboundRegion && this._inboundRegionCurrentHighlighted.id === event.id;
+      const isLeavingCurrentlyHighlightedRegion = previouslyHighlightedInboundRegion && this._inboundRegionCurrentHighlighted?.id === regionEvent.id;
       if (isLeavingCurrentlyHighlightedRegion) {
         this._inboundRegionCurrentHighlighted = null
       }
-      this.emitEvent('region-out', {regionId: event.id})
+      this.emitEvent('region-out', {regionId: regionEvent.id})
     })
 
 
   }
 
-  emitEvent(eventName: string, data?: any): void {
+  emitEvent(eventName: string, data?: unknown): void {
     if (!this.muteEvents) {
       this.emitter.emit(eventName, data);
     }
@@ -283,11 +309,11 @@ class WaveSurferService {
     this.emitter.all.clear();
   }
 
-  on(eventName: string, callback: (data: any) => void): void {
+  on(eventName: string, callback: (data: unknown) => void): void {
     this.emitter.on(eventName, callback);
   }
 
-  off(eventName: string, callback: (data: any) => void): void {
+  off(eventName: string, callback: (data: unknown) => void): void {
     this.emitter.off(eventName, callback);
   }
 
@@ -296,12 +322,12 @@ class WaveSurferService {
     return this.wavesurfer;
   }
 
-  getRegionsPlugin(): any {
+  getRegionsPlugin(): RegionsPlugin | null {
     return this.regionsPlugin;
   }
 
   // Set a new source URL and peaks data
-  async load(source: string, peaks: any): Promise<void> {
+  async load(source: string, peaks: unknown): Promise<void> {
     if (!this.wavesurfer) {
       this._delayedLoad = { source, peaks };
       return;
@@ -315,34 +341,34 @@ class WaveSurferService {
         // and then load peaks only in wavesurfer
         signedMediaUrl = await generateSignedUrl(source);
         this.currentMediaElement.src = signedMediaUrl;
-        this.wavesurfer?.load(signedMediaUrl, peaks);
+        this.wavesurfer?.load(signedMediaUrl, peaks as (Float32Array)[]);
       } else {
         // For audio-only, load the signed media source directly.
         signedMediaUrl = await generateSignedUrl(source);
-        this.wavesurfer?.load(signedMediaUrl, peaks);
+        this.wavesurfer?.load(signedMediaUrl, peaks as (Float32Array)[]);
       }
     } catch (error) {
       console.error('Failed to load media with signed URL:', error);
       // Fallback to original URL if signing fails
       if (this.currentMediaElement) {
         this.currentMediaElement.src = source;
-        this.wavesurfer?.load(source, peaks);
+        this.wavesurfer?.load(source, peaks as (Float32Array)[]);
       } else {
-        this.wavesurfer?.load(source, peaks);
+        this.wavesurfer?.load(source, peaks as (Float32Array)[]);
       }
     }
   }
 
-  setRegions(regions:any) {
+  setRegions(regions: RegionEvent[]) {
     if (this.wavesurfer) {
       if (this.ready) {
         // Clear existing regions first
-        this.regionsPlugin.clearRegions();
+        this.regionsPlugin?.clearRegions();
         // Clear delayed regions first since we're processing them now
         this._delayedRegions = []
 
         this.muteEvents = true
-        regions.forEach((region: any, index: number) => {
+        regions.forEach((region: RegionEvent, index: number) => {
           const input = {
             id: region.id, // Pass the region ID so wavesurfer uses the same ID as the database
             start: region.start,
@@ -351,7 +377,7 @@ class WaveSurferService {
             resize: this._canEdit, // Only allow resize if user can edit
             drag: this._canEdit,   // Only allow drag if user can edit
           }
-          this.regionsPlugin.addRegion(input);
+          this.regionsPlugin?.addRegion(input);
         });
         this.muteEvents = false
       } else {
@@ -374,7 +400,7 @@ class WaveSurferService {
   /**
    * Get the current delayed regions (useful for state restoration)
    */
-  getDelayedRegions(): any[] {
+  getDelayedRegions(): RegionEvent[] {
     return this._delayedRegions;
   }
 
@@ -382,11 +408,18 @@ class WaveSurferService {
    * Adds a new region and updates the display indices of all regions
    */
   updateRegionIndices() {
-    const allRegions = this.regionsPlugin.getRegions();
+    const allRegions = this.regionsPlugin?.getRegions();
+    if (!allRegions) return;
+    
     // Sort regions by start time to ensure proper chronological ordering
-    const sortedRegions = allRegions.sort((a: any, b: any) => a.start - b.start);
-    sortedRegions.forEach((region: any, index: number) => {
-      region.setContent(`${index + 1}`)
+    const sortedRegions = allRegions.sort((a: unknown, b: unknown) => {
+      const regionA = a as RegionEvent;
+      const regionB = b as RegionEvent;
+      return regionA.start - regionB.start;
+    });
+    sortedRegions.forEach((region: unknown, index: number) => {
+      const regionEvent = region as { setContent: (content: string) => void };
+      regionEvent.setContent(`${index + 1}`)
     });
     
   }
@@ -403,7 +436,7 @@ class WaveSurferService {
 
   // seekToTime went away, replaced by seekToRegion
 
-  seekToRegion(region: { id: string, start: number, end: number }): void {
+  seekToRegion(region: RegionEvent): void {
     // Arm the region-bounded playback guard
     this._playbackBoundRegion = region;
     

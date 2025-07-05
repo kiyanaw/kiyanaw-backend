@@ -1,4 +1,3 @@
-
 import { services } from '../services';
 
 interface CreateRegionConfig {
@@ -8,14 +7,15 @@ interface CreateRegionConfig {
     start: number;
     end: number;
   };
-  regions: any[];
   services: typeof services;
-  store: any; // whole store object
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  store: any; // ZustandStore with region management capabilities
 }
 
 export class CreateRegion {
   private config: CreateRegionConfig;
-  private user: any; 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private user: any | null = null; 
 
   constructor(config: CreateRegionConfig) {
     this.config = config;
@@ -38,7 +38,7 @@ export class CreateRegion {
     const regionService = this.config.services.regionService
     const newRegion = this.config.newRegion
     const transcriptionId = this.config.transcriptionId
-    const userLastUpdated = this.user.username
+    const userLastUpdated = this.user?.username || 'unknown'
 
     // save to store
     store.addNewRegion(newRegion)

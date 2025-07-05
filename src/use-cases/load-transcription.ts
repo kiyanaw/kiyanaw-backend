@@ -3,7 +3,8 @@ import { services } from '../services';
 interface LoadTranscriptionConfig {
   transcriptionId: string;
   services: typeof services;
-  store: any; // whole store object
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  store: any; // ZustandStore with transcription management capabilities
 }
 
 export class LoadTranscription {
@@ -47,8 +48,8 @@ export class LoadTranscription {
     // Check if there's a regionId in the URL that we should select
     const selectedRegionId = browserService.getRegionIdFromUrl();
     
-    // Set transcription data in store
-    this.config.store.setFullTranscriptionData(data, selectedRegionId);
+    // Set transcription data in store - use null instead of undefined for consistency with tests
+    this.config.store.setFullTranscriptionData(data, selectedRegionId || null);
 
     // Extract and populate known words from existing regions (business logic)
     const allKnownWords = this.extractKnownWordsFromRegions(data.regions);
@@ -65,6 +66,7 @@ export class LoadTranscription {
     
     // If we have a selected region, seek to it in the wavesurfer and apply styling
     if (selectedRegionId) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const selectedRegion = data.regions.find((region: any) => region.id === selectedRegionId);
       if (selectedRegion) {
         wavesurferService.seekToRegion(selectedRegion);
@@ -74,6 +76,7 @@ export class LoadTranscription {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private extractKnownWordsFromRegions(regions: any[]): string[] {
     const allKnownWords = new Set<string>();
     if (regions && Array.isArray(regions)) {

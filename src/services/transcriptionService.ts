@@ -6,13 +6,20 @@ import { getTranscription } from '../graphql/queries.js';
 
 import { loadRegionsForTranscription } from './regionService';
 import { loadIssuesForTranscription } from './issueService';
-import { TranscriptionModel } from './adt';
+import { TranscriptionModel, type TranscriptionData as ADTTranscriptionData } from './adt';
+import { 
+  type GraphQLClient, 
+  type GraphQLResponse, 
+  type GetTranscriptionResponse, 
+  type TranscriptionData as SharedTranscriptionData, 
+  type LoadTranscriptionResult 
+} from '../types/shared';
 
 // Create GraphQL client lazily
-let client: any = null;
-const getClient = () => {
+let client: GraphQLClient | null = null;
+const getClient = (): GraphQLClient => {
   if (!client) {
-    client = generateClient();
+    client = generateClient() as GraphQLClient;
   }
   return client;
 };
@@ -171,18 +178,13 @@ const fetchPeaksData = async (
  * @param transcriptionId The ID of the transcription to load.
  * @returns An object containing the transcription, regions, and issues, or false if access denied.
  */
-export const loadInFull = async (transcriptionId: string): Promise<false | {
-  transcription: any;
-  peaks: number[];
-  regions: any[];
-  issues: any[];
-}> => {
+export const loadInFull = async (transcriptionId: string): Promise<false | LoadTranscriptionResult> => {
   if (!transcriptionId) {
     throw new Error('transcriptionId is required');
   }
 
   // Load via GraphQL API (this will enforce authorization)
-  let transcriptionData;
+  let transcriptionData: SharedTranscriptionData;
   try {
     console.log('🔍 Loading transcription via GraphQL API...');
     const graphqlResult = await getClient().graphql({
@@ -191,7 +193,8 @@ export const loadInFull = async (transcriptionId: string): Promise<false | {
     });
     console.log('📊 GraphQL API result:', JSON.stringify(graphqlResult, null, 2));
     
-    transcriptionData = (graphqlResult as any).data.getTranscription;
+    const response = graphqlResult as GraphQLResponse<GetTranscriptionResponse>;
+    transcriptionData = response.data.getTranscription;
     if (!transcriptionData) {
       return false; // Transcription not found
     }
@@ -201,7 +204,7 @@ export const loadInFull = async (transcriptionId: string): Promise<false | {
   }
 
   // Create TranscriptionModel from GraphQL data
-  const transcription = new TranscriptionModel(transcriptionData as any);
+  const transcription = new TranscriptionModel(transcriptionData as unknown as ADTTranscriptionData);
 
   // Handle missing source
   if (!transcription.source) {
@@ -228,7 +231,7 @@ export const loadInFull = async (transcriptionId: string): Promise<false | {
  * @param data The transcription data to create
  * @returns The created transcription
  */
-export const create = async (data: CreateTranscriptionData): Promise<any> => {
+export const create = async (data: CreateTranscriptionData): Promise<SharedTranscriptionData> => {
   // TODO: Implement using GraphQL createTranscription mutation
   console.log('TODO: create transcription with data:', data);
   throw new Error('Create function needs to be reimplemented with GraphQL');
@@ -247,7 +250,7 @@ export const updateTranscription = async (
     comments?: string;
     userLastUpdated: string;
   }
-): Promise<any> => {
+): Promise<SharedTranscriptionData> => {
   // TODO: Implement using GraphQL updateTranscription mutation
   console.log('TODO: update transcription:', transcriptionId, updates);
   throw new Error('Update function needs to be reimplemented with GraphQL');

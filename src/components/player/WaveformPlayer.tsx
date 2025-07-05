@@ -1,6 +1,5 @@
 import { useRef, useCallback, useState } from 'react';
-import { Play, Pause, Target, X, Search, ZoomIn, Gauge, Loader2, Settings } from 'lucide-react';
-import { eventBus } from '../../lib/eventBus';
+import { Play, Pause, Target, X, ZoomIn, Gauge, Loader2, Settings } from 'lucide-react';
 import { wavesurferService } from '../../services/wavesurferService';
 import { usePlayerStore } from '../../stores/usePlayerStore';
 import { usePlay } from '../../hooks/usePlay';
@@ -20,26 +19,18 @@ interface Region {
 
 interface WaveformPlayerProps {
   source: string;
-  peaks?: any; // Currently unused but may be needed later
   inboundRegion?: string | null; // Currently unused but may be needed later
   regions: Region[]; // Now using this for region count
   isVideo: boolean;
   title: string;
-  onRegionUpdate: (region: any) => void; // Currently unused but may be needed later
-  onLookup: () => void;
 }
 
 export const WaveformPlayer = ({
   source,
-  // peaks, // Currently unused but may be needed later
-  // inboundRegion, // Currently unused but may be needed later
   regions, // Now using this for region count
   isVideo,
   title,
-  // onRegionUpdate, // Currently unused but may be needed later
-  onLookup,
 }: WaveformPlayerProps) => {
-  // console.log('--- WaveformPlayer Render ---', { source, hasPeaks: !!peaks });
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const waveformContainerRef = useRef<HTMLDivElement | null>(null);
@@ -95,14 +86,6 @@ export const WaveformPlayer = ({
     } else {
       play({ playInFull: true });
     }
-  };
-
-  const handleMarkRegion = () => {
-    eventBus.emit('waveform-mark-region');
-  };
-
-  const handleCancelRegion = () => {
-    eventBus.emit('waveform-cancel-region');
   };
 
   const handleZoomChange = (value: number) => {
@@ -186,7 +169,7 @@ export const WaveformPlayer = ({
               <>
                 <button
                   className="bg-none border-none text-base cursor-pointer px-2 py-1 rounded transition-colors hover:bg-gray-200 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  onClick={handleMarkRegion}
+                  onClick={() => {/* noop */}}
                   disabled={!loadedAndReady}
                   data-testid="mark-region"
                 >
@@ -195,23 +178,13 @@ export const WaveformPlayer = ({
 
                 <button
                   className="bg-none border-none text-base cursor-pointer px-2 py-1 rounded transition-colors hover:bg-gray-200 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  onClick={handleCancelRegion}
+                  onClick={() => {/* noop */}}
                   disabled={!loadedAndReady}
                 >
                   <X size={16} />
                 </button>
               </>
             )}
-
-            <span className="mx-2 text-gray-600 font-bold">|</span>
-
-            <button 
-              className="bg-none border-none text-base cursor-pointer px-2 py-1 rounded transition-colors hover:bg-gray-200 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              onClick={onLookup}
-              disabled={!loadedAndReady}
-            >
-              <Search size={16} />
-            </button>
           </div>
 
           <div className="flex items-center gap-4 md:gap-4 gap-2 flex-col md:flex-row">

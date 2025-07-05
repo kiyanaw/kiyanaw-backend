@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { generateClient } from 'aws-amplify/api';
 import { Transcription } from '../models';
+import type { GraphQLListResponse } from '../types/shared';
 // @ts-expect-error - GraphQL queries are generated as JS files
 import { listTranscriptions } from '../graphql/queries.js';
 
@@ -30,7 +31,7 @@ export const useTranscriptionsStore = create<TranscriptionsState>()(
           const { data } = await client.graphql({ query: listTranscriptions });
 
           // The GraphQL result is of shape { listTranscriptions: { items: [...] } }
-          const items = (data as any)?.listTranscriptions?.items ?? [];
+          const items = (data as GraphQLListResponse<Transcription>)?.listTranscriptions?.items ?? [];
 
           set({ transcriptions: items as Transcription[], loading: false });
         } catch (error) {

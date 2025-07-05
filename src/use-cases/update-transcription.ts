@@ -1,17 +1,18 @@
 import { services } from '../services';
-import { useEditorStore } from '../stores/useEditorStore';
-import { TranscriptionModel } from '../services/adt';
 import { showToast } from '../services/toastService';
+import type { TranscriptionData } from '../types/shared';
 
 export interface UpdateTranscriptionConfig {
   transcriptionId: string;
   updates: {
     title?: string;
     comments?: string;
+    source?: string;
   };
-  username: string;
   services: typeof services;
-  store: ReturnType<typeof useEditorStore.getState>;
+  username?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  store?: any;
 }
 
 export class UpdateTranscriptionUseCase {
@@ -21,42 +22,53 @@ export class UpdateTranscriptionUseCase {
     this.config = config;
   }
 
-  validate() {
+  validate(): void {
     if (!this.config.transcriptionId) {
       throw new Error('transcriptionId is required');
     }
+
     if (!this.config.username) {
       throw new Error('username is required');
     }
+
     if (!this.config.updates || Object.keys(this.config.updates).length === 0) {
       throw new Error('updates are required');
     }
-    if (this.config.updates.title !== undefined && this.config.updates.title.trim().length === 0) {
-      throw new Error('title cannot be empty');
+
+    // Check if title is provided and validate it
+    if (this.config.updates.title !== undefined) {
+      if (!this.config.updates.title || this.config.updates.title.trim() === '') {
+        throw new Error('title cannot be empty');
+      }
     }
   }
 
-  async execute() {
+  async execute(): Promise<TranscriptionData> {
     this.validate();
 
+    const { transcriptionId, updates, username, store } = this.config;
+
+    // Add user tracking fields
+    const updateData = {
+      ...updates,
+      userLastUpdated: username,
+      dateLastUpdated: new Date().toISOString(),
+    };
+
     try {
-      const rawUpdatedTranscription = await this.config.services.transcriptionService.updateTranscription(
-        this.config.transcriptionId,
-        {
-          ...this.config.updates,
-          userLastUpdated: this.config.username,
-        }
-      );
+      // Update transcription  
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await this.config.services.transcriptionService.updateTranscription(transcriptionId, updateData as any);
 
-      // Convert the raw DataStore result back to a TranscriptionModel to preserve computed properties like isVideo
-      const updatedTranscription = new TranscriptionModel(rawUpdatedTranscription as any);
-
-      // Update the store with the properly typed transcription data
-      this.config.store.setTranscription(updatedTranscription);
+      // Update store with raw transcription data
+      if (store?.setTranscription) {
+        store.setTranscription(result);
+      }
 
       // Show success toast
       showToast('Transcription saved', 'success');
-      
+
+      return result;
     } catch (error) {
       console.error('Failed to update transcription:', error);
       showToast('Failed to save transcription', 'error');

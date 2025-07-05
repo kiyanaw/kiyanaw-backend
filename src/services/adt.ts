@@ -14,6 +14,9 @@ export interface TranscriptionData {
   length: number;
   editors?: string[] | null;
   viewers?: string[] | null;
+  createdAt?: string;
+  updatedAt?: string;
+  isVideo?: boolean;
 }
 
 export interface RegionData {
@@ -23,24 +26,41 @@ export interface RegionData {
   end: number;
   start: number;
   isNote?: boolean;
-  comments?: string | any[];
   regionText?: string; // TODO: reconcile this field
-  text?: string | any[];
+  text?: string;
   transcriptionId: string;
   translation?: string;
   userLastUpdated?: string;
   index?: number;
-  regionAnalysis?: string; // JSON string of known words array
+  regionAnalysis?: string[]; // Array of known words
+  updatedAt?: string; // Additional property needed for tests
 }
 
-export interface LightRegion {
+export interface IssueComment {
+  id?: string;
+  createdAt: string;
+  author: string;
+  text: string;
+}
+
+export interface IssueData {
   id: string;
-  start: number;
-  end: number;
-  regionText?: string;
-  translation?: string;
-  isNote?: boolean;
-  regionAnalysis?: string[]; // Array of known words
+  transcriptionId: string;
+  regionId?: string;
+  createdAt: string;
+  updatedAt?: string;
+  title: string;
+  description?: string;
+  status: 'open' | 'closed' | 'in-progress';
+  priority: 'low' | 'medium' | 'high';
+  type: 'bug' | 'suggestion' | 'question' | 'other';
+  author: string;
+  assignedTo?: string;
+  comments: string; // JSON string of IssueComment array
+}
+
+export interface ProcessedIssue extends Omit<IssueData, 'comments'> {
+  comments: IssueComment[];
 }
 
 function pad(num: number, size: number): string {
@@ -163,15 +183,8 @@ export class RegionModel {
       // Use regionText as plain text (new approach)
       this.regionText = data.regionText || '';
 
-      // Parse regionAnalysis from JSON string
-      this.regionAnalysis = [];
-      if (data.regionAnalysis) {
-        try {
-          this.regionAnalysis = JSON.parse(data.regionAnalysis);
-        } catch {
-          console.warn('Failed to parse regionAnalysis:', data.regionAnalysis);
-        }
-      }
+      // Use regionAnalysis directly as array
+      this.regionAnalysis = data.regionAnalysis || [];
 
     } catch (e) {
       console.error('Error constructing RegionModel:', e);

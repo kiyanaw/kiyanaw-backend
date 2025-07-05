@@ -9,6 +9,31 @@ import { services } from '../services';
 import { CreateRegion } from '../use-cases/create-region';
 import { UpdateRegionBounds } from '../use-cases/update-region-bounds';
 
+// Wavesurfer event interfaces
+interface RegionCreatedEvent {
+  id: string;
+  start: number;
+  end: number;
+}
+
+interface RegionUpdateEndEvent {
+  id: string;
+  start: number;
+  end: number;
+}
+
+interface TimeUpdateEvent {
+  currentTime: number;
+}
+
+interface ReadyEvent {
+  duration: number;
+}
+
+interface RegionEvent {
+  regionId: string;
+}
+
 export const useWavesurferEvents = (transcriptionId: string, source?: string): void => {
   const styleIdRef = useRef<Map<string, string>>(new Map()); // Maps regionId to styleId
   const highlightedInboundRegionRef = useRef<string | null>(null);
@@ -27,27 +52,34 @@ export const useWavesurferEvents = (transcriptionId: string, source?: string): v
     // Copy ref values to variables for cleanup function
     const currentStyleIdMap = styleIdRef.current;
 
-    const handleRegionCreated = (event: any) => {
+    const handleRegionCreated = (data: unknown) => {
+      const event = data as RegionCreatedEvent;
       console.log('Region Created', event);
       const store = useEditorStore.getState();
       const usecase = new CreateRegion({
         transcriptionId,
         newRegion: { id: event.id, start: event.start, end: event.end },
-        regions,
         services,
         store,
       });
       usecase.execute();
     };
 
-    const handleRegionUpdateEnd = (event: any) => {
+    const handleRegionUpdateEnd = (data: unknown) => {
+      const event = data as RegionUpdateEndEvent;
       console.log('Region Updated', event);
       const store = useEditorStore.getState();
+      const user = services.authService.currentUser();
+      if (!user) {
+        console.warn('Cannot update region bounds: user not authenticated');
+        return;
+      }
+      
       const usecase = new UpdateRegionBounds({
-        transcriptionId,
         regionId: event.id,
-        start: event.start,
-        end: event.end,
+        newStart: event.start,
+        newEnd: event.end,
+        user,
         services,
         store,
       });
@@ -62,7 +94,8 @@ export const useWavesurferEvents = (transcriptionId: string, source?: string): v
       usePlayerStore.getState().setPaused();
     };
 
-    const handleRegionIn = ({ regionId }: { regionId: string }) => {
+    const handleRegionIn = (data: unknown) => {
+      const { regionId } = data as RegionEvent;
       if (highlightedInboundRegionRef.current) {
         const previousStyleId = styleIdRef.current.get(highlightedInboundRegionRef.current);
         if (previousStyleId) {
@@ -78,7 +111,8 @@ export const useWavesurferEvents = (transcriptionId: string, source?: string): v
       highlightedInboundRegionRef.current = regionId;
     };
 
-    const handleRegionOut = ({ regionId }: { regionId: string }) => {
+    const handleRegionOut = (data: unknown) => {
+      const { regionId } = data as RegionEvent;
       const styleId = styleIdRef.current.get(regionId);
       if (styleId) {
         browserService.removeCustomStyle(styleId);
@@ -89,13 +123,15 @@ export const useWavesurferEvents = (transcriptionId: string, source?: string): v
       }
     };
 
-    const handleTimeUpdate = (data: any) => {
-      usePlayerStore.getState().setCurrentTime(data.currentTime);
+    const handleTimeUpdate = (data: unknown) => {
+      const event = data as TimeUpdateEvent;
+      usePlayerStore.getState().setCurrentTime(event.currentTime);
     };
 
-    const handleReadyWithDuration = (data: any) => {
+    const handleReadyWithDuration = (data: unknown) => {
+      const event = data as ReadyEvent;
       usePlayerStore.getState().setLoadedAndReady(true);
-      usePlayerStore.getState().setDuration(data.duration);
+      usePlayerStore.getState().setDuration(event.duration);
     };
 
     wavesurferService.on('region-created', handleRegionCreated);

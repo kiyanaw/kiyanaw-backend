@@ -24,7 +24,9 @@ export const RegionItem = ({
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    const secsStr = secs.toString();
+    const paddedSecs = secsStr.length === 1 ? `0${secsStr}` : secsStr;
+    return `${mins}:${paddedSecs}`;
   };
 
   // Get known words reactively from store
