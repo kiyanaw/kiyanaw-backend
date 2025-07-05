@@ -1,11 +1,14 @@
 // DataStore imports removed - now using GraphQL API directly
 import Timeout from 'smart-timeout';
 import { generateClient } from 'aws-amplify/api';
-// @ts-ignore generated JS GraphQL
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore - generated JS GraphQL
 import { listRegions } from '../graphql/queries.js';
-// @ts-ignore generated JS GraphQL
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore - generated JS GraphQL
 import { createRegion as createRegionMutation, updateRegion as updateRegionMutation, deleteRegion as deleteRegionMutation } from '../graphql/mutations.js';
-// @ts-ignore generated JS GraphQL
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore - generated JS GraphQL
 import { getRegion as getRegionQuery } from '../graphql/queries.js';
 
 import { RegionModel } from './adt';
@@ -31,36 +34,31 @@ export const __resetClient = () => {
  * @returns Processed and sorted regions
  */
 export const loadRegionsForTranscription = async (transcriptionId: string) => {
-  try {
-    // GraphQL filter: transcriptionId eq
-    const { data } = await getClient().graphql({
-      query: listRegions,
-      variables: {
-        filter: { 
-          transcriptionId: { eq: transcriptionId },
-          _deleted: { ne: true }
+  // GraphQL filter: transcriptionId eq
+  const { data } = await getClient().graphql({
+    query: listRegions,
+    variables: {
+      filter: { 
+        transcriptionId: { eq: transcriptionId },
+        _deleted: { ne: true }
 
-        },
-        limit: 1000 // arbitrarily high
-      }
-    }) as any;
+      },
+      limit: 1000 // arbitrarily high
+    }
+  }) as any;
 
-    const items = (data as any)?.listRegions?.items ?? [];
+  const items = (data as any)?.listRegions?.items ?? [];
 
-    // Filter out soft-deleted regions (Amplify marks deleted items with _deleted = true)
-    // const filtered = items.filter((item: any) => !item._deleted);
+  // Filter out soft-deleted regions (Amplify marks deleted items with _deleted = true)
+  // const filtered = items.filter((item: any) => !item._deleted);
 
-    // Sort and map to RegionModel
-    const regions = items
-      .slice()
-      .sort((a: any, b: any) => (a.start > b.start ? 1 : -1))
-      .map((r: any) => new RegionModel(r));
+  // Sort and map to RegionModel
+  const regions = items
+    .slice()
+    .sort((a: any, b: any) => (a.start > b.start ? 1 : -1))
+    .map((r: any) => new RegionModel(r));
 
-    return regions;
-  } catch (error) {
-    // console.error('❌ Failed to load regions via API:', error);
-    throw error;
-  }
+  return regions;
 }; 
 
 
@@ -147,7 +145,7 @@ export const updateRegion = async (regionId: string, updates: {
   Timeout.set(timeoutKey, async () => {
     try {
       // Get current analysis from store when save actually happens (if store provided and updating text)
-      let finalUpdates = { ...mergedUpdates };
+      const finalUpdates = { ...mergedUpdates };
       
       if (store && updates.regionText !== undefined) {
         try {
@@ -155,8 +153,8 @@ export const updateRegion = async (regionId: string, updates: {
           if (region?.regionAnalysis) {
             finalUpdates.regionAnalysis = JSON.stringify(region.regionAnalysis);
           }
-        } catch (storeError) {
-          // console.warn('Could not access store for analysis, continuing without:', storeError);
+        } catch {
+          // console.warn('Could not access store for analysis, continuing without');
           // Continue with save without analysis
         }
       }
@@ -194,8 +192,8 @@ export const updateRegion = async (regionId: string, updates: {
       // Remove from pending saves
       pendingSaves.delete(regionId);
       
-    } catch (error) {
-      // console.error(`❌ Failed to save region ${regionId}:`, error);
+    } catch {
+      // console.error(`❌ Failed to save region ${regionId}`);
       showToast(`Failed to save region ${regionId.slice(0, 8)}...`, 'error');
       pendingSaves.delete(regionId);
     }
@@ -244,7 +242,7 @@ export const updateRegionWithAnalysis = async (regionId: string, updates: {
   Timeout.set(timeoutKey, async () => {
     try {
       // Get current analysis from store when save actually happens
-      let finalUpdates = { ...mergedUpdates };
+      const finalUpdates = { ...mergedUpdates };
       
       // Try to include analysis if available and we're updating main text
       if (updates.regionText !== undefined) {
@@ -253,8 +251,8 @@ export const updateRegionWithAnalysis = async (regionId: string, updates: {
           if (region?.regionAnalysis) {
             finalUpdates.regionAnalysis = JSON.stringify(region.regionAnalysis);
           }
-        } catch (storeError) {
-          // console.warn('Could not access store for analysis, continuing without:', storeError);
+        } catch {
+          // console.warn('Could not access store for analysis, continuing without');
           // Continue with save without analysis
         }
       }
@@ -292,8 +290,8 @@ export const updateRegionWithAnalysis = async (regionId: string, updates: {
       // Remove from pending saves
       pendingSaves.delete(regionId);
       
-    } catch (error) {
-      // console.error(`❌ Failed to save region ${regionId}:`, error);
+    } catch {
+      // console.error(`❌ Failed to save region ${regionId}`);
       showToast(`Failed to save region ${regionId.slice(0, 8)}...`, 'error');
       pendingSaves.delete(regionId);
     }

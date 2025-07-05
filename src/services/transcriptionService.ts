@@ -1,5 +1,6 @@
 import { generateClient } from 'aws-amplify/api';
 import { getUrl } from 'aws-amplify/storage';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - GraphQL queries are generated as JS files
 import { getTranscription } from '../graphql/queries.js';
 
@@ -229,6 +230,7 @@ export const loadInFull = async (transcriptionId: string): Promise<false | {
  */
 export const create = async (data: CreateTranscriptionData): Promise<any> => {
   // TODO: Implement using GraphQL createTranscription mutation
+  console.log('TODO: create transcription with data:', data);
   throw new Error('Create function needs to be reimplemented with GraphQL');
 };
 
@@ -247,5 +249,6 @@ export const updateTranscription = async (
   }
 ): Promise<any> => {
   // TODO: Implement using GraphQL updateTranscription mutation
+  console.log('TODO: update transcription:', transcriptionId, updates);
   throw new Error('Update function needs to be reimplemented with GraphQL');
 }; 

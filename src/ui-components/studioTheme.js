@@ -4,6 +4,6 @@
  * Any changes to this file will be overwritten when running amplify pull. *
  **************************************************************************/
 
-/* eslint-disable */
+ 
 import { createTheme, defaultTheme } from "@aws-amplify/ui-react";
 export default createTheme(defaultTheme);

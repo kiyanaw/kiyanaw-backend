@@ -24,6 +24,9 @@ export const useWavesurferEvents = (transcriptionId: string, source?: string): v
       return;
     }
 
+    // Copy ref values to variables for cleanup function
+    const currentStyleIdMap = styleIdRef.current;
+
     const handleRegionCreated = (event: any) => {
       console.log('Region Created', event);
       const store = useEditorStore.getState();
@@ -86,10 +89,6 @@ export const useWavesurferEvents = (transcriptionId: string, source?: string): v
       }
     };
 
-    const handleReady = () => {
-      usePlayerStore.getState().setLoadedAndReady(true);
-    };
-
     const handleTimeUpdate = (data: any) => {
       usePlayerStore.getState().setCurrentTime(data.currentTime);
     };
@@ -111,10 +110,10 @@ export const useWavesurferEvents = (transcriptionId: string, source?: string): v
     return () => {
       wavesurferService.clearAllListeners();
 
-      styleIdRef.current.forEach((styleId) => {
+      currentStyleIdMap.forEach((styleId) => {
         browserService.removeCustomStyle(styleId);
       });
-      styleIdRef.current.clear();
+      currentStyleIdMap.clear();
       highlightedInboundRegionRef.current = null;
     };
   }, [transcriptionId, regions]);

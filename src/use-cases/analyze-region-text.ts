@@ -79,7 +79,7 @@ export class AnalyzeRegionTextUseCase {
     });
 
     // Start with words we already know are known
-    let allKnownWords = [...alreadyKnownWords];
+    const allKnownWords = [...alreadyKnownWords];
 
     // Only make API call if we have unknown words
     if (unknownWords.length > 0) {

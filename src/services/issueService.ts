@@ -1,4 +1,5 @@
 import { generateClient } from 'aws-amplify/api';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - GraphQL queries are generated as JS files
 import { listIssues } from '../graphql/queries.js';
 
@@ -29,7 +30,7 @@ export const loadIssuesForTranscription = async (transcriptionId: string) => {
       let comments = [];
       try {
         comments = issue.comments ? JSON.parse(issue.comments) : [];
-      } catch (e) {
+      } catch {
         console.warn('Failed to parse comments for issue:', issue.id);
         comments = [];
       }

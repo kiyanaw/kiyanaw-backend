@@ -34,21 +34,16 @@ export class CreateRegion {
   async execute(): Promise<void> {
     this.validate();
 
-    try {
-      const store = this.config.store
-      const regionService = this.config.services.regionService
-      const newRegion = this.config.newRegion
-      const transcriptionId = this.config.transcriptionId
-      const userLastUpdated = this.user.username
+    const store = this.config.store
+    const regionService = this.config.services.regionService
+    const newRegion = this.config.newRegion
+    const transcriptionId = this.config.transcriptionId
+    const userLastUpdated = this.user.username
 
-      // save to store
-      store.addNewRegion(newRegion)
+    // save to store
+    store.addNewRegion(newRegion)
 
-      // async save to DB
-      regionService.createRegion(transcriptionId, newRegion, userLastUpdated)
-
-    } catch (error) {
-      throw error;
-    }
+    // async save to DB
+    regionService.createRegion(transcriptionId, newRegion, userLastUpdated)
   }
 } 

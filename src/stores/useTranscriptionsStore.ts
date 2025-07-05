@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { generateClient } from 'aws-amplify/api';
 import { Transcription } from '../models';
-// @ts-ignore - GraphQL queries are generated as JS files
+// @ts-expect-error - GraphQL queries are generated as JS files
 import { listTranscriptions } from '../graphql/queries.js';
 
 // Create GraphQL client

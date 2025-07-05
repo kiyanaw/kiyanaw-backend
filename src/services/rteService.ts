@@ -21,7 +21,7 @@ class KnownWordBlot extends Inline {
   static tagName = 'span';
   static className = 'known-word';
   
-  static create(value: any) {
+  static create() {
     const node = super.create();
     node.setAttribute('class', 'known-word');
     return node;

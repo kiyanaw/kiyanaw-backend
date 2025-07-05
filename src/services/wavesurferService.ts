@@ -135,7 +135,7 @@ class WaveSurferService {
     /**
      * WAVESURFER EVENTS
      */
-    this.wavesurfer?.on('ready', (event) => {
+    this.wavesurfer?.on('ready', () => {
       this.ready = true
       
       if (this._delayedLoad !== null) {
@@ -166,8 +166,8 @@ class WaveSurferService {
       this.emitEvent('pause');
     })
 
-    this.wavesurfer?.on('error', (event) => {
-      console.error('Wavesurfer error event', event)
+    this.wavesurfer?.on('error', (_event) => {
+      console.error('Wavesurfer error event', _event)
     })
 
     // Listen for timeupdate to enforce region-bounded playback AND emit time updates

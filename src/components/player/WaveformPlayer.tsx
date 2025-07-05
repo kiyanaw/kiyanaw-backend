@@ -32,7 +32,7 @@ interface WaveformPlayerProps {
 export const WaveformPlayer = ({
   source,
   // peaks, // Currently unused but may be needed later
-  inboundRegion, // Currently unused but may be needed later
+  // inboundRegion, // Currently unused but may be needed later
   regions, // Now using this for region count
   isVideo,
   title,
@@ -48,7 +48,6 @@ export const WaveformPlayer = ({
   /** RARE PERMITTED LOCAL STATE */
   const [speed, setSpeed] = useState(100);
   const [zoom, setZoom] = useState(20);
-  const [videoElementReady, setVideoElementReady] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   
   const isPlaying = usePlayerStore((state) => state.playing)
@@ -69,7 +68,7 @@ export const WaveformPlayer = ({
       const mediaEl = isVideo && videoRef.current ? videoRef.current : undefined;
       wavesurferService.initialize(waveformContainerRef.current, waveformContainerRef.current, mediaEl, canEdit);
     }
-  }, [isVideo, videoElementReady, canEdit]);
+  }, [isVideo, canEdit]);
 
   // Callback ref to get DOM element and initialize WaveSurfer
   const setWaveformContainer = useCallback((node: HTMLDivElement | null) => {
@@ -84,7 +83,6 @@ export const WaveformPlayer = ({
   const setVideoElement = useCallback((node: HTMLVideoElement | null) => {
     videoRef.current = node;
     if (node) {
-      setVideoElementReady(true);
       // Reinitialize WaveSurfer now that we have the video element
       initializeWaveSurfer();
     }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Timeout from 'smart-timeout';
 
 interface LookupResult {
@@ -57,7 +57,7 @@ export const LookupModal = ({
     ];
   };
 
-  const handleSearch = async (term: string) => {
+  const handleSearch = useCallback(async (term: string) => {
     if (!term.trim()) return;
 
     setLoading(true);
@@ -72,7 +72,7 @@ export const LookupModal = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,7 +91,7 @@ export const LookupModal = ({
       setCurrentTerm(searchTerm);
       handleSearch(searchTerm);
     }
-  }, [isOpen, searchTerm]);
+  }, [isOpen, searchTerm, currentTerm, handleSearch]);
 
   // Reset state when modal closes
   useEffect(() => {

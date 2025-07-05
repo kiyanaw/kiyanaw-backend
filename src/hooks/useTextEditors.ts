@@ -1,4 +1,4 @@
-import { useLayoutEffect, useEffect, useRef } from 'react';
+import { useLayoutEffect, useRef } from 'react';
 import { rteService, type EditorKey } from '../services/rteService';
 import { UpdateRegionTextUseCase } from '../use-cases/update-region-text';
 import { AnalyzeRegionTextUseCase } from '../use-cases/analyze-region-text';
@@ -75,7 +75,7 @@ export const useTextEditors = (regionId: string, activeTab: 'main' | 'translatio
       }
       rteService.detach(mainEditorKey);
     };
-  }, [mainEditorKey, activeTab, canEdit]);
+  }, [mainEditorKey, activeTab, canEdit, currentRegion?.regionText, regionId]);
 
   /**
    * TRANSLATION EDITOR
@@ -115,7 +115,7 @@ export const useTextEditors = (regionId: string, activeTab: 'main' | 'translatio
       }
       rteService.detach(translationEditorKey);
     };
-  }, [translationEditorKey, activeTab, canEdit]);
+  }, [translationEditorKey, activeTab, canEdit, currentRegion?.translation, regionId]);
 
 
 

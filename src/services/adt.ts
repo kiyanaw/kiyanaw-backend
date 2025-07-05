@@ -168,7 +168,7 @@ export class RegionModel {
       if (data.regionAnalysis) {
         try {
           this.regionAnalysis = JSON.parse(data.regionAnalysis);
-        } catch (e) {
+        } catch {
           console.warn('Failed to parse regionAnalysis:', data.regionAnalysis);
         }
       }

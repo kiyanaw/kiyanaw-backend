@@ -42,6 +42,9 @@ export class CreateTranscriptionUseCase {
     this.validate();
 
     const { title, file, username, userId, services, onProgress } = this.config;
+    
+    // Note: userId is validated but not used yet in the current implementation
+    console.log('Creating transcription for user:', userId);
 
     // Step 1: Upload file to S3
     const fileKey = await services.uploadService.uploadFile(file, {

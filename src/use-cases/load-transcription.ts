@@ -28,54 +28,49 @@ export class LoadTranscription {
     const spellCheckerService = this.config.services.spellCheckerService
     const userService = this.config.services.userService
     
-    try {
-      const data = await transcriptionService.loadInFull(this.config.transcriptionId);
-      
-      // Check if access was denied
-      if (data === false) {
-        this.config.store.setAccessDenied(true);
-        return;
-      }
-      
-      const user = userService.currentUser()
+    const data = await transcriptionService.loadInFull(this.config.transcriptionId);
+    
+    // Check if access was denied
+    if (data === false) {
+      this.config.store.setAccessDenied(true);
+      return;
+    }
+    
+    const user = userService.currentUser()
 
-      console.log('>>> loaded in full', data, user)
-      
-      // Check if user can edit this transcription
-      const canEdit = userService.canEditTranscription(data.transcription);
-      this.config.store.setCanEdit(canEdit);
-      
-      // Check if there's a regionId in the URL that we should select
-      const selectedRegionId = browserService.getRegionIdFromUrl();
-      
-      // Set transcription data in store
-      this.config.store.setFullTranscriptionData(data, selectedRegionId);
+    console.log('>>> loaded in full', data, user)
+    
+    // Check if user can edit this transcription
+    const canEdit = userService.canEditTranscription(data.transcription);
+    this.config.store.setCanEdit(canEdit);
+    
+    // Check if there's a regionId in the URL that we should select
+    const selectedRegionId = browserService.getRegionIdFromUrl();
+    
+    // Set transcription data in store
+    this.config.store.setFullTranscriptionData(data, selectedRegionId);
 
-      // Extract and populate known words from existing regions (business logic)
-      const allKnownWords = this.extractKnownWordsFromRegions(data.regions);
-      if (allKnownWords.length > 0) {
-        // Populate spell checker service cache
-        spellCheckerService.addKnownWords(allKnownWords);
-        // Update store with known words
-        this.config.store.addKnownWords(allKnownWords);
-      }
+    // Extract and populate known words from existing regions (business logic)
+    const allKnownWords = this.extractKnownWordsFromRegions(data.regions);
+    if (allKnownWords.length > 0) {
+      // Populate spell checker service cache
+      spellCheckerService.addKnownWords(allKnownWords);
+      // Update store with known words
+      this.config.store.addKnownWords(allKnownWords);
+    }
 
-      // load wavesurfer details _outside_ the React system
-      await wavesurferService.load(data.transcription.source, data.peaks)
-      wavesurferService.setRegions(data.regions)
-      
-      // If we have a selected region, seek to it in the wavesurfer and apply styling
-      if (selectedRegionId) {
-        const selectedRegion = data.regions.find((region: any) => region.id === selectedRegionId);
-        if (selectedRegion) {
-          wavesurferService.seekToRegion(selectedRegion);
-          // Apply selected region styling
-          browserService.setSelectedRegion(selectedRegionId);
-        }
+    // load wavesurfer details _outside_ the React system
+    await wavesurferService.load(data.transcription.source, data.peaks)
+    wavesurferService.setRegions(data.regions)
+    
+    // If we have a selected region, seek to it in the wavesurfer and apply styling
+    if (selectedRegionId) {
+      const selectedRegion = data.regions.find((region: any) => region.id === selectedRegionId);
+      if (selectedRegion) {
+        wavesurferService.seekToRegion(selectedRegion);
+        // Apply selected region styling
+        browserService.setSelectedRegion(selectedRegionId);
       }
-      
-    } catch (error) {
-      throw error;
     }
   }
 

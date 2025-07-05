@@ -14,7 +14,7 @@ interface RegionListProps {
 
 export const RegionList = React.memo(({
   regions,
-  disableAnalyzer = false,
+  // disableAnalyzer = false, // Currently unused but may be needed later
 }: RegionListProps) => {
   const listRef = useRef<HTMLDivElement>(null);
   const selectedItemRef = useRef<HTMLDivElement>(null);
