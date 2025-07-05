@@ -1,6 +1,8 @@
 import { generateClient } from 'aws-amplify/api';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - GraphQL queries are generated as JS files
 import { listIssues } from '../graphql/queries.js';
+import type { IssueData, ProcessedIssue, IssueComment } from './adt';
 
 // Create GraphQL client
 const client = generateClient();
@@ -10,7 +12,7 @@ const client = generateClient();
  * @param transcriptionId The ID of the transcription to load issues for
  * @returns Processed and sorted issues with parsed comments
  */
-export const loadIssuesForTranscription = async (transcriptionId: string) => {
+export const loadIssuesForTranscription = async (transcriptionId: string): Promise<ProcessedIssue[]> => {
   try {
     console.log(`🔍 Loading issues for transcription ${transcriptionId} via GraphQL...`);
     
@@ -19,29 +21,29 @@ export const loadIssuesForTranscription = async (transcriptionId: string) => {
       variables: { 
         filter: { transcriptionId: { eq: transcriptionId } }
       }
-    }) as any;
+    }) as { data: { listIssues: { items: IssueData[] } } };
     
     const issues = result.data?.listIssues?.items || [];
     console.log(`📊 Found ${issues.length} issues for transcription ${transcriptionId}`);
     
     // Process issues: parse comments and sort
-    return issues.map((issue: any) => {
-      let comments = [];
+    return issues.map((issue: IssueData): ProcessedIssue => {
+      let comments: IssueComment[] = [];
       try {
         comments = issue.comments ? JSON.parse(issue.comments) : [];
-      } catch (e) {
+      } catch {
         console.warn('Failed to parse comments for issue:', issue.id);
         comments = [];
       }
       return {
         ...issue,
         comments: comments.sort(
-          (a: any, b: any) =>
+          (a: IssueComment, b: IssueComment) =>
             new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
         ),
       };
     }).sort(
-      (a: any, b: any) =>
+      (a: ProcessedIssue, b: ProcessedIssue) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
   } catch (error) {

@@ -5,6 +5,8 @@ describe('UpdateRegionTextUseCase', () => {
   const mockSetRegionTranslation = jest.fn();
   
   const mockStore = {
+    setRegionText: mockSetRegionText,
+    setRegionTranslation: mockSetRegionTranslation,
     getState: jest.fn().mockReturnValue({
       setRegionText: mockSetRegionText,
       setRegionTranslation: mockSetRegionTranslation

@@ -36,6 +36,7 @@ describe('DeleteRegion', () => {
   const validConfig = {
     regionId: 'region123',
     transcriptionId: 'transcription123',
+    user: mockUser,
     services: mockServices as any,
     store: mockStore,
   };

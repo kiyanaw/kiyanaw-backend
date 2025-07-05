@@ -24,9 +24,9 @@ describe('UpdateRegionBounds', () => {
 
     config = {
       regionId: 'test-region-id',
-      start: 1.5,
-      end: 3.5,
-      transcriptionId: 'test-transcription-id',
+      newStart: 1.5,
+      newEnd: 3.5,
+      user: { username: 'testuser' },
       services: mockServices,
       store: mockStore,
     };
@@ -44,18 +44,13 @@ describe('UpdateRegionBounds', () => {
     });
 
     it('should throw error if start time is negative', () => {
-      const useCase = new UpdateRegionBounds({ ...config, start: -1 });
+      const useCase = new UpdateRegionBounds({ ...config, newStart: -1 });
       expect(() => useCase.validate()).toThrow('start time must be >= 0');
     });
 
     it('should throw error if end time is not greater than start time', () => {
-      const useCase = new UpdateRegionBounds({ ...config, start: 3, end: 2 });
+      const useCase = new UpdateRegionBounds({ ...config, newStart: 3, newEnd: 2 });
       expect(() => useCase.validate()).toThrow('end time must be greater than start time');
-    });
-
-    it('should throw error if transcriptionId is missing', () => {
-      const useCase = new UpdateRegionBounds({ ...config, transcriptionId: '' });
-      expect(() => useCase.validate()).toThrow('transcriptionId is required');
     });
   });
 

@@ -7,7 +7,8 @@ interface AnalyzeRegionTextConfig {
   regionId: string;
   text: string;
   services: typeof services;
-  store: any; // whole store object
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  store: any; // ZustandStore with text editing capabilities
 }
 
 // Debounced analysis state - now stores timeout keys instead of timeout objects
@@ -79,7 +80,7 @@ export class AnalyzeRegionTextUseCase {
     });
 
     // Start with words we already know are known
-    let allKnownWords = [...alreadyKnownWords];
+    const allKnownWords = [...alreadyKnownWords];
 
     // Only make API call if we have unknown words
     if (unknownWords.length > 0) {

@@ -88,24 +88,22 @@ describe('UpdateTranscriptionUseCase', () => {
   describe('execute', () => {
     it('should successfully update transcription and show success toast', async () => {
       const rawTranscription = { id: 'test-id', title: 'New Title', type: 'audio/mp3' };
-      const transcriptionModel = { id: 'test-id', title: 'New Title', isVideo: false };
 
       (mockServices.transcriptionService.updateTranscription as jest.Mock).mockResolvedValue(rawTranscription);
-      MockedTranscriptionModel.mockReturnValue(transcriptionModel as any);
 
       const useCase = new UpdateTranscriptionUseCase(baseConfig);
       await useCase.execute();
 
       expect(mockServices.transcriptionService.updateTranscription).toHaveBeenCalledWith(
         'test-transcription-id',
-        {
+        expect.objectContaining({
           title: 'New Title',
           userLastUpdated: 'testuser',
-        }
+          dateLastUpdated: expect.any(String),
+        })
       );
 
-      expect(MockedTranscriptionModel).toHaveBeenCalledWith(rawTranscription);
-      expect(mockStore.setTranscription).toHaveBeenCalledWith(transcriptionModel);
+      expect(mockStore.setTranscription).toHaveBeenCalledWith(rawTranscription);
       expect(mockShowToast).toHaveBeenCalledWith('Transcription saved', 'success');
     });
 
@@ -116,24 +114,23 @@ describe('UpdateTranscriptionUseCase', () => {
       };
 
       const rawTranscription = { id: 'test-id', title: 'New Title', comments: 'New comments', type: 'video/mp4' };
-      const transcriptionModel = { id: 'test-id', title: 'New Title', comments: 'New comments', isVideo: true };
 
       (mockServices.transcriptionService.updateTranscription as jest.Mock).mockResolvedValue(rawTranscription);
-      MockedTranscriptionModel.mockReturnValue(transcriptionModel as any);
 
       const useCase = new UpdateTranscriptionUseCase(config);
       await useCase.execute();
 
       expect(mockServices.transcriptionService.updateTranscription).toHaveBeenCalledWith(
         'test-transcription-id',
-        {
+        expect.objectContaining({
           title: 'New Title',
           comments: 'New comments',
           userLastUpdated: 'testuser',
-        }
+          dateLastUpdated: expect.any(String),
+        })
       );
 
-      expect(mockStore.setTranscription).toHaveBeenCalledWith(transcriptionModel);
+      expect(mockStore.setTranscription).toHaveBeenCalledWith(rawTranscription);
       expect(mockShowToast).toHaveBeenCalledWith('Transcription saved', 'success');
     });
 
@@ -149,21 +146,16 @@ describe('UpdateTranscriptionUseCase', () => {
       expect(mockStore.setTranscription).not.toHaveBeenCalled();
     });
 
-    it('should preserve TranscriptionModel properties like isVideo', async () => {
+    it('should pass raw transcription data to store', async () => {
       const rawTranscription = { id: 'test-id', title: 'Video Title', type: 'video/mp4' };
-      const transcriptionModel = { id: 'test-id', title: 'Video Title', isVideo: true };
 
       (mockServices.transcriptionService.updateTranscription as jest.Mock).mockResolvedValue(rawTranscription);
-      MockedTranscriptionModel.mockReturnValue(transcriptionModel as any);
 
       const useCase = new UpdateTranscriptionUseCase(baseConfig);
       await useCase.execute();
 
-      // Verify that TranscriptionModel constructor was called with raw data
-      expect(MockedTranscriptionModel).toHaveBeenCalledWith(rawTranscription);
-      
-      // Verify that the model instance (with computed properties) was stored
-      expect(mockStore.setTranscription).toHaveBeenCalledWith(transcriptionModel);
+      // Verify that the raw data was passed to the store
+      expect(mockStore.setTranscription).toHaveBeenCalledWith(rawTranscription);
     });
   });
 }); 

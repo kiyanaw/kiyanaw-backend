@@ -1,43 +1,41 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import { DataStore } from '@aws-amplify/datastore';
-import { Transcription, Region, Issue } from '../models';
+import type { TranscriptionData, RegionData, ProcessedIssue } from '../types/shared';
 import Timeout from 'smart-timeout';
 
-
 interface EditorDataPayload {
-  transcription: any;
-  regions: any[];
-  issues: any[];
+  transcription: TranscriptionData;
+  regions: RegionData[];
+  issues: ProcessedIssue[];
   source?: string;
-  peaks?: any;
+  peaks?: number[];
   isVideo?: boolean;
 }
 
 interface EditorState {
   // Transcription state
-  transcription: any | null;
+  transcription: TranscriptionData | null;
   saved: boolean;
-  peaks: any | null;
+  peaks: number[] | null;
   accessDenied: boolean;
   canEdit: boolean;
 
   // Regions state
-  regions: any[];
-  regionMap: Record<string, any>;
+  regions: RegionData[];
+  regionMap: Record<string, RegionData>;
   selectedRegionId: string | null;
-  selectedRegion: any | null;
+  selectedRegion: RegionData | null;
   playbackWithinRegion: string | null;
 
   // Known words for spell checking
   knownWords: Set<string>;
 
   // Issues state
-  issues: any[];
-  issueMap: Record<string, any>;
+  issues: ProcessedIssue[];
+  issueMap: Record<string, ProcessedIssue>;
 
   // Subscriptions
-  _subscriptions: any[];
+  _subscriptions: { unsubscribe: () => void }[];
 
   // Actions
   setFullTranscriptionData: (data: EditorDataPayload, selectedRegionId?: string | null) => void;
@@ -45,17 +43,13 @@ interface EditorState {
   cleanup: () => void;
   
   // Transcription actions
-  updateTranscription: (updates: Partial<any>) => Promise<void>;
-  setTranscription: (transcription: any) => void;
+  setTranscription: (transcription: TranscriptionData) => void;
   setSaved: (saved: boolean) => void;
 
   // Region actions
   setSelectedRegion: (regionId: string | null) => void;
   setPlaybackWithinRegion: (regionId: string | null) => void;
-  updateRegion: (regionId: string, update: Partial<any>) => Promise<void>;
-  createRegion: (regionData: any) => Promise<void>;
-  deleteRegion: (regionId: string) => Promise<void>;
-  addNewRegion: (region: any) => void;
+  addNewRegion: (region: RegionData) => void;
   setRegionText: (regionId: string, text: string) => void;
   setRegionTranslation: (regionId: string, translation: string) => void;
   updateRegionBounds: (regionId: string, start: number, end: number) => void;
@@ -64,38 +58,21 @@ interface EditorState {
   addKnownWords: (words: string[]) => void;
   setRegionAnalysis: (regionId: string, knownWords: string[]) => void;
 
-  // Issue actions
-  createIssue: (issueData: {
-    text: string;
-    type: string;
-    owner: string;
-    regionId?: string;
-    resolved: boolean;
-  }) => Promise<any>;
-  updateIssue: (issueId: string, updates: Partial<any>) => Promise<void>;
-  deleteIssue: (issueId: string) => Promise<void>;
-  addComment: (issueId: string, comment: any) => Promise<void>;
-
   // Computed properties
   isVideo: boolean;
   isTranscriptionAuthor: (user: { username: string } | null) => boolean;
   transcriptionTitle: string | undefined;
 
   // Computed getters
-  regionById: (id: string) => any | null;
-  issueById: (id: string) => any | null;
-  issuesByRegion: (regionId: string) => any[];
+  regionById: (id: string) => RegionData | null;
+  issueById: (id: string) => ProcessedIssue | null;
+  issuesByRegion: (regionId: string) => ProcessedIssue[];
 
   // Permissions
   setCanEdit: (canEdit: boolean) => void;
 }
-interface NewRegion {
-  id: string;
-  start: number;
-  end: number;
-  userLastUpdated: string;
-  dateLastUpdated: string;
-}
+
+
 
 export const useEditorStore = create<EditorState>()(
   devtools(
@@ -132,19 +109,19 @@ export const useEditorStore = create<EditorState>()(
         state.cleanup();
 
         // Process regions
-        const regionMap: Record<string, any> = {};
+        const regionMap: Record<string, RegionData> = {};
         regions.forEach((region) => {
           regionMap[region.id] = region;
         });
 
         // Process issues
-        const issueMap: Record<string, any> = {};
+        const issueMap: Record<string, ProcessedIssue> = {};
         issues.forEach((issue) => {
           issueMap[issue.id] = issue;
         });
 
         // Set initial state
-        const newState: any = {
+        const newState: Partial<EditorState> = {
           transcription,
           regions,
           regionMap,
@@ -200,26 +177,7 @@ export const useEditorStore = create<EditorState>()(
         }
       },
 
-      updateTranscription: async (updates) => {
-        const { transcription } = get();
-        if (!transcription) return;
 
-        try {
-          const optimisticTranscription = { ...transcription, ...updates };
-          set({ transcription: optimisticTranscription });
-
-          const updated = await DataStore.save(
-            Transcription.copyOf(transcription, (draft) => {
-              Object.assign(draft, updates);
-            })
-          );
-
-          set({ transcription: updated, saved: true });
-        } catch (error) {
-          console.error('Error updating transcription:', error);
-          set({ transcription }); // Revert optimistic update on error
-        }
-      },
 
       // Region actions
       setSelectedRegion: (regionId) => {
@@ -234,73 +192,10 @@ export const useEditorStore = create<EditorState>()(
         set({ playbackWithinRegion: regionId });
       },
 
-      updateRegion: async (regionId, update) => {
-        try {
-          const originalRegion = await DataStore.query(Region, regionId);
-          if (!originalRegion) {
-            console.error('Region not found in DataStore');
-            return;
-          }
 
-          await DataStore.save(
-            Region.copyOf(originalRegion, (draft) => {
-              Object.assign(draft, update);
-            })
-          );
-        } catch (error) {
-          console.error('Error updating region:', error);
-        }
-      },
 
-      createRegion: async (regionData) => {
-        try {
-          const { transcription } = get();
-          if (!transcription) return;
 
-          await DataStore.save(
-            new Region({
-              ...regionData,
-              transcription,
-              dateLastUpdated: `${+new Date()}`,
-            })
-          );
-        } catch (error) {
-          console.error('Error creating region:', error);
-        }
-      },
-
-      deleteRegion: async (regionId) => {
-        try {
-          const { regionMap, regions, selectedRegionId } = get();
-          const region = regionMap[regionId];
-          if (!region) return;
-
-          // Remove from local state immediately (optimistic update)
-          const newRegionMap = { ...regionMap };
-          delete newRegionMap[regionId];
-          
-          const newRegions = regions.filter(r => r.id !== regionId);
-          
-          // Clear selected region if it's the one being deleted
-          const updates: any = {
-            regionMap: newRegionMap,
-            regions: newRegions,
-          };
-          
-          if (selectedRegionId === regionId) {
-            updates.selectedRegionId = null;
-            updates.selectedRegion = null;
-          }
-          
-          set(updates);
-
-          // Note: Backend deletion is now handled by the use-case, not here
-        } catch (error) {
-          console.error('Error deleting region from store:', error);
-        }
-      },
-
-      addNewRegion: (region:NewRegion) => {
+      addNewRegion: (region: RegionData) => {
         const { regions, regionMap } = get();
         
         // Add to regionMap for O(1) lookups
@@ -333,7 +228,7 @@ export const useEditorStore = create<EditorState>()(
         const updatedRegion = { ...existingRegion, regionText: text };
         
         // Prepare the update object
-        const updateObj: any = {
+        const updateObj: Partial<EditorState> = {
           regionMap: { ...regionMap, [regionId]: updatedRegion },
           regions: regions.map(r => r.id === regionId ? updatedRegion : r)
         };
@@ -358,7 +253,7 @@ export const useEditorStore = create<EditorState>()(
         const updatedRegion = { ...existingRegion, translation };
         
         // Prepare the update object
-        const updateObj: any = {
+        const updateObj: Partial<EditorState> = {
           regionMap: { ...regionMap, [regionId]: updatedRegion },
           regions: regions.map(r => r.id === regionId ? updatedRegion : r)
         };
@@ -387,7 +282,7 @@ export const useEditorStore = create<EditorState>()(
         newRegions.sort((a, b) => a.start - b.start);
         
         // Prepare the update object
-        const updateObj: any = {
+        const updateObj: Partial<EditorState> = {
           regionMap: { ...regionMap, [regionId]: updatedRegion },
           regions: newRegions
         };
@@ -400,81 +295,12 @@ export const useEditorStore = create<EditorState>()(
         set(updateObj);
       },
 
-      // Issue actions
-      createIssue: async (issueData) => {
-        try {
-          const { transcription } = get();
-          if (!transcription) return;
 
-          const existingIssues = await DataStore.query(Issue, (i: any) =>
-            i.transcription.id.eq(transcription.id)
-          );
-          const nextIndex = existingIssues.length + 1;
 
-          const newIssue = await DataStore.save(
-            new Issue({
-              text: issueData.text,
-              type: issueData.type,
-              owner: issueData.owner,
-              resolved: issueData.resolved,
-              index: nextIndex,
-              regionId: issueData.regionId || '',
-              transcription,
-              comments: JSON.stringify([]),
-            })
-          );
 
-          return newIssue;
-        } catch (error) {
-          console.error('Error creating issue:', error);
-        }
-      },
 
-      updateIssue: async (issueId, updates) => {
-        try {
-          const { issueMap } = get();
-          const issue = issueMap[issueId];
-          if (!issue) return;
 
-          await DataStore.save(
-            Issue.copyOf(issue, (draft) => {
-              Object.assign(draft, updates);
-            })
-          );
 
-        } catch (error) {
-          console.error('Error updating issue:', error);
-        }
-      },
-
-      deleteIssue: async (issueId) => {
-        try {
-          const { issueMap } = get();
-          const issue = issueMap[issueId];
-          if (!issue) return;
-
-          await DataStore.delete(issue);
-        } catch (error) {
-          console.error('Error deleting issue:', error);
-        }
-      },
-
-      addComment: async (issueId, comment) => {
-        try {
-          const { issueMap } = get();
-          const issue = issueMap[issueId];
-          if (!issue) return;
-
-          const comments = [...issue.comments, comment];
-          await DataStore.save(
-            Issue.copyOf(issue, (draft) => {
-              draft.comments = JSON.stringify(comments);
-            })
-          );
-        } catch (error) {
-          console.error('Error adding comment:', error);
-        }
-      },
 
       // Computed getters
       regionById: (id) => {
@@ -512,7 +338,7 @@ export const useEditorStore = create<EditorState>()(
         const updatedRegion = { ...existingRegion, regionAnalysis: knownWords };
         
         // Prepare the update object
-        const updateObj: any = {
+        const updateObj: Partial<EditorState> = {
           regionMap: { ...regionMap, [regionId]: updatedRegion },
           regions: regions.map(r => r.id === regionId ? updatedRegion : r)
         };

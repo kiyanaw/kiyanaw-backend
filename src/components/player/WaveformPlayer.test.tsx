@@ -26,13 +26,6 @@ jest.mock('../../services/wavesurferService', () => {
 // Get the mocked service for test assertions
 const mockWaveSurferService = jest.mocked(wavesurferService);
 
-// Mock the event bus
-jest.mock('../../lib/eventBus', () => ({
-  eventBus: {
-    emit: jest.fn(),
-  },
-}));
-
 // Mock the stores
 jest.mock('../../stores/usePlayerStore', () => ({
   usePlayerStore: jest.fn(),
@@ -64,8 +57,6 @@ describe('WaveformPlayer', () => {
   const mockPlay = jest.fn();
   const mockPause = jest.fn();
   const mockSetLoadedAndReady = jest.fn();
-  const mockOnRegionUpdate = jest.fn();
-  const mockOnLookup = jest.fn();
 
   // Utility function to create complete mock PlayerState
   const createMockPlayerState = (overrides: Partial<any> = {}) => ({
@@ -83,13 +74,10 @@ describe('WaveformPlayer', () => {
 
   const defaultProps = {
     source: 'test-source.mp3',
-    peaks: null,
     inboundRegion: null,
     regions: [],
     isVideo: false,
     title: 'Test Title',
-    onRegionUpdate: jest.fn(),
-    onLookup: mockOnLookup,
   };
 
   beforeEach(() => {
@@ -104,7 +92,18 @@ describe('WaveformPlayer', () => {
     // Setup default mock returns for useEditorStore
     mockUseEditorStore.mockImplementation((selector) => {
       const state = {
-        transcription: { id: 'test-transcription-id', title: 'Test Transcription' },
+        transcription: {
+          id: 'test-transcription-id',
+          title: 'Test Transcription',
+          source: 'test-source',
+          type: 'test-type',
+          author: 'test-author',
+          userLastUpdated: 'test-user',
+          dateLastUpdated: '2023-01-01T00:00:00.000Z',
+          createdAt: '2023-01-01T00:00:00.000Z',
+          updatedAt: '2023-01-01T00:00:00.000Z',
+          length: 120, // Duration in seconds
+        },
         saved: false,
         peaks: null,
         accessDenied: false,
@@ -283,11 +282,10 @@ describe('WaveformPlayer', () => {
       );
     });
 
-    it('handles source and peaks data properly', () => {
-      const peaks = { data: [1, 2, 3, 4, 5] };
-      render(<WaveformPlayer {...defaultProps} peaks={peaks} />);
+    it('handles source data properly', () => {
+      render(<WaveformPlayer {...defaultProps} />);
       
-      // Component should render with peaks data
+      // Component should render with source data
       expect(screen.getByText('Test Title')).toBeInTheDocument();
     });
 
@@ -486,7 +484,18 @@ describe('WaveformPlayer', () => {
     it('hides edit controls when canEdit is false', () => {
       // Create a separate test with canEdit: false
       const mockStateWithNoEdit = {
-        transcription: { id: 'test-transcription-id', title: 'Test Transcription' },
+        transcription: {
+          id: 'test-transcription-id',
+          title: 'Test Transcription',
+          source: 'test-source',
+          type: 'test-type',
+          author: 'test-author',
+          userLastUpdated: 'test-user',
+          dateLastUpdated: '2023-01-01T00:00:00.000Z',
+          createdAt: '2023-01-01T00:00:00.000Z',
+          updatedAt: '2023-01-01T00:00:00.000Z',
+          length: 120, // Duration in seconds
+        },
         saved: false,
         peaks: null,
         accessDenied: false,
@@ -537,7 +546,7 @@ describe('WaveformPlayer', () => {
       expect(screen.queryByTestId('mark-region')).not.toBeInTheDocument();
     });
 
-    it('calls onLookup when lookup button is clicked', () => {
+    it('shows edit controls when canEdit is true', () => {
       // Mock store to return ready state
       mockUsePlayerStore.mockImplementation((selector) => {
         const state = createMockPlayerState({
@@ -549,24 +558,26 @@ describe('WaveformPlayer', () => {
       
       render(<WaveformPlayer {...defaultProps} />);
       
-      // Find the lookup button - it's the 4th button in the controls
-      const buttons = screen.getAllByRole('button');
-      const lookupButton = buttons.find(button => 
-        button.querySelector('svg.lucide-search')
-      );
-      
-      expect(lookupButton).toBeInTheDocument();
-      if (lookupButton) {
-        fireEvent.click(lookupButton);
-        expect(mockOnLookup).toHaveBeenCalled();
-      }
+      // Should show edit controls when canEdit is true
+      expect(screen.getByTestId('mark-region')).toBeInTheDocument();
     });
 
     it('uses canEdit from store and passes it to wavesurfer service', () => {
       // Mock store to return canEdit: false
       mockUseEditorStore.mockImplementation((selector) => {
         const state = {
-          transcription: { id: 'test-transcription-id', title: 'Test Transcription' },
+          transcription: {
+            id: 'test-transcription-id',
+            title: 'Test Transcription',
+            source: 'test-source',
+            type: 'test-type',
+            author: 'test-author',
+            userLastUpdated: 'test-user',
+            dateLastUpdated: '2023-01-01T00:00:00.000Z',
+            createdAt: '2023-01-01T00:00:00.000Z',
+            updatedAt: '2023-01-01T00:00:00.000Z',
+            length: 120, // Duration in seconds
+          },
           saved: false,
           peaks: null,
           accessDenied: false,
@@ -784,13 +795,9 @@ describe('WaveformPlayer', () => {
       
       const playButton = screen.getByTestId('play-button');
       const markRegionButton = screen.getByTestId('mark-region');
-      const lookupButton = screen.getAllByRole('button').find(button => 
-        button.querySelector('svg.lucide-search')
-      );
       
       expect(playButton).toBeDisabled();
       expect(markRegionButton).toBeDisabled();
-      expect(lookupButton).toBeDisabled();
     });
 
     it('disables zoom and speed controls while loading', () => {

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
+import { type RegionData } from '../../services/adt';
 
 interface Transcription {
   id: string;
@@ -14,7 +15,7 @@ interface Transcription {
 
 interface TranscriptionFormProps {
   transcription: Transcription;
-  regions: any[];
+  regions: RegionData[];
   canEdit: boolean;
   onUpdate: (updates: Partial<Transcription>) => void;
 }

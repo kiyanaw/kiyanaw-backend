@@ -4,7 +4,7 @@ import { devtools } from 'zustand/middleware';
 export interface AuthUser {
   username: string;
   userId: string;
-  signInDetails?: any;
+  signInDetails?: unknown;
 }
 
 interface AuthState {

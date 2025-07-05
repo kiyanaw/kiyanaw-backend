@@ -25,7 +25,6 @@ export const EditorPage = () => {
   const accessDenied = useEditorStore((state) => state.accessDenied);
   
   useWavesurferEvents(transcriptionId!, transcription?.source);
-  const peaks = useEditorStore((state) => state.peaks);
   const regions = useEditorStore((state) => state.regions);
   const selectedRegion = useEditorStore((state) => state.selectedRegion);
 
@@ -72,13 +71,10 @@ export const EditorPage = () => {
           <div className="h-[223px] flex items-center justify-center">
             <WaveformPlayer
               source={transcription.source || ''}
-              peaks={peaks}
               inboundRegion={''}
               regions={regions}
               isVideo={isVideo}
               title={transcription.title || ''}
-              onRegionUpdate={() => {}}
-              onLookup={() => {}}
             />
           </div>
         </div>

@@ -6,7 +6,7 @@ import { useAuthStore } from '../stores/useAuthStore';
 export interface AuthUser {
   username: string;
   userId: string;
-  signInDetails?: any;
+  signInDetails?: unknown;
 }
 
 export interface UseAuthReturn {

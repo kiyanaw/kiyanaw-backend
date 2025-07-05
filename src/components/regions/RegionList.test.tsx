@@ -36,9 +36,9 @@ const mockUseSelectAndPlayRegion = useSelectAndPlayRegion as jest.MockedFunction
 
 describe('RegionList', () => {
   const mockRegions = [
-    { id: 'region-1', start: 0, end: 10 },
-    { id: 'region-2', start: 15, end: 25 },
-    { id: 'region-3', start: 30, end: 40 },
+    { id: 'region-1', start: 0, end: 10, transcriptionId: 'test-transcription-id' },
+    { id: 'region-2', start: 15, end: 25, transcriptionId: 'test-transcription-id' },
+    { id: 'region-3', start: 30, end: 40, transcriptionId: 'test-transcription-id' },
   ];
 
   const mockPlayRegion = jest.fn();

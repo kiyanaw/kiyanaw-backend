@@ -2,12 +2,14 @@ import type { ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { canEdit, isAuthor } from '../../lib/permissions';
+import type { TranscriptionData } from '../../services/adt';
+
 
 interface ProtectedRouteProps {
   children: ReactNode;
   requireAuth?: boolean;
   requireEdit?: boolean;
-  transcription?: any;
+  transcription?: TranscriptionData;
   fallback?: ReactNode;
 }
 
@@ -20,7 +22,7 @@ export const ProtectedRoute = ({
 }: ProtectedRouteProps) => {
   const signedIn = useAuthStore((state) => state.signedIn);
   const user = useAuthStore((state) => state.user);
-  const userCanEdit = canEdit(transcription, user);
+  const userCanEdit = canEdit(transcription || null, user);
   const location = useLocation();
 
   // Check authentication
@@ -52,7 +54,7 @@ export const EditProtected = ({
   fallback,
 }: {
   children: ReactNode;
-  transcription?: any;
+  transcription?: TranscriptionData;
   fallback?: ReactNode;
 }) => {
   return (
@@ -74,11 +76,11 @@ export const AuthorOnly = ({
   fallback,
 }: {
   children: ReactNode;
-  transcription?: any;
+  transcription?: TranscriptionData;
   fallback?: ReactNode;
 }) => {
   const user = useAuthStore((state) => state.user);
-  const userIsAuthor = isAuthor(transcription, user);
+  const userIsAuthor = isAuthor(transcription || null, user);
 
   if (!userIsAuthor) {
     if (fallback) {

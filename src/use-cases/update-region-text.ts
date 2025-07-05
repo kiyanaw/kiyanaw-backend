@@ -4,7 +4,8 @@ interface UpdateRegionTextConfig {
   regionId: string;
   text: string;
   field: 'regionText' | 'translation';
-  store: any; // whole store object
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  store: any; // ZustandStore with text editing capabilities
   services: typeof services;
 }
 
@@ -23,24 +24,39 @@ export class UpdateRegionTextUseCase {
 
   execute(): void {
     this.validate();
-    
+
     const { regionId, text, field, store, services } = this.config;
-    
+
     // Update local store immediately for responsive UI
+    const storeState = store.getState();
     if (field === 'regionText') {
-      store.getState().setRegionText(regionId, text);
+      storeState.setRegionText(regionId, text);
     } else {
-      store.getState().setRegionTranslation(regionId, text);
+      storeState.setRegionTranslation(regionId, text);
     }
 
-    // Save to DataStore with longer debouncing to allow analysis to complete first
-    // Analysis takes 1.5s + API time (~1.7s total), so we use 3s to ensure it completes before save
-    const currentUser = services.authService.currentUser();
-    if (currentUser) {
-      const updates = { [field]: text };
-      
-      // Use regular save method with store - service will handle analysis coordination internally
-      services.regionService.updateRegion(regionId, updates, currentUser.username, 3000, store);
+    // Check if user is authenticated
+    const user = services.authService.currentUser();
+    if (!user) {
+      console.warn('User not authenticated, skipping region text update');
+      return;
+    }
+
+    // Debounced save to backend
+    const updateData = field === 'regionText' 
+      ? { regionText: text }
+      : { translation: text };
+
+    try {
+      services.regionService.updateRegion(
+        regionId,
+        updateData,
+        user.username,
+        3000, // debounceMs
+        store
+      );
+    } catch (error) {
+      console.error('Failed to update region text:', error);
     }
   }
 } 

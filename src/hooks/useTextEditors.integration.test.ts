@@ -14,6 +14,9 @@ jest.mock('../services/rteService', () => ({
     onTextChange: jest.fn(),
     offTextChange: jest.fn(),
     setContent: jest.fn(),
+    getInstance: jest.fn().mockReturnValue({
+      getText: jest.fn().mockReturnValue({ trim: jest.fn().mockReturnValue('') })
+    }),
     hasEditor: jest.fn().mockReturnValue(true),
     applyKnownWordsFormatting: jest.fn()
   }
@@ -116,7 +119,8 @@ describe('useTextEditors Integration Test', () => {
       regionById: mockRegionById,
       setRegionText: mockSetRegionText,
       setRegionTranslation: mockSetRegionTranslation,
-      knownWords: new Set(['cached', 'word'])
+      knownWords: new Set(['cached', 'word']),
+      canEdit: true  // Add canEdit: true to enable text change listeners
     };
     
     (useEditorStore as unknown as jest.Mock).mockImplementation((selector) => {

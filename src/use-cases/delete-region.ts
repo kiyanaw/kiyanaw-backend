@@ -1,15 +1,18 @@
 import { services } from '../services';
+import type { User, WavesurferRegion } from '../types/shared';
 
 interface DeleteRegionConfig {
   regionId: string;
   transcriptionId: string;
+  user: User;
   services: typeof services;
-  store: any; // whole store object
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  store: any; // ZustandStore with region management capabilities
 }
 
 export class DeleteRegion {
   private config: DeleteRegionConfig;
-  private user: any;
+  private user: User | null;
 
   constructor(config: DeleteRegionConfig) {
     this.config = config;
@@ -47,7 +50,7 @@ export class DeleteRegion {
       // Remove from wavesurfer first (immediate UI feedback)
       const regionsPlugin = this.config.services.wavesurferService.getRegionsPlugin();
       if (regionsPlugin) {
-        const wsRegion = regionsPlugin.getRegions().find((r: any) => r.id === this.config.regionId);
+        const wsRegion = regionsPlugin.getRegions().find((r: WavesurferRegion) => r.id === this.config.regionId);
         if (wsRegion) {
           wsRegion.remove();
           console.log(`🗑️ Removed region ${this.config.regionId} from wavesurfer`);

@@ -1,6 +1,6 @@
 import { services } from '../services';
 import type { UploadProgress } from '../services/uploadService';
-import { Transcription } from '../models';
+import type { TranscriptionData } from '../types/shared';
 
 export interface CreateTranscriptionConfig {
   title: string;
@@ -13,7 +13,7 @@ export interface CreateTranscriptionConfig {
 
 export interface CreateTranscriptionResult {
   transcriptionId: string;
-  transcription: Transcription;
+  transcription: TranscriptionData;
 }
 
 export class CreateTranscriptionUseCase {
@@ -42,6 +42,9 @@ export class CreateTranscriptionUseCase {
     this.validate();
 
     const { title, file, username, userId, services, onProgress } = this.config;
+    
+    // Note: userId is validated but not used yet in the current implementation
+    console.log('Creating transcription for user:', userId);
 
     // Step 1: Upload file to S3
     const fileKey = await services.uploadService.uploadFile(file, {

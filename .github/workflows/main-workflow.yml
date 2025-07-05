@@ -2,17 +2,17 @@ name: Main Workflow
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "staging" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "staging" ]
   
 jobs:
-  vue_lint:
+  lint:
     runs-on: ubuntu-latest
     
     strategy:
       matrix:
-        node-version: [14.x]
+        node-version: [22.x]
         
     steps:
     - uses: actions/checkout@v4
@@ -22,14 +22,14 @@ jobs:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
     - run: npm ci
-    - run: npm run vue:lint
+    - run: npm run lint
 
-  test_karma:
+  test:
     runs-on: ubuntu-latest
     
     strategy:
       matrix:
-        node-version: [14.x]
+        node-version: [22.x]
         
     steps:
     - uses: actions/checkout@v4
@@ -39,21 +39,4 @@ jobs:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
     - run: npm ci
-    - run: npm run test:karma
-    
-  test_unit:
-    runs-on: ubuntu-latest
-    
-    strategy:
-      matrix:
-        node-version: [14.x]
-        
-    steps:
-    - uses: actions/checkout@v4
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-    - run: npm ci
-    - run: npm run test:unit
+    - run: npm run test

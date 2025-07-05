@@ -1,6 +1,5 @@
 import { TranscriptionModel, RegionModel } from './adt';
 import type { TranscriptionData, RegionData } from './adt';
-import Timeout from 'smart-timeout';
 
 describe('ADT Models', () => {
   describe('TranscriptionModel', () => {
@@ -219,7 +218,6 @@ describe('ADT Models', () => {
       end: 20.5,
       start: 10.0,
       isNote: true,
-      comments: 'Test comments',
       text: '[{"insert":"Hello world"}]',
       transcriptionId: 'test-transcription-id',
       translation: 'Bonjour monde',

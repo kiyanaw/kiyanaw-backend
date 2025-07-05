@@ -2,7 +2,7 @@ interface SelectAndPlayRegionConfig {
   regionId: string;
   services: {
     wavesurferService: {
-      seekToRegion: (region: { id: string, start: number, end: number }) => void;
+      seekToRegion: (region: { id: string; start: number; end: number }) => void;
       play: (options?: { playInFull?: boolean }) => Promise<void>;
     };
     browserService: {
@@ -10,7 +10,8 @@ interface SelectAndPlayRegionConfig {
       setSelectedRegion: (regionId: string) => void;
     };
   };
-  store: any; // whole store object
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  store: any; // ZustandStore with region and transcription management capabilities
 }
 
 export class SelectAndPlayRegion {

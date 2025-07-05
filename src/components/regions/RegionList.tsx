@@ -1,20 +1,20 @@
 import { useRef, useEffect } from 'react';
 import React from 'react';
 import { RegionItem } from './RegionItem';
-import type { LightRegion } from '../../services/adt';
+import type { RegionData } from '../../services/adt';
 import { useSelectAndPlayRegion } from '../../hooks/useSelectAndPlayRegion';
 import { useEditorStore } from '../../stores/useEditorStore';
 import { usePlayerStore } from '../../stores/usePlayerStore';
 
 
 interface RegionListProps {
-  regions: LightRegion[];
+  regions: RegionData[];
   disableAnalyzer?: boolean;
 }
 
 export const RegionList = React.memo(({
   regions,
-  disableAnalyzer = false,
+  // disableAnalyzer = false, // Currently unused but may be needed later
 }: RegionListProps) => {
   const listRef = useRef<HTMLDivElement>(null);
   const selectedItemRef = useRef<HTMLDivElement>(null);
