@@ -187,8 +187,6 @@ class RTEServiceImpl {
       throw new Error(`RTE instance not found for key: ${key}`);
     }
 
-
-
     // Remove from current parent (if any)
     if (instance.container.parentNode) {
       instance.container.parentNode.removeChild(instance.container);

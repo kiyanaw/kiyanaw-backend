@@ -52,12 +52,11 @@ export class UpdateRegionTextUseCase {
         regionId,
         updateData,
         user.username,
-        3000, // 3 second debounce
+        3000, // debounceMs
         store
       );
     } catch (error) {
-      console.error('Failed to save region text:', error);
-      // Note: We don't revert the optimistic update here as it's handled by the regionService
+      console.error('Failed to update region text:', error);
     }
   }
 } 

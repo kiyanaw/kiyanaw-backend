@@ -14,6 +14,9 @@ jest.mock('../services/rteService', () => ({
     onTextChange: jest.fn(),
     offTextChange: jest.fn(),
     setContent: jest.fn(),
+    getInstance: jest.fn().mockReturnValue({
+      getText: jest.fn().mockReturnValue({ trim: jest.fn().mockReturnValue('') })
+    }),
     hasEditor: jest.fn().mockReturnValue(true),
     applyKnownWordsFormatting: jest.fn()
   }

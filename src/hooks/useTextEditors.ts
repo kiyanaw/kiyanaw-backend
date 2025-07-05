@@ -19,6 +19,8 @@ export const useTextEditors = (regionId: string, activeTab: 'main' | 'translatio
 
   /**
    * MAIN EDITOR
+   * Note: We deliberately exclude currentRegion?.regionText from dependencies
+   * to prevent editor recreation on every keystroke
    */
   useLayoutEffect(() => {
     if (!mainEditorRef.current || activeTab !== 'main') return;
@@ -31,8 +33,9 @@ export const useTextEditors = (regionId: string, activeTab: 'main' | 'translatio
     rteService.createOrGet(mainEditorKey, config);
     rteService.attach(mainEditorKey, mainEditorRef.current);
 
-    // Populate with existing content (after editor is attached)
-    if (currentRegion?.regionText) {
+    // Populate with existing content ONLY if editor doesn't already have content
+    const currentContent = rteService.getInstance(mainEditorKey)?.getText().trim() || '';
+    if (!currentContent && currentRegion?.regionText) {
       rteService.setContent(mainEditorKey, currentRegion.regionText);
       
       // Apply known words formatting from cache immediately
@@ -75,10 +78,13 @@ export const useTextEditors = (regionId: string, activeTab: 'main' | 'translatio
       }
       rteService.detach(mainEditorKey);
     };
-  }, [mainEditorKey, activeTab, canEdit, currentRegion?.regionText, regionId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mainEditorKey, activeTab, canEdit, regionId]); // Deliberately excluding currentRegion to prevent focus loss
 
   /**
    * TRANSLATION EDITOR
+   * Note: We deliberately exclude currentRegion?.translation from dependencies
+   * to prevent editor recreation on every keystroke
    */
   useLayoutEffect(() => {
     if (!translationEditorRef.current || activeTab !== 'translation') return;
@@ -91,8 +97,9 @@ export const useTextEditors = (regionId: string, activeTab: 'main' | 'translatio
     rteService.createOrGet(translationEditorKey, config);
     rteService.attach(translationEditorKey, translationEditorRef.current);
 
-    // Populate with existing translation content (after editor is attached)
-    if (currentRegion?.translation) {
+    // Populate with existing translation content ONLY if editor doesn't already have content
+    const currentContent = rteService.getInstance(translationEditorKey)?.getText().trim() || '';
+    if (!currentContent && currentRegion?.translation) {
       rteService.setContent(translationEditorKey, currentRegion.translation);
     }
 
@@ -115,9 +122,8 @@ export const useTextEditors = (regionId: string, activeTab: 'main' | 'translatio
       }
       rteService.detach(translationEditorKey);
     };
-  }, [translationEditorKey, activeTab, canEdit, currentRegion?.translation, regionId]);
-
-
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [translationEditorKey, activeTab, canEdit, regionId]); // Deliberately excluding currentRegion to prevent focus loss
 
   return {
     mainEditorRef,
