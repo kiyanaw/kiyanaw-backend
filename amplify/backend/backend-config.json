@@ -57,6 +57,12 @@
       "service": "Cognito"
     }
   },
+  "custom": {
+    "regionChangeSQS": {
+      "providerPlugin": "awscloudformation",
+      "service": "customCDK"
+    }
+  },
   "function": {
     "createPeaksFile": {
       "build": true,

@@ -17,6 +17,12 @@ export type AmplifyDependentResourcesAttributes = {
       "UserPoolName": "string"
     }
   },
+  "custom": {
+    "regionChangeSQS": {
+      "RegionChangeDeadLetterQueueUrl": "string",
+      "RegionChangeQueueUrl": "string"
+    }
+  },
   "function": {
     "createPeaksFile": {
       "Arn": "string",
