@@ -141,6 +141,22 @@
     }
   },
   "parameters": {
+    "AMPLIFY_function_createPeaksFile_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "createPeaksFile"
+        }
+      ]
+    },
+    "AMPLIFY_function_createPeaksFile_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "createPeaksFile"
+        }
+      ]
+    },
     "AMPLIFY_function_enqueueRegionChange_deploymentBucketName": {
       "usedBy": [
         {
@@ -170,6 +186,38 @@
         {
           "category": "function",
           "resourceName": "indexRegionData"
+        }
+      ]
+    },
+    "AMPLIFY_function_kiyanawaudiowaveform_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "kiyanawaudiowaveform"
+        }
+      ]
+    },
+    "AMPLIFY_function_kiyanawaudiowaveform_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "kiyanawaudiowaveform"
+        }
+      ]
+    },
+    "AMPLIFY_function_kiyanawffmpeg_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "kiyanawffmpeg"
+        }
+      ]
+    },
+    "AMPLIFY_function_kiyanawffmpeg_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "kiyanawffmpeg"
         }
       ]
     },

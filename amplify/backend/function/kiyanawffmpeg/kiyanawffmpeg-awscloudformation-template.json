@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "Lambda layer resource stack creation using Amplify CLI",
+  "Description": "{\"createdOn\":\"Mac\",\"createdBy\":\"Amplify\",\"createdWith\":\"14.0.0\",\"stackType\":\"function-LambdaLayer\",\"metadata\":{\"whyContinueWithGen1\":\"\"}}",
   "Parameters": {
     "env": {
       "Type": "String"
@@ -20,7 +20,7 @@
     }
   },
   "Resources": {
-    "LambdaLayerVersion431d62c8": {
+    "LambdaLayerVersion60b2aa8f": {
       "Type": "AWS::Lambda::LayerVersion",
       "Properties": {
         "CompatibleRuntimes": {
@@ -51,12 +51,12 @@
       "DeletionPolicy": "Delete",
       "UpdateReplacePolicy": "Retain"
     },
-    "LambdaLayerPermissionPrivate431d62c8": {
+    "LambdaLayerPermissionPrivate60b2aa8f": {
       "Type": "AWS::Lambda::LayerVersionPermission",
       "Properties": {
         "Action": "lambda:GetLayerVersion",
         "LayerVersionArn": {
-          "Ref": "LambdaLayerVersion431d62c8"
+          "Ref": "LambdaLayerVersion60b2aa8f"
         },
         "Principal": {
           "Ref": "AWS::AccountId"
@@ -67,7 +67,7 @@
   "Outputs": {
     "Arn": {
       "Value": {
-        "Ref": "LambdaLayerVersion431d62c8"
+        "Ref": "LambdaLayerVersion60b2aa8f"
       }
     }
   }
