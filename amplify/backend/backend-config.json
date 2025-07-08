@@ -1,19 +1,5 @@
 {
   "api": {
-    "enqueueRegionChange": {
-      "dependsOn": [
-        {
-          "attributes": [
-            "Name",
-            "Arn"
-          ],
-          "category": "function",
-          "resourceName": "enqueueRegionChange"
-        }
-      ],
-      "providerPlugin": "awscloudformation",
-      "service": "API Gateway"
-    },
     "kiyanaw": {
       "dependsOn": [
         {
@@ -71,16 +57,87 @@
       "service": "Cognito"
     }
   },
+  "custom": {
+    "regionChangeSQS": {
+      "providerPlugin": "awscloudformation",
+      "service": "customCDK"
+    }
+  },
   "function": {
+    "createPeaksFile": {
+      "build": true,
+      "dependsOn": [
+        {
+          "attributes": [
+            "Arn"
+          ],
+          "category": "function",
+          "resourceName": "kiyanawffmpeg"
+        },
+        {
+          "attributes": [
+            "Arn"
+          ],
+          "category": "function",
+          "resourceName": "kiyanawaudiowaveform"
+        },
+        {
+          "attributes": [
+            "GraphQLAPIIdOutput",
+            "GraphQLAPIEndpointOutput"
+          ],
+          "category": "api",
+          "resourceName": "kiyanaw"
+        },
+        {
+          "attributes": [
+            "BucketName"
+          ],
+          "category": "storage",
+          "resourceName": "transcriptions"
+        }
+      ],
+      "providerPlugin": "awscloudformation",
+      "service": "Lambda"
+    },
     "enqueueRegionChange": {
       "build": true,
+      "dependsOn": [
+        {
+          "attributes": [
+            "GraphQLAPIIdOutput",
+            "GraphQLAPIEndpointOutput"
+          ],
+          "category": "api",
+          "resourceName": "kiyanaw"
+        }
+      ],
       "providerPlugin": "awscloudformation",
       "service": "Lambda"
     },
     "indexRegionData": {
       "build": true,
+      "dependsOn": [
+        {
+          "attributes": [
+            "GraphQLAPIIdOutput"
+          ],
+          "category": "api",
+          "resourceName": "kiyanaw"
+        }
+      ],
       "providerPlugin": "awscloudformation",
       "service": "Lambda"
+    },
+    "kiyanawaudiowaveform": {
+      "build": true,
+      "providerPlugin": "awscloudformation",
+      "service": "LambdaLayer"
+    },
+    "kiyanawffmpeg": {
+      "build": true,
+      "providerPlugin": "awscloudformation",
+      "service": "LambdaLayer"
     },
     "notifyRegionChanges": {
       "build": true,
@@ -95,6 +152,22 @@
     }
   },
   "parameters": {
+    "AMPLIFY_function_createPeaksFile_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "createPeaksFile"
+        }
+      ]
+    },
+    "AMPLIFY_function_createPeaksFile_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "createPeaksFile"
+        }
+      ]
+    },
     "AMPLIFY_function_enqueueRegionChange_deploymentBucketName": {
       "usedBy": [
         {
@@ -124,6 +197,38 @@
         {
           "category": "function",
           "resourceName": "indexRegionData"
+        }
+      ]
+    },
+    "AMPLIFY_function_kiyanawaudiowaveform_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "kiyanawaudiowaveform"
+        }
+      ]
+    },
+    "AMPLIFY_function_kiyanawaudiowaveform_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "kiyanawaudiowaveform"
+        }
+      ]
+    },
+    "AMPLIFY_function_kiyanawffmpeg_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "kiyanawffmpeg"
+        }
+      ]
+    },
+    "AMPLIFY_function_kiyanawffmpeg_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "kiyanawffmpeg"
         }
       ]
     },

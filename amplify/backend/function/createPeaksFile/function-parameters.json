@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "storage": {
+      "transcriptions": [
+        "create",
+        "read",
+        "update"
+      ]
+    }
+  },
+  "lambdaLayers": [
+    {
+      "type": "ProjectLayer",
+      "resourceName": "kiyanawffmpeg",
+      "env": "auththree",
+      "version": "Always choose latest version",
+      "isLatestVersionSelected": true
+    },
+    {
+      "type": "ProjectLayer",
+      "resourceName": "kiyanawaudiowaveform",
+      "env": "auththree",
+      "version": "Always choose latest version",
+      "isLatestVersionSelected": true
+    }
+  ]
+}

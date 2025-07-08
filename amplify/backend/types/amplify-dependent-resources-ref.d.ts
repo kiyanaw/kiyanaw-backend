@@ -1,10 +1,5 @@
 export type AmplifyDependentResourcesAttributes = {
   "api": {
-    "enqueueRegionChange": {
-      "ApiId": "string",
-      "ApiName": "string",
-      "RootUrl": "string"
-    },
     "kiyanaw": {
       "GraphQLAPIEndpointOutput": "string",
       "GraphQLAPIIdOutput": "string"
@@ -22,7 +17,20 @@ export type AmplifyDependentResourcesAttributes = {
       "UserPoolName": "string"
     }
   },
+  "custom": {
+    "regionChangeSQS": {
+      "RegionChangeDeadLetterQueueUrl": "string",
+      "RegionChangeQueueUrl": "string"
+    }
+  },
   "function": {
+    "createPeaksFile": {
+      "Arn": "string",
+      "LambdaExecutionRole": "string",
+      "LambdaExecutionRoleArn": "string",
+      "Name": "string",
+      "Region": "string"
+    },
     "enqueueRegionChange": {
       "Arn": "string",
       "LambdaExecutionRole": "string",
@@ -36,6 +44,12 @@ export type AmplifyDependentResourcesAttributes = {
       "LambdaExecutionRoleArn": "string",
       "Name": "string",
       "Region": "string"
+    },
+    "kiyanawaudiowaveform": {
+      "Arn": "string"
+    },
+    "kiyanawffmpeg": {
+      "Arn": "string"
     },
     "notifyRegionChanges": {
       "Arn": "string",

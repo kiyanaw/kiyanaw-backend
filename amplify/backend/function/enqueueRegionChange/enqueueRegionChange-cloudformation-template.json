@@ -7,14 +7,22 @@
       "Default": "NONE",
       "Description": " Schedule Expression"
     },
-    "env": {
+    "deploymentBucketName": {
       "Type": "String"
     },
-    "deploymentBucketName": {
+    "env": {
       "Type": "String"
     },
     "s3Key": {
       "Type": "String"
+    },
+    "apikiyanawGraphQLAPIIdOutput": {
+      "Type": "String",
+      "Default": "apikiyanawGraphQLAPIIdOutput"
+    },
+    "apikiyanawGraphQLAPIEndpointOutput": {
+      "Type": "String",
+      "Default": "apikiyanawGraphQLAPIEndpointOutput"
     }
   },
   "Conditions": {
@@ -35,6 +43,14 @@
         "aws:asset:property": "Code"
       },
       "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Ref": "deploymentBucketName"
+          },
+          "S3Key": {
+            "Ref": "s3Key"
+          }
+        },
         "Handler": "index.handler",
         "FunctionName": {
           "Fn::If": [
@@ -61,9 +77,6 @@
             },
             "REGION": {
               "Ref": "AWS::Region"
-            },
-            "ACCOUNT_ID": {
-              "Ref": "AWS::AccountId"
             }
           }
         },
@@ -73,17 +86,9 @@
             "Arn"
           ]
         },
-        "Runtime": "nodejs16.x",
+        "Runtime": "nodejs22.x",
         "Layers": [],
-        "Timeout": "25",
-        "Code": {
-          "S3Bucket": {
-            "Ref": "deploymentBucketName"
-          },
-          "S3Key": {
-            "Ref": "s3Key"
-          }
-        }
+        "Timeout": 25
       }
     },
     "LambdaExecutionRole": {
@@ -92,12 +97,12 @@
         "RoleName": {
           "Fn::If": [
             "ShouldNotCreateEnvResources",
-            "kiyanawLambdaRole4e645603",
+            "kiyanawLambdaRolef3dcecd5",
             {
               "Fn::Join": [
                 "",
                 [
-                  "kiyanawLambdaRole4e645603",
+                  "kiyanawLambdaRolef3dcecd5",
                   "-",
                   {
                     "Ref": "env"
@@ -163,51 +168,65 @@
                   }
                 ]
               }
-            },
+            }
+          ]
+        }
+      }
+    },
+    "LambdaTriggerPolicyRegion": {
+      "DependsOn": [
+        "LambdaExecutionRole"
+      ],
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyName": "amplify-lambda-execution-policy-Region",
+        "Roles": [
+          {
+            "Ref": "LambdaExecutionRole"
+          }
+        ],
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
             {
               "Effect": "Allow",
               "Action": [
-                "dynamodb:*"
+                "dynamodb:DescribeStream",
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+                "dynamodb:ListStreams"
               ],
               "Resource": {
-                "Fn::Sub": [
-                  "arn:aws:dynamodb:${region}:${account}:*",
-                  {
-                    "region": {
-                      "Ref": "AWS::Region"
-                    },
-                    "account": {
-                      "Ref": "AWS::AccountId"
-                    }
-                  }
-                ]
-              }
-            },
-            {
-              "Effect": "Allow",
-              "Action": [
-                "sqs:SendMessage",
-                "sqs:GetQueueAttributes"
-              ],
-              "Resource": {
-                "Fn::Sub": [
-                  "arn:aws:sqs:${region}:${account}:enqueueRegionChanges-${env}",
-                  {
-                    "region": {
-                      "Ref": "AWS::Region"
-                    },
-                    "env": {
-                      "Ref": "env"
-                    },
-                    "account": {
-                      "Ref": "AWS::AccountId"
-                    }
-                  }
-                ]
+                "Fn::ImportValue": {
+                  "Fn::Sub": "${apikiyanawGraphQLAPIIdOutput}:GetAtt:RegionTable:StreamArn"
+                }
               }
             }
           ]
         }
+      }
+    },
+    "LambdaEventSourceMappingRegion": {
+      "Type": "AWS::Lambda::EventSourceMapping",
+      "DependsOn": [
+        "LambdaTriggerPolicyRegion",
+        "LambdaExecutionRole"
+      ],
+      "Properties": {
+        "BatchSize": 100,
+        "Enabled": true,
+        "EventSourceArn": {
+          "Fn::ImportValue": {
+            "Fn::Sub": "${apikiyanawGraphQLAPIIdOutput}:GetAtt:RegionTable:StreamArn"
+          }
+        },
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "LambdaFunction",
+            "Arn"
+          ]
+        },
+        "StartingPosition": "LATEST"
       }
     }
   },

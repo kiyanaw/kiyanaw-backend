@@ -1,3 +1,13 @@
+/* Amplify Params - DO NOT EDIT
+	API_KIYANAW_GRAPHQLAPIIDOUTPUT
+	API_KIYANAW_REGIONTABLE_ARN
+	API_KIYANAW_REGIONTABLE_NAME
+	API_KIYANAW_TRANSCRIPTIONTABLE_ARN
+	API_KIYANAW_TRANSCRIPTIONTABLE_NAME
+	ENV
+	REGION
+Amplify Params - DO NOT EDIT */
+
 const dynamo = require('./lib/dynamo')
 const search = require('./lib/search')
 
@@ -7,10 +17,14 @@ exports.handler = async (event) => {
   const record = event.Records[0]
   console.log('record', JSON.stringify(record))
 
-  // select the db
-  let tables = dynamo.config[process.env.ENV]
-  const transcriptionTable = tables.transcriptionTable
-  const regionTable = tables.regionTable
+  // Get table names from environment variables
+  const transcriptionTable = process.env.API_KIYANAW_TRANSCRIPTIONTABLE_NAME
+  const regionTable = process.env.API_KIYANAW_REGIONTABLE_NAME
+
+  if (!transcriptionTable || !regionTable) {
+    console.error('Missing table name environment variables')
+    return okResponse()
+  }
 
   if (!(record && record.body)) {
     return okResponse()

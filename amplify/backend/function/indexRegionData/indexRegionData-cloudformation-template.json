@@ -15,6 +15,10 @@
     },
     "s3Key": {
       "Type": "String"
+    },
+    "apikiyanawGraphQLAPIIdOutput": {
+      "Type": "String",
+      "Default": "apikiyanawGraphQLAPIIdOutput"
     }
   },
   "Conditions": {
@@ -61,6 +65,61 @@
             },
             "REGION": {
               "Ref": "AWS::Region"
+            },
+            "API_KIYANAW_TRANSCRIPTIONTABLE_NAME": {
+              "Fn::ImportValue": {
+                "Fn::Sub": "${apikiyanawGraphQLAPIIdOutput}:GetAtt:TranscriptionTable:Name"
+              }
+            },
+            "API_KIYANAW_TRANSCRIPTIONTABLE_ARN": {
+              "Fn::Join": [
+                "",
+                [
+                  "arn:aws:dynamodb:",
+                  {
+                    "Ref": "AWS::Region"
+                  },
+                  ":",
+                  {
+                    "Ref": "AWS::AccountId"
+                  },
+                  ":table/",
+                  {
+                    "Fn::ImportValue": {
+                      "Fn::Sub": "${apikiyanawGraphQLAPIIdOutput}:GetAtt:TranscriptionTable:Name"
+                    }
+                  }
+                ]
+              ]
+            },
+            "API_KIYANAW_GRAPHQLAPIIDOUTPUT": {
+              "Ref": "apikiyanawGraphQLAPIIdOutput"
+            },
+            "API_KIYANAW_REGIONTABLE_NAME": {
+              "Fn::ImportValue": {
+                "Fn::Sub": "${apikiyanawGraphQLAPIIdOutput}:GetAtt:RegionTable:Name"
+              }
+            },
+            "API_KIYANAW_REGIONTABLE_ARN": {
+              "Fn::Join": [
+                "",
+                [
+                  "arn:aws:dynamodb:",
+                  {
+                    "Ref": "AWS::Region"
+                  },
+                  ":",
+                  {
+                    "Ref": "AWS::AccountId"
+                  },
+                  ":table/",
+                  {
+                    "Fn::ImportValue": {
+                      "Fn::Sub": "${apikiyanawGraphQLAPIIdOutput}:GetAtt:RegionTable:Name"
+                    }
+                  }
+                ]
+              ]
             }
           }
         },
@@ -164,25 +223,6 @@
             {
               "Effect": "Allow",
               "Action": [
-                "dynamodb:*"
-              ],
-              "Resource": {
-                "Fn::Sub": [
-                  "arn:aws:dynamodb:${region}:${account}:*",
-                  {
-                    "region": {
-                      "Ref": "AWS::Region"
-                    },
-                    "account": {
-                      "Ref": "AWS::AccountId"
-                    }
-                  }
-                ]
-              }
-            },
-            {
-              "Effect": "Allow",
-              "Action": [
                 "sqs:ReceiveMessage",
                 "sqs:DeleteMessage",
                 "sqs:GetQueueAttributes"
@@ -203,6 +243,139 @@
                   }
                 ]
               }
+            }
+          ]
+        }
+      }
+    },
+    "AmplifyResourcesPolicy": {
+      "DependsOn": [
+        "LambdaExecutionRole"
+      ],
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyName": "amplify-lambda-execution-policy",
+        "Roles": [
+          {
+            "Ref": "LambdaExecutionRole"
+          }
+        ],
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "dynamodb:Get*",
+                "dynamodb:BatchGetItem",
+                "dynamodb:List*",
+                "dynamodb:Describe*",
+                "dynamodb:Scan",
+                "dynamodb:Query",
+                "dynamodb:PartiQLSelect"
+              ],
+              "Resource": [
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:aws:dynamodb:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":",
+                      {
+                        "Ref": "AWS::AccountId"
+                      },
+                      ":table/",
+                      {
+                        "Fn::ImportValue": {
+                          "Fn::Sub": "${apikiyanawGraphQLAPIIdOutput}:GetAtt:TranscriptionTable:Name"
+                        }
+                      }
+                    ]
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:aws:dynamodb:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":",
+                      {
+                        "Ref": "AWS::AccountId"
+                      },
+                      ":table/",
+                      {
+                        "Fn::ImportValue": {
+                          "Fn::Sub": "${apikiyanawGraphQLAPIIdOutput}:GetAtt:TranscriptionTable:Name"
+                        }
+                      },
+                      "/index/*"
+                    ]
+                  ]
+                }
+              ]
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "dynamodb:Get*",
+                "dynamodb:BatchGetItem",
+                "dynamodb:List*",
+                "dynamodb:Describe*",
+                "dynamodb:Scan",
+                "dynamodb:Query",
+                "dynamodb:PartiQLSelect"
+              ],
+              "Resource": [
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:aws:dynamodb:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":",
+                      {
+                        "Ref": "AWS::AccountId"
+                      },
+                      ":table/",
+                      {
+                        "Fn::ImportValue": {
+                          "Fn::Sub": "${apikiyanawGraphQLAPIIdOutput}:GetAtt:RegionTable:Name"
+                        }
+                      }
+                    ]
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:aws:dynamodb:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":",
+                      {
+                        "Ref": "AWS::AccountId"
+                      },
+                      ":table/",
+                      {
+                        "Fn::ImportValue": {
+                          "Fn::Sub": "${apikiyanawGraphQLAPIIdOutput}:GetAtt:RegionTable:Name"
+                        }
+                      },
+                      "/index/*"
+                    ]
+                  ]
+                }
+              ]
             }
           ]
         }
