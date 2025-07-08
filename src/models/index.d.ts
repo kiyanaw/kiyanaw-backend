@@ -1,5 +1,5 @@
 import { ModelInit, MutableModel } from "@aws-amplify/datastore";
-// @ts-expect-error - AWS Amplify DataStore types are imported from JS files
+// @ts-ignore
 import { LazyLoading, LazyLoadingDisabled, AsyncCollection, AsyncItem } from "@aws-amplify/datastore";
 
 type TranscriptionMetaData = {
