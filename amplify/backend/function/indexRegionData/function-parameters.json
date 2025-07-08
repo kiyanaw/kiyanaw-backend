@@ -1,3 +1,13 @@
 {
-  "lambdaLayers": []
+  "lambdaLayers": [],
+  "permissions": {
+    "storage": {
+      "Transcription:@model(appsync)": [
+        "read"
+      ],
+      "Region:@model(appsync)": [
+        "read"
+      ]
+    }
+  }
 }
