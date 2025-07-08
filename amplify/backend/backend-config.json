@@ -1,19 +1,5 @@
 {
   "api": {
-    "enqueueRegionChange": {
-      "dependsOn": [
-        {
-          "attributes": [
-            "Name",
-            "Arn"
-          ],
-          "category": "function",
-          "resourceName": "enqueueRegionChange"
-        }
-      ],
-      "providerPlugin": "awscloudformation",
-      "service": "API Gateway"
-    },
     "kiyanaw": {
       "dependsOn": [
         {
@@ -110,6 +96,16 @@
     },
     "enqueueRegionChange": {
       "build": true,
+      "dependsOn": [
+        {
+          "attributes": [
+            "GraphQLAPIIdOutput",
+            "GraphQLAPIEndpointOutput"
+          ],
+          "category": "api",
+          "resourceName": "kiyanaw"
+        }
+      ],
       "providerPlugin": "awscloudformation",
       "service": "Lambda"
     },
