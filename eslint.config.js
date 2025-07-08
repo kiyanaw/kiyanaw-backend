@@ -5,7 +5,10 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import tseslint from 'typescript-eslint'
 
 export default tseslint.config(
-  { ignores: ['dist', 'src/aws-exports.js', 'src/graphql/*', '**/*.test.*', 'src/ui-components/studioTheme.js.d.ts'] },
+  { ignores: [
+    'dist', 'src/aws-exports.js', 'src/models/index.d.ts', 'src/graphql/*', 
+    '**/*.test.*', 'src/ui-components/studioTheme.js.d.ts', 'src/ui-components/studioTheme.js', 
+    'src/ui-components/utils.js','amplify/#current-cloud-backend/**'] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ['**/*.{ts,tsx}'],
