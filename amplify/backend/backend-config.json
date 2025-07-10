@@ -59,6 +59,22 @@
   },
   "custom": {
     "regionChangeSQS": {
+      "dependsOn": [
+        {
+          "attributes": [
+            "GraphQLAPIIdOutput"
+          ],
+          "category": "api",
+          "resourceName": "kiyanaw"
+        },
+        {
+          "attributes": [
+            "Name"
+          ],
+          "category": "function",
+          "resourceName": "indexRegionData"
+        }
+      ],
       "providerPlugin": "awscloudformation",
       "service": "customCDK"
     }

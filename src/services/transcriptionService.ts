@@ -3,6 +3,9 @@ import { getUrl } from 'aws-amplify/storage';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - GraphQL queries are generated as JS files
 import { getTranscription } from '../graphql/queries.js';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore - GraphQL mutations are generated as JS files
+import { createTranscription as createTranscriptionMutation, updateTranscription as updateTranscriptionMutation } from '../graphql/mutations.js';
 
 import { loadRegionsForTranscription } from './regionService';
 import { loadIssuesForTranscription } from './issueService';
@@ -11,6 +14,8 @@ import {
   type GraphQLClient, 
   type GraphQLResponse, 
   type GetTranscriptionResponse, 
+  type CreateTranscriptionResponse,
+  type UpdateTranscriptionResponse,
   type TranscriptionData as SharedTranscriptionData, 
   type LoadTranscriptionResult 
 } from '../types/shared';
@@ -232,9 +237,35 @@ export const loadInFull = async (transcriptionId: string): Promise<false | LoadT
  * @returns The created transcription
  */
 export const create = async (data: CreateTranscriptionData): Promise<SharedTranscriptionData> => {
-  // TODO: Implement using GraphQL createTranscription mutation
-  console.log('TODO: create transcription with data:', data);
-  throw new Error('Create function needs to be reimplemented with GraphQL');
+  try {
+    const input = {
+      title: data.title,
+      source: data.source,
+      type: data.type,
+      author: data.author,
+      userLastUpdated: data.userLastUpdated,
+      dateLastUpdated: `${Date.now()}`,
+      length: 0, // Will be updated when audio is processed
+      isPrivate: false,
+      disableAnalyzer: false,
+    };
+
+    const { data: result } = await getClient().graphql({
+      query: createTranscriptionMutation,
+      variables: { input },
+      authMode: 'iam',
+    }) as CreateTranscriptionResponse;
+
+    const created = result?.createTranscription;
+    if (!created) {
+      throw new Error('Failed to create transcription - no data returned');
+    }
+
+    return created;
+  } catch (error) {
+    console.error('❌ Failed to create transcription via API:', error);
+    throw error;
+  }
 };
 
 /**
@@ -251,7 +282,39 @@ export const updateTranscription = async (
     userLastUpdated: string;
   }
 ): Promise<SharedTranscriptionData> => {
-  // TODO: Implement using GraphQL updateTranscription mutation
-  console.log('TODO: update transcription:', transcriptionId, updates);
-  throw new Error('Update function needs to be reimplemented with GraphQL');
+  try {
+    // First, get the current transcription to get the _version for conflict detection
+    const { data: getData } = await getClient().graphql({
+      query: getTranscription,
+      variables: { id: transcriptionId }
+    }) as GraphQLResponse<GetTranscriptionResponse>;
+
+    const existing = getData?.getTranscription;
+    if (!existing) {
+      throw new Error(`Transcription with ID ${transcriptionId} not found`);
+    }
+
+    const input = {
+      id: transcriptionId,
+      _version: existing._version,
+      ...updates,
+      dateLastUpdated: `${Date.now()}`,
+    };
+
+    const { data: result } = await getClient().graphql({
+      query: updateTranscriptionMutation,
+      variables: { input },
+      authMode: 'iam',
+    }) as UpdateTranscriptionResponse;
+
+    const updated = result?.updateTranscription;
+    if (!updated) {
+      throw new Error('Failed to update transcription - no data returned');
+    }
+
+    return updated;
+  } catch (error) {
+    console.error('❌ Failed to update transcription via API:', error);
+    throw error;
+  }
 }; 

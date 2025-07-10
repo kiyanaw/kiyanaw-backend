@@ -12,16 +12,16 @@
     {
       "type": "ProjectLayer",
       "resourceName": "kiyanawffmpeg",
-      "env": "auththree",
       "version": "Always choose latest version",
-      "isLatestVersionSelected": true
+      "isLatestVersionSelected": true,
+      "env": "staging"
     },
     {
       "type": "ProjectLayer",
       "resourceName": "kiyanawaudiowaveform",
-      "env": "auththree",
       "version": "Always choose latest version",
-      "isLatestVersionSelected": true
+      "isLatestVersionSelected": true,
+      "env": "staging"
     }
   ]
 }
