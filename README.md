@@ -74,4 +74,7 @@ Whenever changes are made to a region in a transcription, that region's data is 
 
  * reformat and push the data into the a "neutral" queue that will publish "known words" links
  * send out email notifications to anyone who has an interest in that particular region
- 
+
+## Fresh Deployment Setup
+
+After deploying to a new AWS account, several manual configurations are required to get the system fully operational. See the [Fresh Amplify Deployment Checklist](docs/fresh_amplify_deploy_checklist.md) for detailed step-by-step instructions.
