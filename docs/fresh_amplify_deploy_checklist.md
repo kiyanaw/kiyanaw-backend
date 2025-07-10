@@ -6,7 +6,23 @@ This document outlines the manual steps required after deploying the Kiyanaw bac
 
 - AWS account with appropriate permissions
 - Amplify CLI installed and configured
-- Project successfully deployed with `amplify push`
+
+## Pre-Deployment Steps
+
+### 1. Update Bucket Names
+
+Before running `amplify push`, you must update the bucket names in the backend configuration to ensure they are unique across all AWS accounts.
+
+#### Steps:
+1. **Update Hosting Bucket Name**
+   - Navigate to `amplify/backend/hosting/S3AndCloudFront/parameters.json`
+   - Change the `BucketName` parameter to a unique name
+   - Example: `kiyanaw-hosting-{unique-id}`
+
+2. **Update Storage Bucket Name**
+   - Navigate to `amplify/backend/storage/transcriptions/parameters.json`
+   - Change the `BucketName` parameter to a unique name
+   - Example: `kiyanaw-transcriptions-{unique-id}`
 
 ## Post-Deployment Manual Steps
 
