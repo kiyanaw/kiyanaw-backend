@@ -29,7 +29,7 @@ export interface GraphQLResponse<T> {
 }
 
 export interface GetTranscriptionResponse {
-  getTranscription: TranscriptionData;
+  getTranscription: TranscriptionData & { _version: number };
 }
 
 export interface ListRegionsResponse {

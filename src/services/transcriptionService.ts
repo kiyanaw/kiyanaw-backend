@@ -296,7 +296,7 @@ export const updateTranscription = async (
 
     const input = {
       id: transcriptionId,
-      _version: (existing as any)._version,
+      _version: existing._version,
       ...updates,
       dateLastUpdated: `${Date.now()}`,
     };
