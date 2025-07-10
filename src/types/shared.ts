@@ -52,6 +52,18 @@ export interface CreateRegionResponse {
   };
 }
 
+export interface CreateTranscriptionResponse {
+  data: {
+    createTranscription: TranscriptionData;
+  };
+}
+
+export interface UpdateTranscriptionResponse {
+  data: {
+    updateTranscription: TranscriptionData;
+  };
+}
+
 // Issue-related interfaces (shared from issueService)
 export interface IssueComment {
   id: string;

@@ -56,6 +56,19 @@ The `createPeaksFile` lambda requires VPC and EFS configuration to process audio
    - Select **Default security group**
    - Click **Save**
 
+4. **Configure VPC S3 Endpoint**
+   - Go to AWS VPC service
+   - Click **Endpoints** in the left sidebar
+   - Click **Create endpoint**
+
+5. **Configure S3 Gateway Endpoint**
+   - **Service category**: AWS services
+   - **Service**: `com.amazonaws.us-east-1.s3`
+   - **VPC**: Select the **Default VPC**
+   - **Route table**: Select the **Default route table**
+   - **Policy**: Use the default policy (Full access)
+   - Click **Create endpoint**
+
 #### B. EFS File System Configuration
 
 1. **Create EFS File System**

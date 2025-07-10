@@ -4,7 +4,7 @@
 	STORAGE_TRANSCRIPTIONS_BUCKETNAME
 Amplify Params - DO NOT EDIT */
 
-process.env.PATH = process.env.PATH + ':' + process.env.LAMBDA_TASK_ROOT + '/opt';
+process.env.PATH = process.env.PATH + ':' + '/opt/nodejs/bin';
 const efsPath = '/mnt/temp'
 
 const assert = require('assert')
@@ -29,7 +29,13 @@ async function getS3File(bucket, key, filename) {
       Bucket: bucket,
       Key: key
     };
-    const file = fs.createWriteStream(`${efsPath}/${filename}`);
+    try {
+      var file = fs.createWriteStream(`${efsPath}/${filename}`);
+    } catch (error) {
+      console.log('Error creating write stream', error)
+      reject(error);
+    }
+    
     file.on("close", function() {
       resolve(file)
     });
@@ -38,9 +44,16 @@ async function getS3File(bucket, key, filename) {
     });
     
     try {
-      const data = await s3Client.send(new GetObjectCommand(params));
+      var data = await s3Client.send(new GetObjectCommand(params));
+    } catch (error) {
+      console.log('Error getting object from S3', error)
+      reject(error);
+    }
+
+    try {
       data.Body.pipe(file);
     } catch (error) {
+      console.log('Error piping file', error)
       reject(error);
     }
   })
@@ -178,6 +191,7 @@ exports.handler = async (event, context) => {
       file = await getS3File(bucket, key, filename)
     } catch (error) {
       console.log('Could not get file from S3, is it there? Exiting...')
+      console.log('Error', error)
       return true
     }
     
