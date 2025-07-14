@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "paths": {
+    "/crk/bulk-lookup": {
+      "name": "/crk/bulk-lookup",
+      "lambdaFunction": "crkSpellCheck",
+      "permissions": {
+        "setting": "private",
+        "auth": [
+          "create"
+        ]
+      }
+    }
+  }
+}

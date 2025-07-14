@@ -3,6 +3,11 @@ export type AmplifyDependentResourcesAttributes = {
     "kiyanaw": {
       "GraphQLAPIEndpointOutput": "string",
       "GraphQLAPIIdOutput": "string"
+    },
+    "spellcheck": {
+      "ApiId": "string",
+      "ApiName": "string",
+      "RootUrl": "string"
     }
   },
   "auth": {
@@ -31,6 +36,13 @@ export type AmplifyDependentResourcesAttributes = {
       "Name": "string",
       "Region": "string"
     },
+    "crkSpellCheck": {
+      "Arn": "string",
+      "LambdaExecutionRole": "string",
+      "LambdaExecutionRoleArn": "string",
+      "Name": "string",
+      "Region": "string"
+    },
     "enqueueRegionChange": {
       "Arn": "string",
       "LambdaExecutionRole": "string",
@@ -46,6 +58,9 @@ export type AmplifyDependentResourcesAttributes = {
       "Region": "string"
     },
     "kiyanawaudiowaveform": {
+      "Arn": "string"
+    },
+    "kiyanawcrkFSTs": {
       "Arn": "string"
     },
     "kiyanawffmpeg": {
