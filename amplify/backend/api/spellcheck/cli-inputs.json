@@ -10,6 +10,16 @@
           "create"
         ]
       }
+    },
+    "/crk/suggest": {
+      "name": "/crk/suggest",
+      "lambdaFunction": "crkSpellCheck",
+      "permissions": {
+        "setting": "private",
+        "auth": [
+          "create"
+        ]
+      }
     }
   }
 }
