@@ -19,6 +19,10 @@
     "functionkiyanawcrkFSTsArn": {
       "Type": "String",
       "Default": "functionkiyanawcrkFSTsArn"
+    },
+    "functionkiyanawlibHfstolArn": {
+      "Type": "String",
+      "Default": "functionkiyanawlibHfstolArn"
     }
   },
   "Conditions": {
@@ -84,6 +88,9 @@
         },
         "Runtime": "nodejs22.x",
         "Layers": [
+          {
+            "Ref": "functionkiyanawlibHfstolArn"
+          },
           {
             "Ref": "functionkiyanawcrkFSTsArn"
           }

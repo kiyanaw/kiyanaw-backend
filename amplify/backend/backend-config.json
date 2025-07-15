@@ -139,6 +139,13 @@
           ],
           "category": "function",
           "resourceName": "kiyanawcrkFSTs"
+        },
+        {
+          "attributes": [
+            "Arn"
+          ],
+          "category": "function",
+          "resourceName": "kiyanawlibHfstol"
         }
       ],
       "providerPlugin": "awscloudformation",
@@ -184,6 +191,11 @@
       "service": "LambdaLayer"
     },
     "kiyanawffmpeg": {
+      "build": true,
+      "providerPlugin": "awscloudformation",
+      "service": "LambdaLayer"
+    },
+    "kiyanawlibHfstol": {
       "build": true,
       "providerPlugin": "awscloudformation",
       "service": "LambdaLayer"
@@ -310,6 +322,22 @@
         {
           "category": "function",
           "resourceName": "kiyanawffmpeg"
+        }
+      ]
+    },
+    "AMPLIFY_function_kiyanawlibHfstol_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "kiyanawlibHfstol"
+        }
+      ]
+    },
+    "AMPLIFY_function_kiyanawlibHfstol_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "kiyanawlibHfstol"
         }
       ]
     },

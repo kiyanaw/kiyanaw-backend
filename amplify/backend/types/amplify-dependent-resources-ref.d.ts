@@ -66,6 +66,9 @@ export type AmplifyDependentResourcesAttributes = {
     "kiyanawffmpeg": {
       "Arn": "string"
     },
+    "kiyanawlibHfstol": {
+      "Arn": "string"
+    },
     "notifyRegionChanges": {
       "Arn": "string",
       "LambdaExecutionRole": "string",

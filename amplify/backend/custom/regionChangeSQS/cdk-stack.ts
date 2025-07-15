@@ -1,6 +1,7 @@
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as sqs from 'aws-cdk-lib/aws-sqs';
+import * as lambda from 'aws-cdk-lib/aws-lambda';
 
 export class cdkStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -9,6 +10,17 @@ export class cdkStack extends cdk.Stack {
     const env = new cdk.CfnParameter(this, 'env', {
       type: 'String',
       description: 'Current Amplify CLI env name',
+    });
+
+    // Parameters that Amplify CLI injects based on dependencies
+    const functionindexRegionDataName = new cdk.CfnParameter(this, 'functionindexRegionDataName', {
+      type: 'String',
+      description: 'Name of the indexRegionData function',
+    });
+
+    const apikiyanawGraphQLAPIIdOutput = new cdk.CfnParameter(this, 'apikiyanawGraphQLAPIIdOutput', {
+      type: 'String',
+      description: 'GraphQL API ID for kiyanaw',
     });
 
     // Create dead letter queue
@@ -29,15 +41,15 @@ export class cdkStack extends cdk.Stack {
     });
 
     // Create event source mapping for indexRegionData function
-    // const eventSourceMapping = new lambda.CfnEventSourceMapping(this, 'RegionChangeEventSourceMapping', {
-    //   functionName: `indexRegionData-${env.valueAsString}`,
-    //   eventSourceArn: regionChangeQueue.queueArn,
-    //   batchSize: 1,
-    //   maximumBatchingWindowInSeconds: 0,
-    // });
+    const eventSourceMapping = new lambda.CfnEventSourceMapping(this, 'RegionChangeEventSourceMapping', {
+      functionName: functionindexRegionDataName.valueAsString,
+      eventSourceArn: regionChangeQueue.queueArn,
+      batchSize: 1,
+      maximumBatchingWindowInSeconds: 0,
+    });
 
     // The event source mapping depends on the queue
-    // eventSourceMapping.node.addDependency(regionChangeQueue);
+    eventSourceMapping.node.addDependency(regionChangeQueue);
 
     // Output the queue URL for reference
     new cdk.CfnOutput(this, 'RegionChangeQueueUrl', {
