@@ -117,7 +117,7 @@ export const IssuesPanel = ({
 
     onAddComment(issueId, {
       text: commentText,
-      author: user?.username || 'anonymous',
+              author: user?.userId || 'anonymous',
     });
 
     setCommentTexts((prev) => ({ ...prev, [issueId]: '' }));

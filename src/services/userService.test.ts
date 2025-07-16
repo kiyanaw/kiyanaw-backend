@@ -89,7 +89,7 @@ describe('userService', () => {
     it('should return true when user is the author', () => {
       const transcription = {
         id: 'test-id',
-        author: 'testuser',
+        author: 'test-user-id',  // Uses userId not username
         editors: [],
       };
 
@@ -101,8 +101,8 @@ describe('userService', () => {
     it('should return true when user is in editors array', () => {
       const transcription = {
         id: 'test-id',
-        author: 'otheruser',
-        editors: ['testuser', 'anothereditor'],
+        author: 'other-user-id',
+        editors: ['test-user-id', 'another-editor-id'],  // Uses userIds not usernames
       };
 
       const result = canEditTranscription(transcription);
@@ -113,8 +113,8 @@ describe('userService', () => {
     it('should return false when user is not author or editor', () => {
       const transcription = {
         id: 'test-id',
-        author: 'otheruser',
-        editors: ['differentuser', 'anothereditor'],
+        author: 'other-user-id',
+        editors: ['different-user-id', 'another-editor-id'],
       };
 
       const result = canEditTranscription(transcription);
@@ -125,7 +125,7 @@ describe('userService', () => {
     it('should handle null editors array', () => {
       const transcription = {
         id: 'test-id',
-        author: 'otheruser',
+        author: 'other-user-id',
         editors: null,
       };
 
@@ -137,7 +137,7 @@ describe('userService', () => {
     it('should handle undefined editors array', () => {
       const transcription = {
         id: 'test-id',
-        author: 'otheruser',
+        author: 'other-user-id',
         editors: undefined,
       };
 
@@ -149,7 +149,7 @@ describe('userService', () => {
     it('should handle empty editors array', () => {
       const transcription = {
         id: 'test-id',
-        author: 'otheruser',
+        author: 'other-user-id',
         editors: [],
       };
 
@@ -161,8 +161,8 @@ describe('userService', () => {
     it('should handle editors array with null values', () => {
       const transcription = {
         id: 'test-id',
-        author: 'otheruser',
-        editors: ['testuser', null, 'anothereditor'],
+        author: 'other-user-id',
+        editors: ['test-user-id', null, 'another-editor-id'],
       };
 
       const result = canEditTranscription(transcription);
@@ -170,11 +170,11 @@ describe('userService', () => {
       expect(result).toBe(true);
     });
 
-    it('should be case sensitive for username matching', () => {
+    it('should be case sensitive for userId matching', () => {
       const transcription = {
         id: 'test-id',
-        author: 'TestUser', // Different case
-        editors: ['TESTUSER'], // Different case
+        author: 'Test-User-Id', // Different case
+        editors: ['TEST-USER-ID'], // Different case
       };
 
       const result = canEditTranscription(transcription);
@@ -185,8 +185,8 @@ describe('userService', () => {
     it('should prioritize author check over editors check', () => {
       const transcription = {
         id: 'test-id',
-        author: 'testuser',
-        editors: ['testuser'], // User is both author and editor
+        author: 'test-user-id',
+        editors: ['test-user-id'], // User is both author and editor
       };
 
       const result = canEditTranscription(transcription);

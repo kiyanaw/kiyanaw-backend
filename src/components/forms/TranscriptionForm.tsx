@@ -75,7 +75,7 @@ export const TranscriptionForm = ({
     }
   };
 
-  const isAuthor = user?.username === transcription.author;
+  const isAuthor = user?.userId === transcription.author;
   const disableInputs = !canEdit || !isAuthor;
 
   return (

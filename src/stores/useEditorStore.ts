@@ -60,7 +60,7 @@ interface EditorState {
 
   // Computed properties
   isVideo: boolean;
-  isTranscriptionAuthor: (user: { username: string } | null) => boolean;
+  isTranscriptionAuthor: (user: { username: string; userId: string } | null) => boolean;
   transcriptionTitle: string | undefined;
 
   // Computed getters
@@ -96,7 +96,7 @@ export const useEditorStore = create<EditorState>()(
       isTranscriptionAuthor: (user) => {
         const { transcription } = get();
         if (!transcription || !user) return false;
-        return transcription.author === user.username;
+        return transcription.author === user.userId;
       },
       get transcriptionTitle() {
         return get().transcription?.title;

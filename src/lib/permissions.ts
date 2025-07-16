@@ -14,8 +14,8 @@ export const canEdit = (
   if (!transcription || !user) return false;
 
   return (
-    transcription.author === user.username ||
-    (transcription.editors?.includes(user.username) ?? false)
+    transcription.author === user.userId ||
+    (transcription.editors?.includes(user.userId) ?? false)
   );
 };
 
@@ -25,7 +25,7 @@ export const isAuthor = (
 ): boolean => {
   if (!transcription || !user) return false;
 
-  return transcription.author === user.username;
+  return transcription.author === user.userId;
 };
 
 export const canDelete = (
