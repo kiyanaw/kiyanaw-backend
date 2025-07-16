@@ -221,7 +221,7 @@ export const WaveformPlayer = ({
         {isVideo && (
           <video
             ref={setVideoElement}
-            className="hidden"
+            className="fixed bottom-4 right-4 max-w-[350px] max-h-[350px] z-[190] shadow-lg cursor-pointer rounded md:max-w-[350px] md:max-h-[350px] max-w-[250px] max-h-[200px]"
             preload="auto"
             title="Video playback"
             controls={false}
