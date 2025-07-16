@@ -49,16 +49,24 @@ export interface CreateTranscriptionData {
  */
 const extractS3KeyFromUrl = (sourceUrl: string): string => {
   try {
-    const url = new URL(sourceUrl);
-    const pathname = url.pathname;
+    // Extract the path part after the domain, preserving original encoding
+    const urlParts = sourceUrl.split('/');
+    const publicIndex = urlParts.findIndex(part => part === 'public');
     
-    // Remove leading slash and 'public/' prefix if present
-    let key = pathname.startsWith('/') ? pathname.slice(1) : pathname;
-    if (key.startsWith('public/')) {
-      key = key.slice(7); // Remove 'public/' prefix
+    if (publicIndex === -1) {
+      // If no 'public' segment found, assume the entire path after domain is the key
+      // This handles URLs like https://bucket.s3.amazonaws.com/direct-file.mp3
+      const domainIndex = urlParts.findIndex(part => part.includes('s3.amazonaws.com'));
+      if (domainIndex === -1) {
+        throw new Error('URL does not contain S3 domain');
+      }
+      const keyParts = urlParts.slice(domainIndex + 1);
+      return keyParts.join('/');
     }
     
-    return key;
+    // Get everything after 'public/' and join it back together
+    const keyParts = urlParts.slice(publicIndex + 1);
+    return keyParts.join('/');
   } catch (error) {
     console.error('Failed to extract S3 key from URL:', sourceUrl, error);
     throw new Error(`Invalid source URL format: ${sourceUrl}`);
@@ -78,8 +86,12 @@ export const generateSignedUrl = async (sourceUrl: string, fileSuffix: string = 
     
     console.log(`Generating signed URL for file: ${targetKey}`);
     
+    // Determine the path - if the key already starts with 'public/', use it as is
+    // Otherwise, prepend 'public/'
+    const path = targetKey.startsWith('public/') ? targetKey : `public/${targetKey}`;
+    
     const { url } = await getUrl({
-      path: `public/${targetKey}`,
+      path,
       options: {
         expiresIn: 3600, // 1 hour
         useAccelerateEndpoint: false

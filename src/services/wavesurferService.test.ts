@@ -1092,7 +1092,7 @@ describe('WaveSurferService', () => {
       // Ensure wavesurfer instance is null by destroying it
       wavesurferService.destroy();
       
-      const source = 'https://example.com/test.mp4';
+      const source = 'https://bucket.s3.amazonaws.com/public/test.mp4';
       const peaks = [1, 2, 3];
       
       await wavesurferService.load(source, peaks);
@@ -1112,7 +1112,7 @@ describe('WaveSurferService', () => {
       wavesurferService.destroy();
       
       // Set up delayed load first
-      const source = 'https://example.com/test.mp4';
+      const source = 'https://bucket.s3.amazonaws.com/public/test.mp4';
       const peaks = [1, 2, 3];
       await wavesurferService.load(source, peaks);
       
@@ -1138,7 +1138,7 @@ describe('WaveSurferService', () => {
       wavesurferService.initialize(mockContainer, mockTimelineContainer);
       
       // Now load should work immediately (no need to wait for ready)
-      const source = 'https://example.com/test.mp4';
+      const source = 'https://bucket.s3.amazonaws.com/public/test.mp4';
       const peaks = [1, 2, 3];
       
       await wavesurferService.load(source, peaks);
@@ -1150,7 +1150,7 @@ describe('WaveSurferService', () => {
 
     it('should clear delayed load on destroy', async () => {
       // Set up delayed load
-      const source = 'https://example.com/test.mp4';
+      const source = 'https://bucket.s3.amazonaws.com/public/test.mp4';
       const peaks = [1, 2, 3];
       await wavesurferService.load(source, peaks);
       
@@ -1168,7 +1168,7 @@ describe('WaveSurferService', () => {
 
     beforeEach(() => {
       mockVideoElement = document.createElement('video');
-      mockVideoElement.src = 'https://example.com/test.mp4';
+      mockVideoElement.src = 'https://bucket.s3.amazonaws.com/public/test.mp4';
     });
 
     it('should initialize with video element', () => {
@@ -1208,7 +1208,7 @@ describe('WaveSurferService', () => {
       wavesurferService.destroy();
       
       // Test the preservation logic when containers change while there's a delayed load
-      const source = 'https://example.com/test.mp4';
+      const source = 'https://bucket.s3.amazonaws.com/public/test.mp4';
       const peaks = [1, 2, 3];
       
       // Set up delayed load (service is not initialized yet)
@@ -1228,7 +1228,7 @@ describe('WaveSurferService', () => {
       // Now destroy the instance and set up a new delayed load to test preservation
       wavesurferService.destroy();
       
-      const source2 = 'https://example.com/test2.mp4';
+      const source2 = 'https://bucket.s3.amazonaws.com/public/test2.mp4';
       const peaks2 = [4, 5, 6];
       await wavesurferService.load(source2, peaks2);
       expect(wavesurferService['_delayedLoad']).toEqual({ source: source2, peaks: peaks2 });

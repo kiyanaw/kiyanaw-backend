@@ -26,14 +26,14 @@ describe('TranscriptionService', () => {
   const mockRawTranscription = {
     id: mockTranscriptionId,
     title: 'Test Transcription',
-    source: 'https://example.com/audio.mp3',
+    source: 'https://bucket.s3.amazonaws.com/public/audio.mp3',
     author: 'test-user',
   };
   
   const mockTranscriptionModel = {
     id: mockTranscriptionId,
     title: 'Test Transcription',
-    source: 'https://example.com/audio.mp3',
+    source: 'https://bucket.s3.amazonaws.com/public/audio.mp3',
     author: 'test-user',
   };
 
@@ -385,7 +385,7 @@ describe('TranscriptionService', () => {
     });
 
     it('should handle different transcription sources with signed URLs', async () => {
-      const differentSource = 'https://example.com/media.wav';
+      const differentSource = 'https://bucket.s3.amazonaws.com/public/media.wav';
       mockGraphqlClient.graphql.mockResolvedValue({
         data: {
           getTranscription: { ...mockRawTranscription, source: differentSource },
