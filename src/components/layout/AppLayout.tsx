@@ -106,7 +106,7 @@ export const AppLayout = () => {
       
 
       {/* Main Content */}
-      <main className="flex-1 overflow-hidden p-0 bg-gray-50 mt-20">
+      <main className="flex-1 overflow-hidden p-0 bg-gray-50 mt-[72px]">
         <Outlet />
       </main>
     </div>
