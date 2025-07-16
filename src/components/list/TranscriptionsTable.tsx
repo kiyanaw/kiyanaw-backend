@@ -143,7 +143,7 @@ export const TranscriptionsTable = () => {
             <div className="relative">
               <input
                 type="text"
-                placeholder="Search transcriptions..."
+                placeholder="Search by title..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-80 pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ki-blue focus:border-transparent"

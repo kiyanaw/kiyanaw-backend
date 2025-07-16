@@ -60,9 +60,9 @@ export const AppLayout = () => {
           />
           <Link
             to="/transcribe-list"
-            className="text-white hover:text-white/80 transition-colors duration-200 text-base font-medium hidden md:block"
+            className="text-white hover:text-white/80 transition-colors duration-200 text-base font-medium hidden md:block ml-5"
           >
-            Transcriptions
+            My transcriptions
           </Link>
         </div>
         <div className="flex items-center gap-4">

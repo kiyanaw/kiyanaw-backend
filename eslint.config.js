@@ -18,7 +18,6 @@ export default tseslint.config(
       'src/ui-components/utils.js',
       'amplify/#current-cloud-backend/**',
       'amplify/backend/custom/regionChangeSQS/build/**',
-      'amplify/backend/**',
     ] 
   },
   {
@@ -28,7 +27,7 @@ export default tseslint.config(
       ecmaVersion: 2020,
       globals: globals.browser,
       parserOptions: {
-        project: ['./tsconfig.app.json', './tsconfig.node.json'],
+        projectService: true,
         tsconfigRootDir: import.meta.dirname,
       },
     },
