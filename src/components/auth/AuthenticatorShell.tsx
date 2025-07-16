@@ -19,8 +19,6 @@ const AuthenticatedApp = ({ children }: { children: ReactNode }) => {
   
   if (lastUserRef.current !== currentUserKey) {
     lastUserRef.current = currentUserKey;
-
-    console.log('user', user)
     
           const currentUser = route === 'authenticated' && user ? {
         username: user.signInDetails?.loginId as string,  // This is the email

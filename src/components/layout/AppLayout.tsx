@@ -9,8 +9,6 @@ export const AppLayout = () => {
   const signedIn = useAuthStore((state) => state.signedIn);
   const location = useLocation();
 
-  console.log('page user', user)
-
   const handleSignOut = async () => {
     try {
       await signOut();
