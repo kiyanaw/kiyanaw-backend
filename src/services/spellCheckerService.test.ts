@@ -1,13 +1,17 @@
 import { spellCheckerService } from './spellCheckerService';
 
-// Mock fetch for testing
-const mockFetch = jest.fn();
-(globalThis as any).fetch = mockFetch;
+// Mock aws-amplify/api
+jest.mock('aws-amplify/api', () => ({
+  post: jest.fn()
+}));
+
+// Get the mocked function
+const mockPost = jest.mocked(require('aws-amplify/api').post);
 
 describe('SpellCheckerService', () => {
   beforeEach(() => {
     spellCheckerService.clearCache();
-    mockFetch.mockClear();
+    mockPost.mockClear();
   });
 
   describe('tokenize', () => {
@@ -33,35 +37,65 @@ describe('SpellCheckerService', () => {
     it('should return empty arrays for empty input', async () => {
       const result = await spellCheckerService.check([]);
       expect(result).toEqual({ known: [], unknown: [] });
-      expect(mockFetch).not.toHaveBeenCalled();
+      expect(mockPost).not.toHaveBeenCalled();
     });
 
-    it('should make API call for unknown words', async () => {
+    it('should make API call for unknown words with default language code', async () => {
       const mockResponse = {
         'itwêw': ['some', 'data'],
         'hello': [],
         'êkwa': ['analysis']
       };
 
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(mockResponse)
-      });
+      const mockRestOperation = {
+        response: {
+          body: {
+            json: () => Promise.resolve(mockResponse)
+          }
+        }
+      };
+
+      mockPost.mockReturnValueOnce(mockRestOperation);
 
       const result = await spellCheckerService.check(['itwêw', 'hello', 'êkwa']);
       
-      expect(mockFetch).toHaveBeenCalledTimes(1);
-      expect(mockFetch).toHaveBeenCalledWith(
-        'https://icagc4x2ok.execute-api.us-east-1.amazonaws.com/bulk-lookup',
-        expect.objectContaining({
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json;charset=utf-8' },
-          body: expect.stringContaining('itwêw') && expect.stringContaining('hello') && expect.stringContaining('êkwa')
-        })
-      );
-
+      expect(mockPost).toHaveBeenCalledTimes(1);
+      const callArgs = mockPost.mock.calls[0][0];
+      expect(callArgs.apiName).toBe('spellcheck');
+      expect(callArgs.path).toBe('/crk/bulk-lookup');
+      expect(callArgs.options.body).toEqual(expect.arrayContaining(['itwêw', 'hello', 'êkwa']));
       expect(result.known).toEqual(['itwêw', 'êkwa']);
       expect(result.unknown).toEqual(['hello']);
+    });
+
+    it('should make API call with specified language code', async () => {
+      const mockResponse = {
+        'bonjour': ['some', 'data'],
+        'monde': ['analysis']
+      };
+
+      const mockRestOperation = {
+        response: {
+          body: {
+            json: () => Promise.resolve(mockResponse)
+          }
+        }
+      };
+
+      mockPost.mockReturnValueOnce(mockRestOperation);
+
+      const result = await spellCheckerService.check(['bonjour', 'monde'], 'fra');
+      
+      expect(mockPost).toHaveBeenCalledTimes(1);
+      expect(mockPost).toHaveBeenCalledWith({
+        apiName: 'spellcheck',
+        path: '/fra/bulk-lookup',
+        options: {
+          body: ['bonjour', 'monde']
+        }
+      });
+      expect(result.known).toEqual(['bonjour', 'monde']);
+      expect(result.unknown).toEqual([]);
     });
 
     it('should use cache for subsequent requests', async () => {
@@ -70,20 +104,25 @@ describe('SpellCheckerService', () => {
         'hello': []
       };
 
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(mockResponse)
-      });
+      const mockRestOperation = {
+        response: {
+          body: {
+            json: () => Promise.resolve(mockResponse)
+          }
+        }
+      };
+
+      mockPost.mockReturnValueOnce(mockRestOperation);
 
       // First call - should hit API
       const result1 = await spellCheckerService.check(['itwêw', 'hello']);
-      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(mockPost).toHaveBeenCalledTimes(1);
       expect(result1.known).toEqual(['itwêw']);
       expect(result1.unknown).toEqual(['hello']);
 
       // Second call with same words - should use cache
       const result2 = await spellCheckerService.check(['itwêw', 'hello']);
-      expect(mockFetch).toHaveBeenCalledTimes(1); // No additional API call
+      expect(mockPost).toHaveBeenCalledTimes(1); // No additional API call
       expect(result2.known).toEqual(['itwêw']);
       expect(result2.unknown).toEqual(['hello']);
     });
@@ -91,65 +130,58 @@ describe('SpellCheckerService', () => {
     it('should only request unknown words from API', async () => {
       // First request
       const mockResponse1 = { 'itwêw': ['data'], 'hello': [] };
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(mockResponse1)
-      });
+      const mockRestOperation1 = {
+        response: {
+          body: {
+            json: () => Promise.resolve(mockResponse1)
+          }
+        }
+      };
+      mockPost.mockReturnValueOnce(mockRestOperation1);
 
       await spellCheckerService.check(['itwêw', 'hello']);
-      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(mockPost).toHaveBeenCalledTimes(1);
 
       // Second request with mix of known and unknown words
       const mockResponse2 = { 'êkwa': ['data'], 'world': [] };
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(mockResponse2)
-      });
+      const mockRestOperation2 = {
+        response: {
+          body: {
+            json: () => Promise.resolve(mockResponse2)
+          }
+        }
+      };
+      mockPost.mockReturnValueOnce(mockRestOperation2);
 
       const result = await spellCheckerService.check(['itwêw', 'hello', 'êkwa', 'world']);
       
       // Should only request the unknown words
-      expect(mockFetch).toHaveBeenCalledTimes(2);
-      expect(mockFetch).toHaveBeenLastCalledWith(
-        expect.any(String),
-        expect.objectContaining({
-          body: expect.stringContaining('êkwa') && expect.stringContaining('world')
-        })
-      );
+      expect(mockPost).toHaveBeenCalledTimes(2);
+      const lastCallArgs = mockPost.mock.calls[1][0];
+      expect(lastCallArgs.apiName).toBe('spellcheck');
+      expect(lastCallArgs.path).toBe('/crk/bulk-lookup');
+      expect(lastCallArgs.options.body).toEqual(expect.arrayContaining(['êkwa', 'world']));
 
       expect(result.known).toEqual(['itwêw', 'êkwa']);
       expect(result.unknown).toEqual(['hello', 'world']);
     });
 
     it('should handle API errors gracefully', async () => {
-      mockFetch.mockRejectedValueOnce(new Error('Network error'));
+      mockPost.mockImplementationOnce(() => Promise.reject(new Error('Network error')));
 
-      const result = await spellCheckerService.check(['itwêw', 'hello']);
-      
-      // On error, should treat all words as unknown
-      expect(result.known).toEqual([]);
-      expect(result.unknown).toEqual(['itwêw', 'hello']);
-    });
-
-    it('should handle HTTP errors gracefully', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 500
-      });
-
-      const result = await spellCheckerService.check(['itwêw', 'hello']);
-      
-      // On error, should treat all words as unknown
-      expect(result.known).toEqual([]);
-      expect(result.unknown).toEqual(['itwêw', 'hello']);
+      await expect(spellCheckerService.check(['itwêw', 'hello'])).resolves.toEqual({ known: [], unknown: ['itwêw', 'hello'] });
     });
 
     it('should deduplicate identical concurrent requests', async () => {
       const mockResponse = { 'itwêw': ['data'], 'hello': [] };
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(mockResponse)
-      });
+      const mockRestOperation = {
+        response: {
+          body: {
+            json: () => Promise.resolve(mockResponse)
+          }
+        }
+      };
+      mockPost.mockReturnValueOnce(mockRestOperation);
 
       // Make multiple concurrent requests with same words
       const promises = [
@@ -161,7 +193,7 @@ describe('SpellCheckerService', () => {
       const results = await Promise.all(promises);
       
       // Should only make one API call despite multiple concurrent requests
-      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(mockPost).toHaveBeenCalledTimes(1);
       
       // All results should be identical
       results.forEach(result => {
@@ -175,16 +207,28 @@ describe('SpellCheckerService', () => {
     it('should add words to known cache', async () => {
       spellCheckerService.addKnownWords(['itwêw', 'êkwa']);
       
+      // Mock the API response for the 'hello' word
+      const mockResponse = { 'hello': [] };
+      const mockRestOperation = {
+        response: {
+          body: {
+            json: () => Promise.resolve(mockResponse)
+          }
+        }
+      };
+      mockPost.mockReturnValueOnce(mockRestOperation);
+      
       // These words should now be cached as known
       const result = await spellCheckerService.check(['itwêw', 'êkwa', 'hello']);
       
       // Should only request 'hello' from API
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({
-          body: expect.stringContaining('hello')
-        })
-      );
+      expect(mockPost).toHaveBeenCalledWith({
+        apiName: 'spellcheck',
+        path: '/crk/bulk-lookup',
+        options: {
+          body: ['hello']
+        }
+      });
     });
   });
 
