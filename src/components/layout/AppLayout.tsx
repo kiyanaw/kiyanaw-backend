@@ -9,6 +9,8 @@ export const AppLayout = () => {
   const signedIn = useAuthStore((state) => state.signedIn);
   const location = useLocation();
 
+  console.log('page user', user)
+
   const handleSignOut = async () => {
     try {
       await signOut();
@@ -38,7 +40,7 @@ export const AppLayout = () => {
           ☰
         </button>
         <h1 className="flex-1 m-0 text-lg md:text-xl font-medium">
-          Kiyânaw Transcription Platform
+          kiyânaw Transcribe
         </h1>
         <div className="flex items-center gap-4">
           {signedIn ? (
@@ -46,7 +48,7 @@ export const AppLayout = () => {
               <span className="hidden md:inline">Welcome, {user?.username}</span>
               <button 
                 onClick={handleSignOut} 
-                className="bg-white/10 border border-white/30 text-white py-2 px-3 rounded text-sm hover:bg-white/20 transition-colors"
+                className="bg-black/10 border border-white/30 text-white py-2 px-3 rounded text-sm hover:bg-white/20 transition-colors"
               >
                 Sign out
               </button>

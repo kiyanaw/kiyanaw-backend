@@ -34,7 +34,7 @@ export const useAuth = (): UseAuthReturn => {
 
   useEffect(() => {
     const currentUser = route === 'authenticated' && user ? {
-      username: user.username,
+      username: user.signInDetails?.loginId as string,  // Use email, not UUID
       userId: user.userId,
       signInDetails: user.signInDetails,
     } : null;
@@ -72,4 +72,4 @@ export const useAuth = (): UseAuthReturn => {
     signOut,
     refreshSession,
   };
-};
+}; 

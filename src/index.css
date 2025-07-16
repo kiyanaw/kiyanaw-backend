@@ -1,8 +1,9 @@
 @import "tailwindcss";
 
 @theme {
-  --color-ki-blue: #1E3A8A;
-  --color-ki-accent: #3B82F6;
+  --color-ki-blue: #305880;
+  --color-ki-accent: #8fa0b8;
+  --color-ki-darker: #4f5891;
   --color-issue-red: #EF4444;
   --color-issue-yellow: #F59E0B;
   --color-issue-green: #10B981;
