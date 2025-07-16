@@ -18,7 +18,6 @@ export class cdkStack extends cdk.Stack {
       description: 'Name of the indexRegionData function',
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const apikiyanawGraphQLAPIIdOutput = new cdk.CfnParameter(this, 'apikiyanawGraphQLAPIIdOutput', {
       type: 'String',
       description: 'GraphQL API ID for kiyanaw',
