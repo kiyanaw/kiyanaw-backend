@@ -37,10 +37,6 @@ export class LoadTranscription {
       return;
     }
     
-    const user = userService.currentUser()
-
-    console.log('>>> loaded in full', data, user)
-    
     // Check if user can edit this transcription
     const canEdit = userService.canEditTranscription(data.transcription);
     this.config.store.setCanEdit(canEdit);

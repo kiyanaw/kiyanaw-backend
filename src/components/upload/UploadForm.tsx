@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuthStore } from '../../stores/useAuthStore';
 import { CreateTranscriptionUseCase } from '../../use-cases/create-transcription';
 import { services } from '../../services';
 import type { UploadProgress } from '../../services/uploadService';
@@ -12,7 +12,7 @@ export const UploadForm = () => {
   const [progress, setProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const user = useAuthStore((state) => state.user);
 
   const disableUpload = !inputFile || !title.trim();
 

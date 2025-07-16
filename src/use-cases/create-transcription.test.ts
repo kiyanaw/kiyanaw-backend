@@ -139,7 +139,7 @@ describe('CreateTranscriptionUseCase', () => {
         title: 'Test Title',
         source: 'https://example.com/file-key.mp3',
         type: 'audio/mpeg',
-        author: 'testuser',
+        author: 'user-id',  // Now uses userId for author
         userLastUpdated: 'testuser'
       });
 

@@ -48,7 +48,7 @@ export const EditorPage = () => {
     };
   }, []);
 
-  const isVideo = transcription?.isVideo
+  const isVideo = transcription?.isVideo ?? false
 
   return (
     <div className="flex flex-col h-full overflow-hidden relative">

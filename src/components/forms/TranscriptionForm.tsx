@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuthStore } from '../../stores/useAuthStore';
 import { type RegionData } from '../../services/adt';
 
 interface Transcription {
@@ -26,7 +26,7 @@ export const TranscriptionForm = ({
   canEdit,
   onUpdate,
 }: TranscriptionFormProps) => {
-  const { user } = useAuth();
+  const user = useAuthStore((state) => state.user);
   const [title, setTitle] = useState(transcription.title || '');
   const [comments, setComments] = useState(transcription.comments || '');
   const [isPrivate, setIsPrivate] = useState(transcription.isPrivate || false);
@@ -75,7 +75,7 @@ export const TranscriptionForm = ({
     }
   };
 
-  const isAuthor = user?.username === transcription.author;
+  const isAuthor = user?.userId === transcription.author;
   const disableInputs = !canEdit || !isAuthor;
 
   return (

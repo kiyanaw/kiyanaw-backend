@@ -59,8 +59,8 @@ export class CreateTranscriptionUseCase {
       title,
       source,
       type: file.type,
-      author: username,
-      userLastUpdated: username,
+      author: userId,  // Use userId for Amplify auth compatibility
+      userLastUpdated: username,  // Keep username for display purposes
     });
 
     return {

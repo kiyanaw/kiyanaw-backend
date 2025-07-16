@@ -51,7 +51,7 @@ export class UpdateTranscriptionUseCase {
     // Add user tracking fields
     const updateData = {
       ...updates,
-      userLastUpdated: username,
+      userLastUpdated: username,  // Keep username for display purposes
       dateLastUpdated: new Date().toISOString(),
     };
 

@@ -208,7 +208,6 @@ export const loadInFull = async (transcriptionId: string): Promise<false | LoadT
       query: getTranscription,
       variables: { id: transcriptionId }
     });
-    console.log('📊 GraphQL API result:', JSON.stringify(graphqlResult, null, 2));
     
     const response = graphqlResult as GraphQLResponse<GetTranscriptionResponse>;
     transcriptionData = response.data.getTranscription;

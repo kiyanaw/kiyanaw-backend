@@ -2,12 +2,12 @@ import { renderHook, act } from '@testing-library/react';
 import { useUpdateTranscription } from './useUpdateTranscription';
 import { UpdateTranscriptionUseCase } from '../use-cases/update-transcription';
 import { useEditorStore } from '../stores/useEditorStore';
-import { useAuth } from './useAuth';
+import { useAuthStore } from '../stores/useAuthStore';
 
 // Mock dependencies
 jest.mock('../use-cases/update-transcription');
 jest.mock('../stores/useEditorStore');
-jest.mock('./useAuth');
+jest.mock('../stores/useAuthStore');
 
 // Mock services with a simple object to avoid CSS import issues
 jest.mock('../services', () => ({
@@ -20,7 +20,7 @@ jest.mock('../services', () => ({
 
 const MockedUpdateTranscriptionUseCase = UpdateTranscriptionUseCase as jest.MockedClass<typeof UpdateTranscriptionUseCase>;
 const mockedUseEditorStore = useEditorStore as jest.MockedFunction<typeof useEditorStore>;
-const mockedUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
+const mockedUseAuthStore = useAuthStore as jest.MockedFunction<typeof useAuthStore>;
 
 describe('useUpdateTranscription', () => {
   const mockExecute = jest.fn();
@@ -41,10 +41,12 @@ describe('useUpdateTranscription', () => {
     mockedUseEditorStore.getState = mockGetState;
     mockGetState.mockReturnValue(mockStore);
 
-    // Mock useAuth with authenticated user
-    mockedUseAuth.mockReturnValue({
-      user: { username: 'testuser' },
-    } as any);
+    // Mock useAuthStore selector for authenticated user
+    mockedUseAuthStore.mockReturnValue({
+      username: 'testuser',
+      userId: 'test-user-id',
+      signInDetails: {},
+    });
   });
 
   describe('hook initialization', () => {
@@ -65,9 +67,7 @@ describe('useUpdateTranscription', () => {
 
   describe('authentication validation', () => {
     it('should throw error when user is not authenticated', () => {
-      mockedUseAuth.mockReturnValue({
-        user: null,
-      } as any);
+      mockedUseAuthStore.mockReturnValue(null);
 
       const { result } = renderHook(() => useUpdateTranscription('test-transcription-id'));
 
@@ -79,8 +79,9 @@ describe('useUpdateTranscription', () => {
     });
 
     it('should throw error when user has no username', () => {
-      mockedUseAuth.mockReturnValue({
-        user: { username: null },
+      mockedUseAuthStore.mockReturnValue({
+        username: null,
+        userId: 'test-id',
       } as any);
 
       const { result } = renderHook(() => useUpdateTranscription('test-transcription-id'));
@@ -93,8 +94,9 @@ describe('useUpdateTranscription', () => {
     });
 
     it('should throw error when user has empty username', () => {
-      mockedUseAuth.mockReturnValue({
-        user: { username: '' },
+      mockedUseAuthStore.mockReturnValue({
+        username: '',
+        userId: 'test-id',
       } as any);
 
       const { result } = renderHook(() => useUpdateTranscription('test-transcription-id'));
@@ -310,9 +312,7 @@ describe('useUpdateTranscription', () => {
 
   describe('error handling', () => {
     it('should propagate authentication errors', () => {
-      mockedUseAuth.mockReturnValue({
-        user: null,
-      } as any);
+      mockedUseAuthStore.mockReturnValue(null);
 
       const { result } = renderHook(() => useUpdateTranscription('test-transcription-id'));
 

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuthStore } from '../../stores/useAuthStore';
 
 interface Issue {
   id: string;
@@ -51,7 +51,7 @@ export const IssuesPanel = ({
   onDeleteIssue,
   onAddComment,
 }: IssuesPanelProps) => {
-  const { user } = useAuth();
+  const user = useAuthStore((state) => state.user);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newIssueText, setNewIssueText] = useState('');
   const [newIssueType, setNewIssueType] = useState<Issue['type']>('general');
@@ -117,7 +117,7 @@ export const IssuesPanel = ({
 
     onAddComment(issueId, {
       text: commentText,
-      author: user?.username || 'anonymous',
+              author: user?.userId || 'anonymous',
     });
 
     setCommentTexts((prev) => ({ ...prev, [issueId]: '' }));

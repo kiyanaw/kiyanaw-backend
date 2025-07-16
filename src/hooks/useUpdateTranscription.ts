@@ -2,11 +2,11 @@ import { useRef } from 'react';
 import { UpdateTranscriptionUseCase } from '../use-cases/update-transcription';
 import { services } from '../services';
 import { useEditorStore } from '../stores/useEditorStore';
-import { useAuth } from './useAuth';
+import { useAuthStore } from '../stores/useAuthStore';
 
 export const useUpdateTranscription = (transcriptionId: string) => {
   const lastCalled = useRef<string>();
-  const { user } = useAuth();
+  const user = useAuthStore((state) => state.user);
 
   return (updates: { title?: string; comments?: string }) => {
     const cacheKey = `${transcriptionId}-${JSON.stringify(updates)}`;

@@ -18,14 +18,14 @@ export const canEditTranscription = (transcription: TranscriptionForPermissions 
     return false;
   }
 
-  // Check if user is the author
-  if (transcription.author === user.username) {
+  // Check if user is the author (Amplify stores cognito:username which is the userId)
+  if (transcription.author === user.userId) {
     return true;
   }
 
-  // Check if user is in the editors array
+  // Check if user is in the editors array (also uses userIds)
   if (transcription.editors && Array.isArray(transcription.editors)) {
-    if (transcription.editors.indexOf(user.username) !== -1) {
+    if (transcription.editors.indexOf(user.userId) !== -1) {
       return true;
     }
   }
