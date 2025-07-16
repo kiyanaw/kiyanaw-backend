@@ -13,6 +13,15 @@ nvm use
 npm install
 ```
 
+## (Optional) Install Docker (for Lambda  C Bindings)
+
+A docker image is provided to build C bindings if needed. Currently needed when pushing the kiyanawlibHfstol lambda layer.
+
+### Install Docker Desktop (for MacOS)
+```bash
+brew install --cask docker
+```
+
 ## Setup Amplify and Pull `staging`
 ```
 npx amplify pull
@@ -59,6 +68,21 @@ npx amplify push
 ```
 npx amplify publish
 ```
+
+## Building Lambda C Bindings
+
+This project uses Docker to build lambda functions with C bindings in an Amazon Linux environment to ensure compatibility.
+
+### Build Lambda C Bindings
+```bash
+# Build the Docker image
+docker compose build
+
+# Start the container interactively
+docker compose run --rm lambda-builder
+```
+
+Once inside the container, you can run `amplify push`.
 
 
 # Infrastructure

@@ -27,6 +27,20 @@
       },
       "providerPlugin": "awscloudformation",
       "service": "AppSync"
+    },
+    "spellcheck": {
+      "dependsOn": [
+        {
+          "attributes": [
+            "Name",
+            "Arn"
+          ],
+          "category": "function",
+          "resourceName": "crkSpellCheck"
+        }
+      ],
+      "providerPlugin": "awscloudformation",
+      "service": "API Gateway"
     }
   },
   "auth": {
@@ -116,6 +130,27 @@
       "providerPlugin": "awscloudformation",
       "service": "Lambda"
     },
+    "crkSpellCheck": {
+      "build": true,
+      "dependsOn": [
+        {
+          "attributes": [
+            "Arn"
+          ],
+          "category": "function",
+          "resourceName": "kiyanawcrkFSTs"
+        },
+        {
+          "attributes": [
+            "Arn"
+          ],
+          "category": "function",
+          "resourceName": "kiyanawlibHfstol"
+        }
+      ],
+      "providerPlugin": "awscloudformation",
+      "service": "Lambda"
+    },
     "enqueueRegionChange": {
       "build": true,
       "dependsOn": [
@@ -150,7 +185,17 @@
       "providerPlugin": "awscloudformation",
       "service": "LambdaLayer"
     },
+    "kiyanawcrkFSTs": {
+      "build": true,
+      "providerPlugin": "awscloudformation",
+      "service": "LambdaLayer"
+    },
     "kiyanawffmpeg": {
+      "build": true,
+      "providerPlugin": "awscloudformation",
+      "service": "LambdaLayer"
+    },
+    "kiyanawlibHfstol": {
       "build": true,
       "providerPlugin": "awscloudformation",
       "service": "LambdaLayer"
@@ -181,6 +226,22 @@
         {
           "category": "function",
           "resourceName": "createPeaksFile"
+        }
+      ]
+    },
+    "AMPLIFY_function_crkSpellCheck_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "crkSpellCheck"
+        }
+      ]
+    },
+    "AMPLIFY_function_crkSpellCheck_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "crkSpellCheck"
         }
       ]
     },
@@ -232,6 +293,22 @@
         }
       ]
     },
+    "AMPLIFY_function_kiyanawcrkFSTs_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "kiyanawcrkFSTs"
+        }
+      ]
+    },
+    "AMPLIFY_function_kiyanawcrkFSTs_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "kiyanawcrkFSTs"
+        }
+      ]
+    },
     "AMPLIFY_function_kiyanawffmpeg_deploymentBucketName": {
       "usedBy": [
         {
@@ -245,6 +322,22 @@
         {
           "category": "function",
           "resourceName": "kiyanawffmpeg"
+        }
+      ]
+    },
+    "AMPLIFY_function_kiyanawlibHfstol_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "kiyanawlibHfstol"
+        }
+      ]
+    },
+    "AMPLIFY_function_kiyanawlibHfstol_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "kiyanawlibHfstol"
         }
       ]
     },
