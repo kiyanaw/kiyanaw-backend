@@ -110,6 +110,7 @@
             "Ref": "functionkiyanawaudiowaveformArn"
           }
         ],
+        "MemorySize": 3008,
         "Timeout": 900
       }
     },

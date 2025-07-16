@@ -1,3 +1,5 @@
+import { post } from 'aws-amplify/api';
+
 interface SpellCheckResult {
   known: string[];
   unknown: string[];
@@ -7,12 +9,11 @@ class SpellCheckerServiceImpl {
   private knownWordsCache = new Set<string>();
   private unknownWordsCache = new Set<string>();
   private pendingRequests = new Map<string, Promise<SpellCheckResult>>();
-  private readonly endpoint = 'https://icagc4x2ok.execute-api.us-east-1.amazonaws.com/bulk-lookup';
 
   /**
    * Check which words are known/unknown, using cache and batching API calls
    */
-  async check(words: string[]): Promise<SpellCheckResult> {
+  async check(words: string[], languageCode: string = 'crk'): Promise<SpellCheckResult> {
     if (words.length === 0) {
       return { known: [], unknown: [] };
     }
@@ -40,7 +41,7 @@ class SpellCheckerServiceImpl {
     }
 
     // Make API request
-    const promise = this.makeApiRequest(unknownWords);
+    const promise = this.makeApiRequest(unknownWords, languageCode);
     this.pendingRequests.set(cacheKey, promise);
 
     try {
@@ -56,21 +57,18 @@ class SpellCheckerServiceImpl {
     }
   }
 
-  private async makeApiRequest(words: string[]): Promise<SpellCheckResult> {
+  private async makeApiRequest(words: string[], languageCode: string): Promise<SpellCheckResult> {
     try {
-      const response = await fetch(this.endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json;charset=utf-8',
-        },
-        body: JSON.stringify(words),
+      // Use Amplify's REST API client with the spellcheck API
+      const { response } = await post({
+        apiName: 'spellcheck',
+        path: `/${languageCode}/bulk-lookup`,
+        options: {
+          body: words
+        }
       });
-
-      if (!response.ok) {
-        throw new Error(`API request failed: ${response.status}`);
-      }
-
-      const result = await response.json();
+      const res = await response;
+      const result = await res.body.json() as Record<string, unknown[]>;
       
       // Parse API response - keys are words, values are arrays (empty if not found)
       const known: string[] = [];

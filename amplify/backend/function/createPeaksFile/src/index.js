@@ -15,6 +15,10 @@ const { S3Client, GetObjectCommand, PutObjectCommand, HeadObjectCommand } = requ
 const s3Client = new S3Client({ region: process.env.REGION })
 console.log('S3 client', s3Client)
 
+function escapeShellArg(arg) {
+  return `'${arg.replace(/'/g, "'\"'\"'")}'`
+}
+
 function getMax(arr) {
     var max = arr[0];
     for(var i = 1;i< arr.length; i++){
@@ -205,13 +209,13 @@ exports.handler = async (event, context) => {
     const isVideo = ['mp4', 'm4v'].indexOf(filebits[1]) > -1
     if (isVideo) {
         const newFileName = `${efsPath}/audio-${+ new Date()}.mp3`
-        await runCommand(`ffmpeg -i ${pathToAudio} ${newFileName}`)
+        await runCommand(`ffmpeg -i ${escapeShellArg(pathToAudio)} ${escapeShellArg(newFileName)}`)
         pathToAudio = newFileName
     }
     
     // extract peaks
-    await runCommand(`audiowaveform -i ${pathToAudio} -o ${pathToAudio}.dat --pixels-per-second 20`)
-    await runCommand(`audiowaveform -i ${pathToAudio}.dat -o ${pathToAudio}.json`)
+    await runCommand(`audiowaveform -i ${escapeShellArg(pathToAudio)} -o ${escapeShellArg(pathToAudio + '.dat')} --pixels-per-second 20`)
+    await runCommand(`audiowaveform -i ${escapeShellArg(pathToAudio + '.dat')} -o ${escapeShellArg(pathToAudio + '.json')}`)
     
     console.log(`Path to mp3 file: ${pathToAudio}`)
     const rawPeaks = fs.readFileSync(`${pathToAudio}.json`).toString()
@@ -233,17 +237,17 @@ exports.handler = async (event, context) => {
     const result = await putS3File(bucket, `${key}.json`, JSON.stringify(parsed))
     console.log('Put file result', result)
 
-    runCommand(`rm -rf ${originalPath}`)
-    runCommand(`rm -rf ${pathToAudio}`)
-    runCommand(`rm -rf ${pathToAudio}.dat`)
-    runCommand(`rm -rf ${pathToAudio}.json`)
+    runCommand(`rm -rf ${escapeShellArg(originalPath)}`)
+    runCommand(`rm -rf ${escapeShellArg(pathToAudio)}`)
+    runCommand(`rm -rf ${escapeShellArg(pathToAudio + '.dat')}`)
+    runCommand(`rm -rf ${escapeShellArg(pathToAudio + '.json')}`)
 
     return true
   } catch (error) {
-    runCommand(`rm -rf ${originalPath}`)
-    runCommand(`rm -rf ${pathToAudio}`)
-    runCommand(`rm -rf ${pathToAudio}.dat`)
-    runCommand(`rm -rf ${pathToAudio}.json`)
+    runCommand(`rm -rf ${escapeShellArg(originalPath)}`)
+    runCommand(`rm -rf ${escapeShellArg(pathToAudio)}`)
+    runCommand(`rm -rf ${escapeShellArg(pathToAudio + '.dat')}`)
+    runCommand(`rm -rf ${escapeShellArg(pathToAudio + '.json')}`)
 
     console.error('Error processing', error)
     const payload = {
