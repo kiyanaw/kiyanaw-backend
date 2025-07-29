@@ -115,3 +115,29 @@ The `createPeaksFile` lambda requires VPC and EFS configuration to process audio
    - **Local mount path**: `/mnt/temp` (This mount path is hardcoded in the lambda)
    - **Access point**: Create a new access point
    - Click **Save**
+
+### 3. OpenSearch Lambda Permissions Configuration
+
+The `indexRegionData` Lambda function requires manual permission configuration in the OpenSearch dashboard to write data to the domain.
+
+#### Steps:
+
+1. **Access OpenSearch Dashboard**
+   - Go to AWS OpenSearch Service console
+   - Find your domain: `kiyanaw-stats` (production) or `kiyanaw-staging-stats` (staging)
+   - Click on the **OpenSearch Dashboards URL**
+   - Login with admin credentials available in your password manager
+
+2. **Create OpenSearch Role**
+   - Navigate to **Security** → **Roles**
+   - Click **Create role**
+   - **Role name**: `lambda_crud`
+   - **Cluster permissions**: Add the following permissions:
+     - `cluster_composite_ops_ro` (for cluster-level read operations)
+     - `indices:data/write/index` (for index-level write operations)
+     - `indices:data/write/bulk` (for bulk operations)
+   - **Index permissions**: Add the following:
+     - **Index pattern**: `knownwords-*`
+     - **Permissions**: `crud` (create, read, update, delete)
+   - Add **Backend roles**: `arn:aws:iam::{account-id}:role/{lambda-execution-role-name}`
+   - Save the role

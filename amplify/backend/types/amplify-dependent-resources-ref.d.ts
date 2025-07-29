@@ -26,6 +26,11 @@ export type AmplifyDependentResourcesAttributes = {
     "regionChangeSQS": {
       "RegionChangeDeadLetterQueueUrl": "string",
       "RegionChangeQueueUrl": "string"
+    },
+    "statsOpenSearch": {
+      "OpenSearchDomainArn": "string",
+      "OpenSearchDomainEndpoint": "string",
+      "OpenSearchDomainName": "string"
     }
   },
   "function": {

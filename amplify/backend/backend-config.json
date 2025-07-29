@@ -91,6 +91,11 @@
       ],
       "providerPlugin": "awscloudformation",
       "service": "customCDK"
+    },
+    "statsOpenSearch": {
+      "dependsOn": [],
+      "providerPlugin": "awscloudformation",
+      "service": "customCloudformation"
     }
   },
   "function": {

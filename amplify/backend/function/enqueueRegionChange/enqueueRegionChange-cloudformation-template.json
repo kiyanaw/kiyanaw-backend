@@ -77,6 +77,9 @@
             },
             "REGION": {
               "Ref": "AWS::Region"
+            },
+            "ACCOUNT_ID": {
+              "Ref": "AWS::AccountId"
             }
           }
         },
@@ -200,6 +203,34 @@
                 "Fn::ImportValue": {
                   "Fn::Sub": "${apikiyanawGraphQLAPIIdOutput}:GetAtt:RegionTable:StreamArn"
                 }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "LambdaSQSPolicy": {
+      "DependsOn": [
+        "LambdaExecutionRole"
+      ],
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyName": "lambda-sqs-policy",
+        "Roles": [
+          {
+            "Ref": "LambdaExecutionRole"
+          }
+        ],
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "sqs:SendMessage"
+              ],
+              "Resource": {
+                "Fn::Sub": "arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:enqueueRegionChanges-${env}"
               }
             }
           ]

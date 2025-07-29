@@ -79,7 +79,7 @@ exports.handler = async (event) => {
   transcription = transcription.Item
   console.log('transcription', transcription)
 
-  if (transcription.isPrivate || transcription.disableAnalyzer || process.env.ENV != 'production') {
+  if (transcription.isPrivate || transcription.disableAnalyzer) {
     console.log('Not processing transcription')
     return okResponse()
   }
