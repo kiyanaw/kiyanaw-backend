@@ -1,0 +1,119 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Parameters": {
+    "env": {
+      "Type": "String"
+    }
+  },
+  "Conditions": {
+    "IsProduction": {
+      "Fn::Equals": [
+        {
+          "Ref": "env"
+        },
+        "production"
+      ]
+    }
+  },
+  "Resources": {
+    "OpenSearchServiceRole": {
+      "Type": "AWS::IAM::ServiceLinkedRole",
+      "Properties": {
+        "AWSServiceName": "opensearchservice.amazonaws.com"
+      }
+    },
+    "OpenSearchDomain": {
+      "Type": "AWS::OpenSearchService::Domain",
+      "Properties": {
+        "DomainName": {
+          "Fn::If": [
+            "IsProduction",
+            "kiyanaw-stats",
+            "kiyanaw-staging-stats"
+          ]
+        },
+        "EngineVersion": "OpenSearch_2.19",
+        "ClusterConfig": {
+          "InstanceType": "t3.small.search",
+          "InstanceCount": 1
+        },
+        "EBSOptions": {
+          "EBSEnabled": true,
+          "VolumeType": "gp3",
+          "VolumeSize": 10
+        },
+
+        "EncryptionAtRestOptions": {
+          "Enabled": true
+        },
+        "NodeToNodeEncryptionOptions": {
+          "Enabled": true
+        },
+        "DomainEndpointOptions": {
+          "EnforceHTTPS": true,
+          "TLSSecurityPolicy": "Policy-Min-TLS-1-2-2019-07"
+        },
+        "AdvancedSecurityOptions": {
+          "Enabled": true,
+          "InternalUserDatabaseEnabled": true,
+          "SAMLOptions": {
+            "Enabled": false
+          },
+          "MasterUserOptions": {
+            "MasterUserName": "admin",
+            "MasterUserPassword": "TempPassword123!"
+          }
+        },
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": {
+              "Fn::If": [
+                "IsProduction",
+                "production",
+                "staging"
+              ]
+            }
+          }
+        ]
+      },
+      "DependsOn": "OpenSearchServiceRole"
+    }
+  },
+  "Outputs": {
+    "OpenSearchDomainArn": {
+      "Description": "ARN of the OpenSearch domain",
+      "Value": {
+        "Fn::GetAtt": [
+          "OpenSearchDomain",
+          "Arn"
+        ]
+      },
+      "Export": {
+        "Name": "kiyanaw-opensearch-domain-arn"
+      }
+    },
+    "OpenSearchDomainEndpoint": {
+      "Description": "Endpoint of the OpenSearch domain",
+      "Value": {
+        "Fn::GetAtt": [
+          "OpenSearchDomain",
+          "DomainEndpoint"
+        ]
+      },
+      "Export": {
+        "Name": "kiyanaw-opensearch-domain-endpoint"
+      }
+    },
+    "OpenSearchDomainName": {
+      "Description": "Name of the OpenSearch domain",
+      "Value": {
+        "Ref": "OpenSearchDomain"
+      },
+      "Export": {
+        "Name": "kiyanaw-opensearch-domain-name"
+      }
+    }
+  },
+  "Description": "{\"createdOn\":\"Mac\",\"createdBy\":\"Amplify\",\"createdWith\":\"14.0.0\",\"stackType\":\"custom-customCloudformation\",\"metadata\":{\"whyContinueWithGen1\":\"\"}}"
+}

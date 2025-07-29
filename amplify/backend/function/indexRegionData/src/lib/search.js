@@ -6,9 +6,10 @@ const utils = require('../utils')
 const { client } = require('./es')
 
 const clearKnownWordsForRegion = async (regionId) => {
-  console.log('Clearing out region contents for ', regionId)
+  const indexName = `knownwords-${process.env.ENV}`
+  console.log('Clearing out region contents for ', regionId, 'in index', indexName)
   const deleted = await client.deleteByQuery({
-    index: 'knownwords',
+    index: indexName,
     type: '_doc',
     body: {
       query: {
@@ -20,7 +21,7 @@ const clearKnownWordsForRegion = async (regionId) => {
 }
 
 const indexKnownWords = async (region, transcription) => {
-  const text = JSON.parse(region.text)
+  const text = JSON.parse(region.regionText)
   const words = text
     .filter((item) => item.attributes && item.attributes['known-word'])
     .map((item) => item.insert)
@@ -48,6 +49,7 @@ const indexKnownWords = async (region, transcription) => {
       // TODO: index transcription name
       // TODO: index start/end time
       const toIndex = {
+        lang: 'crk',
         lemma,
         surface,
         transcriptionId: region.transcriptionId,
@@ -60,8 +62,9 @@ const indexKnownWords = async (region, transcription) => {
       }
       console.log('toIndex', toIndex)
 
+      const indexName = `knownwords-${process.env.ENV}`
       const success = await client.update({
-        index: 'knownwords',
+        index: indexName,
         type: '_doc',
         id: `${toIndex.regionId}-${surface}`,
         body: {
