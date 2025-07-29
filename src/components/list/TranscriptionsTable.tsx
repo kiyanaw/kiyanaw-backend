@@ -23,7 +23,7 @@ const columns: Column[] = [
   { key: 'issues', label: 'Issues', width: '8%', sortable: true },
   { key: 'dateLastUpdated', label: 'Last Edit', width: '15%', sortable: true },
   { key: 'type', label: 'Type', width: '8%', sortable: true },
-  { key: 'source', label: 'Source', width: '8%' },
+  // { key: 'source', label: 'Source', width: '8%' },
 ];
 
 export const TranscriptionsTable = () => {
@@ -135,8 +135,7 @@ export const TranscriptionsTable = () => {
       <div className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900">Transcriptions</h1>
-            <p className="text-sm text-gray-600 mt-1">Manage and review your audio transcriptions</p>
+            <h1 className="text-2xl font-semibold text-gray-900">My transcriptions</h1>
           </div>
           
           <div className="flex items-center space-x-4">
@@ -272,7 +271,7 @@ export const TranscriptionsTable = () => {
                   </td>
                   
                   {/* Source */}
-                  <td className="px-6 py-4 whitespace-nowrap hidden lg:table-cell">
+                  {/* <td className="px-6 py-4 whitespace-nowrap hidden lg:table-cell">
                     {transcription.source && (
                       <a
                         href={transcription.source}
@@ -283,7 +282,7 @@ export const TranscriptionsTable = () => {
                         Source
                       </a>
                     )}
-                  </td>
+                  </td> */}
                 </tr>
               ))}
             </tbody>

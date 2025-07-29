@@ -15,6 +15,7 @@ jest.mock('../services/browserService', () => ({
   browserService: {
     addCustomStyle: jest.fn(),
     removeCustomStyle: jest.fn(),
+    scrollElementIntoView: jest.fn(),
   },
 }));
 jest.mock('../services', () => ({
@@ -56,6 +57,7 @@ describe('useWavesurferEvents', () => {
     // Reset browserService mocks
     (browserService.addCustomStyle as jest.Mock).mockClear();
     (browserService.removeCustomStyle as jest.Mock).mockClear();
+    (browserService.scrollElementIntoView as jest.Mock).mockClear();
     
     // Mock CreateRegion constructor and methods
     (CreateRegion as jest.MockedClass<typeof CreateRegion>).mockImplementation(() => ({
@@ -382,11 +384,13 @@ describe('useWavesurferEvents', () => {
   describe('inbound region highlighting', () => {
     let mockAddCustomStyle: jest.Mock;
     let mockRemoveCustomStyle: jest.Mock;
+    let mockScrollElementIntoView: jest.Mock;
 
     beforeEach(() => {
       // Get references to the mocked functions
       mockAddCustomStyle = browserService.addCustomStyle as jest.Mock;
       mockRemoveCustomStyle = browserService.removeCustomStyle as jest.Mock;
+      mockScrollElementIntoView = browserService.scrollElementIntoView as jest.Mock;
       
       // Set up default return value
       mockAddCustomStyle.mockReturnValue('test-style-id');
@@ -408,6 +412,43 @@ describe('useWavesurferEvents', () => {
         `div#regionitem-${regionId}`,
         { 'background-color': 'rgba(0, 213, 255, 0.1) !important' }
       );
+    });
+
+    it('should scroll region into view when region-in event fires', () => {
+      const transcriptionId = 'test-transcription-1';
+      const regionId = 'test-region-123';
+
+      renderHook(() => useWavesurferEvents(transcriptionId));
+
+      // Get the region-in event handler
+      const regionInHandler = mockOn.mock.calls.find(call => call[0] === 'region-in')[1];
+
+      // Simulate region-in event
+      regionInHandler({ regionId });
+
+      expect(mockScrollElementIntoView).toHaveBeenCalledWith(`div#regionitem-${regionId}`);
+    });
+
+    it('should both highlight and scroll region when region-in event fires', () => {
+      const transcriptionId = 'test-transcription-1';
+      const regionId = 'test-region-456';
+
+      renderHook(() => useWavesurferEvents(transcriptionId));
+
+      // Get the region-in event handler
+      const regionInHandler = mockOn.mock.calls.find(call => call[0] === 'region-in')[1];
+
+      // Simulate region-in event
+      regionInHandler({ regionId });
+
+      const expectedSelector = `div#regionitem-${regionId}`;
+
+      // Should both highlight and scroll
+      expect(mockAddCustomStyle).toHaveBeenCalledWith(
+        expectedSelector,
+        { 'background-color': 'rgba(0, 213, 255, 0.1) !important' }
+      );
+      expect(mockScrollElementIntoView).toHaveBeenCalledWith(expectedSelector);
     });
 
     it('should clear previous region highlight when new region-in event fires', () => {
@@ -434,6 +475,11 @@ describe('useWavesurferEvents', () => {
         `div#regionitem-${secondRegionId}`,
         { 'background-color': 'rgba(0, 213, 255, 0.1) !important' }
       );
+      
+      // Should scroll both regions into view
+      expect(mockScrollElementIntoView).toHaveBeenCalledTimes(2);
+      expect(mockScrollElementIntoView).toHaveBeenNthCalledWith(1, `div#regionitem-${firstRegionId}`);
+      expect(mockScrollElementIntoView).toHaveBeenNthCalledWith(2, `div#regionitem-${secondRegionId}`);
     });
 
     it('should remove region highlight when region-out event fires', () => {
@@ -504,6 +550,12 @@ describe('useWavesurferEvents', () => {
 
       regionInHandler({ regionId: region3 });
       expect(mockAddCustomStyle).toHaveBeenCalledTimes(3); // No previous to clear
+      
+      // Should have scrolled each region into view
+      expect(mockScrollElementIntoView).toHaveBeenCalledTimes(3);
+      expect(mockScrollElementIntoView).toHaveBeenNthCalledWith(1, `div#regionitem-${region1}`);
+      expect(mockScrollElementIntoView).toHaveBeenNthCalledWith(2, `div#regionitem-${region2}`);
+      expect(mockScrollElementIntoView).toHaveBeenNthCalledWith(3, `div#regionitem-${region3}`);
     });
 
     it('should track inbound region correctly across multiple transitions', () => {
@@ -544,11 +596,13 @@ describe('useWavesurferEvents', () => {
   describe('cleanup', () => {
     let mockAddCustomStyle: jest.Mock;
     let mockRemoveCustomStyle: jest.Mock;
+    let mockScrollElementIntoView: jest.Mock;
 
     beforeEach(() => {
       // Get references to the mocked functions
       mockAddCustomStyle = browserService.addCustomStyle as jest.Mock;
       mockRemoveCustomStyle = browserService.removeCustomStyle as jest.Mock;
+      mockScrollElementIntoView = browserService.scrollElementIntoView as jest.Mock;
       
       // Set up default return value
       mockAddCustomStyle.mockReturnValue('test-style-id');

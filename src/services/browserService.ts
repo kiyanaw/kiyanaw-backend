@@ -203,6 +203,24 @@ class BrowserService {
       this.selectedRegionStyleId = null;
     }
   }
+
+  /**
+   * Scrolls an element into view using the provided CSS selector
+   * @param selector CSS selector to find the element (e.g., 'div#regionitem-123')
+   * @param options Optional scroll behavior configuration
+   */
+  scrollElementIntoView(selector: string, options?: ScrollIntoViewOptions): void {
+    if (typeof window === 'undefined' || typeof document === 'undefined') return;
+
+    const element = document.querySelector(selector);
+    if (element && typeof element.scrollIntoView === 'function') {
+      const defaultOptions: ScrollIntoViewOptions = {
+        behavior: 'smooth',
+        block: 'nearest'
+      };
+      element.scrollIntoView({ ...defaultOptions, ...options });
+    }
+  }
 }
 
 // Export the singleton instance

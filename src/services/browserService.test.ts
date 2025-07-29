@@ -545,4 +545,136 @@ describe('BrowserService', () => {
       });
     });
   });
+
+  describe('scrollElementIntoView', () => {
+    let mockElement: any;
+    let mockQuerySelector: jest.SpyInstance;
+
+    beforeEach(() => {
+      mockElement = {
+        scrollIntoView: jest.fn()
+      };
+
+      mockQuerySelector = jest.spyOn(document, 'querySelector');
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('should scroll element into view with default options when element exists', () => {
+      mockQuerySelector.mockReturnValue(mockElement);
+      const selector = 'div#regionitem-test-123';
+
+      browserService.scrollElementIntoView(selector);
+
+      expect(mockQuerySelector).toHaveBeenCalledWith(selector);
+      expect(mockElement.scrollIntoView).toHaveBeenCalledWith({
+        behavior: 'smooth',
+        block: 'nearest'
+      });
+    });
+
+    it('should scroll element into view with custom options', () => {
+      mockQuerySelector.mockReturnValue(mockElement);
+      const selector = 'div#regionitem-test-456';
+      const customOptions = {
+        behavior: 'auto' as ScrollBehavior,
+        block: 'center' as ScrollLogicalPosition,
+        inline: 'start' as ScrollLogicalPosition
+      };
+
+      browserService.scrollElementIntoView(selector, customOptions);
+
+      expect(mockQuerySelector).toHaveBeenCalledWith(selector);
+      expect(mockElement.scrollIntoView).toHaveBeenCalledWith({
+        behavior: 'auto',
+        block: 'center',
+        inline: 'start'
+      });
+    });
+
+    it('should merge custom options with defaults', () => {
+      mockQuerySelector.mockReturnValue(mockElement);
+      const selector = 'div#regionitem-test-789';
+      const partialOptions = {
+        block: 'start' as ScrollLogicalPosition
+      };
+
+      browserService.scrollElementIntoView(selector, partialOptions);
+
+      expect(mockElement.scrollIntoView).toHaveBeenCalledWith({
+        behavior: 'smooth', // default
+        block: 'start'      // custom
+      });
+    });
+
+    it('should handle gracefully when element does not exist', () => {
+      mockQuerySelector.mockReturnValue(null);
+      const selector = 'div#nonexistent-element';
+
+      expect(() => browserService.scrollElementIntoView(selector)).not.toThrow();
+
+      expect(mockQuerySelector).toHaveBeenCalledWith(selector);
+    });
+
+    it('should handle complex selectors correctly', () => {
+      mockQuerySelector.mockReturnValue(mockElement);
+      const complexSelector = 'div.container > ul.list > li[data-id="abc123"]';
+
+      browserService.scrollElementIntoView(complexSelector);
+
+      expect(mockQuerySelector).toHaveBeenCalledWith(complexSelector);
+      expect(mockElement.scrollIntoView).toHaveBeenCalledWith({
+        behavior: 'smooth',
+        block: 'nearest'
+      });
+    });
+
+    it('should not crash when window is undefined', () => {
+      const originalWindow = (globalThis as any).window;
+      delete (globalThis as any).window;
+
+      expect(() => browserService.scrollElementIntoView('div#test')).not.toThrow();
+
+      (globalThis as any).window = originalWindow;
+    });
+
+    it('should not crash when document is undefined', () => {
+      const originalDocument = (globalThis as any).document;
+      delete (globalThis as any).document;
+
+      expect(() => browserService.scrollElementIntoView('div#test')).not.toThrow();
+
+      (globalThis as any).document = originalDocument;
+    });
+
+    it('should handle empty selector gracefully', () => {
+      mockQuerySelector.mockReturnValue(null);
+
+      expect(() => browserService.scrollElementIntoView('')).not.toThrow();
+
+      expect(mockQuerySelector).toHaveBeenCalledWith('');
+    });
+
+    it('should work with different element types', () => {
+      const mockButton = { scrollIntoView: jest.fn() };
+      mockQuerySelector.mockReturnValue(mockButton);
+      
+      browserService.scrollElementIntoView('button.submit-btn');
+
+      expect(mockQuerySelector).toHaveBeenCalledWith('button.submit-btn');
+      expect(mockButton.scrollIntoView).toHaveBeenCalledWith({
+        behavior: 'smooth',
+        block: 'nearest'
+      });
+    });
+
+    it('should handle element without scrollIntoView method gracefully', () => {
+      const mockElementWithoutScroll = {}; // Missing scrollIntoView method
+      mockQuerySelector.mockReturnValue(mockElementWithoutScroll);
+
+      expect(() => browserService.scrollElementIntoView('div#test')).not.toThrow();
+    });
+  });
 }); 
