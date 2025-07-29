@@ -21,7 +21,6 @@ export const RegionEditor = memo(({
 
   // Toolbar actions - simplified for now
   const handlePlay = () => {};
-  const handleToggleNote = () => {};
   const handleCreateIssue = () => {};
   const handleIgnoreWord = () => {};
   const handleClearFormat = () => {};
@@ -68,19 +67,6 @@ export const RegionEditor = memo(({
             title="Play region"
           >
             {isPlaying ? <Pause size={16} /> : <Play size={16} />}
-          </button>
-
-          <button
-            className={`flex items-center justify-center w-9 h-9 border border-gray-300 rounded-md bg-white transition-all duration-200 text-base ${
-              canEdit 
-                ? 'cursor-pointer hover:bg-cyan-50 hover:text-cyan-700 hover:border-cyan-300' 
-                : 'cursor-not-allowed opacity-50 text-gray-400'
-            }`}
-            onClick={canEdit ? handleToggleNote : undefined}
-            disabled={!canEdit}
-            title={region.isNote ? 'Convert to transcription' : 'Convert to note'}
-          >
-            <FileText size={16} />
           </button>
 
           <button

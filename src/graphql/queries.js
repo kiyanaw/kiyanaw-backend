@@ -6,6 +6,7 @@ export const getTranscription = /* GraphQL */ `
     getTranscription(id: $id) {
       id
       author
+      authorFriendly
       coverage
       dateLastUpdated
       userLastUpdated
@@ -30,11 +31,6 @@ export const getTranscription = /* GraphQL */ `
         __typename
       }
       issueList {
-        nextToken
-        startedAt
-        __typename
-      }
-      contributors {
         nextToken
         startedAt
         __typename
@@ -66,6 +62,7 @@ export const listTranscriptions = /* GraphQL */ `
       items {
         id
         author
+        authorFriendly
         coverage
         dateLastUpdated
         userLastUpdated
@@ -113,6 +110,7 @@ export const syncTranscriptions = /* GraphQL */ `
       items {
         id
         author
+        authorFriendly
         coverage
         dateLastUpdated
         userLastUpdated
@@ -162,6 +160,7 @@ export const byTitle = /* GraphQL */ `
       items {
         id
         author
+        authorFriendly
         coverage
         dateLastUpdated
         userLastUpdated
@@ -208,6 +207,7 @@ export const getRegion = /* GraphQL */ `
       transcription {
         id
         author
+        authorFriendly
         coverage
         dateLastUpdated
         userLastUpdated
@@ -333,6 +333,7 @@ export const getIssue = /* GraphQL */ `
       transcription {
         id
         author
+        authorFriendly
         coverage
         dateLastUpdated
         userLastUpdated
@@ -442,18 +443,19 @@ export const syncIssues = /* GraphQL */ `
     }
   }
 `;
-export const getContributor = /* GraphQL */ `
-  query GetContributor($id: ID!) {
-    getContributor(id: $id) {
+export const getInvite = /* GraphQL */ `
+  query GetInvite($id: ID!) {
+    getInvite(id: $id) {
       id
       email
-      username
-      transcriptions {
-        nextToken
-        startedAt
-        __typename
-      }
+      status
+      permissionLevel
+      expiresAt
+      invitedBy
+      invitedByFriendly
       createdAt
+      acceptedAt
+      transcriptionId
       updatedAt
       _version
       _deleted
@@ -462,15 +464,15 @@ export const getContributor = /* GraphQL */ `
     }
   }
 `;
-export const listContributors = /* GraphQL */ `
-  query ListContributors(
+export const listInvites = /* GraphQL */ `
+  query ListInvites(
     $id: ID
-    $filter: ModelContributorFilterInput
+    $filter: ModelInviteFilterInput
     $limit: Int
     $nextToken: String
     $sortDirection: ModelSortDirection
   ) {
-    listContributors(
+    listInvites(
       id: $id
       filter: $filter
       limit: $limit
@@ -480,8 +482,14 @@ export const listContributors = /* GraphQL */ `
       items {
         id
         email
-        username
+        status
+        permissionLevel
+        expiresAt
+        invitedBy
+        invitedByFriendly
         createdAt
+        acceptedAt
+        transcriptionId
         updatedAt
         _version
         _deleted
@@ -494,14 +502,14 @@ export const listContributors = /* GraphQL */ `
     }
   }
 `;
-export const syncContributors = /* GraphQL */ `
-  query SyncContributors(
-    $filter: ModelContributorFilterInput
+export const syncInvites = /* GraphQL */ `
+  query SyncInvites(
+    $filter: ModelInviteFilterInput
     $limit: Int
     $nextToken: String
     $lastSync: AWSTimestamp
   ) {
-    syncContributors(
+    syncInvites(
       filter: $filter
       limit: $limit
       nextToken: $nextToken
@@ -510,124 +518,14 @@ export const syncContributors = /* GraphQL */ `
       items {
         id
         email
-        username
+        status
+        permissionLevel
+        expiresAt
+        invitedBy
+        invitedByFriendly
         createdAt
-        updatedAt
-        _version
-        _deleted
-        _lastChangedAt
-        __typename
-      }
-      nextToken
-      startedAt
-      __typename
-    }
-  }
-`;
-export const getTranscriptionContributor = /* GraphQL */ `
-  query GetTranscriptionContributor($id: ID!) {
-    getTranscriptionContributor(id: $id) {
-      id
-      transcriptionID
-      contributorID
-      transcription {
-        id
-        author
-        coverage
-        dateLastUpdated
-        userLastUpdated
-        length
-        issues
-        comments
-        tags
-        source
-        index
-        title
-        type
-        isPrivate
-        isPublished
-        disableAnalyzer
-        editors
-        viewers
-        editorGroups
-        viewerGroups
-        createdAt
-        updatedAt
-        _version
-        _deleted
-        _lastChangedAt
-        __typename
-      }
-      contributor {
-        id
-        email
-        username
-        createdAt
-        updatedAt
-        _version
-        _deleted
-        _lastChangedAt
-        __typename
-      }
-      createdAt
-      updatedAt
-      _version
-      _deleted
-      _lastChangedAt
-      __typename
-    }
-  }
-`;
-export const listTranscriptionContributors = /* GraphQL */ `
-  query ListTranscriptionContributors(
-    $id: ID
-    $filter: ModelTranscriptionContributorFilterInput
-    $limit: Int
-    $nextToken: String
-    $sortDirection: ModelSortDirection
-  ) {
-    listTranscriptionContributors(
-      id: $id
-      filter: $filter
-      limit: $limit
-      nextToken: $nextToken
-      sortDirection: $sortDirection
-    ) {
-      items {
-        id
-        transcriptionID
-        contributorID
-        createdAt
-        updatedAt
-        _version
-        _deleted
-        _lastChangedAt
-        __typename
-      }
-      nextToken
-      startedAt
-      __typename
-    }
-  }
-`;
-export const syncTranscriptionContributors = /* GraphQL */ `
-  query SyncTranscriptionContributors(
-    $filter: ModelTranscriptionContributorFilterInput
-    $limit: Int
-    $nextToken: String
-    $lastSync: AWSTimestamp
-  ) {
-    syncTranscriptionContributors(
-      filter: $filter
-      limit: $limit
-      nextToken: $nextToken
-      lastSync: $lastSync
-    ) {
-      items {
-        id
-        transcriptionID
-        contributorID
-        createdAt
+        acceptedAt
+        transcriptionId
         updatedAt
         _version
         _deleted

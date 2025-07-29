@@ -9,6 +9,7 @@ export const onCreateTranscription = /* GraphQL */ `
     onCreateTranscription(filter: $filter, author: $author) {
       id
       author
+      authorFriendly
       coverage
       dateLastUpdated
       userLastUpdated
@@ -33,11 +34,6 @@ export const onCreateTranscription = /* GraphQL */ `
         __typename
       }
       issueList {
-        nextToken
-        startedAt
-        __typename
-      }
-      contributors {
         nextToken
         startedAt
         __typename
@@ -59,6 +55,7 @@ export const onUpdateTranscription = /* GraphQL */ `
     onUpdateTranscription(filter: $filter, author: $author) {
       id
       author
+      authorFriendly
       coverage
       dateLastUpdated
       userLastUpdated
@@ -83,11 +80,6 @@ export const onUpdateTranscription = /* GraphQL */ `
         __typename
       }
       issueList {
-        nextToken
-        startedAt
-        __typename
-      }
-      contributors {
         nextToken
         startedAt
         __typename
@@ -109,6 +101,7 @@ export const onDeleteTranscription = /* GraphQL */ `
     onDeleteTranscription(filter: $filter, author: $author) {
       id
       author
+      authorFriendly
       coverage
       dateLastUpdated
       userLastUpdated
@@ -133,11 +126,6 @@ export const onDeleteTranscription = /* GraphQL */ `
         __typename
       }
       issueList {
-        nextToken
-        startedAt
-        __typename
-      }
-      contributors {
         nextToken
         startedAt
         __typename
@@ -166,6 +154,7 @@ export const onCreateRegion = /* GraphQL */ `
       transcription {
         id
         author
+        authorFriendly
         coverage
         dateLastUpdated
         userLastUpdated
@@ -216,6 +205,7 @@ export const onUpdateRegion = /* GraphQL */ `
       transcription {
         id
         author
+        authorFriendly
         coverage
         dateLastUpdated
         userLastUpdated
@@ -266,6 +256,7 @@ export const onDeleteRegion = /* GraphQL */ `
       transcription {
         id
         author
+        authorFriendly
         coverage
         dateLastUpdated
         userLastUpdated
@@ -315,6 +306,7 @@ export const onCreateIssue = /* GraphQL */ `
       transcription {
         id
         author
+        authorFriendly
         coverage
         dateLastUpdated
         userLastUpdated
@@ -364,6 +356,7 @@ export const onUpdateIssue = /* GraphQL */ `
       transcription {
         id
         author
+        authorFriendly
         coverage
         dateLastUpdated
         userLastUpdated
@@ -413,6 +406,7 @@ export const onDeleteIssue = /* GraphQL */ `
       transcription {
         id
         author
+        authorFriendly
         coverage
         dateLastUpdated
         userLastUpdated
@@ -448,20 +442,23 @@ export const onDeleteIssue = /* GraphQL */ `
     }
   }
 `;
-export const onCreateContributor = /* GraphQL */ `
-  subscription OnCreateContributor(
-    $filter: ModelSubscriptionContributorFilterInput
+export const onCreateInvite = /* GraphQL */ `
+  subscription OnCreateInvite(
+    $filter: ModelSubscriptionInviteFilterInput
+    $invitedBy: String
+    $email: String
   ) {
-    onCreateContributor(filter: $filter) {
+    onCreateInvite(filter: $filter, invitedBy: $invitedBy, email: $email) {
       id
       email
-      username
-      transcriptions {
-        nextToken
-        startedAt
-        __typename
-      }
+      status
+      permissionLevel
+      expiresAt
+      invitedBy
+      invitedByFriendly
       createdAt
+      acceptedAt
+      transcriptionId
       updatedAt
       _version
       _deleted
@@ -470,20 +467,23 @@ export const onCreateContributor = /* GraphQL */ `
     }
   }
 `;
-export const onUpdateContributor = /* GraphQL */ `
-  subscription OnUpdateContributor(
-    $filter: ModelSubscriptionContributorFilterInput
+export const onUpdateInvite = /* GraphQL */ `
+  subscription OnUpdateInvite(
+    $filter: ModelSubscriptionInviteFilterInput
+    $invitedBy: String
+    $email: String
   ) {
-    onUpdateContributor(filter: $filter) {
+    onUpdateInvite(filter: $filter, invitedBy: $invitedBy, email: $email) {
       id
       email
-      username
-      transcriptions {
-        nextToken
-        startedAt
-        __typename
-      }
+      status
+      permissionLevel
+      expiresAt
+      invitedBy
+      invitedByFriendly
       createdAt
+      acceptedAt
+      transcriptionId
       updatedAt
       _version
       _deleted
@@ -492,188 +492,23 @@ export const onUpdateContributor = /* GraphQL */ `
     }
   }
 `;
-export const onDeleteContributor = /* GraphQL */ `
-  subscription OnDeleteContributor(
-    $filter: ModelSubscriptionContributorFilterInput
+export const onDeleteInvite = /* GraphQL */ `
+  subscription OnDeleteInvite(
+    $filter: ModelSubscriptionInviteFilterInput
+    $invitedBy: String
+    $email: String
   ) {
-    onDeleteContributor(filter: $filter) {
+    onDeleteInvite(filter: $filter, invitedBy: $invitedBy, email: $email) {
       id
       email
-      username
-      transcriptions {
-        nextToken
-        startedAt
-        __typename
-      }
+      status
+      permissionLevel
+      expiresAt
+      invitedBy
+      invitedByFriendly
       createdAt
-      updatedAt
-      _version
-      _deleted
-      _lastChangedAt
-      __typename
-    }
-  }
-`;
-export const onCreateTranscriptionContributor = /* GraphQL */ `
-  subscription OnCreateTranscriptionContributor(
-    $filter: ModelSubscriptionTranscriptionContributorFilterInput
-  ) {
-    onCreateTranscriptionContributor(filter: $filter) {
-      id
-      transcriptionID
-      contributorID
-      transcription {
-        id
-        author
-        coverage
-        dateLastUpdated
-        userLastUpdated
-        length
-        issues
-        comments
-        tags
-        source
-        index
-        title
-        type
-        isPrivate
-        isPublished
-        disableAnalyzer
-        editors
-        viewers
-        editorGroups
-        viewerGroups
-        createdAt
-        updatedAt
-        _version
-        _deleted
-        _lastChangedAt
-        __typename
-      }
-      contributor {
-        id
-        email
-        username
-        createdAt
-        updatedAt
-        _version
-        _deleted
-        _lastChangedAt
-        __typename
-      }
-      createdAt
-      updatedAt
-      _version
-      _deleted
-      _lastChangedAt
-      __typename
-    }
-  }
-`;
-export const onUpdateTranscriptionContributor = /* GraphQL */ `
-  subscription OnUpdateTranscriptionContributor(
-    $filter: ModelSubscriptionTranscriptionContributorFilterInput
-  ) {
-    onUpdateTranscriptionContributor(filter: $filter) {
-      id
-      transcriptionID
-      contributorID
-      transcription {
-        id
-        author
-        coverage
-        dateLastUpdated
-        userLastUpdated
-        length
-        issues
-        comments
-        tags
-        source
-        index
-        title
-        type
-        isPrivate
-        isPublished
-        disableAnalyzer
-        editors
-        viewers
-        editorGroups
-        viewerGroups
-        createdAt
-        updatedAt
-        _version
-        _deleted
-        _lastChangedAt
-        __typename
-      }
-      contributor {
-        id
-        email
-        username
-        createdAt
-        updatedAt
-        _version
-        _deleted
-        _lastChangedAt
-        __typename
-      }
-      createdAt
-      updatedAt
-      _version
-      _deleted
-      _lastChangedAt
-      __typename
-    }
-  }
-`;
-export const onDeleteTranscriptionContributor = /* GraphQL */ `
-  subscription OnDeleteTranscriptionContributor(
-    $filter: ModelSubscriptionTranscriptionContributorFilterInput
-  ) {
-    onDeleteTranscriptionContributor(filter: $filter) {
-      id
-      transcriptionID
-      contributorID
-      transcription {
-        id
-        author
-        coverage
-        dateLastUpdated
-        userLastUpdated
-        length
-        issues
-        comments
-        tags
-        source
-        index
-        title
-        type
-        isPrivate
-        isPublished
-        disableAnalyzer
-        editors
-        viewers
-        editorGroups
-        viewerGroups
-        createdAt
-        updatedAt
-        _version
-        _deleted
-        _lastChangedAt
-        __typename
-      }
-      contributor {
-        id
-        email
-        username
-        createdAt
-        updatedAt
-        _version
-        _deleted
-        _lastChangedAt
-        __typename
-      }
-      createdAt
+      acceptedAt
+      transcriptionId
       updatedAt
       _version
       _deleted

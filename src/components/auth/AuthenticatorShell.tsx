@@ -20,11 +20,13 @@ const AuthenticatedApp = ({ children }: { children: ReactNode }) => {
   if (lastUserRef.current !== currentUserKey) {
     lastUserRef.current = currentUserKey;
     
-          const currentUser = route === 'authenticated' && user ? {
-        username: user.signInDetails?.loginId as string,  // This is the email
-        userId: user.userId,
-        signInDetails: user.signInDetails,
-      } : null;
+    const currentUser = route === 'authenticated' && user ? {
+      username: user.signInDetails?.loginId as string,  // This is the email
+      userId: user.userId,
+      signInDetails: user.signInDetails,
+    } : null;
+
+    console.log('current user', currentUser)
     
     // Check if the store actually needs updating
     const storeUser = useAuthStore.getState().user;
