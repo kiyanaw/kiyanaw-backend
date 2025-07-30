@@ -155,7 +155,7 @@ const processInviteResponse = (response: any, transcriptionId: string): InviteMo
       console.log(`✅ Valid invite found at index ${index}:`, invite.email, invite.status);
       return true;
     }).map((invite: any) => {
-      // Create a clean invite object without DataStore fields
+      // Create a clean invite object with defaults for missing metadata fields
       return {
         id: invite.id,
         email: invite.email,
@@ -168,6 +168,10 @@ const processInviteResponse = (response: any, transcriptionId: string): InviteMo
         acceptedAt: invite.acceptedAt,
         transcriptionId: invite.transcriptionId,
         updatedAt: invite.updatedAt,
+        // Provide defaults for problematic fields
+        _version: invite._version || 1,
+        _deleted: invite._deleted || false,
+        _lastChangedAt: invite._lastChangedAt || Date.now(),
       } as InviteData;
     });
   }
@@ -214,30 +218,69 @@ export const sendInvite = async (data: CreateInviteData): Promise<{ messageId: s
         inviteId: result.inviteId || ''
       };
     } else {
-      throw new Error(result?.error || 'API returned error');
+      // Throw the specific error message from the backend
+      const errorMessage = result?.error || 'API returned error';
+      console.error('❌ Backend returned error:', errorMessage);
+      throw new Error(errorMessage);
     }
-  } catch (error) {
-    console.error('❌ Failed to send invite via API:', error);
-    throw error;
+  } catch (error: any) {
+    console.error('❌ API call failed:', error);
+    
+    // AWS Amplify wraps HTTP errors differently
+    // Check if this is a RestApiError with status and body
+    if (error.response?.statusCode) {
+      const statusCode = error.response.statusCode;
+      console.log(`❌ HTTP ${statusCode} error response`);
+      
+      // Try to extract error message from response body
+      const responseBody = error.response.body;
+      if (responseBody) {
+        let errorData = null;
+        try {
+          // Response body might be a string or parsed object
+          errorData = typeof responseBody === 'string' ? JSON.parse(responseBody) : responseBody;
+        } catch (parseError) {
+          console.warn('❌ Could not parse error response body as JSON:', parseError);
+        }
+        
+        // If we successfully parsed and found an error message, use it
+        if (errorData && errorData.error) {
+          console.error('❌ Backend error message:', errorData.error);
+          throw new Error(errorData.error);
+        }
+      }
+    }
+    
+    // Check for other AWS Amplify error patterns
+    if (error.message && error.message !== 'Unknown error') {
+      console.error('❌ AWS Amplify error:', error.message);
+      throw new Error(error.message);
+    }
+    
+    // Check if error has a more specific error property
+    if (error.error && typeof error.error === 'string') {
+      console.error('❌ Error property:', error.error);
+      throw new Error(error.error);
+    }
+    
+    // For truly unknown errors, throw a helpful message
+    console.error('❌ Unknown error structure:', error);
+    throw new Error('Failed to send invite. Please try again.');
   }
 };
 
 /**
- * Deletes an invite
+ * Deletes an invite (hard delete)
  * @param inviteId The ID of the invite to delete
- * @returns The deleted invite
+ * @returns Success confirmation
  */
-export const deleteInvite = async (inviteId: string): Promise<InviteModel> => {
+export const deleteInvite = async (inviteId: string): Promise<void> => {
   try {
-    const input = {
-      id: inviteId,
-    };
-
-    console.log('🔄 Deleting invite:', input);
+    console.log('🔄 Deleting invite:', inviteId);
 
     const { data: result } = await getClient().graphql({
       query: deleteInviteMutation,
-      variables: { input },
+      variables: { input: { id: inviteId } },
       authMode: 'iam',
     }) as DeleteInviteResponse;
 
@@ -247,7 +290,6 @@ export const deleteInvite = async (inviteId: string): Promise<InviteModel> => {
     }
 
     console.log('✅ Invite deleted successfully:', deleted.id);
-    return new InviteModel(deleted);
   } catch (error) {
     console.error('❌ Failed to delete invite via API:', error);
     throw error;

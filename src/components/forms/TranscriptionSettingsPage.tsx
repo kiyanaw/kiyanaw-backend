@@ -127,7 +127,7 @@ export const TranscriptionSettingsPage = ({
       const sentEmail = newInviteEmail.trim();
       setNewInviteEmail('');
       setNewInvitePermission('viewer');
-      setInviteSuccess(`Invite sent successfully to ${sentEmail}! Message ID: ${result.messageId}`);
+      setInviteSuccess(`Invite sent successfully to ${sentEmail}!`);
       
       // Refresh the invite list
       await loadInvites();

@@ -96,7 +96,7 @@ class SendInviteUseCase {
     );
     
     if (existingInvite) {
-      throw new Error('Invite already exists for this email and transcription');
+      throw new Error('Invite already exists for this email.');
     }
 
     // Generate business logic values

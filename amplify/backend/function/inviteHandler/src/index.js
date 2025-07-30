@@ -82,7 +82,8 @@ exports.handler = async (event) => {
                 
                 // Determine if it's a validation error (400) or server error (500)
                 const isValidationError = error.message.includes('Missing required parameters') ||
-                                        error.message.includes('Invalid');
+                                        error.message.includes('Invalid') ||
+                                        error.message.includes('already exists');
                 
                 return {
                     statusCode: isValidationError ? 400 : 500,

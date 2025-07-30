@@ -67,9 +67,9 @@ class InviteService {
   }
 
   /**
-   * Get invites by email address
+   * Get invites by email address (excluding deleted records)
    * @param {string} email - Email address to search for
-   * @returns {Array} Array of invite records for this email
+   * @returns {Array} Array of active invite records for this email
    */
   async getInvitesByEmail(email) {
     if (!this.tableName) {
@@ -80,14 +80,19 @@ class InviteService {
       TableName: this.tableName,
       IndexName: 'ByEmail',
       KeyConditionExpression: 'email = :email',
+      FilterExpression: 'attribute_not_exists(#deleted) OR #deleted = :false',
+      ExpressionAttributeNames: {
+        '#deleted': '_deleted'
+      },
       ExpressionAttributeValues: {
-        ':email': email
+        ':email': email,
+        ':false': false
       }
     });
 
     const result = await this.docClient.send(command);
     
-    console.log(`Found ${result.Items.length} invites for email: ${email}`);
+    console.log(`Found ${result.Items.length} active invites for email: ${email}`);
     
     return result.Items || [];
   }
