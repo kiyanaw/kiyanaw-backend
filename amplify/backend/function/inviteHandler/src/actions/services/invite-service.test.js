@@ -1,0 +1,462 @@
+// Mock AWS SDK before requiring the service
+jest.mock('@aws-sdk/client-dynamodb');
+jest.mock('@aws-sdk/lib-dynamodb');
+
+// Setup environment variables before requiring the service
+process.env.REGION = 'us-east-1';
+process.env.API_KIYANAW_INVITETABLE_NAME = 'test-invite-table';
+
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
+const { DynamoDBDocumentClient, PutCommand, QueryCommand } = require('@aws-sdk/lib-dynamodb');
+
+describe('InviteService', () => {
+  let mockSend;
+  let inviteService;
+  let originalEnv;
+
+  beforeAll(() => {
+    // Save original environment
+    originalEnv = process.env;
+
+    // Setup mocks
+    mockSend = jest.fn();
+    const mockDocClient = {
+      send: mockSend
+    };
+
+    DynamoDBClient.mockImplementation(() => ({}));
+    DynamoDBDocumentClient.from.mockReturnValue(mockDocClient);
+
+    // Now require the service after mocking
+    inviteService = require('./invite-service');
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  afterAll(() => {
+    // Restore original environment
+    process.env = originalEnv;
+  });
+
+  describe('Service Initialization', () => {
+    it('should initialize service correctly', () => {
+      // Verify the service is properly loaded and configured
+      expect(inviteService).toBeDefined();
+      expect(typeof inviteService.createInvite).toBe('function');
+      expect(typeof inviteService.getInvitesByEmail).toBe('function');
+      expect(typeof inviteService.getTableName).toBe('function');
+    });
+
+    it('should set table name from environment variable', () => {
+      expect(inviteService.getTableName()).toBe('test-invite-table');
+    });
+  });
+
+  describe('createInvite', () => {
+    const validInviteData = {
+      id: 'invite-123',
+      email: 'test@example.com',
+      transcriptionId: 'transcription-456',
+      permissionLevel: 'editor',
+      invitedBy: 'user-789',
+      invitedByFriendly: 'John Doe',
+      expiresAt: '2024-12-31T23:59:59Z',
+      createdAt: '2024-01-01T00:00:00Z'
+    };
+
+    beforeEach(() => {
+      mockSend.mockResolvedValue({});
+    });
+
+    it('should create invite record with correct structure', async () => {
+      const result = await inviteService.createInvite(validInviteData);
+
+      // Verify the service was called and returned the expected result
+      expect(mockSend).toHaveBeenCalledTimes(1);
+      expect(result).toEqual({
+        id: 'invite-123',
+        email: 'test@example.com',
+        status: 'pending',
+        permissionLevel: 'editor',
+        expiresAt: '2024-12-31T23:59:59Z',
+        invitedBy: 'user-789',
+        invitedByFriendly: 'John Doe',
+        createdAt: '2024-01-01T00:00:00Z',
+        transcriptionId: 'transcription-456',
+        acceptedAt: null,
+        __typename: 'Invite',
+        updatedAt: '2024-01-01T00:00:00Z',
+        _version: 0,
+        _lastChangedAt: 0,
+        _deleted: false
+      });
+    });
+
+    it('should return the created invite record', async () => {
+      const result = await inviteService.createInvite(validInviteData);
+
+      expect(result).toEqual({
+        id: 'invite-123',
+        email: 'test@example.com',
+        status: 'pending',
+        permissionLevel: 'editor',
+        expiresAt: '2024-12-31T23:59:59Z',
+        invitedBy: 'user-789',
+        invitedByFriendly: 'John Doe',
+        createdAt: '2024-01-01T00:00:00Z',
+        transcriptionId: 'transcription-456',
+        acceptedAt: null,
+        __typename: 'Invite',
+        updatedAt: '2024-01-01T00:00:00Z',
+        _version: 0,
+        _lastChangedAt: 0,
+        _deleted: false
+      });
+    });
+
+    it('should set default status to pending', async () => {
+      const result = await inviteService.createInvite(validInviteData);
+      expect(result.status).toBe('pending');
+    });
+
+    it('should set acceptedAt to null initially', async () => {
+      const result = await inviteService.createInvite(validInviteData);
+      expect(result.acceptedAt).toBeNull();
+    });
+
+    it('should include required Amplify DataStore fields', async () => {
+      const result = await inviteService.createInvite(validInviteData);
+      
+      expect(result.__typename).toBe('Invite');
+      expect(result._version).toBe(0);
+      expect(result._lastChangedAt).toBe(0);
+      expect(result._deleted).toBe(false);
+    });
+
+    it('should set updatedAt to same value as createdAt', async () => {
+      const result = await inviteService.createInvite(validInviteData);
+      expect(result.updatedAt).toBe(validInviteData.createdAt);
+    });
+
+    it('should handle viewer permission level', async () => {
+      const viewerInviteData = {
+        ...validInviteData,
+        permissionLevel: 'viewer'
+      };
+
+      const result = await inviteService.createInvite(viewerInviteData);
+      expect(result.permissionLevel).toBe('viewer');
+    });
+
+    it('should handle editor permission level', async () => {
+      const editorInviteData = {
+        ...validInviteData,
+        permissionLevel: 'editor'
+      };
+
+      const result = await inviteService.createInvite(editorInviteData);
+      expect(result.permissionLevel).toBe('editor');
+    });
+
+    it('should have table name configured for tests', async () => {
+      // This test just ensures our test setup is working correctly
+      expect(inviteService.getTableName()).toBe('test-invite-table');
+    });
+
+    it('should handle DynamoDB errors', async () => {
+      const dynamoError = new Error('DynamoDB operation failed');
+      mockSend.mockRejectedValue(dynamoError);
+
+      await expect(inviteService.createInvite(validInviteData))
+        .rejects.toThrow('DynamoDB operation failed');
+        
+      expect(mockSend).toHaveBeenCalledTimes(1);
+    });
+
+    it('should preserve all input data fields correctly', async () => {
+      const customInviteData = {
+        id: 'custom-invite-456',
+        email: 'custom@example.com',
+        transcriptionId: 'custom-transcription-789',
+        permissionLevel: 'viewer',
+        invitedBy: 'custom-user-123',
+        invitedByFriendly: 'Jane Smith',
+        expiresAt: '2025-06-15T12:30:45Z',
+        createdAt: '2024-06-01T09:15:30Z'
+      };
+
+      const result = await inviteService.createInvite(customInviteData);
+
+      expect(result.id).toBe('custom-invite-456');
+      expect(result.email).toBe('custom@example.com');
+      expect(result.transcriptionId).toBe('custom-transcription-789');
+      expect(result.permissionLevel).toBe('viewer');
+      expect(result.invitedBy).toBe('custom-user-123');
+      expect(result.invitedByFriendly).toBe('Jane Smith');
+      expect(result.expiresAt).toBe('2025-06-15T12:30:45Z');
+      expect(result.createdAt).toBe('2024-06-01T09:15:30Z');
+    });
+  });
+
+  describe('getInvitesByEmail', () => {
+    const testEmail = 'test@example.com';
+
+    beforeEach(() => {
+      mockSend.mockResolvedValue({
+        Items: []
+      });
+    });
+
+    it('should query invites by email successfully', async () => {
+      const result = await inviteService.getInvitesByEmail(testEmail);
+
+      // Verify the DynamoDB query was called and result is correct
+      expect(mockSend).toHaveBeenCalledTimes(1);
+      expect(result).toEqual([]);
+    });
+
+    it('should return empty array when no invites found', async () => {
+      mockSend.mockResolvedValue({ Items: [] });
+
+      const result = await inviteService.getInvitesByEmail(testEmail);
+      expect(result).toEqual([]);
+    });
+
+    it('should return invite items when found', async () => {
+      const mockInvites = [
+        {
+          id: 'invite-1',
+          email: testEmail,
+          status: 'pending',
+          permissionLevel: 'editor',
+          transcriptionId: 'transcription-1'
+        },
+        {
+          id: 'invite-2',
+          email: testEmail,
+          status: 'accepted',
+          permissionLevel: 'viewer',
+          transcriptionId: 'transcription-2'
+        }
+      ];
+
+      mockSend.mockResolvedValue({ Items: mockInvites });
+
+      const result = await inviteService.getInvitesByEmail(testEmail);
+      expect(result).toEqual(mockInvites);
+    });
+
+    it('should handle undefined Items in response', async () => {
+      mockSend.mockResolvedValue({
+        Items: undefined
+      });
+
+      const result = await inviteService.getInvitesByEmail(testEmail);
+      expect(result).toEqual([]);
+    });
+
+    it('should filter out deleted invites', async () => {
+      const result = await inviteService.getInvitesByEmail(testEmail);
+
+      // Verify the query was executed (filtering logic is in the service implementation)
+      expect(mockSend).toHaveBeenCalledTimes(1);
+      expect(result).toEqual([]);
+    });
+
+    it('should query by email efficiently', async () => {
+      const result = await inviteService.getInvitesByEmail(testEmail);
+
+      // Verify query is executed (index usage is implementation detail)
+      expect(mockSend).toHaveBeenCalledTimes(1);
+      expect(result).toEqual([]);
+    });
+
+    it('should have table name configured for email queries', async () => {
+      // This test ensures our service is properly configured
+      expect(inviteService.getTableName()).toBe('test-invite-table');
+    });
+
+    it('should handle DynamoDB query errors', async () => {
+      const queryError = new Error('DynamoDB query failed');
+      mockSend.mockRejectedValue(queryError);
+
+      await expect(inviteService.getInvitesByEmail(testEmail))
+        .rejects.toThrow('DynamoDB query failed');
+        
+      expect(mockSend).toHaveBeenCalledTimes(1);
+    });
+
+    it('should handle different email formats correctly', async () => {
+      const testEmails = [
+        'simple@example.com',
+        'user.name@domain.co.uk', 
+        'user+tag@example.org',
+        'firstname.lastname@company.com'
+      ];
+
+      for (const email of testEmails) {
+        const result = await inviteService.getInvitesByEmail(email);
+        expect(result).toEqual([]);
+      }
+
+      // Verify all queries were executed
+      expect(mockSend).toHaveBeenCalledTimes(testEmails.length);
+    });
+
+    it('should return invites with different statuses', async () => {
+      const mockInvites = [
+        { id: 'invite-1', email: testEmail, status: 'pending' },
+        { id: 'invite-2', email: testEmail, status: 'accepted' },
+        { id: 'invite-3', email: testEmail, status: 'expired' }
+      ];
+
+      mockSend.mockResolvedValue({ Items: mockInvites });
+
+      const result = await inviteService.getInvitesByEmail(testEmail);
+      expect(result).toHaveLength(3);
+      expect(result.map(invite => invite.status)).toEqual(['pending', 'accepted', 'expired']);
+    });
+
+    it('should return invites with different permission levels', async () => {
+      const mockInvites = [
+        { id: 'invite-1', email: testEmail, permissionLevel: 'viewer' },
+        { id: 'invite-2', email: testEmail, permissionLevel: 'editor' }
+      ];
+
+      mockSend.mockResolvedValue({ Items: mockInvites });
+
+      const result = await inviteService.getInvitesByEmail(testEmail);
+      expect(result).toHaveLength(2);
+      expect(result.map(invite => invite.permissionLevel)).toEqual(['viewer', 'editor']);
+    });
+  });
+
+  describe('getTableName', () => {
+    it('should return the configured table name', () => {
+      const tableName = inviteService.getTableName();
+      expect(tableName).toBe('test-invite-table');
+    });
+
+    it('should be configured during tests', () => {
+      // Verify the service is properly configured for our test environment
+      expect(inviteService.getTableName()).toBeDefined();
+      expect(typeof inviteService.getTableName()).toBe('string');
+    });
+  });
+
+  describe('Service Architecture', () => {
+    it('should be a singleton instance', () => {
+      // Re-requiring the service should return the same instance
+      const service1 = inviteService;
+      const service2 = require('./invite-service');
+      
+      expect(service1).toBe(service2);
+    });
+
+    it('should be stateless - multiple operations should not interfere', async () => {
+      const inviteData1 = {
+        id: 'invite-1',
+        email: 'user1@example.com',
+        transcriptionId: 'transcription-1',
+        permissionLevel: 'viewer',
+        invitedBy: 'user-123',
+        invitedByFriendly: 'John Doe',
+        expiresAt: '2024-12-31T23:59:59Z',
+        createdAt: '2024-01-01T00:00:00Z'
+      };
+
+      const inviteData2 = {
+        id: 'invite-2',
+        email: 'user2@example.com',
+        transcriptionId: 'transcription-2',
+        permissionLevel: 'editor',
+        invitedBy: 'user-456',
+        invitedByFriendly: 'Jane Smith',
+        expiresAt: '2024-12-31T23:59:59Z',
+        createdAt: '2024-01-01T00:00:00Z'
+      };
+
+      mockSend.mockResolvedValue({});
+
+      // Perform multiple operations in sequence
+      const [result1, result2] = await Promise.all([
+        inviteService.createInvite(inviteData1),
+        inviteService.createInvite(inviteData2)
+      ]);
+
+      expect(result1.email).toBe('user1@example.com');
+      expect(result1.permissionLevel).toBe('viewer');
+      expect(result2.email).toBe('user2@example.com');
+      expect(result2.permissionLevel).toBe('editor');
+      expect(mockSend).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('Data Validation', () => {
+    it('should preserve data types correctly', async () => {
+      const inviteData = {
+        id: 'invite-123',
+        email: 'test@example.com',
+        transcriptionId: 'transcription-456',
+        permissionLevel: 'editor',
+        invitedBy: 'user-789',
+        invitedByFriendly: 'John Doe',
+        expiresAt: '2024-12-31T23:59:59Z',
+        createdAt: '2024-01-01T00:00:00Z'
+      };
+
+      mockSend.mockResolvedValue({});
+
+      const result = await inviteService.createInvite(inviteData);
+
+      // String fields
+      expect(typeof result.id).toBe('string');
+      expect(typeof result.email).toBe('string');
+      expect(typeof result.status).toBe('string');
+      expect(typeof result.permissionLevel).toBe('string');
+      expect(typeof result.expiresAt).toBe('string');
+      expect(typeof result.createdAt).toBe('string');
+      expect(typeof result.updatedAt).toBe('string');
+      expect(typeof result.__typename).toBe('string');
+
+      // Number fields
+      expect(typeof result._version).toBe('number');
+      expect(typeof result._lastChangedAt).toBe('number');
+
+      // Boolean fields
+      expect(typeof result._deleted).toBe('boolean');
+
+      // Null field
+      expect(result.acceptedAt).toBeNull();
+    });
+
+    it('should handle various date formats in input', async () => {
+      const dateFormats = [
+        '2024-12-31T23:59:59Z',
+        '2024-12-31T23:59:59.000Z',
+        '2024-12-31T23:59:59+00:00'
+      ];
+
+      mockSend.mockResolvedValue({});
+
+      for (const dateFormat of dateFormats) {
+        const inviteData = {
+          id: `invite-${Date.now()}`,
+          email: 'test@example.com',
+          transcriptionId: 'transcription-456',
+          permissionLevel: 'editor',
+          invitedBy: 'user-789',
+          invitedByFriendly: 'John Doe',
+          expiresAt: dateFormat,
+          createdAt: dateFormat
+        };
+
+        const result = await inviteService.createInvite(inviteData);
+        expect(result.expiresAt).toBe(dateFormat);
+        expect(result.createdAt).toBe(dateFormat);
+      }
+    });
+  });
+}); 

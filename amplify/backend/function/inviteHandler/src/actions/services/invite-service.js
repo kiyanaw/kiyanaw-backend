@@ -92,9 +92,10 @@ class InviteService {
 
     const result = await this.docClient.send(command);
     
-    console.log(`Found ${result.Items.length} active invites for email: ${email}`);
+    const items = result.Items || [];
+    console.log(`Found ${items.length} active invites for email: ${email}`);
     
-    return result.Items || [];
+    return items;
   }
 
   /**

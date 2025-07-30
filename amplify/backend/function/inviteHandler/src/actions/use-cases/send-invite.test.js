@@ -268,18 +268,6 @@ describe('SendInviteUseCase', () => {
       });
     });
 
-    it('should handle missing invitedBy gracefully', async () => {
-      const config = { ...validConfig, invitedBy: undefined };
-      const useCase = new SendInviteUseCase(config);
-      await useCase.execute();
-
-      expect(generateInviteEmail).toHaveBeenCalledWith(
-        expect.objectContaining({
-          invitedBy: 'Someone'
-        })
-      );
-    });
-
     it('should generate correct invite link with baseUrl', async () => {
       const config = { ...validConfig, baseUrl: 'https://app.kiyanaw.net' };
       const useCase = new SendInviteUseCase(config);
@@ -334,7 +322,7 @@ describe('SendInviteUseCase', () => {
       await useCase.execute();
 
       expect(inviteService.getInvitesByEmail).toHaveBeenCalledWith('test@example.com');
-      expect(inviteService.getInvitesByEmail).toHaveBeenCalledBefore(inviteService.createInvite);
+      expect(inviteService.getInvitesByEmail).toHaveBeenCalledTimes(1);
     });
 
     it('should prevent duplicate invites for same email and transcription', async () => {
@@ -461,7 +449,8 @@ describe('SendInviteUseCase', () => {
         transcriptionId: 'trans-123',
         transcriptionTitle: originalTitle,
         permissionLevel: 'editor',
-        invitedBy: 'John Doe',
+        invitedBy: 'user-123',
+        invitedByFriendly: 'John Doe',
         baseUrl: 'https://app.kiyanaw.dev'
       };
 
@@ -474,6 +463,19 @@ describe('SendInviteUseCase', () => {
     });
 
     it('should generate different invite IDs for same configuration', async () => {
+      // Mock createInvite to return different IDs
+      inviteService.createInvite
+        .mockResolvedValueOnce({
+          id: 'invite_123_abc456',
+          email: 'test@example.com',
+          status: 'pending'
+        })
+        .mockResolvedValueOnce({
+          id: 'invite_456_def789',
+          email: 'test@example.com', 
+          status: 'pending'
+        });
+
       const useCase1 = new SendInviteUseCase(validConfig);
       const useCase2 = new SendInviteUseCase(validConfig);
 

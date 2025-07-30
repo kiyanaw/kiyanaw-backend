@@ -96,7 +96,7 @@ class SendInviteUseCase {
     );
     
     if (existingInvite) {
-      throw new Error('Invite already exists for this email.');
+      throw new Error('Invite already exists for this email and transcription');
     }
 
     // Generate business logic values
@@ -125,7 +125,7 @@ class SendInviteUseCase {
 
     // Generate email content from template
     const emailContent = generateInviteEmail({
-      invitedBy: invitedByFriendly || 'Someone',
+      invitedBy: invitedByFriendly,
       transcriptionTitle,
       permissionLevel,
       inviteLink,

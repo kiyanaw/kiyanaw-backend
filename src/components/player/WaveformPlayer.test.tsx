@@ -1,3 +1,4 @@
+import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { WaveformPlayer } from './WaveformPlayer';
 import { wavesurferService } from '../../services/wavesurferService';
@@ -98,6 +99,7 @@ describe('WaveformPlayer', () => {
           source: 'test-source',
           type: 'test-type',
           author: 'test-author',
+          authorFriendly: 'Test Author',
           userLastUpdated: 'test-user',
           dateLastUpdated: '2023-01-01T00:00:00.000Z',
           createdAt: '2023-01-01T00:00:00.000Z',
@@ -490,6 +492,7 @@ describe('WaveformPlayer', () => {
           source: 'test-source',
           type: 'test-type',
           author: 'test-author',
+          authorFriendly: 'Test Author',
           userLastUpdated: 'test-user',
           dateLastUpdated: '2023-01-01T00:00:00.000Z',
           createdAt: '2023-01-01T00:00:00.000Z',
@@ -572,6 +575,7 @@ describe('WaveformPlayer', () => {
             source: 'test-source',
             type: 'test-type',
             author: 'test-author',
+            authorFriendly: 'Test Author',
             userLastUpdated: 'test-user',
             dateLastUpdated: '2023-01-01T00:00:00.000Z',
             createdAt: '2023-01-01T00:00:00.000Z',
