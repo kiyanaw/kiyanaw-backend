@@ -25,15 +25,22 @@ export default {
   },
   testMatch: [
     '<rootDir>/src/**/*.(test|spec).(ts|tsx)',
+    '<rootDir>/amplify/backend/function/**/src/**/*.(test|spec).(js|ts)',
   ],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
   collectCoverageFrom: [
     'src/**/*.(ts|tsx)',
+    'amplify/backend/function/**/src/**/*.(js|ts)',
     '!src/**/*.d.ts',
     '!src/**/*.(test|spec).(ts|tsx)',
+    '!amplify/backend/function/**/src/**/*.(test|spec).(js|ts)',
+    '!amplify/backend/function/**/src/**/node_modules/**',
   ],
   testPathIgnorePatterns: [
     '/node_modules/',
-    '/amplify/',
+    '/amplify/backend/(?!function/)',
+    '/amplify/#current-cloud-backend/',
+    '/amplify/cli.json',
+    '/amplify/hooks/',
   ],
 }; 

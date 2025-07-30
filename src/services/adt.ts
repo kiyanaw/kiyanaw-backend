@@ -3,6 +3,7 @@ export interface TranscriptionData {
   title: string;
   comments?: string;
   author: string;
+  authorFriendly: string;
   type: string;
   issues?: number;
   source: string;
@@ -88,6 +89,7 @@ export class TranscriptionModel {
   public title: string;
   public comments?: string;
   public author: string;
+  public authorFriendly: string;
   public type: string;
   public source: string;
   public coverage: number;
@@ -113,6 +115,7 @@ export class TranscriptionModel {
     this.title = data.title;
     this.comments = data.comments;
     this.author = data.author;
+    this.authorFriendly = data.authorFriendly;
     this.type = data.type;
     // this.issues = Number(data.issues) || 0;
     this.source = data.source;

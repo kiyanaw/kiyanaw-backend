@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "storage": {
+      "Transcription:@model(appsync)": [
+        "read",
+        "update"
+      ],
+      "Invite:@model(appsync)": [
+        "create",
+        "read",
+        "update",
+        "delete"
+      ]
+    }
+  },
+  "lambdaLayers": []
+}

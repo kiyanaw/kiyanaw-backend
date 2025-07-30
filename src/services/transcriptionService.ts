@@ -254,6 +254,7 @@ export const create = async (data: CreateTranscriptionData): Promise<SharedTrans
       source: data.source,
       type: data.type,
       author: data.author,
+      authorFriendly: data.userLastUpdated,
       userLastUpdated: data.userLastUpdated,
       dateLastUpdated: `${Date.now()}`,
       length: 0, // Will be updated when audio is processed

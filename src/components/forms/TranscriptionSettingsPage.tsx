@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { X, FileText, Users, Settings } from 'lucide-react';
+import { X, FileText, Users, Settings, Mail, Send } from 'lucide-react';
+import { post } from 'aws-amplify/api';
 
 interface TranscriptionSettingsPageProps {
   isOpen: boolean;
@@ -26,6 +27,8 @@ export const TranscriptionSettingsPage = ({
 }: TranscriptionSettingsPageProps) => {
   const [title, setTitle] = useState(initialTitle);
   const [comments, setComments] = useState(initialComments || '');
+  const [testEmailSending, setTestEmailSending] = useState(false);
+  const [testEmailResult, setTestEmailResult] = useState<{ success: boolean; message: string } | null>(null);
 
   if (!isOpen) return null;
 
@@ -63,6 +66,60 @@ export const TranscriptionSettingsPage = ({
   };
 
   const hasChanges = title !== initialTitle || comments !== (initialComments || '');
+
+  const handleTestEmail = async () => {
+    setTestEmailSending(true);
+    setTestEmailResult(null);
+    
+    try {
+      // Test data for the API Gateway endpoint
+      const testData = {
+        email: 'aaron.j.fay@gmail.com',
+        transcriptionId: 'test-trans-123',
+        transcriptionTitle: title || 'Test Transcription',
+        permissionLevel: 'editor',
+        invitedBy: author,
+        invitedByFriendly: author, // Using author as friendly name for now
+      };
+
+      console.log('Calling invite API with data:', testData);
+      
+      // Call the API Gateway endpoint
+      const response = await post({
+        apiName: 'invite',
+        path: '/invite',
+        options: {
+          body: testData
+        }
+      }).response;
+      
+      const result = await response.body.json() as { 
+        success: boolean; 
+        messageId?: string; 
+        error?: string; 
+        email?: string; 
+        inviteId?: string; 
+      };
+      
+      if (result && result.success) {
+        setTestEmailResult({
+          success: true,
+          message: `Email sent successfully! MessageId: ${result.messageId}`,
+        });
+      } else {
+        throw new Error(result?.error || 'API returned error');
+      }
+      
+    } catch (error) {
+      console.error('Failed to send test email:', error);
+      setTestEmailResult({
+        success: false,
+        message: `Failed to send test email: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      });
+    } finally {
+      setTestEmailSending(false);
+    }
+  };
 
   return (
     <div 
@@ -165,18 +222,69 @@ export const TranscriptionSettingsPage = ({
                 </div>
               </div>
 
-              {/* Sharing (Placeholder for future) */}
+              {/* Sharing & Testing */}
               <div>
                 <div className="flex items-center gap-3 pb-3 border-b border-gray-200">
                   <Users className="text-purple-600" size={20} />
                   <h2 className="text-lg font-semibold text-gray-900">Sharing & Collaboration</h2>
                 </div>
 
-                <div className="mt-4">
-                  <div className="bg-gray-50 p-6 rounded-lg border-2 border-dashed border-gray-300 text-center">
-                    <Users className="mx-auto text-gray-400 mb-3" size={32} />
+                <div className="mt-4 space-y-4">
+                  {/* Test Email Section */}
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <div className="flex items-center gap-3 mb-3">
+                      <Mail className="text-blue-600" size={20} />
+                      <h3 className="text-sm font-semibold text-blue-900">Test Invitation Email</h3>
+                    </div>
+                    <p className="text-sm text-blue-700 mb-4">
+                      Test the invitation email functionality with sample data.
+                    </p>
+                    
+                    <button
+                      onClick={handleTestEmail}
+                      disabled={testEmailSending}
+                      className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {testEmailSending ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          Sending...
+                        </>
+                      ) : (
+                        <>
+                          <Send size={16} />
+                          Send Test Email
+                        </>
+                      )}
+                    </button>
+
+                    {/* Test Result */}
+                    {testEmailResult && (
+                      <div className={`mt-3 p-3 rounded-lg text-sm ${
+                        testEmailResult.success 
+                          ? 'bg-green-50 border border-green-200 text-green-800'
+                          : 'bg-red-50 border border-red-200 text-red-800'
+                      }`}>
+                        <div className="flex items-start gap-2">
+                          {testEmailResult.success ? (
+                            <Mail className="text-green-600 flex-shrink-0 mt-0.5" size={16} />
+                          ) : (
+                            <X className="text-red-600 flex-shrink-0 mt-0.5" size={16} />
+                          )}
+                          <p>{testEmailResult.message}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Future Collaboration Features */}
+                  <div className="bg-gray-50 p-4 rounded-lg border-2 border-dashed border-gray-300">
+                    <div className="flex items-center gap-3 mb-2">
+                      <Users className="text-gray-400" size={20} />
+                      <h3 className="text-sm font-semibold text-gray-600">Future Features</h3>
+                    </div>
                     <p className="text-gray-600 text-sm">
-                      Sharing and collaboration features will be available here soon.
+                      Real invitation system, user management, and collaboration features coming soon.
                     </p>
                   </div>
                 </div>

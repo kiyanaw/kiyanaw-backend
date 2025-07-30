@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "paths": {
+    "/invite": {
+      "name": "/invite",
+      "lambdaFunction": "inviteHandler",
+      "permissions": {
+        "setting": "private",
+        "auth": [
+          "create",
+          "read",
+          "update",
+          "delete"
+        ]
+      }
+    }
+  }
+}
