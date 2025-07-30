@@ -47,8 +47,11 @@ class InviteService {
       acceptedAt: null,
       // Add required fields for Amplify
       __typename: 'Invite',
-      createdAt: inviteData.createdAt,
-      updatedAt: inviteData.createdAt
+      updatedAt: inviteData.createdAt,
+      // Add required DataStore fields
+      _version: 0,
+      _lastChangedAt: 0,
+      _deleted: false
     };
 
     const command = new PutCommand({

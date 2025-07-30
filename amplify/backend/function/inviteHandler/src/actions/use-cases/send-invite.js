@@ -125,7 +125,7 @@ class SendInviteUseCase {
 
     // Generate email content from template
     const emailContent = generateInviteEmail({
-      invitedBy: invitedBy || 'Someone',
+      invitedBy: invitedByFriendly || 'Someone',
       transcriptionTitle,
       permissionLevel,
       inviteLink,

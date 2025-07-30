@@ -60,7 +60,7 @@ type Region
   dateLastUpdated: String!
   userLastUpdated: String!
   transcription: Transcription! @belongsTo(fields: ["transcriptionId"])
-  transcriptionId: ID! @index(name: "ByTranscription")
+  transcriptionId: ID! @index(name: "ByTranscription", queryField: "regionsByTranscription")
 }
 
 type Issue
@@ -78,7 +78,7 @@ type Issue
   comments: AWSJSON
   regionId: String!
   transcription: Transcription! @belongsTo(fields: ["transcriptionId"])
-  transcriptionId: ID! @index(name: "ByTranscription")
+  transcriptionId: ID! @index(name: "ByTranscription", queryField: "issuesByTranscription")
 }
 
 type Invite
@@ -97,7 +97,7 @@ type Invite
     { allow: groups, groups: ["Admins"], operations: [create, read, update, delete] }
   ]) {
   id: ID! @primaryKey
-  email: String! @index(name: "ByEmail")
+  email: String! @index(name: "ByEmail", queryField: "invitesByEmail")
   status: String!
   permissionLevel: String! # "viewer", "editor"
   expiresAt: String!
@@ -105,6 +105,6 @@ type Invite
   invitedByFriendly: String! # Email/friendly identifier of inviter
   createdAt: String!
   acceptedAt: String
-  transcriptionId: ID! @index(name: "ByTranscription")
+  transcriptionId: ID! @index(name: "ByTranscription", queryField: "invitesByTranscription")
 }
 

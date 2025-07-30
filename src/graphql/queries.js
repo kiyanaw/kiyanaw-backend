@@ -319,6 +319,45 @@ export const syncRegions = /* GraphQL */ `
     }
   }
 `;
+export const regionsByTranscription = /* GraphQL */ `
+  query RegionsByTranscription(
+    $transcriptionId: ID!
+    $sortDirection: ModelSortDirection
+    $filter: ModelRegionFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    regionsByTranscription(
+      transcriptionId: $transcriptionId
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        start
+        end
+        regionText
+        regionAnalysis
+        isNote
+        translation
+        dateLastUpdated
+        userLastUpdated
+        transcriptionId
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      nextToken
+      startedAt
+      __typename
+    }
+  }
+`;
 export const getIssue = /* GraphQL */ `
   query GetIssue($id: ID!) {
     getIssue(id: $id) {
@@ -443,6 +482,44 @@ export const syncIssues = /* GraphQL */ `
     }
   }
 `;
+export const issuesByTranscription = /* GraphQL */ `
+  query IssuesByTranscription(
+    $transcriptionId: ID!
+    $sortDirection: ModelSortDirection
+    $filter: ModelIssueFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    issuesByTranscription(
+      transcriptionId: $transcriptionId
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        text
+        owner
+        index
+        resolved
+        type
+        comments
+        regionId
+        transcriptionId
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      nextToken
+      startedAt
+      __typename
+    }
+  }
+`;
 export const getInvite = /* GraphQL */ `
   query GetInvite($id: ID!) {
     getInvite(id: $id) {
@@ -514,6 +591,82 @@ export const syncInvites = /* GraphQL */ `
       limit: $limit
       nextToken: $nextToken
       lastSync: $lastSync
+    ) {
+      items {
+        id
+        email
+        status
+        permissionLevel
+        expiresAt
+        invitedBy
+        invitedByFriendly
+        createdAt
+        acceptedAt
+        transcriptionId
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      nextToken
+      startedAt
+      __typename
+    }
+  }
+`;
+export const invitesByEmail = /* GraphQL */ `
+  query InvitesByEmail(
+    $email: String!
+    $sortDirection: ModelSortDirection
+    $filter: ModelInviteFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    invitesByEmail(
+      email: $email
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        email
+        status
+        permissionLevel
+        expiresAt
+        invitedBy
+        invitedByFriendly
+        createdAt
+        acceptedAt
+        transcriptionId
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      nextToken
+      startedAt
+      __typename
+    }
+  }
+`;
+export const invitesByTranscription = /* GraphQL */ `
+  query InvitesByTranscription(
+    $transcriptionId: ID!
+    $sortDirection: ModelSortDirection
+    $filter: ModelInviteFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    invitesByTranscription(
+      transcriptionId: $transcriptionId
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
     ) {
       items {
         id

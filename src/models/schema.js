@@ -403,6 +403,7 @@ export const schema = {
                     "type": "key",
                     "properties": {
                         "name": "ByTranscription",
+                        "queryField": "regionsByTranscription",
                         "fields": [
                             "transcriptionId"
                         ]
@@ -559,6 +560,7 @@ export const schema = {
                     "type": "key",
                     "properties": {
                         "name": "ByTranscription",
+                        "queryField": "issuesByTranscription",
                         "fields": [
                             "transcriptionId"
                         ]
@@ -691,6 +693,7 @@ export const schema = {
                     "type": "key",
                     "properties": {
                         "name": "ByEmail",
+                        "queryField": "invitesByEmail",
                         "fields": [
                             "email"
                         ]
@@ -700,6 +703,7 @@ export const schema = {
                     "type": "key",
                     "properties": {
                         "name": "ByTranscription",
+                        "queryField": "invitesByTranscription",
                         "fields": [
                             "transcriptionId"
                         ]

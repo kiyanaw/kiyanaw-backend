@@ -1,6 +1,8 @@
-import { useState } from 'react';
-import { X, FileText, Users, Settings, Mail, Send } from 'lucide-react';
-import { post } from 'aws-amplify/api';
+import { useState, useEffect } from 'react';
+import { X, FileText, Users, Settings, Mail, Send, UserPlus, Trash2 } from 'lucide-react';
+import { useCreateInvite } from '../../hooks/useCreateInvite';
+import { services } from '../../services';
+import type { InviteModel } from '../../services/adt';
 
 interface TranscriptionSettingsPageProps {
   isOpen: boolean;
@@ -10,6 +12,7 @@ interface TranscriptionSettingsPageProps {
   author: string;
   dateLastUpdated: string;
   regionCount: number;
+  transcriptionId: string; // Added this prop
   onSave: (updates: { title?: string; comments?: string }) => void;
   canEdit: boolean;
 }
@@ -22,13 +25,49 @@ export const TranscriptionSettingsPage = ({
   author,
   dateLastUpdated,
   regionCount,
+  transcriptionId, // Added this prop
   onSave,
   canEdit,
 }: TranscriptionSettingsPageProps) => {
   const [title, setTitle] = useState(initialTitle);
   const [comments, setComments] = useState(initialComments || '');
-  const [testEmailSending, setTestEmailSending] = useState(false);
-  const [testEmailResult, setTestEmailResult] = useState<{ success: boolean; message: string } | null>(null);
+  
+  // Invite management state
+  const [invites, setInvites] = useState<InviteModel[]>([]);
+  const [invitesLoading, setInvitesLoading] = useState(false);
+  const [newInviteEmail, setNewInviteEmail] = useState('');
+  const [newInvitePermission, setNewInvitePermission] = useState<'viewer' | 'editor'>('viewer');
+  const [sendingInvite, setSendingInvite] = useState(false);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [inviteSuccess, setInviteSuccess] = useState<string | null>(null);
+  const [deletingInviteId, setDeletingInviteId] = useState<string | null>(null);
+  
+  // Hooks
+  const createInvite = useCreateInvite();
+
+  const loadInvites = async () => {
+    setInvitesLoading(true);
+    
+    try {
+      if (!transcriptionId?.trim()) {
+        throw new Error('Transcription ID is required');
+      }
+      console.log('Loading invites for transcription:', transcriptionId);
+      const loadedInvites = await services.inviteService.loadInvitesForTranscription(transcriptionId);
+      setInvites(loadedInvites);
+    } catch (error) {
+      console.error('Failed to load invites:', error);
+    } finally {
+      setInvitesLoading(false);
+    }
+  };
+
+  // Load invites when component opens - moved before early return
+  useEffect(() => {
+    if (isOpen && transcriptionId) {
+      loadInvites();
+    }
+  }, [isOpen, transcriptionId]);
 
   if (!isOpen) return null;
 
@@ -67,57 +106,74 @@ export const TranscriptionSettingsPage = ({
 
   const hasChanges = title !== initialTitle || comments !== (initialComments || '');
 
-  const handleTestEmail = async () => {
-    setTestEmailSending(true);
-    setTestEmailResult(null);
+  const handleSendInvite = async () => {
+    if (!newInviteEmail.trim()) {
+      setInviteError('Email is required');
+      return;
+    }
+
+    setSendingInvite(true);
+    setInviteError(null);
+    setInviteSuccess(null); // Clear previous success message
     
     try {
-      // Test data for the API Gateway endpoint
-      const testData = {
-        email: 'aaron.j.fay@gmail.com',
-        transcriptionId: 'test-trans-123',
-        transcriptionTitle: title || 'Test Transcription',
-        permissionLevel: 'editor',
-        invitedBy: author,
-        invitedByFriendly: author, // Using author as friendly name for now
-      };
-
-      console.log('Calling invite API with data:', testData);
+      const result = await createInvite({
+        email: newInviteEmail.trim(),
+        permissionLevel: newInvitePermission,
+        transcriptionId,
+      });
       
-      // Call the API Gateway endpoint
-      const response = await post({
-        apiName: 'invite',
-        path: '/invite',
-        options: {
-          body: testData
-        }
-      }).response;
+      // Clear form and show success immediately
+      const sentEmail = newInviteEmail.trim();
+      setNewInviteEmail('');
+      setNewInvitePermission('viewer');
+      setInviteSuccess(`Invite sent successfully to ${sentEmail}! Message ID: ${result.messageId}`);
       
-      const result = await response.body.json() as { 
-        success: boolean; 
-        messageId?: string; 
-        error?: string; 
-        email?: string; 
-        inviteId?: string; 
-      };
-      
-      if (result && result.success) {
-        setTestEmailResult({
-          success: true,
-          message: `Email sent successfully! MessageId: ${result.messageId}`,
-        });
-      } else {
-        throw new Error(result?.error || 'API returned error');
-      }
+      // Refresh the invite list
+      await loadInvites();
       
     } catch (error) {
-      console.error('Failed to send test email:', error);
-      setTestEmailResult({
-        success: false,
-        message: `Failed to send test email: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      });
+      console.error('Failed to send invite:', error);
+      setInviteError(error instanceof Error ? error.message : 'Failed to send invite');
     } finally {
-      setTestEmailSending(false);
+      setSendingInvite(false);
+    }
+  };
+
+  const handleDeleteInvite = async (invite: InviteModel) => {
+    if (!confirm(`Delete invite for ${invite.email}?`)) {
+      return;
+    }
+
+    setDeletingInviteId(invite.id);
+    setInviteError(null);
+    
+    try {
+      await services.inviteService.deleteInvite(invite.id);
+      setInviteSuccess(`Invite for ${invite.email} deleted successfully`);
+      
+      // Refresh the invite list
+      await loadInvites();
+    } catch (error) {
+      console.error('Failed to delete invite:', error);
+      setInviteError(error instanceof Error ? error.message : 'Failed to delete invite');
+    } finally {
+      setDeletingInviteId(null);
+    }
+  };
+
+  const getStatusBadgeColor = (status: string) => {
+    switch (status) {
+      case 'accepted':
+        return 'bg-green-100 text-green-800';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'expired':
+        return 'bg-red-100 text-red-800';
+      case 'declined':
+        return 'bg-gray-100 text-gray-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -144,108 +200,123 @@ export const TranscriptionSettingsPage = ({
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="space-y-8">
             
             {/* General Settings Section */}
-            <div className="space-y-6">
-              <div className="flex items-center gap-3 pb-3 border-b border-gray-200">
-                <FileText className="text-blue-600" size={20} />
-                <h2 className="text-lg font-semibold text-gray-900">General Settings</h2>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="space-y-6">
+                <div className="flex items-center gap-3 pb-3 border-b border-gray-200">
+                  <FileText className="text-blue-600" size={20} />
+                  <h2 className="text-lg font-semibold text-gray-900">General Settings</h2>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+                      Title
+                    </label>
+                    <input
+                      id="title"
+                      type="text"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      disabled={!canEdit}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-600 disabled:cursor-not-allowed text-base"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="comments" className="block text-sm font-medium text-gray-700 mb-2">
+                      Comments
+                    </label>
+                    <textarea
+                      id="comments"
+                      value={comments}
+                      onChange={(e) => setComments(e.target.value)}
+                      disabled={!canEdit}
+                      rows={4}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-600 disabled:cursor-not-allowed resize-vertical text-base"
+                      placeholder="Add any comments about this transcription..."
+                    />
+                  </div>
+                </div>
+
+                {!canEdit && (
+                  <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-sm text-yellow-800">
+                      You don't have permission to edit this transcription.
+                    </p>
+                  </div>
+                )}
               </div>
 
-              <div className="space-y-4">
-                <div>
-                  <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
-                    Title
-                  </label>
-                  <input
-                    id="title"
-                    type="text"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    disabled={!canEdit}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-600 disabled:cursor-not-allowed text-base"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="comments" className="block text-sm font-medium text-gray-700 mb-2">
-                    Comments
-                  </label>
-                  <textarea
-                    id="comments"
-                    value={comments}
-                    onChange={(e) => setComments(e.target.value)}
-                    disabled={!canEdit}
-                    rows={4}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-600 disabled:cursor-not-allowed resize-vertical text-base"
-                    placeholder="Add any comments about this transcription..."
-                  />
-                </div>
-              </div>
-
-              {!canEdit && (
-                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <p className="text-sm text-yellow-800">
-                    You don't have permission to edit this transcription.
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Information & Sharing Section */}
-            <div className="space-y-6">
-              {/* Information */}
-              <div>
+              {/* Information Section */}
+              <div className="space-y-6">
                 <div className="flex items-center gap-3 pb-3 border-b border-gray-200">
                   <FileText className="text-green-600" size={20} />
                   <h2 className="text-lg font-semibold text-gray-900">Information</h2>
                 </div>
 
-                <div className="mt-4 space-y-4">
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <div className="grid grid-cols-1 gap-3">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-600">Author</label>
-                        <p className="text-base text-gray-900 mt-1">{author}</p>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-600">Last Updated</label>
-                        <p className="text-base text-gray-900 mt-1">{formatDate(dateLastUpdated)}</p>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-600">Total Regions</label>
-                        <p className="text-base text-gray-900 mt-1">{regionCount}</p>
-                      </div>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="grid grid-cols-1 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600">Author</label>
+                      <p className="text-base text-gray-900 mt-1">{author}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600">Last Updated</label>
+                      <p className="text-base text-gray-900 mt-1">{formatDate(dateLastUpdated)}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600">Total Regions</label>
+                      <p className="text-base text-gray-900 mt-1">{regionCount}</p>
                     </div>
                   </div>
                 </div>
               </div>
+            </div>
 
-              {/* Sharing & Testing */}
-              <div>
-                <div className="flex items-center gap-3 pb-3 border-b border-gray-200">
-                  <Users className="text-purple-600" size={20} />
-                  <h2 className="text-lg font-semibold text-gray-900">Sharing & Collaboration</h2>
+            {/* Sharing & Collaboration Section - Full Width */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-3 pb-3 border-b border-gray-200">
+                <Users className="text-purple-600" size={20} />
+                <h2 className="text-lg font-semibold text-gray-900">Sharing & Collaboration</h2>
+              </div>
+
+              {/* Send New Invite */}
+              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <div className="flex items-center gap-3 mb-4">
+                  <UserPlus className="text-blue-600" size={20} />
+                  <h3 className="text-sm font-semibold text-blue-900">Send Invitation</h3>
                 </div>
-
-                <div className="mt-4 space-y-4">
-                  {/* Test Email Section */}
-                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                    <div className="flex items-center gap-3 mb-3">
-                      <Mail className="text-blue-600" size={20} />
-                      <h3 className="text-sm font-semibold text-blue-900">Test Invitation Email</h3>
-                    </div>
-                    <p className="text-sm text-blue-700 mb-4">
-                      Test the invitation email functionality with sample data.
-                    </p>
-                    
-                    <button
-                      onClick={handleTestEmail}
-                      disabled={testEmailSending}
-                      className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="md:col-span-1">
+                    <input
+                      type="email"
+                      value={newInviteEmail}
+                      onChange={(e) => setNewInviteEmail(e.target.value)}
+                      placeholder="Email address"
+                      className="w-full px-3 py-2 text-sm border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <select
+                      value={newInvitePermission}
+                      onChange={(e) => setNewInvitePermission(e.target.value as 'viewer' | 'editor')}
+                      className="w-full px-3 py-2 text-sm border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
-                      {testEmailSending ? (
+                      <option value="viewer">Viewer</option>
+                      <option value="editor">Editor</option>
+                    </select>
+                  </div>
+                  <div>
+                    <button
+                      onClick={handleSendInvite}
+                      disabled={sendingInvite || !newInviteEmail.trim()}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {sendingInvite ? (
                         <>
                           <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                           Sending...
@@ -253,40 +324,82 @@ export const TranscriptionSettingsPage = ({
                       ) : (
                         <>
                           <Send size={16} />
-                          Send Test Email
+                          Send Invite
                         </>
                       )}
                     </button>
-
-                    {/* Test Result */}
-                    {testEmailResult && (
-                      <div className={`mt-3 p-3 rounded-lg text-sm ${
-                        testEmailResult.success 
-                          ? 'bg-green-50 border border-green-200 text-green-800'
-                          : 'bg-red-50 border border-red-200 text-red-800'
-                      }`}>
-                        <div className="flex items-start gap-2">
-                          {testEmailResult.success ? (
-                            <Mail className="text-green-600 flex-shrink-0 mt-0.5" size={16} />
-                          ) : (
-                            <X className="text-red-600 flex-shrink-0 mt-0.5" size={16} />
-                          )}
-                          <p>{testEmailResult.message}</p>
-                        </div>
-                      </div>
-                    )}
                   </div>
+                </div>
 
-                  {/* Future Collaboration Features */}
-                  <div className="bg-gray-50 p-4 rounded-lg border-2 border-dashed border-gray-300">
-                    <div className="flex items-center gap-3 mb-2">
-                      <Users className="text-gray-400" size={20} />
-                      <h3 className="text-sm font-semibold text-gray-600">Future Features</h3>
+                {inviteError && (
+                  <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800">
+                    {inviteError}
+                  </div>
+                )}
+                {inviteSuccess && (
+                  <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-800">
+                    {inviteSuccess}
+                  </div>
+                )}
+              </div>
+
+              {/* Current Invites */}
+              <div className="bg-white border border-gray-200 rounded-lg">
+                <div className="px-4 py-3 border-b border-gray-200">
+                  <h3 className="text-sm font-semibold text-gray-900">Current Invitations</h3>
+                </div>
+                
+                <div className="p-4">
+                  {invitesLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                      <span className="ml-2 text-sm text-gray-600">
+                        {invites.length > 0 ? 'Refreshing invitations...' : 'Loading invitations...'}
+                      </span>
                     </div>
-                    <p className="text-gray-600 text-sm">
-                      Real invitation system, user management, and collaboration features coming soon.
-                    </p>
-                  </div>
+                  ) : invites.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <Mail className="mx-auto mb-2 text-gray-400" size={24} />
+                      <p className="text-sm">No invitations sent yet</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {invites.map((invite) => (
+                        <div key={invite.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3">
+                              <span className="font-medium text-sm">{invite.email}</span>
+                              <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusBadgeColor(invite.statusDisplay)}`}>
+                                {invite.statusDisplay}
+                              </span>
+                              <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
+                                {invite.permissionLevel}
+                              </span>
+                            </div>
+                            <div className="mt-1 text-xs text-gray-600">
+                              Sent {invite.createdAtFormatted} • Expires {invite.expiresAtFormatted}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {invite.statusDisplay === 'pending' && (
+                              <button 
+                                onClick={() => handleDeleteInvite(invite)}
+                                disabled={deletingInviteId === invite.id}
+                                className="p-1 text-gray-400 hover:text-red-600 transition-colors disabled:opacity-50"
+                                title="Delete invite"
+                              >
+                                {deletingInviteId === invite.id ? (
+                                  <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                  <Trash2 size={16} />
+                                )}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

@@ -60,6 +60,20 @@ export interface IssueData {
   comments: string; // JSON string of IssueComment array
 }
 
+export interface InviteData {
+  id: string;
+  email: string;
+  status: string;
+  permissionLevel: 'viewer' | 'editor';
+  expiresAt: string;
+  invitedBy: string;
+  invitedByFriendly: string;
+  createdAt: string;
+  acceptedAt?: string;
+  transcriptionId: string;
+  updatedAt?: string;
+}
+
 export interface ProcessedIssue extends Omit<IssueData, 'comments'> {
   comments: IssueComment[];
 }
@@ -193,6 +207,65 @@ export class RegionModel {
       console.error('Error constructing RegionModel:', e);
       console.error('Data:', JSON.stringify(data, null, 2));
       throw e;
+    }
+  }
+}
+
+export class InviteModel {
+  public id: string;
+  public email: string;
+  public status: string;
+  public permissionLevel: 'viewer' | 'editor';
+  public expiresAt: string;
+  public invitedBy: string;
+  public invitedByFriendly: string;
+  public createdAt: string;
+  public acceptedAt?: string;
+  public transcriptionId: string;
+  public updatedAt?: string;
+  private _expiresAtDate?: Date;
+
+  constructor(data: InviteData) {
+    this.id = data.id;
+    this.email = data.email;
+    this.status = data.status;
+    this.permissionLevel = data.permissionLevel;
+    this.expiresAt = data.expiresAt;
+    this.invitedBy = data.invitedBy;
+    this.invitedByFriendly = data.invitedByFriendly;
+    this.createdAt = data.createdAt;
+    this.acceptedAt = data.acceptedAt;
+    this.transcriptionId = data.transcriptionId;
+    this.updatedAt = data.updatedAt;
+  }
+
+  get isExpired(): boolean {
+    if (!this._expiresAtDate) {
+      this._expiresAtDate = new Date(this.expiresAt);
+    }
+    return this._expiresAtDate < new Date();
+  }
+
+  get statusDisplay(): string {
+    if (this.isExpired && this.status === 'pending') {
+      return 'expired';
+    }
+    return this.status;
+  }
+
+  get createdAtFormatted(): string {
+    try {
+      return new Date(this.createdAt).toLocaleDateString();
+    } catch {
+      return 'Unknown';
+    }
+  }
+
+  get expiresAtFormatted(): string {
+    try {
+      return new Date(this.expiresAt).toLocaleDateString();
+    } catch {
+      return 'Unknown';
     }
   }
 } 

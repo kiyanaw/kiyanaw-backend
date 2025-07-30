@@ -242,6 +242,7 @@ export const WaveformPlayer = ({
         author={transcription?.authorFriendly || 'Unknown'}
         dateLastUpdated={transcription?.dateLastUpdated || '0'}
         regionCount={regions.length}
+        transcriptionId={transcription?.id || ''}
         onSave={handleSaveChanges}
         canEdit={canEdit}
       />
