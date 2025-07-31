@@ -1,4 +1,5 @@
 import type { services as ServicesType } from '../services';
+import { useInviteStore } from '../stores/useInviteStore';
 
 export interface AcceptInviteConfig {
   inviteId: string;
@@ -68,6 +69,9 @@ export class AcceptInviteUseCase {
         userEmail,
         userId
       });
+
+      // Update the store to reflect the accepted invite (updates badge count immediately)
+      useInviteStore.getState().markInviteAsAccepted(inviteId);
 
       return result;
     } catch (error) {
