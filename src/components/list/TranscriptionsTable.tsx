@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { Users, Eye, Edit, Search, Plus } from 'lucide-react';
 import { useTranscriptionsStore } from '../../stores/useTranscriptionsStore';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { useLoadTranscriptions } from '../../hooks/useLoadTranscriptions';
@@ -166,9 +167,7 @@ export const TranscriptionsTable = () => {
                 className="w-80 pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ki-blue focus:border-transparent"
               />
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
+                <Search className="h-4 w-4 text-gray-400" />
               </div>
             </div>
             
@@ -176,9 +175,7 @@ export const TranscriptionsTable = () => {
               to="/transcribe-add" 
               className="inline-flex items-center px-4 py-2 bg-ki-blue text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
             >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m-6 0h6m0-6h6" />
-              </svg>
+              <Plus className="w-4 h-4 mr-2" />
               Add New
             </Link>
           </div>
@@ -223,12 +220,49 @@ export const TranscriptionsTable = () => {
                 <tr key={transcription.id} className="hover:bg-gray-50 transition-colors">
                   {/* Title */}
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <Link
-                      to={`/transcribe-edit/${transcription.id}`}
-                      className="text-ki-blue font-medium hover:text-blue-800 hover:underline"
-                    >
-                      {transcription.title}
-                    </Link>
+                    <div className="flex items-center space-x-2">
+                      <Link
+                        to={`/transcribe-edit/${transcription.id}`}
+                        className="text-ki-blue font-medium hover:text-blue-800 hover:underline"
+                      >
+                        {transcription.title}
+                      </Link>
+                      
+                      {/* Sharing Status Icons */}
+                      {(() => {
+                        const isOwner = transcription.isMine(user?.userId);
+                        const isShared = transcription.isShared();
+                        const accessLevel = transcription.accessLevel;
+                        
+                        // If owner and shared, show share icon
+                        if (isOwner && isShared) {
+                          return (
+                            <div className="flex items-center" title="Shared with others">
+                              <Users className="w-4 h-4 text-gray-500" />
+                            </div>
+                          );
+                        }
+                        
+                        // If not owner but has access (viewer or editor)
+                        if (!isOwner && (accessLevel === 'viewer' || accessLevel === 'editor')) {
+                          return (
+                            <div className="flex items-center space-x-1" title={`Shared with you as ${accessLevel}`}>
+                              {/* Share icon */}
+                              <Users className="w-4 h-4 text-gray-500" />
+                              
+                              {/* Access level icon */}
+                              {accessLevel === 'viewer' ? (
+                                <Eye className="w-3 h-3 text-gray-500" />
+                              ) : (
+                                <Edit className="w-3 h-3 text-gray-500" />
+                              )}
+                            </div>
+                          );
+                        }
+                        
+                        return null;
+                      })()}
+                    </div>
                   </td>
                   
                   {/* Owner */}

@@ -3,6 +3,7 @@ import { generateClient } from 'aws-amplify/api';
 import { loadRegionsForTranscription } from './regionService';
 import { loadIssuesForTranscription } from './issueService';
 import { TranscriptionModel } from './adt';
+import { currentUser } from './userService';
 import { Transcription as DSTranscription } from '../models';
 
 // Mock the dependencies
@@ -12,6 +13,7 @@ jest.mock('aws-amplify/api', () => ({
 jest.mock('./regionService');
 jest.mock('./issueService');
 jest.mock('./adt');
+jest.mock('./userService');
 
 // Mock Amplify Storage
 jest.mock('aws-amplify/storage', () => ({
@@ -70,10 +72,16 @@ describe('TranscriptionService', () => {
     
     // Setup other service mocks - make TranscriptionModel dynamic
     (TranscriptionModel as jest.MockedClass<typeof TranscriptionModel>).mockImplementation(
-      (data: any) => data as any
+      (data: any) => ({
+        ...data,
+        setAccessLevel: jest.fn(),
+      }) as any
     );
     (loadRegionsForTranscription as jest.Mock).mockResolvedValue(mockRegions);
     (loadIssuesForTranscription as jest.Mock).mockResolvedValue(mockIssues);
+    
+    // Setup userService mock
+    (currentUser as jest.Mock).mockReturnValue({ userId: 'test-user-id' });
     
     // Setup fetch mock for peaks data
     (global.fetch as jest.Mock).mockResolvedValue({
@@ -93,7 +101,7 @@ describe('TranscriptionService', () => {
   describe('loadInFull function signature and validation', () => {
     it('should have correct function signature', () => {
       expect(typeof loadInFull).toBe('function');
-      expect(loadInFull.length).toBe(1); // Should accept 1 parameter
+      expect(loadInFull.length).toBe(1); // Should accept 1 parameter (transcriptionId)
     });
 
     it('should throw error when transcriptionId is not provided', async () => {
@@ -156,7 +164,7 @@ describe('TranscriptionService', () => {
       const result = await loadInFull(mockTranscriptionId);
       
       expect(result).toEqual({
-        transcription: mockRawTranscription,
+        transcription: expect.objectContaining(mockRawTranscription),
         peaks: mockPeaksData,
         regions: mockRegions,
         issues: mockIssues,
@@ -300,7 +308,7 @@ describe('TranscriptionService', () => {
       
       expect(result).not.toBe(false);
       if (result !== false) {
-        expect(result.transcription).toEqual(mockRawTranscription);
+        expect(result.transcription).toEqual(expect.objectContaining(mockRawTranscription));
       }
     });
 
@@ -361,7 +369,7 @@ describe('TranscriptionService', () => {
       
       // Verify result structure
       expect(result).toEqual({
-        transcription: mockRawTranscription,
+        transcription: expect.objectContaining(mockRawTranscription),
         peaks: mockPeaksData,
         regions: mockRegions,
         issues: mockIssues,
@@ -637,7 +645,11 @@ describe('TranscriptionService', () => {
       it('should return array of TranscriptionModel instances', async () => {
         // Mock TranscriptionModel to return identifiable objects
         (TranscriptionModel as jest.MockedClass<typeof TranscriptionModel>).mockImplementation(
-          (data: any) => ({ ...data, isTranscriptionModel: true }) as any
+          (data: any) => ({ 
+            ...data, 
+            isTranscriptionModel: true,
+            setAccessLevel: jest.fn(),
+          }) as any
         );
 
         const result = await loadAll();
@@ -684,7 +696,10 @@ describe('TranscriptionService', () => {
       it('should maintain order of transcriptions from GraphQL response', async () => {
         // Mock TranscriptionModel to preserve the id
         (TranscriptionModel as jest.MockedClass<typeof TranscriptionModel>).mockImplementation(
-          (data: any) => data as any
+          (data: any) => ({ 
+            ...data,
+            setAccessLevel: jest.fn(),
+          }) as any
         );
 
         const result = await loadAll();

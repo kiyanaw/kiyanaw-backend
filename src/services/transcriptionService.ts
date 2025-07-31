@@ -10,6 +10,7 @@ import { createTranscription as createTranscriptionMutation, updateTranscription
 import { loadRegionsForTranscription } from './regionService';
 import { loadIssuesForTranscription } from './issueService';
 import { TranscriptionModel, type TranscriptionData as ADTTranscriptionData } from './adt';
+import { currentUser } from './userService';
 import { 
   type GraphQLClient, 
   type GraphQLResponse, 
@@ -222,6 +223,10 @@ export const loadInFull = async (transcriptionId: string): Promise<false | LoadT
 
   // Create TranscriptionModel from GraphQL data
   const transcription = new TranscriptionModel(transcriptionData as unknown as ADTTranscriptionData);
+  
+  // Set access level for the current user
+  const user = currentUser();
+  transcription.setAccessLevel(user?.userId);
 
   // Handle missing source
   if (!transcription.source) {
@@ -258,10 +263,16 @@ export const loadAll = async (): Promise<TranscriptionModel[]> => {
     // The GraphQL result is of shape { listTranscriptions: { items: [...] } }
     const items = response.data?.listTranscriptions?.items ?? [];
 
+    // Get current user for access level determination
+    const user = currentUser();
+    
     // Wrap each transcription in TranscriptionModel before returning
-    const transcriptionModels = items.map(item => 
-      new TranscriptionModel(item as unknown as ADTTranscriptionData)
-    );
+    const transcriptionModels = items.map(item => {
+      const model = new TranscriptionModel(item as unknown as ADTTranscriptionData);
+      // Set access level for the current user
+      model.setAccessLevel(user?.userId);
+      return model;
+    });
 
     console.log(`✅ Loaded ${transcriptionModels.length} transcriptions`);
     return transcriptionModels;

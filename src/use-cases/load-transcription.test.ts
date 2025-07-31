@@ -31,7 +31,7 @@ jest.mock('../services', () => ({
 
 describe('LoadTranscription', () => {
   const mockTranscriptionId = 'test-transcription-id';
-  const mockUser = { username: 'test-user', id: 'user-123' };
+  const mockUser = { username: 'test-user', id: 'user-123', userId: 'user-123' };
   const mockStore = {
     setFullTranscriptionData: jest.fn(),
     addKnownWords: jest.fn(),

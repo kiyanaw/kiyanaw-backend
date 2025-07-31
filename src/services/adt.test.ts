@@ -279,6 +279,185 @@ describe('ADT Models', () => {
         expect(model.wasLastEditedByMe('test-user')).toBe(false); // Should be false when no userLastUpdated
       });
     });
+
+    describe('access level methods', () => {
+      it('should set access level to owner when user is the author', () => {
+        const model = new TranscriptionModel(mockTranscriptionData);
+        
+        model.setAccessLevel('test-author');
+        
+        expect(model.accessLevel).toBe('owner');
+      });
+
+      it('should set access level to editor when user is in editors array', () => {
+        const dataWithEditors = {
+          ...mockTranscriptionData,
+          editors: ['user1', 'test-user', 'user2'],
+        };
+        const model = new TranscriptionModel(dataWithEditors);
+        
+        model.setAccessLevel('test-user');
+        
+        expect(model.accessLevel).toBe('editor');
+      });
+
+      it('should set access level to viewer when user is in viewers array', () => {
+        const dataWithViewers = {
+          ...mockTranscriptionData,
+          viewers: ['user1', 'test-user', 'user2'],
+        };
+        const model = new TranscriptionModel(dataWithViewers);
+        
+        model.setAccessLevel('test-user');
+        
+        expect(model.accessLevel).toBe('viewer');
+      });
+
+      it('should prioritize editor over viewer when user is in both arrays', () => {
+        const dataWithBoth = {
+          ...mockTranscriptionData,
+          editors: ['test-user'],
+          viewers: ['test-user'],
+        };
+        const model = new TranscriptionModel(dataWithBoth);
+        
+        model.setAccessLevel('test-user');
+        
+        expect(model.accessLevel).toBe('editor');
+      });
+
+      it('should set access level to null when user has no access', () => {
+        const dataWithArrays = {
+          ...mockTranscriptionData,
+          editors: ['user1', 'user2'],
+          viewers: ['user3', 'user4'],
+        };
+        const model = new TranscriptionModel(dataWithArrays);
+        
+        model.setAccessLevel('unknown-user');
+        
+        expect(model.accessLevel).toBe(null);
+      });
+
+      it('should set access level to null when no currentUserId provided', () => {
+        const model = new TranscriptionModel(mockTranscriptionData);
+        
+        model.setAccessLevel(undefined);
+        
+        expect(model.accessLevel).toBe(null);
+      });
+
+      it('should handle null editors and viewers arrays', () => {
+        const dataWithNulls = {
+          ...mockTranscriptionData,
+          editors: null,
+          viewers: null,
+        };
+        const model = new TranscriptionModel(dataWithNulls);
+        
+        model.setAccessLevel('test-user');
+        
+        expect(model.accessLevel).toBe(null);
+      });
+
+      it('should handle empty editors and viewers arrays', () => {
+        const dataWithEmpty = {
+          ...mockTranscriptionData,
+          editors: [],
+          viewers: [],
+        };
+        const model = new TranscriptionModel(dataWithEmpty);
+        
+        model.setAccessLevel('test-user');
+        
+        expect(model.accessLevel).toBe(null);
+      });
+
+      it('should return correct access level display strings', () => {
+        const model = new TranscriptionModel(mockTranscriptionData);
+        
+        model.accessLevel = 'owner';
+        expect(model.getAccessLevelDisplay()).toBe('Owner');
+        
+        model.accessLevel = 'editor';
+        expect(model.getAccessLevelDisplay()).toBe('Editor');
+        
+        model.accessLevel = 'viewer';
+        expect(model.getAccessLevelDisplay()).toBe('Viewer');
+        
+        model.accessLevel = null;
+        expect(model.getAccessLevelDisplay()).toBe('No Access');
+      });
+
+      it('should handle undefined access level gracefully', () => {
+        const model = new TranscriptionModel(mockTranscriptionData);
+        // Don't set access level, should default to undefined
+        
+        expect(model.getAccessLevelDisplay()).toBe('No Access');
+      });
+    });
+
+    describe('isShared', () => {
+      it('should return true when transcription has viewers', () => {
+        const dataWithViewers = {
+          ...mockTranscriptionData,
+          viewers: ['user1', 'user2'],
+          editors: null
+        };
+        const model = new TranscriptionModel(dataWithViewers);
+        expect(model.isShared()).toBe(true);
+      });
+
+      it('should return true when transcription has editors', () => {
+        const dataWithEditors = {
+          ...mockTranscriptionData,
+          viewers: null,
+          editors: ['user1', 'user2']
+        };
+        const model = new TranscriptionModel(dataWithEditors);
+        expect(model.isShared()).toBe(true);
+      });
+
+      it('should return true when transcription has both viewers and editors', () => {
+        const dataWithBoth = {
+          ...mockTranscriptionData,
+          viewers: ['user1'],
+          editors: ['user2']
+        };
+        const model = new TranscriptionModel(dataWithBoth);
+        expect(model.isShared()).toBe(true);
+      });
+
+      it('should return false when transcription has no viewers or editors', () => {
+        const dataWithNone = {
+          ...mockTranscriptionData,
+          viewers: null,
+          editors: null
+        };
+        const model = new TranscriptionModel(dataWithNone);
+        expect(model.isShared()).toBe(false);
+      });
+
+      it('should return false when viewers and editors are empty arrays', () => {
+        const dataWithEmptyArrays = {
+          ...mockTranscriptionData,
+          viewers: [],
+          editors: []
+        };
+        const model = new TranscriptionModel(dataWithEmptyArrays);
+        expect(model.isShared()).toBe(false);
+      });
+
+      it('should return false when viewers and editors are undefined', () => {
+        const dataWithUndefined = {
+          ...mockTranscriptionData,
+          viewers: undefined,
+          editors: undefined
+        };
+        const model = new TranscriptionModel(dataWithUndefined);
+        expect(model.isShared()).toBe(false);
+      });
+    });
   });
 
   describe('RegionModel', () => {

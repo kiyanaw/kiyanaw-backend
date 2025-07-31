@@ -115,6 +115,7 @@ export class TranscriptionModel {
   public isVideo: boolean;
   public editors?: string[] | null;
   public viewers?: string[] | null;
+  public accessLevel?: 'owner' | 'editor' | 'viewer' | null;
   private _length: number;
 
   constructor(data: TranscriptionData) {
@@ -205,8 +206,61 @@ export class TranscriptionModel {
     return this.userLastUpdated || 'Unknown';
   }
 
-  get foo() {
-    return 'hello'
+  /**
+   * Set the access level for the current user based on their presence in editors/viewers arrays
+   * Only sets access level if the user is not the owner
+   */
+  setAccessLevel(currentUserId?: string): void {
+    if (!currentUserId) {
+      this.accessLevel = null;
+      return;
+    }
+
+    // If user is the owner, set as owner
+    if (this.isMine(currentUserId)) {
+      this.accessLevel = 'owner';
+      return;
+    }
+
+    // Check if user is in editors array
+    if (this.editors && Array.isArray(this.editors) && this.editors.indexOf(currentUserId) !== -1) {
+      this.accessLevel = 'editor';
+      return;
+    }
+
+    // Check if user is in viewers array
+    if (this.viewers && Array.isArray(this.viewers) && this.viewers.indexOf(currentUserId) !== -1) {
+      this.accessLevel = 'viewer';
+      return;
+    }
+
+    // User has no access
+    this.accessLevel = null;
+  }
+
+  /**
+   * Get a user-friendly display of the access level
+   */
+  getAccessLevelDisplay(): string {
+    switch (this.accessLevel) {
+      case 'owner':
+        return 'Owner';
+      case 'editor':
+        return 'Editor';
+      case 'viewer':
+        return 'Viewer';
+      default:
+        return 'No Access';
+    }
+  }
+
+  /**
+   * Check if this transcription is shared with other users (has viewers or editors)
+   */
+  isShared(): boolean {
+    const hasViewers = this.viewers && Array.isArray(this.viewers) && this.viewers.length > 0;
+    const hasEditors = this.editors && Array.isArray(this.editors) && this.editors.length > 0;
+    return Boolean(hasViewers || hasEditors);
   }
 
 }
