@@ -9,7 +9,14 @@ export const AppLayout = () => {
   const user = useAuthStore((state) => state.user);
   const signedIn = useAuthStore((state) => state.signedIn);
   const profileDropdownRef = useRef<HTMLDivElement>(null);
-  const { pendingCount } = useLoadMyInvites();
+  const { pendingCount, loadMyInvites } = useLoadMyInvites();
+
+  // Load invites for navigation badge when user becomes available
+  useEffect(() => {
+    if (user?.username) {
+      loadMyInvites(user.username);
+    }
+  }, [user?.username, loadMyInvites]);
 
   const handleSignOut = async () => {
     try {

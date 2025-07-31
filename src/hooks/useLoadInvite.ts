@@ -1,8 +1,4 @@
-import { useState, useEffect } from 'react';
-import { InviteModel } from '../services/adt';
-import { services } from '../services';
-import { useAuthStore } from '../stores/useAuthStore';
-import type { InviteWithValidation } from '../services/inviteService';
+import { useInviteStore } from '../stores/useInviteStore';
 
 export interface InviteValidation {
   isValid: boolean;
@@ -13,66 +9,23 @@ export interface InviteValidation {
 }
 
 /**
- * Adapter hook for loading invite details
- * Loads invite data on mount and provides loading state
+ * Hook for accessing current invite store data - NO useEffect!
+ * Components should call loadInviteById() imperatively when needed
  */
-export const useLoadInvite = (inviteId: string | null) => {
-  const [invite, setInvite] = useState<InviteModel | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-  const [validation, setValidation] = useState<InviteValidation | null>(null);
-  const user = useAuthStore((state) => state.user);
-
-  useEffect(() => {
-    if (!inviteId || !user) {
-      setInvite(null);
-      setValidation(null);
-      setError(null);
-      return;
-    }
-
-    const loadInvite = async () => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        console.log('🔄 Loading invite details:', inviteId);
-        
-        const inviteResult = await services.inviteService.getInviteById(inviteId, user.username);
-        
-        if (!inviteResult) {
-          setError('Invitation not found or you do not have permission to access it');
-          setInvite(null);
-          setValidation(null);
-          return;
-        }
-
-        setInvite(inviteResult.invite);
-        setValidation(inviteResult.validation);
-
-        console.log('✅ Invite loaded successfully:', { 
-          inviteId, 
-          status: inviteResult.invite.status, 
-          isValid: inviteResult.validation.isValid 
-        });
-      } catch (err) {
-        console.error('❌ Failed to load invite:', err);
-        const errorMessage = err instanceof Error ? err.message : 'Failed to load invitation';
-        setError(errorMessage);
-        setInvite(null);
-        setValidation(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadInvite();
-  }, [inviteId, user]);
+export const useLoadInvite = () => {
+  const invite = useInviteStore((state) => state.currentInvite);
+  const loading = useInviteStore((state) => state.currentInviteLoading);
+  const error = useInviteStore((state) => state.currentInviteError);
+  const validation = useInviteStore((state) => state.currentInviteValidation);
+  const loadInviteById = useInviteStore((state) => state.loadInviteById);
+  const clearCurrentInvite = useInviteStore((state) => state.clearCurrentInvite);
 
   return {
     invite,
     loading,
     error,
-    validation
+    validation,
+    loadInviteById, // Expose the action to trigger loading
+    clearCurrentInvite // Expose action to clear data
   };
 }; 

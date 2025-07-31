@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { CheckCircle, Clock, AlertCircle, Mail, User, Calendar, FileText, X } from 'lucide-react';
 
 import { useLoadMyInvites } from '../hooks/useLoadMyInvites';
 import { useLoadInvite } from '../hooks/useLoadInvite';
 import { useAcceptInvite } from '../hooks/useAcceptInvite';
+import { useAuthStore } from '../stores/useAuthStore';
 import type { InviteWithValidation } from '../services/inviteService';
 
 /**
@@ -16,7 +17,15 @@ import type { InviteWithValidation } from '../services/inviteService';
 export const InvitationsPage = () => {
   const { inviteId } = useParams<{ inviteId: string }>();
   const navigate = useNavigate();
-  const { invites, loading, error, refresh } = useLoadMyInvites();
+  const userEmail = useAuthStore((state) => state.user?.username);
+  const { invites, loading, error, loadMyInvites } = useLoadMyInvites();
+
+  // Load invites when user becomes available
+  useEffect(() => {
+    if (userEmail) {
+      loadMyInvites(userEmail);
+    }
+  }, [userEmail, loadMyInvites]); // Load when user changes
 
   const closeDialog = () => {
     navigate('/invitations');
@@ -93,7 +102,7 @@ export const InvitationsPage = () => {
             </div>
           </div>
           <button
-            onClick={refresh}
+            onClick={() => userEmail && loadMyInvites(userEmail)}
             className="mt-4 bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
           >
             Try Again
@@ -207,7 +216,7 @@ export const InvitationsPage = () => {
         <InviteDialog 
           inviteId={inviteId} 
           onClose={closeDialog}
-          onAccepted={refresh}
+          onAccepted={() => userEmail && loadMyInvites(userEmail)}
         />
       )}
     </div>
@@ -222,12 +231,26 @@ interface InviteDialogProps {
 
 const InviteDialog = ({ inviteId, onClose, onAccepted }: InviteDialogProps) => {
   const navigate = useNavigate();
-  const { invite, loading, error, validation } = useLoadInvite(inviteId);
+  const userEmail = useAuthStore((state) => state.user?.username);
+  const { invite, loading, error, validation, loadInviteById, clearCurrentInvite } = useLoadInvite();
   const acceptInvite = useAcceptInvite();
 
   const [accepting, setAccepting] = useState(false);
   const [acceptSuccess, setAcceptSuccess] = useState(false);
   const [acceptError, setAcceptError] = useState<string | null>(null);
+
+  // Load invite when dialog opens
+  useEffect(() => {
+    if (userEmail && inviteId) {
+      loadInviteById(inviteId, userEmail);
+    }
+  }, [inviteId, userEmail, loadInviteById]);
+
+  // Clear invite when dialog closes
+  const handleClose = () => {
+    clearCurrentInvite();
+    onClose();
+  };
 
   const handleAcceptInvite = async () => {
     if (!invite || !validation?.canAccept) {
@@ -333,7 +356,7 @@ const InviteDialog = ({ inviteId, onClose, onAccepted }: InviteDialogProps) => {
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-xl font-semibold text-gray-900">Invitation Details</h2>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
           >
             <X className="w-6 h-6" />
@@ -472,7 +495,7 @@ const InviteDialog = ({ inviteId, onClose, onAccepted }: InviteDialogProps) => {
           )}
           
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
           >
             Close
