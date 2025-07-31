@@ -11,7 +11,8 @@
 function generateInviteEmail(data) {
   const { invitedBy, transcriptionTitle, permissionLevel, inviteLink, expiryDate } = data;
 
-  const subject = `Invitation to collaborate on transcription "${transcriptionTitle}"`;
+  const action = permissionLevel === 'viewer' ? 'view' : 'edit';
+  const subject = `Invitation to ${action} transcription "${transcriptionTitle}"`;
 
   const htmlBody = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
