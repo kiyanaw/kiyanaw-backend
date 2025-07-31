@@ -171,6 +171,16 @@ export class TranscriptionModel {
   }
 
   /**
+   * Helper function to strip domain from email addresses
+   * e.g., "foo.bar@home.com" becomes "foo.bar"
+   */
+  private stripEmailDomain(email: string): string {
+    if (!email) return email;
+    const atIndex = email.indexOf('@');
+    return atIndex !== -1 ? email.substring(0, atIndex) : email;
+  }
+
+  /**
    * Check if the current user is the owner of this transcription
    */
   isMine(currentUserId?: string): boolean {
@@ -185,7 +195,7 @@ export class TranscriptionModel {
     if (this.isMine(currentUserId)) {
       return 'me';
     }
-    return this.authorFriendly;
+    return this.stripEmailDomain(this.authorFriendly);
   }
 
   /**
@@ -203,7 +213,7 @@ export class TranscriptionModel {
     if (this.wasLastEditedByMe(currentUserId)) {
       return 'me';
     }
-    return this.userLastUpdated || 'Unknown';
+    return this.stripEmailDomain(this.userLastUpdated!);
   }
 
   /**

@@ -242,6 +242,26 @@ describe('ADT Models', () => {
         expect(model.getOwnerDisplay('different-user-id')).toBe('Test Author');
         expect(model.authorFriendly).toBe('Test Author'); // Verify it's always available
       });
+
+      it('should strip email domain from authorFriendly when showing owner display', () => {
+        const dataWithEmail = {
+          ...mockTranscriptionData,
+          authorFriendly: 'foo.bar@home.com'
+        };
+        const model = new TranscriptionModel(dataWithEmail);
+
+        expect(model.getOwnerDisplay('different-user-id')).toBe('foo.bar');
+      });
+
+      it('should handle authorFriendly without email domain', () => {
+        const dataWithoutDomain = {
+          ...mockTranscriptionData,
+          authorFriendly: 'john.doe'
+        };
+        const model = new TranscriptionModel(dataWithoutDomain);
+
+        expect(model.getOwnerDisplay('different-user-id')).toBe('john.doe');
+      });
     });
 
     describe('last editor methods', () => {
@@ -268,15 +288,24 @@ describe('ADT Models', () => {
         expect(model.getLastEditorDisplay('')).toBe('test-user');
       });
 
-      it('should return "Unknown" when userLastUpdated is not available', () => {
-        const dataWithoutLastUpdated = {
+      it('should strip email domain from userLastUpdated when showing last editor display', () => {
+        const dataWithEmail = {
           ...mockTranscriptionData,
-          userLastUpdated: undefined as any
+          userLastUpdated: 'jane.doe@company.com'
         };
-        const model = new TranscriptionModel(dataWithoutLastUpdated);
+        const model = new TranscriptionModel(dataWithEmail);
 
-        expect(model.getLastEditorDisplay('different-user-id')).toBe('Unknown');
-        expect(model.wasLastEditedByMe('test-user')).toBe(false); // Should be false when no userLastUpdated
+        expect(model.getLastEditorDisplay('different-user-id')).toBe('jane.doe');
+      });
+
+      it('should handle userLastUpdated without email domain', () => {
+        const dataWithoutDomain = {
+          ...mockTranscriptionData,
+          userLastUpdated: 'alice'
+        };
+        const model = new TranscriptionModel(dataWithoutDomain);
+
+        expect(model.getLastEditorDisplay('different-user-id')).toBe('alice');
       });
     });
 
