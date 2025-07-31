@@ -5,7 +5,7 @@ import { post } from 'aws-amplify/api';
 import { listInvites } from '../graphql/queries.js';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - GraphQL mutations are generated as JS files
-import { updateInvite as updateInviteMutation, deleteInvite as deleteInviteMutation } from '../graphql/mutations.js';
+import { deleteInvite as deleteInviteMutation } from '../graphql/mutations.js';
 
 import { InviteModel, type InviteData } from './adt';
 import { 
@@ -50,17 +50,44 @@ interface ListInvitesResponse {
   };
 }
 
-interface UpdateInviteResponse {
-  data: {
-    updateInvite: InviteData;
-  };
-}
+
 
 interface DeleteInviteResponse {
   data: {
     deleteInvite: InviteData;
   };
 }
+
+interface GraphQLError {
+  message: string;
+  path?: (string | number)[];
+  locations?: { line: number; column: number }[];
+  extensions?: Record<string, unknown>;
+}
+
+interface GraphQLListResponse {
+  data?: {
+    listInvites?: {
+      items: (InviteData | null)[];
+      nextToken?: string;
+    };
+  };
+  errors?: GraphQLError[];
+}
+
+// AWS Amplify error types
+interface AmplifyHttpResponse {
+  statusCode: number;
+  body: string | Record<string, unknown>;
+}
+
+interface AmplifyApiError {
+  message?: string;
+  response?: AmplifyHttpResponse;
+  error?: string;
+}
+
+
 
 /**
  * Loads all invites for a specific transcription
@@ -96,7 +123,7 @@ export const loadInvitesForTranscription = async (transcriptionId: string): Prom
     // If it's a GraphQL error with partial data, try to extract what we can
     if (error && typeof error === 'object' && 'data' in error) {
       console.log('🔄 Attempting to recover partial data from GraphQL error...');
-      const errorResponse = error as any;
+      const errorResponse = error as GraphQLListResponse;
       
       const recovered = processInviteResponse(errorResponse, transcriptionId);
       console.log(`✅ Recovered ${recovered.length} invites from partial data`);
@@ -111,7 +138,7 @@ export const loadInvitesForTranscription = async (transcriptionId: string): Prom
 /**
  * Helper function to process invite response data and filter valid records
  */
-const processInviteResponse = (response: any, transcriptionId: string): InviteModel[] => {
+const processInviteResponse = (response: GraphQLListResponse, transcriptionId: string): InviteModel[] => {
   // Handle GraphQL errors gracefully - some records might have null values for non-nullable fields
   let invites: InviteData[] = [];
   
@@ -119,7 +146,7 @@ const processInviteResponse = (response: any, transcriptionId: string): InviteMo
     console.log(`📝 Processing ${response.data.listInvites.items.length} raw invite items`);
     
     // Filter out any items that might be problematic due to null required fields
-    invites = response.data.listInvites.items.filter((invite: any, index: number) => {
+    invites = response.data.listInvites.items.filter((invite: InviteData | null, index: number): invite is InviteData => {
       console.log(`📋 Processing invite ${index}:`, invite);
       
       if (!invite) {
@@ -150,7 +177,7 @@ const processInviteResponse = (response: any, transcriptionId: string): InviteMo
       // The invite is valid for our purposes, even if it has null _version/_lastChangedAt
       console.log(`✅ Valid invite found at index ${index}:`, invite.email, invite.status);
       return true;
-    }).map((invite: any) => {
+    }).map((invite: InviteData) => {
       // Create a clean invite object with defaults for missing metadata fields
       return {
         id: invite.id,
@@ -165,11 +192,7 @@ const processInviteResponse = (response: any, transcriptionId: string): InviteMo
         transcriptionId: invite.transcriptionId,
         transcriptionTitle: invite.transcriptionTitle || 'Unknown Transcription',
         updatedAt: invite.updatedAt,
-        // Provide defaults for problematic fields
-        _version: invite._version || 1,
-        _deleted: invite._deleted || false,
-        _lastChangedAt: invite._lastChangedAt || Date.now(),
-      } as InviteData;
+      };
     });
   }
 
@@ -196,7 +219,8 @@ export const sendInvite = async (data: CreateInviteData): Promise<{ messageId: s
       apiName: 'invite',
       path: '/invite',
       options: {
-        body: data as any // Type assertion to match AWS Amplify API requirements
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        body: data as any // AWS Amplify API requires this type assertion
       }
     }).response;
     
@@ -220,17 +244,19 @@ export const sendInvite = async (data: CreateInviteData): Promise<{ messageId: s
       console.error('❌ Backend returned error:', errorMessage);
       throw new Error(errorMessage);
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ API call failed:', error);
+    
+    const apiError = error as AmplifyApiError;
     
     // AWS Amplify wraps HTTP errors differently
     // Check if this is a RestApiError with status and body
-    if (error.response?.statusCode) {
-      const statusCode = error.response.statusCode;
+    if (apiError.response?.statusCode) {
+      const statusCode = apiError.response.statusCode;
       console.log(`❌ HTTP ${statusCode} error response`);
       
       // Try to extract error message from response body
-      const responseBody = error.response.body;
+      const responseBody = apiError.response.body;
       if (responseBody) {
         let errorData = null;
         try {
@@ -249,15 +275,15 @@ export const sendInvite = async (data: CreateInviteData): Promise<{ messageId: s
     }
     
     // Check for other AWS Amplify error patterns
-    if (error.message && error.message !== 'Unknown error') {
-      console.error('❌ AWS Amplify error:', error.message);
-      throw new Error(error.message);
+    if (apiError.message && apiError.message !== 'Unknown error') {
+      console.error('❌ AWS Amplify error:', apiError.message);
+      throw new Error(apiError.message);
     }
     
     // Check if error has a more specific error property
-    if (error.error && typeof error.error === 'string') {
-      console.error('❌ Error property:', error.error);
-      throw new Error(error.error);
+    if (apiError.error && typeof apiError.error === 'string') {
+      console.error('❌ Error property:', apiError.error);
+      throw new Error(apiError.error);
     }
     
     // For truly unknown errors, throw a helpful message
@@ -290,7 +316,8 @@ export const revokeInvite = async (inviteId: string, requestorUserId: string): P
         body: {
           inviteId,
           requestorUserId
-        } as any
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any // AWS Amplify API requires this type assertion
       }
     }).response;
 
@@ -318,20 +345,27 @@ export const revokeInvite = async (inviteId: string, requestorUserId: string): P
       wasAccepted: result.wasAccepted!,
       permissionLevel: result.permissionLevel!
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Revoke invite API call failed:', error);
+
+    const apiError = error as AmplifyApiError;
 
     // Try to parse API Gateway error response
     try {
-      if (error.response?.statusCode === 400) {
-        const errorResponse = await error.response.body.json();
-        throw new Error(errorResponse.error || 'Bad request');
+      if (apiError.response?.statusCode === 400) {
+        const responseBody = apiError.response.body;
+        if (typeof responseBody === 'string') {
+          const errorResponse = JSON.parse(responseBody);
+          throw new Error(errorResponse.error || 'Bad request');
+        } else if (responseBody && typeof responseBody === 'object') {
+          throw new Error((responseBody as { error?: string }).error || 'Bad request');
+        }
       }
-    } catch (parseError) {
+    } catch {
       // If we can't parse the error response, fall through to generic handling
     }
 
-    throw new Error(error.message || 'Failed to revoke invite. Please try again.');
+    throw new Error(apiError.message || 'Failed to revoke invite. Please try again.');
   }
 };
 
@@ -415,6 +449,7 @@ export const getMyInvites = async (request: GetMyInvitesRequest): Promise<GetMyI
       apiName: 'invite',
       path: '/invite/mine',
       options: {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         body: request as any // Type assertion to match AWS Amplify API requirements
       }
     }).response;
@@ -440,17 +475,19 @@ export const getMyInvites = async (request: GetMyInvitesRequest): Promise<GetMyI
       console.error('❌ Backend returned error:', errorMessage);
       throw new Error(errorMessage);
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Get my invites API call failed:', error);
+
+    const apiError = error as AmplifyApiError;
 
     // AWS Amplify wraps HTTP errors differently
     // Check if this is a RestApiError with status and body
-    if (error.response?.statusCode) {
-      const statusCode = error.response.statusCode;
+    if (apiError.response?.statusCode) {
+      const statusCode = apiError.response.statusCode;
       console.log(`❌ HTTP ${statusCode} error response`);
 
       // Try to extract error message from response body
-      const responseBody = error.response.body;
+      const responseBody = apiError.response.body;
       if (responseBody) {
         let errorData = null;
         try {
@@ -469,15 +506,15 @@ export const getMyInvites = async (request: GetMyInvitesRequest): Promise<GetMyI
     }
 
     // Check for other AWS Amplify error patterns
-    if (error.message && error.message !== 'Unknown error') {
-      console.error('❌ AWS Amplify error:', error.message);
-      throw new Error(error.message);
+    if (apiError.message && apiError.message !== 'Unknown error') {
+      console.error('❌ AWS Amplify error:', apiError.message);
+      throw new Error(apiError.message);
     }
 
     // Check if error has a more specific error property
-    if (error.error && typeof error.error === 'string') {
-      console.error('❌ Error property:', error.error);
-      throw new Error(error.error);
+    if (apiError.error && typeof apiError.error === 'string') {
+      console.error('❌ Error property:', apiError.error);
+      throw new Error(apiError.error);
     }
 
     // For truly unknown errors, throw a helpful message
@@ -579,17 +616,19 @@ export const acceptInvite = async (data: AcceptInviteData): Promise<AcceptInvite
       console.error('❌ Backend returned error:', errorMessage);
       throw new Error(errorMessage);
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Accept invite API call failed:', error);
+
+    const apiError = error as AmplifyApiError;
 
     // AWS Amplify wraps HTTP errors differently
     // Check if this is a RestApiError with status and body
-    if (error.response?.statusCode) {
-      const statusCode = error.response.statusCode;
+    if (apiError.response?.statusCode) {
+      const statusCode = apiError.response.statusCode;
       console.log(`❌ HTTP ${statusCode} error response`);
 
       // Try to extract error message from response body
-      const responseBody = error.response.body;
+      const responseBody = apiError.response.body;
       if (responseBody) {
         let errorData = null;
         try {
@@ -608,15 +647,15 @@ export const acceptInvite = async (data: AcceptInviteData): Promise<AcceptInvite
     }
 
     // Check for other AWS Amplify error patterns
-    if (error.message && error.message !== 'Unknown error') {
-      console.error('❌ AWS Amplify error:', error.message);
-      throw new Error(error.message);
+    if (apiError.message && apiError.message !== 'Unknown error') {
+      console.error('❌ AWS Amplify error:', apiError.message);
+      throw new Error(apiError.message);
     }
 
     // Check if error has a more specific error property
-    if (error.error && typeof error.error === 'string') {
-      console.error('❌ Error property:', error.error);
-      throw new Error(error.error);
+    if (apiError.error && typeof apiError.error === 'string') {
+      console.error('❌ Error property:', apiError.error);
+      throw new Error(apiError.error);
     }
 
     // For truly unknown errors, throw a helpful message

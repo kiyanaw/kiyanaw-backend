@@ -40,3 +40,26 @@ jobs:
         cache: 'npm'
     - run: npm ci
     - run: npm run test
+
+  test-lambda:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [22.x]
+        
+    steps:
+    - uses: actions/checkout@v4
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+    - name: Install dependencies for Lambda functions
+      run: |
+        cd amplify/backend/function/inviteHandler/src
+        npm install
+    - name: Run Lambda function tests
+      run: |
+        cd amplify/backend/function/inviteHandler/src
+        npm test

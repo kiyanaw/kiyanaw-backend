@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { X, FileText, Users, Settings, Mail, Send, UserPlus, Trash2 } from 'lucide-react';
 import { useCreateInvite } from '../../hooks/useCreateInvite';
 import { useRevokeInvite } from '../../hooks/useRevokeInvite';
@@ -47,7 +47,7 @@ export const TranscriptionSettingsPage = ({
   const createInvite = useCreateInvite();
   const revokeInvite = useRevokeInvite();
 
-  const loadInvites = async () => {
+  const loadInvites = useCallback(async () => {
     setInvitesLoading(true);
     
     try {
@@ -62,14 +62,14 @@ export const TranscriptionSettingsPage = ({
     } finally {
       setInvitesLoading(false);
     }
-  };
+  }, [transcriptionId]);
 
   // Load invites when component opens - moved before early return
   useEffect(() => {
     if (isOpen && transcriptionId) {
       loadInvites();
     }
-  }, [isOpen, transcriptionId]);
+  }, [isOpen, transcriptionId, loadInvites]);
 
   if (!isOpen) return null;
 

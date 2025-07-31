@@ -18,6 +18,7 @@ export default tseslint.config(
       'src/ui-components/utils.js',
       'amplify/#current-cloud-backend/**',
       'amplify/backend/custom/regionChangeSQS/build/**',
+      'amplify/backend/custom/inviteHandlerSES/cdk-stack.ts',
     ] 
   },
   {
