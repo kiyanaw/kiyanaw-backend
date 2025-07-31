@@ -38,16 +38,24 @@ export class RevokeInviteUseCase {
   private validate(): void {
     const { inviteId, requestorUserId, services } = this.config;
 
-    if (!inviteId || typeof inviteId !== 'string') {
+    if (!inviteId || typeof inviteId !== 'string' || inviteId.trim() === '') {
       throw new Error('Invite ID is required');
     }
 
-    if (!requestorUserId || typeof requestorUserId !== 'string') {
+    if (!requestorUserId || typeof requestorUserId !== 'string' || requestorUserId.trim() === '') {
       throw new Error('Requestor user ID is required');
     }
 
     if (!services) {
       throw new Error('Services are required');
+    }
+
+    if (!services.inviteService) {
+      throw new Error('Invite service is required');
+    }
+
+    if (typeof services.inviteService.revokeInvite !== 'function') {
+      throw new Error('Revoke invite function is required');
     }
   }
 

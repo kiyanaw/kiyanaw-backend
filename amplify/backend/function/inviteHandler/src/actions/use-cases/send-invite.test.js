@@ -235,6 +235,7 @@ describe('SendInviteUseCase', () => {
         id: expect.stringMatching(/^invite_[a-z0-9]+_[a-z0-9]+$/),
         email: 'test@example.com',
         transcriptionId: 'trans-123',
+        transcriptionTitle: 'Test Transcription',
         permissionLevel: 'editor',
         expiresAt: expect.any(String), // ISO date string
         invitedBy: 'user-123',
@@ -251,7 +252,7 @@ describe('SendInviteUseCase', () => {
         invitedBy: 'John Doe',
         transcriptionTitle: 'Test Transcription',
         permissionLevel: 'editor',
-        inviteLink: 'https://app.kiyanaw.dev/accept-invite/invite_123_abc456',
+        inviteLink: 'https://app.kiyanaw.dev/invitations/invite_123_abc456',
         expiryDate: expect.any(String)
       });
     });
@@ -274,7 +275,7 @@ describe('SendInviteUseCase', () => {
       await useCase.execute();
 
       const mockCall = generateInviteEmail.mock.calls[0][0];
-      expect(mockCall.inviteLink).toMatch(/^https:\/\/app\.kiyanaw\.net\/accept-invite\/invite_/);
+      expect(mockCall.inviteLink).toMatch(/^https:\/\/app\.kiyanaw\.net\/invitations\/invite_/);
     });
 
     it('should format expiry date correctly', async () => {
@@ -404,7 +405,7 @@ describe('SendInviteUseCase', () => {
       await useCase.execute();
 
       const mockCall = generateInviteEmail.mock.calls[0][0];
-      expect(mockCall.inviteLink).toMatch(/^https:\/\/custom-domain\.com\/accept-invite\/invite_/);
+      expect(mockCall.inviteLink).toMatch(/^https:\/\/custom-domain\.com\/invitations\/invite_/);
     });
   });
 

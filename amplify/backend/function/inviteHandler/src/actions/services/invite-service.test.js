@@ -459,4 +459,230 @@ describe('InviteService', () => {
       }
     });
   });
+
+  describe('getInviteById', () => {
+    const testInviteId = 'test-invite-123';
+
+    it('should get invite by ID successfully', async () => {
+      const mockInvite = {
+        id: testInviteId,
+        email: 'test@example.com',
+        status: 'pending',
+        permissionLevel: 'viewer',
+        transcriptionId: 'trans-123',
+        transcriptionTitle: 'Test Transcription',
+        _deleted: false
+      };
+
+      mockSend.mockResolvedValueOnce({
+        Item: mockInvite
+      });
+
+      const result = await inviteService.getInviteById(testInviteId);
+
+      expect(result).toEqual(mockInvite);
+      expect(mockSend).toHaveBeenCalledTimes(1);
+    });
+
+    it('should return null when invite not found', async () => {
+      mockSend.mockResolvedValueOnce({
+        Item: undefined
+      });
+
+      const result = await inviteService.getInviteById(testInviteId);
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null when invite is soft-deleted', async () => {
+      const deletedInvite = {
+        id: testInviteId,
+        email: 'test@example.com',
+        _deleted: true
+      };
+
+      mockSend.mockResolvedValueOnce({
+        Item: deletedInvite
+      });
+
+      const result = await inviteService.getInviteById(testInviteId);
+
+      expect(result).toBeNull();
+    });
+
+    it('should handle DynamoDB errors', async () => {
+      const error = new Error('DynamoDB error');
+      mockSend.mockRejectedValueOnce(error);
+
+      await expect(inviteService.getInviteById(testInviteId))
+        .rejects.toThrow('DynamoDB error');
+    });
+
+    it('should require table name configuration', async () => {
+      // Create a new instance without table name to test the error
+      const originalTableName = process.env.API_KIYANAW_INVITETABLE_NAME;
+      delete process.env.API_KIYANAW_INVITETABLE_NAME;
+      
+      // Require a fresh instance since the table name is set at construction
+      jest.resetModules();
+      const inviteServiceFresh = require('./invite-service');
+
+      await expect(inviteServiceFresh.getInviteById(testInviteId))
+        .rejects.toThrow('API_KIYANAW_INVITETABLE_NAME environment variable not configured');
+
+      // Restore table name
+      process.env.API_KIYANAW_INVITETABLE_NAME = originalTableName;
+    });
+  });
+
+  describe('deleteInvite', () => {
+    const testInviteId = 'test-invite-456';
+
+    it('should delete invite successfully', async () => {
+      const deletedInvite = {
+        id: testInviteId,
+        email: 'test@example.com',
+        status: 'pending'
+      };
+
+      mockSend.mockResolvedValueOnce({
+        Attributes: deletedInvite
+      });
+
+      const result = await inviteService.deleteInvite(testInviteId);
+
+      expect(result).toEqual(deletedInvite);
+      expect(mockSend).toHaveBeenCalledTimes(1);
+    });
+
+    it('should throw error when invite not found', async () => {
+      mockSend.mockResolvedValueOnce({
+        Attributes: undefined
+      });
+
+      await expect(inviteService.deleteInvite(testInviteId))
+        .rejects.toThrow(`Invite ${testInviteId} not found or already deleted`);
+    });
+
+    it('should handle DynamoDB errors', async () => {
+      const error = new Error('DynamoDB delete error');
+      mockSend.mockRejectedValueOnce(error);
+
+      await expect(inviteService.deleteInvite(testInviteId))
+        .rejects.toThrow('DynamoDB delete error');
+    });
+
+    it('should require table name configuration', async () => {
+      // Create a new instance without table name to test the error  
+      const originalTableName = process.env.API_KIYANAW_INVITETABLE_NAME;
+      delete process.env.API_KIYANAW_INVITETABLE_NAME;
+      
+      // Require a fresh instance since the table name is set at construction
+      jest.resetModules();
+      const inviteServiceFresh = require('./invite-service');
+
+      await expect(inviteServiceFresh.deleteInvite(testInviteId))
+        .rejects.toThrow('API_KIYANAW_INVITETABLE_NAME environment variable not configured');
+
+      // Restore table name
+      process.env.API_KIYANAW_INVITETABLE_NAME = originalTableName;
+    });
+  });
+
+  describe('handleInviteServiceError', () => {
+    it('should return original error for business logic errors', () => {
+      const businessError = new Error('Invite already exists');
+      const result = inviteService.handleInviteServiceError(businessError, 'create invite');
+      
+      expect(result).toBe(businessError);
+      expect(result.message).toBe('Invite already exists');
+    });
+
+    it('should return user-friendly error for ResourceNotFoundException', () => {
+      const awsError = new Error('Resource not found');
+      awsError.name = 'ResourceNotFoundException';
+      
+      const result = inviteService.handleInviteServiceError(awsError, 'get invite');
+      
+      expect(result).toBeInstanceOf(Error);
+      expect(result.message).toBe('Resource not found');
+    });
+
+    it('should return user-friendly error for ConditionalCheckFailedException', () => {
+      const awsError = new Error('Conditional check failed');
+      awsError.name = 'ConditionalCheckFailedException';
+      
+      const result = inviteService.handleInviteServiceError(awsError, 'update invite');
+      
+      expect(result.message).toBe('Conditional check failed');
+    });
+
+    it('should return user-friendly error for ValidationException', () => {
+      const awsError = new Error('Invalid request');
+      awsError.name = 'ValidationException';
+      
+      const result = inviteService.handleInviteServiceError(awsError, 'validate invite');
+      
+      expect(result.message).toBe('Invalid request');
+    });
+
+    it('should return generic error for DynamoDB SDK errors', () => {
+      const sdkError = new Error('DynamoDB SDK internal error');
+      
+      const result = inviteService.handleInviteServiceError(sdkError, 'process invite');
+      
+      expect(result.message).toBe('Failed to process invite. Please try again.');
+    });
+
+    it('should return generic error for unknown AWS errors', () => {
+      const unknownError = new Error('AWS unknown error');
+      unknownError.name = 'UnknownAWSException';
+      
+      const result = inviteService.handleInviteServiceError(unknownError, 'handle invite');
+      
+      expect(result.message).toBe('AWS unknown error');
+    });
+  });
+
+  describe('transcriptionTitle support', () => {
+    it('should include transcriptionTitle in created invites', async () => {
+      const inviteData = {
+        id: 'invite-with-title',
+        email: 'test@example.com',
+        transcriptionId: 'trans-123',
+        transcriptionTitle: 'My Test Transcription',
+        permissionLevel: 'viewer',
+        invitedBy: 'user-123',
+        invitedByFriendly: 'Test User',
+        expiresAt: '2024-12-31T23:59:59.000Z',
+        createdAt: '2024-01-01T00:00:00.000Z'
+      };
+
+      mockSend.mockResolvedValueOnce({
+        Attributes: { ...inviteData }
+      });
+
+      const result = await inviteService.createInvite(inviteData);
+
+      expect(result.transcriptionTitle).toBe('My Test Transcription');
+      expect(mockSend).toHaveBeenCalledTimes(1);
+    });
+
+    it('should preserve transcriptionTitle in retrieved invites', async () => {
+      const mockInvite = {
+        id: 'invite-123',
+        email: 'test@example.com',
+        transcriptionTitle: 'Retrieved Transcription',
+        status: 'pending'
+      };
+
+      mockSend.mockResolvedValueOnce({
+        Item: mockInvite
+      });
+
+      const result = await inviteService.getInviteById('invite-123');
+
+      expect(result.transcriptionTitle).toBe('Retrieved Transcription');
+    });
+  });
 }); 

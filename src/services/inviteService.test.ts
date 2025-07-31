@@ -2,6 +2,7 @@ import {
   loadInvitesForTranscription, 
   sendInvite, 
   deleteInvite,
+  revokeInvite,
   __resetClient,
   type CreateInviteData 
 } from './inviteService';
@@ -82,6 +83,7 @@ describe('InviteService', () => {
         invitedByFriendly: 'John Doe',
         createdAt: '2024-01-01T00:00:00Z',
         transcriptionId: transcriptionId,
+        transcriptionTitle: 'Test Transcription',
         acceptedAt: undefined,
         updatedAt: '2024-01-01T00:00:00Z'
       };
@@ -116,6 +118,7 @@ describe('InviteService', () => {
         invitedByFriendly: 'John Doe',
         createdAt: '2024-01-01T00:00:00Z',
         transcriptionId: transcriptionId,
+        transcriptionTitle: 'Test Transcription',
         acceptedAt: undefined,
         updatedAt: '2024-01-01T00:00:00Z'
       };
@@ -538,6 +541,215 @@ describe('InviteService', () => {
     });
   });
 
+  describe('revokeInvite', () => {
+    const inviteId = 'invite-123';
+    const requestorUserId = 'user-456';
+
+    beforeEach(() => {
+      // Setup default successful response
+      const mockResponse = {
+        body: {
+          json: jest.fn().mockResolvedValue({
+            success: true,
+            message: 'Invitation revoked successfully',
+            inviteId: inviteId,
+            email: 'test@example.com',
+            transcriptionId: 'transcription-789',
+            wasAccepted: true,
+            permissionLevel: 'viewer'
+          })
+        }
+      };
+
+      mockPost.mockReturnValue({ response: Promise.resolve(mockResponse) } as any);
+    });
+
+    it('should make API call with correct parameters', async () => {
+      await revokeInvite(inviteId, requestorUserId);
+
+      expect(mockPost).toHaveBeenCalledWith({
+        apiName: 'invite',
+        path: '/invite/revoke',
+        options: {
+          body: {
+            inviteId,
+            requestorUserId
+          }
+        }
+      });
+    });
+
+    it('should return revocation details on success', async () => {
+      const result = await revokeInvite(inviteId, requestorUserId);
+
+      expect(result).toEqual({
+        message: 'Invitation revoked successfully',
+        inviteId: inviteId,
+        email: 'test@example.com',
+        transcriptionId: 'transcription-789',
+        wasAccepted: true,
+        permissionLevel: 'viewer'
+      });
+    });
+
+    it('should handle missing optional fields gracefully', async () => {
+      const mockResponse = {
+        body: {
+          json: jest.fn().mockResolvedValue({
+            success: true,
+            inviteId: inviteId,
+            email: 'test@example.com',
+            transcriptionId: 'transcription-789',
+            wasAccepted: false,
+            permissionLevel: 'editor'
+            // Missing message
+          })
+        }
+      };
+
+      mockPost.mockReturnValue({ response: Promise.resolve(mockResponse) } as any);
+
+      const result = await revokeInvite(inviteId, requestorUserId);
+
+      expect(result).toEqual({
+        message: 'Invitation revoked successfully',
+        inviteId: inviteId,
+        email: 'test@example.com',
+        transcriptionId: 'transcription-789',
+        wasAccepted: false,
+        permissionLevel: 'editor'
+      });
+    });
+
+    it('should throw specific error when backend returns error', async () => {
+      const mockResponse = {
+        body: {
+          json: jest.fn().mockResolvedValue({
+            success: false,
+            error: 'Unauthorized: Only the person who sent the invite can revoke it'
+          })
+        }
+      };
+
+      mockPost.mockReturnValue({ response: Promise.resolve(mockResponse) } as any);
+
+      await expect(revokeInvite(inviteId, requestorUserId))
+        .rejects.toThrow('Unauthorized: Only the person who sent the invite can revoke it');
+    });
+
+    it('should handle HTTP 400 error responses with parsed error messages', async () => {
+      const errorResponse = {
+        response: {
+          statusCode: 400,
+          body: {
+            json: jest.fn().mockResolvedValue({
+              error: 'Invalid invite ID format'
+            })
+          }
+        }
+      };
+
+      mockPost.mockReturnValue({ 
+        response: Promise.reject(errorResponse)
+      } as any);
+
+      await expect(revokeInvite(inviteId, requestorUserId))
+        .rejects.toThrow('Failed to revoke invite. Please try again.');
+    });
+
+    it('should handle generic HTTP error responses', async () => {
+      const errorResponse = {
+        response: {
+          statusCode: 500
+        }
+      };
+
+      mockPost.mockReturnValue({ 
+        response: Promise.reject(errorResponse)
+      } as any);
+
+      await expect(revokeInvite(inviteId, requestorUserId))
+        .rejects.toThrow('Failed to revoke invite. Please try again.');
+    });
+
+    it('should handle AWS Amplify specific errors', async () => {
+      const amplifyError = {
+        message: 'Request timeout'
+      };
+
+      mockPost.mockReturnValue({ 
+        response: Promise.reject(amplifyError)
+      } as any);
+
+      await expect(revokeInvite(inviteId, requestorUserId))
+        .rejects.toThrow('Request timeout');
+    });
+
+    it('should provide fallback error message for unknown errors', async () => {
+      const unknownError = {
+        someProperty: 'unknown structure'
+      };
+
+      mockPost.mockReturnValue({ 
+        response: Promise.reject(unknownError)
+      } as any);
+
+      await expect(revokeInvite(inviteId, requestorUserId))
+        .rejects.toThrow('Failed to revoke invite. Please try again.');
+    });
+
+    it('should handle invite that was not accepted (pending status)', async () => {
+      const mockResponse = {
+        body: {
+          json: jest.fn().mockResolvedValue({
+            success: true,
+            message: 'Invitation revoked successfully',
+            inviteId: inviteId,
+            email: 'test@example.com',
+            transcriptionId: 'transcription-789',
+            wasAccepted: false,
+            permissionLevel: 'editor'
+          })
+        }
+      };
+
+      mockPost.mockReturnValue({ response: Promise.resolve(mockResponse) } as any);
+
+      const result = await revokeInvite(inviteId, requestorUserId);
+
+      expect(result.wasAccepted).toBe(false);
+      expect(result.message).toBe('Invitation revoked successfully');
+    });
+
+    it('should handle different permission levels', async () => {
+      const testCases = [
+        { permissionLevel: 'viewer' as const },
+        { permissionLevel: 'editor' as const }
+      ];
+
+      for (const testCase of testCases) {
+        const mockResponse = {
+          body: {
+            json: jest.fn().mockResolvedValue({
+              success: true,
+              message: 'Invitation revoked successfully',
+              inviteId: inviteId,
+              email: 'test@example.com',
+              transcriptionId: 'transcription-789',
+              wasAccepted: true,
+              permissionLevel: testCase.permissionLevel
+            })
+          }
+        };
+
+        mockPost.mockReturnValue({ response: Promise.resolve(mockResponse) } as any);
+
+        const result = await revokeInvite(inviteId, requestorUserId);
+        expect(result.permissionLevel).toBe(testCase.permissionLevel);
+      }
+    });
+  });
+
   describe('Client Management', () => {
     it('should reuse the same client instance across calls', async () => {
       const mockResponse = {
@@ -593,6 +805,7 @@ describe('InviteService', () => {
         createdAt: '2024-01-01T00:00:00Z',
         acceptedAt: '2024-01-15T10:30:00Z',
         transcriptionId: 'transcription-456',
+        transcriptionTitle: 'Complete Test Transcription',
         updatedAt: '2024-01-15T10:30:00Z',
         _version: 2,
         _deleted: false,
@@ -637,7 +850,8 @@ describe('InviteService', () => {
         invitedBy: 'user-123',
         invitedByFriendly: 'John Doe',
         createdAt: '2024-01-01T00:00:00Z',
-        transcriptionId: 'transcription-123'
+        transcriptionId: 'transcription-123',
+        transcriptionTitle: 'Editor Test Transcription'
       };
 
       const viewerInvite = {
@@ -649,7 +863,8 @@ describe('InviteService', () => {
         invitedBy: 'user-123',
         invitedByFriendly: 'John Doe',
         createdAt: '2024-01-01T00:00:00Z',
-        transcriptionId: 'transcription-123'
+        transcriptionId: 'transcription-123',
+        transcriptionTitle: 'Viewer Test Transcription'
       };
 
       const mockResponse = {

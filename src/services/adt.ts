@@ -253,22 +253,30 @@ export class InviteModel {
     if (this.isExpired && this.status === 'pending') {
       return 'expired';
     }
-    return this.status;
+    return this.status.charAt(0).toUpperCase() + this.status.slice(1);
   }
 
   get createdAtFormatted(): string {
     try {
-      return new Date(this.createdAt).toLocaleDateString();
+      const date = new Date(this.createdAt);
+      if (isNaN(date.getTime())) {
+        return 'Invalid Date';
+      }
+      return date.toLocaleDateString();
     } catch {
-      return 'Unknown';
+      return 'Invalid Date';
     }
   }
 
   get expiresAtFormatted(): string {
     try {
-      return new Date(this.expiresAt).toLocaleDateString();
+      const date = new Date(this.expiresAt);
+      if (isNaN(date.getTime())) {
+        return 'Invalid Date';
+      }
+      return date.toLocaleDateString();
     } catch {
-      return 'Unknown';
+      return 'Invalid Date';
     }
   }
 } 
