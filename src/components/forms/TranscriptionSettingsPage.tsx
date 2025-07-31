@@ -143,7 +143,7 @@ export const TranscriptionSettingsPage = ({
   };
 
   const handleRevokeInvite = async (invite: InviteModel) => {
-    const isAccepted = invite.statusDisplay === 'accepted';
+    const isAccepted = invite.statusDisplay === 'Accepted';
     const confirmText = isAccepted 
       ? `Revoke access for ${invite.email}? This will remove them from the transcription and delete their invitation.`
       : `Delete invitation for ${invite.email}?`;
@@ -394,12 +394,12 @@ export const TranscriptionSettingsPage = ({
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            {(invite.statusDisplay === 'pending' || invite.statusDisplay === 'accepted') && (
+                            {(invite.statusDisplay === 'Pending' || invite.statusDisplay === 'Accepted') && (
                               <button 
                                 onClick={() => handleRevokeInvite(invite)}
                                 disabled={deletingInviteId === invite.id}
                                 className="p-1 text-gray-400 hover:text-red-600 transition-colors disabled:opacity-50"
-                                title={invite.statusDisplay === 'accepted' ? 'Revoke access' : 'Delete invite'}
+                                title={invite.statusDisplay === 'Accepted' ? 'Revoke access' : 'Delete invite'}
                               >
                                 {deletingInviteId === invite.id ? (
                                   <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
