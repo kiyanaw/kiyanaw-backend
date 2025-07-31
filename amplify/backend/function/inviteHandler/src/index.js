@@ -11,12 +11,16 @@
 Amplify Params - DO NOT EDIT */
 
 const { handleInvite } = require('./actions/handle-invite');
+const { handleAcceptInvite } = require('./actions/handle-accept-invite');
+const { handleGetMyInvites } = require('./actions/handle-get-my-invites');
 
 /**
  * API Gateway Lambda router for handling multiple endpoints
  * 
  * Supported routes:
  * POST /invite - Send invitation emails
+ * POST /invite/accept - Accept invitation
+ * POST /invite/mine - Get my invitations (with optional filtering)
  * 
  * Returns API Gateway response:
  * {
@@ -96,7 +100,72 @@ exports.handler = async (event) => {
             }
         }
         
-        // Handle unknown routes
+        if (httpMethod === 'POST' && resource === '/invite/accept') {
+            try {
+                const result = await handleAcceptInvite(requestBody);
+                return {
+                    statusCode: 200,
+                    headers: corsHeaders,
+                    body: JSON.stringify({
+                        success: true,
+                        ...result
+                    })
+                };
+            } catch (error) {
+                console.error('Accept invite handler error:', error);
+                
+                // Determine if it's a validation error (400) or server error (500)
+                const isValidationError = error.message.includes('Missing required parameters') ||
+                                        error.message.includes('Invalid') ||
+                                        error.message.includes('already exists') ||
+                                        error.message.includes('already been accepted') ||
+                                        error.message.includes('expired') ||
+                                        error.message.includes('not found') ||
+                                        error.message.includes('not for your email');
+                
+                return {
+                    statusCode: isValidationError ? 400 : 500,
+                    headers: corsHeaders,
+                    body: JSON.stringify({
+                        success: false,
+                        error: error.message
+                    })
+                };
+                         }
+         }
+         
+         if (httpMethod === 'POST' && resource === '/invite/mine') {
+             try {
+                 const result = await handleGetMyInvites(requestBody);
+                 return {
+                     statusCode: 200,
+                     headers: corsHeaders,
+                     body: JSON.stringify({
+                         success: true,
+                         ...result
+                     })
+                 };
+             } catch (error) {
+                 console.error('Get my invites handler error:', error);
+                 
+                 // Determine if it's a validation error (400) or server error (500)
+                 const isValidationError = error.message.includes('Missing required parameters') ||
+                                         error.message.includes('Invalid') ||
+                                         error.message.includes('not found') ||
+                                         error.message.includes('not for your email');
+                 
+                 return {
+                     statusCode: isValidationError ? 400 : 500,
+                     headers: corsHeaders,
+                     body: JSON.stringify({
+                         success: false,
+                         error: error.message
+                     })
+                 };
+             }
+         }
+         
+         // Handle unknown routes
         return {
             statusCode: 404,
             headers: corsHeaders,

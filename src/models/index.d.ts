@@ -161,6 +161,7 @@ type EagerInvite = {
   readonly createdAt: string;
   readonly acceptedAt?: string | null;
   readonly transcriptionId: string;
+  readonly transcriptionTitle: string;
   readonly updatedAt?: string | null;
 }
 
@@ -175,6 +176,7 @@ type LazyInvite = {
   readonly createdAt: string;
   readonly acceptedAt?: string | null;
   readonly transcriptionId: string;
+  readonly transcriptionTitle: string;
   readonly updatedAt?: string | null;
 }
 

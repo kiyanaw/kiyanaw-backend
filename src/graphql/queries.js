@@ -533,6 +533,7 @@ export const getInvite = /* GraphQL */ `
       createdAt
       acceptedAt
       transcriptionId
+      transcriptionTitle
       updatedAt
       _version
       _deleted
@@ -567,6 +568,7 @@ export const listInvites = /* GraphQL */ `
         createdAt
         acceptedAt
         transcriptionId
+        transcriptionTitle
         updatedAt
         _version
         _deleted
@@ -603,6 +605,7 @@ export const syncInvites = /* GraphQL */ `
         createdAt
         acceptedAt
         transcriptionId
+        transcriptionTitle
         updatedAt
         _version
         _deleted
@@ -641,6 +644,7 @@ export const invitesByEmail = /* GraphQL */ `
         createdAt
         acceptedAt
         transcriptionId
+        transcriptionTitle
         updatedAt
         _version
         _deleted
@@ -679,6 +683,7 @@ export const invitesByTranscription = /* GraphQL */ `
         createdAt
         acceptedAt
         transcriptionId
+        transcriptionTitle
         updatedAt
         _version
         _deleted

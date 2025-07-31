@@ -13,6 +13,32 @@
           "delete"
         ]
       }
+    },
+    "/invite/accept": {
+      "name": "/invite/accept",
+      "lambdaFunction": "inviteHandler",
+      "permissions": {
+        "setting": "private",
+        "auth": [
+          "create",
+          "read",
+          "update",
+          "delete"
+        ]
+      }
+    },
+    "/invite/mine": {
+      "name": "/invite/mine",
+      "lambdaFunction": "inviteHandler",
+      "permissions": {
+        "setting": "private",
+        "auth": [
+          "create",
+          "read",
+          "update",
+          "delete"
+        ]
+      }
     }
   }
 }

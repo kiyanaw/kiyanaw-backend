@@ -665,6 +665,13 @@ export const schema = {
                     "isRequired": true,
                     "attributes": []
                 },
+                "transcriptionTitle": {
+                    "name": "transcriptionTitle",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": true,
+                    "attributes": []
+                },
                 "updatedAt": {
                     "name": "updatedAt",
                     "isArray": false,
@@ -768,5 +775,5 @@ export const schema = {
     "enums": {},
     "nonModels": {},
     "codegenVersion": "3.4.4",
-    "version": "cc1a673d68d89b95d16a1ae75b3212a8"
+    "version": "d8b7b4a277d1340374db2c2b455be60f"
 };

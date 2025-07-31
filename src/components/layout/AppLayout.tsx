@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Outlet, Link } from 'react-router-dom';
 import { useAuthStore } from '../../stores/useAuthStore';
+import { useLoadMyInvites } from '../../hooks/useLoadMyInvites';
 import { signOut } from 'aws-amplify/auth';
 
 export const AppLayout = () => {
@@ -8,6 +9,7 @@ export const AppLayout = () => {
   const user = useAuthStore((state) => state.user);
   const signedIn = useAuthStore((state) => state.signedIn);
   const profileDropdownRef = useRef<HTMLDivElement>(null);
+  const { pendingCount } = useLoadMyInvites();
 
   const handleSignOut = async () => {
     try {
@@ -58,12 +60,25 @@ export const AppLayout = () => {
             alt="kiyânaw Transcribe" 
             className="w-[40px] h-[40px] rounded-[3px] border border-white"
           />
-          <Link
-            to="/transcribe-list"
-            className="text-white hover:text-white/80 transition-colors duration-200 text-base font-medium hidden md:block ml-5"
-          >
-            My transcriptions
-          </Link>
+          <nav className="hidden md:flex items-center gap-6 ml-5">
+            <Link
+              to="/transcribe-list"
+              className="text-white hover:text-white/80 transition-colors duration-200 text-base font-medium"
+            >
+              My transcriptions
+            </Link>
+            <Link
+              to="/invitations"
+              className="text-white hover:text-white/80 transition-colors duration-200 text-base font-medium relative flex items-center"
+            >
+              Invitations
+              {pendingCount > 0 && (
+                <span className="ml-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                  {pendingCount}
+                </span>
+              )}
+            </Link>
+          </nav>
         </div>
         <div className="flex items-center gap-4">
           {signedIn ? (

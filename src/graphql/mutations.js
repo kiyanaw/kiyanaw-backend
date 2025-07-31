@@ -476,6 +476,7 @@ export const createInvite = /* GraphQL */ `
       createdAt
       acceptedAt
       transcriptionId
+      transcriptionTitle
       updatedAt
       _version
       _deleted
@@ -500,6 +501,7 @@ export const updateInvite = /* GraphQL */ `
       createdAt
       acceptedAt
       transcriptionId
+      transcriptionTitle
       updatedAt
       _version
       _deleted
@@ -524,6 +526,7 @@ export const deleteInvite = /* GraphQL */ `
       createdAt
       acceptedAt
       transcriptionId
+      transcriptionTitle
       updatedAt
       _version
       _deleted

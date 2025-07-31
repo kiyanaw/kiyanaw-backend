@@ -95,8 +95,29 @@ export const TranscriptionsTable = () => {
     setCurrentPage(1); // Reset to first page when sorting
   };
 
-  const formatTimeAgo = (timestamp: string) => {
-    return timeAgo.format(new Date(Number(timestamp)));
+  const formatTimeAgo = (timestamp: string | null | undefined) => {
+    // Handle null, undefined, or empty timestamps
+    if (!timestamp) {
+      return 'Never';
+    }
+    
+    // Try to parse the timestamp
+    const numericTimestamp = Number(timestamp);
+    
+    // Check if the conversion resulted in a valid number
+    if (isNaN(numericTimestamp)) {
+      return 'Unknown';
+    }
+    
+    // Create date and validate it
+    const date = new Date(numericTimestamp);
+    
+    // Check if the date is valid
+    if (isNaN(date.getTime())) {
+      return 'Invalid';
+    }
+    
+    return timeAgo.format(date);
   };
 
   const formatDuration = (seconds: number) => {

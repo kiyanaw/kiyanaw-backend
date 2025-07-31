@@ -110,6 +110,7 @@ class SendInviteUseCase {
       id: inviteId,
       email,
       transcriptionId,
+      transcriptionTitle,
       permissionLevel,
       expiresAt: expiresAt.toISOString(),
       invitedBy,
@@ -118,7 +119,7 @@ class SendInviteUseCase {
     });
 
     // Generate invite acceptance link using the created invite ID
-    const inviteLink = `${baseUrl}/accept-invite/${inviteRecord.id}`;
+    const inviteLink = `${baseUrl}/invitations/${inviteRecord.id}`;
 
     // Format expiry date for display
     const expiryDate = expiresAt.toLocaleDateString();

@@ -71,6 +71,7 @@ export interface InviteData {
   createdAt: string;
   acceptedAt?: string;
   transcriptionId: string;
+  transcriptionTitle: string;
   updatedAt?: string;
 }
 
@@ -222,6 +223,7 @@ export class InviteModel {
   public createdAt: string;
   public acceptedAt?: string;
   public transcriptionId: string;
+  public transcriptionTitle: string;
   public updatedAt?: string;
   private _expiresAtDate?: Date;
 
@@ -236,6 +238,7 @@ export class InviteModel {
     this.createdAt = data.createdAt;
     this.acceptedAt = data.acceptedAt;
     this.transcriptionId = data.transcriptionId;
+    this.transcriptionTitle = data.transcriptionTitle;
     this.updatedAt = data.updatedAt;
   }
 

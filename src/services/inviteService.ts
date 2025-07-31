@@ -2,7 +2,7 @@ import { generateClient } from 'aws-amplify/api';
 import { post } from 'aws-amplify/api';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - GraphQL queries are generated as JS files
-import { getInvite, listInvites } from '../graphql/queries.js';
+import { listInvites } from '../graphql/queries.js';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - GraphQL mutations are generated as JS files
 import { updateInvite as updateInviteMutation, deleteInvite as deleteInviteMutation } from '../graphql/mutations.js';
@@ -41,10 +41,6 @@ export interface UpdateInviteData {
   status?: string;
   permissionLevel?: 'viewer' | 'editor';
   _version: number;
-}
-
-interface GetInviteResponse {
-  getInvite: InviteData;
 }
 
 interface ListInvitesResponse {
@@ -167,6 +163,7 @@ const processInviteResponse = (response: any, transcriptionId: string): InviteMo
         createdAt: invite.createdAt,
         acceptedAt: invite.acceptedAt,
         transcriptionId: invite.transcriptionId,
+        transcriptionTitle: invite.transcriptionTitle || 'Unknown Transcription',
         updatedAt: invite.updatedAt,
         // Provide defaults for problematic fields
         _version: invite._version || 1,
@@ -293,5 +290,268 @@ export const deleteInvite = async (inviteId: string): Promise<void> => {
   } catch (error) {
     console.error('❌ Failed to delete invite via API:', error);
     throw error;
+  }
+};
+
+export interface GetMyInvitesRequest {
+  userEmail: string;
+  transcriptionId?: string;
+  inviteId?: string;
+}
+
+export interface InviteWithValidation {
+  invite: {
+    id: string;
+    email: string;
+    status: string;
+    permissionLevel: 'viewer' | 'editor';
+    expiresAt: string;
+    invitedBy: string;
+    invitedByFriendly: string;
+    createdAt: string;
+    acceptedAt?: string;
+    transcriptionId: string;
+    transcriptionTitle: string;
+    updatedAt?: string;
+  };
+  validation: {
+    isValid: boolean;
+    isExpired: boolean;
+    isPending: boolean;
+    isAccepted: boolean;
+    canAccept: boolean;
+  };
+}
+
+export interface GetMyInvitesResponse {
+  invites: InviteWithValidation[];
+  total: number;
+  filters: {
+    userEmail: string;
+    transcriptionId: string | null;
+    inviteId: string | null;
+  };
+}
+
+/**
+ * Gets user's invites via the backend Lambda (with optional filtering)
+ * @param request Request parameters for getting invites
+ * @returns Array of invites with validation info
+ */
+export const getMyInvites = async (request: GetMyInvitesRequest): Promise<GetMyInvitesResponse> => {
+  try {
+    console.log('🔍 Loading my invites:', request);
+
+    const response = await post({
+      apiName: 'invite',
+      path: '/invite/mine',
+      options: {
+        body: request as any // Type assertion to match AWS Amplify API requirements
+      }
+    }).response;
+
+    const result = (await response.body.json()) as unknown as {
+      success: boolean;
+      invites?: InviteWithValidation[];
+      total?: number;
+      filters?: GetMyInvitesResponse['filters'];
+      error?: string;
+    };
+
+    if (result && result.success) {
+      console.log('✅ My invites loaded successfully:', result);
+      return {
+        invites: result.invites || [],
+        total: result.total || 0,
+        filters: result.filters || { userEmail: request.userEmail, transcriptionId: null, inviteId: null }
+      };
+    } else {
+      // Throw the specific error message from the backend
+      const errorMessage = result?.error || 'API returned error';
+      console.error('❌ Backend returned error:', errorMessage);
+      throw new Error(errorMessage);
+    }
+  } catch (error: any) {
+    console.error('❌ Get my invites API call failed:', error);
+
+    // AWS Amplify wraps HTTP errors differently
+    // Check if this is a RestApiError with status and body
+    if (error.response?.statusCode) {
+      const statusCode = error.response.statusCode;
+      console.log(`❌ HTTP ${statusCode} error response`);
+
+      // Try to extract error message from response body
+      const responseBody = error.response.body;
+      if (responseBody) {
+        let errorData = null;
+        try {
+          // Response body might be a string or parsed object
+          errorData = typeof responseBody === 'string' ? JSON.parse(responseBody) : responseBody;
+        } catch (parseError) {
+          console.warn('❌ Could not parse error response body as JSON:', parseError);
+        }
+
+        // If we successfully parsed and found an error message, use it
+        if (errorData && errorData.error) {
+          console.error('❌ Backend error message:', errorData.error);
+          throw new Error(errorData.error);
+        }
+      }
+    }
+
+    // Check for other AWS Amplify error patterns
+    if (error.message && error.message !== 'Unknown error') {
+      console.error('❌ AWS Amplify error:', error.message);
+      throw new Error(error.message);
+    }
+
+    // Check if error has a more specific error property
+    if (error.error && typeof error.error === 'string') {
+      console.error('❌ Error property:', error.error);
+      throw new Error(error.error);
+    }
+
+    // For truly unknown errors, throw a helpful message
+    console.error('❌ Unknown error structure:', error);
+    throw new Error('Failed to load invites. Please try again.');
+  }
+};
+
+/**
+ * Gets a single invite by ID via the backend Lambda
+ * @param inviteId The ID of the invite to retrieve
+ * @param userEmail The user's email for validation
+ * @returns InviteModel instance with validation info or null if not found
+ */
+export const getInviteById = async (inviteId: string, userEmail: string): Promise<{ invite: InviteModel; validation: InviteWithValidation['validation'] } | null> => {
+  try {
+    console.log('🔍 Loading invite by ID:', inviteId);
+
+    const result = await getMyInvites({
+      userEmail,
+      inviteId
+    });
+
+    const inviteWithValidation = result.invites[0];
+    
+    if (!inviteWithValidation) {
+      console.log('❌ Invite not found:', inviteId);
+      return null;
+    }
+
+    console.log('✅ Invite loaded successfully:', inviteId);
+    return {
+      invite: new InviteModel(inviteWithValidation.invite),
+      validation: inviteWithValidation.validation
+    };
+  } catch (error) {
+    console.error('❌ Failed to load invite by ID:', error);
+    throw error;
+  }
+};
+
+export interface AcceptInviteData {
+  inviteId: string;
+  userEmail: string;
+  userId: string;
+}
+
+export interface AcceptInviteResult {
+  message: string;
+  invite: {
+    inviteId: string;
+    email: string;
+    permissionLevel: 'viewer' | 'editor';
+    transcriptionId: string;
+    invitedBy: string;
+    invitedByFriendly: string;
+    acceptedAt: string;
+    status: string;
+  };
+}
+
+/**
+ * Accepts an invite by calling the backend Lambda
+ * @param data Accept invite request data
+ * @returns Success confirmation with updated invite details
+ */
+export const acceptInvite = async (data: AcceptInviteData): Promise<AcceptInviteResult> => {
+  try {
+    console.log('🔄 Accepting invite:', { inviteId: data.inviteId, userEmail: data.userEmail });
+
+    const response = await post({
+      apiName: 'invite',
+      path: '/invite/accept',
+      options: {
+        body: {
+          inviteId: data.inviteId,
+          userEmail: data.userEmail,
+          userId: data.userId
+        }
+      }
+    }).response;
+
+    const result = await response.body.json() as {
+      success: boolean;
+      message?: string;
+      invite?: AcceptInviteResult['invite'];
+      error?: string;
+    };
+
+    if (result && result.success) {
+      console.log('✅ Invite accepted successfully:', result);
+      return {
+        message: result.message || 'Invitation accepted successfully',
+        invite: result.invite!
+      };
+    } else {
+      // Throw the specific error message from the backend
+      const errorMessage = result?.error || 'API returned error';
+      console.error('❌ Backend returned error:', errorMessage);
+      throw new Error(errorMessage);
+    }
+  } catch (error: any) {
+    console.error('❌ Accept invite API call failed:', error);
+
+    // AWS Amplify wraps HTTP errors differently
+    // Check if this is a RestApiError with status and body
+    if (error.response?.statusCode) {
+      const statusCode = error.response.statusCode;
+      console.log(`❌ HTTP ${statusCode} error response`);
+
+      // Try to extract error message from response body
+      const responseBody = error.response.body;
+      if (responseBody) {
+        let errorData = null;
+        try {
+          // Response body might be a string or parsed object
+          errorData = typeof responseBody === 'string' ? JSON.parse(responseBody) : responseBody;
+        } catch (parseError) {
+          console.warn('❌ Could not parse error response body as JSON:', parseError);
+        }
+
+        // If we successfully parsed and found an error message, use it
+        if (errorData && errorData.error) {
+          console.error('❌ Backend error message:', errorData.error);
+          throw new Error(errorData.error);
+        }
+      }
+    }
+
+    // Check for other AWS Amplify error patterns
+    if (error.message && error.message !== 'Unknown error') {
+      console.error('❌ AWS Amplify error:', error.message);
+      throw new Error(error.message);
+    }
+
+    // Check if error has a more specific error property
+    if (error.error && typeof error.error === 'string') {
+      console.error('❌ Error property:', error.error);
+      throw new Error(error.error);
+    }
+
+    // For truly unknown errors, throw a helpful message
+    console.error('❌ Unknown error structure:', error);
+    throw new Error('Failed to accept invite. Please try again.');
   }
 }; 

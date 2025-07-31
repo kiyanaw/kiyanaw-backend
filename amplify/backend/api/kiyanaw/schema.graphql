@@ -106,5 +106,6 @@ type Invite
   createdAt: String!
   acceptedAt: String
   transcriptionId: ID! @index(name: "ByTranscription", queryField: "invitesByTranscription")
+  transcriptionTitle: String! # Title of the transcription being shared
 }
 

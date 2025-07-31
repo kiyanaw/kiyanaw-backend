@@ -20,6 +20,7 @@ class InviteService {
    * @param {string} inviteData.id - Unique invite ID
    * @param {string} inviteData.email - Recipient email address
    * @param {string} inviteData.transcriptionId - ID of the transcription
+   * @param {string} inviteData.transcriptionTitle - Title of the transcription being shared
    * @param {string} inviteData.permissionLevel - "viewer" or "editor"
    * @param {string} inviteData.invitedBy - User ID who sent the invite
    * @param {string} inviteData.invitedByFriendly - Friendly name of who sent the invite
@@ -43,6 +44,7 @@ class InviteService {
       invitedByFriendly: inviteData.invitedByFriendly,
       createdAt: inviteData.createdAt,
       transcriptionId: inviteData.transcriptionId,
+      transcriptionTitle: inviteData.transcriptionTitle,
       // acceptedAt will be set when invite is accepted
       acceptedAt: null,
       // Add required fields for Amplify
