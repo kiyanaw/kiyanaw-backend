@@ -71,6 +71,7 @@ class AcceptInviteUseCase {
       throw new Error('API_KIYANAW_INVITETABLE_NAME environment variable not configured');
     }
 
+    const { userId } = this.config;
     const now = new Date().toISOString();
 
     const command = new UpdateCommand({
@@ -78,15 +79,17 @@ class AcceptInviteUseCase {
       Key: {
         id: invite.id
       },
-      UpdateExpression: 'SET #status = :status, #acceptedAt = :acceptedAt, #updatedAt = :updatedAt',
+      UpdateExpression: 'SET #status = :status, #acceptedAt = :acceptedAt, #acceptedByUserId = :acceptedByUserId, #updatedAt = :updatedAt',
       ExpressionAttributeNames: {
         '#status': 'status',
         '#acceptedAt': 'acceptedAt',
+        '#acceptedByUserId': 'acceptedByUserId',
         '#updatedAt': 'updatedAt'
       },
       ExpressionAttributeValues: {
         ':status': 'accepted',
         ':acceptedAt': now,
+        ':acceptedByUserId': userId,
         ':updatedAt': now
       },
       ReturnValues: 'ALL_NEW'

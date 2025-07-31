@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, FileText, Users, Settings, Mail, Send, UserPlus, Trash2 } from 'lucide-react';
 import { useCreateInvite } from '../../hooks/useCreateInvite';
+import { useRevokeInvite } from '../../hooks/useRevokeInvite';
 import { services } from '../../services';
 import type { InviteModel } from '../../services/adt';
 
@@ -44,6 +45,7 @@ export const TranscriptionSettingsPage = ({
   
   // Hooks
   const createInvite = useCreateInvite();
+  const revokeInvite = useRevokeInvite();
 
   const loadInvites = async () => {
     setInvitesLoading(true);
@@ -140,8 +142,14 @@ export const TranscriptionSettingsPage = ({
     }
   };
 
-  const handleDeleteInvite = async (invite: InviteModel) => {
-    if (!confirm(`Delete invite for ${invite.email}?`)) {
+  const handleRevokeInvite = async (invite: InviteModel) => {
+    const isAccepted = invite.statusDisplay === 'accepted';
+    const actionText = isAccepted ? 'revoke access for' : 'delete invite for';
+    const confirmText = isAccepted 
+      ? `Revoke access for ${invite.email}? This will remove them from the transcription and delete their invitation.`
+      : `Delete invitation for ${invite.email}?`;
+    
+    if (!confirm(confirmText)) {
       return;
     }
 
@@ -149,14 +157,19 @@ export const TranscriptionSettingsPage = ({
     setInviteError(null);
     
     try {
-      await services.inviteService.deleteInvite(invite.id);
-      setInviteSuccess(`Invite for ${invite.email} deleted successfully`);
+      const result = await revokeInvite(invite.id);
+      
+      const successMessage = result.wasAccepted 
+        ? `Access revoked for ${invite.email}. They have been removed from the transcription.`
+        : `Invitation for ${invite.email} deleted successfully`;
+      
+      setInviteSuccess(successMessage);
       
       // Refresh the invite list
       await loadInvites();
     } catch (error) {
-      console.error('Failed to delete invite:', error);
-      setInviteError(error instanceof Error ? error.message : 'Failed to delete invite');
+      console.error('Failed to revoke invite:', error);
+      setInviteError(error instanceof Error ? error.message : 'Failed to revoke invite');
     } finally {
       setDeletingInviteId(null);
     }
@@ -381,12 +394,12 @@ export const TranscriptionSettingsPage = ({
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            {invite.statusDisplay === 'pending' && (
+                            {(invite.statusDisplay === 'pending' || invite.statusDisplay === 'accepted') && (
                               <button 
-                                onClick={() => handleDeleteInvite(invite)}
+                                onClick={() => handleRevokeInvite(invite)}
                                 disabled={deletingInviteId === invite.id}
                                 className="p-1 text-gray-400 hover:text-red-600 transition-colors disabled:opacity-50"
-                                title="Delete invite"
+                                title={invite.statusDisplay === 'accepted' ? 'Revoke access' : 'Delete invite'}
                               >
                                 {deletingInviteId === invite.id ? (
                                   <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />

@@ -1,5 +1,5 @@
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
-const { DynamoDBDocumentClient, PutCommand, QueryCommand } = require('@aws-sdk/lib-dynamodb');
+const { DynamoDBDocumentClient, PutCommand, QueryCommand, GetCommand, DeleteCommand } = require('@aws-sdk/lib-dynamodb');
 
 /**
  * Invite Service
@@ -101,6 +101,74 @@ class InviteService {
   }
 
   /**
+   * Get invite by ID
+   * @param {string} inviteId - The invite ID to look up
+   * @returns {Object|null} The invite record or null if not found
+   */
+  async getInviteById(inviteId) {
+    if (!this.tableName) {
+      throw new Error('API_KIYANAW_INVITETABLE_NAME environment variable not configured');
+    }
+
+    const command = new GetCommand({
+      TableName: this.tableName,
+      Key: {
+        id: inviteId
+      }
+    });
+
+    try {
+      const result = await this.docClient.send(command);
+      const invite = result.Item;
+      
+      // Return null if not found or if soft-deleted
+      if (!invite || invite._deleted === true) {
+        return null;
+      }
+      
+      console.log(`Found invite: ${inviteId}`);
+      return invite;
+    } catch (error) {
+      console.error(`Error getting invite ${inviteId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete invite by ID (hard delete)
+   * @param {string} inviteId - The invite ID to delete
+   * @returns {Object} The deleted invite record
+   */
+  async deleteInvite(inviteId) {
+    if (!this.tableName) {
+      throw new Error('API_KIYANAW_INVITETABLE_NAME environment variable not configured');
+    }
+
+    const command = new DeleteCommand({
+      TableName: this.tableName,
+      Key: {
+        id: inviteId
+      },
+      ReturnValues: 'ALL_OLD'
+    });
+
+    try {
+      const result = await this.docClient.send(command);
+      const deletedInvite = result.Attributes;
+      
+      if (!deletedInvite) {
+        throw new Error(`Invite ${inviteId} not found or already deleted`);
+      }
+      
+      console.log(`Invite deleted successfully: ${inviteId}`);
+      return deletedInvite;
+    } catch (error) {
+      console.error(`Error deleting invite ${inviteId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
    * Get the configured table name
    */
   getTableName() {
@@ -108,5 +176,37 @@ class InviteService {
   }
 }
 
-// Export singleton instance
+/**
+ * Handles and standardizes invite service errors
+ * @param {Error} error - The original error
+ * @param {string} operation - Description of the operation that failed
+ * @returns {Error} Standardized error with helpful message
+ */
+function handleInviteServiceError(error, operation) {
+  console.error(`Invite service error during ${operation}:`, error);
+  
+  // If it's already a well-formed error, pass it through
+  if (error.message && !error.message.includes('DynamoDB') && !error.message.includes('SDK')) {
+    return error;
+  }
+  
+  // Handle common AWS/DynamoDB errors
+  if (error.name === 'ResourceNotFoundException') {
+    return new Error('Invite not found');
+  }
+  
+  if (error.name === 'ConditionalCheckFailedException') {
+    return new Error('Invite has already been processed or does not exist');
+  }
+  
+  if (error.name === 'ValidationException') {
+    return new Error('Invalid request data');
+  }
+  
+  // Generic fallback
+  return new Error(`Failed to ${operation}. Please try again.`);
+}
+
+// Export singleton instance and utility function
 module.exports = new InviteService();
+module.exports.handleInviteServiceError = handleInviteServiceError;

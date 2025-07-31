@@ -267,7 +267,76 @@ export const sendInvite = async (data: CreateInviteData): Promise<{ messageId: s
 };
 
 /**
- * Deletes an invite (hard delete)
+ * Revokes an invitation (deletes invite and removes user from transcription ACLs)
+ * @param inviteId The ID of the invite to revoke
+ * @param requestorEmail Email of the person requesting the revocation
+ * @returns Success confirmation with details
+ */
+export const revokeInvite = async (inviteId: string, requestorUserId: string): Promise<{
+  message: string;
+  inviteId: string;
+  email: string;
+  transcriptionId: string;
+  wasAccepted: boolean;
+  permissionLevel: 'viewer' | 'editor';
+}> => {
+  try {
+    console.log('🔄 Revoking invite:', { inviteId, requestorUserId });
+
+    const response = await post({
+      apiName: 'invite',
+      path: '/invite/revoke',
+      options: {
+        body: {
+          inviteId,
+          requestorUserId
+        } as any
+      }
+    }).response;
+
+    const result = (await response.body.json()) as unknown as {
+      success: boolean;
+      message?: string;
+      inviteId?: string;
+      email?: string;
+      transcriptionId?: string;
+      wasAccepted?: boolean;
+      permissionLevel?: 'viewer' | 'editor';
+      error?: string;
+    };
+
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to revoke invite');
+    }
+
+    console.log('✅ Invite revoked successfully:', result);
+    return {
+      message: result.message || 'Invitation revoked successfully',
+      inviteId: result.inviteId!,
+      email: result.email!,
+      transcriptionId: result.transcriptionId!,
+      wasAccepted: result.wasAccepted!,
+      permissionLevel: result.permissionLevel!
+    };
+  } catch (error: any) {
+    console.error('❌ Revoke invite API call failed:', error);
+
+    // Try to parse API Gateway error response
+    try {
+      if (error.response?.statusCode === 400) {
+        const errorResponse = await error.response.body.json();
+        throw new Error(errorResponse.error || 'Bad request');
+      }
+    } catch (parseError) {
+      // If we can't parse the error response, fall through to generic handling
+    }
+
+    throw new Error(error.message || 'Failed to revoke invite. Please try again.');
+  }
+};
+
+/**
+ * Deletes an invite (hard delete) - Legacy function, use revokeInvite instead
  * @param inviteId The ID of the invite to delete
  * @returns Success confirmation
  */

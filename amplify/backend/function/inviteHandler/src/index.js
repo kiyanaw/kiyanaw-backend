@@ -13,6 +13,7 @@ Amplify Params - DO NOT EDIT */
 const { handleInvite } = require('./actions/handle-invite');
 const { handleAcceptInvite } = require('./actions/handle-accept-invite');
 const { handleGetMyInvites } = require('./actions/handle-get-my-invites');
+const { handleRevokeInvite } = require('./actions/handle-revoke-invite');
 
 /**
  * API Gateway Lambda router for handling multiple endpoints
@@ -162,10 +163,40 @@ exports.handler = async (event) => {
                          error: error.message
                      })
                  };
-             }
-         }
-         
-         // Handle unknown routes
+                         }
+        }
+        
+        if (httpMethod === 'POST' && resource === '/invite/revoke') {
+            try {
+                const result = await handleRevokeInvite(requestBody);
+                return {
+                    statusCode: 200,
+                    headers: corsHeaders,
+                    body: JSON.stringify({
+                        success: true,
+                        ...result
+                    })
+                };
+            } catch (error) {
+                console.error('Revoke invite handler error:', error);
+                
+                const isValidationError = error.message.includes('Missing required parameters') ||
+                                        error.message.includes('Invalid') ||
+                                        error.message.includes('Unauthorized') ||
+                                        error.message.includes('not found');
+                
+                return {
+                    statusCode: isValidationError ? 400 : 500,
+                    headers: corsHeaders,
+                    body: JSON.stringify({
+                        success: false,
+                        error: error.message
+                    })
+                };
+            }
+        }
+        
+        // Handle unknown routes
         return {
             statusCode: 404,
             headers: corsHeaders,

@@ -39,6 +39,19 @@
           "delete"
         ]
       }
+    },
+    "/invite/revoke": {
+      "name": "/invite/revoke",
+      "lambdaFunction": "inviteHandler",
+      "permissions": {
+        "setting": "private",
+        "auth": [
+          "create",
+          "read",
+          "update",
+          "delete"
+        ]
+      }
     }
   }
 }
