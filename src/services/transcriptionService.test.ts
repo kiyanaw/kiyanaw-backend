@@ -1,4 +1,4 @@
-import { loadInFull, __resetClient } from './transcriptionService';
+import { loadInFull, loadAll, __resetClient } from './transcriptionService';
 import { generateClient } from 'aws-amplify/api';
 import { loadRegionsForTranscription } from './regionService';
 import { loadIssuesForTranscription } from './issueService';
@@ -50,7 +50,7 @@ describe('TranscriptionService', () => {
     graphql: jest.fn(),
   };
 
-  const mockGenerateClient = generateClient as jest.MockedFunction<typeof generateClient>;
+  const mockGenerateClient = generateClient as any;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -506,6 +506,280 @@ describe('TranscriptionService', () => {
       const result = await generateSignedUrl(sourceUrl);
       
       expect(result).toBe('https://fake.s3.amazonaws.com/public/test.file.with.dots.mp4');
+    });
+  });
+
+  describe('loadAll', () => {
+    const mockTranscriptionsList = [
+      {
+        id: 'transcription-1',
+        title: 'First Transcription',
+        author: 'user1',
+        authorFriendly: 'User One',
+        type: 'audio',
+        source: 'https://bucket.s3.amazonaws.com/public/audio1.mp3',
+        length: 120,
+        coverage: 0.8,
+        isPrivate: false,
+        disableAnalyzer: false,
+      },
+      {
+        id: 'transcription-2',
+        title: 'Second Transcription',
+        author: 'user2',
+        authorFriendly: 'User Two',
+        type: 'video',
+        source: 'https://bucket.s3.amazonaws.com/public/video1.mp4',
+        length: 240,
+        coverage: 0.6,
+        isPrivate: true,
+        disableAnalyzer: true,
+      },
+    ];
+
+    beforeEach(() => {
+      // Setup GraphQL response for listTranscriptions
+      mockGraphqlClient.graphql.mockResolvedValue({
+        data: {
+          listTranscriptions: {
+            items: mockTranscriptionsList,
+          },
+        },
+      });
+    });
+
+    describe('function signature and validation', () => {
+      it('should have correct function signature', () => {
+        expect(typeof loadAll).toBe('function');
+        expect(loadAll.length).toBe(0); // Should accept no parameters
+      });
+
+      it('should return promise that resolves to array', async () => {
+        const result = await loadAll();
+        
+        expect(Array.isArray(result)).toBe(true);
+      });
+    });
+
+    describe('GraphQL integration', () => {
+      it('should call GraphQL API with listTranscriptions query', async () => {
+        await loadAll();
+        
+        expect(mockGraphqlClient.graphql).toHaveBeenCalledTimes(1);
+        expect(mockGraphqlClient.graphql).toHaveBeenCalledWith({
+          query: expect.any(String), // The listTranscriptions query
+        });
+      });
+
+      it('should handle GraphQL response structure correctly', async () => {
+        const result = await loadAll();
+        
+        expect(result).toHaveLength(2);
+        expect(TranscriptionModel).toHaveBeenCalledTimes(2);
+        expect(TranscriptionModel).toHaveBeenCalledWith(mockTranscriptionsList[0]);
+        expect(TranscriptionModel).toHaveBeenCalledWith(mockTranscriptionsList[1]);
+      });
+
+      it('should handle empty list response', async () => {
+        mockGraphqlClient.graphql.mockResolvedValue({
+          data: {
+            listTranscriptions: {
+              items: [],
+            },
+          },
+        });
+
+        const result = await loadAll();
+        
+        expect(result).toEqual([]);
+        expect(TranscriptionModel).not.toHaveBeenCalled();
+      });
+
+      it('should handle missing listTranscriptions in response', async () => {
+        mockGraphqlClient.graphql.mockResolvedValue({
+          data: {},
+        });
+
+        const result = await loadAll();
+        
+        expect(result).toEqual([]);
+        expect(TranscriptionModel).not.toHaveBeenCalled();
+      });
+
+      it('should handle null items array', async () => {
+        mockGraphqlClient.graphql.mockResolvedValue({
+          data: {
+            listTranscriptions: {
+              items: null,
+            },
+          },
+        });
+
+        const result = await loadAll();
+        
+        expect(result).toEqual([]);
+        expect(TranscriptionModel).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('TranscriptionModel wrapping', () => {
+      it('should wrap each transcription in TranscriptionModel', async () => {
+        const result = await loadAll();
+        
+        expect(TranscriptionModel).toHaveBeenCalledTimes(2);
+        expect(result).toHaveLength(2);
+        
+        // Verify each item was passed to TranscriptionModel
+        expect(TranscriptionModel).toHaveBeenNthCalledWith(1, mockTranscriptionsList[0]);
+        expect(TranscriptionModel).toHaveBeenNthCalledWith(2, mockTranscriptionsList[1]);
+      });
+
+      it('should return array of TranscriptionModel instances', async () => {
+        // Mock TranscriptionModel to return identifiable objects
+        (TranscriptionModel as jest.MockedClass<typeof TranscriptionModel>).mockImplementation(
+          (data: any) => ({ ...data, isTranscriptionModel: true }) as any
+        );
+
+        const result = await loadAll();
+        
+        expect(result).toHaveLength(2);
+        expect(result[0]).toEqual(expect.objectContaining({ isTranscriptionModel: true }));
+        expect(result[1]).toEqual(expect.objectContaining({ isTranscriptionModel: true }));
+      });
+    });
+
+    describe('error handling', () => {
+      it('should throw error when GraphQL call fails', async () => {
+        const graphqlError = new Error('GraphQL network error');
+        mockGraphqlClient.graphql.mockRejectedValue(graphqlError);
+        
+        await expect(loadAll()).rejects.toThrow('Failed to load transcriptions: Error: GraphQL network error');
+      });
+
+      it('should throw error when GraphQL returns error response', async () => {
+        const graphqlError = new Error('Authorization failed');
+        mockGraphqlClient.graphql.mockRejectedValue(graphqlError);
+        
+        await expect(loadAll()).rejects.toThrow('Failed to load transcriptions');
+      });
+
+      it('should handle TranscriptionModel constructor errors', async () => {
+        // Mock TranscriptionModel to throw on construction
+        (TranscriptionModel as jest.MockedClass<typeof TranscriptionModel>).mockImplementation(
+          () => { throw new Error('Invalid transcription data'); }
+        );
+
+        await expect(loadAll()).rejects.toThrow('Invalid transcription data');
+      });
+    });
+
+    describe('return value structure', () => {
+      it('should return array with correct number of items', async () => {
+        const result = await loadAll();
+        
+        expect(Array.isArray(result)).toBe(true);
+        expect(result).toHaveLength(mockTranscriptionsList.length);
+      });
+
+      it('should maintain order of transcriptions from GraphQL response', async () => {
+        // Mock TranscriptionModel to preserve the id
+        (TranscriptionModel as jest.MockedClass<typeof TranscriptionModel>).mockImplementation(
+          (data: any) => data as any
+        );
+
+        const result = await loadAll();
+        
+        expect(result[0].id).toBe('transcription-1');
+        expect(result[1].id).toBe('transcription-2');
+      });
+
+      it('should handle large numbers of transcriptions', async () => {
+        const manyTranscriptions = Array.from({ length: 100 }, (_, i) => ({
+          id: `transcription-${i}`,
+          title: `Transcription ${i}`,
+          author: `user${i}`,
+          authorFriendly: `User ${i}`,
+          type: 'audio',
+          source: `https://bucket.s3.amazonaws.com/public/audio${i}.mp3`,
+        }));
+
+        mockGraphqlClient.graphql.mockResolvedValue({
+          data: {
+            listTranscriptions: {
+              items: manyTranscriptions,
+            },
+          },
+        });
+
+        const result = await loadAll();
+        
+        expect(result).toHaveLength(100);
+        expect(TranscriptionModel).toHaveBeenCalledTimes(100);
+      });
+    });
+
+    describe('integration scenarios', () => {
+      it('should complete successful flow with multiple transcriptions', async () => {
+        const result = await loadAll();
+        
+        // Verify GraphQL was called
+        expect(mockGraphqlClient.graphql).toHaveBeenCalledTimes(1);
+        
+        // Verify TranscriptionModel was called for each item
+        expect(TranscriptionModel).toHaveBeenCalledTimes(2);
+        
+        // Verify result structure
+        expect(result).toHaveLength(2);
+        expect(Array.isArray(result)).toBe(true);
+      });
+
+      it('should handle mixed transcription types correctly', async () => {
+        const mixedTranscriptions = [
+          { ...mockTranscriptionsList[0], type: 'audio' },
+          { ...mockTranscriptionsList[1], type: 'video' },
+        ];
+
+        mockGraphqlClient.graphql.mockResolvedValue({
+          data: {
+            listTranscriptions: {
+              items: mixedTranscriptions,
+            },
+          },
+        });
+
+        const result = await loadAll();
+        
+        expect(result).toHaveLength(2);
+        expect(TranscriptionModel).toHaveBeenCalledWith(expect.objectContaining({ type: 'audio' }));
+        expect(TranscriptionModel).toHaveBeenCalledWith(expect.objectContaining({ type: 'video' }));
+      });
+
+      it('should work with minimal transcription data', async () => {
+        const minimalTranscriptions = [
+          {
+            id: 'minimal-1',
+            title: 'Minimal',
+            author: 'user',
+            authorFriendly: 'User',
+            type: 'audio',
+            source: 'https://example.com/audio.mp3',
+            length: 0,
+          },
+        ];
+
+        mockGraphqlClient.graphql.mockResolvedValue({
+          data: {
+            listTranscriptions: {
+              items: minimalTranscriptions,
+            },
+          },
+        });
+
+        const result = await loadAll();
+        
+        expect(result).toHaveLength(1);
+        expect(TranscriptionModel).toHaveBeenCalledWith(minimalTranscriptions[0]);
+      });
     });
   });
 }); 

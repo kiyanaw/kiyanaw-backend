@@ -169,6 +169,46 @@ export class TranscriptionModel {
     this._length = value;
   }
 
+  /**
+   * Check if the current user is the owner of this transcription
+   */
+  isMine(currentUserId?: string): boolean {
+    if (!currentUserId) return false;
+    return this.author === currentUserId;
+  }
+
+  /**
+   * Get the display name for the owner, showing "me" if it's the current user
+   */
+  getOwnerDisplay(currentUserId?: string): string {
+    if (this.isMine(currentUserId)) {
+      return 'me';
+    }
+    return this.authorFriendly;
+  }
+
+  /**
+   * Check if the current user was the last to edit this transcription
+   */
+  wasLastEditedByMe(currentUserId?: string): boolean {
+    if (!currentUserId || !this.userLastUpdated) return false;
+    return this.userLastUpdated === currentUserId;
+  }
+
+  /**
+   * Get the display name for the last editor, showing "me" if it's the current user
+   */
+  getLastEditorDisplay(currentUserId?: string): string {
+    if (this.wasLastEditedByMe(currentUserId)) {
+      return 'me';
+    }
+    return this.userLastUpdated || 'Unknown';
+  }
+
+  get foo() {
+    return 'hello'
+  }
+
 }
 
 export class RegionModel {

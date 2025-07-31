@@ -211,6 +211,74 @@ describe('ADT Models', () => {
         expect(model.userLastUpdated).toBeNull();
       });
     });
+
+    describe('ownership methods', () => {
+      it('should correctly identify when transcription is mine', () => {
+        const model = new TranscriptionModel(mockTranscriptionData);
+
+        expect(model.isMine('test-author')).toBe(true);
+        expect(model.isMine('different-user-id')).toBe(false);
+        expect(model.isMine(undefined)).toBe(false);
+        expect(model.isMine('')).toBe(false);
+      });
+
+      it('should return "me" for owner display when transcription is mine', () => {
+        const model = new TranscriptionModel(mockTranscriptionData);
+
+        expect(model.getOwnerDisplay('test-author')).toBe('me');
+      });
+
+      it('should return authorFriendly for owner display when transcription is not mine', () => {
+        const model = new TranscriptionModel(mockTranscriptionData);
+
+        expect(model.getOwnerDisplay('different-user-id')).toBe('Test Author');
+        expect(model.getOwnerDisplay(undefined)).toBe('Test Author');
+        expect(model.getOwnerDisplay('')).toBe('Test Author');
+      });
+
+      it('should use authorFriendly since it is a required field', () => {
+        const model = new TranscriptionModel(mockTranscriptionData);
+
+        expect(model.getOwnerDisplay('different-user-id')).toBe('Test Author');
+        expect(model.authorFriendly).toBe('Test Author'); // Verify it's always available
+      });
+    });
+
+    describe('last editor methods', () => {
+      it('should correctly identify when transcription was last edited by me', () => {
+        const model = new TranscriptionModel(mockTranscriptionData);
+
+        expect(model.wasLastEditedByMe('test-user')).toBe(true);
+        expect(model.wasLastEditedByMe('different-user-id')).toBe(false);
+        expect(model.wasLastEditedByMe(undefined)).toBe(false);
+        expect(model.wasLastEditedByMe('')).toBe(false);
+      });
+
+      it('should return "me" for last editor display when I was the last editor', () => {
+        const model = new TranscriptionModel(mockTranscriptionData);
+
+        expect(model.getLastEditorDisplay('test-user')).toBe('me');
+      });
+
+      it('should return userLastUpdated for last editor display when someone else was the last editor', () => {
+        const model = new TranscriptionModel(mockTranscriptionData);
+
+        expect(model.getLastEditorDisplay('different-user-id')).toBe('test-user');
+        expect(model.getLastEditorDisplay(undefined)).toBe('test-user');
+        expect(model.getLastEditorDisplay('')).toBe('test-user');
+      });
+
+      it('should return "Unknown" when userLastUpdated is not available', () => {
+        const dataWithoutLastUpdated = {
+          ...mockTranscriptionData,
+          userLastUpdated: undefined as any
+        };
+        const model = new TranscriptionModel(dataWithoutLastUpdated);
+
+        expect(model.getLastEditorDisplay('different-user-id')).toBe('Unknown');
+        expect(model.wasLastEditedByMe('test-user')).toBe(false); // Should be false when no userLastUpdated
+      });
+    });
   });
 
   describe('RegionModel', () => {

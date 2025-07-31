@@ -2,7 +2,7 @@ import { generateClient } from 'aws-amplify/api';
 import { getUrl } from 'aws-amplify/storage';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - GraphQL queries are generated as JS files
-import { getTranscription } from '../graphql/queries.js';
+import { getTranscription, listTranscriptions } from '../graphql/queries.js';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - GraphQL mutations are generated as JS files
 import { createTranscription as createTranscriptionMutation, updateTranscription as updateTranscriptionMutation } from '../graphql/mutations.js';
@@ -17,7 +17,8 @@ import {
   type CreateTranscriptionResponse,
   type UpdateTranscriptionResponse,
   type TranscriptionData as SharedTranscriptionData, 
-  type LoadTranscriptionResult 
+  type LoadTranscriptionResult,
+  type GraphQLListResponse
 } from '../types/shared';
 
 // Create GraphQL client lazily
@@ -240,6 +241,34 @@ export const loadInFull = async (transcriptionId: string): Promise<false | LoadT
     regions,
     issues,
   };
+};
+
+/**
+ * Loads all transcriptions using GraphQL API and wraps them in TranscriptionModel instances
+ * @returns Array of TranscriptionModel instances
+ */
+export const loadAll = async (): Promise<TranscriptionModel[]> => {
+  try {
+    console.log('🔍 Loading all transcriptions via GraphQL API...');
+    const graphqlResult = await getClient().graphql({ query: listTranscriptions });
+    
+    // Cast the result to access the data property
+    const response = graphqlResult as { data: GraphQLListResponse<SharedTranscriptionData> };
+    
+    // The GraphQL result is of shape { listTranscriptions: { items: [...] } }
+    const items = response.data?.listTranscriptions?.items ?? [];
+
+    // Wrap each transcription in TranscriptionModel before returning
+    const transcriptionModels = items.map(item => 
+      new TranscriptionModel(item as unknown as ADTTranscriptionData)
+    );
+
+    console.log(`✅ Loaded ${transcriptionModels.length} transcriptions`);
+    return transcriptionModels;
+  } catch (error) {
+    console.error('❌ Failed to load transcriptions via GraphQL API:', error);
+    throw new Error(`Failed to load transcriptions: ${error}`);
+  }
 };
 
 /**

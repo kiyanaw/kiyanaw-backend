@@ -1,6 +1,8 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranscriptionsStore } from '../../stores/useTranscriptionsStore';
+import { useAuthStore } from '../../stores/useAuthStore';
+import { useLoadTranscriptions } from '../../hooks/useLoadTranscriptions';
 import TimeAgo from 'javascript-time-ago';
 import en from 'javascript-time-ago/locale/en';
 
@@ -30,16 +32,16 @@ export const TranscriptionsTable = () => {
   const transcriptions = useTranscriptionsStore((state) => state.transcriptions);
   const loading = useTranscriptionsStore((state) => state.loading);
   const error = useTranscriptionsStore((state) => state.error);
-  const loadTranscriptions = useTranscriptionsStore((state) => state.loadTranscriptions);
+  const reload = useTranscriptionsStore((state) => state.reload);
+  const user = useAuthStore((state) => state.user);
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState('dateLastUpdated');
   const [sortDesc, setSortDesc] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  useEffect(() => {
-    loadTranscriptions();
-  }, [loadTranscriptions]);
+  // Load transcriptions when component mounts
+  useLoadTranscriptions();
 
   // Filter and sort transcriptions
   const filteredAndSortedTranscriptions = useMemo(() => {
@@ -120,12 +122,7 @@ export const TranscriptionsTable = () => {
     return timeAgo.format(date);
   };
 
-  const formatDuration = (seconds: number) => {
-    if (!seconds) return '00:00';
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
-  };
+
 
   if (loading) {
     return (
@@ -141,7 +138,7 @@ export const TranscriptionsTable = () => {
       <div className="flex flex-col items-center justify-center py-32 text-red-500">
         <p className="text-base">Error: {error}</p>
         <button 
-          onClick={loadTranscriptions}
+                          onClick={reload}
           className="mt-4 px-4 py-2 bg-ki-blue text-white rounded hover:bg-blue-700"
         >
           Retry
@@ -236,12 +233,12 @@ export const TranscriptionsTable = () => {
                   
                   {/* Owner */}
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {transcription.authorFriendly}
+                    {transcription.getOwnerDisplay(user?.userId)}
                   </td>
                   
                   {/* Length */}
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 hidden lg:table-cell">
-                    {formatDuration(transcription.length || 0)}
+                    {transcription.length}
                   </td>
                   
                   {/* Coverage */}
@@ -265,12 +262,12 @@ export const TranscriptionsTable = () => {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span
                       className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        transcription.issues === '0' || !transcription.issues
+                        transcription.data.issues === 0 || !transcription.data.issues
                           ? 'bg-green-100 text-green-800' 
                           : 'bg-red-100 text-red-800'
                       }`}
                     >
-                      {transcription.issues || '0'}
+                      {transcription.data.issues || 0}
                     </span>
                   </td>
                   
@@ -280,7 +277,7 @@ export const TranscriptionsTable = () => {
                       {formatTimeAgo(transcription.dateLastUpdated)}
                     </div>
                     <div className="text-xs text-gray-500 mt-1">
-                      by {transcription.userLastUpdated}
+                      by {transcription.getLastEditorDisplay(user?.username)}
                     </div>
                   </td>
                   
