@@ -15,7 +15,7 @@ interface TranscriptionSettingsPageProps {
   regionCount: number;
   transcriptionId: string; // Added this prop
   onSave: (updates: { title?: string; comments?: string }) => void;
-  canEdit: boolean;
+  isOwner: boolean;
 }
 
 export const TranscriptionSettingsPage = ({
@@ -28,7 +28,7 @@ export const TranscriptionSettingsPage = ({
   regionCount,
   transcriptionId, // Added this prop
   onSave,
-  canEdit,
+  isOwner,
 }: TranscriptionSettingsPageProps) => {
   const [title, setTitle] = useState(initialTitle);
   const [comments, setComments] = useState(initialComments || '');
@@ -119,7 +119,7 @@ export const TranscriptionSettingsPage = ({
     setInviteSuccess(null); // Clear previous success message
     
     try {
-      const result = await createInvite({
+      await createInvite({
         email: newInviteEmail.trim(),
         permissionLevel: newInvitePermission,
         transcriptionId,
@@ -144,7 +144,6 @@ export const TranscriptionSettingsPage = ({
 
   const handleRevokeInvite = async (invite: InviteModel) => {
     const isAccepted = invite.statusDisplay === 'accepted';
-    const actionText = isAccepted ? 'revoke access for' : 'delete invite for';
     const confirmText = isAccepted 
       ? `Revoke access for ${invite.email}? This will remove them from the transcription and delete their invitation.`
       : `Delete invitation for ${invite.email}?`;
@@ -233,7 +232,7 @@ export const TranscriptionSettingsPage = ({
                       type="text"
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
-                      disabled={!canEdit}
+                      disabled={!isOwner}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-600 disabled:cursor-not-allowed text-base"
                     />
                   </div>
@@ -246,7 +245,7 @@ export const TranscriptionSettingsPage = ({
                       id="comments"
                       value={comments}
                       onChange={(e) => setComments(e.target.value)}
-                      disabled={!canEdit}
+                      disabled={!isOwner}
                       rows={4}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-600 disabled:cursor-not-allowed resize-vertical text-base"
                       placeholder="Add any comments about this transcription..."
@@ -254,10 +253,10 @@ export const TranscriptionSettingsPage = ({
                   </div>
                 </div>
 
-                {!canEdit && (
+                {!isOwner && (
                   <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                     <p className="text-sm text-yellow-800">
-                      You don't have permission to edit this transcription.
+                      Only the transcription owner can edit these settings.
                     </p>
                   </div>
                 )}
@@ -289,12 +288,13 @@ export const TranscriptionSettingsPage = ({
               </div>
             </div>
 
-            {/* Sharing & Collaboration Section - Full Width */}
-            <div className="space-y-6">
-              <div className="flex items-center gap-3 pb-3 border-b border-gray-200">
-                <Users className="text-purple-600" size={20} />
-                <h2 className="text-lg font-semibold text-gray-900">Sharing & Collaboration</h2>
-              </div>
+            {/* Sharing & Collaboration Section - Full Width (Owners Only) */}
+            {isOwner && (
+              <div className="space-y-6">
+                <div className="flex items-center gap-3 pb-3 border-b border-gray-200">
+                  <Users className="text-purple-600" size={20} />
+                  <h2 className="text-lg font-semibold text-gray-900">Sharing & Collaboration</h2>
+                </div>
 
               {/* Send New Invite */}
               <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
@@ -416,6 +416,7 @@ export const TranscriptionSettingsPage = ({
                 </div>
               </div>
             </div>
+            )}
           </div>
         </div>
 
@@ -433,7 +434,7 @@ export const TranscriptionSettingsPage = ({
             </button>
             <button
               onClick={handleSave}
-              disabled={!canEdit || !hasChanges}
+              disabled={!isOwner || !hasChanges}
               className="px-6 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Save Changes
