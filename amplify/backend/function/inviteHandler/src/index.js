@@ -52,6 +52,7 @@ const getSafeErrorMessage = (error) => {
  * POST /invite - Send invitation emails
  * POST /invite/accept - Accept invitation
  * POST /invite/mine - Get my invitations (with optional filtering)
+ * POST /invite/revoke - Delete an invitation
  * 
  * Returns API Gateway response:
  * {
