@@ -1,5 +1,6 @@
 import { services } from '../services';
 import { showToast } from '../services/toastService';
+import { TranscriptionModel } from '../services/adt';
 import type { TranscriptionData } from '../types/shared';
 
 export interface UpdateTranscriptionConfig {
@@ -60,9 +61,10 @@ export class UpdateTranscriptionUseCase {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await this.config.services.transcriptionService.updateTranscription(transcriptionId, updateData as any);
 
-      // Update store with raw transcription data
+      // Update store with transcription wrapped in ADT model
       if (store?.setTranscription) {
-        store.setTranscription(result);
+        const transcriptionModel = new TranscriptionModel(result);
+        store.setTranscription(transcriptionModel);
       }
 
       // Show success toast

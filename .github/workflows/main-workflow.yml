@@ -39,4 +39,8 @@ jobs:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
     - run: npm ci
+    - name: Install Lambda function dependencies
+      run: |
+        cd amplify/backend/function/inviteHandler/src
+        npm install
     - run: npm run test

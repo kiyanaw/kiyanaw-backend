@@ -9,6 +9,7 @@ import { textHighlightService } from './textHighlightService';
 import { awsConfigService } from './awsConfigService';
 import { uploadService } from './uploadService';
 import * as toastService from './toastService';
+import * as inviteService from './inviteService';
 
 export const services = {
   userService: authService,
@@ -23,4 +24,5 @@ export const services = {
   awsConfigService,
   uploadService,
   toastService,
+  inviteService,
 };

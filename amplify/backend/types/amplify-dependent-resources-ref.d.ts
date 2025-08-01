@@ -1,5 +1,10 @@
 export type AmplifyDependentResourcesAttributes = {
   "api": {
+    "invite": {
+      "ApiId": "string",
+      "ApiName": "string",
+      "RootUrl": "string"
+    },
     "kiyanaw": {
       "GraphQLAPIEndpointOutput": "string",
       "GraphQLAPIIdOutput": "string"
@@ -23,6 +28,11 @@ export type AmplifyDependentResourcesAttributes = {
     }
   },
   "custom": {
+    "inviteHandlerSES": {
+      "SESEmailIdentityArn": "string",
+      "SESFromEmailAddress": "string",
+      "SESRoleArn": "string"
+    },
     "regionChangeSQS": {
       "RegionChangeDeadLetterQueueUrl": "string",
       "RegionChangeQueueUrl": "string"
@@ -56,6 +66,13 @@ export type AmplifyDependentResourcesAttributes = {
       "Region": "string"
     },
     "indexRegionData": {
+      "Arn": "string",
+      "LambdaExecutionRole": "string",
+      "LambdaExecutionRoleArn": "string",
+      "Name": "string",
+      "Region": "string"
+    },
+    "inviteHandler": {
       "Arn": "string",
       "LambdaExecutionRole": "string",
       "LambdaExecutionRoleArn": "string",

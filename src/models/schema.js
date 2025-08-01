@@ -17,6 +17,13 @@ export const schema = {
                     "isRequired": true,
                     "attributes": []
                 },
+                "authorFriendly": {
+                    "name": "authorFriendly",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": true,
+                    "attributes": []
+                },
                 "coverage": {
                     "name": "coverage",
                     "isArray": false,
@@ -175,20 +182,6 @@ export const schema = {
                         "associatedWith": "transcription"
                     }
                 },
-                "contributors": {
-                    "name": "contributors",
-                    "isArray": true,
-                    "type": {
-                        "model": "TranscriptionContributor"
-                    },
-                    "isRequired": false,
-                    "attributes": [],
-                    "isArrayNullable": true,
-                    "association": {
-                        "connectionType": "HAS_MANY",
-                        "associatedWith": "transcription"
-                    }
-                },
                 "createdAt": {
                     "name": "createdAt",
                     "isArray": false,
@@ -328,10 +321,11 @@ export const schema = {
                 },
                 "regionAnalysis": {
                     "name": "regionAnalysis",
-                    "isArray": false,
+                    "isArray": true,
                     "type": "String",
                     "isRequired": false,
-                    "attributes": []
+                    "attributes": [],
+                    "isArrayNullable": true
                 },
                 "isNote": {
                     "name": "isNote",
@@ -410,6 +404,7 @@ export const schema = {
                     "type": "key",
                     "properties": {
                         "name": "ByTranscription",
+                        "queryField": "regionsByTranscription",
                         "fields": [
                             "transcriptionId"
                         ]
@@ -566,6 +561,7 @@ export const schema = {
                     "type": "key",
                     "properties": {
                         "name": "ByTranscription",
+                        "queryField": "issuesByTranscription",
                         "fields": [
                             "transcriptionId"
                         ]
@@ -597,8 +593,8 @@ export const schema = {
                 }
             ]
         },
-        "Contributor": {
-            "name": "Contributor",
+        "Invite": {
+            "name": "Invite",
             "fields": {
                 "id": {
                     "name": "id",
@@ -614,128 +610,68 @@ export const schema = {
                     "isRequired": true,
                     "attributes": []
                 },
-                "username": {
-                    "name": "username",
+                "status": {
+                    "name": "status",
                     "isArray": false,
                     "type": "String",
                     "isRequired": true,
                     "attributes": []
                 },
-                "transcriptions": {
-                    "name": "transcriptions",
-                    "isArray": true,
-                    "type": {
-                        "model": "TranscriptionContributor"
-                    },
-                    "isRequired": false,
-                    "attributes": [],
-                    "isArrayNullable": true,
-                    "association": {
-                        "connectionType": "HAS_MANY",
-                        "associatedWith": "contributor"
-                    }
+                "permissionLevel": {
+                    "name": "permissionLevel",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": true,
+                    "attributes": []
+                },
+                "expiresAt": {
+                    "name": "expiresAt",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": true,
+                    "attributes": []
+                },
+                "invitedBy": {
+                    "name": "invitedBy",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": true,
+                    "attributes": []
+                },
+                "invitedByFriendly": {
+                    "name": "invitedByFriendly",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": true,
+                    "attributes": []
                 },
                 "createdAt": {
                     "name": "createdAt",
                     "isArray": false,
-                    "type": "AWSDateTime",
-                    "isRequired": false,
-                    "attributes": [],
-                    "isReadOnly": true
+                    "type": "String",
+                    "isRequired": true,
+                    "attributes": []
                 },
-                "updatedAt": {
-                    "name": "updatedAt",
+                "acceptedAt": {
+                    "name": "acceptedAt",
                     "isArray": false,
-                    "type": "AWSDateTime",
+                    "type": "String",
                     "isRequired": false,
-                    "attributes": [],
-                    "isReadOnly": true
-                }
-            },
-            "syncable": true,
-            "pluralName": "Contributors",
-            "attributes": [
-                {
-                    "type": "model",
-                    "properties": {}
+                    "attributes": []
                 },
-                {
-                    "type": "key",
-                    "properties": {
-                        "fields": [
-                            "id"
-                        ]
-                    }
-                },
-                {
-                    "type": "auth",
-                    "properties": {
-                        "rules": [
-                            {
-                                "allow": "private",
-                                "provider": "identityPool",
-                                "operations": [
-                                    "create",
-                                    "read",
-                                    "update",
-                                    "delete"
-                                ]
-                            },
-                            {
-                                "allow": "private",
-                                "operations": [
-                                    "read",
-                                    "update"
-                                ]
-                            }
-                        ]
-                    }
-                }
-            ]
-        },
-        "TranscriptionContributor": {
-            "name": "TranscriptionContributor",
-            "fields": {
-                "id": {
-                    "name": "id",
+                "transcriptionId": {
+                    "name": "transcriptionId",
                     "isArray": false,
                     "type": "ID",
                     "isRequired": true,
                     "attributes": []
                 },
-                "transcription": {
-                    "name": "transcription",
+                "transcriptionTitle": {
+                    "name": "transcriptionTitle",
                     "isArray": false,
-                    "type": {
-                        "model": "Transcription"
-                    },
+                    "type": "String",
                     "isRequired": true,
-                    "attributes": [],
-                    "association": {
-                        "connectionType": "BELONGS_TO",
-                        "targetName": "transcriptionID"
-                    }
-                },
-                "contributor": {
-                    "name": "contributor",
-                    "isArray": false,
-                    "type": {
-                        "model": "Contributor"
-                    },
-                    "isRequired": true,
-                    "attributes": [],
-                    "association": {
-                        "connectionType": "BELONGS_TO",
-                        "targetName": "contributorID"
-                    }
-                },
-                "createdAt": {
-                    "name": "createdAt",
-                    "isArray": false,
-                    "type": "AWSDateTime",
-                    "isRequired": false,
-                    "attributes": [],
-                    "isReadOnly": true
+                    "attributes": []
                 },
                 "updatedAt": {
                     "name": "updatedAt",
@@ -747,7 +683,7 @@ export const schema = {
                 }
             },
             "syncable": true,
-            "pluralName": "TranscriptionContributors",
+            "pluralName": "Invites",
             "attributes": [
                 {
                     "type": "model",
@@ -764,18 +700,20 @@ export const schema = {
                 {
                     "type": "key",
                     "properties": {
-                        "name": "byTranscription",
+                        "name": "ByEmail",
+                        "queryField": "invitesByEmail",
                         "fields": [
-                            "transcriptionID"
+                            "email"
                         ]
                     }
                 },
                 {
                     "type": "key",
                     "properties": {
-                        "name": "byContributor",
+                        "name": "ByTranscription",
+                        "queryField": "invitesByTranscription",
                         "fields": [
-                            "contributorID"
+                            "transcriptionId"
                         ]
                     }
                 },
@@ -794,10 +732,39 @@ export const schema = {
                                 ]
                             },
                             {
-                                "allow": "private",
+                                "provider": "userPools",
+                                "ownerField": "invitedBy",
+                                "allow": "owner",
+                                "operations": [
+                                    "create",
+                                    "read",
+                                    "update",
+                                    "delete"
+                                ],
+                                "identityClaim": "cognito:username"
+                            },
+                            {
+                                "provider": "userPools",
+                                "ownerField": "email",
+                                "allow": "owner",
                                 "operations": [
                                     "read",
                                     "update"
+                                ],
+                                "identityClaim": "cognito:username"
+                            },
+                            {
+                                "groupClaim": "cognito:groups",
+                                "provider": "userPools",
+                                "allow": "groups",
+                                "groups": [
+                                    "Admins"
+                                ],
+                                "operations": [
+                                    "create",
+                                    "read",
+                                    "update",
+                                    "delete"
                                 ]
                             }
                         ]
@@ -809,5 +776,5 @@ export const schema = {
     "enums": {},
     "nonModels": {},
     "codegenVersion": "3.4.4",
-    "version": "969323785fa93b2e5516bf185f6e69e1"
+    "version": "7d1ddce01ee58504a5f298074500a062"
 };

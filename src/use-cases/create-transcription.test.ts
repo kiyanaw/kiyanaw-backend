@@ -258,6 +258,64 @@ describe('CreateTranscriptionUseCase', () => {
         })
       );
     });
+
+    it('should extract username from email address', async () => {
+      const mockFile = createMockFile('test.mp3', 'audio/mpeg');
+      const mockTranscription = { id: 'transcription-id', title: 'Test Title' };
+
+      mockServices.uploadService.uploadFile.mockResolvedValue('file-key.mp3');
+      mockServices.uploadService.constructPublicUrl.mockReturnValue('https://example.com/file-key.mp3');
+      mockServices.transcriptionService.create.mockResolvedValue(mockTranscription);
+
+      const config = {
+        title: 'Test Title',
+        file: mockFile,
+        username: 'john.doe@example.com', // Full email address
+        userId: 'user-id',
+        services: mockServices as any
+      };
+
+      const useCase = new CreateTranscriptionUseCase(config);
+      await useCase.execute();
+
+      // Verify that userLastUpdated uses only the part before @
+      expect(mockServices.transcriptionService.create).toHaveBeenCalledWith({
+        title: 'Test Title',
+        source: 'https://example.com/file-key.mp3',
+        type: 'audio/mpeg',
+        author: 'user-id',
+        userLastUpdated: 'john.doe' // Should be extracted from email
+      });
+    });
+
+    it('should handle usernames without @ symbol', async () => {
+      const mockFile = createMockFile('test.mp3', 'audio/mpeg');
+      const mockTranscription = { id: 'transcription-id', title: 'Test Title' };
+
+      mockServices.uploadService.uploadFile.mockResolvedValue('file-key.mp3');
+      mockServices.uploadService.constructPublicUrl.mockReturnValue('https://example.com/file-key.mp3');
+      mockServices.transcriptionService.create.mockResolvedValue(mockTranscription);
+
+      const config = {
+        title: 'Test Title',
+        file: mockFile,
+        username: 'plainusername', // Username without @ symbol
+        userId: 'user-id',
+        services: mockServices as any
+      };
+
+      const useCase = new CreateTranscriptionUseCase(config);
+      await useCase.execute();
+
+      // Verify that username without @ remains unchanged
+      expect(mockServices.transcriptionService.create).toHaveBeenCalledWith({
+        title: 'Test Title',
+        source: 'https://example.com/file-key.mp3',
+        type: 'audio/mpeg',
+        author: 'user-id',
+        userLastUpdated: 'plainusername' // Should remain unchanged
+      });
+    });
   });
 
   describe('Use Case Architecture Compliance', () => {

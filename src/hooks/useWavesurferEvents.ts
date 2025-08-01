@@ -104,11 +104,14 @@ export const useWavesurferEvents = (transcriptionId: string, source?: string): v
         }
       }
 
-      const selector = `div#regionitem-${regionId}`;
+      const targetRegionSelector = `div#regionitem-${regionId}`;
       const styles = { 'background-color': 'rgba(0, 213, 255, 0.1) !important' };
-      const styleId = browserService.addCustomStyle(selector, styles);
+      const styleId = browserService.addCustomStyle(targetRegionSelector, styles);
       styleIdRef.current.set(regionId, styleId);
       highlightedInboundRegionRef.current = regionId;
+
+      // Scroll the region item into view
+      browserService.scrollElementIntoView(targetRegionSelector);
     };
 
     const handleRegionOut = (data: unknown) => {

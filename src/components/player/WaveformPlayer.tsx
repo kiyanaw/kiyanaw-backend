@@ -6,6 +6,7 @@ import { usePlay } from '../../hooks/usePlay';
 import { usePause } from '../../hooks/usePause';
 import { useUpdateTranscription } from '../../hooks/useUpdateTranscription';
 import { useEditorStore } from '../../stores/useEditorStore';
+import { useAuthStore } from '../../stores/useAuthStore';
 import { TranscriptionSettingsPage } from '../forms/TranscriptionSettingsPage';
 
 interface Region {
@@ -47,6 +48,10 @@ export const WaveformPlayer = ({
   const duration = usePlayerStore((state) => state.duration)
   const transcription = useEditorStore((state) => state.transcription);
   const canEdit = useEditorStore((state) => state.canEdit);
+  const user = useAuthStore((state) => state.user);
+  
+  // Determine if current user is the owner
+  const isOwner = transcription?.author === user?.userId;
   
   const play = usePlay()
   const pause = usePause()
@@ -123,18 +128,14 @@ export const WaveformPlayer = ({
         {/* Header */}
         <div className="flex justify-between items-center bg-[#dbdbdb] h-8 px-4 text-gray-900 font-bold text-sm">
           <div className="uppercase overflow-hidden text-ellipsis whitespace-nowrap flex-1">
-            {canEdit ? (
-              <button
-                onClick={handleOpenSettings}
-                className="flex items-center gap-2 text-left hover:text-gray-700 transition-colors cursor-pointer"
-                title="Click to open transcription settings"
-              >
-                <span>{title}</span>
-                <Settings size={14} className="flex-shrink-0" />
-              </button>
-            ) : (
+            <button
+              onClick={handleOpenSettings}
+              className="flex items-center gap-2 text-left hover:text-gray-700 transition-colors cursor-pointer"
+              title="Click to open transcription settings"
+            >
               <span>{title}</span>
-            )}
+              <Settings size={14} className="flex-shrink-0" />
+            </button>
           </div>
           <div className="font-bold text-sm">
             {formatTime(currentTime)}/{formatTime(duration)}
@@ -221,7 +222,7 @@ export const WaveformPlayer = ({
         {isVideo && (
           <video
             ref={setVideoElement}
-            className="hidden"
+            className="fixed bottom-4 right-4 max-w-[350px] max-h-[350px] z-[190] shadow-lg cursor-pointer rounded md:max-w-[350px] md:max-h-[350px] max-w-[250px] max-h-[200px]"
             preload="auto"
             title="Video playback"
             controls={false}
@@ -239,11 +240,12 @@ export const WaveformPlayer = ({
         onClose={handleCloseSettings}
         title={transcription?.title || title}
         comments={transcription?.comments}
-        author={transcription?.author || 'Unknown'}
+        author={transcription?.authorFriendly || 'Unknown'}
         dateLastUpdated={transcription?.dateLastUpdated || '0'}
         regionCount={regions.length}
+        transcriptionId={transcription?.id || ''}
         onSave={handleSaveChanges}
-        canEdit={canEdit}
+        isOwner={isOwner}
       />
     </>
   );

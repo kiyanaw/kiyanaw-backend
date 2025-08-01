@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "paths": {
+    "/invite": {
+      "name": "/invite",
+      "lambdaFunction": "inviteHandler",
+      "permissions": {
+        "setting": "private",
+        "auth": [
+          "create",
+          "read",
+          "update",
+          "delete"
+        ]
+      }
+    },
+    "/invite/accept": {
+      "name": "/invite/accept",
+      "lambdaFunction": "inviteHandler",
+      "permissions": {
+        "setting": "private",
+        "auth": [
+          "create",
+          "read",
+          "update",
+          "delete"
+        ]
+      }
+    },
+    "/invite/mine": {
+      "name": "/invite/mine",
+      "lambdaFunction": "inviteHandler",
+      "permissions": {
+        "setting": "private",
+        "auth": [
+          "create",
+          "read",
+          "update",
+          "delete"
+        ]
+      }
+    },
+    "/invite/revoke": {
+      "name": "/invite/revoke",
+      "lambdaFunction": "inviteHandler",
+      "permissions": {
+        "setting": "private",
+        "auth": [
+          "create",
+          "read",
+          "update",
+          "delete"
+        ]
+      }
+    }
+  }
+}

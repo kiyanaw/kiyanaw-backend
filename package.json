@@ -13,7 +13,8 @@
     "format": "prettier --write src/",
     "preview": "vite preview",
     "test": "jest --silent",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "test:lambda": "cd amplify/backend/function/inviteHandler/src && npm install && npm test"
   },
   "dependencies": {
     "@aws-amplify/auth": "^6.12.4",

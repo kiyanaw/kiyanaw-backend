@@ -30,7 +30,7 @@ export class LoadTranscription {
     const userService = this.config.services.userService
     
     const data = await transcriptionService.loadInFull(this.config.transcriptionId);
-    
+
     // Check if access was denied
     if (data === false) {
       this.config.store.setAccessDenied(true);

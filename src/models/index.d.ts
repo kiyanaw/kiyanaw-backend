@@ -14,17 +14,14 @@ type IssueMetaData = {
   readOnlyFields: 'createdAt' | 'updatedAt';
 }
 
-type ContributorMetaData = {
-  readOnlyFields: 'createdAt' | 'updatedAt';
-}
-
-type TranscriptionContributorMetaData = {
-  readOnlyFields: 'createdAt' | 'updatedAt';
+type InviteMetaData = {
+  readOnlyFields: 'updatedAt';
 }
 
 type EagerTranscription = {
   readonly id: string;
   readonly author: string;
+  readonly authorFriendly: string;
   readonly coverage?: number | null;
   readonly dateLastUpdated: string;
   readonly userLastUpdated?: string | null;
@@ -45,7 +42,6 @@ type EagerTranscription = {
   readonly viewerGroups?: (string | null)[] | null;
   readonly regions?: (Region | null)[] | null;
   readonly issueList?: (Issue | null)[] | null;
-  readonly contributors?: (TranscriptionContributor | null)[] | null;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
 }
@@ -53,6 +49,7 @@ type EagerTranscription = {
 type LazyTranscription = {
   readonly id: string;
   readonly author: string;
+  readonly authorFriendly: string;
   readonly coverage?: number | null;
   readonly dateLastUpdated: string;
   readonly userLastUpdated?: string | null;
@@ -73,7 +70,6 @@ type LazyTranscription = {
   readonly viewerGroups?: (string | null)[] | null;
   readonly regions: AsyncCollection<Region>;
   readonly issueList: AsyncCollection<Issue>;
-  readonly contributors: AsyncCollection<TranscriptionContributor>;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
 }
@@ -89,7 +85,7 @@ type EagerRegion = {
   readonly start: number;
   readonly end: number;
   readonly regionText?: string | null;
-  readonly regionAnalysis?: string | null;
+  readonly regionAnalysis?: (string | null)[] | null;
   readonly isNote?: boolean | null;
   readonly translation?: string | null;
   readonly dateLastUpdated: string;
@@ -104,7 +100,7 @@ type LazyRegion = {
   readonly start: number;
   readonly end: number;
   readonly regionText?: string | null;
-  readonly regionAnalysis?: string | null;
+  readonly regionAnalysis?: (string | null)[] | null;
   readonly isNote?: boolean | null;
   readonly translation?: string | null;
   readonly dateLastUpdated: string;
@@ -154,48 +150,38 @@ export declare const Issue: (new (init: ModelInit<Issue, IssueMetaData>) => Issu
   copyOf(source: Issue, mutator: (draft: MutableModel<Issue, IssueMetaData>) => MutableModel<Issue, IssueMetaData> | void): Issue;
 }
 
-type EagerContributor = {
+type EagerInvite = {
   readonly id: string;
   readonly email: string;
-  readonly username: string;
-  readonly transcriptions?: (TranscriptionContributor | null)[] | null;
-  readonly createdAt?: string | null;
+  readonly status: string;
+  readonly permissionLevel: string;
+  readonly expiresAt: string;
+  readonly invitedBy: string;
+  readonly invitedByFriendly: string;
+  readonly createdAt: string;
+  readonly acceptedAt?: string | null;
+  readonly transcriptionId: string;
+  readonly transcriptionTitle: string;
   readonly updatedAt?: string | null;
 }
 
-type LazyContributor = {
+type LazyInvite = {
   readonly id: string;
   readonly email: string;
-  readonly username: string;
-  readonly transcriptions: AsyncCollection<TranscriptionContributor>;
-  readonly createdAt?: string | null;
+  readonly status: string;
+  readonly permissionLevel: string;
+  readonly expiresAt: string;
+  readonly invitedBy: string;
+  readonly invitedByFriendly: string;
+  readonly createdAt: string;
+  readonly acceptedAt?: string | null;
+  readonly transcriptionId: string;
+  readonly transcriptionTitle: string;
   readonly updatedAt?: string | null;
 }
 
-export declare type Contributor = LazyLoading extends LazyLoadingDisabled ? EagerContributor : LazyContributor
+export declare type Invite = LazyLoading extends LazyLoadingDisabled ? EagerInvite : LazyInvite
 
-export declare const Contributor: (new (init: ModelInit<Contributor, ContributorMetaData>) => Contributor) & {
-  copyOf(source: Contributor, mutator: (draft: MutableModel<Contributor, ContributorMetaData>) => MutableModel<Contributor, ContributorMetaData> | void): Contributor;
-}
-
-type EagerTranscriptionContributor = {
-  readonly id: string;
-  readonly transcription: Transcription;
-  readonly contributor: Contributor;
-  readonly createdAt?: string | null;
-  readonly updatedAt?: string | null;
-}
-
-type LazyTranscriptionContributor = {
-  readonly id: string;
-  readonly transcription: AsyncItem<Transcription>;
-  readonly contributor: AsyncItem<Contributor>;
-  readonly createdAt?: string | null;
-  readonly updatedAt?: string | null;
-}
-
-export declare type TranscriptionContributor = LazyLoading extends LazyLoadingDisabled ? EagerTranscriptionContributor : LazyTranscriptionContributor
-
-export declare const TranscriptionContributor: (new (init: ModelInit<TranscriptionContributor, TranscriptionContributorMetaData>) => TranscriptionContributor) & {
-  copyOf(source: TranscriptionContributor, mutator: (draft: MutableModel<TranscriptionContributor, TranscriptionContributorMetaData>) => MutableModel<TranscriptionContributor, TranscriptionContributorMetaData> | void): TranscriptionContributor;
+export declare const Invite: (new (init: ModelInit<Invite, InviteMetaData>) => Invite) & {
+  copyOf(source: Invite, mutator: (draft: MutableModel<Invite, InviteMetaData>) => MutableModel<Invite, InviteMetaData> | void): Invite;
 }

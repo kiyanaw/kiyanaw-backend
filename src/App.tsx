@@ -12,6 +12,7 @@ import { AboutPage } from './pages/AboutPage';
 import { UploadForm } from './components/upload/UploadForm';
 import { EditorPage } from './pages/EditorPage';
 import { NotFoundPage } from './pages/NotFoundPage';
+import { InvitationsPage } from './pages/InvitationsPage';
 import './App.css';
 
 function App() {
@@ -28,6 +29,8 @@ function App() {
               path="transcribe-edit/:id/:regionId"
               element={<EditorPage />}
             />
+            <Route path="invitations" element={<InvitationsPage />} />
+            <Route path="invitations/:inviteId" element={<InvitationsPage />} />
             <Route path="stats" element={<StatsPage />} />
             <Route path="about" element={<AboutPage />} />
             <Route path="*" element={<NotFoundPage />} />

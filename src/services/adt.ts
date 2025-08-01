@@ -3,6 +3,7 @@ export interface TranscriptionData {
   title: string;
   comments?: string;
   author: string;
+  authorFriendly: string;
   type: string;
   issues?: number;
   source: string;
@@ -59,6 +60,21 @@ export interface IssueData {
   comments: string; // JSON string of IssueComment array
 }
 
+export interface InviteData {
+  id: string;
+  email: string;
+  status: string;
+  permissionLevel: 'viewer' | 'editor';
+  expiresAt: string;
+  invitedBy: string;
+  invitedByFriendly: string;
+  createdAt: string;
+  acceptedAt?: string;
+  transcriptionId: string;
+  transcriptionTitle: string;
+  updatedAt?: string;
+}
+
 export interface ProcessedIssue extends Omit<IssueData, 'comments'> {
   comments: IssueComment[];
 }
@@ -88,6 +104,7 @@ export class TranscriptionModel {
   public title: string;
   public comments?: string;
   public author: string;
+  public authorFriendly: string;
   public type: string;
   public source: string;
   public coverage: number;
@@ -98,6 +115,7 @@ export class TranscriptionModel {
   public isVideo: boolean;
   public editors?: string[] | null;
   public viewers?: string[] | null;
+  public accessLevel?: 'owner' | 'editor' | 'viewer' | null;
   private _length: number;
 
   constructor(data: TranscriptionData) {
@@ -113,6 +131,7 @@ export class TranscriptionModel {
     this.title = data.title;
     this.comments = data.comments;
     this.author = data.author;
+    this.authorFriendly = data.authorFriendly;
     this.type = data.type;
     // this.issues = Number(data.issues) || 0;
     this.source = data.source;
@@ -149,6 +168,109 @@ export class TranscriptionModel {
 
   set length(value: number) {
     this._length = value;
+  }
+
+  /**
+   * Helper function to strip domain from email addresses
+   * e.g., "foo.bar@home.com" becomes "foo.bar"
+   */
+  private stripEmailDomain(email: string): string {
+    if (!email) return email;
+    const atIndex = email.indexOf('@');
+    return atIndex !== -1 ? email.substring(0, atIndex) : email;
+  }
+
+  /**
+   * Check if the current user is the owner of this transcription
+   */
+  isMine(currentUserId?: string): boolean {
+    if (!currentUserId) return false;
+    return this.author === currentUserId;
+  }
+
+  /**
+   * Get the display name for the owner, showing "me" if it's the current user
+   */
+  getOwnerDisplay(currentUserId?: string): string {
+    if (this.isMine(currentUserId)) {
+      return 'me';
+    }
+    return this.stripEmailDomain(this.authorFriendly);
+  }
+
+  /**
+   * Check if the current user was the last to edit this transcription
+   */
+  wasLastEditedByMe(currentUserId?: string): boolean {
+    if (!currentUserId || !this.userLastUpdated) return false;
+    return this.userLastUpdated === currentUserId;
+  }
+
+  /**
+   * Get the display name for the last editor, showing "me" if it's the current user
+   */
+  getLastEditorDisplay(currentUserId?: string): string {
+    if (this.wasLastEditedByMe(currentUserId)) {
+      return 'me';
+    }
+    return this.stripEmailDomain(this.userLastUpdated!);
+  }
+
+  /**
+   * Set the access level for the current user based on their presence in editors/viewers arrays
+   * Only sets access level if the user is not the owner
+   */
+  setAccessLevel(currentUserId?: string): void {
+    if (!currentUserId) {
+      this.accessLevel = null;
+      return;
+    }
+
+    // If user is the owner, set as owner
+    if (this.isMine(currentUserId)) {
+      this.accessLevel = 'owner';
+      return;
+    }
+
+    // Check if user is in editors array
+    if (this.editors && Array.isArray(this.editors) && this.editors.indexOf(currentUserId) !== -1) {
+      this.accessLevel = 'editor';
+      return;
+    }
+
+    // Check if user is in viewers array
+    if (this.viewers && Array.isArray(this.viewers) && this.viewers.indexOf(currentUserId) !== -1) {
+      this.accessLevel = 'viewer';
+      return;
+    }
+
+    // User has no access
+    this.accessLevel = null;
+  }
+
+  /**
+   * Get a user-friendly display of the access level
+   */
+  getAccessLevelDisplay(): string {
+    switch (this.accessLevel) {
+      case 'owner':
+        return 'Owner';
+      case 'editor':
+        return 'Editor';
+      case 'viewer':
+        return 'Viewer';
+      default:
+        return 'No Access';
+    }
+  }
+
+  /**
+   * Check if this transcription is shared with other users (has viewers or editors)
+   */
+  isShared(): boolean {
+    const hasViewers = this.viewers && Array.isArray(this.viewers) && this.viewers.length > 0;
+    const hasEditors = this.editors && Array.isArray(this.editors) && this.editors.length > 0;
+    return Boolean(hasViewers || hasEditors);
   }
 
 }
@@ -190,6 +312,75 @@ export class RegionModel {
       console.error('Error constructing RegionModel:', e);
       console.error('Data:', JSON.stringify(data, null, 2));
       throw e;
+    }
+  }
+}
+
+export class InviteModel {
+  public id: string;
+  public email: string;
+  public status: string;
+  public permissionLevel: 'viewer' | 'editor';
+  public expiresAt: string;
+  public invitedBy: string;
+  public invitedByFriendly: string;
+  public createdAt: string;
+  public acceptedAt?: string;
+  public transcriptionId: string;
+  public transcriptionTitle: string;
+  public updatedAt?: string;
+  private _expiresAtDate?: Date;
+
+  constructor(data: InviteData) {
+    this.id = data.id;
+    this.email = data.email;
+    this.status = data.status;
+    this.permissionLevel = data.permissionLevel;
+    this.expiresAt = data.expiresAt;
+    this.invitedBy = data.invitedBy;
+    this.invitedByFriendly = data.invitedByFriendly;
+    this.createdAt = data.createdAt;
+    this.acceptedAt = data.acceptedAt;
+    this.transcriptionId = data.transcriptionId;
+    this.transcriptionTitle = data.transcriptionTitle;
+    this.updatedAt = data.updatedAt;
+  }
+
+  get isExpired(): boolean {
+    if (!this._expiresAtDate) {
+      this._expiresAtDate = new Date(this.expiresAt);
+    }
+    return this._expiresAtDate < new Date();
+  }
+
+  get statusDisplay(): string {
+    if (this.isExpired && this.status === 'pending') {
+      return 'expired';
+    }
+    return this.status.charAt(0).toUpperCase() + this.status.slice(1);
+  }
+
+  get createdAtFormatted(): string {
+    try {
+      const date = new Date(this.createdAt);
+      if (isNaN(date.getTime())) {
+        return 'Invalid Date';
+      }
+      return date.toLocaleDateString();
+    } catch {
+      return 'Invalid Date';
+    }
+  }
+
+  get expiresAtFormatted(): string {
+    try {
+      const date = new Date(this.expiresAt);
+      if (isNaN(date.getTime())) {
+        return 'Invalid Date';
+      }
+      return date.toLocaleDateString();
+    } catch {
+      return 'Invalid Date';
     }
   }
 } 

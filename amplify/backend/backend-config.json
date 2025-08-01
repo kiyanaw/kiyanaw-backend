@@ -1,5 +1,19 @@
 {
   "api": {
+    "invite": {
+      "dependsOn": [
+        {
+          "attributes": [
+            "Name",
+            "Arn"
+          ],
+          "category": "function",
+          "resourceName": "inviteHandler"
+        }
+      ],
+      "providerPlugin": "awscloudformation",
+      "service": "API Gateway"
+    },
     "kiyanaw": {
       "dependsOn": [
         {
@@ -72,6 +86,10 @@
     }
   },
   "custom": {
+    "inviteHandlerSES": {
+      "providerPlugin": "awscloudformation",
+      "service": "customCDK"
+    },
     "regionChangeSQS": {
       "dependsOn": [
         {
@@ -185,6 +203,20 @@
       "providerPlugin": "awscloudformation",
       "service": "Lambda"
     },
+    "inviteHandler": {
+      "build": true,
+      "dependsOn": [
+        {
+          "attributes": [
+            "GraphQLAPIIdOutput"
+          ],
+          "category": "api",
+          "resourceName": "kiyanaw"
+        }
+      ],
+      "providerPlugin": "awscloudformation",
+      "service": "Lambda"
+    },
     "kiyanawaudiowaveform": {
       "build": true,
       "providerPlugin": "awscloudformation",
@@ -279,6 +311,22 @@
         {
           "category": "function",
           "resourceName": "indexRegionData"
+        }
+      ]
+    },
+    "AMPLIFY_function_inviteHandler_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "inviteHandler"
+        }
+      ]
+    },
+    "AMPLIFY_function_inviteHandler_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "inviteHandler"
         }
       ]
     },

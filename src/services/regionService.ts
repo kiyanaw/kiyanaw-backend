@@ -1,5 +1,4 @@
 // DataStore imports removed - now using GraphQL API directly
-import Timeout from 'smart-timeout';
 import { generateClient } from 'aws-amplify/api';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - generated JS GraphQL
@@ -19,8 +18,7 @@ import {
   type ListRegionsResponse,
   type GetRegionResponse,
   type CreateRegionResponse,
-  type RegionUpdateInput,
-  type PendingSave
+  type RegionUpdateInput
 } from '../types/shared';
 
 // Create GraphQL client lazily
@@ -95,7 +93,7 @@ export const createRegion = async (
       start: region.start,
       end: region.end,
       isNote: region.isNote ?? false,
-      dateLastUpdated: `${Date.now()}`,
+      dateLastUpdated: new Date().toISOString(),
       userLastUpdated: username,
     } as RegionData;
 
@@ -114,214 +112,50 @@ export const createRegion = async (
   }
 };
 
-// Debounced save state
-const pendingSaves = new Map<string, PendingSave<Partial<RegionData>>>();
-
 /**
- * Updates an existing region using GraphQL API with debouncing and automatic analysis inclusion.
- * This method coordinates with the analysis system to ensure both text and analysis
- * are saved together in a single operation, avoiding duplicate saves.
+ * Updates an existing region using GraphQL API immediately (no debouncing).
  * 
  * @param regionId The ID of the region to update
  * @param updates The fields to update (text, translation, start, end, etc.)
  * @param username The username of the user making the update
- * @param debounceMs Debounce time in milliseconds (default: 1.5 seconds)
- * @param store Optional editor store to automatically include analysis when updating text
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const updateRegion = async (regionId: string, updates: Partial<RegionData>, username: string, debounceMs = 1500, store?: any) => {
-  const existingTimeout = pendingSaves.get(regionId);
-  if (existingTimeout) {
-    Timeout.clear(existingTimeout.timeoutKey);
-  }
+export const updateRegion = async (regionId: string, updates: Partial<RegionData>, username: string) => {
+  try {
+    // Fetch current version to satisfy conflict detection
+    const { data: getData } = await getClient().graphql({
+      query: getRegionQuery,
+      variables: { id: regionId },
+    }) as GetRegionResponse;
 
-  // Merge with existing pending updates
-  const mergedUpdates = existingTimeout 
-    ? { ...existingTimeout.updates, ...updates }
-    : updates;
-
-  // Create unique timeout key for this region save
-  const timeoutKey = `region-save-${regionId}`;
-
-  // Set up debounced save
-  Timeout.set(timeoutKey, async () => {
-    try {
-      // Get current analysis from store when save actually happens
-      const finalUpdates = { ...mergedUpdates };
-      
-      // Try to include analysis if available, we're updating main text, and store is available
-      if (store && typeof store === 'object' && 'getState' in store && updates.regionText !== undefined) {
-        try {
-          const storeState = (store as { getState: () => { regionById: (id: string) => { regionAnalysis?: string[] } | null | undefined } }).getState();
-          const region = storeState.regionById(regionId);
-          if (region?.regionAnalysis) {
-            finalUpdates.regionAnalysis = region.regionAnalysis;
-          }
-        } catch {
-          // console.warn('Could not access store for analysis, continuing without');
-          // Continue with save without analysis
-        }
-      }
-
-      // Fetch current version to satisfy conflict detection
-      const { data: getData } = await getClient().graphql({
-        query: getRegionQuery,
-        variables: { id: regionId },
-      }) as GetRegionResponse;
-
-      const existing = getData?.getRegion;
-      if (!existing) {
-        // console.error(`Region with ID ${regionId} not found`);
-        return;
-      }
-
-      // Create input for GraphQL with JSON stringified analysis
-      const { regionAnalysis, ...otherUpdates } = finalUpdates;
-      const input: RegionUpdateInput = {
-        id: regionId,
-        _version: existing._version,
-        ...otherUpdates,
-        dateLastUpdated: `${Date.now()}`,
-        userLastUpdated: username,
-      };
-
-      // Convert regionAnalysis array to JSON string for GraphQL
-      if (regionAnalysis) {
-        input.regionAnalysis = JSON.stringify(regionAnalysis);
-      }
-
-      await getClient().graphql({
-        query: updateRegionMutation,
-        variables: { input },
-        authMode: 'iam',
-      });
-
-      const analysisInfo = finalUpdates.regionAnalysis && finalUpdates.regionAnalysis !== mergedUpdates.regionAnalysis ? ` + analysis` : '';
-      // console.log(`✅ Saved region ${regionId}${analysisInfo}`);
-      showToast(`Saved region ${regionId.slice(0, 8)}...${analysisInfo}`, 'success');
-      
-      // Remove from pending saves
-      pendingSaves.delete(regionId);
-      
-    } catch {
-      // console.error(`❌ Failed to save region ${regionId}`);
-      showToast(`Failed to save region ${regionId.slice(0, 8)}...`, 'error');
-      pendingSaves.delete(regionId);
+    const existing = getData?.getRegion;
+    if (!existing) {
+      throw new Error(`Region with ID ${regionId} not found`);
     }
-  }, debounceMs);
 
-  // Store the pending save
-  pendingSaves.set(regionId, {
-    updates: mergedUpdates,
-    timeoutKey
-  });
-};
+    // Create input for GraphQL
+    const input: RegionUpdateInput = {
+      id: regionId,
+      _version: existing._version,
+      ...updates,
+      dateLastUpdated: new Date().toISOString(),
+      userLastUpdated: username,
+    };
 
-/**
- * Updates an existing region using GraphQL API with debouncing and automatic analysis inclusion.
- * This method coordinates with the analysis system to ensure both text and analysis
- * are saved together in a single operation, avoiding duplicate saves.
- * 
- * @param regionId The ID of the region to update
- * @param updates The fields to update (text, translation, etc.)
- * @param username The username of the user making the update
- * @param store The editor store to get current analysis from
- * @param debounceMs Debounce time in milliseconds (default: 3000)
- */
-export const updateRegionWithAnalysis = async (regionId: string, updates: {
-  regionText?: string;
-  translation?: string;
-  start?: number;
-  end?: number;
-  isNote?: boolean;
-  regionAnalysis?: string[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-}, username: string, store: any, debounceMs = 3000) => {
-  const existingTimeout = pendingSaves.get(regionId);
-  if (existingTimeout) {
-    Timeout.clear(existingTimeout.timeoutKey);
+    await getClient().graphql({
+      query: updateRegionMutation,
+      variables: { input },
+      authMode: 'iam',
+    });
+
+    const analysisInfo = updates.regionAnalysis ? ` + analysis` : '';
+    console.log(`✅ Saved region ${regionId}${analysisInfo}`);
+    showToast(`Saved region ${regionId.slice(0, 8)}...${analysisInfo}`, 'success');
+    
+  } catch (error) {
+    console.error(`❌ Failed to save region ${regionId}:`, error);
+    showToast(`Failed to save region ${regionId.slice(0, 8)}...`, 'error');
+    throw error;
   }
-
-  // Merge with existing pending updates
-  const mergedUpdates = existingTimeout 
-    ? { ...existingTimeout.updates, ...updates }
-    : updates;
-
-  // Create unique timeout key for this region save with analysis
-  const timeoutKey = `region-save-analysis-${regionId}`;
-
-  // Set up debounced save with analysis inclusion
-  Timeout.set(timeoutKey, async () => {
-    try {
-      // Get current analysis from store when save actually happens
-      const finalUpdates = { ...mergedUpdates };
-      
-      // Try to include analysis if available and we're updating main text
-      if (updates.regionText !== undefined && store && typeof store === 'object' && 'getState' in store) {
-        try {
-          const storeState = (store as { getState: () => { regionById: (id: string) => { regionAnalysis?: string[] } | null | undefined } }).getState();
-          const region = storeState.regionById(regionId);
-          if (region?.regionAnalysis) {
-            finalUpdates.regionAnalysis = region.regionAnalysis;
-          }
-        } catch {
-          // console.warn('Could not access store for analysis, continuing without');
-          // Continue with save without analysis
-        }
-      }
-
-      // Fetch current version to satisfy conflict detection
-      const { data: getData } = await getClient().graphql({
-        query: getRegionQuery,
-        variables: { id: regionId },
-      }) as GetRegionResponse;
-
-      const existing = getData?.getRegion;
-      if (!existing) {
-        // console.error(`Region with ID ${regionId} not found`);
-        return;
-      }
-
-      // Create input for GraphQL with JSON stringified analysis
-      const { regionAnalysis, ...otherUpdates } = finalUpdates;
-      const input: RegionUpdateInput = {
-        id: regionId,
-        _version: existing._version,
-        ...otherUpdates,
-        dateLastUpdated: `${Date.now()}`,
-        userLastUpdated: username,
-      };
-
-      // Convert regionAnalysis array to JSON string for GraphQL
-      if (regionAnalysis) {
-        input.regionAnalysis = JSON.stringify(regionAnalysis);
-      }
-
-      await getClient().graphql({
-        query: updateRegionMutation,
-        variables: { input },
-        authMode: 'iam',
-      });
-
-      const analysisInfo = finalUpdates.regionAnalysis ? ` + analysis` : '';
-      // console.log(`✅ Saved region ${regionId}${analysisInfo}`);
-      showToast(`Saved region ${regionId.slice(0, 8)}...${analysisInfo}`, 'success');
-      
-      // Remove from pending saves
-      pendingSaves.delete(regionId);
-      
-    } catch {
-      // console.error(`❌ Failed to save region ${regionId}`);
-      showToast(`Failed to save region ${regionId.slice(0, 8)}...`, 'error');
-      pendingSaves.delete(regionId);
-    }
-  }, debounceMs);
-
-  // Store the pending save
-  pendingSaves.set(regionId, {
-    updates: mergedUpdates,
-    timeoutKey
-  });
 };
 
 /**
@@ -331,13 +165,6 @@ export const updateRegionWithAnalysis = async (regionId: string, updates: {
  */
 export const deleteRegion = async (regionId: string) => {
   try {
-    // Clear any pending saves for this region
-    const existing = pendingSaves.get(regionId);
-    if (existing) {
-      Timeout.clear(existing.timeoutKey);
-      pendingSaves.delete(regionId);
-    }
-
     // Fetch current version to satisfy conflict detection
     const { data: getData } = await getClient().graphql({
       query: getRegionQuery,

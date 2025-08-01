@@ -43,7 +43,8 @@ export class CreateTranscriptionUseCase {
 
     const { title, file, username, userId, services, onProgress } = this.config;
     
-    // Note: userId is validated but not used yet in the current implementation
+    // Extract username from email (part before @)
+    const displayUsername = username.split('@')[0];
     console.log('Creating transcription for user:', userId);
 
     // Step 1: Upload file to S3
@@ -60,7 +61,7 @@ export class CreateTranscriptionUseCase {
       source,
       type: file.type,
       author: userId,  // Use userId for Amplify auth compatibility
-      userLastUpdated: username,  // Keep username for display purposes
+      userLastUpdated: displayUsername,  // Use username part of email for display
     });
 
     return {

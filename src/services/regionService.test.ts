@@ -1,4 +1,4 @@
-import { loadRegionsForTranscription, createRegion, updateRegion, updateRegionWithAnalysis, deleteRegion, __resetClient } from './regionService';
+import { loadRegionsForTranscription, createRegion, updateRegion, deleteRegion, __resetClient } from './regionService';
 import { generateClient } from 'aws-amplify/api';
 import { RegionModel } from './adt';
 
@@ -36,7 +36,7 @@ jest.mock('smart-timeout', () => ({
 }));
 
 describe('RegionService (Simple GraphQL Test)', () => {
-  const mockGenerateClient = generateClient as jest.MockedFunction<typeof generateClient>;
+  const mockGenerateClient = generateClient as any;
   const MockedRegionModel = RegionModel as jest.MockedClass<typeof RegionModel>;
 
   const mockGraphqlClient = {
@@ -133,6 +133,63 @@ describe('RegionService (Simple GraphQL Test)', () => {
 
       expect(MockedRegionModel).toHaveBeenCalledTimes(1);
       expect(result).toBeDefined();
+    });
+
+    it('should set dateLastUpdated as ISO date string when creating region', async () => {
+      const transcriptionId = 'transcription-123';
+      const regionData = {
+        id: 'region-123',
+        start: 0,
+        end: 10,
+        isNote: false,
+      };
+      const username = 'testuser';
+
+      // Mock the GraphQL response
+      mockGraphqlClient.graphql.mockResolvedValue({
+        data: {
+          createRegion: {
+            ...regionData,
+            transcriptionId,
+            dateLastUpdated: '2025-01-31T19:38:45.123Z',
+            userLastUpdated: username,
+          },
+        },
+      });
+
+      await createRegion(transcriptionId, regionData, username);
+
+      // Get the actual call made to GraphQL
+      const call = mockGraphqlClient.graphql.mock.calls[0][0];
+      const inputData = call.variables.input;
+      const dateLastUpdated = inputData.dateLastUpdated;
+
+      // Verify it's an ISO date string (format: YYYY-MM-DDTHH:mm:ss.sssZ)
+      expect(dateLastUpdated).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+      
+      // Verify it can be parsed as a valid date
+      const parsedDate = new Date(dateLastUpdated);
+      expect(parsedDate.getTime()).not.toBeNaN();
+      
+      // Verify it's recent (within last minute)
+      const now = new Date();
+      const timeDiff = now.getTime() - parsedDate.getTime();
+      expect(timeDiff).toBeLessThan(60000); // Less than 1 minute
+    });
+
+    it('should handle region creation errors', async () => {
+      const transcriptionId = 'test-transcription';
+      const regionData = {
+        id: 'new-region',
+        start: 30,
+        end: 40,
+        isNote: false,
+      };
+      const username = 'test-user';
+
+      mockGraphqlClient.graphql.mockRejectedValue(new Error('Create failed'));
+
+      await expect(createRegion(transcriptionId, regionData, username)).rejects.toThrow('Create failed');
     });
   });
 
@@ -241,70 +298,141 @@ describe('RegionService (Simple GraphQL Test)', () => {
       });
     });
 
-    it('should validate region exists before updating', (done) => {
+    it('should validate region exists before updating', async () => {
       // Test that updateRegion calls getRegion first
-      updateRegion('test-region', { regionText: 'New text' }, 'test-user', 100);
+      await updateRegion('test-region', { regionText: 'New text' }, 'test-user');
 
-      // Use setTimeout to check after debounce
-      setTimeout(() => {
-        expect(mockGraphqlClient.graphql).toHaveBeenCalledWith({
-          query: expect.any(String),
-          variables: { id: 'test-region' },
+      expect(mockGraphqlClient.graphql).toHaveBeenCalledWith({
+        query: expect.any(String),
+        variables: { id: 'test-region' },
+      });
+    });
+
+    it('should set dateLastUpdated as ISO date string when updating region', async () => {
+      const regionId = 'region-123';
+      const updates = { regionText: 'Updated text' };
+      const username = 'testuser';
+
+      const existingRegion = {
+        id: regionId,
+        transcriptionId: 'transcription-123',
+        start: 0,
+        end: 10,
+        regionText: 'Original text',
+        dateLastUpdated: '2025-01-30T10:00:00.000Z',
+        userLastUpdated: 'originaluser',
+        _version: 1,
+      };
+
+      // Mock getRegion to succeed
+      mockGraphqlClient.graphql
+        .mockResolvedValueOnce({
+          data: { getRegion: existingRegion },
+        })
+        // Mock updateRegion to succeed
+        .mockResolvedValueOnce({
+          data: { 
+            updateRegion: {
+              ...existingRegion,
+              ...updates,
+              dateLastUpdated: '2025-01-31T19:38:45.123Z',
+              userLastUpdated: username,
+            }
+          },
         });
-        done();
-      }, 200);
+
+      await updateRegion(regionId, updates, username);
+
+      // Look for any call that has an input with our region ID
+      const calls = mockGraphqlClient.graphql.mock.calls;
+      const updateCall = calls.find(call => {
+        const input = call[0]?.variables?.input;
+        return input && input.id === regionId && input.dateLastUpdated;
+      });
+      
+      expect(updateCall).toBeDefined();
+      
+      const inputData = updateCall[0].variables.input;
+      const dateLastUpdated = inputData.dateLastUpdated;
+
+      // Verify it's an ISO date string (format: YYYY-MM-DDTHH:mm:ss.sssZ)
+      expect(dateLastUpdated).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+      
+      // Verify it can be parsed as a valid date
+      const parsedDate = new Date(dateLastUpdated);
+      expect(parsedDate.getTime()).not.toBeNaN();
+      
+      // Verify it's recent (within last minute)
+      const now = new Date();
+      const timeDiff = now.getTime() - parsedDate.getTime();
+      expect(timeDiff).toBeLessThan(60000); // Less than 1 minute
     });
 
-    it('should include version control in update', (done) => {
-      updateRegion('test-region', { regionText: 'New text' }, 'test-user', 100);
+    it('should include version control in update', async () => {
+      const existingRegion = {
+        id: 'test-region',
+        _version: 1,
+        transcriptionId: 'transcription-123',
+        start: 0,
+        end: 10,
+        regionText: 'Original text',
+        dateLastUpdated: '2025-01-30T10:00:00.000Z',
+        userLastUpdated: 'originaluser',
+      };
 
-      setTimeout(() => {
-        expect(mockGraphqlClient.graphql).toHaveBeenCalledWith(
-          expect.objectContaining({
-            query: expect.stringContaining('updateRegion'),
-            variables: expect.objectContaining({
-              input: expect.objectContaining({
-                id: 'test-region',
-                _version: mockOriginalRegion._version,
-                regionText: 'New text',
-                dateLastUpdated: expect.any(String),
-                userLastUpdated: 'test-user',
-              }),
+      // Mock getRegion to return existing region
+      mockGraphqlClient.graphql
+        .mockResolvedValueOnce({
+          data: { getRegion: existingRegion },
+        })
+        // Mock updateRegion to succeed
+        .mockResolvedValueOnce({
+          data: { updateRegion: { ...existingRegion, regionText: 'New text' } },
+        });
+
+      await updateRegion('test-region', { regionText: 'New text' }, 'test-user');
+
+      expect(mockGraphqlClient.graphql).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.stringContaining('updateRegion'),
+          variables: expect.objectContaining({
+            input: expect.objectContaining({
+              id: 'test-region',
+              _version: existingRegion._version,
+              regionText: 'New text',
+              dateLastUpdated: expect.any(String),
+              userLastUpdated: 'test-user',
             }),
-          })
-        );
-        done();
-      }, 200);
+          }),
+        })
+      );
     });
 
-    it('should handle different field types correctly', (done) => {
-      updateRegion('test-region', {
+    it('should handle different field types correctly', async () => {
+      await updateRegion('test-region', {
         regionText: 'New text',
         translation: 'New translation',
         start: 15,
         end: 25,
         isNote: true,
-      }, 'test-user', 100);
+      }, 'test-user');
 
-      setTimeout(() => {
-        expect(mockGraphqlClient.graphql).toHaveBeenCalledWith(
-          expect.objectContaining({
-            variables: expect.objectContaining({
-              input: expect.objectContaining({
-                regionText: 'New text',
-                translation: 'New translation',
-                start: 15,
-                end: 25,
-                isNote: true,
-              }),
+      expect(mockGraphqlClient.graphql).toHaveBeenCalledWith(
+        expect.objectContaining({
+          variables: expect.objectContaining({
+            input: expect.objectContaining({
+              regionText: 'New text',
+              translation: 'New translation',
+              start: 15,
+              end: 25,
+              isNote: true,
             }),
-          })
-        );
-        done();
-      }, 200);
+          }),
+        })
+      );
     });
 
-    it('should handle missing region gracefully', (done) => {
+    it('should handle missing region gracefully', async () => {
       mockGraphqlClient.graphql.mockImplementation((params: any) => {
         if (params.query.includes('getRegion')) {
           return Promise.resolve({
@@ -316,136 +444,46 @@ describe('RegionService (Simple GraphQL Test)', () => {
         return Promise.resolve({});
       });
 
-      updateRegion('missing-region', { regionText: 'Test' }, 'test-user', 100);
+      // This should throw an error when region is not found
+      await expect(updateRegion('missing-region', { regionText: 'Test' }, 'test-user')).rejects.toThrow();
 
-      setTimeout(() => {
-        // Should only call getRegion, not updateRegion
-        expect(mockGraphqlClient.graphql).toHaveBeenCalledTimes(1);
-        expect(mockGraphqlClient.graphql).toHaveBeenCalledWith({
-          query: expect.any(String),
-          variables: { id: 'missing-region' },
-        });
-        done();
-      }, 200);
+      // Should only call getRegion, not updateRegion
+      expect(mockGraphqlClient.graphql).toHaveBeenCalledTimes(1);
+      expect(mockGraphqlClient.graphql).toHaveBeenCalledWith({
+        query: expect.any(String),
+        variables: { id: 'missing-region' },
+      });
     });
 
-    it('should handle GraphQL errors gracefully', (done) => {
+    it('should handle GraphQL errors gracefully', async () => {
+      const existingRegion = {
+        id: 'test-region',
+        _version: 1,
+        transcriptionId: 'transcription-123',
+        start: 0,
+        end: 10,
+        regionText: 'Original text',
+        dateLastUpdated: '2025-01-30T10:00:00.000Z',
+        userLastUpdated: 'originaluser',
+      };
+
       mockGraphqlClient.graphql.mockImplementation((params: any) => {
         if (params.query.includes('getRegion')) {
           return Promise.resolve({
             data: {
-              getRegion: mockOriginalRegion,
+              getRegion: existingRegion,
             },
           });
         }
         return Promise.reject(new Error('Update failed'));
       });
 
-      updateRegion('test-region', { regionText: 'Test' }, 'test-user', 100);
+      // This should throw an error when the update fails
+      await expect(updateRegion('test-region', { regionText: 'Test' }, 'test-user')).rejects.toThrow();
 
-      setTimeout(() => {
-        // Should call both getRegion and updateRegion (which fails)
-        expect(mockGraphqlClient.graphql).toHaveBeenCalledTimes(2);
-        done();
-      }, 200);
+      // Should call both getRegion and updateRegion (which fails)
+      expect(mockGraphqlClient.graphql).toHaveBeenCalledTimes(2);
     });
   });
 
-  describe('updateRegionWithAnalysis - Business Logic', () => {
-    const mockOriginalRegion = {
-      id: 'test-region',
-      _version: 1,
-      regionText: 'Original text',
-      regionAnalysis: null,
-      start: 10,
-      end: 20,
-      dateLastUpdated: '1234567890',
-      userLastUpdated: 'original-user',
-      transcriptionId: 'test-transcription',
-    };
-
-    const mockStore = {
-      getState: jest.fn().mockReturnValue({
-        regionById: jest.fn().mockReturnValue({
-          regionAnalysis: { sentiment: 'positive', entities: [] },
-        }),
-      }),
-    };
-
-    beforeEach(() => {
-      mockGraphqlClient.graphql.mockImplementation((params: any) => {
-        if (params.query.includes('getRegion')) {
-          return Promise.resolve({
-            data: {
-              getRegion: mockOriginalRegion,
-            },
-          });
-        }
-        return Promise.resolve({
-          data: {
-            updateRegion: {
-              ...mockOriginalRegion,
-              ...params.variables.input,
-              _version: 2,
-              dateLastUpdated: '1234567890',
-              userLastUpdated: 'test-user',
-            },
-          },
-        });
-      });
-    });
-
-    it('should handle text updates with store integration', (done) => {
-      updateRegionWithAnalysis(
-        'test-region',
-        { regionText: 'New text' },
-        'test-user',
-        mockStore,
-        100
-      );
-
-      setTimeout(() => {
-        expect(mockGraphqlClient.graphql).toHaveBeenCalledWith(
-          expect.objectContaining({
-            variables: expect.objectContaining({
-              input: expect.objectContaining({
-                regionText: 'New text',
-              }),
-            }),
-          })
-        );
-        done();
-      }, 200);
-    });
-
-    it('should handle store errors gracefully', (done) => {
-      const errorStore = {
-        getState: jest.fn().mockImplementation(() => {
-          throw new Error('Store error');
-        }),
-      };
-
-      updateRegionWithAnalysis(
-        'test-region',
-        { regionText: 'New text' },
-        'test-user',
-        errorStore,
-        100
-      );
-
-      setTimeout(() => {
-        // Should still update the region despite store error
-        expect(mockGraphqlClient.graphql).toHaveBeenCalledWith(
-          expect.objectContaining({
-            variables: expect.objectContaining({
-              input: expect.objectContaining({
-                regionText: 'New text',
-              }),
-            }),
-          })
-        );
-        done();
-      }, 200);
-    });
-  });
 }); 

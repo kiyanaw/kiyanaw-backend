@@ -1,5 +1,5 @@
-import { TranscriptionModel, RegionModel } from './adt';
-import type { TranscriptionData, RegionData } from './adt';
+import { TranscriptionModel, RegionModel, InviteModel } from './adt';
+import type { TranscriptionData, RegionData, InviteData } from './adt';
 
 describe('ADT Models', () => {
   describe('TranscriptionModel', () => {
@@ -8,6 +8,7 @@ describe('ADT Models', () => {
       title: 'Test Transcription',
       comments: 'Test comments',
       author: 'test-author',
+      authorFriendly: 'Test Author',
       type: 'audio/mp3',
       issues: 5,
       source: 'test-source.mp3',
@@ -61,6 +62,7 @@ describe('ADT Models', () => {
           id: 'test-id',
           title: 'Test Title',
           author: 'Test Author',
+          authorFriendly: 'Test Author',
           type: 'audio/mp3',
           source: 'test.mp3',
           length: 60,
@@ -180,6 +182,7 @@ describe('ADT Models', () => {
           id: 'test-id',
           title: 'Test Title',
           author: 'Test Author',
+          authorFriendly: 'Test Author',
           type: 'audio/mp3',
           source: 'test.mp3',
           length: 60,
@@ -206,6 +209,282 @@ describe('ADT Models', () => {
         expect(model.comments).toBeNull();
         expect(model.dateLastUpdated).toBeNull();
         expect(model.userLastUpdated).toBeNull();
+      });
+    });
+
+    describe('ownership methods', () => {
+      it('should correctly identify when transcription is mine', () => {
+        const model = new TranscriptionModel(mockTranscriptionData);
+
+        expect(model.isMine('test-author')).toBe(true);
+        expect(model.isMine('different-user-id')).toBe(false);
+        expect(model.isMine(undefined)).toBe(false);
+        expect(model.isMine('')).toBe(false);
+      });
+
+      it('should return "me" for owner display when transcription is mine', () => {
+        const model = new TranscriptionModel(mockTranscriptionData);
+
+        expect(model.getOwnerDisplay('test-author')).toBe('me');
+      });
+
+      it('should return authorFriendly for owner display when transcription is not mine', () => {
+        const model = new TranscriptionModel(mockTranscriptionData);
+
+        expect(model.getOwnerDisplay('different-user-id')).toBe('Test Author');
+        expect(model.getOwnerDisplay(undefined)).toBe('Test Author');
+        expect(model.getOwnerDisplay('')).toBe('Test Author');
+      });
+
+      it('should use authorFriendly since it is a required field', () => {
+        const model = new TranscriptionModel(mockTranscriptionData);
+
+        expect(model.getOwnerDisplay('different-user-id')).toBe('Test Author');
+        expect(model.authorFriendly).toBe('Test Author'); // Verify it's always available
+      });
+
+      it('should strip email domain from authorFriendly when showing owner display', () => {
+        const dataWithEmail = {
+          ...mockTranscriptionData,
+          authorFriendly: 'foo.bar@home.com'
+        };
+        const model = new TranscriptionModel(dataWithEmail);
+
+        expect(model.getOwnerDisplay('different-user-id')).toBe('foo.bar');
+      });
+
+      it('should handle authorFriendly without email domain', () => {
+        const dataWithoutDomain = {
+          ...mockTranscriptionData,
+          authorFriendly: 'john.doe'
+        };
+        const model = new TranscriptionModel(dataWithoutDomain);
+
+        expect(model.getOwnerDisplay('different-user-id')).toBe('john.doe');
+      });
+    });
+
+    describe('last editor methods', () => {
+      it('should correctly identify when transcription was last edited by me', () => {
+        const model = new TranscriptionModel(mockTranscriptionData);
+
+        expect(model.wasLastEditedByMe('test-user')).toBe(true);
+        expect(model.wasLastEditedByMe('different-user-id')).toBe(false);
+        expect(model.wasLastEditedByMe(undefined)).toBe(false);
+        expect(model.wasLastEditedByMe('')).toBe(false);
+      });
+
+      it('should return "me" for last editor display when I was the last editor', () => {
+        const model = new TranscriptionModel(mockTranscriptionData);
+
+        expect(model.getLastEditorDisplay('test-user')).toBe('me');
+      });
+
+      it('should return userLastUpdated for last editor display when someone else was the last editor', () => {
+        const model = new TranscriptionModel(mockTranscriptionData);
+
+        expect(model.getLastEditorDisplay('different-user-id')).toBe('test-user');
+        expect(model.getLastEditorDisplay(undefined)).toBe('test-user');
+        expect(model.getLastEditorDisplay('')).toBe('test-user');
+      });
+
+      it('should strip email domain from userLastUpdated when showing last editor display', () => {
+        const dataWithEmail = {
+          ...mockTranscriptionData,
+          userLastUpdated: 'jane.doe@company.com'
+        };
+        const model = new TranscriptionModel(dataWithEmail);
+
+        expect(model.getLastEditorDisplay('different-user-id')).toBe('jane.doe');
+      });
+
+      it('should handle userLastUpdated without email domain', () => {
+        const dataWithoutDomain = {
+          ...mockTranscriptionData,
+          userLastUpdated: 'alice'
+        };
+        const model = new TranscriptionModel(dataWithoutDomain);
+
+        expect(model.getLastEditorDisplay('different-user-id')).toBe('alice');
+      });
+    });
+
+    describe('access level methods', () => {
+      it('should set access level to owner when user is the author', () => {
+        const model = new TranscriptionModel(mockTranscriptionData);
+        
+        model.setAccessLevel('test-author');
+        
+        expect(model.accessLevel).toBe('owner');
+      });
+
+      it('should set access level to editor when user is in editors array', () => {
+        const dataWithEditors = {
+          ...mockTranscriptionData,
+          editors: ['user1', 'test-user', 'user2'],
+        };
+        const model = new TranscriptionModel(dataWithEditors);
+        
+        model.setAccessLevel('test-user');
+        
+        expect(model.accessLevel).toBe('editor');
+      });
+
+      it('should set access level to viewer when user is in viewers array', () => {
+        const dataWithViewers = {
+          ...mockTranscriptionData,
+          viewers: ['user1', 'test-user', 'user2'],
+        };
+        const model = new TranscriptionModel(dataWithViewers);
+        
+        model.setAccessLevel('test-user');
+        
+        expect(model.accessLevel).toBe('viewer');
+      });
+
+      it('should prioritize editor over viewer when user is in both arrays', () => {
+        const dataWithBoth = {
+          ...mockTranscriptionData,
+          editors: ['test-user'],
+          viewers: ['test-user'],
+        };
+        const model = new TranscriptionModel(dataWithBoth);
+        
+        model.setAccessLevel('test-user');
+        
+        expect(model.accessLevel).toBe('editor');
+      });
+
+      it('should set access level to null when user has no access', () => {
+        const dataWithArrays = {
+          ...mockTranscriptionData,
+          editors: ['user1', 'user2'],
+          viewers: ['user3', 'user4'],
+        };
+        const model = new TranscriptionModel(dataWithArrays);
+        
+        model.setAccessLevel('unknown-user');
+        
+        expect(model.accessLevel).toBe(null);
+      });
+
+      it('should set access level to null when no currentUserId provided', () => {
+        const model = new TranscriptionModel(mockTranscriptionData);
+        
+        model.setAccessLevel(undefined);
+        
+        expect(model.accessLevel).toBe(null);
+      });
+
+      it('should handle null editors and viewers arrays', () => {
+        const dataWithNulls = {
+          ...mockTranscriptionData,
+          editors: null,
+          viewers: null,
+        };
+        const model = new TranscriptionModel(dataWithNulls);
+        
+        model.setAccessLevel('test-user');
+        
+        expect(model.accessLevel).toBe(null);
+      });
+
+      it('should handle empty editors and viewers arrays', () => {
+        const dataWithEmpty = {
+          ...mockTranscriptionData,
+          editors: [],
+          viewers: [],
+        };
+        const model = new TranscriptionModel(dataWithEmpty);
+        
+        model.setAccessLevel('test-user');
+        
+        expect(model.accessLevel).toBe(null);
+      });
+
+      it('should return correct access level display strings', () => {
+        const model = new TranscriptionModel(mockTranscriptionData);
+        
+        model.accessLevel = 'owner';
+        expect(model.getAccessLevelDisplay()).toBe('Owner');
+        
+        model.accessLevel = 'editor';
+        expect(model.getAccessLevelDisplay()).toBe('Editor');
+        
+        model.accessLevel = 'viewer';
+        expect(model.getAccessLevelDisplay()).toBe('Viewer');
+        
+        model.accessLevel = null;
+        expect(model.getAccessLevelDisplay()).toBe('No Access');
+      });
+
+      it('should handle undefined access level gracefully', () => {
+        const model = new TranscriptionModel(mockTranscriptionData);
+        // Don't set access level, should default to undefined
+        
+        expect(model.getAccessLevelDisplay()).toBe('No Access');
+      });
+    });
+
+    describe('isShared', () => {
+      it('should return true when transcription has viewers', () => {
+        const dataWithViewers = {
+          ...mockTranscriptionData,
+          viewers: ['user1', 'user2'],
+          editors: null
+        };
+        const model = new TranscriptionModel(dataWithViewers);
+        expect(model.isShared()).toBe(true);
+      });
+
+      it('should return true when transcription has editors', () => {
+        const dataWithEditors = {
+          ...mockTranscriptionData,
+          viewers: null,
+          editors: ['user1', 'user2']
+        };
+        const model = new TranscriptionModel(dataWithEditors);
+        expect(model.isShared()).toBe(true);
+      });
+
+      it('should return true when transcription has both viewers and editors', () => {
+        const dataWithBoth = {
+          ...mockTranscriptionData,
+          viewers: ['user1'],
+          editors: ['user2']
+        };
+        const model = new TranscriptionModel(dataWithBoth);
+        expect(model.isShared()).toBe(true);
+      });
+
+      it('should return false when transcription has no viewers or editors', () => {
+        const dataWithNone = {
+          ...mockTranscriptionData,
+          viewers: null,
+          editors: null
+        };
+        const model = new TranscriptionModel(dataWithNone);
+        expect(model.isShared()).toBe(false);
+      });
+
+      it('should return false when viewers and editors are empty arrays', () => {
+        const dataWithEmptyArrays = {
+          ...mockTranscriptionData,
+          viewers: [],
+          editors: []
+        };
+        const model = new TranscriptionModel(dataWithEmptyArrays);
+        expect(model.isShared()).toBe(false);
+      });
+
+      it('should return false when viewers and editors are undefined', () => {
+        const dataWithUndefined = {
+          ...mockTranscriptionData,
+          viewers: undefined,
+          editors: undefined
+        };
+        const model = new TranscriptionModel(dataWithUndefined);
+        expect(model.isShared()).toBe(false);
       });
     });
   });
@@ -440,6 +719,255 @@ describe('ADT Models', () => {
         expect(model.id).toBe('');
         expect(model.transcriptionId).toBe('');
         expect(model.translation).toBe('');
+      });
+    });
+  });
+
+  describe('InviteModel', () => {
+    const mockInviteData: InviteData = {
+      id: 'invite_test123',
+      email: 'test@example.com',
+      status: 'pending',
+      permissionLevel: 'viewer',
+      expiresAt: '2024-12-31T23:59:59.000Z',
+      invitedBy: 'user-123',
+      invitedByFriendly: 'test.user@example.com',
+      createdAt: '2024-01-01T00:00:00.000Z',
+      transcriptionId: 'transcription-456',
+      transcriptionTitle: 'Test Transcription Title',
+    };
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+      // Mock console methods to avoid output during tests
+      jest.spyOn(console, 'log').mockImplementation();
+      jest.spyOn(console, 'error').mockImplementation();
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    describe('constructor', () => {
+      it('should have correct constructor signature', () => {
+        expect(typeof InviteModel).toBe('function');
+        expect(InviteModel.length).toBe(1); // Should accept 1 parameter
+      });
+
+      it('should map all basic properties correctly', () => {
+        const model = new InviteModel(mockInviteData);
+
+        expect(model.id).toBe(mockInviteData.id);
+        expect(model.email).toBe(mockInviteData.email);
+        expect(model.status).toBe(mockInviteData.status);
+        expect(model.permissionLevel).toBe(mockInviteData.permissionLevel);
+        expect(model.expiresAt).toBe(mockInviteData.expiresAt);
+        expect(model.invitedBy).toBe(mockInviteData.invitedBy);
+        expect(model.invitedByFriendly).toBe(mockInviteData.invitedByFriendly);
+        expect(model.createdAt).toBe(mockInviteData.createdAt);
+        expect(model.transcriptionId).toBe(mockInviteData.transcriptionId);
+        expect(model.transcriptionTitle).toBe(mockInviteData.transcriptionTitle);
+      });
+
+      it('should handle optional acceptedAt property', () => {
+        const dataWithAcceptedAt = {
+          ...mockInviteData,
+          acceptedAt: '2024-06-15T12:00:00.000Z',
+        };
+
+        const model = new InviteModel(dataWithAcceptedAt);
+        expect(model.acceptedAt).toBe('2024-06-15T12:00:00.000Z');
+
+        const modelWithoutAcceptedAt = new InviteModel(mockInviteData);
+        expect(modelWithoutAcceptedAt.acceptedAt).toBeUndefined();
+      });
+
+      it('should handle optional updatedAt property', () => {
+        const dataWithUpdatedAt = {
+          ...mockInviteData,
+          updatedAt: '2024-06-15T12:00:00.000Z',
+        };
+
+        const model = new InviteModel(dataWithUpdatedAt);
+        expect(model.updatedAt).toBe('2024-06-15T12:00:00.000Z');
+
+        const modelWithoutUpdatedAt = new InviteModel(mockInviteData);
+        expect(modelWithoutUpdatedAt.updatedAt).toBeUndefined();
+      });
+
+      it('should construct without throwing errors', () => {
+        expect(() => new InviteModel(mockInviteData)).not.toThrow();
+        
+        const model = new InviteModel(mockInviteData);
+        expect(model).toBeInstanceOf(InviteModel);
+      });
+    });
+
+    describe('statusDisplay getter', () => {
+      it('should return capitalized status for known statuses', () => {
+        const statuses = ['accepted', 'declined'];
+        
+        statuses.forEach(status => {
+          const data = { ...mockInviteData, status };
+          const model = new InviteModel(data);
+          expect(model.statusDisplay).toBe(status.charAt(0).toUpperCase() + status.slice(1));
+        });
+      });
+
+      it('should return "expired" for expired pending invites', () => {
+        const pastDate = new Date();
+        pastDate.setDate(pastDate.getDate() - 7);
+        
+        const data = { 
+          ...mockInviteData, 
+          status: 'pending',
+          expiresAt: pastDate.toISOString()
+        };
+        const model = new InviteModel(data);
+        expect(model.statusDisplay).toBe('expired');
+      });
+
+      it('should return "Pending" for non-expired pending invites', () => {
+        const futureDate = new Date();
+        futureDate.setDate(futureDate.getDate() + 7);
+        
+        const data = { 
+          ...mockInviteData, 
+          status: 'pending',
+          expiresAt: futureDate.toISOString()
+        };
+        const model = new InviteModel(data);
+        expect(model.statusDisplay).toBe('Pending');
+      });
+
+      it('should handle unknown status values', () => {
+        const data = { ...mockInviteData, status: 'unknown-status' };
+        const model = new InviteModel(data);
+        expect(model.statusDisplay).toBe('Unknown-status');
+      });
+
+      it('should handle empty status', () => {
+        const data = { ...mockInviteData, status: '' };
+        const model = new InviteModel(data);
+        expect(model.statusDisplay).toBe('');
+      });
+    });
+
+    describe('isExpired getter', () => {
+      it('should return true for expired invites', () => {
+        const pastDate = new Date();
+        pastDate.setDate(pastDate.getDate() - 7); // 7 days ago
+        
+        const expiredData = {
+          ...mockInviteData,
+          expiresAt: pastDate.toISOString(),
+        };
+        const model = new InviteModel(expiredData);
+        expect(model.isExpired).toBe(true);
+      });
+
+      it('should return false for non-expired invites', () => {
+        const futureDate = new Date();
+        futureDate.setDate(futureDate.getDate() + 7); // 7 days from now
+        
+        const futureData = {
+          ...mockInviteData,
+          expiresAt: futureDate.toISOString(),
+        };
+        const model = new InviteModel(futureData);
+        expect(model.isExpired).toBe(false);
+      });
+
+      it('should handle edge case of exactly current time', () => {
+        const now = new Date();
+        const exactData = {
+          ...mockInviteData,
+          expiresAt: now.toISOString(),
+        };
+        const model = new InviteModel(exactData);
+        // At the exact moment, it should not be expired (using < comparison)
+        expect(model.isExpired).toBe(false);
+      });
+    });
+
+    describe('date formatting getters', () => {
+      beforeEach(() => {
+        // Mock toLocaleDateString to return consistent results
+        jest.spyOn(Date.prototype, 'toLocaleDateString').mockReturnValue('1/1/2024');
+      });
+
+      describe('expiresAtFormatted', () => {
+        it('should format expires at date correctly', () => {
+          const model = new InviteModel(mockInviteData);
+          expect(model.expiresAtFormatted).toBe('1/1/2024');
+        });
+
+        it('should handle invalid expiration date', () => {
+          const invalidData = { ...mockInviteData, expiresAt: 'invalid-date' };
+          const model = new InviteModel(invalidData);
+          expect(model.expiresAtFormatted).toBe('Invalid Date');
+        });
+      });
+
+      describe('createdAtFormatted', () => {
+        it('should format created at date correctly', () => {
+          const model = new InviteModel(mockInviteData);
+          expect(model.createdAtFormatted).toBe('1/1/2024');
+        });
+
+        it('should handle invalid creation date', () => {
+          const invalidData = { ...mockInviteData, createdAt: 'invalid-date' };
+          const model = new InviteModel(invalidData);
+          expect(model.createdAtFormatted).toBe('Invalid Date');
+        });
+      });
+    });
+
+    describe('permission level validation', () => {
+      it('should handle viewer permission level', () => {
+        const viewerData = { ...mockInviteData, permissionLevel: 'viewer' as const };
+        const model = new InviteModel(viewerData);
+        expect(model.permissionLevel).toBe('viewer');
+      });
+
+      it('should handle editor permission level', () => {
+        const editorData = { ...mockInviteData, permissionLevel: 'editor' as const };
+        const model = new InviteModel(editorData);
+        expect(model.permissionLevel).toBe('editor');
+      });
+    });
+
+    describe('edge cases', () => {
+      it('should handle empty email', () => {
+        const data = { ...mockInviteData, email: '' };
+        const model = new InviteModel(data);
+        expect(model.email).toBe('');
+      });
+
+      it('should handle empty transcription title', () => {
+        const data = { ...mockInviteData, transcriptionTitle: '' };
+        const model = new InviteModel(data);
+        expect(model.transcriptionTitle).toBe('');
+      });
+
+      it('should handle minimal required data', () => {
+        const minimalData: InviteData = {
+          id: 'test-id',
+          email: 'test@example.com',
+          status: 'pending',
+          permissionLevel: 'viewer',
+          expiresAt: '2024-12-31T23:59:59.000Z',
+          invitedBy: 'user-123',
+          invitedByFriendly: 'test.user@example.com',
+          createdAt: '2024-01-01T00:00:00.000Z',
+          transcriptionId: 'transcription-456',
+          transcriptionTitle: 'Test Title',
+        };
+
+        const model = new InviteModel(minimalData);
+        expect(model.id).toBe('test-id');
+        expect(model.acceptedAt).toBeUndefined();
+        expect(model.updatedAt).toBeUndefined();
       });
     });
   });

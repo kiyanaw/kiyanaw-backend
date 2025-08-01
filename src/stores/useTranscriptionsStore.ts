@@ -1,43 +1,48 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import { generateClient } from 'aws-amplify/api';
-import { Transcription } from '../models';
-import type { GraphQLListResponse } from '../types/shared';
-// @ts-expect-error - GraphQL queries are generated as JS files
-import { listTranscriptions } from '../graphql/queries.js';
-
-// Create GraphQL client
-const client = generateClient();
+import { TranscriptionModel } from '../services/adt';
+import { services } from '../services';
+import { LoadTranscriptions } from '../use-cases/load-transcriptions';
 
 interface TranscriptionsState {
-  transcriptions: Transcription[];
+  transcriptions: TranscriptionModel[];
   loading: boolean;
   error: string | null;
-  loadTranscriptions: () => Promise<void>;
+  setTranscriptions: (transcriptions: TranscriptionModel[]) => void;
+  setLoading: (loading: boolean) => void;
+  setError: (error: string | null) => void;
+  reload: () => void;
 }
 
-// TODO: move this to use-case
 export const useTranscriptionsStore = create<TranscriptionsState>()(
   devtools(
     (set) => ({
       transcriptions: [],
       loading: false,
       error: null,
-      loadTranscriptions: async () => {
-        set({ loading: true, error: null });
+      setTranscriptions: (transcriptions: TranscriptionModel[]) => {
+        set({ transcriptions, loading: false, error: null });
+      },
+      setLoading: (loading: boolean) => {
+        set({ loading });
+      },
+      setError: (error: string | null) => {
+        set({ error, loading: false });
+      },
+      reload: () => {
+        const store = useTranscriptionsStore.getState();
+        store.setLoading(true);
+        store.setError(null);
+        
+        const useCase = new LoadTranscriptions({
+          services,
+          store,
+        });
 
-        try {
-          console.log('🔍 Loading transcriptions via GraphQL API...');
-          const { data } = await client.graphql({ query: listTranscriptions });
-
-          // The GraphQL result is of shape { listTranscriptions: { items: [...] } }
-          const items = (data as GraphQLListResponse<Transcription>)?.listTranscriptions?.items ?? [];
-
-          set({ transcriptions: items as Transcription[], loading: false });
-        } catch (error) {
-          console.error('❌ GraphQL API query failed:', error);
-          set({ error: 'Failed to load transcriptions', loading: false });
-        }
+        useCase.execute().catch((error) => {
+          console.error('❌ Store reload failed:', error);
+          // Error is already handled in the use-case
+        });
       },
     }),
     { name: 'TranscriptionsStore' }
