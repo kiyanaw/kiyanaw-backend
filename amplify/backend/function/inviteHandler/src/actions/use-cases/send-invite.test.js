@@ -409,6 +409,120 @@ describe('SendInviteUseCase', () => {
     });
   });
 
+  describe('Email Failure Handling', () => {
+    beforeEach(() => {
+      // Add the updateInviteStatus mock to the invite service
+      inviteService.updateInviteStatus = jest.fn().mockResolvedValue({
+        id: 'invite_123_abc456',
+        status: 'failed'
+      });
+    });
+
+    it('should update invite status to failed when email sending fails', async () => {
+      const emailError = new Error('Email delivery failed');
+      emailService.sendEmail.mockRejectedValue(emailError);
+
+      const useCase = new SendInviteUseCase(validConfig);
+
+      await expect(useCase.execute()).rejects.toThrow('Failed to send invitation email: Email delivery failed');
+
+      // Verify invite was created first
+      expect(inviteService.createInvite).toHaveBeenCalled();
+
+      // Verify status was updated to failed
+      expect(inviteService.updateInviteStatus).toHaveBeenCalledWith('invite_123_abc456', 'failed');
+    });
+
+    it('should still throw original email error even if status update succeeds', async () => {
+      const emailError = new Error('SES service unavailable');
+      emailService.sendEmail.mockRejectedValue(emailError);
+
+      const useCase = new SendInviteUseCase(validConfig);
+
+      await expect(useCase.execute()).rejects.toThrow('Failed to send invitation email: SES service unavailable');
+
+      expect(inviteService.updateInviteStatus).toHaveBeenCalledWith('invite_123_abc456', 'failed');
+    });
+
+    it('should continue to throw original email error even if status update fails', async () => {
+      const emailError = new Error('SMTP timeout');
+      const updateError = new Error('Database update failed');
+      
+      emailService.sendEmail.mockRejectedValue(emailError);
+      inviteService.updateInviteStatus.mockRejectedValue(updateError);
+
+      const useCase = new SendInviteUseCase(validConfig);
+
+      // Should throw original email error, not update error
+      await expect(useCase.execute()).rejects.toThrow('Failed to send invitation email: SMTP timeout');
+
+      expect(inviteService.updateInviteStatus).toHaveBeenCalledWith('invite_123_abc456', 'failed');
+    });
+
+    it('should handle different types of email errors', async () => {
+      const emailErrors = [
+        new Error('Invalid email address'),
+        new Error('Rate limit exceeded'),
+        new Error('Network timeout'),
+        new Error('Authentication failed')
+      ];
+
+      for (const error of emailErrors) {
+        jest.clearAllMocks();
+        emailService.sendEmail.mockRejectedValue(error);
+
+        const useCase = new SendInviteUseCase(validConfig);
+
+        await expect(useCase.execute()).rejects.toThrow(`Failed to send invitation email: ${error.message}`);
+        expect(inviteService.updateInviteStatus).toHaveBeenCalledWith('invite_123_abc456', 'failed');
+      }
+    });
+
+    it('should only create invite once even if email fails', async () => {
+      const emailError = new Error('Email service down');
+      emailService.sendEmail.mockRejectedValue(emailError);
+
+      const useCase = new SendInviteUseCase(validConfig);
+
+      await expect(useCase.execute()).rejects.toThrow();
+
+      // Verify invite was created exactly once
+      expect(inviteService.createInvite).toHaveBeenCalledTimes(1);
+      expect(inviteService.updateInviteStatus).toHaveBeenCalledTimes(1);
+    });
+
+    it('should not update status if invite creation fails', async () => {
+      const inviteError = new Error('Database connection lost');
+      inviteService.createInvite.mockRejectedValue(inviteError);
+
+      const useCase = new SendInviteUseCase(validConfig);
+
+      await expect(useCase.execute()).rejects.toThrow('Database connection lost');
+
+      // Email should not be attempted if invite creation fails
+      expect(emailService.sendEmail).not.toHaveBeenCalled();
+      expect(inviteService.updateInviteStatus).not.toHaveBeenCalled();
+    });
+
+    it('should pass correct invite ID to status update', async () => {
+      // Mock invite service to return specific ID
+      inviteService.createInvite.mockResolvedValue({
+        id: 'custom-invite-789',
+        email: 'test@example.com',
+        status: 'pending'
+      });
+
+      const emailError = new Error('Email quota exceeded');
+      emailService.sendEmail.mockRejectedValue(emailError);
+
+      const useCase = new SendInviteUseCase(validConfig);
+
+      await expect(useCase.execute()).rejects.toThrow();
+
+      expect(inviteService.updateInviteStatus).toHaveBeenCalledWith('custom-invite-789', 'failed');
+    });
+  });
+
   describe('Use Case Architecture Compliance', () => {
     it('should be stateless - multiple instances should not interfere', async () => {
       emailService.sendEmail

@@ -134,20 +134,36 @@ class SendInviteUseCase {
     });
 
     // Send email via service
-    const result = await emailService.sendEmail({
-      to: email,
-      subject: emailContent.subject,
-      htmlBody: emailContent.htmlBody,
-      textBody: emailContent.textBody,
-    });
+    try {
+      const result = await emailService.sendEmail({
+        to: email,
+        subject: emailContent.subject,
+        htmlBody: emailContent.htmlBody,
+        textBody: emailContent.textBody,
+      });
 
-    // Return success data
-    return {
-      messageId: result.messageId,
-      email: email,
-      inviteId: inviteRecord.id,
-      inviteRecord: inviteRecord,
-    };
+      // Return success data
+      return {
+        messageId: result.messageId,
+        email: email,
+        inviteId: inviteRecord.id,
+        inviteRecord: inviteRecord,
+      };
+    } catch (emailError) {
+      // If email fails to send, update invite status to 'failed'
+      console.error(`Failed to send invite email to ${email}:`, emailError);
+      
+      try {
+        await inviteService.updateInviteStatus(inviteRecord.id, 'failed');
+        console.log(`Updated invite ${inviteRecord.id} status to 'failed' after email failure`);
+      } catch (updateError) {
+        console.error(`Failed to update invite status after email failure:`, updateError);
+        // Continue to throw original email error
+      }
+      
+      // Re-throw the original email error
+      throw new Error(`Failed to send invitation email: ${emailError.message}`);
+    }
   }
 }
 

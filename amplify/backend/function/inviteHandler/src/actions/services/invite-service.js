@@ -169,6 +169,53 @@ class InviteService {
   }
 
   /**
+   * Update invite status
+   * @param {string} inviteId - The invite ID to update
+   * @param {string} status - New status ('pending', 'accepted', 'failed', 'expired')
+   * @returns {Object} Updated invite record
+   */
+  async updateInviteStatus(inviteId, status) {
+    if (!this.tableName) {
+      throw new Error('API_KIYANAW_INVITETABLE_NAME environment variable not configured');
+    }
+
+    // Valid status values
+    const validStatuses = ['pending', 'accepted', 'failed', 'expired'];
+    if (!validStatuses.includes(status)) {
+      throw new Error(`Invalid status. Must be one of: ${validStatuses.join(', ')}`);
+    }
+
+    // First get the current invite to get the version
+    const currentInvite = await this.getInviteById(inviteId);
+    if (!currentInvite) {
+      throw new Error(`Invite ${inviteId} not found`);
+    }
+
+    const command = new PutCommand({
+      TableName: this.tableName,
+      Item: {
+        ...currentInvite,
+        status: status,
+        updatedAt: new Date().toISOString(),
+        _version: (currentInvite._version || 0) + 1,
+        _lastChangedAt: Date.now()
+      }
+    });
+
+    await this.docClient.send(command);
+
+    const updatedInvite = {
+      ...currentInvite,
+      status: status,
+      updatedAt: new Date().toISOString(),
+      _version: (currentInvite._version || 0) + 1
+    };
+
+    console.log(`Invite status updated: ${inviteId} -> ${status}`);
+    return updatedInvite;
+  }
+
+  /**
    * Get the configured table name
    */
   getTableName() {

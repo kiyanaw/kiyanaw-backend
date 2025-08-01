@@ -7,7 +7,7 @@ process.env.REGION = 'us-east-1';
 process.env.API_KIYANAW_INVITETABLE_NAME = 'test-invite-table';
 
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
-const { DynamoDBDocumentClient, PutCommand, QueryCommand } = require('@aws-sdk/lib-dynamodb');
+const { DynamoDBDocumentClient, PutCommand, QueryCommand, GetCommand } = require('@aws-sdk/lib-dynamodb');
 
 describe('InviteService', () => {
   let mockSend;
@@ -46,6 +46,9 @@ describe('InviteService', () => {
       expect(inviteService).toBeDefined();
       expect(typeof inviteService.createInvite).toBe('function');
       expect(typeof inviteService.getInvitesByEmail).toBe('function');
+      expect(typeof inviteService.getInviteById).toBe('function');
+      expect(typeof inviteService.updateInviteStatus).toBe('function');
+      expect(typeof inviteService.deleteInvite).toBe('function');
       expect(typeof inviteService.getTableName).toBe('function');
     });
 
@@ -641,6 +644,119 @@ describe('InviteService', () => {
       const result = inviteService.handleInviteServiceError(unknownError, 'handle invite');
       
       expect(result.message).toBe('AWS unknown error');
+    });
+  });
+
+  describe('updateInviteStatus', () => {
+    const testInviteId = 'test-invite-789';
+    const mockExistingInvite = {
+      id: testInviteId,
+      email: 'test@example.com',
+      status: 'pending',
+      permissionLevel: 'editor',
+      transcriptionId: 'trans-123',
+      _version: 1,
+      _lastChangedAt: 123456789,
+      createdAt: '2024-01-01T00:00:00Z',
+      updatedAt: '2024-01-01T00:00:00Z'
+    };
+
+    beforeEach(() => {
+      // Mock getInviteById for the version check
+      mockSend
+        .mockResolvedValueOnce({ Item: mockExistingInvite }) // getInviteById call
+        .mockResolvedValueOnce({}); // updateInviteStatus PutCommand call
+    });
+
+    it('should update invite status successfully', async () => {
+      const result = await inviteService.updateInviteStatus(testInviteId, 'failed');
+
+      expect(result.status).toBe('failed');
+      expect(result.id).toBe(testInviteId);
+      expect(result._version).toBe(2); // Version incremented
+      expect(mockSend).toHaveBeenCalledTimes(2); // getInviteById + PutCommand
+    });
+
+    it('should update status to accepted', async () => {
+      const result = await inviteService.updateInviteStatus(testInviteId, 'accepted');
+
+      expect(result.status).toBe('accepted');
+      expect(result._version).toBe(2);
+    });
+
+    it('should update status to expired', async () => {
+      const result = await inviteService.updateInviteStatus(testInviteId, 'expired');
+
+      expect(result.status).toBe('expired');
+      expect(result._version).toBe(2);
+    });
+
+    it('should preserve all other fields when updating status', async () => {
+      const result = await inviteService.updateInviteStatus(testInviteId, 'failed');
+
+      expect(result.id).toBe(mockExistingInvite.id);
+      expect(result.email).toBe(mockExistingInvite.email);
+      expect(result.permissionLevel).toBe(mockExistingInvite.permissionLevel);
+      expect(result.transcriptionId).toBe(mockExistingInvite.transcriptionId);
+      expect(result.createdAt).toBe(mockExistingInvite.createdAt);
+    });
+
+    it('should update updatedAt timestamp', async () => {
+      const result = await inviteService.updateInviteStatus(testInviteId, 'failed');
+
+      expect(result.updatedAt).toBeDefined();
+      expect(result.updatedAt).not.toBe(mockExistingInvite.updatedAt);
+      expect(new Date(result.updatedAt).getTime()).toBeGreaterThan(new Date(mockExistingInvite.updatedAt).getTime());
+    });
+
+    it('should throw error for invalid status', async () => {
+      await expect(inviteService.updateInviteStatus(testInviteId, 'invalid-status'))
+        .rejects.toThrow('Invalid status. Must be one of: pending, accepted, failed, expired');
+
+      expect(mockSend).not.toHaveBeenCalled();
+    });
+
+    it('should throw error when invite not found', async () => {
+      // Mock getInviteById to return null
+      mockSend.mockReset().mockResolvedValueOnce({ Item: null });
+
+      await expect(inviteService.updateInviteStatus('non-existent-invite', 'failed'))
+        .rejects.toThrow('Invite non-existent-invite not found');
+
+      expect(mockSend).toHaveBeenCalledTimes(1); // Only getInviteById called
+    });
+
+    it('should handle DynamoDB errors during update', async () => {
+      const error = new Error('DynamoDB update error');
+      // Mock successful getInviteById, but failed PutCommand
+      mockSend
+        .mockResolvedValueOnce({ Item: mockExistingInvite })
+        .mockRejectedValueOnce(error);
+
+      await expect(inviteService.updateInviteStatus(testInviteId, 'failed'))
+        .rejects.toThrow('DynamoDB update error');
+
+      expect(mockSend).toHaveBeenCalledTimes(2);
+    });
+
+    it('should increment _lastChangedAt timestamp', async () => {
+      const beforeTime = Date.now();
+      const result = await inviteService.updateInviteStatus(testInviteId, 'failed');
+
+      expect(result._lastChangedAt).toBeGreaterThanOrEqual(beforeTime);
+    });
+
+    it('should require table name configuration', async () => {
+      const originalTableName = process.env.API_KIYANAW_INVITETABLE_NAME;
+      delete process.env.API_KIYANAW_INVITETABLE_NAME;
+      
+      jest.resetModules();
+      const inviteServiceFresh = require('./invite-service');
+
+      await expect(inviteServiceFresh.updateInviteStatus(testInviteId, 'failed'))
+        .rejects.toThrow('API_KIYANAW_INVITETABLE_NAME environment variable not configured');
+
+      process.env.API_KIYANAW_INVITETABLE_NAME = originalTableName;
     });
   });
 
