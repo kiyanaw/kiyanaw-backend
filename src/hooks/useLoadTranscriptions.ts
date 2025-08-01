@@ -20,9 +20,6 @@ export const useLoadTranscriptions = (): void => {
       store,
     });
 
-    useCase.execute().catch((error) => {
-      console.error('❌ useLoadTranscriptions failed:', error);
-      // Error is already handled in the use-case
-    });
+    useCase.execute()
   }
 }; 
