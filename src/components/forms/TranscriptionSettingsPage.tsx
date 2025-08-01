@@ -51,7 +51,7 @@ export const TranscriptionSettingsPage = ({
     setInvitesLoading(true);
     
     try {
-      if (!transcriptionId?.trim()) {
+      if (!transcriptionId) {
         throw new Error('Transcription ID is required');
       }
       console.log('Loading invites for transcription:', transcriptionId);
@@ -109,7 +109,9 @@ export const TranscriptionSettingsPage = ({
   const hasChanges = title !== initialTitle || comments !== (initialComments || '');
 
   const handleSendInvite = async () => {
-    if (!newInviteEmail.trim()) {
+    const cleanEmail = newInviteEmail.trim();
+    
+    if (!cleanEmail) {
       setInviteError('Email is required');
       return;
     }
@@ -120,16 +122,15 @@ export const TranscriptionSettingsPage = ({
     
     try {
       await createInvite({
-        email: newInviteEmail.trim(),
+        email: cleanEmail,
         permissionLevel: newInvitePermission,
         transcriptionId,
       });
       
       // Clear form and show success immediately
-      const sentEmail = newInviteEmail.trim();
       setNewInviteEmail('');
       setNewInvitePermission('viewer');
-      setInviteSuccess(`Invite sent successfully to ${sentEmail}!`);
+      setInviteSuccess(`Invite sent successfully to ${cleanEmail}!`);
       
       // Refresh the invite list
       await loadInvites();
