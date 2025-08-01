@@ -33,19 +33,32 @@ describe('UpdateRegionTextUseCase', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
   });
 
   describe('save functionality', () => {
-    it('should call regionService.updateRegion with correct parameters when user is authenticated', () => {
+    it('should call regionService.updateRegion with correct parameters when user is authenticated', async () => {
       const useCase = new UpdateRegionTextUseCase(validConfig);
       
       useCase.execute();
       
+      // Should not call immediately (debounced)
+      expect(mockServices.regionService.updateRegion).not.toHaveBeenCalled();
+      
+      // Advance timers to trigger the debounced save
+      jest.advanceTimersByTime(3000);
+      
+      // Wait for async operations to complete
+      await jest.runAllTimersAsync();
+      
       expect(mockServices.regionService.updateRegion).toHaveBeenCalledWith(
         'test-region-id',
         { regionText: 'Test text content' },
-        'test-user',
-        3000
+        'test-user'
       );
     });
 
@@ -67,7 +80,7 @@ describe('UpdateRegionTextUseCase', () => {
       expect(mockServices.regionService.updateRegion).not.toHaveBeenCalled();
     });
 
-    it('should call regionService.updateRegion with translation field', () => {
+    it('should call regionService.updateRegion with translation field', async () => {
       const translationConfig = {
         ...validConfig,
         field: 'translation' as const,
@@ -78,11 +91,19 @@ describe('UpdateRegionTextUseCase', () => {
       
       useCase.execute();
       
+      // Should not call immediately (debounced)
+      expect(mockServices.regionService.updateRegion).not.toHaveBeenCalled();
+      
+      // Advance timers to trigger the debounced save
+      jest.advanceTimersByTime(3000);
+      
+      // Wait for async operations to complete
+      await jest.runAllTimersAsync();
+      
       expect(mockServices.regionService.updateRegion).toHaveBeenCalledWith(
         'test-region-id',
         { translation: 'Translation text' },
-        'test-user',
-        3000
+        'test-user'
       );
     });
   });
