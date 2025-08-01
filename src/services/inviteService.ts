@@ -1,5 +1,4 @@
-import { generateClient } from 'aws-amplify/api';
-import { post } from 'aws-amplify/api';
+import { generateClient, post } from 'aws-amplify/api';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - GraphQL queries are generated as JS files
 import { listInvites } from '../graphql/queries.js';
