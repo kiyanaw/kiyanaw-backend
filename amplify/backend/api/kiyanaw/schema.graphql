@@ -16,7 +16,7 @@ type Transcription
   ]) {
   id: ID! @primaryKey
   author: String! # UUID of the Cognito user
-  authorFriendly: String! # Email/friendly identifier
+  authorFriendly: String! # Friendly identifier
   coverage: Float
   dateLastUpdated: String!
   userLastUpdated: String
