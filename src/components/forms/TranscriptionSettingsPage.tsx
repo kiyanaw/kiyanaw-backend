@@ -13,7 +13,7 @@ interface TranscriptionSettingsPageProps {
   author: string;
   dateLastUpdated: string;
   regionCount: number;
-  transcriptionId: string; // Added this prop
+  transcriptionId: string;
   onSave: (updates: { title?: string; comments?: string }) => void;
   isOwner: boolean;
 }
@@ -26,7 +26,7 @@ export const TranscriptionSettingsPage = ({
   author,
   dateLastUpdated,
   regionCount,
-  transcriptionId, // Added this prop
+  transcriptionId,
   onSave,
   isOwner,
 }: TranscriptionSettingsPageProps) => {
