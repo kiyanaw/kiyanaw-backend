@@ -45,8 +45,7 @@ describe('UpdateRegionTextUseCase', () => {
         'test-region-id',
         { regionText: 'Test text content' },
         'test-user',
-        3000,
-        mockStore
+        3000
       );
     });
 
@@ -83,8 +82,7 @@ describe('UpdateRegionTextUseCase', () => {
         'test-region-id',
         { translation: 'Translation text' },
         'test-user',
-        3000,
-        mockStore
+        3000
       );
     });
   });

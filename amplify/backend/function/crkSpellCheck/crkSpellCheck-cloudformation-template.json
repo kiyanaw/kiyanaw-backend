@@ -43,6 +43,7 @@
         "aws:asset:property": "Code"
       },
       "Properties": {
+        "MemorySize": 512,
         "Code": {
           "S3Bucket": {
             "Ref": "deploymentBucketName"

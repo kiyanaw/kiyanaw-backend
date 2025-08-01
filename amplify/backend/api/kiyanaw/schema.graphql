@@ -54,7 +54,7 @@ type Region
   start: Float!
   end: Float!
   regionText: String
-  regionAnalysis: String
+  regionAnalysis: [String]
   isNote: Boolean
   translation: String
   dateLastUpdated: String!

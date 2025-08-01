@@ -321,10 +321,11 @@ export const schema = {
                 },
                 "regionAnalysis": {
                     "name": "regionAnalysis",
-                    "isArray": false,
+                    "isArray": true,
                     "type": "String",
                     "isRequired": false,
-                    "attributes": []
+                    "attributes": [],
+                    "isArrayNullable": true
                 },
                 "isNote": {
                     "name": "isNote",
@@ -775,5 +776,5 @@ export const schema = {
     "enums": {},
     "nonModels": {},
     "codegenVersion": "3.4.4",
-    "version": "d8b7b4a277d1340374db2c2b455be60f"
+    "version": "7d1ddce01ee58504a5f298074500a062"
 };

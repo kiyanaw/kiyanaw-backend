@@ -108,7 +108,7 @@ export interface RegionUpdateInput extends Omit<Partial<RegionData>, 'regionAnal
   _version?: number;
   dateLastUpdated: string;
   userLastUpdated: string;
-  regionAnalysis?: string; // JSON string for GraphQL API
+  regionAnalysis?: string[]; // Array of strings for GraphQL API
 }
 
 // Common utility types

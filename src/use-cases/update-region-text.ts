@@ -42,18 +42,36 @@ export class UpdateRegionTextUseCase {
       return;
     }
 
-    // Debounced save to backend
-    const updateData = field === 'regionText' 
+    // Prepare update data with analysis if updating main text
+    const updateData: {
+      regionText?: string;
+      translation?: string;
+      regionAnalysis?: string[];
+    } = field === 'regionText' 
       ? { regionText: text }
       : { translation: text };
+
+    // If updating main text, include current analysis from store
+    if (field === 'regionText') {
+      try {
+        const region = storeState.regionById(regionId);
+        if (region?.regionAnalysis) {
+          updateData.regionAnalysis = region.regionAnalysis;
+        }
+      } catch (error) {
+        console.warn('Could not get analysis from store:', error);
+        // Continue without analysis
+      }
+    }
+
+    console.log('updating region', regionId, updateData)
 
     try {
       services.regionService.updateRegion(
         regionId,
         updateData,
         user.username,
-        3000, // debounceMs
-        store
+        3000 // debounceMs
       );
     } catch (error) {
       console.error('Failed to update region text:', error);
