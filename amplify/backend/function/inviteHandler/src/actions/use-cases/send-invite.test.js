@@ -1,4 +1,5 @@
 const { SendInviteUseCase } = require('./send-invite');
+const { ValidationError, ConflictError, ServiceError } = require('../errors/invite-errors');
 
 // Mock dependencies
 jest.mock('../services/email-service');
@@ -62,24 +63,28 @@ describe('SendInviteUseCase', () => {
     it('should throw error when email is missing', () => {
       const config = { ...validConfig, email: undefined };
       const useCase = new SendInviteUseCase(config);
+      expect(() => useCase.validate()).toThrow(ValidationError);
       expect(() => useCase.validate()).toThrow('Valid email address is required');
     });
 
     it('should throw error when email is empty string', () => {
       const config = { ...validConfig, email: '' };
       const useCase = new SendInviteUseCase(config);
+      expect(() => useCase.validate()).toThrow(ValidationError);
       expect(() => useCase.validate()).toThrow('Valid email address is required');
     });
 
     it('should throw error when email is not a string', () => {
       const config = { ...validConfig, email: 123 };
       const useCase = new SendInviteUseCase(config);
+      expect(() => useCase.validate()).toThrow(ValidationError);
       expect(() => useCase.validate()).toThrow('Valid email address is required');
     });
 
     it('should throw error when email format is invalid', () => {
       const config = { ...validConfig, email: 'invalid-email' };
       const useCase = new SendInviteUseCase(config);
+      expect(() => useCase.validate()).toThrow(ValidationError);
       expect(() => useCase.validate()).toThrow('Invalid email format');
     });
 
@@ -100,36 +105,42 @@ describe('SendInviteUseCase', () => {
     it('should throw error when transcriptionId is missing', () => {
       const config = { ...validConfig, transcriptionId: undefined };
       const useCase = new SendInviteUseCase(config);
+      expect(() => useCase.validate()).toThrow(ValidationError);
       expect(() => useCase.validate()).toThrow('Transcription ID is required');
     });
 
     it('should throw error when transcriptionId is not a string', () => {
       const config = { ...validConfig, transcriptionId: 123 };
       const useCase = new SendInviteUseCase(config);
+      expect(() => useCase.validate()).toThrow(ValidationError);
       expect(() => useCase.validate()).toThrow('Transcription ID is required');
     });
 
     it('should throw error when transcriptionTitle is missing', () => {
       const config = { ...validConfig, transcriptionTitle: undefined };
       const useCase = new SendInviteUseCase(config);
+      expect(() => useCase.validate()).toThrow(ValidationError);
       expect(() => useCase.validate()).toThrow('Transcription title is required');
     });
 
     it('should throw error when transcriptionTitle is not a string', () => {
       const config = { ...validConfig, transcriptionTitle: 123 };
       const useCase = new SendInviteUseCase(config);
+      expect(() => useCase.validate()).toThrow(ValidationError);
       expect(() => useCase.validate()).toThrow('Transcription title is required');
     });
 
     it('should throw error when permissionLevel is missing', () => {
       const config = { ...validConfig, permissionLevel: undefined };
       const useCase = new SendInviteUseCase(config);
+      expect(() => useCase.validate()).toThrow(ValidationError);
       expect(() => useCase.validate()).toThrow('Permission level must be either "viewer" or "editor"');
     });
 
     it('should throw error when permissionLevel is invalid', () => {
       const config = { ...validConfig, permissionLevel: 'admin' };
       const useCase = new SendInviteUseCase(config);
+      expect(() => useCase.validate()).toThrow(ValidationError);
       expect(() => useCase.validate()).toThrow('Permission level must be either "viewer" or "editor"');
     });
 
@@ -144,36 +155,42 @@ describe('SendInviteUseCase', () => {
     it('should throw error when baseUrl is missing', () => {
       const config = { ...validConfig, baseUrl: undefined };
       const useCase = new SendInviteUseCase(config);
+      expect(() => useCase.validate()).toThrow(ValidationError);
       expect(() => useCase.validate()).toThrow('Base URL is required');
     });
 
     it('should throw error when baseUrl is not a string', () => {
       const config = { ...validConfig, baseUrl: 123 };
       const useCase = new SendInviteUseCase(config);
+      expect(() => useCase.validate()).toThrow(ValidationError);
       expect(() => useCase.validate()).toThrow('Base URL is required');
     });
 
     it('should throw error when invitedBy is missing', () => {
       const config = { ...validConfig, invitedBy: undefined };
       const useCase = new SendInviteUseCase(config);
+      expect(() => useCase.validate()).toThrow(ValidationError);
       expect(() => useCase.validate()).toThrow('InvitedBy (user ID) is required');
     });
 
     it('should throw error when invitedBy is not a string', () => {
       const config = { ...validConfig, invitedBy: 123 };
       const useCase = new SendInviteUseCase(config);
+      expect(() => useCase.validate()).toThrow(ValidationError);
       expect(() => useCase.validate()).toThrow('InvitedBy (user ID) is required');
     });
 
     it('should throw error when invitedByFriendly is missing', () => {
       const config = { ...validConfig, invitedByFriendly: undefined };
       const useCase = new SendInviteUseCase(config);
+      expect(() => useCase.validate()).toThrow(ValidationError);
       expect(() => useCase.validate()).toThrow('InvitedByFriendly (user display name) is required');
     });
 
     it('should throw error when invitedByFriendly is not a string', () => {
       const config = { ...validConfig, invitedByFriendly: 123 };
       const useCase = new SendInviteUseCase(config);
+      expect(() => useCase.validate()).toThrow(ValidationError);
       expect(() => useCase.validate()).toThrow('InvitedByFriendly (user display name) is required');
     });
   });
@@ -219,6 +236,7 @@ describe('SendInviteUseCase', () => {
       const invalidConfig = { ...validConfig, email: 'invalid-email' };
       const useCase = new SendInviteUseCase(invalidConfig);
 
+      await expect(useCase.execute()).rejects.toThrow(ValidationError);
       await expect(useCase.execute()).rejects.toThrow('Invalid email format');
       
       // Should not call any services if validation fails
@@ -340,6 +358,7 @@ describe('SendInviteUseCase', () => {
 
       const useCase = new SendInviteUseCase(validConfig);
       
+      await expect(useCase.execute()).rejects.toThrow(ConflictError);
       await expect(useCase.execute()).rejects.toThrow('Invite already exists for this email and transcription');
       
       // Should not create a new invite or send email
@@ -424,6 +443,7 @@ describe('SendInviteUseCase', () => {
 
       const useCase = new SendInviteUseCase(validConfig);
 
+      await expect(useCase.execute()).rejects.toThrow(ServiceError);
       await expect(useCase.execute()).rejects.toThrow('Failed to send invitation email: Email delivery failed');
 
       // Verify invite was created first
@@ -439,6 +459,7 @@ describe('SendInviteUseCase', () => {
 
       const useCase = new SendInviteUseCase(validConfig);
 
+      await expect(useCase.execute()).rejects.toThrow(ServiceError);
       await expect(useCase.execute()).rejects.toThrow('Failed to send invitation email: SES service unavailable');
 
       expect(inviteService.updateInviteStatus).toHaveBeenCalledWith('invite_123_abc456', 'failed');
@@ -454,6 +475,7 @@ describe('SendInviteUseCase', () => {
       const useCase = new SendInviteUseCase(validConfig);
 
       // Should throw original email error, not update error
+      await expect(useCase.execute()).rejects.toThrow(ServiceError);
       await expect(useCase.execute()).rejects.toThrow('Failed to send invitation email: SMTP timeout');
 
       expect(inviteService.updateInviteStatus).toHaveBeenCalledWith('invite_123_abc456', 'failed');
@@ -473,6 +495,7 @@ describe('SendInviteUseCase', () => {
 
         const useCase = new SendInviteUseCase(validConfig);
 
+        await expect(useCase.execute()).rejects.toThrow(ServiceError);
         await expect(useCase.execute()).rejects.toThrow(`Failed to send invitation email: ${error.message}`);
         expect(inviteService.updateInviteStatus).toHaveBeenCalledWith('invite_123_abc456', 'failed');
       }

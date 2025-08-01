@@ -14,6 +14,36 @@ const { handleInvite } = require('./actions/handle-invite');
 const { handleAcceptInvite } = require('./actions/handle-accept-invite');
 const { handleGetMyInvites } = require('./actions/handle-get-my-invites');
 const { handleRevokeInvite } = require('./actions/handle-revoke-invite');
+const { InviteError } = require('./actions/errors/invite-errors');
+
+/**
+ * Get HTTP status code from error type
+ * @param {Error} error - The error object
+ * @returns {number} HTTP status code
+ */
+const getErrorStatusCode = (error) => {
+  if (error instanceof InviteError) {
+    return error.statusCode;
+  }
+  return 500; // Default to server error for unknown errors
+};
+
+/**
+ * Get safe error message for client response
+ * @param {Error} error - The error object
+ * @returns {string} Safe error message
+ */
+const getSafeErrorMessage = (error) => {
+  const statusCode = getErrorStatusCode(error);
+  
+  // Hide internal error details for 5xx errors
+  if (statusCode >= 500) {
+    return 'Internal server error';
+  }
+  
+  // Show actual message for 4xx client errors
+  return error.message;
+};
 
 /**
  * API Gateway Lambda router for handling multiple endpoints
@@ -85,17 +115,12 @@ exports.handler = async (event) => {
             } catch (error) {
                 console.error('Invite handler error:', error);
                 
-                // Determine if it's a validation error (400) or server error (500)
-                const isValidationError = error.message.includes('Missing required parameters') ||
-                                        error.message.includes('Invalid') ||
-                                        error.message.includes('already exists');
-                
                 return {
-                    statusCode: isValidationError ? 400 : 500,
+                    statusCode: getErrorStatusCode(error),
                     headers: corsHeaders,
                     body: JSON.stringify({
                         success: false,
-                        error: error.message
+                        error: getSafeErrorMessage(error)
                     })
                 };
             }
@@ -115,21 +140,12 @@ exports.handler = async (event) => {
             } catch (error) {
                 console.error('Accept invite handler error:', error);
                 
-                // Determine if it's a validation error (400) or server error (500)
-                const isValidationError = error.message.includes('Missing required parameters') ||
-                                        error.message.includes('Invalid') ||
-                                        error.message.includes('already exists') ||
-                                        error.message.includes('already been accepted') ||
-                                        error.message.includes('expired') ||
-                                        error.message.includes('not found') ||
-                                        error.message.includes('not for your email');
-                
                 return {
-                    statusCode: isValidationError ? 400 : 500,
+                    statusCode: getErrorStatusCode(error),
                     headers: corsHeaders,
                     body: JSON.stringify({
                         success: false,
-                        error: error.message
+                        error: getSafeErrorMessage(error)
                     })
                 };
                          }
@@ -149,18 +165,12 @@ exports.handler = async (event) => {
              } catch (error) {
                  console.error('Get my invites handler error:', error);
                  
-                 // Determine if it's a validation error (400) or server error (500)
-                 const isValidationError = error.message.includes('Missing required parameters') ||
-                                         error.message.includes('Invalid') ||
-                                         error.message.includes('not found') ||
-                                         error.message.includes('not for your email');
-                 
                  return {
-                     statusCode: isValidationError ? 400 : 500,
+                     statusCode: getErrorStatusCode(error),
                      headers: corsHeaders,
                      body: JSON.stringify({
                          success: false,
-                         error: error.message
+                         error: getSafeErrorMessage(error)
                      })
                  };
                          }
@@ -180,17 +190,12 @@ exports.handler = async (event) => {
             } catch (error) {
                 console.error('Revoke invite handler error:', error);
                 
-                const isValidationError = error.message.includes('Missing required parameters') ||
-                                        error.message.includes('Invalid') ||
-                                        error.message.includes('Unauthorized') ||
-                                        error.message.includes('not found');
-                
                 return {
-                    statusCode: isValidationError ? 400 : 500,
+                    statusCode: getErrorStatusCode(error),
                     headers: corsHeaders,
                     body: JSON.stringify({
                         success: false,
-                        error: error.message
+                        error: getSafeErrorMessage(error)
                     })
                 };
             }
@@ -215,7 +220,7 @@ exports.handler = async (event) => {
             headers: corsHeaders,
             body: JSON.stringify({
                 success: false,
-                error: error.message
+                error: 'Internal server error'
             })
         };
     }

@@ -1,6 +1,7 @@
 const emailService = require('../services/email-service');
 const inviteService = require('../services/invite-service');
 const { generateInviteEmail } = require('../templates/invite-email');
+const { ValidationError, ConflictError, ServiceError } = require('../errors/invite-errors');
 
 /**
  * Send Invite Use Case
@@ -27,37 +28,37 @@ class SendInviteUseCase {
     } = this.config;
 
     if (!email || typeof email !== 'string') {
-      throw new Error('Valid email address is required');
+      throw new ValidationError('Valid email address is required');
     }
 
     if (!transcriptionId || typeof transcriptionId !== 'string') {
-      throw new Error('Transcription ID is required');
+      throw new ValidationError('Transcription ID is required');
     }
 
     if (!transcriptionTitle || typeof transcriptionTitle !== 'string') {
-      throw new Error('Transcription title is required');
+      throw new ValidationError('Transcription title is required');
     }
 
     if (!permissionLevel || !['viewer', 'editor'].includes(permissionLevel)) {
-      throw new Error('Permission level must be either "viewer" or "editor"');
+      throw new ValidationError('Permission level must be either "viewer" or "editor"');
     }
 
     if (!invitedBy || typeof invitedBy !== 'string') {
-      throw new Error('InvitedBy (user ID) is required');
+      throw new ValidationError('InvitedBy (user ID) is required');
     }
 
     if (!invitedByFriendly || typeof invitedByFriendly !== 'string') {
-      throw new Error('InvitedByFriendly (user display name) is required');
+      throw new ValidationError('InvitedByFriendly (user display name) is required');
     }
 
     if (!baseUrl || typeof baseUrl !== 'string') {
-      throw new Error('Base URL is required');
+      throw new ValidationError('Base URL is required');
     }
 
     // Email format validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      throw new Error('Invalid email format');
+      throw new ValidationError('Invalid email format');
     }
   }
 
@@ -96,7 +97,7 @@ class SendInviteUseCase {
     );
     
     if (existingInvite) {
-      throw new Error('Invite already exists for this email and transcription');
+      throw new ConflictError('Invite already exists for this email and transcription');
     }
 
     // Generate business logic values
@@ -161,8 +162,8 @@ class SendInviteUseCase {
         // Continue to throw original email error
       }
       
-      // Re-throw the original email error
-      throw new Error(`Failed to send invitation email: ${emailError.message}`);
+      // Re-throw as a service error
+      throw new ServiceError(`Failed to send invitation email: ${emailError.message}`, emailError);
     }
   }
 }

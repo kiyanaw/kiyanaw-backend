@@ -1,5 +1,6 @@
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
 const { DynamoDBDocumentClient, PutCommand, QueryCommand, GetCommand, DeleteCommand } = require('@aws-sdk/lib-dynamodb');
+const { ValidationError, NotFoundError, InternalError } = require('../errors/invite-errors');
 
 /**
  * Invite Service
@@ -30,7 +31,7 @@ class InviteService {
    */
   async createInvite(inviteData) {
     if (!this.tableName) {
-      throw new Error('API_KIYANAW_INVITETABLE_NAME environment variable not configured');
+      throw new InternalError('API_KIYANAW_INVITETABLE_NAME environment variable not configured');
     }
 
     // Prepare the invite record according to GraphQL schema
@@ -75,7 +76,7 @@ class InviteService {
    */
   async getInvitesByEmail(email) {
     if (!this.tableName) {
-      throw new Error('API_KIYANAW_INVITETABLE_NAME environment variable not configured');
+      throw new InternalError('API_KIYANAW_INVITETABLE_NAME environment variable not configured');
     }
 
     const command = new QueryCommand({
@@ -107,7 +108,7 @@ class InviteService {
    */
   async getInviteById(inviteId) {
     if (!this.tableName) {
-      throw new Error('API_KIYANAW_INVITETABLE_NAME environment variable not configured');
+      throw new InternalError('API_KIYANAW_INVITETABLE_NAME environment variable not configured');
     }
 
     const command = new GetCommand({
@@ -141,7 +142,7 @@ class InviteService {
    */
   async deleteInvite(inviteId) {
     if (!this.tableName) {
-      throw new Error('API_KIYANAW_INVITETABLE_NAME environment variable not configured');
+      throw new InternalError('API_KIYANAW_INVITETABLE_NAME environment variable not configured');
     }
 
     const command = new DeleteCommand({
@@ -157,7 +158,7 @@ class InviteService {
       const deletedInvite = result.Attributes;
       
       if (!deletedInvite) {
-        throw new Error(`Invite ${inviteId} not found or already deleted`);
+        throw new NotFoundError(`Invite ${inviteId} not found or already deleted`);
       }
       
       console.log(`Invite deleted successfully: ${inviteId}`);
@@ -176,19 +177,19 @@ class InviteService {
    */
   async updateInviteStatus(inviteId, status) {
     if (!this.tableName) {
-      throw new Error('API_KIYANAW_INVITETABLE_NAME environment variable not configured');
+      throw new InternalError('API_KIYANAW_INVITETABLE_NAME environment variable not configured');
     }
 
     // Valid status values
     const validStatuses = ['pending', 'accepted', 'failed', 'expired'];
     if (!validStatuses.includes(status)) {
-      throw new Error(`Invalid status. Must be one of: ${validStatuses.join(', ')}`);
+      throw new ValidationError(`Invalid status. Must be one of: ${validStatuses.join(', ')}`);
     }
 
     // First get the current invite to get the version
     const currentInvite = await this.getInviteById(inviteId);
     if (!currentInvite) {
-      throw new Error(`Invite ${inviteId} not found`);
+      throw new NotFoundError(`Invite ${inviteId} not found`);
     }
 
     const command = new PutCommand({
@@ -204,11 +205,13 @@ class InviteService {
 
     await this.docClient.send(command);
 
+    const now = Date.now();
     const updatedInvite = {
       ...currentInvite,
       status: status,
       updatedAt: new Date().toISOString(),
-      _version: (currentInvite._version || 0) + 1
+      _version: (currentInvite._version || 0) + 1,
+      _lastChangedAt: now
     };
 
     console.log(`Invite status updated: ${inviteId} -> ${status}`);

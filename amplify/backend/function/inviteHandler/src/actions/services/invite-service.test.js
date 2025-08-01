@@ -8,6 +8,7 @@ process.env.API_KIYANAW_INVITETABLE_NAME = 'test-invite-table';
 
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
 const { DynamoDBDocumentClient, PutCommand, QueryCommand, GetCommand } = require('@aws-sdk/lib-dynamodb');
+const { ValidationError, NotFoundError, InternalError } = require('../errors/invite-errors');
 
 describe('InviteService', () => {
   let mockSend;
@@ -564,6 +565,8 @@ describe('InviteService', () => {
       });
 
       await expect(inviteService.deleteInvite(testInviteId))
+        .rejects.toThrow(NotFoundError);
+      await expect(inviteService.deleteInvite(testInviteId))
         .rejects.toThrow(`Invite ${testInviteId} not found or already deleted`);
     });
 
@@ -711,24 +714,28 @@ describe('InviteService', () => {
 
     it('should throw error for invalid status', async () => {
       await expect(inviteService.updateInviteStatus(testInviteId, 'invalid-status'))
+        .rejects.toThrow(ValidationError);
+      await expect(inviteService.updateInviteStatus(testInviteId, 'invalid-status'))
         .rejects.toThrow('Invalid status. Must be one of: pending, accepted, failed, expired');
 
       expect(mockSend).not.toHaveBeenCalled();
     });
 
     it('should throw error when invite not found', async () => {
-      // Mock getInviteById to return null
-      mockSend.mockReset().mockResolvedValueOnce({ Item: null });
+      // Override the beforeEach mock setup
+      mockSend.mockReset();
+      mockSend.mockResolvedValue({ Item: null });
 
       await expect(inviteService.updateInviteStatus('non-existent-invite', 'failed'))
-        .rejects.toThrow('Invite non-existent-invite not found');
+        .rejects.toThrow(NotFoundError);
 
       expect(mockSend).toHaveBeenCalledTimes(1); // Only getInviteById called
     });
 
     it('should handle DynamoDB errors during update', async () => {
       const error = new Error('DynamoDB update error');
-      // Mock successful getInviteById, but failed PutCommand
+      // Override the beforeEach mock setup
+      mockSend.mockReset();
       mockSend
         .mockResolvedValueOnce({ Item: mockExistingInvite })
         .mockRejectedValueOnce(error);
@@ -792,12 +799,15 @@ describe('InviteService', () => {
         status: 'pending'
       };
 
+      // Override any existing mock setup
+      mockSend.mockReset();
       mockSend.mockResolvedValueOnce({
         Item: mockInvite
       });
 
       const result = await inviteService.getInviteById('invite-123');
 
+      expect(result).not.toBeNull();
       expect(result.transcriptionTitle).toBe('Retrieved Transcription');
     });
   });
