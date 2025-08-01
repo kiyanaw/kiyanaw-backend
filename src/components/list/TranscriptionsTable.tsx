@@ -26,7 +26,6 @@ const columns: Column[] = [
   { key: 'issues', label: 'Issues', width: '8%', sortable: true },
   { key: 'dateLastUpdated', label: 'Last Edit', width: '15%', sortable: true },
   { key: 'type', label: 'Type', width: '8%', sortable: true },
-  // { key: 'source', label: 'Source', width: '8%' },
 ];
 
 export const TranscriptionsTable = () => {
@@ -316,19 +315,6 @@ export const TranscriptionsTable = () => {
                     </span>
                   </td>
                   
-                  {/* Source */}
-                  {/* <td className="px-6 py-4 whitespace-nowrap hidden lg:table-cell">
-                    {transcription.source && (
-                      <a
-                        href={transcription.source}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-ki-blue hover:text-blue-800 text-sm hover:underline"
-                      >
-                        Source
-                      </a>
-                    )}
-                  </td> */}
                 </tr>
               ))}
             </tbody>
