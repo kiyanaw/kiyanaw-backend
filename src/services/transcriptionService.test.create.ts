@@ -106,6 +106,43 @@ describe('TranscriptionService - New Functionality', () => {
       );
     });
 
+    it('should set dateLastUpdated as ISO date string when creating transcription', async () => {
+      const mockSavedTranscription = {
+        id: 'transcription-id',
+        title: 'Test Title',
+        source: 'https://example.com/audio.mp3',
+        type: 'audio/mpeg',
+        author: 'testuser'
+      };
+      
+      mockDataStore.save.mockResolvedValue(mockSavedTranscription as any);
+
+      const createData = {
+        title: 'Test Title',
+        source: 'https://example.com/audio.mp3',
+        type: 'audio/mpeg',
+        author: 'testuser',
+        userLastUpdated: 'testuser'
+      };
+
+      await transcriptionService.create(createData);
+
+      const call = mockDataStore.save.mock.calls[0][0];
+      const dateLastUpdated = call.dateLastUpdated;
+      
+      // Verify it's an ISO date string (format: YYYY-MM-DDTHH:mm:ss.sssZ)
+      expect(dateLastUpdated).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+      
+      // Verify it can be parsed as a valid date
+      const parsedDate = new Date(dateLastUpdated);
+      expect(parsedDate.getTime()).not.toBeNaN();
+      
+      // Verify it's recent (within last minute)
+      const now = new Date();
+      const timeDiff = now.getTime() - parsedDate.getTime();
+      expect(timeDiff).toBeLessThan(60000); // Less than 1 minute
+    });
+
     it('should propagate DataStore save errors', async () => {
       const error = new Error('Save failed');
       mockDataStore.save.mockRejectedValue(error);

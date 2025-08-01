@@ -66,9 +66,9 @@ export const TranscriptionForm = ({
     onUpdate({ disableAnalyzer: disableValue });
   };
 
-  const formatDate = (timestamp: string) => {
+  const formatDate = (dateString: string) => {
     try {
-      const date = new Date(Number(timestamp));
+      const date = new Date(dateString);
       return date.toLocaleString();
     } catch {
       return 'Unknown';

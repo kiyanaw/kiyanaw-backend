@@ -134,6 +134,63 @@ describe('RegionService (Simple GraphQL Test)', () => {
       expect(MockedRegionModel).toHaveBeenCalledTimes(1);
       expect(result).toBeDefined();
     });
+
+    it('should set dateLastUpdated as ISO date string when creating region', async () => {
+      const transcriptionId = 'transcription-123';
+      const regionData = {
+        id: 'region-123',
+        start: 0,
+        end: 10,
+        isNote: false,
+      };
+      const username = 'testuser';
+
+      // Mock the GraphQL response
+      mockGraphqlClient.graphql.mockResolvedValue({
+        data: {
+          createRegion: {
+            ...regionData,
+            transcriptionId,
+            dateLastUpdated: '2025-01-31T19:38:45.123Z',
+            userLastUpdated: username,
+          },
+        },
+      });
+
+      await createRegion(transcriptionId, regionData, username);
+
+      // Get the actual call made to GraphQL
+      const call = mockGraphqlClient.graphql.mock.calls[0][0];
+      const inputData = call.variables.input;
+      const dateLastUpdated = inputData.dateLastUpdated;
+
+      // Verify it's an ISO date string (format: YYYY-MM-DDTHH:mm:ss.sssZ)
+      expect(dateLastUpdated).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+      
+      // Verify it can be parsed as a valid date
+      const parsedDate = new Date(dateLastUpdated);
+      expect(parsedDate.getTime()).not.toBeNaN();
+      
+      // Verify it's recent (within last minute)
+      const now = new Date();
+      const timeDiff = now.getTime() - parsedDate.getTime();
+      expect(timeDiff).toBeLessThan(60000); // Less than 1 minute
+    });
+
+    it('should handle region creation errors', async () => {
+      const transcriptionId = 'test-transcription';
+      const regionData = {
+        id: 'new-region',
+        start: 30,
+        end: 40,
+        isNote: false,
+      };
+      const username = 'test-user';
+
+      mockGraphqlClient.graphql.mockRejectedValue(new Error('Create failed'));
+
+      await expect(createRegion(transcriptionId, regionData, username)).rejects.toThrow('Create failed');
+    });
   });
 
   describe('deleteRegion', () => {
@@ -252,6 +309,75 @@ describe('RegionService (Simple GraphQL Test)', () => {
           variables: { id: 'test-region' },
         });
         done();
+      }, 200);
+    });
+
+    it('should set dateLastUpdated as ISO date string when updating region', (done) => {
+      const regionId = 'region-123';
+      const updates = { regionText: 'Updated text' };
+      const username = 'testuser';
+
+      const existingRegion = {
+        id: regionId,
+        transcriptionId: 'transcription-123',
+        start: 0,
+        end: 10,
+        regionText: 'Original text',
+        dateLastUpdated: '2025-01-30T10:00:00.000Z',
+        userLastUpdated: 'originaluser',
+        _version: 1,
+      };
+
+      // Mock getRegion to succeed
+      mockGraphqlClient.graphql
+        .mockResolvedValueOnce({
+          data: { getRegion: existingRegion },
+        })
+        // Mock updateRegion to succeed
+        .mockResolvedValueOnce({
+          data: { 
+            updateRegion: {
+              ...existingRegion,
+              ...updates,
+              dateLastUpdated: '2025-01-31T19:38:45.123Z',
+              userLastUpdated: username,
+            }
+          },
+        });
+
+      updateRegion(regionId, updates, username, 100); // Small debounce
+
+      // Wait for debounced call to complete
+      setTimeout(() => {
+        try {
+          // Look for any call that has an input with our region ID
+          const calls = mockGraphqlClient.graphql.mock.calls;
+          const updateCall = calls.find(call => {
+            const input = call[0]?.variables?.input;
+            return input && input.id === regionId && input.dateLastUpdated;
+          });
+          
+          expect(updateCall).toBeDefined();
+          
+          const inputData = updateCall[0].variables.input;
+          const dateLastUpdated = inputData.dateLastUpdated;
+
+          // Verify it's an ISO date string (format: YYYY-MM-DDTHH:mm:ss.sssZ)
+          expect(dateLastUpdated).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+          
+          // Verify it can be parsed as a valid date
+          const parsedDate = new Date(dateLastUpdated);
+          expect(parsedDate.getTime()).not.toBeNaN();
+          
+          // Verify it's recent (within last minute)
+          const now = new Date();
+          const timeDiff = now.getTime() - parsedDate.getTime();
+          expect(timeDiff).toBeLessThan(60000); // Less than 1 minute
+          
+          done();
+        } catch (error) {
+          done(error);
+        }
       }, 200);
     });
 

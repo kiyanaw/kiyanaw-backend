@@ -58,13 +58,15 @@ export const TranscriptionsTable = () => {
       let bValue = b[sortBy];
 
       // Handle numeric values
-      if (
-        sortBy === 'dateLastUpdated' ||
-        sortBy === 'length' ||
-        sortBy === 'coverage'
-      ) {
+      if (sortBy === 'length' || sortBy === 'coverage') {
         aValue = Number(aValue) || 0;
         bValue = Number(bValue) || 0;
+      }
+      
+      // Handle date values (ISO strings can be compared directly)
+      if (sortBy === 'dateLastUpdated') {
+        // ISO date strings are already in comparable format
+        // No conversion needed - string comparison works for ISO dates
       }
 
       if (aValue < bValue) return sortDesc ? 1 : -1;
@@ -98,22 +100,14 @@ export const TranscriptionsTable = () => {
     setCurrentPage(1); // Reset to first page when sorting
   };
 
-  const formatTimeAgo = (timestamp: string | null | undefined) => {
-    // Handle null, undefined, or empty timestamps
-    if (!timestamp) {
+  const formatTimeAgo = (dateString: string | null | undefined) => {
+    // Handle null, undefined, or empty date strings
+    if (!dateString) {
       return 'Never';
     }
     
-    // Try to parse the timestamp
-    const numericTimestamp = Number(timestamp);
-    
-    // Check if the conversion resulted in a valid number
-    if (isNaN(numericTimestamp)) {
-      return 'Unknown';
-    }
-    
-    // Create date and validate it
-    const date = new Date(numericTimestamp);
+    // Create date from ISO string
+    const date = new Date(dateString);
     
     // Check if the date is valid
     if (isNaN(date.getTime())) {

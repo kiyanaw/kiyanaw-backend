@@ -95,7 +95,7 @@ export const createRegion = async (
       start: region.start,
       end: region.end,
       isNote: region.isNote ?? false,
-      dateLastUpdated: `${Date.now()}`,
+      dateLastUpdated: new Date().toISOString(),
       userLastUpdated: username,
     } as RegionData;
 
@@ -181,7 +181,7 @@ export const updateRegion = async (regionId: string, updates: Partial<RegionData
         id: regionId,
         _version: existing._version,
         ...otherUpdates,
-        dateLastUpdated: `${Date.now()}`,
+        dateLastUpdated: new Date().toISOString(),
         userLastUpdated: username,
       };
 
@@ -288,7 +288,7 @@ export const updateRegionWithAnalysis = async (regionId: string, updates: {
         id: regionId,
         _version: existing._version,
         ...otherUpdates,
-        dateLastUpdated: `${Date.now()}`,
+        dateLastUpdated: new Date().toISOString(),
         userLastUpdated: username,
       };
 

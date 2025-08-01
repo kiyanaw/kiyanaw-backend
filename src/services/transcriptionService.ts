@@ -296,7 +296,7 @@ export const create = async (data: CreateTranscriptionData): Promise<SharedTrans
       author: data.author,
       authorFriendly: data.userLastUpdated,
       userLastUpdated: data.userLastUpdated,
-      dateLastUpdated: `${Date.now()}`,
+      dateLastUpdated: new Date().toISOString(),
       length: 0, // Will be updated when audio is processed
       isPrivate: false,
       disableAnalyzer: false,
@@ -350,7 +350,7 @@ export const updateTranscription = async (
       id: transcriptionId,
       _version: existing._version,
       ...updates,
-      dateLastUpdated: `${Date.now()}`,
+      dateLastUpdated: new Date().toISOString(),
     };
 
     const { data: result } = await getClient().graphql({
