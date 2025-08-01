@@ -36,7 +36,7 @@ jest.mock('smart-timeout', () => ({
 }));
 
 describe('RegionService (Simple GraphQL Test)', () => {
-  const mockGenerateClient = generateClient as jest.MockedFunction<typeof generateClient>;
+  const mockGenerateClient = generateClient as any;
   const MockedRegionModel = RegionModel as jest.MockedClass<typeof RegionModel>;
 
   const mockGraphqlClient = {
