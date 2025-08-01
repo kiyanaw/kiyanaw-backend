@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { X, FileText, Users, Settings, Mail, Send, UserPlus, Trash2 } from 'lucide-react';
 import { useCreateInvite } from '../../hooks/useCreateInvite';
 import { useRevokeInvite } from '../../hooks/useRevokeInvite';
-import { services } from '../../services';
+import * as inviteService from '../../services/inviteService';
 import type { InviteModel } from '../../services/adt';
 
 interface TranscriptionSettingsPageProps {
@@ -55,7 +55,7 @@ export const TranscriptionSettingsPage = ({
         throw new Error('Transcription ID is required');
       }
       console.log('Loading invites for transcription:', transcriptionId);
-      const loadedInvites = await services.inviteService.loadInvitesForTranscription(transcriptionId);
+      const loadedInvites = await inviteService.loadInvitesForTranscription(transcriptionId);
       setInvites(loadedInvites);
     } catch (error) {
       console.error('Failed to load invites:', error);
