@@ -79,7 +79,7 @@ export class SubscribeToRegionChangesUseCase {
         wavesurferService.deleteRegion(region.id);
         break;
 
-      case 'UPDATE':
+      case 'UPDATE': {
         console.log('🔌 Handling UPDATE for region:', region.id);
         const currentRegion = store.regionById(region.id);
         
@@ -138,6 +138,7 @@ export class SubscribeToRegionChangesUseCase {
           store.setRegionTranslation(region.id, region.translation || '');
         }
         break;
+      }
 
       default:
         console.warn('🔌 Unknown mutation type:', mutation);

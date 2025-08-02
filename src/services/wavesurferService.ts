@@ -479,6 +479,7 @@ class WaveSurferService {
     //   return;
     // }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const region = this.regionsPlugin!.getRegions().find((r: any) => r.id === regionId);
     if (!region) {
       console.warn('🎵 Cannot set region position: region not found:', regionId);
@@ -529,7 +530,8 @@ class WaveSurferService {
       return;
     }
 
-    const region = this.regionsPlugin.getRegions().find((r: any) => r.id === regionId);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const region = this.regionsPlugin!.getRegions().find((r: any) => r.id === regionId);
     if (!region) {
       console.warn('🎵 Cannot delete region: region not found:', regionId);
       return;

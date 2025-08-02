@@ -8,6 +8,7 @@ export default tseslint.config(
   { 
     ignores: [
       'dist',
+      'coverage/**',
       'src/aws-exports.js',
       'src/models/index.d.ts',
       'src/graphql/*', 

@@ -212,6 +212,7 @@ export const subscribeToRegionChanges = (
   console.log('🔌 Setting up subscriptions for transcriptionId:', transcriptionId);
   
   const client = getClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const subscriptions: any[] = [];
 
   // Filter to only get regions for this transcription
@@ -224,7 +225,9 @@ export const subscribeToRegionChanges = (
     const createSub = (client.graphql({
       query: onCreateRegion,
       variables: { filter }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }) as any).subscribe({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       next: (result: any) => {
         const region = result.data?.onCreateRegion;
         if (region && !region._deleted) {
@@ -234,6 +237,7 @@ export const subscribeToRegionChanges = (
           });
         }
       },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       error: (error: any) => console.error('Create subscription error:', error)
     });
 
@@ -241,7 +245,9 @@ export const subscribeToRegionChanges = (
     const updateSub = (client.graphql({
       query: onUpdateRegion,
       variables: { filter }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }) as any).subscribe({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       next: (result: any) => {
         const region = result.data?.onUpdateRegion;
         if (region && !region._deleted) {
@@ -251,6 +257,7 @@ export const subscribeToRegionChanges = (
           });
         }
       },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       error: (error: any) => console.error('Update subscription error:', error)
     });
 
@@ -258,7 +265,9 @@ export const subscribeToRegionChanges = (
     const deleteSub = (client.graphql({
       query: onDeleteRegion,
       variables: { filter }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }) as any).subscribe({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       next: (result: any) => {
         const region = result.data?.onDeleteRegion;
         if (region) {
@@ -268,6 +277,7 @@ export const subscribeToRegionChanges = (
           });
         }
       },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       error: (error: any) => console.error('Delete subscription error:', error)
     });
 
