@@ -1,5 +1,4 @@
 import { services } from '../services';
-import { showToast } from '../services/toastService';
 import { UpdateTranscriptionUseCase } from './update-transcription';
 import type { User, WavesurferRegion } from '../types/shared';
 
