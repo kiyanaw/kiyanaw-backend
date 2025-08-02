@@ -40,12 +40,18 @@ export class SubscribeToRegionChangesUseCase {
     const { mutation, region } = event;
     const store = this.config.services.storeService;
     const wavesurferService = this.config.services.wavesurferService;
+    const flashService = this.config.services.flashIndicatorService;
     
     // Ignore events that we triggered ourselves
     const currentUser = this.config.services.userService.currentUser();
     if (currentUser && region.userLastUpdated === currentUser.username) {
       console.log('🔌 Ignoring self-triggered event for region:', region.id);
       return;
+    }
+
+    // Trigger flash indicator for all remote changes
+    if (region.userLastUpdated) {
+      flashService.flashRegion(region.id, region.userLastUpdated);
     }
 
     // TODO: Version conflict detection

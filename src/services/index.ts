@@ -11,6 +11,7 @@ import { uploadService } from './uploadService';
 import * as toastService from './toastService';
 import * as inviteService from './inviteService';
 import { storeService } from './storeService';
+import { flashIndicatorService } from './flashIndicatorService';
 
 export const services = {
   userService: authService,
@@ -27,4 +28,5 @@ export const services = {
   toastService,
   inviteService,
   storeService,
+  flashIndicatorService,
 };
