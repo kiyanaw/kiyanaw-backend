@@ -4,8 +4,6 @@ import type { RegionSubscriptionEvent } from '../services/regionService';
 export interface SubscribeToRegionChangesConfig {
   transcriptionId: string;
   services: typeof services;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  store: any; // ZustandStore with region management capabilities
 }
 
 export class SubscribeToRegionChangesUseCase {
@@ -40,7 +38,7 @@ export class SubscribeToRegionChangesUseCase {
 
   private handleRegionSubscriptionEvent(event: RegionSubscriptionEvent): void {
     const { mutation, region } = event;
-    const store = this.config.store;
+    const store = this.config.services.storeService;
     const wavesurferService = this.config.services.wavesurferService;
     
     // Ignore events that we triggered ourselves
@@ -101,16 +99,31 @@ export class SubscribeToRegionChangesUseCase {
 
         // Set regionAnalysis FIRST if it exists (ensures proper highlighting when text updates)
         if (region.regionAnalysis && region.regionAnalysis.length > 0) {
-          console.log('🔌 Setting region analysis');
+          console.log('🔌 Setting region analysis with', region.regionAnalysis.length, 'words');
           store.setRegionAnalysis(region.id, region.regionAnalysis);
           // Add new words to global knownWords for highlighting
           store.addKnownWords(region.regionAnalysis);
+          console.log('🔌 Added analysis words to global knownWords:', region.regionAnalysis.length);
         }
 
         // Check if text changed
         if (currentRegion.regionText !== region.regionText) {
           console.log('🔌 Region text changed, updating store');
           store.setRegionText(region.id, region.regionText || '');
+          
+          // Update RTE silently if it exists (won't trigger save)
+          const mainEditorKey = `${region.id}:main` as const;
+          if (this.config.services.rteService.hasEditor(mainEditorKey)) {
+            console.log('🔌 Updating RTE for region:', region.id);
+            this.config.services.rteService.setContent(mainEditorKey, region.regionText || '');
+            
+            // Use the region's analysis words directly since store.addKnownWords isn't working
+            const regionAnalysisWords = region.regionAnalysis && Array.isArray(region.regionAnalysis) 
+              ? region.regionAnalysis as string[]
+              : [];
+            console.log('🔌 Applying formatting with region analysis words:', regionAnalysisWords.length, regionAnalysisWords.slice(0, 5));
+            this.config.services.rteService.applyKnownWordsFormatting(mainEditorKey, regionAnalysisWords);
+          }
         }
 
         // Check if translation changed

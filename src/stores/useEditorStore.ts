@@ -324,13 +324,6 @@ export const useEditorStore = create<EditorState>()(
         set(updateObj);
       },
 
-
-
-
-
-
-
-
       // Computed getters
       regionById: (id) => {
         const { regionMap } = get();
@@ -349,10 +342,18 @@ export const useEditorStore = create<EditorState>()(
 
       // Spell checking actions
       addKnownWords: (words) => {
+        console.log('🔍 addKnownWords called with:', words, 'type:', typeof words, 'isArray:', Array.isArray(words));
         const { knownWords } = get();
+        console.log('🔍 Current knownWords:', knownWords.size, Array.from(knownWords));
         const newKnownWords = new Set(knownWords);
-        words.forEach(word => newKnownWords.add(word));
+        console.log('🔍 New Set created, size:', newKnownWords.size);
+        words.forEach(word => {
+          console.log('🔍 Adding word:', word, 'type:', typeof word);
+          newKnownWords.add(word);
+        });
+        console.log('🔍 After forEach, newKnownWords size:', newKnownWords.size, Array.from(newKnownWords));
         set({ knownWords: newKnownWords });
+        console.log('🔍 After set() call');
       },
 
       setRegionAnalysis: (regionId, knownWords) => {

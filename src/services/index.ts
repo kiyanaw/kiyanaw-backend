@@ -10,6 +10,7 @@ import { awsConfigService } from './awsConfigService';
 import { uploadService } from './uploadService';
 import * as toastService from './toastService';
 import * as inviteService from './inviteService';
+import { storeService } from './storeService';
 
 export const services = {
   userService: authService,
@@ -25,4 +26,5 @@ export const services = {
   uploadService,
   toastService,
   inviteService,
+  storeService,
 };
