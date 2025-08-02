@@ -69,7 +69,7 @@ export class UpdateRegionBounds {
       const updateTranscriptionUseCase = new UpdateTranscriptionUseCase({
         transcriptionId: existingRegion.transcriptionId,
         services,
-        state: store,
+        store: store,
       });
       
       await updateTranscriptionUseCase.execute();

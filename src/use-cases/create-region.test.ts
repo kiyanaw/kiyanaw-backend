@@ -16,10 +16,21 @@ describe('CreateRegion', () => {
     regionService: {
       createRegion: mockCreateRegion,
     },
+    transcriptionService: {
+      updateTranscription: jest.fn(),
+    },
   };
 
   const mockStore = {
     addNewRegion: mockAddNewRegion,
+    transcription: {
+      id: 'test-transcription-id',
+      title: 'Test Transcription',
+      length: 120,
+    },
+    regions: [],
+    calculateTranscriptionMetadata: jest.fn(() => ({ regionCount: 0, coverage: 0 })),
+    setTranscription: jest.fn(),
   };
 
   const validConfig = {
@@ -155,7 +166,7 @@ describe('CreateRegion', () => {
       
       await expect(useCase.execute()).resolves.not.toThrow();
       
-      expect(mockCurrentUser).toHaveBeenCalledTimes(1);
+      expect(mockCurrentUser).toHaveBeenCalledTimes(2); // Called by CreateRegion and UpdateTranscriptionUseCase
       expect(mockAddNewRegion).toHaveBeenCalledTimes(1);
       expect(mockCreateRegion).toHaveBeenCalledTimes(1);
     });

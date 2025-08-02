@@ -32,6 +32,9 @@ const mockStateActions = {
 };
 
 const mockStore = {
+  knownWords: new Set<string>(['existing', 'word', 'hello', 'êkwa', 'itwêw']),
+  setRegionAnalysis: jest.fn(),
+  addKnownWords: jest.fn(),
   getState: jest.fn(),
   setState: jest.fn(),
   subscribe: jest.fn()
@@ -91,10 +94,10 @@ describe('AnalyzeRegionTextUseCase', () => {
       expect(mockSpellCheckerService.check).toHaveBeenCalledWith(['world']); // only unknown words
       
       // Should not call addKnownWords since no new words were discovered
-      expect(mockStateActions.addKnownWords).not.toHaveBeenCalled();
+      expect(mockStore.addKnownWords).not.toHaveBeenCalled();
       
       // Should set region analysis (with all known words including cached ones)
-      expect(mockStateActions.setRegionAnalysis).toHaveBeenCalledWith('region-1', ['hello', 'êkwa']);
+      expect(mockStore.setRegionAnalysis).toHaveBeenCalledWith('region-1', ['hello', 'êkwa']);
       
       jest.useRealTimers();
     });
@@ -167,8 +170,8 @@ describe('AnalyzeRegionTextUseCase', () => {
       await promise;
 
       expect(mockSpellCheckerService.check).toHaveBeenCalledWith(['tâpwê']); // only unknown word
-      expect(mockStateActions.addKnownWords).toHaveBeenCalledWith(['tâpwê']);
-      expect(mockStateActions.setRegionAnalysis).toHaveBeenCalledWith('region-1', ['itwêw', 'êkwa', 'tâpwê']);
+      expect(mockStore.addKnownWords).toHaveBeenCalledWith(['tâpwê']);
+      expect(mockStore.setRegionAnalysis).toHaveBeenCalledWith('region-1', ['itwêw', 'êkwa', 'tâpwê']);
       
       jest.useRealTimers();
     });
@@ -258,8 +261,8 @@ describe('AnalyzeRegionTextUseCase', () => {
 
       // Should analyze both regions
       expect(mockSpellCheckerService.tokenize).toHaveBeenCalledTimes(2);
-      expect(mockStateActions.setRegionAnalysis).toHaveBeenCalledWith('region-1', expect.any(Array));
-      expect(mockStateActions.setRegionAnalysis).toHaveBeenCalledWith('region-2', expect.any(Array));
+      expect(mockStore.setRegionAnalysis).toHaveBeenCalledWith('region-1', expect.any(Array));
+      expect(mockStore.setRegionAnalysis).toHaveBeenCalledWith('region-2', expect.any(Array));
       
       jest.useRealTimers();
     });

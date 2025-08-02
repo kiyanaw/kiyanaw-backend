@@ -120,7 +120,6 @@ describe('useUpdateTranscription', () => {
       expect(MockedUpdateTranscriptionUseCase).toHaveBeenCalledWith({
         transcriptionId: 'test-transcription-id',
         updates: { title: 'New Title' },
-        username: 'testuser',
         services: expect.any(Object),
         store: mockStore,
       });
@@ -138,7 +137,6 @@ describe('useUpdateTranscription', () => {
       expect(MockedUpdateTranscriptionUseCase).toHaveBeenCalledWith({
         transcriptionId: 'test-transcription-id',
         updates: { title: 'New Title', comments: 'New comments' },
-        username: 'testuser',
         services: expect.any(Object),
         store: mockStore,
       });
@@ -154,7 +152,6 @@ describe('useUpdateTranscription', () => {
       expect(MockedUpdateTranscriptionUseCase).toHaveBeenCalledWith({
         transcriptionId: 'test-transcription-id',
         updates: { comments: 'Just comments' },
-        username: 'testuser',
         services: expect.any(Object),
         store: mockStore,
       });
@@ -170,7 +167,6 @@ describe('useUpdateTranscription', () => {
       expect(MockedUpdateTranscriptionUseCase).toHaveBeenCalledWith({
         transcriptionId: 'test-transcription-id',
         updates: {},
-        username: 'testuser',
         services: expect.any(Object),
         store: mockStore,
       });

@@ -18,12 +18,12 @@ export const useUpdateTranscription = (transcriptionId: string) => {
         throw new Error('User must be authenticated to update transcription');
       }
 
-      const state = useEditorStore.getState();
+      const store = useEditorStore.getState();
       new UpdateTranscriptionUseCase({
         transcriptionId,
         updates,
         services,
-        state,
+        store,
       }).execute();
     }
   };

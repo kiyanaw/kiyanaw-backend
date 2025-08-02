@@ -137,14 +137,15 @@ export const useWavesurferEvents = (transcriptionId: string, source?: string): v
       usePlayerStore.getState().setDuration(event.duration);
       
       // Update transcription length with the actual duration from wavesurfer
-      const state = useEditorStore.getState();
-      const transcription = state.transcription
+      const store = useEditorStore.getState();
+      const transcription = store.transcription
+      console.log(transcription, event)
       if (transcription && transcription.length === 0 && event.duration > 0) {
         const updateTranscriptionUseCase = new UpdateTranscriptionUseCase({
           transcriptionId: transcription.id,
           updates: { length: event.duration },
           services,
-          state,
+          store,
         });
         updateTranscriptionUseCase.execute().catch(error => {
           console.warn('Failed to update transcription length:', error);

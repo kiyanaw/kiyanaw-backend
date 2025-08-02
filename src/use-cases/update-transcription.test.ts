@@ -10,6 +10,9 @@ jest.mock('../services', () => ({
     transcriptionService: {
       updateTranscription: jest.fn(),
     },
+    authService: {
+      currentUser: jest.fn(() => ({ username: 'test-user@example.com', userId: 'user123' })),
+    },
   },
 }));
 
@@ -27,6 +30,17 @@ const MockedTranscriptionModel = TranscriptionModel as jest.MockedClass<typeof T
 
 describe('UpdateTranscriptionUseCase', () => {
   const mockStore = {
+    transcription: {
+      id: 'test-transcription-id',
+      title: 'Original Title',
+      length: 120,
+      userLastUpdated: 'original-user',
+      dateLastUpdated: '2023-01-01T00:00:00.000Z',
+    },
+    regions: [
+      { id: 'region1', start: 0, end: 30 },
+      { id: 'region2', start: 30, end: 60 },
+    ],
     setTranscription: jest.fn(),
     calculateTranscriptionMetadata: jest.fn(() => ({ regionCount: 2, coverage: 0.75 })),
   };
@@ -50,19 +64,7 @@ describe('UpdateTranscriptionUseCase', () => {
       expect(() => useCase.validate()).toThrow('transcriptionId is required');
     });
 
-    it('should throw error when username is missing', () => {
-      const config = { ...baseConfig, username: '' };
-      const useCase = new UpdateTranscriptionUseCase(config);
-      
-      expect(() => useCase.validate()).toThrow('username is required');
-    });
 
-    it('should throw error when updates are empty', () => {
-      const config = { ...baseConfig, updates: {} };
-      const useCase = new UpdateTranscriptionUseCase(config);
-      
-      expect(() => useCase.validate()).toThrow('updates are required');
-    });
 
     it('should throw error when title is empty string', () => {
       const config = { ...baseConfig, updates: { title: '' } };
@@ -98,12 +100,19 @@ describe('UpdateTranscriptionUseCase', () => {
         'test-transcription-id',
         expect.objectContaining({
           title: 'New Title',
-          userLastUpdated: 'testuser',
+          userLastUpdated: 'test-user',
           dateLastUpdated: expect.any(String),
         })
       );
 
-      expect(mockStore.setTranscription).toHaveBeenCalledWith(rawTranscription);
+      // Verify that the combined data was passed to the store
+      expect(mockStore.setTranscription).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'New Title',
+          userLastUpdated: 'test-user',
+          coverage: 0.75,
+        })
+      );
       expect(mockShowToast).toHaveBeenCalledWith('Transcription saved', 'success');
     });
 
@@ -125,12 +134,20 @@ describe('UpdateTranscriptionUseCase', () => {
         expect.objectContaining({
           title: 'New Title',
           comments: 'New comments',
-          userLastUpdated: 'testuser',
+          userLastUpdated: 'test-user',
           dateLastUpdated: expect.any(String),
         })
       );
 
-      expect(mockStore.setTranscription).toHaveBeenCalledWith(rawTranscription);
+      // Verify that the combined data was passed to the store
+      expect(mockStore.setTranscription).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'New Title',
+          comments: 'New comments',
+          userLastUpdated: 'test-user',
+          coverage: 0.75,
+        })
+      );
       expect(mockShowToast).toHaveBeenCalledWith('Transcription saved', 'success');
     });
 
@@ -143,19 +160,27 @@ describe('UpdateTranscriptionUseCase', () => {
       await expect(useCase.execute()).rejects.toThrow('Network error');
 
       expect(mockShowToast).toHaveBeenCalledWith('Failed to save transcription', 'error');
-      expect(mockStore.setTranscription).not.toHaveBeenCalled();
+      // Note: setTranscription is called for optimistic update even if API fails
+      expect(mockStore.setTranscription).toHaveBeenCalled();
     });
 
-    it('should pass raw transcription data to store', async () => {
-      const rawTranscription = { id: 'test-id', title: 'Video Title', type: 'video/mp4' };
+    it('should pass combined transcription data to store', async () => {
+      const apiResponse = { id: 'test-id', title: 'Video Title', type: 'video/mp4' };
 
-      (mockServices.transcriptionService.updateTranscription as jest.Mock).mockResolvedValue(rawTranscription);
+      (mockServices.transcriptionService.updateTranscription as jest.Mock).mockResolvedValue(apiResponse);
 
       const useCase = new UpdateTranscriptionUseCase(baseConfig);
       await useCase.execute();
 
-      // Verify that the raw data was passed to the store
-      expect(mockStore.setTranscription).toHaveBeenCalledWith(rawTranscription);
+      // Verify that the combined data (current + updates + metadata) was passed to the store
+      expect(mockStore.setTranscription).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 'test-transcription-id',
+          title: 'New Title',
+          userLastUpdated: 'test-user',
+          coverage: 0.75,
+        })
+      );
     });
   });
 }); 

@@ -53,7 +53,7 @@ export class CreateRegion {
       const updateTranscriptionUseCase = new UpdateTranscriptionUseCase({
         transcriptionId: this.config.transcriptionId,
         services: this.config.services,
-        state: store,
+        store: store,
       });
       
       await updateTranscriptionUseCase.execute();

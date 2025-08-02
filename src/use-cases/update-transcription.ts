@@ -13,7 +13,7 @@ export interface UpdateTranscriptionConfig {
   };
   services: typeof services;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  state: any;
+  store: any;
 }
 
 export class UpdateTranscriptionUseCase {
@@ -28,8 +28,8 @@ export class UpdateTranscriptionUseCase {
       throw new Error('transcriptionId is required');
     }
 
-    if (!this.config.state) {
-      throw new Error('state is required');
+    if (!this.config.store) {
+      throw new Error('store is required');
     }
 
     // Check if title is provided and validate it
@@ -43,7 +43,7 @@ export class UpdateTranscriptionUseCase {
   async execute(): Promise<TranscriptionData> {
     this.validate();
 
-    const { transcriptionId, updates, state, services } = this.config;
+    const { transcriptionId, updates, store, services } = this.config;
 
     // Get current user from auth service
     const user = services.authService.currentUser();
@@ -52,12 +52,12 @@ export class UpdateTranscriptionUseCase {
     }
 
     // Calculate the complete updated transcription
-    const currentTranscription = state.transcription;
+    const currentTranscription = store.transcription;
     if (!currentTranscription) {
-      throw new Error('No transcription found in state');
+      throw new Error('No transcription found in store');
     }
 
-        const { coverage } = state.calculateTranscriptionMetadata();
+        const { coverage } = store.calculateTranscriptionMetadata();
     
     // Only send updatable fields to API
     const apiUpdate = {
@@ -75,7 +75,7 @@ export class UpdateTranscriptionUseCase {
 
     // Update store immediately (optimistic update) 
     const transcriptionModel = new TranscriptionModel(updated);
-    state.setTranscription(transcriptionModel);
+    store.setTranscription(transcriptionModel);
 
     try {
       // Save to API

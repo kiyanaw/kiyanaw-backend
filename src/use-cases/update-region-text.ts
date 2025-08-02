@@ -96,7 +96,7 @@ export class UpdateRegionTextUseCase {
         const updateTranscriptionUseCase = new UpdateTranscriptionUseCase({
           transcriptionId: region.transcriptionId,
           services,
-          state: store,
+          store: store,
         });
         
         await updateTranscriptionUseCase.execute();

@@ -78,7 +78,7 @@ export class DeleteRegion {
       const updateTranscriptionUseCase = new UpdateTranscriptionUseCase({
         transcriptionId,
         services: this.config.services,
-        state: this.config.store,
+        store: this.config.store,
       });
       
       await updateTranscriptionUseCase.execute();
