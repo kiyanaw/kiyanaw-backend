@@ -473,6 +473,153 @@ describe('useEditorStore known words functionality', () => {
     });
   });
 
+  describe('conflict queue management', () => {
+    beforeEach(() => {
+      useEditorStore.getState().cleanup();
+    });
+
+    it('should add conflicts to queue', () => {
+      const store = useEditorStore.getState();
+      const conflict = {
+        field: 'regionText',
+        localValue: 'local text',
+        remoteValue: 'remote text',
+        canAutoMerge: false,
+        conflictId: 'test-conflict-1'
+      };
+
+      store.addConflictToQueue(conflict);
+
+      // Get fresh state after action
+      const updatedState = useEditorStore.getState();
+      expect(updatedState.conflictQueue).toHaveLength(1);
+      expect(updatedState.conflictQueue[0]).toEqual(conflict);
+    });
+
+    it('should remove conflicts from queue by ID', () => {
+      const store = useEditorStore.getState();
+      const conflict1 = {
+        field: 'regionText',
+        localValue: 'local text 1',
+        remoteValue: 'remote text 1',
+        canAutoMerge: false,
+        conflictId: 'test-conflict-1'
+      };
+      const conflict2 = {
+        field: 'translation',
+        localValue: 'local translation',
+        remoteValue: 'remote translation',
+        canAutoMerge: false,
+        conflictId: 'test-conflict-2'
+      };
+
+      store.addConflictToQueue(conflict1);
+      store.addConflictToQueue(conflict2);
+      
+      let updatedState = useEditorStore.getState();
+      expect(updatedState.conflictQueue).toHaveLength(2);
+
+      store.removeConflictFromQueue('test-conflict-1');
+      updatedState = useEditorStore.getState();
+      expect(updatedState.conflictQueue).toHaveLength(1);
+      expect(updatedState.conflictQueue[0].conflictId).toBe('test-conflict-2');
+    });
+
+    it('should handle removing non-existent conflict ID', () => {
+      const store = useEditorStore.getState();
+      const conflict = {
+        field: 'regionText',
+        localValue: 'local text',
+        remoteValue: 'remote text',
+        canAutoMerge: false,
+        conflictId: 'test-conflict-1'
+      };
+
+      store.addConflictToQueue(conflict);
+      let updatedState = useEditorStore.getState();
+      expect(updatedState.conflictQueue).toHaveLength(1);
+
+      store.removeConflictFromQueue('non-existent-id');
+      updatedState = useEditorStore.getState();
+      expect(updatedState.conflictQueue).toHaveLength(1); // Should remain unchanged
+    });
+
+    it('should process conflict queue (placeholder)', () => {
+      const store = useEditorStore.getState();
+      const conflict = {
+        field: 'regionText',
+        localValue: 'local text',
+        remoteValue: 'remote text',
+        canAutoMerge: false,
+        conflictId: 'test-conflict-1'
+      };
+
+      store.addConflictToQueue(conflict);
+      
+      // For now, processConflictQueue just logs - this will be implemented in Phase 4
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      
+      store.processConflictQueue();
+      
+      expect(consoleSpy).toHaveBeenCalledWith('Processing conflict queue:', [conflict]);
+      consoleSpy.mockRestore();
+    });
+
+    it('should reset conflict queue on cleanup', () => {
+      const store = useEditorStore.getState();
+      const conflict = {
+        field: 'regionText',
+        localValue: 'local text',
+        remoteValue: 'remote text',
+        canAutoMerge: false,
+        conflictId: 'test-conflict-1'
+      };
+
+      store.addConflictToQueue(conflict);
+      let updatedState = useEditorStore.getState();
+      expect(updatedState.conflictQueue).toHaveLength(1);
+
+      store.cleanup();
+      updatedState = useEditorStore.getState();
+      expect(updatedState.conflictQueue).toHaveLength(0);
+    });
+
+    it('should maintain queue order when adding multiple conflicts', () => {
+      const store = useEditorStore.getState();
+      const conflicts = [
+        {
+          field: 'regionText',
+          localValue: 'local text 1',
+          remoteValue: 'remote text 1',
+          canAutoMerge: false,
+          conflictId: 'conflict-1'
+        },
+        {
+          field: 'translation',
+          localValue: 'local translation',
+          remoteValue: 'remote translation',
+          canAutoMerge: false,
+          conflictId: 'conflict-2'
+        },
+        {
+          field: 'start',
+          localValue: 10.0,
+          remoteValue: 15.0,
+          canAutoMerge: true,
+          conflictId: 'conflict-3'
+        }
+      ];
+
+      conflicts.forEach(conflict => store.addConflictToQueue(conflict));
+
+      const updatedState = useEditorStore.getState();
+      expect(updatedState.conflictQueue).toHaveLength(3);
+      expect(updatedState.conflictQueue[0].conflictId).toBe('conflict-1');
+      expect(updatedState.conflictQueue[1].conflictId).toBe('conflict-2');
+      expect(updatedState.conflictQueue[2].conflictId).toBe('conflict-3');
+    });
+  });
+
   describe('strict version validation', () => {
     it('should throw when trying to add region without _version', () => {
       const store = useEditorStore.getState();

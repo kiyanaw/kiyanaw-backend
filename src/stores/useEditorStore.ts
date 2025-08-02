@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import type { TranscriptionData, RegionData, ProcessedIssue } from '../types/shared';
 import type { PendingEdit } from '../services/pendingEditsService';
+import type { ConflictDetail } from '../services/conflictDetectionService';
 import Timeout from 'smart-timeout';
 
 interface EditorDataPayload {
@@ -34,6 +35,9 @@ interface EditorState {
 
   // Pending edits state
   pendingEdits: Record<string, PendingEdit>;
+
+  // Conflict queue state
+  conflictQueue: ConflictDetail[];
 
   // Issues state
   issues: ProcessedIssue[];
@@ -72,6 +76,11 @@ interface EditorState {
   endPendingEdit: (regionId: string, field: string) => void;
   updatePendingEditActivity: (regionId: string, field: string) => void;
 
+  // Conflict queue actions
+  addConflictToQueue: (conflict: ConflictDetail) => void;
+  removeConflictFromQueue: (conflictId: string) => void;
+  processConflictQueue: () => void;
+
   // Computed properties
   isVideo: boolean;
   isTranscriptionAuthor: (user: { username: string; userId: string } | null) => boolean;
@@ -108,6 +117,7 @@ export const useEditorStore = create<EditorState>()(
       playbackWithinRegion: null,
       knownWords: new Set<string>(),
       pendingEdits: {},
+      conflictQueue: [],
       issues: [],
       issueMap: {},
       _subscriptions: [],
@@ -189,6 +199,7 @@ export const useEditorStore = create<EditorState>()(
           regionVersions: {},
           knownWords: new Set<string>(),
           pendingEdits: {},
+          conflictQueue: [],
           issues: [],
           issueMap: {},
           selectedRegionId: null,
@@ -462,6 +473,26 @@ export const useEditorStore = create<EditorState>()(
           
           set({ pendingEdits: newPendingEdits });
         }
+      },
+
+      // Conflict queue actions
+      addConflictToQueue: (conflict) => {
+        const { conflictQueue } = get();
+        const newQueue = [...conflictQueue, conflict];
+        set({ conflictQueue: newQueue });
+      },
+
+      removeConflictFromQueue: (conflictId) => {
+        const { conflictQueue } = get();
+        const newQueue = conflictQueue.filter(c => c.conflictId !== conflictId);
+        set({ conflictQueue: newQueue });
+      },
+
+      processConflictQueue: () => {
+        const { conflictQueue } = get();
+        // For now, just log the conflicts - actual processing will be implemented in Phase 4
+        console.log('Processing conflict queue:', conflictQueue);
+        // TODO: Implement actual conflict processing logic in Phase 4
       },
 
       // Spell checking actions
