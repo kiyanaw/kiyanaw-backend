@@ -1084,6 +1084,177 @@ describe('WaveSurferService', () => {
     });
   });
 
+  describe('Flash Region Background', () => {
+    it('should flash region background for normal regions', () => {
+      const service = wavesurferService;
+      const mockContainer = document.createElement('div');
+      const mockTimelineContainer = document.createElement('div');
+      
+      service.initialize(mockContainer, mockTimelineContainer, undefined, true);
+      
+      // Set up mock region with element
+      const mockElement = document.createElement('div');
+      const mockRegion = {
+        id: 'test-region-flash',
+        element: mockElement
+      };
+      
+      const mockRegionsPlugin = service.getRegionsPlugin();
+      jest.mocked(mockRegionsPlugin!.getRegions).mockReturnValue([mockRegion] as any);
+      
+      // Test the flash without username
+      service.flashRegionBackground('test-region-flash');
+      
+      // Should have applied transition and flash color
+      expect(mockElement.style.transition).toContain('background-color');
+      expect(mockElement.style.transition).toContain('500ms');
+      expect(mockElement.style.transition).toContain('ease-out');
+      expect(mockElement.style.backgroundColor).toBe('rgba(34, 197, 94, 0.2)');
+    });
+
+    it('should flash region background with username text', () => {
+      const service = wavesurferService;
+      const mockContainer = document.createElement('div');
+      const mockTimelineContainer = document.createElement('div');
+      
+      service.initialize(mockContainer, mockTimelineContainer, undefined, true);
+      
+      const mockElement = document.createElement('div');
+      const mockRegion = {
+        id: 'test-region-username',
+        element: mockElement
+      };
+      
+      const mockRegionsPlugin = service.getRegionsPlugin();
+      jest.mocked(mockRegionsPlugin!.getRegions).mockReturnValue([mockRegion] as any);
+      
+      // Mock appendChild to capture username element
+      const mockAppendChild = jest.fn();
+      mockElement.appendChild = mockAppendChild;
+      
+      // Test flash with username
+      service.flashRegionBackground('test-region-username', 'testuser');
+      
+      // Should create username element
+      expect(mockAppendChild).toHaveBeenCalled();
+      const usernameElement = mockAppendChild.mock.calls[0][0];
+      expect(usernameElement.textContent).toBe('testuser');
+      expect(usernameElement.style.color).toBe('rgb(21, 128, 61)'); // Browser converts #15803d to RGB
+      expect(usernameElement.style.position).toBe('absolute');
+    });
+
+    it('should handle missing regions plugin gracefully', () => {
+      const service = wavesurferService;
+      service.destroy(); // Ensure no regions plugin
+      
+      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      
+      service.flashRegionBackground('test-region-missing');
+      
+      expect(consoleSpy).toHaveBeenCalledWith('🎵 Cannot flash region: regions plugin not available');
+      consoleSpy.mockRestore();
+    });
+
+    it('should handle missing region gracefully', () => {
+      const service = wavesurferService;
+      const mockContainer = document.createElement('div');
+      const mockTimelineContainer = document.createElement('div');
+      
+      service.initialize(mockContainer, mockTimelineContainer, undefined, true);
+      
+      const mockRegionsPlugin = service.getRegionsPlugin();
+      jest.mocked(mockRegionsPlugin!.getRegions).mockReturnValue([]);
+      
+      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      
+      service.flashRegionBackground('nonexistent-region');
+      
+      expect(consoleSpy).toHaveBeenCalledWith('🎵 Cannot flash region: region not found or no element:', 'nonexistent-region');
+      consoleSpy.mockRestore();
+    });
+
+    it('should determine correct original color for highlighted region', () => {
+      const service = wavesurferService;
+      const mockContainer = document.createElement('div');
+      const mockTimelineContainer = document.createElement('div');
+      
+      service.initialize(mockContainer, mockTimelineContainer, undefined, true);
+      
+      const mockElement = document.createElement('div');
+      const mockRegion = {
+        id: 'highlighted-region',
+        element: mockElement
+      };
+      
+      // Simulate highlighted region by setting the private property
+      (service as any)._inboundRegionCurrentHighlighted = mockRegion;
+      
+      const mockRegionsPlugin = service.getRegionsPlugin();
+      jest.mocked(mockRegionsPlugin!.getRegions).mockReturnValue([mockRegion] as any);
+      
+      service.flashRegionBackground('highlighted-region');
+      
+      // Should flash with green color
+      expect(mockElement.style.backgroundColor).toBe('rgba(34, 197, 94, 0.2)');
+    });
+
+    it('should handle flash errors gracefully', () => {
+      const service = wavesurferService;
+      const mockContainer = document.createElement('div');
+      const mockTimelineContainer = document.createElement('div');
+      
+      service.initialize(mockContainer, mockTimelineContainer, undefined, true);
+      
+      const mockElement = {
+        style: {
+          get transition() { throw new Error('Style error'); }
+        }
+      };
+      const mockRegion = {
+        id: 'error-region',
+        element: mockElement
+      };
+      
+      const mockRegionsPlugin = service.getRegionsPlugin();
+      jest.mocked(mockRegionsPlugin!.getRegions).mockReturnValue([mockRegion] as any);
+      
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      
+      // Should not throw
+      expect(() => {
+        service.flashRegionBackground('error-region');
+      }).not.toThrow();
+      
+      expect(consoleSpy).toHaveBeenCalledWith('🎵 Failed to flash region background:', expect.any(Error));
+      consoleSpy.mockRestore();
+    });
+
+    it('should set region position to relative for username text positioning', () => {
+      const service = wavesurferService;
+      const mockContainer = document.createElement('div');
+      const mockTimelineContainer = document.createElement('div');
+      
+      service.initialize(mockContainer, mockTimelineContainer, undefined, true);
+      
+      const mockElement = document.createElement('div');
+      // Start with static positioning
+      mockElement.style.position = 'static';
+      
+      const mockRegion = {
+        id: 'positioning-test',
+        element: mockElement
+      };
+      
+      const mockRegionsPlugin = service.getRegionsPlugin();
+      jest.mocked(mockRegionsPlugin!.getRegions).mockReturnValue([mockRegion] as any);
+      
+      service.flashRegionBackground('positioning-test', 'testuser');
+      
+      // Should have changed to relative positioning
+      expect(mockElement.style.position).toBe('relative');
+    });
+  });
+
   describe('Delayed Load Logic', () => {
     it('should delay load when wavesurfer instance does not exist', async () => {
       const mockLoad = jest.fn();
