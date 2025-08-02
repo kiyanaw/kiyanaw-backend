@@ -5,6 +5,8 @@
  * Avoids store pollution and performance issues with large region counts.
  */
 
+import { wavesurferService } from './wavesurferService';
+
 type FlashEventCallback = (username: string) => void;
 
 class FlashIndicatorServiceImpl {
@@ -21,10 +23,14 @@ class FlashIndicatorServiceImpl {
 
     console.log('⚡ Flash triggered for region:', regionId, 'by user:', username);
 
+    // Trigger text flash in region list (via event system)
     const regionListeners = this.listeners.get(regionId);
     if (regionListeners) {
       regionListeners.forEach(callback => callback(username));
     }
+
+    // Trigger wavesurfer background flash
+    wavesurferService.flashRegionBackground(regionId);
   }
 
   /**

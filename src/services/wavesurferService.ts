@@ -545,6 +545,53 @@ class WaveSurferService {
       console.error('🎵 Failed to delete region:', error);
     }
   }
+
+  /**
+   * Flash the background color of a region briefly (for realtime updates)
+   */
+  flashRegionBackground(regionId: string): void {
+    if (!this.regionsPlugin) {
+      console.warn('🎵 Cannot flash region: regions plugin not available');
+      return;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const region = this.regionsPlugin.getRegions().find((r: any) => r.id === regionId);
+    if (!region?.element) {
+      console.warn('🎵 Cannot flash region: region not found or no element:', regionId);
+      return;
+    }
+
+    try {
+      // Determine current color (highlighted vs normal)
+      const isHighlighted = this._inboundRegionCurrentHighlighted?.id === regionId;
+      const originalColor = isHighlighted ? this.REGION_HIGHLIGHTED_COLOR : this.REGION_BACKGROUND_COLOR;
+      
+      // Flash green briefly
+      const flashColor = 'rgba(34, 197, 94, 0.2)'; // Light green
+      
+      // Apply flash with CSS transition
+      region.element.style.transition = 'background-color 500ms ease-out';
+      region.element.style.backgroundColor = flashColor;
+      
+      // Restore after 500ms
+      setTimeout(() => {
+        if (region.element) { // Guard against region deletion during flash
+          region.element.style.backgroundColor = originalColor;
+          // Remove transition after animation completes
+          setTimeout(() => {
+            if (region.element) {
+              region.element.style.transition = '';
+            }
+          }, 500);
+        }
+      }, 500);
+
+      console.log('🎵 Flashed region background:', regionId);
+    } catch (error) {
+      console.error('🎵 Failed to flash region background:', error);
+    }
+  }
   
   destroy(): void {
     if (this.wavesurfer) {
