@@ -3,6 +3,7 @@ import Regions from 'wavesurfer.js/dist/plugins/regions.esm.js';
 import Timeline from 'wavesurfer.js/dist/plugins/timeline.esm.js';
 import mitt from 'mitt';
 import { generateSignedUrl } from './transcriptionService';
+import { FLASH_CONFIG } from './flashIndicatorService';
 
 // Type definitions for WaveSurfer service
 interface RegionEvent {
@@ -549,7 +550,7 @@ class WaveSurferService {
   /**
    * Flash the background color of a region briefly (for realtime updates)
    */
-  flashRegionBackground(regionId: string): void {
+  flashRegionBackground(regionId: string, username?: string): void {
     if (!this.regionsPlugin) {
       console.warn('🎵 Cannot flash region: regions plugin not available');
       return;
@@ -568,13 +569,47 @@ class WaveSurferService {
       const originalColor = isHighlighted ? this.REGION_HIGHLIGHTED_COLOR : this.REGION_BACKGROUND_COLOR;
       
       // Flash green briefly
-      const flashColor = 'rgba(34, 197, 94, 0.2)'; // Light green
+      const flashColor = FLASH_CONFIG.flashColor; // Light green
       
       // Apply flash with CSS transition
-      region.element.style.transition = 'background-color 500ms ease-out';
+      region.element.style.transition = `background-color ${FLASH_CONFIG.backgroundFlashDuration}ms ${FLASH_CONFIG.backgroundEasing}`;
       region.element.style.backgroundColor = flashColor;
       
-      // Restore after 500ms
+      // Add username text if provided
+      let textElement: HTMLElement | null = null;
+      if (username) {
+        // Ensure region element has relative positioning for absolute child
+        const originalPosition = region.element.style.position;
+        if (!originalPosition || originalPosition === 'static') {
+          region.element.style.position = 'relative';
+        }
+
+        textElement = document.createElement('div');
+        textElement.textContent = username;
+        textElement.style.cssText = `
+          position: absolute;
+          bottom: 2px;
+          right: 4px;
+          font-size: 10px;
+          font-weight: 600;
+          color: ${FLASH_CONFIG.textColor};
+          padding: 2px 6px;
+          border-radius: 3px;
+          pointer-events: none;
+          opacity: 0;
+          transition: opacity ${FLASH_CONFIG.usernameFadeDuration}ms ${FLASH_CONFIG.usernameEasing};
+          z-index: 10;
+          text-shadow: 0 0 4px rgba(255,255,255,0.9);
+        `;
+        region.element.appendChild(textElement);
+
+        // Fade in the text
+        setTimeout(() => {
+          if (textElement) textElement.style.opacity = '1';
+        }, 100);
+      }
+      
+      // Restore background color after flash duration
       setTimeout(() => {
         if (region.element) { // Guard against region deletion during flash
           region.element.style.backgroundColor = originalColor;
@@ -583,11 +618,25 @@ class WaveSurferService {
             if (region.element) {
               region.element.style.transition = '';
             }
-          }, 500);
+          }, FLASH_CONFIG.backgroundFlashDuration);
         }
-      }, 500);
+      }, FLASH_CONFIG.textFadeDuration);
 
-      console.log('🎵 Flashed region background:', regionId);
+      // Fade out and remove username text after visible duration
+      if (textElement) {
+        setTimeout(() => {
+          if (textElement) {
+            textElement.style.opacity = '0';
+            setTimeout(() => {
+              if (textElement && textElement.parentNode) {
+                textElement.remove();
+              }
+            }, FLASH_CONFIG.usernameFadeDuration);
+          }
+        }, FLASH_CONFIG.usernameVisibleDuration);
+      }
+
+      console.log('🎵 Flashed region background:', regionId, username ? `for user: ${username}` : '');
     } catch (error) {
       console.error('🎵 Failed to flash region background:', error);
     }

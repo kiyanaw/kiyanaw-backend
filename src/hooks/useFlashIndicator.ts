@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { flashIndicatorService } from '../services/flashIndicatorService';
+import { flashIndicatorService, FLASH_CONFIG } from '../services/flashIndicatorService';
 
 interface FlashState {
   username: string;
@@ -39,12 +39,12 @@ export const useFlashIndicator = (regionId: string): FlashState | null => {
       // Start fade immediately with CSS transition (5 seconds)
       fadeTimeout = setTimeout(() => {
         setFlashState(prev => prev ? { ...prev, isFlashing: false, opacity: 0 } : null);
-      }, 50); // Small delay to ensure initial state is rendered
+      }, FLASH_CONFIG.usernameVisibleDuration); // Stay visible for same duration as wavesurfer username
       
-      // Clear flash state completely after fade duration
+      // Clear flash state completely after visible duration + fade duration
       clearStateTimeout = setTimeout(() => {
         setFlashState(null);
-      }, 5500); // 5s fade + 0.5s buffer
+      }, FLASH_CONFIG.usernameVisibleDuration + FLASH_CONFIG.textFadeDuration + 100); // Add small buffer
     });
 
     return () => {

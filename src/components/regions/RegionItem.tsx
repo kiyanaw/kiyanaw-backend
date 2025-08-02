@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useEditorStore } from '../../stores/useEditorStore';
 import { textHighlightService } from '../../services/textHighlightService';
 import { useFlashIndicator } from '../../hooks/useFlashIndicator';
+import { FLASH_CONFIG } from '../../services/flashIndicatorService';
 
 interface RegionItemProps {
   regionId: string;
@@ -105,10 +106,11 @@ export const RegionItem = ({
 
       {flashState && (
         <div
-          className="absolute bottom-0 right-1 text-xs font-medium text-green-700 transition-opacity duration-[5000ms] ease-linear"
+          className="absolute bottom-0 right-1 text-xs font-medium text-green-700"
           style={{ 
             opacity: flashState.opacity,
-            textShadow: flashState.isFlashing ? '0 0 8px rgba(34, 197, 94, 0.6)' : 'none'
+            textShadow: flashState.isFlashing ? '0 0 8px rgba(34, 197, 94, 0.6)' : 'none',
+            transition: `opacity ${FLASH_CONFIG.textFadeDuration}ms ${FLASH_CONFIG.textEasing}`
           }}
         >
           {flashState.username}
