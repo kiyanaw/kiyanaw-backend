@@ -265,7 +265,7 @@ export const TranscriptionsTable = () => {
                   
                   {/* Length */}
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 hidden lg:table-cell">
-                    {transcription.length}
+                    {transcription.lengthFriendly}
                   </td>
                   
                   {/* Coverage */}

@@ -42,6 +42,7 @@ export function createMockStore(options: MockStoreOptions = {}) {
     source: 'test-source',
     type: 'test-type',
     author: 'test-author',
+    authorFriendly: 'Test Author',
     userLastUpdated: 'test-user',
     dateLastUpdated: '2023-01-01T00:00:00.000Z',
     createdAt: '2023-01-01T00:00:00.000Z',
@@ -102,6 +103,7 @@ export function createMockStore(options: MockStoreOptions = {}) {
     issueById: jest.fn(() => null),
     issuesByRegion: jest.fn(() => []),
     getState: jest.fn(),
+    calculateTranscriptionMetadata: jest.fn(() => ({ regionCount: 0, coverage: 0 })),
   };
 }
 

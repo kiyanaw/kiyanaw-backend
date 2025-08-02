@@ -1,4 +1,6 @@
 import { services } from '../services';
+import { showToast } from '../services/toastService';
+import { UpdateTranscriptionUseCase } from './update-transcription';
 
 interface CreateRegionConfig {
   transcriptionId: string;
@@ -40,10 +42,27 @@ export class CreateRegion {
     const transcriptionId = this.config.transcriptionId
     const userLastUpdated = this.user?.username || 'unknown'
 
-    // save to store
+    // save to store (optimistic update)
     store.addNewRegion(newRegion)
 
-    // async save to DB
-    regionService.createRegion(transcriptionId, newRegion, userLastUpdated)
+    try {
+      // async save to DB
+      await regionService.createRegion(transcriptionId, newRegion, userLastUpdated)
+      
+      // Update the transcription with metadata
+      const updateTranscriptionUseCase = new UpdateTranscriptionUseCase({
+        transcriptionId: this.config.transcriptionId,
+        services: this.config.services,
+        state: store,
+      });
+      
+      await updateTranscriptionUseCase.execute();
+      
+    } catch (error) {
+      console.error('Failed to create region:', error);
+      
+      // TODO: Consider reverting optimistic update on error
+      throw error;
+    }
   }
 } 

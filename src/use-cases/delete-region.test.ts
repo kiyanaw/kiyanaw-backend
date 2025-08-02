@@ -19,6 +19,10 @@ describe('DeleteRegion', () => {
   const mockStore = {
     regionById: jest.fn(),
     deleteRegion: jest.fn(),
+    getState: jest.fn(() => ({
+      regionById: jest.fn(() => ({ transcriptionId: 'transcription123' })),
+    })),
+    calculateTranscriptionMetadata: jest.fn(() => ({ regionCount: 1, coverage: 0.5 })),
   };
 
   const mockUser = {

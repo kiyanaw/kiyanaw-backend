@@ -4,8 +4,6 @@ import { services } from '../services';
 import { useEditorStore } from '../stores/useEditorStore';
 
 export const useDeleteRegion = () => {
-  const store = useEditorStore.getState();
-  
   const deleteRegion = useCallback(async (regionId: string) => {
     // Get user confirmation
     const confirmed = window.confirm(
@@ -17,7 +15,7 @@ export const useDeleteRegion = () => {
     }
 
     try {
-      const transcription = store.transcription;
+      const transcription = useEditorStore.getState().transcription;
       if (!transcription) {
         throw new Error('No transcription loaded');
       }
@@ -32,7 +30,7 @@ export const useDeleteRegion = () => {
         transcriptionId: transcription.id,
         user,
         services,
-        store,
+        store: useEditorStore.getState(),
       });
 
       await useCase.execute();
@@ -42,7 +40,7 @@ export const useDeleteRegion = () => {
       // Show user-friendly error message
       alert('Failed to delete region. Please try again.');
     }
-  }, [store]);
+  }, []);
 
   return { deleteRegion };
 }; 

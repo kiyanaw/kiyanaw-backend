@@ -60,12 +60,12 @@ export class AnalyzeRegionTextUseCase {
     const words = spellCheckerService.tokenize(text);
     if (words.length === 0) {
       // Set empty analysis for empty text
-      store.getState().setRegionAnalysis(regionId, []);
+      store.setRegionAnalysis(regionId, []);
       return;
     }
 
     // Get global known words from store
-    const globalKnownWords = store.getState().knownWords as Set<string>;
+    const globalKnownWords = store.knownWords as Set<string>;
     
     // Separate words into already known and unknown
     const alreadyKnownWords: string[] = [];
@@ -92,7 +92,7 @@ export class AnalyzeRegionTextUseCase {
         if (result.known.length > 0) {
           allKnownWords.push(...result.known);
           // Update global store with newly discovered known words
-          store.getState().addKnownWords(result.known);
+          store.addKnownWords(result.known);
         }
       } catch (error) {
         console.error('Error checking unknown words:', error);
@@ -100,7 +100,7 @@ export class AnalyzeRegionTextUseCase {
     }
 
     // Update region analysis in store (this will be picked up by the coordinated save)
-    store.getState().setRegionAnalysis(regionId, allKnownWords);
+    store.setRegionAnalysis(regionId, allKnownWords);
 
     // Apply formatting to the main editor
     const mainEditorKey: EditorKey = `${regionId}:main`;

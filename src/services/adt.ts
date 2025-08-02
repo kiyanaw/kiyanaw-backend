@@ -116,7 +116,7 @@ export class TranscriptionModel {
   public editors?: string[] | null;
   public viewers?: string[] | null;
   public accessLevel?: 'owner' | 'editor' | 'viewer' | null;
-  private _length: number;
+  private length: number;
 
   constructor(data: TranscriptionData) {
     if (!data) {
@@ -143,7 +143,7 @@ export class TranscriptionModel {
     this.editors = data.editors;
     this.viewers = data.viewers;
     this.isVideo = data.type?.includes('video') || false;
-    this._length = data.length || 0;
+    this.length = data.length || 0;
   }
 
   /**
@@ -156,18 +156,14 @@ export class TranscriptionModel {
   /**
    * Provide the length of the transcription audio in MM:SS
    */
-  get length(): string {
+  get lengthFriendly(): string {
     try {
-      const length = String(floatToMSM(this._length)).split('.')[0];
+      const length = String(floatToMSM(this.length)).split('.')[0];
       return length;
     } catch (error) {
       console.warn('Error parsing length', error);
       return '0';
     }
-  }
-
-  set length(value: number) {
-    this._length = value;
   }
 
   /**

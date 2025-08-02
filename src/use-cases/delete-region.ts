@@ -1,4 +1,6 @@
 import { services } from '../services';
+import { showToast } from '../services/toastService';
+import { UpdateTranscriptionUseCase } from './update-transcription';
 import type { User, WavesurferRegion } from '../types/shared';
 
 interface DeleteRegionConfig {
@@ -60,6 +62,10 @@ export class DeleteRegion {
         }
       }
 
+      // Get the region's transcriptionId before we delete it
+      const region = this.config.store.regionById(this.config.regionId);
+      const transcriptionId = region.transcriptionId;
+
       // Remove from store (optimistic update) - this is now synchronous
       this.config.store.deleteRegion(this.config.regionId);
       console.log(`🗑️ Removed region ${this.config.regionId} from store`);
@@ -67,6 +73,15 @@ export class DeleteRegion {
       // Remove from backend
       await this.config.services.regionService.deleteRegion(this.config.regionId);
       console.log(`🗑️ Successfully deleted region ${this.config.regionId} from backend`);
+      
+      // Update the transcription with metadata
+      const updateTranscriptionUseCase = new UpdateTranscriptionUseCase({
+        transcriptionId,
+        services: this.config.services,
+        state: this.config.store,
+      });
+      
+      await updateTranscriptionUseCase.execute();
 
     } catch (error) {
       console.error('Failed to delete region:', error);

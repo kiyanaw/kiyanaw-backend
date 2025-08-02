@@ -28,12 +28,12 @@ const MockedTranscriptionModel = TranscriptionModel as jest.MockedClass<typeof T
 describe('UpdateTranscriptionUseCase', () => {
   const mockStore = {
     setTranscription: jest.fn(),
+    calculateTranscriptionMetadata: jest.fn(() => ({ regionCount: 2, coverage: 0.75 })),
   };
 
   const baseConfig: UpdateTranscriptionConfig = {
     transcriptionId: 'test-transcription-id',
     updates: { title: 'New Title' },
-    username: 'testuser',
     services: mockServices,
     store: mockStore as any,
   };
