@@ -82,6 +82,7 @@ interface EditorState {
   issueById: (id: string) => ProcessedIssue | null;
   issuesByRegion: (regionId: string) => ProcessedIssue[];
   getRegionVersion: (id: string) => number;
+  setRegionVersion: (id: string, version: number) => void;
   isPendingEdit: (regionId: string, field?: string) => boolean;
 
   // Permissions
@@ -389,6 +390,13 @@ export const useEditorStore = create<EditorState>()(
         }
         
         return version;
+      },
+
+      setRegionVersion: (id, version) => {
+        const { regionVersions } = get();
+        set({
+          regionVersions: { ...regionVersions, [id]: version }
+        });
       },
 
       isPendingEdit: (regionId, field) => {

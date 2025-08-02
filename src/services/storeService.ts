@@ -42,6 +42,11 @@ export const storeService = {
     useEditorStore.getState().deleteRegion(regionId);
   },
 
+  // Version operations
+  setRegionVersion: (regionId: string, version: number): void => {
+    useEditorStore.getState().setRegionVersion(regionId, version);
+  },
+
   // Read operations
   regionById: (regionId: string): RegionData | null => {
     return useEditorStore.getState().regionById(regionId);

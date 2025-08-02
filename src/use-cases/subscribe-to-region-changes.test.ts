@@ -1,6 +1,20 @@
 import { SubscribeToRegionChangesUseCase } from './subscribe-to-region-changes';
 import type { RegionData } from '../services/adt';
 
+// Helper function to create mock regions with required _version field
+const createMockRegion = (overrides: Partial<RegionData> = {}): RegionData => ({
+  id: 'region-1',
+  transcriptionId: 'test-transcription',
+  start: 10,
+  end: 20,
+  regionText: 'Test content',
+  translation: 'Test translation',
+  userLastUpdated: 'test@user.com',
+  dateLastUpdated: '2023-01-01T00:00:00Z',
+  _version: 1, // Always include version for subscription events
+  ...overrides,
+});
+
 // Mock services
 const mockServices = {
   regionService: {
@@ -14,7 +28,8 @@ const mockServices = {
     setRegionAnalysis: jest.fn(),
     addKnownWords: jest.fn(),
     setRegionText: jest.fn(),
-    setRegionTranslation: jest.fn()
+    setRegionTranslation: jest.fn(),
+    setRegionVersion: jest.fn()
   },
   wavesurferService: {
     addRegionWithId: jest.fn(),
@@ -105,10 +120,9 @@ describe('SubscribeToRegionChangesUseCase', () => {
 
         const event = {
           mutation: 'UPDATE',
-          region: {
-            id: 'region-1',
+          region: createMockRegion({
             userLastUpdated: 'current@user.com'
-          }
+          })
         };
 
         subscriptionCallback(event);
@@ -122,11 +136,10 @@ describe('SubscribeToRegionChangesUseCase', () => {
 
         const event = {
           mutation: 'UPDATE',
-          region: {
-            id: 'region-1',
+          region: createMockRegion({
             userLastUpdated: 'other@user.com',
             regionText: 'new text'
-          }
+          })
         };
 
         mockServices.storeService.regionById.mockReturnValue({
@@ -148,10 +161,9 @@ describe('SubscribeToRegionChangesUseCase', () => {
       it('should trigger flash for CREATE events', () => {
         const event = {
           mutation: 'CREATE',
-          region: {
-            id: 'region-1',
+          region: createMockRegion({
             userLastUpdated: 'other@user.com'
-          }
+          })
         };
 
         subscriptionCallback(event);
@@ -162,10 +174,9 @@ describe('SubscribeToRegionChangesUseCase', () => {
       it('should trigger flash for UPDATE events', () => {
         const event = {
           mutation: 'UPDATE',
-          region: {
-            id: 'region-1',
+          region: createMockRegion({
             userLastUpdated: 'other@user.com'
-          }
+          })
         };
 
         mockServices.storeService.regionById.mockReturnValue({ id: 'region-1' });
@@ -178,10 +189,9 @@ describe('SubscribeToRegionChangesUseCase', () => {
       it('should trigger flash for DELETE events', () => {
         const event = {
           mutation: 'DELETE',
-          region: {
-            id: 'region-1',
+          region: createMockRegion({
             userLastUpdated: 'other@user.com'
-          }
+          })
         };
 
         subscriptionCallback(event);
@@ -192,10 +202,9 @@ describe('SubscribeToRegionChangesUseCase', () => {
       it('should not trigger flash if userLastUpdated is missing', () => {
         const event = {
           mutation: 'UPDATE',
-          region: {
-            id: 'region-1'
-            // userLastUpdated missing
-          }
+          region: createMockRegion({
+            userLastUpdated: undefined // explicitly missing for this test
+          })
         };
 
         mockServices.storeService.regionById.mockReturnValue({ id: 'region-1' });
@@ -210,12 +219,11 @@ describe('SubscribeToRegionChangesUseCase', () => {
       it('should add region to store and wavesurfer', () => {
         mockServices.userService.currentUser.mockReturnValue({ username: 'current@user.com' });
 
-        const region = {
-          id: 'region-1',
+        const region = createMockRegion({
           start: 10,
           end: 20,
           userLastUpdated: 'other@user.com'
-        };
+        });
 
         const event = { mutation: 'CREATE', region };
 
@@ -236,10 +244,9 @@ describe('SubscribeToRegionChangesUseCase', () => {
 
         const event = {
           mutation: 'DELETE',
-          region: {
-            id: 'region-1',
+          region: createMockRegion({
             userLastUpdated: 'other@user.com'
-          }
+          })
         };
 
         subscriptionCallback(event);
@@ -256,12 +263,11 @@ describe('SubscribeToRegionChangesUseCase', () => {
 
       it('should handle bounds changes', () => {
         const currentRegion = { id: 'region-1', start: 10, end: 20 };
-        const updatedRegion = { 
-          id: 'region-1', 
+        const updatedRegion = createMockRegion({ 
           start: 15, 
           end: 25, 
           userLastUpdated: 'other@user.com' 
-        };
+        });
 
         mockServices.storeService.regionById.mockReturnValue(currentRegion);
 
@@ -278,11 +284,10 @@ describe('SubscribeToRegionChangesUseCase', () => {
 
       it('should handle region analysis updates', () => {
         const currentRegion = { id: 'region-1' };
-        const updatedRegion = { 
-          id: 'region-1',
+        const updatedRegion = createMockRegion({ 
           regionAnalysis: ['word1', 'word2'],
           userLastUpdated: 'other@user.com'
-        };
+        });
 
         mockServices.storeService.regionById.mockReturnValue(currentRegion);
 
@@ -296,12 +301,11 @@ describe('SubscribeToRegionChangesUseCase', () => {
 
       it('should handle text changes and update RTE if available', () => {
         const currentRegion = { id: 'region-1', regionText: 'old text' };
-        const updatedRegion = { 
-          id: 'region-1',
+        const updatedRegion = createMockRegion({ 
           regionText: 'new text',
           regionAnalysis: ['word1'],
           userLastUpdated: 'other@user.com'
-        };
+        });
 
         mockServices.storeService.regionById.mockReturnValue(currentRegion);
         mockServices.rteService.hasEditor.mockReturnValue(true);
@@ -318,11 +322,10 @@ describe('SubscribeToRegionChangesUseCase', () => {
 
       it('should handle translation changes', () => {
         const currentRegion = { id: 'region-1', translation: 'old translation' };
-        const updatedRegion = { 
-          id: 'region-1',
+        const updatedRegion = createMockRegion({ 
           translation: 'new translation',
           userLastUpdated: 'other@user.com'
-        };
+        });
 
         mockServices.storeService.regionById.mockReturnValue(currentRegion);
 
@@ -340,10 +343,10 @@ describe('SubscribeToRegionChangesUseCase', () => {
 
         const event = {
           mutation: 'UPDATE',
-          region: {
+          region: createMockRegion({
             id: 'unknown-region',
             userLastUpdated: 'other@user.com'
-          }
+          })
         };
 
         subscriptionCallback(event);
@@ -362,10 +365,9 @@ describe('SubscribeToRegionChangesUseCase', () => {
 
       const event = {
         mutation: 'UNKNOWN',
-        region: {
-          id: 'region-1',
+        region: createMockRegion({
           userLastUpdated: 'other@user.com'
-        }
+        })
       };
 
       subscriptionCallback(event);
@@ -373,6 +375,103 @@ describe('SubscribeToRegionChangesUseCase', () => {
       expect(consoleSpy).toHaveBeenCalledWith('🔌 Unknown mutation type:', 'UNKNOWN');
 
       consoleSpy.mockRestore();
+    });
+
+    describe('version tracking regression tests', () => {
+      beforeEach(() => {
+        mockServices.userService.currentUser.mockReturnValue({ username: 'current@user.com' });
+      });
+
+      it('should update version tracking for self-triggered events', () => {
+        const region = createMockRegion({
+          userLastUpdated: 'current@user.com',
+          _version: 42
+        });
+
+        const event = {
+          mutation: 'UPDATE',
+          region
+        };
+
+        // Mock store methods
+        mockServices.storeService.setRegionVersion = jest.fn();
+
+        subscriptionCallback(event);
+
+        // Should only update version tracking, not content
+        expect(mockServices.storeService.setRegionVersion).toHaveBeenCalledWith('region-1', 42);
+        
+        // Should NOT update content for self-triggered events
+        expect(mockServices.storeService.setRegionText).not.toHaveBeenCalled();
+        expect(mockServices.storeService.setRegionTranslation).not.toHaveBeenCalled();
+        expect(mockServices.storeService.setRegionAnalysis).not.toHaveBeenCalled();
+        
+        // Should NOT trigger flash
+        expect(mockServices.flashIndicatorService.flashRegion).not.toHaveBeenCalled();
+      });
+
+      it('should handle remote events normally (not self-triggered)', () => {
+        const region = createMockRegion({
+          userLastUpdated: 'other@user.com',
+          regionText: 'new text',
+          _version: 43
+        });
+
+        const event = {
+          mutation: 'UPDATE',
+          region
+        };
+
+        mockServices.storeService.regionById.mockReturnValue(createMockRegion());
+        mockServices.storeService.setRegionVersion = jest.fn();
+
+        subscriptionCallback(event);
+
+        // Should update version tracking
+        expect(mockServices.storeService.setRegionVersion).toHaveBeenCalledWith('region-1', 43);
+        
+        // Should update content for remote events
+        expect(mockServices.storeService.setRegionText).toHaveBeenCalledWith('region-1', 'new text');
+        
+        // Should trigger flash for remote events
+        expect(mockServices.flashIndicatorService.flashRegion).toHaveBeenCalledWith('region-1', 'other@user.com');
+      });
+
+      it('should prevent stale version usage that causes array concatenation', () => {
+        // This test ensures that self-triggered events update version tracking
+        // which prevents the issue where multiple saves use the same stale version
+        
+        const firstSaveRegion = createMockRegion({
+          userLastUpdated: 'current@user.com',
+          _version: 71,
+          regionAnalysis: ['word1', 'word2', 'word3'] // 3 words
+        });
+
+        const secondSaveRegion = createMockRegion({
+          userLastUpdated: 'current@user.com', 
+          _version: 72,
+          regionAnalysis: ['word1', 'word2', 'word3', 'word4'] // 4 words, not 7!
+        });
+
+        mockServices.storeService.setRegionVersion = jest.fn();
+
+        // First save subscription (should update version)
+        subscriptionCallback({
+          mutation: 'UPDATE',
+          region: firstSaveRegion
+        });
+
+        // Second save subscription (should update version again)
+        subscriptionCallback({
+          mutation: 'UPDATE', 
+          region: secondSaveRegion
+        });
+
+        // Verify version tracking was updated for both
+        expect(mockServices.storeService.setRegionVersion).toHaveBeenCalledWith('region-1', 71);
+        expect(mockServices.storeService.setRegionVersion).toHaveBeenCalledWith('region-1', 72);
+        expect(mockServices.storeService.setRegionVersion).toHaveBeenCalledTimes(2);
+      });
     });
   });
 }); 

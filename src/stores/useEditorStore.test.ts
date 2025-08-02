@@ -302,6 +302,20 @@ describe('useEditorStore known words functionality', () => {
       expect(() => store.getRegionVersion('nonexistent')).toThrow('No version tracked for region nonexistent');
     });
 
+    it('should allow updating region versions', () => {
+      const store = useEditorStore.getState();
+      
+      const testRegion = createTestRegion({ _version: 2 });
+      store.addNewRegion(testRegion);
+      
+      expect(store.getRegionVersion('region-1')).toBe(2);
+      
+      // Update version (as would happen from subscription)
+      store.setRegionVersion('region-1', 5);
+      
+      expect(store.getRegionVersion('region-1')).toBe(5);
+    });
+
     it('should populate regionVersions in setFullTranscriptionData', () => {
       const store = useEditorStore.getState();
       
@@ -502,6 +516,28 @@ describe('useEditorStore known words functionality', () => {
       expect(() => store.getRegionVersion('nonexistent-region')).toThrow(
         'No version tracked for region nonexistent-region - this indicates a data integrity issue'
       );
+    });
+
+    it('should update version tracking after saves to prevent array concatenation regression', () => {
+      // This test prevents the regression where stale versions caused array concatenation
+      const store = useEditorStore.getState();
+      
+      // Add a region with initial version
+      const testRegion = createTestRegion({ _version: 71 });
+      store.addNewRegion(testRegion);
+      
+      expect(store.getRegionVersion('region-1')).toBe(71);
+      
+      // Simulate version update after successful save (via subscription)
+      store.setRegionVersion('region-1', 72);
+      expect(store.getRegionVersion('region-1')).toBe(72);
+      
+      // Another save/version update
+      store.setRegionVersion('region-1', 73);
+      expect(store.getRegionVersion('region-1')).toBe(73);
+      
+      // Verify each update was independent (not concatenated)
+      expect(store.getRegionVersion('region-1')).toBe(73); // Should be latest version, not accumulated
     });
   });
 }); 

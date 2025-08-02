@@ -450,8 +450,8 @@ describe('RegionService (Simple GraphQL Test)', () => {
 
     it('should handle missing region gracefully', async () => {
       // Clear previous mocks and set up specific failure
-      mockGraphqlClient.graphql.mockClear();
-      mockGraphqlClient.graphql.mockImplementationOnce(() => {
+      mockGraphqlClient.graphql.mockReset();
+      mockGraphqlClient.graphql.mockImplementation(() => {
         throw new Error('Region not found');
       });
 
@@ -475,8 +475,8 @@ describe('RegionService (Simple GraphQL Test)', () => {
 
     it('should handle GraphQL errors gracefully', async () => {
       // Clear previous mocks and set up specific failure
-      mockGraphqlClient.graphql.mockClear();
-      mockGraphqlClient.graphql.mockImplementationOnce(() => {
+      mockGraphqlClient.graphql.mockReset();
+      mockGraphqlClient.graphql.mockImplementation(() => {
         throw new Error('Update failed');
       });
 

@@ -7,6 +7,8 @@ describe('UpdateRegionTextUseCase', () => {
   const mockStore = {
     setRegionText: mockSetRegionText,
     setRegionTranslation: mockSetRegionTranslation,
+    getRegionVersion: jest.fn(),
+    regionById: jest.fn(),
     getState: jest.fn().mockReturnValue({
       setRegionText: mockSetRegionText,
       setRegionTranslation: mockSetRegionTranslation
@@ -42,6 +44,8 @@ describe('UpdateRegionTextUseCase', () => {
 
   describe('save functionality', () => {
     it('should call regionService.updateRegion with correct parameters when user is authenticated', async () => {
+      mockStore.getRegionVersion.mockReturnValue(7); // Mock version
+      
       const useCase = new UpdateRegionTextUseCase(validConfig);
       
       useCase.execute();
@@ -58,7 +62,8 @@ describe('UpdateRegionTextUseCase', () => {
       expect(mockServices.regionService.updateRegion).toHaveBeenCalledWith(
         'test-region-id',
         { regionText: 'Test text content' },
-        'test-user'
+        'test-user',
+        7
       );
     });
 
@@ -81,6 +86,8 @@ describe('UpdateRegionTextUseCase', () => {
     });
 
     it('should call regionService.updateRegion with translation field', async () => {
+      mockStore.getRegionVersion.mockReturnValue(4); // Mock version
+      
       const translationConfig = {
         ...validConfig,
         field: 'translation' as const,
@@ -103,7 +110,8 @@ describe('UpdateRegionTextUseCase', () => {
       expect(mockServices.regionService.updateRegion).toHaveBeenCalledWith(
         'test-region-id',
         { translation: 'Translation text' },
-        'test-user'
+        'test-user',
+        4
       );
     });
   });

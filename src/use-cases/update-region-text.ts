@@ -80,11 +80,15 @@ export class UpdateRegionTextUseCase {
           }
         }
 
+        // Get current version for optimistic concurrency control
+        const currentVersion = store.getRegionVersion(regionId);
+        
         // Save to database
         await services.regionService.updateRegion(
           regionId,
           updateData,
-          user.username
+          user.username,
+          currentVersion
         );
 
         // Remove from pending saves

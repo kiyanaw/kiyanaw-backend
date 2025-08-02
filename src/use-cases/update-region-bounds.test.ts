@@ -16,8 +16,9 @@ describe('UpdateRegionBounds', () => {
     };
 
     mockStore = {
-      updateRegionBounds: jest.fn(),
-      regionById: jest.fn(),
+        updateRegionBounds: jest.fn(),
+  regionById: jest.fn(),
+  getRegionVersion: jest.fn(),
       regions: [],
       regionMap: {},
     };
@@ -64,6 +65,7 @@ describe('UpdateRegionBounds', () => {
       };
 
       mockStore.regionById.mockReturnValue(existingRegion);
+      mockStore.getRegionVersion.mockReturnValue(5); // Mock version
 
       const useCase = new UpdateRegionBounds(config);
       await useCase.execute();
@@ -72,7 +74,8 @@ describe('UpdateRegionBounds', () => {
       expect(mockServices.regionService.updateRegion).toHaveBeenCalledWith(
         'test-region-id',
         { start: 1.5, end: 3.5 },
-        'testuser'
+        'testuser',
+        5
       );
     });
 
@@ -130,6 +133,7 @@ describe('UpdateRegionBounds', () => {
       };
 
       mockStore.regionById.mockReturnValue(existingRegion);
+      mockStore.getRegionVersion.mockReturnValue(3); // Mock version
       mockServices.authService.currentUser.mockReturnValue(null);
 
       const useCase = new UpdateRegionBounds(config);
@@ -138,7 +142,8 @@ describe('UpdateRegionBounds', () => {
       expect(mockServices.regionService.updateRegion).toHaveBeenCalledWith(
         'test-region-id',
         { start: 1.5, end: 3.5 },
-        'unknown'
+        'unknown',
+        3
       );
     });
   });

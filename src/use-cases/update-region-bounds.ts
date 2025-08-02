@@ -57,11 +57,15 @@ export class UpdateRegionBounds {
       const currentUser = services.authService.currentUser();
       const username = currentUser?.username || 'unknown';
 
+      // Get current version for optimistic concurrency control
+      const currentVersion = store.getRegionVersion(regionId);
+      
       // Save to database with debouncing
       await services.regionService.updateRegion(
         regionId,
         { start: newStart, end: newEnd },
-        username
+        username,
+        currentVersion
       );
 
       // Update the transcription with metadata  

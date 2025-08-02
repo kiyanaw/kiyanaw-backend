@@ -138,6 +138,8 @@ export const updateRegion = async (regionId: string, updates: Partial<RegionData
       userLastUpdated: username,
     };
 
+
+
     await getClient().graphql({
       query: updateRegionMutation,
       variables: { input },
