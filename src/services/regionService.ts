@@ -9,6 +9,15 @@ import { createRegion as createRegionMutation, updateRegion as updateRegionMutat
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - generated JS GraphQL
 import { getRegion as getRegionQuery } from '../graphql/queries.js';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore - generated JS GraphQL
+import { 
+  onCreateRegion, 
+  onUpdateRegion, 
+  onDeleteRegion 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore - generated JS GraphQL
+} from '../graphql/subscriptions.js';
 
 import { RegionModel } from './adt';
 import { type RegionData } from './adt';
@@ -189,5 +198,96 @@ export const deleteRegion = async (regionId: string) => {
     console.error(`❌ Failed to delete region ${regionId}:`, error);
     throw error;
   }
+};
+
+export type RegionSubscriptionEvent = {
+  mutation: 'CREATE' | 'UPDATE' | 'DELETE';
+  region: RegionData;
+};
+
+export const subscribeToRegionChanges = (
+  transcriptionId: string,
+  callback: (event: RegionSubscriptionEvent) => void
+): (() => void) => {
+  console.log('🔌 Setting up subscriptions for transcriptionId:', transcriptionId);
+  
+  const client = getClient();
+  const subscriptions: any[] = [];
+
+  // Filter to only get regions for this transcription
+  const filter = {
+    transcriptionId: { eq: transcriptionId }
+  };
+
+  try {
+    // Subscribe to create events
+    const createSub = (client.graphql({
+      query: onCreateRegion,
+      variables: { filter }
+    }) as any).subscribe({
+      next: (result: any) => {
+        const region = result.data?.onCreateRegion;
+        if (region && !region._deleted) {
+          callback({
+            mutation: 'CREATE',
+            region: region as RegionData
+          });
+        }
+      },
+      error: (error: any) => console.error('Create subscription error:', error)
+    });
+
+    // Subscribe to update events  
+    const updateSub = (client.graphql({
+      query: onUpdateRegion,
+      variables: { filter }
+    }) as any).subscribe({
+      next: (result: any) => {
+        const region = result.data?.onUpdateRegion;
+        if (region && !region._deleted) {
+          callback({
+            mutation: 'UPDATE',
+            region: region as RegionData
+          });
+        }
+      },
+      error: (error: any) => console.error('Update subscription error:', error)
+    });
+
+    // Subscribe to delete events
+    const deleteSub = (client.graphql({
+      query: onDeleteRegion,
+      variables: { filter }
+    }) as any).subscribe({
+      next: (result: any) => {
+        const region = result.data?.onDeleteRegion;
+        if (region) {
+          callback({
+            mutation: 'DELETE',
+            region: region as RegionData
+          });
+        }
+      },
+      error: (error: any) => console.error('Delete subscription error:', error)
+    });
+
+    subscriptions.push(createSub, updateSub, deleteSub);
+    console.log('🔌 Subscriptions established for transcriptionId:', transcriptionId);
+
+  } catch (error) {
+    console.error('🔌 Failed to establish subscriptions:', error);
+  }
+
+  // Return unsubscribe function
+  return () => {
+    console.log('🔌 Unsubscribing from transcriptionId:', transcriptionId);
+    subscriptions.forEach(sub => {
+      try {
+        sub.unsubscribe();
+      } catch (error) {
+        console.error('Error unsubscribing:', error);
+      }
+    });
+  };
 };
 

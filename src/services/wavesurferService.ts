@@ -472,6 +472,77 @@ class WaveSurferService {
   playPause(): Promise<void> {
     return this.wavesurfer?.playPause() || Promise.resolve();
   }
+
+  setRegionPosition(regionId: string, bounds: { start: number; end: number }): void {
+    // if (!this.regionsPlugin) {
+    //   console.warn('🎵 Cannot set region position: regions plugin not available');
+    //   return;
+    // }
+
+    const region = this.regionsPlugin!.getRegions().find((r: any) => r.id === regionId);
+    if (!region) {
+      console.warn('🎵 Cannot set region position: region not found:', regionId);
+      return;
+    }
+
+    try {
+      region.setOptions({
+        start: bounds.start,
+        end: bounds.end
+      });
+      // Update region indices after position change
+      this.updateRegionIndices();
+      console.log('🎵 Updated region position:', regionId, bounds);
+    } catch (error) {
+      console.error('🎵 Failed to set region position:', error);
+    }
+  }
+
+  /**
+   * Add a region with a predefined ID (used for realtime/subscription events)
+   */
+  addRegionWithId(regionData: { id: string; start: number; end: number }): void {
+    if (!this.regionsPlugin) {
+      console.warn('🎵 Cannot add region: regions plugin not available');
+      return;
+    }
+
+    try {
+      this.regionsPlugin.addRegion({
+        id: regionData.id,
+        start: regionData.start,
+        end: regionData.end,
+        content: '', // Will be set by updateRegionIndices
+        resize: this._canEdit,
+        drag: this._canEdit
+      });
+      this.updateRegionIndices();
+      console.log('🎵 Added region with ID:', regionData.id);
+    } catch (error) {
+      console.error('🎵 Failed to add region:', error);
+    }
+  }
+
+  deleteRegion(regionId: string): void {
+    if (!this.regionsPlugin) {
+      console.warn('🎵 Cannot delete region: regions plugin not available');
+      return;
+    }
+
+    const region = this.regionsPlugin.getRegions().find((r: any) => r.id === regionId);
+    if (!region) {
+      console.warn('🎵 Cannot delete region: region not found:', regionId);
+      return;
+    }
+
+    try {
+      region.remove();
+      this.updateRegionIndices();
+      console.log('🎵 Deleted region:', regionId);
+    } catch (error) {
+      console.error('🎵 Failed to delete region:', error);
+    }
+  }
   
   destroy(): void {
     if (this.wavesurfer) {
