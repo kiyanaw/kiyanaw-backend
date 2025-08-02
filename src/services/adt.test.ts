@@ -720,6 +720,53 @@ describe('ADT Models', () => {
         expect(model.translation).toBe('');
       });
     });
+
+    describe('version tracking', () => {
+      it('should set _version from data when provided', () => {
+        const dataWithVersion = { 
+          ...mockRegionData, 
+          _version: 5 
+        };
+        const model = new RegionModel(dataWithVersion);
+        
+        expect(model._version).toBe(5);
+      });
+
+      it('should default _version to 1 when not provided', () => {
+        const model = new RegionModel(mockRegionData);
+        
+        expect(model._version).toBe(1);
+      });
+
+      it('should handle _version as 0', () => {
+        const dataWithVersion = { 
+          ...mockRegionData, 
+          _version: 0 
+        };
+        const model = new RegionModel(dataWithVersion);
+        
+        expect(model._version).toBe(0); // 0 is a valid version number
+      });
+
+      it('should handle undefined _version with warning', () => {
+        const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+        
+        const dataWithVersion = { 
+          ...mockRegionData, 
+          _version: undefined 
+        };
+        const model = new RegionModel(dataWithVersion);
+        
+        expect(model._version).toBe(1);
+        expect(consoleSpy).toHaveBeenCalledWith(
+          'RegionModel: Missing _version for region', 
+          mockRegionData.id, 
+          '- should only happen during initial creation'
+        );
+        
+        consoleSpy.mockRestore();
+      });
+    });
   });
 
   describe('InviteModel', () => {

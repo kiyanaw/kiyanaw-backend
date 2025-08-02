@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import type { TranscriptionData, RegionData, ProcessedIssue } from '../types/shared';
+import type { PendingEdit } from '../services/pendingEditsService';
 import Timeout from 'smart-timeout';
 
 interface EditorDataPayload {
@@ -23,12 +24,16 @@ interface EditorState {
   // Regions state
   regions: RegionData[];
   regionMap: Record<string, RegionData>;
+  regionVersions: Record<string, number>; // Track versions locally for conflict resolution
   selectedRegionId: string | null;
   selectedRegion: RegionData | null;
   playbackWithinRegion: string | null;
 
   // Known words for spell checking
   knownWords: Set<string>;
+
+  // Pending edits state
+  pendingEdits: Record<string, PendingEdit>;
 
   // Issues state
   issues: ProcessedIssue[];
@@ -62,6 +67,11 @@ interface EditorState {
   addKnownWords: (words: string[]) => void;
   setRegionAnalysis: (regionId: string, knownWords: string[]) => void;
 
+  // Pending edits actions
+  startPendingEdit: (regionId: string, field: string) => void;
+  endPendingEdit: (regionId: string, field: string) => void;
+  updatePendingEditActivity: (regionId: string, field: string) => void;
+
   // Computed properties
   isVideo: boolean;
   isTranscriptionAuthor: (user: { username: string; userId: string } | null) => boolean;
@@ -71,6 +81,8 @@ interface EditorState {
   regionById: (id: string) => RegionData | null;
   issueById: (id: string) => ProcessedIssue | null;
   issuesByRegion: (regionId: string) => ProcessedIssue[];
+  getRegionVersion: (id: string) => number;
+  isPendingEdit: (regionId: string, field?: string) => boolean;
 
   // Permissions
   setCanEdit: (canEdit: boolean) => void;
@@ -89,10 +101,12 @@ export const useEditorStore = create<EditorState>()(
       canEdit: false,
       regions: [],
       regionMap: {},
+      regionVersions: {},
       selectedRegionId: null,
       selectedRegion: null,
       playbackWithinRegion: null,
       knownWords: new Set<string>(),
+      pendingEdits: {},
       issues: [],
       issueMap: {},
       _subscriptions: [],
@@ -114,8 +128,17 @@ export const useEditorStore = create<EditorState>()(
 
         // Process regions
         const regionMap: Record<string, RegionData> = {};
+        const regionVersions: Record<string, number> = {};
         regions.forEach((region) => {
           regionMap[region.id] = region;
+          
+          // Validate that existing regions from DB have versions
+          if (region._version === undefined) {
+            console.error('Region from DB missing _version:', region.id, region);
+            throw new Error(`Region ${region.id} from database is missing _version field`);
+          }
+          
+          regionVersions[region.id] = region._version;
         });
 
         // Process issues
@@ -129,6 +152,7 @@ export const useEditorStore = create<EditorState>()(
           transcription,
           regions,
           regionMap,
+          regionVersions,
           issues,
           issueMap,
           peaks: peaks,
@@ -161,7 +185,9 @@ export const useEditorStore = create<EditorState>()(
           accessDenied: false,
           regions: [],
           regionMap: {},
+          regionVersions: {},
           knownWords: new Set<string>(),
+          pendingEdits: {},
           issues: [],
           issueMap: {},
           selectedRegionId: null,
@@ -200,10 +226,18 @@ export const useEditorStore = create<EditorState>()(
 
 
       addNewRegion: (region: RegionData) => {
-        const { regions, regionMap } = get();
+        const { regions, regionMap, regionVersions } = get();
         
         // Add to regionMap for O(1) lookups
         const newRegionMap = { ...regionMap, [region.id]: region };
+        
+        // Track version locally - regions from subscriptions/DB should have versions
+        if (region._version === undefined) {
+          console.error('Adding region without _version:', region.id, region);
+          throw new Error(`Cannot add region ${region.id} without _version field`);
+        }
+        
+        const newRegionVersions = { ...regionVersions, [region.id]: region._version };
         
         // Insert into regions array maintaining sort order (by start time)
         const newRegions = [...regions];
@@ -217,15 +251,20 @@ export const useEditorStore = create<EditorState>()(
         set({
           regions: newRegions,
           regionMap: newRegionMap,
+          regionVersions: newRegionVersions,
         });
       },
 
       deleteRegion: (regionId: string) => {
-        const { regions, regionMap, selectedRegionId } = get();
+        const { regions, regionMap, regionVersions, selectedRegionId } = get();
         
         // Remove from regionMap
         const newRegionMap = { ...regionMap };
         delete newRegionMap[regionId];
+        
+        // Remove from regionVersions
+        const newRegionVersions = { ...regionVersions };
+        delete newRegionVersions[regionId];
         
         // Remove from regions array
         const newRegions = regions.filter(r => r.id !== regionId);
@@ -234,6 +273,7 @@ export const useEditorStore = create<EditorState>()(
         const updateObj: Partial<EditorState> = {
           regions: newRegions,
           regionMap: newRegionMap,
+          regionVersions: newRegionVersions,
         };
         
         // If this was the selected region, clear the selection
@@ -340,20 +380,90 @@ export const useEditorStore = create<EditorState>()(
         return issues.filter(issue => issue.regionId === regionId);
       },
 
+      getRegionVersion: (id) => {
+        const { regionVersions } = get();
+        const version = regionVersions[id];
+        
+        if (version === undefined) {
+          throw new Error(`No version tracked for region ${id} - this indicates a data integrity issue`);
+        }
+        
+        return version;
+      },
+
+      isPendingEdit: (regionId, field) => {
+        const { pendingEdits } = get();
+        
+        if (field) {
+          const key = `${regionId}:${field}`;
+          return key in pendingEdits;
+        }
+        
+        // Check if ANY field for this region is being edited
+        for (const key in pendingEdits) {
+          if (pendingEdits[key].regionId === regionId) {
+            return true;
+          }
+        }
+        
+        return false;
+      },
+
+      // Pending edits actions
+      startPendingEdit: (regionId, field) => {
+        const { pendingEdits } = get();
+        const key = `${regionId}:${field}`;
+        const now = new Date();
+        
+        const newPendingEdits = {
+          ...pendingEdits,
+          [key]: {
+            regionId,
+            field: field as PendingEdit['field'],
+            startedAt: now,
+            lastActivity: now,
+          },
+        };
+        
+        set({ pendingEdits: newPendingEdits });
+      },
+
+      endPendingEdit: (regionId, field) => {
+        const { pendingEdits } = get();
+        const key = `${regionId}:${field}`;
+        
+        const newPendingEdits = { ...pendingEdits };
+        delete newPendingEdits[key];
+        
+        set({ pendingEdits: newPendingEdits });
+      },
+
+      updatePendingEditActivity: (regionId, field) => {
+        const { pendingEdits } = get();
+        const key = `${regionId}:${field}`;
+        const existing = pendingEdits[key];
+        
+        if (existing) {
+          const newPendingEdits = {
+            ...pendingEdits,
+            [key]: {
+              ...existing,
+              lastActivity: new Date(),
+            },
+          };
+          
+          set({ pendingEdits: newPendingEdits });
+        }
+      },
+
       // Spell checking actions
       addKnownWords: (words) => {
-        console.log('🔍 addKnownWords called with:', words, 'type:', typeof words, 'isArray:', Array.isArray(words));
         const { knownWords } = get();
-        console.log('🔍 Current knownWords:', knownWords.size, Array.from(knownWords));
         const newKnownWords = new Set(knownWords);
-        console.log('🔍 New Set created, size:', newKnownWords.size);
         words.forEach(word => {
-          console.log('🔍 Adding word:', word, 'type:', typeof word);
           newKnownWords.add(word);
         });
-        console.log('🔍 After forEach, newKnownWords size:', newKnownWords.size, Array.from(newKnownWords));
         set({ knownWords: newKnownWords });
-        console.log('🔍 After set() call');
       },
 
       setRegionAnalysis: (regionId, knownWords) => {

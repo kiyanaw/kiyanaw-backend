@@ -475,11 +475,6 @@ class WaveSurferService {
   }
 
   setRegionPosition(regionId: string, bounds: { start: number; end: number }): void {
-    // if (!this.regionsPlugin) {
-    //   console.warn('🎵 Cannot set region position: regions plugin not available');
-    //   return;
-    // }
-
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const region = this.regionsPlugin!.getRegions().find((r: any) => r.id === regionId);
     if (!region) {
@@ -494,7 +489,6 @@ class WaveSurferService {
       });
       // Update region indices after position change
       this.updateRegionIndices();
-      console.log('🎵 Updated region position:', regionId, bounds);
     } catch (error) {
       console.error('🎵 Failed to set region position:', error);
     }
@@ -504,13 +498,8 @@ class WaveSurferService {
    * Add a region with a predefined ID (used for realtime/subscription events)
    */
   addRegionWithId(regionData: { id: string; start: number; end: number }): void {
-    if (!this.regionsPlugin) {
-      console.warn('🎵 Cannot add region: regions plugin not available');
-      return;
-    }
-
     try {
-      this.regionsPlugin.addRegion({
+      this.regionsPlugin!.addRegion({
         id: regionData.id,
         start: regionData.start,
         end: regionData.end,
@@ -519,17 +508,12 @@ class WaveSurferService {
         drag: this._canEdit
       });
       this.updateRegionIndices();
-      console.log('🎵 Added region with ID:', regionData.id);
     } catch (error) {
       console.error('🎵 Failed to add region:', error);
     }
   }
 
   deleteRegion(regionId: string): void {
-    if (!this.regionsPlugin) {
-      console.warn('🎵 Cannot delete region: regions plugin not available');
-      return;
-    }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const region = this.regionsPlugin!.getRegions().find((r: any) => r.id === regionId);
@@ -541,7 +525,6 @@ class WaveSurferService {
     try {
       region.remove();
       this.updateRegionIndices();
-      console.log('🎵 Deleted region:', regionId);
     } catch (error) {
       console.error('🎵 Failed to delete region:', error);
     }
@@ -636,7 +619,6 @@ class WaveSurferService {
         }, FLASH_CONFIG.usernameVisibleDuration);
       }
 
-      console.log('🎵 Flashed region background:', regionId, username ? `for user: ${username}` : '');
     } catch (error) {
       console.error('🎵 Failed to flash region background:', error);
     }

@@ -13,15 +13,19 @@ const createTestRegion = (overrides: Partial<RegionData> = {}): RegionData => ({
   userLastUpdated: 'testuser',
   createdAt: '2023-01-01T00:00:00Z',
   updatedAt: '2023-01-01T00:00:00Z',
+  _version: 1, // Always provide version for test regions
   ...overrides,
 });
 
 describe('useEditorStore selectedRegion updates', () => {
   beforeEach(() => {
     // Reset store state before each test
+    useEditorStore.getState().cleanup(); // Full cleanup first
     useEditorStore.setState({
       regions: [],
       regionMap: {},
+      regionVersions: {},
+      pendingEdits: {},
       selectedRegionId: null,
       selectedRegion: null,
     });
@@ -244,6 +248,260 @@ describe('useEditorStore known words functionality', () => {
       
       const state = useEditorStore.getState();
       expect(state.regionMap['region-1'].regionAnalysis).toEqual([]);
+    });
+  });
+
+  describe('version tracking', () => {
+    it('should track versions when adding new regions', () => {
+      const store = useEditorStore.getState();
+      
+      const testRegion = createTestRegion({ _version: 3 });
+      store.addNewRegion(testRegion);
+      
+      const state = useEditorStore.getState();
+      expect(state.regionVersions['region-1']).toBe(3);
+    });
+
+    it('should default to version 1 when adding regions without version', () => {
+      const store = useEditorStore.getState();
+      
+      const testRegion = createTestRegion();
+      store.addNewRegion(testRegion);
+      
+      const state = useEditorStore.getState();
+      expect(state.regionVersions['region-1']).toBe(1);
+    });
+
+    it('should remove version tracking when deleting regions', () => {
+      const store = useEditorStore.getState();
+      
+      const testRegion = createTestRegion({ _version: 5 });
+      store.addNewRegion(testRegion);
+      
+      // Verify version is tracked
+      let state = useEditorStore.getState();
+      expect(state.regionVersions['region-1']).toBe(5);
+      
+      // Delete the region
+      store.deleteRegion('region-1');
+      
+      // Verify version tracking is removed
+      state = useEditorStore.getState();
+      expect(state.regionVersions['region-1']).toBeUndefined();
+    });
+
+    it('should provide getRegionVersion getter', () => {
+      const store = useEditorStore.getState();
+      
+      const testRegion = createTestRegion({ _version: 7 });
+      store.addNewRegion(testRegion);
+      
+      expect(store.getRegionVersion('region-1')).toBe(7);
+      
+      // Should throw for nonexistent regions instead of defaulting
+      expect(() => store.getRegionVersion('nonexistent')).toThrow('No version tracked for region nonexistent');
+    });
+
+    it('should populate regionVersions in setFullTranscriptionData', () => {
+      const store = useEditorStore.getState();
+      
+      const testData = {
+        transcription: {
+          id: 'transcription-1',
+          title: 'Test Transcription',
+          author: 'test-author',
+          authorFriendly: 'Test Author',
+          type: 'audio',
+          source: 'test-source',
+          length: 120
+        },
+        regions: [
+          createTestRegion({ id: 'region-1', _version: 2 }),
+          createTestRegion({ id: 'region-2', _version: 3 }),
+          createTestRegion({ id: 'region-3', _version: 4 }) // All regions must have versions
+        ],
+        issues: [],
+        peaks: []
+      };
+
+      store.setFullTranscriptionData(testData);
+      
+      const state = useEditorStore.getState();
+      expect(state.regionVersions['region-1']).toBe(2);
+      expect(state.regionVersions['region-2']).toBe(3);
+      expect(state.regionVersions['region-3']).toBe(4);
+    });
+
+    it('should reset regionVersions on cleanup', () => {
+      const store = useEditorStore.getState();
+      
+      const testRegion = createTestRegion({ _version: 4 });
+      store.addNewRegion(testRegion);
+      
+      // Verify version is tracked
+      let state = useEditorStore.getState();
+      expect(state.regionVersions['region-1']).toBe(4);
+      
+      // Cleanup
+      store.cleanup();
+      
+      // Verify version tracking is reset
+      state = useEditorStore.getState();
+      expect(state.regionVersions).toEqual({});
+    });
+  });
+
+  describe('pending edits tracking', () => {
+    it('should start tracking pending edits', () => {
+      const store = useEditorStore.getState();
+      
+      store.startPendingEdit('region-1', 'regionText');
+      
+      const state = useEditorStore.getState();
+      expect(state.pendingEdits['region-1:regionText']).toEqual({
+        regionId: 'region-1',
+        field: 'regionText',
+        startedAt: expect.any(Date),
+        lastActivity: expect.any(Date),
+      });
+    });
+
+    it('should end tracking pending edits', () => {
+      const store = useEditorStore.getState();
+      
+      store.startPendingEdit('region-1', 'regionText');
+      let state = useEditorStore.getState();
+      expect(state.pendingEdits['region-1:regionText']).toBeDefined();
+      
+      store.endPendingEdit('region-1', 'regionText');
+      state = useEditorStore.getState();
+      expect(state.pendingEdits['region-1:regionText']).toBeUndefined();
+    });
+
+    it('should update activity for pending edits', () => {
+      const store = useEditorStore.getState();
+      
+      store.startPendingEdit('region-1', 'regionText');
+      const initialState = useEditorStore.getState();
+      const initialActivity = initialState.pendingEdits['region-1:regionText'].lastActivity;
+      
+      // Wait a bit and update activity
+      setTimeout(() => {
+        store.updatePendingEditActivity('region-1', 'regionText');
+        const updatedState = useEditorStore.getState();
+        const updatedActivity = updatedState.pendingEdits['region-1:regionText'].lastActivity;
+        
+        expect(updatedActivity.getTime()).toBeGreaterThan(initialActivity.getTime());
+      }, 10);
+    });
+
+    it('should check if region/field is being edited', () => {
+      const store = useEditorStore.getState();
+      
+      store.startPendingEdit('region-1', 'regionText');
+      store.startPendingEdit('region-2', 'translation');
+      
+      // Specific field checks
+      expect(store.isPendingEdit('region-1', 'regionText')).toBe(true);
+      expect(store.isPendingEdit('region-2', 'translation')).toBe(true);
+      expect(store.isPendingEdit('region-1', 'translation')).toBe(false);
+      expect(store.isPendingEdit('region-3', 'regionText')).toBe(false);
+      
+      // Any field checks
+      expect(store.isPendingEdit('region-1')).toBe(true);
+      expect(store.isPendingEdit('region-2')).toBe(true);
+      expect(store.isPendingEdit('region-3')).toBe(false);
+    });
+
+    it('should handle multiple pending edits for same region', () => {
+      const store = useEditorStore.getState();
+      
+      store.startPendingEdit('region-1', 'regionText');
+      store.startPendingEdit('region-1', 'translation');
+      
+      const state = useEditorStore.getState();
+      expect(state.pendingEdits['region-1:regionText']).toBeDefined();
+      expect(state.pendingEdits['region-1:translation']).toBeDefined();
+      
+      expect(store.isPendingEdit('region-1', 'regionText')).toBe(true);
+      expect(store.isPendingEdit('region-1', 'translation')).toBe(true);
+      expect(store.isPendingEdit('region-1')).toBe(true);
+    });
+
+    it('should handle updating activity for non-existent edit gracefully', () => {
+      const store = useEditorStore.getState();
+      
+      // Ensure we start clean
+      useEditorStore.setState({ pendingEdits: {} });
+      
+      expect(() => store.updatePendingEditActivity('region-1', 'regionText')).not.toThrow();
+      
+      const state = useEditorStore.getState();
+      expect(state.pendingEdits['region-1:regionText']).toBeUndefined();
+    });
+
+    it('should reset pending edits on cleanup', () => {
+      const store = useEditorStore.getState();
+      
+      // Ensure we start clean
+      useEditorStore.setState({ pendingEdits: {} });
+      
+      store.startPendingEdit('region-1', 'regionText');
+      store.startPendingEdit('region-2', 'translation');
+      
+      let state = useEditorStore.getState();
+      expect(Object.keys(state.pendingEdits)).toHaveLength(2);
+      
+      store.cleanup();
+      
+      state = useEditorStore.getState();
+      expect(state.pendingEdits).toEqual({});
+    });
+  });
+
+  describe('strict version validation', () => {
+    it('should throw when trying to add region without _version', () => {
+      const store = useEditorStore.getState();
+      
+      const regionWithoutVersion = createTestRegion({ _version: undefined });
+      
+      expect(() => store.addNewRegion(regionWithoutVersion)).toThrow(
+        'Cannot add region region-1 without _version field'
+      );
+    });
+
+    it('should throw when loading transcription data with regions missing _version', () => {
+      const store = useEditorStore.getState();
+      
+      const dataWithMissingVersion = {
+        transcription: {
+          id: 'transcription-1',
+          title: 'Test Transcription',
+          author: 'test-author',
+          authorFriendly: 'Test Author',
+          type: 'audio',
+          source: 'test-source',
+          length: 120
+        },
+        regions: [
+          createTestRegion({ id: 'region-1', _version: 2 }),
+          createTestRegion({ id: 'region-2', _version: undefined }) // Missing version
+        ],
+        issues: [],
+        peaks: []
+      };
+
+      expect(() => store.setFullTranscriptionData(dataWithMissingVersion)).toThrow(
+        'Region region-2 from database is missing _version field'
+      );
+    });
+
+    it('should throw when getting version for non-tracked region', () => {
+      const store = useEditorStore.getState();
+      
+      expect(() => store.getRegionVersion('nonexistent-region')).toThrow(
+        'No version tracked for region nonexistent-region - this indicates a data integrity issue'
+      );
     });
   });
 }); 

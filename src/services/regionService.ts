@@ -125,24 +125,14 @@ export const createRegion = async (
  * @param regionId The ID of the region to update
  * @param updates The fields to update (text, translation, start, end, etc.)
  * @param username The username of the user making the update
+ * @param version The current version of the region for conflict detection
  */
-export const updateRegion = async (regionId: string, updates: Partial<RegionData>, username: string) => {
+export const updateRegion = async (regionId: string, updates: Partial<RegionData>, username: string, version: number) => {
   try {
-    // Fetch current version to satisfy conflict detection
-    const { data: getData } = await getClient().graphql({
-      query: getRegionQuery,
-      variables: { id: regionId },
-    }) as GetRegionResponse;
-
-    const existing = getData?.getRegion;
-    if (!existing) {
-      throw new Error(`Region with ID ${regionId} not found`);
-    }
-
-    // Create input for GraphQL
+    // Create input for GraphQL using provided version (no pre-save fetch needed)
     const input: RegionUpdateInput = {
       id: regionId,
-      _version: existing._version,
+      _version: version,
       ...updates,
       dateLastUpdated: new Date().toISOString(),
       userLastUpdated: username,

@@ -132,14 +132,12 @@ export const useWavesurferEvents = (transcriptionId: string, source?: string): v
 
     const handleReadyWithDuration = (data: unknown) => {
       const event = data as ReadyEvent;
-      console.log('wavesurfer ready', event)
       usePlayerStore.getState().setLoadedAndReady(true);
       usePlayerStore.getState().setDuration(event.duration);
       
       // Update transcription length with the actual duration from wavesurfer
       const store = useEditorStore.getState();
       const transcription = store.transcription
-      console.log(transcription, event)
       if (transcription && transcription.length === 0 && event.duration > 0) {
         const updateTranscriptionUseCase = new UpdateTranscriptionUseCase({
           transcriptionId: transcription.id,

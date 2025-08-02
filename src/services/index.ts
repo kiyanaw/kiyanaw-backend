@@ -12,6 +12,7 @@ import * as toastService from './toastService';
 import * as inviteService from './inviteService';
 import { storeService } from './storeService';
 import { flashIndicatorService } from './flashIndicatorService';
+import { pendingEditsService } from './pendingEditsService';
 
 export const services = {
   userService: authService,
@@ -29,4 +30,5 @@ export const services = {
   inviteService,
   storeService,
   flashIndicatorService,
+  pendingEditsService,
 };
