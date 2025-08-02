@@ -132,7 +132,6 @@ export class SubscribeToRegionChangesUseCase {
           // Only add to global knownWords if this region's analysis changed
           if (!currentRegion.regionAnalysis || currentRegion.regionAnalysis.length !== region.regionAnalysis.length) {
             store.addKnownWords(region.regionAnalysis);
-          } else {
           }
           
           // Apply formatting to RTE if it exists

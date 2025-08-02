@@ -11,6 +11,7 @@ export default tseslint.config(
       'coverage/**',
       'src/aws-exports.js',
       'src/models/index.d.ts',
+      'src/models/models',
       'src/graphql/*', 
       '**/*.test.*',
       '**/__mocks__/**',
@@ -20,6 +21,7 @@ export default tseslint.config(
       'amplify/#current-cloud-backend/**',
       'amplify/backend/custom/regionChangeSQS/build/**',
       'amplify/backend/custom/inviteHandlerSES/cdk-stack.ts',
+      'amplify-codegen-temp/models/models',
     ] 
   },
   {
