@@ -168,6 +168,25 @@ export const updateRegion = async (regionId: string, updates: Partial<RegionData
 };
 
 /**
+ * Gets a region by ID using GraphQL API.
+ * @param regionId The ID of the region to fetch
+ * @returns Promise that resolves to the region data or null if not found
+ */
+export const getRegion = async (regionId: string) => {
+  try {
+    const { data: getData } = await getClient().graphql({
+      query: getRegionQuery,
+      variables: { id: regionId },
+    }) as GetRegionResponse;
+
+    return getData?.getRegion || null;
+  } catch (error) {
+    console.error(`Failed to get region ${regionId}:`, error);
+    return null;
+  }
+};
+
+/**
  * Deletes a region using GraphQL API.
  * @param regionId The ID of the region to delete
  * @returns Promise that resolves when deletion is complete
@@ -175,12 +194,7 @@ export const updateRegion = async (regionId: string, updates: Partial<RegionData
 export const deleteRegion = async (regionId: string) => {
   try {
     // Fetch current version to satisfy conflict detection
-    const { data: getData } = await getClient().graphql({
-      query: getRegionQuery,
-      variables: { id: regionId },
-    }) as GetRegionResponse;
-
-    const region = getData?.getRegion;
+    const region = await getRegion(regionId);
     if (!region) {
       throw new Error(`Region with ID ${regionId} not found`);
     }

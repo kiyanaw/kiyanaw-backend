@@ -293,13 +293,18 @@ export class UpdateRegionTextUseCase {
               
               services.storeService.endPendingEdit(regionId, field);
             } else if (resolution.action === 'keep_local') {
-              console.log('🔄 User chose to keep their changes - retrying save');
-              // Force save with fresh version
+              console.log('🔄 User chose to keep their changes - force overwriting remote version');
+              
+              // For force overwrite, we need the absolute latest version from the database
+              // Fetch current region to get the latest version
+              const currentRegion = await services.regionService.getRegion(regionId);
+              const latestDbVersion = currentRegion?._version || conflictAnalysis.remoteVersion || currentVersion;
+              
               await services.regionService.updateRegion(
                 regionId,
                 updateData,
                 user.username,
-                conflictAnalysis.remoteVersion || currentVersion + 1
+                latestDbVersion
               );
               services.storeService.endPendingEdit(regionId, field);
             }

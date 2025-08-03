@@ -201,6 +201,13 @@ describe('UpdateRegionTextUseCase - Enhanced Conflict Resolution Integration', (
         .mockRejectedValueOnce(versionError)
         .mockResolvedValueOnce({});
       
+      // Mock getRegion to return the latest version from database
+      mockRegionService.getRegion = jest.fn().mockResolvedValue({
+        id: regionId,
+        regionText: remoteText,
+        _version: 6 // Latest version from DB
+      });
+      
       // User chooses to keep their changes
       mockConflictResolutionService.showConflictDialog.mockResolvedValueOnce({
         action: 'keep_local'
@@ -229,7 +236,7 @@ describe('UpdateRegionTextUseCase - Enhanced Conflict Resolution Integration', (
         regionId,
         { regionText: userText },
         'test-user',
-        4 // Fresh version
+        6 // Fresh version from getRegion mock
       );
       
              // Should have updated store with user's text initially (responsive UI)
