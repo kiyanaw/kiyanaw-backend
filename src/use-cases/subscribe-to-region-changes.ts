@@ -87,15 +87,17 @@ export class SubscribeToRegionChangesUseCase {
         // Allow parallel editing of different fields (text + translation, text + bounds, etc.)
         const isEditingText = store.isPendingEdit(region.id, 'regionText');
         const isEditingTranslation = store.isPendingEdit(region.id, 'translation');
+        const isEditingBounds = store.isPendingEdit(region.id, 'bounds');
         
-        if (isEditingText || isEditingTranslation) {
+        if (isEditingText || isEditingTranslation || isEditingBounds) {
           // Apply selective protection: only protect fields being actively edited
           this.applyRemoteChangesWithSelectiveProtection(currentRegion, region, {
             protectText: isEditingText,
-            protectTranslation: isEditingTranslation
+            protectTranslation: isEditingTranslation,
+            protectBounds: isEditingBounds
           });
         } else {
-          // User not actively typing, apply everything including version tracking
+          // User not actively editing any fields, apply everything including version tracking
           this.applyRemoteChanges(currentRegion, region);
           store.setRegionVersion(region.id, region._version!);
         }
@@ -114,15 +116,16 @@ export class SubscribeToRegionChangesUseCase {
   private applyRemoteChangesWithSelectiveProtection(
     currentRegion: any, 
     updatedRegion: any, 
-    protection: { protectText: boolean; protectTranslation: boolean }
+    protection: { protectText: boolean; protectTranslation: boolean; protectBounds?: boolean }
   ): void {
     const store = this.config.services.storeService;
     const wavesurferService = this.config.services.wavesurferService;
     const rteService = this.config.services.rteService;
     
-    // Always update bounds (safe to update during any type of editing)
-    if (updatedRegion.start !== undefined && updatedRegion.end !== undefined) {
+    // Conditionally update bounds (only if not being actively edited)
+    if (updatedRegion.start !== undefined && updatedRegion.end !== undefined && !protection.protectBounds) {
       const boundsChanged = currentRegion.start !== updatedRegion.start || currentRegion.end !== updatedRegion.end;
+      
       if (boundsChanged) {
         store.updateRegionBounds(updatedRegion.id, updatedRegion.start, updatedRegion.end);
         wavesurferService.setRegionPosition(updatedRegion.id, {
@@ -130,6 +133,8 @@ export class SubscribeToRegionChangesUseCase {
           end: updatedRegion.end
         });
       }
+    } else if (protection.protectBounds) {
+      console.log(`🔶 Protecting bounds for region ${updatedRegion.id} - bounds editing in progress`);
     }
     
     // Conditionally update text (only if not being actively edited)
@@ -204,7 +209,7 @@ export class SubscribeToRegionChangesUseCase {
 
     // Determine if there are unprotected changes (what we should allow)
     const hasUnprotectedChanges = 
-      actualChanges.bounds ||                                    // Bounds always unprotected
+      (!protection.protectBounds && actualChanges.bounds) ||    // Bounds when not editing bounds
       (actualChanges.analysis && !actualChanges.text && !actualChanges.translation) || // Analysis ONLY when standalone (not side effect)
       (!protection.protectText && actualChanges.text) ||        // Text when not editing text
       (!protection.protectTranslation && actualChanges.translation); // Translation when not editing translation
@@ -213,10 +218,12 @@ export class SubscribeToRegionChangesUseCase {
     
     // Simple rule: Always update version UNLESS user is editing and NO unprotected changes
     // This ensures conflicts only when same field edited, parallel saves for different fields
-    const shouldBlockVersion = (protection.protectText || protection.protectTranslation) && !hasUnprotectedChanges;
+    const shouldBlockVersion = (protection.protectText || protection.protectTranslation || protection.protectBounds) && !hasUnprotectedChanges;
     
     if (updatedRegion._version !== undefined && !shouldBlockVersion) {
       store.setRegionVersion(updatedRegion.id, updatedRegion._version);
+    } else if (shouldBlockVersion && protection.protectBounds) {
+      console.log(`🔶 Blocking version update for region ${updatedRegion.id} - bounds editing in progress (version ${updatedRegion._version})`);
     }
   }
 
@@ -320,6 +327,8 @@ export class SubscribeToRegionChangesUseCase {
       store.setRegionVersion(updatedRegion.id, updatedRegion._version);
     }
   }
+
+
 
   // Note: Removed complex conflict prediction methods - we now use simple version-based conflicts
 } 

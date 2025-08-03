@@ -2,8 +2,8 @@ export interface ConflictData {
   regionId: string;
   // Legacy single field support (for backward compatibility)
   field?: string;
-  localValue?: string;
-  remoteValue?: string;
+  localValue?: any;
+  remoteValue?: any;
   // New multi-field support
   conflictingFields?: Array<{
     field: string;
@@ -52,8 +52,12 @@ class ConflictResolutionServiceImpl implements ConflictResolutionService {
     console.log('🔥 CONFLICT DETECTED - Showing real dialog:', {
       regionId: conflict.regionId,
       field: conflict.field,
-      localValue: conflict.localValue?.substring(0, 50) + '...',
-      remoteValue: conflict.remoteValue?.substring(0, 50) + '...',
+      localValue: typeof conflict.localValue === 'string' 
+        ? conflict.localValue.substring(0, 50) + '...' 
+        : conflict.localValue,
+      remoteValue: typeof conflict.remoteValue === 'string' 
+        ? conflict.remoteValue.substring(0, 50) + '...' 
+        : conflict.remoteValue,
       localVersion: conflict.localVersion,
       remoteVersion: conflict.remoteVersion
     });
