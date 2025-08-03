@@ -476,6 +476,90 @@ describe('WaveSurferService', () => {
       expect(mockCallback).not.toHaveBeenCalled();
     });
 
+    describe('addRegionWithId (subscription regions)', () => {
+      it('should not emit region-created event to prevent double creation', () => {
+        const mockCallback = jest.fn();
+        wavesurferService.on('region-created', mockCallback);
+        
+        // Call addRegionWithId (simulates subscription region)
+        wavesurferService.addRegionWithId({
+          id: 'subscription-region',
+          start: 5,
+          end: 10
+        });
+        
+        // Should NOT emit region-created event to prevent double creation
+        expect(mockCallback).not.toHaveBeenCalled();
+        
+        // Should still call regionsPlugin.addRegion
+        expect(mockRegionsInstance.addRegion).toHaveBeenCalledWith({
+          id: 'subscription-region',
+          start: 5,
+          end: 10,
+          content: '',
+          resize: false,
+          drag: false
+        });
+      });
+      
+      it('should reset flag after adding region to prevent interference with normal regions', () => {
+        const mockCallback = jest.fn();
+        wavesurferService.on('region-created', mockCallback);
+        
+        // Add subscription region
+        wavesurferService.addRegionWithId({
+          id: 'subscription-region',
+          start: 5,
+          end: 10
+        });
+        
+        // Flag should be reset, so normal region creation should work
+        regionCreatedCallback({
+          id: 'normal-region',
+          start: 1,
+          end: 3,
+        });
+        
+        // Normal region should emit event
+        expect(mockCallback).toHaveBeenCalledWith({
+          id: 'normal-region',
+          start: 1,
+          end: 3,
+        });
+      });
+      
+      it('should reset flag even when addRegion throws an error', () => {
+        const mockCallback = jest.fn();
+        wavesurferService.on('region-created', mockCallback);
+        
+        // Make addRegion throw an error
+        mockRegionsInstance.addRegion.mockImplementationOnce(() => {
+          throw new Error('Test error');
+        });
+        
+        // Add subscription region (should handle error gracefully)
+        wavesurferService.addRegionWithId({
+          id: 'error-region',
+          start: 5,
+          end: 10
+        });
+        
+        // Flag should still be reset despite error
+        regionCreatedCallback({
+          id: 'normal-region',
+          start: 1,
+          end: 3,
+        });
+        
+        // Normal region should still emit event
+        expect(mockCallback).toHaveBeenCalledWith({
+          id: 'normal-region',
+          start: 1,
+          end: 3,
+        });
+      });
+    });
+
     it('should emit ready events', () => {
       const mockCallback = jest.fn();
       wavesurferService.on('ready', mockCallback);

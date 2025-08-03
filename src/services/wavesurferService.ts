@@ -50,6 +50,8 @@ class WaveSurferService {
   private _inboundRegionCurrentHighlighted: RegionEvent | null = null
   // Tracks the region we want to stop playback at (for region-bounded playback)
   private _playbackBoundRegion: RegionEvent | null = null
+  // Flag to prevent subscription-created regions from triggering creation flow
+  private _isAddingSubscriptionRegion: boolean = false
   private _canEdit: boolean = false
 
   private REGION_BACKGROUND_COLOR = 'rgba(0, 0, 0, 0.1)'
@@ -220,11 +222,15 @@ class WaveSurferService {
     // Region events
     this.regionsPlugin?.on('region-created', (event: unknown) => {
       const regionEvent = event as RegionEvent;
-      this.emitEvent('region-created', {
-        id: regionEvent.id,
-        start: regionEvent.start,
-        end: regionEvent.end
-      });
+      
+      // Don't emit creation event for subscription-created regions to prevent double creation
+      if (!this._isAddingSubscriptionRegion) {
+        this.emitEvent('region-created', {
+          id: regionEvent.id,
+          start: regionEvent.start,
+          end: regionEvent.end
+        });
+      }
       this.updateRegionIndices()
     });
 
@@ -499,6 +505,10 @@ class WaveSurferService {
    */
   addRegionWithId(regionData: { id: string; start: number; end: number }): void {
     try {
+      // Temporarily mark this as a subscription-created region to prevent double creation
+      this._isAddingSubscriptionRegion = true;
+      console.log('📡 Adding region from subscription (will not trigger creation event):', regionData.id);
+      
       this.regionsPlugin!.addRegion({
         id: regionData.id,
         start: regionData.start,
@@ -510,6 +520,9 @@ class WaveSurferService {
       this.updateRegionIndices();
     } catch (error) {
       console.error('🎵 Failed to add region:', error);
+    } finally {
+      // Always reset the flag
+      this._isAddingSubscriptionRegion = false;
     }
   }
 

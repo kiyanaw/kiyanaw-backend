@@ -179,7 +179,7 @@ export const useEditorStore = create<EditorState>()(
         set({ accessDenied: denied });
       },
 
-      setCanEdit: (canEdit) => {
+      setCanEdit: (canEdit: boolean) => {
         set({ canEdit });
       },
 
@@ -239,13 +239,16 @@ export const useEditorStore = create<EditorState>()(
         // Add to regionMap for O(1) lookups
         const newRegionMap = { ...regionMap, [region.id]: region };
         
-        // Track version locally - regions from subscriptions/DB should have versions
-        if (region._version === undefined) {
-          console.error('Adding region without _version:', region.id, region);
-          throw new Error(`Cannot add region ${region.id} without _version field`);
+        // Track version locally
+        // New regions (from UI) don't have _version yet, assign temporary version 0
+        // Existing regions (from subscriptions/DB) should have _version
+        let version = region._version;
+        if (version === undefined) {
+          console.log('📝 Adding new region without _version (will be updated from subscription):', region.id);
+          version = 0; // Temporary version for new regions
         }
-        
-        const newRegionVersions = { ...regionVersions, [region.id]: region._version };
+
+        const newRegionVersions = { ...regionVersions, [region.id]: version };
         
         // Insert into regions array maintaining sort order (by start time)
         const newRegions = [...regions];

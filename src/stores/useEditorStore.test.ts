@@ -622,14 +622,16 @@ describe('useEditorStore known words functionality', () => {
   });
 
   describe('strict version validation', () => {
-    it('should throw when trying to add region without _version', () => {
+    it('should assign temporary version 0 for regions without _version (new regions)', () => {
       const store = useEditorStore.getState();
       
       const regionWithoutVersion = createTestRegion({ _version: undefined });
       
-      expect(() => store.addNewRegion(regionWithoutVersion)).toThrow(
-        'Cannot add region region-1 without _version field'
-      );
+      expect(() => store.addNewRegion(regionWithoutVersion)).not.toThrow();
+      
+      // Should assign temporary version 0
+      const updatedStore = useEditorStore.getState(); // Get updated state after addNewRegion
+      expect(updatedStore.regionVersions['region-1']).toBe(0);
     });
 
     it('should throw when loading transcription data with regions missing _version', () => {
