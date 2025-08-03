@@ -1,5 +1,6 @@
 import { SubscribeToRegionChangesUseCase } from './subscribe-to-region-changes';
 import type { RegionData } from '../services/adt';
+import type { RegionSubscriptionEvent } from '../services/regionService';
 
 // Helper function to create mock regions with required _version field
 const createMockRegion = (overrides: Partial<RegionData> = {}): RegionData => ({
@@ -29,7 +30,17 @@ const mockServices = {
     addKnownWords: jest.fn(),
     setRegionText: jest.fn(),
     setRegionTranslation: jest.fn(),
-    setRegionVersion: jest.fn()
+    setRegionVersion: jest.fn(),
+    addConflictToQueue: jest.fn(),
+    removeConflictFromQueue: jest.fn(),
+    isPendingEdit: jest.fn(),
+    get conflictQueue() { 
+      return this._conflictQueue || []; 
+    },
+    set conflictQueue(value) { 
+      this._conflictQueue = value; 
+    },
+    _conflictQueue: []
   },
   wavesurferService: {
     addRegionWithId: jest.fn(),
@@ -46,6 +57,9 @@ const mockServices = {
     hasEditor: jest.fn(),
     setContent: jest.fn(),
     applyKnownWordsFormatting: jest.fn()
+  },
+  conflictDetectionService: {
+    detectConflict: jest.fn()
   }
 } as any;
 
@@ -55,6 +69,13 @@ describe('SubscribeToRegionChangesUseCase', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    
+    // Set up default mock returns
+    mockServices.storeService.isPendingEdit.mockReturnValue(false);
+    mockServices.conflictDetectionService.detectConflict.mockReturnValue({
+      hasConflict: false,
+      conflictType: 'none'
+    });
     
     mockUnsubscribe = jest.fn();
     mockServices.regionService.subscribeToRegionChanges.mockReturnValue(mockUnsubscribe);
@@ -259,6 +280,13 @@ describe('SubscribeToRegionChangesUseCase', () => {
     describe('UPDATE event handling', () => {
       beforeEach(() => {
         mockServices.userService.currentUser.mockReturnValue({ username: 'current@user.com' });
+        
+        // Set up default conflict detection behavior for these legacy tests
+        mockServices.storeService.isPendingEdit.mockReturnValue(false); // User not editing
+        mockServices.conflictDetectionService.detectConflict.mockReturnValue({
+          hasConflict: false,
+          conflictType: 'none'
+        });
       });
 
       it('should handle bounds changes', () => {
@@ -472,6 +500,158 @@ describe('SubscribeToRegionChangesUseCase', () => {
         expect(mockServices.storeService.setRegionVersion).toHaveBeenCalledWith('region-1', 72);
         expect(mockServices.storeService.setRegionVersion).toHaveBeenCalledTimes(2);
       });
+    });
+  });
+
+  describe('Simplified Subscription Handling - Always Apply Remote Changes', () => {
+    const createMockRegion = (overrides: Partial<RegionData> = {}): RegionData => ({
+      id: 'test-region-1',
+      start: 10,
+      end: 20,
+      regionText: 'original text',
+      translation: 'original translation',
+      transcriptionId: 'test-transcription',
+      createdAt: '2023-01-01T00:00:00Z',
+      updatedAt: '2023-01-01T00:00:00Z',
+      dateLastUpdated: '2023-01-01T00:00:00Z',
+      userLastUpdated: 'other-user',
+      isNote: false,
+      regionAnalysis: [],
+      _version: 1,
+      ...overrides
+    });
+
+    const mockStoreService = mockServices.storeService;
+    const conflictDetectionService = mockServices.conflictDetectionService;
+
+    const createMockSubscriptionEvent = (mutation: 'UPDATE' | 'CREATE' | 'DELETE', region: RegionData): RegionSubscriptionEvent => ({
+      mutation,
+      region
+    });
+
+    beforeEach(() => {
+      // Reset all mocks
+      jest.clearAllMocks();
+      
+      // Reset the mock conflict queue
+      mockStoreService.conflictQueue = [];
+      
+      // Set up default mock implementations
+      mockStoreService.isPendingEdit.mockReturnValue(false);
+      mockStoreService.regionById.mockReturnValue(null);
+      (conflictDetectionService.detectConflict as jest.Mock).mockReturnValue({
+        hasConflict: false,
+        conflictType: 'none'
+      });
+    });
+
+        it('should protect text content when user is actively typing', () => {
+      const currentRegion = createMockRegion({ regionText: 'local text' });
+      const remoteRegion = createMockRegion({ 
+        regionText: 'remote text',
+        _version: 2 
+      });
+
+      // Mock store to return current region
+      mockStoreService.regionById.mockReturnValue(currentRegion);
+      mockStoreService.isPendingEdit.mockReturnValue(true); // User IS actively typing
+
+      const event = createMockSubscriptionEvent('UPDATE', remoteRegion);
+      useCase.handleRegionSubscriptionEvent(event);
+
+      // Should NOT apply text changes (protect user's typing)
+      expect(mockStoreService.setRegionText).not.toHaveBeenCalled();
+      
+      // Should NOT update version (preserve for conflict detection at save time)
+      expect(mockStoreService.setRegionVersion).not.toHaveBeenCalled();
+      
+      // Should NOT queue conflicts - version conflicts handled at save time
+      expect(mockStoreService.addConflictToQueue).not.toHaveBeenCalled();
+    });
+
+    it('should apply all changes when user is not actively typing', () => {
+      const currentRegion = createMockRegion({ regionText: 'local text' });
+      const remoteRegion = createMockRegion({ 
+        regionText: 'remote text',
+        _version: 2 
+      });
+
+      // Mock store to return current region
+      mockStoreService.regionById.mockReturnValue(currentRegion);
+      mockStoreService.isPendingEdit.mockReturnValue(false); // User NOT actively typing
+
+      const event = createMockSubscriptionEvent('UPDATE', remoteRegion);
+      useCase.handleRegionSubscriptionEvent(event);
+
+      // Should apply all remote changes including text and version
+      expect(mockStoreService.setRegionText).toHaveBeenCalledWith('test-region-1', 'remote text');
+      expect(mockStoreService.setRegionVersion).toHaveBeenCalledWith('test-region-1', 2);
+      
+      // Should NOT queue conflicts - version conflicts handled at save time
+      expect(mockStoreService.addConflictToQueue).not.toHaveBeenCalled();
+    });
+
+    it('should apply remote changes directly when no conflicts detected', () => {
+      const currentRegion = createMockRegion({ regionText: 'same text' });
+      const remoteRegion = createMockRegion({ 
+        regionText: 'same text',
+        start: 15, // Different bounds
+        _version: 2 
+      });
+      
+      mockStoreService.regionById.mockReturnValue(currentRegion);
+      mockStoreService.isPendingEdit.mockReturnValue(false);
+      
+      // Mock no conflicts
+      (conflictDetectionService.detectConflict as jest.Mock).mockReturnValue({
+        hasConflict: false,
+        conflictType: 'none'
+      });
+
+      const event = createMockSubscriptionEvent('UPDATE', remoteRegion);
+      useCase.handleRegionSubscriptionEvent(event);
+
+      // Should apply the remote changes
+      expect(mockStoreService.updateRegionBounds).toHaveBeenCalledWith('test-region-1', 15, 20);
+      expect(mockStoreService.setRegionVersion).toHaveBeenCalledWith('test-region-1', 2);
+    });
+
+    // Note: Removed auto-merge test - we now always apply remote changes directly
+
+    // Note: Removed text conflict queuing test - we now always apply remote changes directly
+
+    // Note: Removed complex conflict queue processing tests - we now use simple version-based conflicts
+
+    // Note: Removed complex multi-field conflicts test - we now always apply remote changes directly
+
+    it('REGRESSION: should apply simple remote updates directly when user is not editing (no conflict detection)', () => {
+      // This test ensures we don't break the core functionality again
+      const currentRegion = createMockRegion({
+        regionText: 'old text',
+        _version: 1
+      });
+      const remoteRegion = createMockRegion({
+        regionText: 'old text kiya', // Simple addition like reported in the bug
+        regionAnalysis: ['old', 'text', 'kiya'],
+        _version: 2
+      });
+
+      mockStoreService.regionById.mockReturnValue(currentRegion);
+      mockStoreService.isPendingEdit.mockReturnValue(false); // User NOT editing
+
+      const event = createMockSubscriptionEvent('UPDATE', remoteRegion);
+      useCase.handleRegionSubscriptionEvent(event);
+
+      // Should apply changes directly without any conflict detection
+      expect(mockStoreService.setRegionText).toHaveBeenCalledWith('test-region-1', 'old text kiya');
+      expect(mockStoreService.setRegionAnalysis).toHaveBeenCalledWith('test-region-1', ['old', 'text', 'kiya']);
+      expect(mockStoreService.setRegionVersion).toHaveBeenCalledWith('test-region-1', 2);
+      
+      // Should NOT queue any conflicts
+      expect(mockStoreService.addConflictToQueue).not.toHaveBeenCalled();
+      
+      // Should NOT run conflict detection at all when user isn't editing
+      expect(mockServices.conflictDetectionService.detectConflict).not.toHaveBeenCalled();
     });
   });
 }); 

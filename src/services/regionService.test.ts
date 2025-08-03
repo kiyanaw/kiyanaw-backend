@@ -308,7 +308,7 @@ describe('RegionService (Simple GraphQL Test)', () => {
       );
       expect(getRegionCalls).toHaveLength(0);
 
-      // Should call updateRegion with provided version
+      // Should call updateRegion with provided version (AWS Amplify handles optimistic locking automatically)
       expect(mockGraphqlClient.graphql).toHaveBeenCalledWith({
         query: expect.stringContaining('updateRegion'),
         variables: {

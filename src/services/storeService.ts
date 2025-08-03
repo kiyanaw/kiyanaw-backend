@@ -1,5 +1,6 @@
 import { useEditorStore } from '../stores/useEditorStore';
 import type { RegionData } from './adt';
+import type { ConflictDetail } from './conflictDetectionService';
 
 /**
  * Service wrapper for all Zustand store operations.
@@ -45,6 +46,44 @@ export const storeService = {
   // Version operations
   setRegionVersion: (regionId: string, version: number): void => {
     useEditorStore.getState().setRegionVersion(regionId, version);
+  },
+
+  getRegionVersion: (regionId: string): number => {
+    return useEditorStore.getState().getRegionVersion(regionId);
+  },
+
+  // Pending edits operations
+  isPendingEdit: (regionId: string, field?: string): boolean => {
+    const state = useEditorStore.getState();
+    return state.isPendingEdit(regionId, field);
+  },
+
+  startPendingEdit: (regionId: string, field: string): void => {
+    const state = useEditorStore.getState();
+    state.startPendingEdit(regionId, field);
+  },
+
+  endPendingEdit: (regionId: string, field: string): void => {
+    const state = useEditorStore.getState();
+    state.endPendingEdit(regionId, field);
+  },
+
+  updatePendingEditActivity: (regionId: string, field: string): void => {
+    const state = useEditorStore.getState();
+    state.updatePendingEditActivity(regionId, field);
+  },
+
+  // Conflict queue operations
+  get conflictQueue() {
+    return useEditorStore.getState().conflictQueue;
+  },
+
+  addConflictToQueue: (conflict: ConflictDetail): void => {
+    useEditorStore.getState().addConflictToQueue(conflict);
+  },
+
+  removeConflictFromQueue: (conflictId: string): void => {
+    useEditorStore.getState().removeConflictFromQueue(conflictId);
   },
 
   // Read operations

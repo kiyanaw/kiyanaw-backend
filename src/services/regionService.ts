@@ -151,6 +151,18 @@ export const updateRegion = async (regionId: string, updates: Partial<RegionData
     
   } catch (error) {
     console.error(`❌ Failed to save region ${regionId}:`, error);
+    
+    // Log detailed error information for debugging
+    if (error && typeof error === 'object') {
+      console.error('Error details:', {
+        message: (error as any).message,
+        errors: (error as any).errors,
+        data: (error as any).data,
+        name: (error as any).name,
+        code: (error as any).code
+      });
+    }
+    
     throw error;
   }
 };

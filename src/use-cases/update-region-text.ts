@@ -1,6 +1,121 @@
 import { services } from '../services';
 import { UpdateTranscriptionUseCase } from './update-transcription';
+import type { ConflictData } from '../services/conflictResolutionService';
 import Timeout from 'smart-timeout';
+
+/**
+ * Check if an error is a version conflict error from DynamoDB/AppSync
+ */
+function isVersionConflictError(error: any): boolean {
+  const errorMessage = error?.message || error?.toString() || '';
+  
+  // Check direct error message for various version conflict indicators
+  const directMatch = errorMessage.includes('ConditionalCheckFailedException') ||
+                     errorMessage.includes('OptimisticLockException') ||
+                     errorMessage.includes('ConditionalCheckFailed') ||
+                     errorMessage.includes('ConflictException') ||
+                     errorMessage.includes('version') && errorMessage.includes('conflict');
+  
+  // Check GraphQL errors array (AppSync format)
+  const graphqlMatch = error?.errors && error.errors.some((e: any) => {
+    const msg = e.message || e.errorMessage || '';
+    return msg.includes('ConditionalCheckFailedException') ||
+           msg.includes('OptimisticLockException') ||
+           msg.includes('ConditionalCheckFailed') ||
+           msg.includes('ConflictException') ||
+           msg.includes('The conditional request failed') ||
+           msg.includes('version') && msg.includes('conflict') ||
+           msg.includes('version') && msg.includes('mismatch') ||
+           msg.includes('Conflict') ||
+           // AWS Amplify DataStore specific errors
+           e.errorType === 'ConflictUnhandled' ||
+           e.errorType === 'Conflict';
+  });
+  
+  console.log(`🔍 Version conflict check: direct=${directMatch}, graphql=${graphqlMatch}`, {
+    errorMessage,
+    errorCount: error?.errors?.length || 0,
+    firstError: error?.errors?.[0]?.message || 'none',
+    firstErrorType: error?.errors?.[0]?.errorType || 'none'
+  });
+  
+  return directMatch || graphqlMatch;
+}
+
+
+
+/**
+ * Determine if this is a "real" content conflict or just a version mismatch
+ * Uses the store's current state (which reflects latest remote data from subscriptions)
+ */
+async function analyzeConflict(
+  regionId: string, 
+  field: string,
+  attemptedValue: string,
+  localVersion: number,
+  store: any
+): Promise<{ isRealConflict: boolean; remoteValue?: string; remoteVersion?: number }> {
+  try {
+    // Get current state from store (reflects latest remote data)
+    const currentRegion = store.regionById(regionId);
+    if (!currentRegion) {
+      return { isRealConflict: false };
+    }
+    
+    const remoteValue = field === 'regionText' ? currentRegion.regionText : currentRegion.translation;
+    const remoteVersion = store.getRegionVersion(regionId);
+    
+    // If values are the same, it's just a version mismatch (auto-retry)
+    if (remoteValue === attemptedValue) {
+      console.log('🔄 Version mismatch but same content - will auto-retry');
+      return { 
+        isRealConflict: false, 
+        remoteValue, 
+        remoteVersion 
+      };
+    }
+    
+    // If values differ, it's a real conflict (show dialog)
+    console.log('⚠️ Real content conflict detected:', {
+      attemptedValue: attemptedValue?.substring(0, 50) + '...',
+      remoteValue: remoteValue?.substring(0, 50) + '...'
+    });
+    
+    return { 
+      isRealConflict: true, 
+      remoteValue, 
+      remoteVersion 
+    };
+    
+  } catch (error) {
+    console.error('Failed to analyze conflict:', error);
+    // If we can't analyze, assume it's a real conflict to be safe
+    return { isRealConflict: true };
+  }
+}
+
+/**
+ * Create structured conflict data for resolution
+ */
+function createConflictData(
+  regionId: string,
+  field: string,
+  localValue: string,
+  remoteValue: string,
+  localVersion: number,
+  remoteVersion: number
+): ConflictData {
+  return {
+    regionId,
+    field,
+    localValue,
+    remoteValue,
+    localVersion,
+    remoteVersion,
+    timestamp: Date.now(),
+    conflictId: `${regionId}-${field}-${Date.now()}-${Math.random()}`
+  };
+}
 
 interface UpdateRegionTextConfig {
   regionId: string;
@@ -55,17 +170,21 @@ export class UpdateRegionTextUseCase {
     // Set up debounced save that grabs fresh analysis at save time
     const timeoutKey = `region-text-save-${regionId}`;
     Timeout.set(timeoutKey, async () => {
+      // Prepare update data (moved outside try block for catch access)
+      const updateData: {
+        regionText?: string;
+        translation?: string;
+        regionAnalysis?: string[];
+      } = field === 'regionText' 
+        ? { regionText: text }
+        : { translation: text };
+
+      // Get current version for optimistic concurrency control (moved outside try block)
+      const currentVersion = store.getRegionVersion(regionId);
+      console.log(`🔢 Save attempt for region ${regionId} using version: ${currentVersion}`);
+      
       try {
         // Get fresh state at save time
-        
-        // Prepare update data
-        const updateData: {
-          regionText?: string;
-          translation?: string;
-          regionAnalysis?: string[];
-        } = field === 'regionText' 
-          ? { regionText: text }
-          : { translation: text };
 
         // If updating main text, include current analysis from store at save time
         if (field === 'regionText') {
@@ -79,9 +198,6 @@ export class UpdateRegionTextUseCase {
             // Continue without analysis
           }
         }
-
-        // Get current version for optimistic concurrency control
-        const currentVersion = store.getRegionVersion(regionId);
         
         // Save to database
         await services.regionService.updateRegion(
@@ -103,10 +219,79 @@ export class UpdateRegionTextUseCase {
         });
         
         await updateTranscriptionUseCase.execute();
+
+        // End pending edit on successful save
+        services.storeService.endPendingEdit(regionId, field);
+        console.log('🟢 Ended pending edit for region:', regionId, 'field:', field);
         
       } catch (error) {
         console.error('Failed to save region text:', error);
         pendingSaves.delete(regionId);
+        
+        // Log detailed error info for debugging
+        console.error('Save error details:', {
+          regionId,
+          currentVersion,
+          error: {
+            message: (error as any)?.message,
+            errors: (error as any)?.errors,
+            data: (error as any)?.data,
+            name: (error as any)?.name
+          }
+        });
+        
+        // Check if this is a version conflict error
+        if (isVersionConflictError(error)) {
+          console.warn('✅ Version conflict detected, analyzing conflict type...', { regionId, error });
+          
+          try {
+            // Analyze the conflict to get remote value details  
+            const conflictAnalysis = await analyzeConflict(regionId, field, text, currentVersion, store);
+            
+            // Always show conflict dialog - user should decide how to resolve
+            // Even if content appears the same, the user should be aware someone else was editing
+            console.log('🔥 Version conflict detected - showing resolution dialog');
+            
+            const conflictData = createConflictData(
+              regionId,
+              field,
+              text, // User's attempted value
+              conflictAnalysis.remoteValue || '', // Current DB value
+              currentVersion, // User's version
+              conflictAnalysis.remoteVersion || currentVersion + 1 // DB version
+            );
+            
+            // Show conflict resolution dialog
+            const resolution = await services.conflictResolutionService.showConflictDialog(conflictData);
+            
+            // Handle user's resolution choice
+            if (resolution.action === 'accept_remote') {
+              console.log('🔄 User chose to accept remote changes');
+              // Update store with remote value and end pending edit
+              if (field === 'regionText') {
+                store.setRegionText(regionId, conflictAnalysis.remoteValue || '');
+              } else {
+                store.setRegionTranslation(regionId, conflictAnalysis.remoteValue || '');
+              }
+              services.storeService.endPendingEdit(regionId, field);
+            } else if (resolution.action === 'keep_local') {
+              console.log('🔄 User chose to keep their changes - retrying save');
+              // Force save with fresh version
+              await services.regionService.updateRegion(
+                regionId,
+                updateData,
+                user.username,
+                conflictAnalysis.remoteVersion || currentVersion + 1
+              );
+              services.storeService.endPendingEdit(regionId, field);
+            }
+            // manual_merge action will be handled in Phase 5
+          } catch (conflictError) {
+            console.error('Failed to resolve version conflict:', conflictError);
+            // Fallback: end pending edit to prevent UI lock
+            services.storeService.endPendingEdit(regionId, field);
+          }
+        }
       }
     }, 3000); // 3 second debounce
 

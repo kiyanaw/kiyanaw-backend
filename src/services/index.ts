@@ -14,6 +14,7 @@ import { storeService } from './storeService';
 import { flashIndicatorService } from './flashIndicatorService';
 import { pendingEditsService } from './pendingEditsService';
 import { conflictDetectionService } from './conflictDetectionService';
+import { conflictResolutionService } from './conflictResolutionService';
 
 export const services = {
   userService: authService,
@@ -33,4 +34,5 @@ export const services = {
   flashIndicatorService,
   pendingEditsService,
   conflictDetectionService,
+  conflictResolutionService,
 };

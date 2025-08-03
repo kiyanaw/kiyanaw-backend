@@ -2,6 +2,38 @@ import { services } from '../services';
 import { UpdateTranscriptionUseCase } from './update-transcription';
 import type { User } from '../types/shared';
 
+/**
+ * Check if an error is a version conflict error from DynamoDB/AppSync
+ */
+function isVersionConflictError(error: any): boolean {
+  const errorMessage = error?.message || error?.toString() || '';
+  return errorMessage.includes('ConditionalCheckFailedException') ||
+         errorMessage.includes('OptimisticLockException') ||
+         errorMessage.includes('ConditionalCheckFailed') ||
+         (error?.errors && error.errors.some((e: any) => 
+           e.message?.includes('ConditionalCheckFailedException') ||
+           e.message?.includes('OptimisticLockException')
+         ));
+}
+
+/**
+ * Refresh the region version from the database and update local store
+ */
+async function refreshRegionVersion(regionId: string, store: any): Promise<number> {
+  try {
+    // For now, just increment the current version as a fallback
+    // TODO: In a real implementation, we'd fetch from the database
+    const currentVersion = store.getRegionVersion(regionId);
+    const newVersion = currentVersion + 1;
+    store.setRegionVersion(regionId, newVersion);
+    console.warn('Using incremented version as fallback - TODO: implement proper fresh version fetch');
+    return newVersion;
+  } catch (error) {
+    console.error('Failed to refresh region version:', error);
+    throw error;
+  }
+}
+
 interface UpdateRegionBoundsConfig {
   regionId: string;
   newStart: number;
@@ -52,13 +84,14 @@ export class UpdateRegionBounds {
     // Update store optimistically (for immediate UI feedback)
     store.updateRegionBounds(regionId, newStart, newEnd);
 
-    try {
-      // Get current user for audit trail
-      const currentUser = services.authService.currentUser();
-      const username = currentUser?.username || 'unknown';
+    // Get current user for audit trail (moved outside try block for catch access)
+    const currentUser = services.authService.currentUser();
+    const username = currentUser?.username || 'unknown';
 
-      // Get current version for optimistic concurrency control
-      const currentVersion = store.getRegionVersion(regionId);
+    // Get current version for optimistic concurrency control (moved outside try block)
+    const currentVersion = store.getRegionVersion(regionId);
+
+    try {
       
       // Save to database with debouncing
       await services.regionService.updateRegion(
@@ -82,6 +115,48 @@ export class UpdateRegionBounds {
       
       // Revert optimistic update on error
       store.updateRegionBounds(regionId, existingRegion.start, existingRegion.end);
+      
+      // Check if this is a version conflict error
+      if (isVersionConflictError(error)) {
+        console.warn('Version conflict detected for bounds update, attempting to resolve...', { regionId, error });
+        
+        try {
+          // Try to get a fresh version and retry once
+          const freshVersion = await refreshRegionVersion(regionId, store);
+          
+          if (freshVersion !== currentVersion) {
+            console.log(`Retrying bounds save with fresh version ${freshVersion} (was ${currentVersion})`);
+            
+            // Re-apply the optimistic update
+            store.updateRegionBounds(regionId, newStart, newEnd);
+            
+            // Retry the save with fresh version
+            await services.regionService.updateRegion(
+              regionId,
+              { start: newStart, end: newEnd },
+              username,
+              freshVersion
+            );
+            
+            console.log('✅ Successfully retried bounds save with fresh version');
+            
+            // Update transcription after successful retry
+            const updateTranscriptionUseCase = new UpdateTranscriptionUseCase({
+              transcriptionId: existingRegion.transcriptionId,
+              services,
+              store: store,
+            });
+            await updateTranscriptionUseCase.execute();
+          } else {
+            console.warn('Fresh version is same as current version, skipping retry');
+          }
+        } catch (retryError) {
+          console.error('Failed to retry bounds save after version conflict:', retryError);
+          // Make sure we revert again if retry fails
+          store.updateRegionBounds(regionId, existingRegion.start, existingRegion.end);
+          // TODO: In Phase 6, we could show a user notification about the conflict
+        }
+      }
     }
   }
 } 

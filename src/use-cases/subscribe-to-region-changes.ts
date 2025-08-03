@@ -36,7 +36,7 @@ export class SubscribeToRegionChangesUseCase {
     return unsubscribe;
   }
 
-  private handleRegionSubscriptionEvent(event: RegionSubscriptionEvent): void {
+  handleRegionSubscriptionEvent(event: RegionSubscriptionEvent): void {
     const { mutation, region } = event;
     const store = this.config.services.storeService;
     const wavesurferService = this.config.services.wavesurferService;
@@ -56,10 +56,6 @@ export class SubscribeToRegionChangesUseCase {
     if (region.userLastUpdated) {
       flashService.flashRegion(region.id, region.userLastUpdated);
     }
-
-    // TODO: Version conflict detection
-    // If incoming region._version < current store region._version + 1, 
-    // we may have a sync issue that needs conflict resolution
 
     switch (mutation) {
       case 'CREATE':
@@ -93,52 +89,20 @@ export class SubscribeToRegionChangesUseCase {
           return;
         }
 
-        // Update version tracking for this remote change (region has new version from DB)
-        store.setRegionVersion(region.id, region._version!);
-
-        // Check if start/end times changed (bounds update)
-        const boundsChanged = currentRegion.start !== region.start || currentRegion.end !== region.end;
+                // HYBRID APPROACH: Protect active typing AND preserve version for conflict detection
+        // Check if user is actively typing (has pending edits)
+        const isActivelyTyping = store.isPendingEdit(region.id);
         
-        if (boundsChanged) {
-          // Update store bounds
-          store.updateRegionBounds(region.id, region.start, region.end);
-          
-          // Update wavesurfer region bounds using the new method
-          wavesurferService.setRegionPosition(region.id, {
-            start: region.start,
-            end: region.end
-          });
-        }
-
-        // Check if text changed
-        if (currentRegion.regionText !== region.regionText) {
-          store.setRegionText(region.id, region.regionText || '');
-          
-          // Update RTE silently if it exists (won't trigger save)
-          const mainEditorKey = `${region.id}:main` as const;
-          if (this.config.services.rteService.hasEditor(mainEditorKey)) {
-            this.config.services.rteService.setContent(mainEditorKey, region.regionText || '');
-          }
-        }
-
-        // Check if translation changed
-        if (currentRegion.translation !== region.translation) {
-          store.setRegionTranslation(region.id, region.translation || '');
-        }
-
-        // Set regionAnalysis if it exists (do this last to avoid duplicates)
-        if (region.regionAnalysis && region.regionAnalysis.length > 0) {
-          store.setRegionAnalysis(region.id, region.regionAnalysis);
-          // Only add to global knownWords if this region's analysis changed
-          if (!currentRegion.regionAnalysis || currentRegion.regionAnalysis.length !== region.regionAnalysis.length) {
-            store.addKnownWords(region.regionAnalysis);
-          }
-          
-          // Apply formatting to RTE if it exists
-          const mainEditorKey = `${region.id}:main` as const;
-          if (this.config.services.rteService.hasEditor(mainEditorKey)) {
-            this.config.services.rteService.applyKnownWordsFormatting(mainEditorKey, region.regionAnalysis);
-          }
+        if (isActivelyTyping) {
+          console.log('🔌 User actively typing - updating bounds/analysis but preserving version and text:', region.id);
+          // Apply bounds/analysis changes but DON'T update version or text
+          // This preserves the stale version for conflict detection at save time
+          this.applyRemoteChangesButProtectTyping(currentRegion, region);
+        } else {
+          console.log('🔌 User not typing - applying all remote changes including version:', region.id);
+          // User not actively typing, apply everything including version tracking
+          this.applyRemoteChanges(currentRegion, region);
+          store.setRegionVersion(region.id, region._version!);
         }
         break;
       }
@@ -147,4 +111,97 @@ export class SubscribeToRegionChangesUseCase {
         console.warn('🔌 Unknown mutation type:', mutation);
     }
   }
+
+  /**
+   * Apply remote changes while protecting user's active typing
+   * Updates bounds, analysis, but NOT text content or version
+   */
+  private applyRemoteChangesButProtectTyping(currentRegion: any, updatedRegion: any): void {
+    const store = this.config.services.storeService;
+    const wavesurferService = this.config.services.wavesurferService;
+    
+    // Check if start/end times changed (bounds update)
+    const boundsChanged = currentRegion.start !== updatedRegion.start || currentRegion.end !== updatedRegion.end;
+    
+    if (boundsChanged) {
+      // Update store bounds
+      store.updateRegionBounds(updatedRegion.id, updatedRegion.start, updatedRegion.end);
+      
+      // Update wavesurfer region bounds
+      wavesurferService.setRegionPosition(updatedRegion.id, {
+        start: updatedRegion.start,
+        end: updatedRegion.end
+      });
+    }
+  
+    // Update regionAnalysis if it exists (safe to update - doesn't affect typing)
+    if (updatedRegion.regionAnalysis && updatedRegion.regionAnalysis.length > 0) {
+      store.setRegionAnalysis(updatedRegion.id, updatedRegion.regionAnalysis);
+      // Only add to global knownWords if this region's analysis changed
+      if (!currentRegion.regionAnalysis || currentRegion.regionAnalysis.length !== updatedRegion.regionAnalysis.length) {
+        store.addKnownWords(updatedRegion.regionAnalysis);
+      }
+      
+      // Apply formatting to RTE if it exists (visual formatting only, not content)
+      const mainEditorKey = `${updatedRegion.id}:main` as const;
+      if (this.config.services.rteService.hasEditor(mainEditorKey)) {
+        this.config.services.rteService.applyKnownWordsFormatting(mainEditorKey, updatedRegion.regionAnalysis);
+      }
+    }
+    
+    // IMPORTANT: DO NOT update regionText, translation, or version here - preserve for conflict detection
+    console.log('🔌 Protected text content and version from remote changes while user typing');
+  }
+
+  private applyRemoteChanges(currentRegion: any, updatedRegion: any): void {
+    const store = this.config.services.storeService;
+    const wavesurferService = this.config.services.wavesurferService;
+    
+    // Check if start/end times changed (bounds update)
+    const boundsChanged = currentRegion.start !== updatedRegion.start || currentRegion.end !== updatedRegion.end;
+    
+    if (boundsChanged) {
+      // Update store bounds
+      store.updateRegionBounds(updatedRegion.id, updatedRegion.start, updatedRegion.end);
+      
+      // Update wavesurfer region bounds using the new method
+      wavesurferService.setRegionPosition(updatedRegion.id, {
+        start: updatedRegion.start,
+        end: updatedRegion.end
+      });
+    }
+
+    // Check if text changed
+    if (currentRegion.regionText !== updatedRegion.regionText) {
+      store.setRegionText(updatedRegion.id, updatedRegion.regionText || '');
+      
+      // Update RTE silently if it exists (won't trigger save)
+      const mainEditorKey = `${updatedRegion.id}:main` as const;
+      if (this.config.services.rteService.hasEditor(mainEditorKey)) {
+        this.config.services.rteService.setContent(mainEditorKey, updatedRegion.regionText || '');
+      }
+    }
+
+    // Check if translation changed
+    if (currentRegion.translation !== updatedRegion.translation) {
+      store.setRegionTranslation(updatedRegion.id, updatedRegion.translation || '');
+    }
+
+    // Set regionAnalysis if it exists (do this last to avoid duplicates)
+    if (updatedRegion.regionAnalysis && updatedRegion.regionAnalysis.length > 0) {
+      store.setRegionAnalysis(updatedRegion.id, updatedRegion.regionAnalysis);
+      // Only add to global knownWords if this region's analysis changed
+      if (!currentRegion.regionAnalysis || currentRegion.regionAnalysis.length !== updatedRegion.regionAnalysis.length) {
+        store.addKnownWords(updatedRegion.regionAnalysis);
+      }
+      
+      // Apply formatting to RTE if it exists
+      const mainEditorKey = `${updatedRegion.id}:main` as const;
+      if (this.config.services.rteService.hasEditor(mainEditorKey)) {
+        this.config.services.rteService.applyKnownWordsFormatting(mainEditorKey, updatedRegion.regionAnalysis);
+      }
+    }
+  }
+
+  // Note: Removed complex conflict prediction methods - we now use simple version-based conflicts
 } 

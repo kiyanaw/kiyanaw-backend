@@ -120,7 +120,12 @@ describe('useTextEditors Integration Test', () => {
       setRegionText: mockSetRegionText,
       setRegionTranslation: mockSetRegionTranslation,
       knownWords: new Set(['cached', 'word']),
-      canEdit: true  // Add canEdit: true to enable text change listeners
+      canEdit: true,  // Add canEdit: true to enable text change listeners
+      // Add pending edit methods
+      isPendingEdit: jest.fn().mockReturnValue(false),
+      startPendingEdit: jest.fn(),
+      endPendingEdit: jest.fn(),
+      updatePendingEditActivity: jest.fn()
     };
     
     (useEditorStore as unknown as jest.Mock).mockImplementation((selector) => {
