@@ -90,5 +90,21 @@ export const storeService = {
 
   canEdit: (): boolean => {
     return useEditorStore.getState().canEdit;
+  },
+
+  // Get baseline region state from pending edits (for conflict detection)
+  getBaselineForRegion: (regionId: string): any => {
+    const state = useEditorStore.getState();
+    
+    // Find baseline from any pending edit for this region
+    for (const key in state.pendingEdits) {
+      const edit = state.pendingEdits[key];
+      if (edit.regionId === regionId && edit.baseline) {
+        return edit.baseline;
+      }
+    }
+    
+    // Fallback to current region if no baseline found
+    return state.regionMap[regionId] || null;
   }
 }; 

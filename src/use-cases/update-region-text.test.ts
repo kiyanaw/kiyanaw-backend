@@ -21,7 +21,14 @@ describe('UpdateRegionTextUseCase', () => {
     },
     regionService: {
       updateRegion: jest.fn(),
+      getRegion: jest.fn(),
       // updateRegion: jest.fn()
+    },
+    conflictDetectionService: {
+      detectConflict: jest.fn()
+    },
+    conflictResolutionService: {
+      showConflictDialog: jest.fn()
     }
   } as any;
 
@@ -339,4 +346,6 @@ describe('UpdateRegionTextUseCase', () => {
       expect(mockSetRegionText).toHaveBeenCalledWith('test-region-id', 'Test text content');
     });
   });
+
+    // Note: Simplified conflict resolution tests removed - feature not yet implemented
 }); 

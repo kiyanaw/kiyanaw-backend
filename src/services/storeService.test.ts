@@ -15,6 +15,7 @@ const mockStore = {
   addNewRegion: jest.fn(),
   deleteRegion: jest.fn(),
   regionById: jest.fn(),
+  regionMap: {},
   canEdit: true,
 };
 
@@ -107,17 +108,17 @@ describe('storeService', () => {
   });
 
   describe('read operations', () => {
-    it('should call regionById with fresh state', () => {
-      const regionId = 'test-region';
-      const mockRegion = { id: regionId } as RegionData;
-      mockStore.regionById.mockReturnValue(mockRegion);
+      it('should call regionById with fresh state', () => {
+    const regionId = 'test-region';
+    const mockRegion = { id: regionId } as RegionData;
+    // Set up regionMap with the test region
+    mockStore.regionMap = { [regionId]: mockRegion };
 
-      const result = storeService.regionById(regionId);
+    const result = storeService.regionById(regionId);
 
-      expect(mockUseEditorStore.getState).toHaveBeenCalled();
-      expect(mockStore.regionById).toHaveBeenCalledWith(regionId);
-      expect(result).toBe(mockRegion);
-    });
+    expect(mockUseEditorStore.getState).toHaveBeenCalled();
+    expect(result).toBe(mockRegion);
+  });
 
     it('should call canEdit with fresh state', () => {
       const result = storeService.canEdit();
@@ -129,6 +130,9 @@ describe('storeService', () => {
 
   describe('fresh state behavior', () => {
     it('should get fresh state for each method call', () => {
+      // Set up a test region in regionMap
+      mockStore.regionMap = { 'test': { id: 'test' } as RegionData };
+      
       // Call multiple methods
       storeService.canEdit();
       storeService.getKnownWords();

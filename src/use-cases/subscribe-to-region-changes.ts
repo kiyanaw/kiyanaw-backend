@@ -31,6 +31,9 @@ export class SubscribeToRegionChangesUseCase {
 
   handleRegionSubscriptionEvent(event: RegionSubscriptionEvent): void {
     const { mutation, region } = event;
+    
+    // DEBUG: Track all subscription events to debug parallel editing issues
+    console.log('🔌 SUBSCRIPTION:', { mutation, regionId: region.id, version: region._version });
     const store = this.config.services.storeService;
     const wavesurferService = this.config.services.wavesurferService;
     const flashService = this.config.services.flashIndicatorService;
@@ -167,9 +170,69 @@ export class SubscribeToRegionChangesUseCase {
       }
     }
     
-    // Always update version (allows parallel saves of different fields)
-    if (updatedRegion._version !== undefined) {
+    // Update region analysis (always unprotected)
+    if (updatedRegion.regionAnalysis !== undefined) {
+      store.setRegionAnalysis(updatedRegion.id, updatedRegion.regionAnalysis);
+      store.addKnownWords(updatedRegion.regionAnalysis);
+    }
+    
+    // Update version tracking - only block if ALL remote updates are for protected fields
+    // This ensures conflicts are detected when same field is edited, but allows parallel saves for different fields
+    const storedRegion = store.regionById(updatedRegion.id);
+    
+    // For version update decisions, only block if ALL changes are to protected fields
+    // Don't try to detect "what actually changed" since local store has unsaved edits
+    // Simple rule: if there are unprotected changes (bounds/analysis), allow version update
+    const hasProtectedTextChange = false; // Don't block based on text comparison
+    const hasProtectedTranslationChange = false; // Don't block based on translation comparison
+    
+        // BRILLIANT USER INSIGHT: Compare subscription vs BASELINE (before edits), not current store
+    // This tells us exactly what the OTHER browser changed
+    
+    // Get baseline from pending edits (original state when edit started)
+    const baseline = store.getBaselineForRegion(updatedRegion.id);
+    
+    // Compare subscription to baseline to see what ACTUALLY changed
+    const actualChanges = {
+      bounds: (updatedRegion.start !== undefined && baseline?.start !== updatedRegion.start) || 
+              (updatedRegion.end !== undefined && baseline?.end !== updatedRegion.end),
+      text: updatedRegion.regionText !== undefined && baseline?.regionText !== updatedRegion.regionText,
+      translation: updatedRegion.translation !== undefined && baseline?.translation !== updatedRegion.translation,
+      analysis: updatedRegion.regionAnalysis !== undefined && 
+                JSON.stringify(baseline?.regionAnalysis) !== JSON.stringify(updatedRegion.regionAnalysis)
+    };
+
+    // Determine if there are unprotected changes (what we should allow)
+    const hasUnprotectedChanges = 
+      actualChanges.bounds ||                                    // Bounds always unprotected
+      actualChanges.analysis ||                                  // Analysis always unprotected  
+      (!protection.protectText && actualChanges.text) ||        // Text when not editing text
+      (!protection.protectTranslation && actualChanges.translation); // Translation when not editing translation
+
+    console.log('🔍 BASELINE COMPARISON:', {
+      regionId: updatedRegion.id,
+      actualChanges,
+      hasUnprotectedChanges,
+      protection,
+      baselineExists: !!baseline
+    });
+
+    // DEBUG: Simple version decision log
+    console.log('🔍 DECISION:', { 
+      regionId: updatedRegion.id,
+      hasUnprotectedChanges,
+      willUpdateVersion: updatedRegion._version !== undefined && hasUnprotectedChanges
+    });
+    
+    // Simple rule: Always update version UNLESS user is editing and NO unprotected changes
+    // This ensures conflicts only when same field edited, parallel saves for different fields
+    const shouldBlockVersion = (protection.protectText || protection.protectTranslation) && !hasUnprotectedChanges;
+    
+    if (updatedRegion._version !== undefined && !shouldBlockVersion) {
       store.setRegionVersion(updatedRegion.id, updatedRegion._version);
+      console.log('🔌 Updated version - allows parallel saves for different fields');
+    } else {
+      console.log('🔌 Protected version - will force conflict when same field is saved');
     }
     
     const protectedFields = [];
@@ -201,7 +264,15 @@ export class SubscribeToRegionChangesUseCase {
       });
     }
 
-    // Update version tracking (allows both text and bounds changes to save without conflict)
+    // Update region analysis (safe to update during any editing)
+    if (updatedRegion.regionAnalysis !== undefined) {
+      store.setRegionAnalysis(updatedRegion.id, updatedRegion.regionAnalysis);
+      if (updatedRegion.regionAnalysis.length > 0) {
+        store.addKnownWords(updatedRegion.regionAnalysis);
+      }
+    }
+    
+    // Always update version in the old protection method
     if (updatedRegion._version !== undefined) {
       store.setRegionVersion(updatedRegion.id, updatedRegion._version);
     }
@@ -256,6 +327,14 @@ export class SubscribeToRegionChangesUseCase {
         start: updatedRegion.start,
         end: updatedRegion.end
       });
+    }
+    
+    // Update region analysis
+    if (updatedRegion.regionAnalysis !== undefined) {
+      store.setRegionAnalysis(updatedRegion.id, updatedRegion.regionAnalysis);
+      if (updatedRegion.regionAnalysis.length > 0) {
+        store.addKnownWords(updatedRegion.regionAnalysis);
+      }
     }
     
     // Update version tracking

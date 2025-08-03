@@ -160,6 +160,7 @@ describe('WaveformPlayer', () => {
         addConflictToQueue: jest.fn(),
         removeConflictFromQueue: jest.fn(),
         processConflictQueue: jest.fn(),
+
       };
       return selector(state);
     });

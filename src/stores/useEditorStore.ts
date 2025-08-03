@@ -71,10 +71,7 @@ interface EditorState {
   addKnownWords: (words: string[]) => void;
   setRegionAnalysis: (regionId: string, knownWords: string[]) => void;
 
-  // Pending edits actions
-  startPendingEdit: (regionId: string, field: string) => void;
-  endPendingEdit: (regionId: string, field: string) => void;
-  updatePendingEditActivity: (regionId: string, field: string) => void;
+  // Pending edits actions moved below
 
   // Conflict queue actions
   addConflictToQueue: (conflict: ConflictDetail) => void;
@@ -95,8 +92,9 @@ interface EditorState {
   isPendingEdit: (regionId: string, field?: string) => boolean;
   
   // Pending edit operations  
-  setPendingEdit: (regionId: string, field: string) => void;
-  clearPendingEdit: (regionId: string) => void;
+  startPendingEdit: (regionId: string, field: string) => void;
+  endPendingEdit: (regionId: string, field: string) => void;
+  updatePendingEditActivity: (regionId: string, field: string) => void;
 }
 
 
@@ -408,35 +406,7 @@ export const useEditorStore = create<EditorState>()(
         });
       },
 
-      // Pending edit operations  
-      setPendingEdit: (regionId, field) => {
-        const { pendingEdits } = get();
-        const key = `${regionId}:${field}`;
-        const now = new Date();
-        
-        const newPendingEdits = {
-          ...pendingEdits,
-          [key]: {
-            regionId,
-            field: field as PendingEdit['field'],
-            startedAt: now,
-            lastActivity: now,
-          },
-        };
-        
-        set({ pendingEdits: newPendingEdits });
-      },
-
-      clearPendingEdit: (regionId) => {
-        const { pendingEdits } = get();
-        const newPendingEdits = { ...pendingEdits };
-        for (const key in newPendingEdits) {
-          if (newPendingEdits[key].regionId === regionId) {
-            delete newPendingEdits[key];
-          }
-        }
-        set({ pendingEdits: newPendingEdits });
-      },
+      // Pending edit operations use startPendingEdit/endPendingEdit below
 
       isPendingEdit: (regionId, field) => {
         const { pendingEdits } = get();
@@ -458,9 +428,12 @@ export const useEditorStore = create<EditorState>()(
 
       // Pending edits actions
       startPendingEdit: (regionId, field) => {
-        const { pendingEdits } = get();
+        const { pendingEdits, regionMap } = get();
         const key = `${regionId}:${field}`;
         const now = new Date();
+        
+        // Capture baseline region state for conflict detection
+        const baseline = regionMap[regionId] ? { ...regionMap[regionId] } : null;
         
         const newPendingEdits = {
           ...pendingEdits,
@@ -469,6 +442,7 @@ export const useEditorStore = create<EditorState>()(
             field: field as PendingEdit['field'],
             startedAt: now,
             lastActivity: now,
+            baseline, // Store original state when edit started
           },
         };
         

@@ -501,6 +501,572 @@ describe('SubscribeToRegionChangesUseCase', () => {
         expect(mockServices.storeService.setRegionVersion).toHaveBeenCalledTimes(2);
       });
     });
+
+    describe('selective field protection for parallel editing', () => {
+      beforeEach(() => {
+        mockServices.userService.currentUser.mockReturnValue({ username: 'current@user.com' });
+        mockServices.storeService.regionById.mockReturnValue({
+          id: 'region-1',
+          regionText: 'current text',
+          translation: 'current translation',
+          start: 10,
+          end: 20,
+          regionAnalysis: ['known', 'words']
+        });
+      });
+
+      it('should protect text while allowing translation updates during text editing', () => {
+        // User is editing text, not translation
+        mockServices.storeService.isPendingEdit.mockImplementation((regionId, field) => {
+          if (field === 'regionText') return true;
+          if (field === 'translation') return false;
+          return false; // fallback for any field check
+        });
+
+        const updatedRegion = createMockRegion({
+          regionText: 'remote text change',
+          translation: 'remote translation change',
+          userLastUpdated: 'other@user.com'
+        });
+
+        const event = { mutation: 'UPDATE', region: updatedRegion };
+        subscriptionCallback(event);
+
+        // Text should be protected (not updated)
+        expect(mockServices.storeService.setRegionText).not.toHaveBeenCalled();
+        
+        // Translation should be updated
+        expect(mockServices.storeService.setRegionTranslation).toHaveBeenCalledWith('region-1', 'remote translation change');
+        
+        // Version should be updated to allow parallel saves
+        expect(mockServices.storeService.setRegionVersion).toHaveBeenCalledWith('region-1', 1);
+      });
+
+      it('should protect translation while allowing text updates during translation editing', () => {
+        // User is editing translation, not text
+        mockServices.storeService.isPendingEdit.mockImplementation((regionId, field) => {
+          if (field === 'regionText') return false;
+          if (field === 'translation') return true;
+          return false;
+        });
+
+        const updatedRegion = createMockRegion({
+          regionText: 'remote text change',
+          translation: 'remote translation change',
+          userLastUpdated: 'other@user.com'
+        });
+
+        const event = { mutation: 'UPDATE', region: updatedRegion };
+        subscriptionCallback(event);
+
+        // Text should be updated
+        expect(mockServices.storeService.setRegionText).toHaveBeenCalledWith('region-1', 'remote text change');
+        
+        // Translation should be protected (not updated)
+        expect(mockServices.storeService.setRegionTranslation).not.toHaveBeenCalled();
+        
+        // Version should be updated to allow parallel saves
+        expect(mockServices.storeService.setRegionVersion).toHaveBeenCalledWith('region-1', 1);
+      });
+
+      it('should allow bounds updates during text editing (parallel editing)', () => {
+        // User is editing text only
+        mockServices.storeService.isPendingEdit.mockImplementation((regionId, field) => {
+          if (field === 'regionText') return true;
+          return false;
+        });
+
+        const updatedRegion = createMockRegion({
+          start: 30,
+          end: 40,
+          userLastUpdated: 'other@user.com'
+        });
+
+        const event = { mutation: 'UPDATE', region: updatedRegion };
+        subscriptionCallback(event);
+
+        // Bounds should be updated
+        expect(mockServices.storeService.updateRegionBounds).toHaveBeenCalledWith('region-1', 30, 40);
+        expect(mockServices.wavesurferService.setRegionPosition).toHaveBeenCalledWith('region-1', {
+          start: 30,
+          end: 40
+        });
+        
+        // Version should be updated to allow parallel saves
+        expect(mockServices.storeService.setRegionVersion).toHaveBeenCalledWith('region-1', 1);
+      });
+
+      describe('REGRESSION TESTS: Conflict Detection Logic', () => {
+        it('CRITICAL: Should NOT update version when both browsers edit SAME FIELD (text)', () => {
+          // REGRESSION: This was broken because regionAnalysis was considered "unprotected change"
+          // When both browsers edit text, Browser B should keep old version to force conflict
+          
+          // User is editing text in Browser B
+          mockServices.storeService.isPendingEdit.mockImplementation((regionId, field) => {
+            return field === 'regionText'; // Only text is being edited
+          });
+
+          // Browser A's text update arrives (with regionAnalysis side effect)
+          // IMPORTANT: Only include the fields that actually changed to avoid false unprotected changes
+          const updatedRegion = {
+            id: 'region-1',
+            regionText: 'CHANGED TEXT FROM BROWSER A',  // Text changed
+            regionAnalysis: ['new', 'analysis'],        // Side effect - should NOT trigger version update
+            userLastUpdated: 'browser.a@user.com',
+            _version: 1
+          } as any;
+
+          const event = { mutation: 'UPDATE', region: updatedRegion };
+          subscriptionCallback(event);
+
+          // Text should be protected (Browser B is editing it)
+          expect(mockServices.storeService.setRegionText).not.toHaveBeenCalled();
+          
+          // VERSION SHOULD NOT BE UPDATED - this forces conflict when Browser B tries to save
+          expect(mockServices.storeService.setRegionVersion).not.toHaveBeenCalled();
+          
+          // Should log the conflict protection message
+          // Note: Can't easily test console.log in this setup, but the logic is tested above
+        });
+
+        it('CRITICAL: Should NOT update version when both browsers edit SAME FIELD (translation)', () => {
+          // User is editing translation in Browser B
+          mockServices.storeService.isPendingEdit.mockImplementation((regionId, field) => {
+            return field === 'translation'; // Only translation is being edited
+          });
+
+          // Browser A's translation update arrives
+          // IMPORTANT: Only include the fields that actually changed
+          const updatedRegion = {
+            id: 'region-1',
+            translation: 'CHANGED TRANSLATION FROM BROWSER A',
+            userLastUpdated: 'browser.a@user.com',
+            _version: 1
+          } as any;
+
+          const event = { mutation: 'UPDATE', region: updatedRegion };
+          subscriptionCallback(event);
+
+          // Translation should be protected
+          expect(mockServices.storeService.setRegionTranslation).not.toHaveBeenCalled();
+          
+          // VERSION SHOULD NOT BE UPDATED - forces conflict
+          expect(mockServices.storeService.setRegionVersion).not.toHaveBeenCalled();
+        });
+
+        it('CRITICAL: SHOULD update version for DIFFERENT FIELD edits (text vs translation)', () => {
+          // User is editing text in Browser B
+          mockServices.storeService.isPendingEdit.mockImplementation((regionId, field) => {
+            return field === 'regionText'; // Only text is being edited
+          });
+
+          // Browser A updates translation (different field)
+          const updatedRegion = {
+            id: 'region-1',
+            translation: 'Browser A updated translation',
+            userLastUpdated: 'browser.a@user.com',
+            _version: 1
+          } as any;
+
+          const event = { mutation: 'UPDATE', region: updatedRegion };
+          subscriptionCallback(event);
+
+          // Translation should be updated (not protected)
+          expect(mockServices.storeService.setRegionTranslation).toHaveBeenCalledWith('region-1', 'Browser A updated translation');
+          
+          // VERSION SHOULD BE UPDATED - allows parallel save
+          expect(mockServices.storeService.setRegionVersion).toHaveBeenCalledWith('region-1', 1);
+        });
+
+        it('CRITICAL: SHOULD update version for DIFFERENT FIELD edits (text vs bounds)', () => {
+          // User is editing text in Browser B
+          mockServices.storeService.isPendingEdit.mockImplementation((regionId, field) => {
+            return field === 'regionText'; // Only text is being edited
+          });
+
+          // Browser A updates bounds (different field)
+          const updatedRegion = {
+            id: 'region-1',
+            start: 30,
+            end: 40,
+            userLastUpdated: 'browser.a@user.com',
+            _version: 1
+          } as any;
+
+          const event = { mutation: 'UPDATE', region: updatedRegion };
+          subscriptionCallback(event);
+
+          // Bounds should be updated
+          expect(mockServices.storeService.updateRegionBounds).toHaveBeenCalledWith('region-1', 30, 40);
+          
+          // VERSION SHOULD BE UPDATED - allows parallel save
+          expect(mockServices.storeService.setRegionVersion).toHaveBeenCalledWith('region-1', 1);
+        });
+
+        it('CRITICAL: Should NOT protect version when bounds change while user edits text (parallel editing)', () => {
+          // REGRESSION: This was broken - Browser A editing text received Browser B's bounds 
+          // change but incorrectly protected version, causing conflict when Browser A tried to save
+          
+          // Browser A is editing text
+          mockServices.storeService.isPendingEdit.mockImplementation((regionId, field) => {
+            return field === 'regionText'; // Only text is being edited in Browser A
+          });
+
+          // Browser B sends bounds change (with ALL fields included in subscription)
+          const updatedRegion = {
+            id: 'region-1',
+            start: 25,      // Bounds changed
+            end: 35,        // Bounds changed  
+            regionText: 'current text',  // Same text (not changed, just included in subscription)
+            translation: 'current translation', // Same translation
+            userLastUpdated: 'browser.b@user.com',
+            _version: 2
+          } as any;
+
+          const event = { mutation: 'UPDATE', region: updatedRegion };
+          subscriptionCallback(event);
+
+          // Bounds should be updated (not protected)
+          expect(mockServices.storeService.updateRegionBounds).toHaveBeenCalledWith('region-1', 25, 35);
+          
+          // VERSION SHOULD BE UPDATED - this allows Browser A's text save to succeed
+          expect(mockServices.storeService.setRegionVersion).toHaveBeenCalledWith('region-1', 2);
+          
+          // Text should NOT be updated (Browser A is editing it)
+          expect(mockServices.storeService.setRegionText).not.toHaveBeenCalled();
+        });
+
+        describe('COMPREHENSIVE: All Parallel Editing Scenarios', () => {
+          // Test matrix: Browser A editing X, Browser B saves Y → Expected result
+          
+          it('CONFLICT: A editing text, B saves text → should block version (force conflict)', () => {
+            // Browser A is editing text
+            mockServices.storeService.isPendingEdit.mockImplementation((regionId, field) => {
+              return field === 'regionText';
+            });
+
+            // Browser B saves text change
+            const updatedRegion = {
+              id: 'region-1',
+              regionText: 'DIFFERENT TEXT FROM B',  // Text actually changed
+              userLastUpdated: 'browser.b@user.com',
+              _version: 2
+            } as any;
+
+            const event = { mutation: 'UPDATE', region: updatedRegion };
+            subscriptionCallback(event);
+
+            // Text should be protected (A is editing)
+            expect(mockServices.storeService.setRegionText).not.toHaveBeenCalled();
+            
+            // VERSION SHOULD NOT UPDATE - force conflict when A tries to save
+            expect(mockServices.storeService.setRegionVersion).not.toHaveBeenCalled();
+          });
+
+          it('PARALLEL: A editing text, B saves translation → should update version (allow parallel)', () => {
+            mockServices.storeService.isPendingEdit.mockImplementation((regionId, field) => {
+              return field === 'regionText';
+            });
+
+            const updatedRegion = {
+              id: 'region-1',
+              translation: 'NEW TRANSLATION FROM B',
+              userLastUpdated: 'browser.b@user.com',
+              _version: 2
+            } as any;
+
+            const event = { mutation: 'UPDATE', region: updatedRegion };
+            subscriptionCallback(event);
+
+            expect(mockServices.storeService.setRegionTranslation).toHaveBeenCalledWith('region-1', 'NEW TRANSLATION FROM B');
+            expect(mockServices.storeService.setRegionVersion).toHaveBeenCalledWith('region-1', 2);
+          });
+
+          it('PARALLEL: A editing text, B saves bounds → should update version (allow parallel)', () => {
+            mockServices.storeService.isPendingEdit.mockImplementation((regionId, field) => {
+              return field === 'regionText';
+            });
+
+            const updatedRegion = {
+              id: 'region-1',
+              start: 30,
+              end: 40,
+              userLastUpdated: 'browser.b@user.com',
+              _version: 2
+            } as any;
+
+            const event = { mutation: 'UPDATE', region: updatedRegion };
+            subscriptionCallback(event);
+
+            expect(mockServices.storeService.updateRegionBounds).toHaveBeenCalledWith('region-1', 30, 40);
+            expect(mockServices.storeService.setRegionVersion).toHaveBeenCalledWith('region-1', 2);
+          });
+
+          it('PARALLEL: A editing translation, B saves text → should update version (allow parallel)', () => {
+            mockServices.storeService.isPendingEdit.mockImplementation((regionId, field) => {
+              return field === 'translation';
+            });
+
+            const updatedRegion = {
+              id: 'region-1',
+              regionText: 'NEW TEXT FROM B',
+              userLastUpdated: 'browser.b@user.com',
+              _version: 2
+            } as any;
+
+            const event = { mutation: 'UPDATE', region: updatedRegion };
+            subscriptionCallback(event);
+
+            expect(mockServices.storeService.setRegionText).toHaveBeenCalledWith('region-1', 'NEW TEXT FROM B');
+            expect(mockServices.storeService.setRegionVersion).toHaveBeenCalledWith('region-1', 2);
+          });
+
+          it('CONFLICT: A editing translation, B saves translation → should block version (force conflict)', () => {
+            mockServices.storeService.isPendingEdit.mockImplementation((regionId, field) => {
+              return field === 'translation';
+            });
+
+            const updatedRegion = {
+              id: 'region-1',
+              translation: 'DIFFERENT TRANSLATION FROM B',
+              userLastUpdated: 'browser.b@user.com',
+              _version: 2
+            } as any;
+
+            const event = { mutation: 'UPDATE', region: updatedRegion };
+            subscriptionCallback(event);
+
+            expect(mockServices.storeService.setRegionTranslation).not.toHaveBeenCalled();
+            expect(mockServices.storeService.setRegionVersion).not.toHaveBeenCalled();
+          });
+
+          it('PARALLEL: A editing translation, B saves bounds → should update version (allow parallel)', () => {
+            mockServices.storeService.isPendingEdit.mockImplementation((regionId, field) => {
+              return field === 'translation';
+            });
+
+            const updatedRegion = {
+              id: 'region-1',
+              start: 25,
+              end: 35,
+              userLastUpdated: 'browser.b@user.com',
+              _version: 2
+            } as any;
+
+            const event = { mutation: 'UPDATE', region: updatedRegion };
+            subscriptionCallback(event);
+
+            expect(mockServices.storeService.updateRegionBounds).toHaveBeenCalledWith('region-1', 25, 35);
+            expect(mockServices.storeService.setRegionVersion).toHaveBeenCalledWith('region-1', 2);
+          });
+
+          it('PARALLEL: A not editing, B saves anything → should always update version (no protection)', () => {
+            mockServices.storeService.isPendingEdit.mockReturnValue(false); // Not editing anything
+
+            const updatedRegion = {
+              id: 'region-1',
+              regionText: 'ANY TEXT',
+              translation: 'ANY TRANSLATION',
+              start: 50,
+              end: 60,
+              userLastUpdated: 'browser.b@user.com',
+              _version: 2
+            } as any;
+
+            const event = { mutation: 'UPDATE', region: updatedRegion };
+            subscriptionCallback(event);
+
+            // Should apply everything normally (no selective protection)
+            expect(mockServices.storeService.setRegionVersion).toHaveBeenCalledWith('region-1', 2);
+          });
+
+          it('EDGE CASE: A editing text, B saves mixed changes → should update version (has unprotected changes)', () => {
+            mockServices.storeService.isPendingEdit.mockImplementation((regionId, field) => {
+              return field === 'regionText';
+            });
+
+            // Browser B saves both text AND bounds (common in GraphQL subscriptions)
+            const updatedRegion = {
+              id: 'region-1',
+              regionText: 'TEXT FROM B',     // Protected field
+              start: 15,                     // Unprotected field
+              end: 25,                       // Unprotected field
+              userLastUpdated: 'browser.b@user.com',
+              _version: 2
+            } as any;
+
+            const event = { mutation: 'UPDATE', region: updatedRegion };
+            subscriptionCallback(event);
+
+            // Text should be protected
+            expect(mockServices.storeService.setRegionText).not.toHaveBeenCalled();
+            
+            // Bounds should be updated
+            expect(mockServices.storeService.updateRegionBounds).toHaveBeenCalledWith('region-1', 15, 25);
+            
+            // VERSION SHOULD UPDATE - because bounds (unprotected) changed
+            expect(mockServices.storeService.setRegionVersion).toHaveBeenCalledWith('region-1', 2);
+          });
+
+          it('EDGE CASE: A editing text, B saves only regionAnalysis → should update version (analysis not protected)', () => {
+            mockServices.storeService.isPendingEdit.mockImplementation((regionId, field) => {
+              return field === 'regionText';
+            });
+
+            const updatedRegion = {
+              id: 'region-1',
+              regionAnalysis: ['new', 'analysis', 'words'],
+              userLastUpdated: 'browser.b@user.com',
+              _version: 2
+            } as any;
+
+            const event = { mutation: 'UPDATE', region: updatedRegion };
+            subscriptionCallback(event);
+
+            expect(mockServices.storeService.setRegionAnalysis).toHaveBeenCalledWith('region-1', ['new', 'analysis', 'words']);
+            expect(mockServices.storeService.setRegionVersion).toHaveBeenCalledWith('region-1', 2);
+          });
+        });
+
+        it('REGRESSION: regionAnalysis alone should NOT prevent version updates', () => {
+          // User is NOT editing anything
+          mockServices.storeService.isPendingEdit.mockReturnValue(false);
+
+          // Remote update with ONLY regionAnalysis change
+          const updatedRegion = {
+            id: 'region-1',
+            regionAnalysis: ['new', 'analysis', 'words'],
+            userLastUpdated: 'other@user.com',
+            _version: 1
+          } as any;
+
+          const event = { mutation: 'UPDATE', region: updatedRegion };
+          subscriptionCallback(event);
+
+          // Should update regionAnalysis
+          expect(mockServices.storeService.setRegionAnalysis).toHaveBeenCalledWith('region-1', ['new', 'analysis', 'words']);
+          
+          // VERSION SHOULD BE UPDATED - regionAnalysis alone is not a conflicting change
+          expect(mockServices.storeService.setRegionVersion).toHaveBeenCalledWith('region-1', 1);
+        });
+      });
+
+      describe('RTE synchronization and known words formatting', () => {
+        beforeEach(() => {
+          mockServices.rteService.hasEditor.mockReturnValue(true);
+        });
+
+        it('should update RTE and reapply known words formatting for text changes', () => {
+          // User is not editing anything
+          mockServices.storeService.isPendingEdit.mockReturnValue(false);
+
+          const updatedRegion = createMockRegion({
+            regionText: 'remote text with known words',
+            regionAnalysis: ['known', 'words'],
+            userLastUpdated: 'other@user.com'
+          });
+
+          const event = { mutation: 'UPDATE', region: updatedRegion };
+          subscriptionCallback(event);
+
+          // RTE should be updated
+          expect(mockServices.rteService.hasEditor).toHaveBeenCalledWith('region-1:main');
+          expect(mockServices.rteService.setContent).toHaveBeenCalledWith('region-1:main', 'remote text with known words');
+          
+          // Known words formatting should be reapplied
+          expect(mockServices.rteService.applyKnownWordsFormatting).toHaveBeenCalledWith('region-1:main', ['known', 'words']);
+        });
+
+        it('should update translation RTE and reapply known words formatting', () => {
+          // User is not editing anything
+          mockServices.storeService.isPendingEdit.mockReturnValue(false);
+
+          const updatedRegion = createMockRegion({
+            translation: 'remote translation with known words',
+            regionAnalysis: ['known', 'words'],
+            userLastUpdated: 'other@user.com'
+          });
+
+          const event = { mutation: 'UPDATE', region: updatedRegion };
+          subscriptionCallback(event);
+
+          // Translation RTE should be updated
+          expect(mockServices.rteService.hasEditor).toHaveBeenCalledWith('region-1:translation');
+          expect(mockServices.rteService.setContent).toHaveBeenCalledWith('region-1:translation', 'remote translation with known words');
+          
+          // Known words formatting should be reapplied
+          expect(mockServices.rteService.applyKnownWordsFormatting).toHaveBeenCalledWith('region-1:translation', ['known', 'words']);
+        });
+
+        it('should use fallback region analysis when updated region has no analysis', () => {
+          // User is not editing anything
+          mockServices.storeService.isPendingEdit.mockReturnValue(false);
+
+          const updatedRegion = createMockRegion({
+            regionText: 'remote text change',
+            // No regionAnalysis in update
+            userLastUpdated: 'other@user.com'
+          });
+
+          const event = { mutation: 'UPDATE', region: updatedRegion };
+          subscriptionCallback(event);
+
+          // RTE should be updated
+          expect(mockServices.rteService.setContent).toHaveBeenCalledWith('region-1:main', 'remote text change');
+          
+          // Should use fallback analysis from store
+          expect(mockServices.rteService.applyKnownWordsFormatting).toHaveBeenCalledWith('region-1:main', ['known', 'words']);
+        });
+
+        it('should update RTE during selective protection for non-protected fields', () => {
+          // User is editing text, so translation updates should sync to RTE
+          mockServices.storeService.isPendingEdit.mockImplementation((regionId, field) => {
+            if (field === 'regionText') return true;
+            if (field === 'translation') return false;
+            return false;
+          });
+
+          const updatedRegion = createMockRegion({
+            translation: 'remote translation change',
+            regionAnalysis: ['test', 'words'],
+            userLastUpdated: 'other@user.com'
+          });
+
+          const event = { mutation: 'UPDATE', region: updatedRegion };
+          subscriptionCallback(event);
+
+          // Translation should be updated in store
+          expect(mockServices.storeService.setRegionTranslation).toHaveBeenCalledWith('region-1', 'remote translation change');
+          
+          // Translation RTE should be updated
+          expect(mockServices.rteService.hasEditor).toHaveBeenCalledWith('region-1:translation');
+          expect(mockServices.rteService.setContent).toHaveBeenCalledWith('region-1:translation', 'remote translation change');
+          
+          // Known words formatting should be reapplied to translation RTE
+          expect(mockServices.rteService.applyKnownWordsFormatting).toHaveBeenCalledWith('region-1:translation', ['test', 'words']);
+        });
+
+        it('should not update RTE when editor does not exist', () => {
+          mockServices.rteService.hasEditor.mockReturnValue(false);
+          mockServices.storeService.isPendingEdit.mockReturnValue(false);
+
+          const updatedRegion = createMockRegion({
+            regionText: 'remote text change',
+            userLastUpdated: 'other@user.com'
+          });
+
+          const event = { mutation: 'UPDATE', region: updatedRegion };
+          subscriptionCallback(event);
+
+          // Store should be updated
+          expect(mockServices.storeService.setRegionText).toHaveBeenCalledWith('region-1', 'remote text change');
+          
+          // RTE should not be updated
+          expect(mockServices.rteService.setContent).not.toHaveBeenCalled();
+          expect(mockServices.rteService.applyKnownWordsFormatting).not.toHaveBeenCalled();
+        });
+      });
+    });
   });
 
   describe('Simplified Subscription Handling - Always Apply Remote Changes', () => {
@@ -562,7 +1128,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
       // Should NOT apply text changes (protect user's typing)
       expect(mockStoreService.setRegionText).not.toHaveBeenCalled();
       
-      // Should NOT update version (preserve for conflict detection at save time)
+      // Should NOT update version to force conflict when same field is edited concurrently
       expect(mockStoreService.setRegionVersion).not.toHaveBeenCalled();
       
       // Should NOT queue conflicts - version conflicts handled at save time
@@ -653,5 +1219,5 @@ describe('SubscribeToRegionChangesUseCase', () => {
       // Should NOT run conflict detection at all when user isn't editing
       expect(mockServices.conflictDetectionService.detectConflict).not.toHaveBeenCalled();
     });
-  });
+      });
 }); 
