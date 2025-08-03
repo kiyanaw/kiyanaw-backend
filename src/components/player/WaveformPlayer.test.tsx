@@ -147,6 +147,7 @@ describe('WaveformPlayer', () => {
         regionById: jest.fn(() => null),
         issueById: jest.fn(() => null),
         issuesByRegion: jest.fn(() => []),
+        calculateTranscriptionMetadata: jest.fn(() => ({ regionCount: 0, coverage: 0 })),
       };
       return selector(state);
     });
@@ -540,6 +541,7 @@ describe('WaveformPlayer', () => {
         regionById: jest.fn(() => null),
         issueById: jest.fn(() => null),
         issuesByRegion: jest.fn(() => []),
+        calculateTranscriptionMetadata: jest.fn(() => ({ regionCount: 0, coverage: 0 })),
       };
       
       mockUseEditorStore.mockImplementation((selector) => selector(mockStateWithNoEdit));
@@ -623,6 +625,7 @@ describe('WaveformPlayer', () => {
           regionById: jest.fn(() => null),
           issueById: jest.fn(() => null),
           issuesByRegion: jest.fn(() => []),
+          calculateTranscriptionMetadata: jest.fn(() => ({ regionCount: 0, coverage: 0 })),
         };
         return selector(state);
       });

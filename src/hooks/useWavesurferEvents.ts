@@ -8,6 +8,7 @@ import { services } from '../services';
 
 import { CreateRegion } from '../use-cases/create-region';
 import { UpdateRegionBounds } from '../use-cases/update-region-bounds';
+import { UpdateTranscriptionUseCase } from '../use-cases/update-transcription';
 
 // Wavesurfer event interfaces
 interface RegionCreatedEvent {
@@ -55,12 +56,11 @@ export const useWavesurferEvents = (transcriptionId: string, source?: string): v
     const handleRegionCreated = (data: unknown) => {
       const event = data as RegionCreatedEvent;
       console.log('Region Created', event);
-      const store = useEditorStore.getState();
       const usecase = new CreateRegion({
         transcriptionId,
         newRegion: { id: event.id, start: event.start, end: event.end },
         services,
-        store,
+        store: useEditorStore.getState(),
       });
       usecase.execute();
     };
@@ -68,7 +68,6 @@ export const useWavesurferEvents = (transcriptionId: string, source?: string): v
     const handleRegionUpdateEnd = (data: unknown) => {
       const event = data as RegionUpdateEndEvent;
       console.log('Region Updated', event);
-      const store = useEditorStore.getState();
       const user = services.authService.currentUser();
       if (!user) {
         console.warn('Cannot update region bounds: user not authenticated');
@@ -81,7 +80,7 @@ export const useWavesurferEvents = (transcriptionId: string, source?: string): v
         newEnd: event.end,
         user,
         services,
-        store,
+        store: useEditorStore.getState(),
       });
       usecase.execute();
     };
@@ -133,8 +132,25 @@ export const useWavesurferEvents = (transcriptionId: string, source?: string): v
 
     const handleReadyWithDuration = (data: unknown) => {
       const event = data as ReadyEvent;
+      console.log('wavesurfer ready', event)
       usePlayerStore.getState().setLoadedAndReady(true);
       usePlayerStore.getState().setDuration(event.duration);
+      
+      // Update transcription length with the actual duration from wavesurfer
+      const store = useEditorStore.getState();
+      const transcription = store.transcription
+      console.log(transcription, event)
+      if (transcription && transcription.length === 0 && event.duration > 0) {
+        const updateTranscriptionUseCase = new UpdateTranscriptionUseCase({
+          transcriptionId: transcription.id,
+          updates: { length: event.duration },
+          services,
+          store,
+        });
+        updateTranscriptionUseCase.execute().catch(error => {
+          console.warn('Failed to update transcription length:', error);
+        });
+      }
     };
 
     wavesurferService.on('region-created', handleRegionCreated);

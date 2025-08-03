@@ -14,11 +14,25 @@ describe('DeleteRegion', () => {
     authService: {
       currentUser: jest.fn(),
     },
+    transcriptionService: {
+      updateTranscription: jest.fn(),
+    },
   };
 
   const mockStore = {
     regionById: jest.fn(),
     deleteRegion: jest.fn(),
+    transcription: {
+      id: 'transcription123',
+      title: 'Test Transcription',
+      length: 120,
+    },
+    regions: [],
+    calculateTranscriptionMetadata: jest.fn(() => ({ regionCount: 1, coverage: 0.5 })),
+    setTranscription: jest.fn(),
+    getState: jest.fn(() => ({
+      regionById: jest.fn(() => ({ transcriptionId: 'transcription123' })),
+    })),
   };
 
   const mockUser = {
@@ -31,6 +45,7 @@ describe('DeleteRegion', () => {
     start: 10,
     end: 20,
     regionText: 'Test region',
+    transcriptionId: 'transcription123',
   };
 
   const validConfig = {

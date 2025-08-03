@@ -19,11 +19,9 @@ export const useUpdateTranscription = (transcriptionId: string) => {
       }
 
       const store = useEditorStore.getState();
-      
       new UpdateTranscriptionUseCase({
         transcriptionId,
         updates,
-        username: user.username,
         services,
         store,
       }).execute();

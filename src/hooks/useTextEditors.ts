@@ -53,7 +53,7 @@ export const useTextEditors = (regionId: string, activeTab: 'main' | 'translatio
           regionId,
           text,
           field: 'regionText',
-          store: useEditorStore,
+          store: useEditorStore.getState(),
           services
         }).execute();
 
@@ -67,7 +67,7 @@ export const useTextEditors = (regionId: string, activeTab: 'main' | 'translatio
           regionId,
           text,
           services,
-          store: useEditorStore
+          store: useEditorStore.getState()
         }).execute();
       });
     }
@@ -110,7 +110,7 @@ export const useTextEditors = (regionId: string, activeTab: 'main' | 'translatio
           regionId,
           text,
           field: 'translation',
-          store: useEditorStore,
+          store: useEditorStore.getState(),
           services
         }).execute();
       });

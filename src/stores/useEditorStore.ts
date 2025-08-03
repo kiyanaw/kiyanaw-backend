@@ -50,9 +50,13 @@ interface EditorState {
   setSelectedRegion: (regionId: string | null) => void;
   setPlaybackWithinRegion: (regionId: string | null) => void;
   addNewRegion: (region: RegionData) => void;
+  deleteRegion: (regionId: string) => void;
   setRegionText: (regionId: string, text: string) => void;
   setRegionTranslation: (regionId: string, translation: string) => void;
   updateRegionBounds: (regionId: string, start: number, end: number) => void;
+
+  // Transcription metadata helpers
+  calculateTranscriptionMetadata: () => { regionCount: number; coverage: number };
 
   // Spell checking actions
   addKnownWords: (words: string[]) => void;
@@ -216,6 +220,31 @@ export const useEditorStore = create<EditorState>()(
         });
       },
 
+      deleteRegion: (regionId: string) => {
+        const { regions, regionMap, selectedRegionId } = get();
+        
+        // Remove from regionMap
+        const newRegionMap = { ...regionMap };
+        delete newRegionMap[regionId];
+        
+        // Remove from regions array
+        const newRegions = regions.filter(r => r.id !== regionId);
+        
+        // Prepare the update object
+        const updateObj: Partial<EditorState> = {
+          regions: newRegions,
+          regionMap: newRegionMap,
+        };
+        
+        // If this was the selected region, clear the selection
+        if (selectedRegionId === regionId) {
+          updateObj.selectedRegionId = null;
+          updateObj.selectedRegion = null;
+        }
+        
+        set(updateObj);
+      },
+
       setRegionText: (regionId, text) => {
         const { regionMap, regions, selectedRegionId } = get();
         const existingRegion = regionMap[regionId];
@@ -349,6 +378,23 @@ export const useEditorStore = create<EditorState>()(
         }
         
         set(updateObj);
+      },
+
+      // Transcription metadata helpers
+      calculateTranscriptionMetadata: () => {
+        const { regions, transcription } = get();
+        
+        const regionCount = regions.length;
+        
+        // Calculate coverage: last region end / total transcription length
+        let coverage = 0;
+        if (regions.length > 0 && transcription?.length) {
+          // Find the latest end time among all regions
+          const lastRegionEnd = Math.max(...regions.map(r => r.end));
+          coverage = Math.min(lastRegionEnd / transcription.length, 1.0); // Cap at 1.0
+        }
+        
+        return { regionCount, coverage };
       },
     }),
     { name: 'EditorStore' }

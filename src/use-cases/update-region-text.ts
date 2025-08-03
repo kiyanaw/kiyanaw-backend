@@ -1,4 +1,5 @@
 import { services } from '../services';
+import { UpdateTranscriptionUseCase } from './update-transcription';
 import Timeout from 'smart-timeout';
 
 interface UpdateRegionTextConfig {
@@ -32,11 +33,10 @@ export class UpdateRegionTextUseCase {
     const { regionId, text, field, store, services } = this.config;
 
     // Update local store immediately for responsive UI
-    const storeState = store.getState();
     if (field === 'regionText') {
-      storeState.setRegionText(regionId, text);
+      store.setRegionText(regionId, text);
     } else {
-      storeState.setRegionTranslation(regionId, text);
+      store.setRegionTranslation(regionId, text);
     }
 
     // Check if user is authenticated
@@ -56,8 +56,7 @@ export class UpdateRegionTextUseCase {
     const timeoutKey = `region-text-save-${regionId}`;
     Timeout.set(timeoutKey, async () => {
       try {
-        // Get fresh store state at save time
-        const currentStoreState = store.getState();
+        // Get fresh state at save time
         
         // Prepare update data
         const updateData: {
@@ -71,7 +70,7 @@ export class UpdateRegionTextUseCase {
         // If updating main text, include current analysis from store at save time
         if (field === 'regionText') {
           try {
-            const region = currentStoreState.regionById(regionId);
+            const region = store.regionById(regionId);
             if (region?.regionAnalysis) {
               updateData.regionAnalysis = region.regionAnalysis;
             }
@@ -90,6 +89,16 @@ export class UpdateRegionTextUseCase {
 
         // Remove from pending saves
         pendingSaves.delete(regionId);
+
+        // Update the transcription with metadata
+        const region = store.regionById(regionId);
+        const updateTranscriptionUseCase = new UpdateTranscriptionUseCase({
+          transcriptionId: region.transcriptionId,
+          services,
+          store: store,
+        });
+        
+        await updateTranscriptionUseCase.execute();
         
       } catch (error) {
         console.error('Failed to save region text:', error);

@@ -291,7 +291,6 @@ describe('UpdateRegionTextUseCase', () => {
       
       expect(() => useCase.execute()).not.toThrow();
       
-      expect(mockStore.getState).toHaveBeenCalledTimes(1);
       expect(mockSetRegionText).toHaveBeenCalledWith('test-region-id', 'Test text content');
     });
 
@@ -308,19 +307,17 @@ describe('UpdateRegionTextUseCase', () => {
       
       expect(() => useCase.execute()).not.toThrow();
       
-      expect(mockStore.getState).toHaveBeenCalledTimes(1);
       expect(mockSetRegionTranslation).toHaveBeenCalledWith('translation-region-id', 'Translated content');
     });
 
     it('should work with real store structure', () => {
       // Test with a more realistic store mock structure
       const realisticStore = {
-        getState: () => ({
-          setRegionText: mockSetRegionText,
-          setRegionTranslation: mockSetRegionTranslation,
-          regions: [],
-          selectedRegionId: null
-        })
+        setRegionText: mockSetRegionText,
+        setRegionTranslation: mockSetRegionTranslation,
+        regionById: jest.fn(() => ({ transcriptionId: 'test-transcription-id', regionAnalysis: ['word1', 'word2'] })),
+        regions: [],
+        selectedRegionId: null
       } as any; // Type assertion for testing
       
       const realisticConfig = {

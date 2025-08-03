@@ -1,4 +1,5 @@
 import { services } from '../services';
+import { UpdateTranscriptionUseCase } from './update-transcription';
 import type { User } from '../types/shared';
 
 interface UpdateRegionBoundsConfig {
@@ -62,6 +63,15 @@ export class UpdateRegionBounds {
         { start: newStart, end: newEnd },
         username
       );
+
+      // Update the transcription with metadata  
+      const updateTranscriptionUseCase = new UpdateTranscriptionUseCase({
+        transcriptionId: existingRegion.transcriptionId,
+        services,
+        store: store,
+      });
+      
+      await updateTranscriptionUseCase.execute();
 
     } catch (error) {
       console.error(`❌ Failed to save region ${regionId} bounds:`, error);

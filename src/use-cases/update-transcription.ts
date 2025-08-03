@@ -5,15 +5,15 @@ import type { TranscriptionData } from '../types/shared';
 
 export interface UpdateTranscriptionConfig {
   transcriptionId: string;
-  updates: {
+  updates?: {
     title?: string;
     comments?: string;
     source?: string;
+    length?: number;
   };
   services: typeof services;
-  username?: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  store?: any;
+  store: any;
 }
 
 export class UpdateTranscriptionUseCase {
@@ -28,16 +28,12 @@ export class UpdateTranscriptionUseCase {
       throw new Error('transcriptionId is required');
     }
 
-    if (!this.config.username) {
-      throw new Error('username is required');
-    }
-
-    if (!this.config.updates || Object.keys(this.config.updates).length === 0) {
-      throw new Error('updates are required');
+    if (!this.config.store) {
+      throw new Error('store is required');
     }
 
     // Check if title is provided and validate it
-    if (this.config.updates.title !== undefined) {
+    if (this.config.updates?.title !== undefined) {
       if (!this.config.updates.title || this.config.updates.title.trim() === '') {
         throw new Error('title cannot be empty');
       }
@@ -47,25 +43,46 @@ export class UpdateTranscriptionUseCase {
   async execute(): Promise<TranscriptionData> {
     this.validate();
 
-    const { transcriptionId, updates, username, store } = this.config;
+    const { transcriptionId, updates, store, services } = this.config;
 
-    // Add user tracking fields
-    const updateData = {
+    // Get current user from auth service
+    const user = services.authService.currentUser();
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    // Calculate the complete updated transcription
+    const currentTranscription = store.transcription;
+    if (!currentTranscription) {
+      throw new Error('No transcription found in store');
+    }
+
+        const { coverage } = store.calculateTranscriptionMetadata();
+    
+    // Only send updatable fields to API
+    const apiUpdate = {
       ...updates,
-      userLastUpdated: username,  // Keep username for display purposes
+      coverage,
+      userLastUpdated: user.username.split('@')[0], // Extract username part from email
       dateLastUpdated: new Date().toISOString(),
     };
 
-    try {
-      // Update transcription  
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await this.config.services.transcriptionService.updateTranscription(transcriptionId, updateData as any);
+    // Create complete updated object for optimistic store update
+    const updated = {
+      ...currentTranscription,
+      ...apiUpdate,
+    };
 
-      // Update store with transcription wrapped in ADT model
-      if (store?.setTranscription) {
-        const transcriptionModel = new TranscriptionModel(result);
-        store.setTranscription(transcriptionModel);
-      }
+    // Update store immediately (optimistic update) 
+    const transcriptionModel = new TranscriptionModel(updated);
+    store.setTranscription(transcriptionModel);
+
+    try {
+      // Save to API
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await services.transcriptionService.updateTranscription(transcriptionId, apiUpdate as any);
+
+      // TODO: how to handle roll-back or conflict if this fails
 
       // Show success toast
       showToast('Transcription saved', 'success');

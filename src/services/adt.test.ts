@@ -129,20 +129,20 @@ describe('ADT Models', () => {
         testCases.forEach(({ input, expected }) => {
           const data = { ...mockTranscriptionData, length: input };
           const model = new TranscriptionModel(data);
-          expect(model.length).toBe(expected);
+          expect(model.lengthFriendly).toBe(expected);
         });
       });
 
       it('should handle zero length', () => {
         const data = { ...mockTranscriptionData, length: 0 };
         const model = new TranscriptionModel(data);
-        expect(model.length).toBe('00:00');
+        expect(model.lengthFriendly).toBe('00:00');
       });
 
       it('should handle decimal seconds properly', () => {
         const data = { ...mockTranscriptionData, length: 61.789 };
         const model = new TranscriptionModel(data);
-        expect(model.length).toBe('01:01');
+        expect(model.lengthFriendly).toBe('01:01');
       });
 
       it('should handle edge case length values', () => {
@@ -150,28 +150,27 @@ describe('ADT Models', () => {
         const model = new TranscriptionModel(dataWithLargeLength);
         
         // Should return a formatted string
-        expect(typeof model.length).toBe('string');
-        expect(model.length).toMatch(/^\d+:\d{2}$/);
+        expect(typeof model.lengthFriendly).toBe('string');
+        expect(model.lengthFriendly).toMatch(/^\d+:\d{2}$/);
       });
     });
 
-    describe('length setter', () => {
-      it('should set internal length value', () => {
-        const model = new TranscriptionModel(mockTranscriptionData);
+    describe('length initialization', () => {
+      it('should initialize internal length value from constructor', () => {
+        const data = { ...mockTranscriptionData, length: 180.5 };
+        const model = new TranscriptionModel(data);
         
-        model.length = 180.5;
-        expect((model as any)._length).toBe(180.5);
-        expect(model.length).toBe('03:00'); // Getter should reflect new value
+        expect((model as any).length).toBe(180.5);
+        expect(model.lengthFriendly).toBe('03:00'); // Getter should reflect constructor value
       });
 
-      it('should handle different numeric values', () => {
-        const model = new TranscriptionModel(mockTranscriptionData);
-        
+      it('should handle different numeric values in constructor', () => {
         const testValues = [0, 30.5, 120, 3600.789];
         
         testValues.forEach(value => {
-          model.length = value;
-          expect((model as any)._length).toBe(value);
+          const data = { ...mockTranscriptionData, length: value };
+          const model = new TranscriptionModel(data);
+          expect((model as any).length).toBe(value);
         });
       });
     });

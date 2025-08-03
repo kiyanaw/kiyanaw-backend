@@ -11,7 +11,6 @@ import { createRegion as createRegionMutation, updateRegion as updateRegionMutat
 import { getRegion as getRegionQuery } from '../graphql/queries.js';
 
 import { RegionModel } from './adt';
-import { showToast } from './toastService';
 import { type RegionData } from './adt';
 import { 
   type GraphQLClient,
@@ -106,8 +105,7 @@ export const createRegion = async (
     const created = data?.createRegion;
     return new RegionModel(created);
   } catch (error) {
-    // console.error('❌ Failed to create region via API:', error);
-    showToast('Failed to create region', 'error');
+    console.error('❌ Failed to create region via API:', error);
     throw error;
   }
 };
@@ -149,11 +147,9 @@ export const updateRegion = async (regionId: string, updates: Partial<RegionData
 
     const analysisInfo = updates.regionAnalysis ? ` + analysis` : '';
     console.log(`✅ Saved region ${regionId}${analysisInfo}`);
-    showToast(`Saved region ${regionId.slice(0, 8)}...${analysisInfo}`, 'success');
     
   } catch (error) {
     console.error(`❌ Failed to save region ${regionId}:`, error);
-    showToast(`Failed to save region ${regionId.slice(0, 8)}...`, 'error');
     throw error;
   }
 };
@@ -187,12 +183,10 @@ export const deleteRegion = async (regionId: string) => {
       authMode: 'iam',
     });
     
-    // console.log(`✅ Deleted region ${regionId}`);
-    showToast(`Deleted region ${regionId.slice(0, 8)}...`, 'success');
+    console.log(`✅ Deleted region ${regionId}`);
     
   } catch (error) {
-    // console.error(`❌ Failed to delete region ${regionId}:`, error);
-    showToast(`Failed to delete region ${regionId.slice(0, 8)}...`, 'error');
+    console.error(`❌ Failed to delete region ${regionId}:`, error);
     throw error;
   }
 };
