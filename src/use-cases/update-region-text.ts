@@ -54,16 +54,15 @@ async function analyzeConflict(
   attemptedValue: string,
   localVersion: number,
   store: any
-): Promise<{ isRealConflict: boolean; remoteValue?: string; remoteVersion?: number }> {
+): Promise<{ isRealConflict: boolean; remoteValue?: string; remoteVersion?: number; remoteUser?: string }> {
   try {
-    // Get current state from store (reflects latest remote data)
-    const currentRegion = store.regionById(regionId);
-    if (!currentRegion) {
-      return { isRealConflict: false };
-    }
-    
-    const remoteValue = field === 'regionText' ? currentRegion.regionText : currentRegion.translation;
+    // Get remote values that were stored from the last subscription update
+    // (These are preserved even when we protect the user's typing)
+    const remoteValue = field === 'regionText' 
+      ? store.getRemoteRegionText(regionId)
+      : store.getRemoteRegionTranslation(regionId);
     const remoteVersion = store.getRegionVersion(regionId);
+    const remoteUser = store.getRemoteRegionUser(regionId);
     
     // If values are the same, it's just a version mismatch (auto-retry)
     if (remoteValue === attemptedValue) {
@@ -71,7 +70,8 @@ async function analyzeConflict(
       return { 
         isRealConflict: false, 
         remoteValue, 
-        remoteVersion 
+        remoteVersion,
+        remoteUser
       };
     }
     
@@ -84,7 +84,8 @@ async function analyzeConflict(
     return { 
       isRealConflict: true, 
       remoteValue, 
-      remoteVersion 
+      remoteVersion,
+      remoteUser
     };
     
   } catch (error) {
@@ -103,7 +104,8 @@ function createConflictData(
   localValue: string,
   remoteValue: string,
   localVersion: number,
-  remoteVersion: number
+  remoteVersion: number,
+  remoteUser?: string
 ): ConflictData {
   return {
     regionId,
@@ -112,6 +114,7 @@ function createConflictData(
     remoteValue,
     localVersion,
     remoteVersion,
+    remoteUserLastUpdated: remoteUser,
     timestamp: Date.now(),
     conflictId: `${regionId}-${field}-${Date.now()}-${Math.random()}`
   };
@@ -258,7 +261,8 @@ export class UpdateRegionTextUseCase {
               text, // User's attempted value
               conflictAnalysis.remoteValue || '', // Current DB value
               currentVersion, // User's version
-              conflictAnalysis.remoteVersion || currentVersion + 1 // DB version
+              conflictAnalysis.remoteVersion || currentVersion + 1, // DB version
+              conflictAnalysis.remoteUser // Remote user who last updated
             );
             
             // Show conflict resolution dialog

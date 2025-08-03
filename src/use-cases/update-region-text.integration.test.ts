@@ -45,6 +45,9 @@ describe('UpdateRegionTextUseCase - Enhanced Conflict Resolution Integration', (
       getRegionVersion: jest.fn(),
       setRegionText: jest.fn(),
       setRegionTranslation: jest.fn(),
+      getRemoteRegionText: jest.fn(),
+      getRemoteRegionTranslation: jest.fn(),
+      getRemoteRegionUser: jest.fn(),
     };
 
     // Setup service mocks
@@ -65,6 +68,10 @@ describe('UpdateRegionTextUseCase - Enhanced Conflict Resolution Integration', (
         transcriptionId: 'test-transcription'
       });
       mockStore.getRegionVersion.mockReturnValue(3); // Remote version
+      
+      // Mock remote values (what was stored from subscription update)
+      mockStore.getRemoteRegionText.mockReturnValue('hello world'); // Same content
+      mockStore.getRemoteRegionUser.mockReturnValue('user.a@example.com');
       
       // Save fails with version conflict
       const versionError = new Error('ConditionalCheckFailedException');
@@ -123,6 +130,10 @@ describe('UpdateRegionTextUseCase - Enhanced Conflict Resolution Integration', (
       });
       mockStore.getRegionVersion.mockReturnValue(5); // Remote version
       
+      // Mock remote values (what was stored from subscription update)
+      mockStore.getRemoteRegionText.mockReturnValue(remoteText); // Different content
+      mockStore.getRemoteRegionUser.mockReturnValue('user.a@example.com');
+      
       // Save fails with version conflict
       const versionError = new Error('ConditionalCheckFailedException');
       mockRegionService.updateRegion.mockRejectedValueOnce(versionError);
@@ -180,6 +191,10 @@ describe('UpdateRegionTextUseCase - Enhanced Conflict Resolution Integration', (
       });
       mockStore.getRegionVersion.mockReturnValue(4);
       
+      // Mock remote values (what was stored from subscription update)
+      mockStore.getRemoteRegionText.mockReturnValue(remoteText); // Different content
+      mockStore.getRemoteRegionUser.mockReturnValue('user.a@example.com');
+      
       // First save fails, retry succeeds
       const versionError = new Error('ConditionalCheckFailedException');
       mockRegionService.updateRegion
@@ -236,6 +251,10 @@ describe('UpdateRegionTextUseCase - Enhanced Conflict Resolution Integration', (
         transcriptionId: 'test-transcription'
       });
       mockStore.getRegionVersion.mockReturnValue(2);
+      
+      // Mock remote values (what was stored from subscription update)
+      mockStore.getRemoteRegionTranslation.mockReturnValue(remoteTranslation); // Different content
+      mockStore.getRemoteRegionUser.mockReturnValue('user.a@example.com');
       
       const versionError = new Error('ConditionalCheckFailedException');
       mockRegionService.updateRegion.mockRejectedValueOnce(versionError);

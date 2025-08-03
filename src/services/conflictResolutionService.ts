@@ -5,6 +5,7 @@ export interface ConflictData {
   remoteValue: string;
   localVersion: number;
   remoteVersion: number;
+  remoteUserLastUpdated?: string; // The user who last updated the remote version
   timestamp: number;
   conflictId: string;
 }
@@ -40,27 +41,29 @@ class ConflictResolutionServiceImpl implements ConflictResolutionService {
     // Store the active conflict
     this.activeConflicts.set(conflictKey, conflict);
     
-    // TODO: Phase 4 - Show actual UI dialog
-    // For now, we'll log the conflict and default to accepting remote
-    console.log('🔥 CONFLICT DETECTED - Would show dialog:', {
+    console.log('🔥 CONFLICT DETECTED - Showing real dialog:', {
       regionId: conflict.regionId,
       field: conflict.field,
-      localValue: conflict.localValue,
-      remoteValue: conflict.remoteValue,
+      localValue: conflict.localValue?.substring(0, 50) + '...',
+      remoteValue: conflict.remoteValue?.substring(0, 50) + '...',
       localVersion: conflict.localVersion,
       remoteVersion: conflict.remoteVersion
     });
     
-    // Simulate user choosing to accept remote changes for now
-    // In Phase 4, this will be replaced with actual UI dialog
-    const result: ConflictResolutionResult = {
-      action: 'accept_remote'
-    };
-    
-    // Clean up
-    this.activeConflicts.delete(conflictKey);
-    
-    return result;
+    try {
+      // Use the global dialog manager to show the real UI dialog
+      const { conflictDialogManager } = await import('./conflictDialogManager');
+      const result = await conflictDialogManager.showDialog(conflict);
+      
+      console.log('🔥 User resolved conflict:', result);
+      this.activeConflicts.delete(conflictKey);
+      return result;
+    } catch (error) {
+      console.error('Error showing conflict dialog:', error);
+      // Fallback to accepting remote changes if dialog fails
+      this.activeConflicts.delete(conflictKey);
+      return { action: 'accept_remote' };
+    }
   }
   
   hasActiveConflict(regionId: string, field: string): boolean {

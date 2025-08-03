@@ -26,6 +26,9 @@ interface EditorState {
   regions: RegionData[];
   regionMap: Record<string, RegionData>;
   regionVersions: Record<string, number>; // Track versions locally for conflict resolution
+  remoteRegionTexts: Record<string, string>; // Track remote text values for conflict resolution  
+  remoteRegionTranslations: Record<string, string>; // Track remote translation values for conflict resolution
+  remoteRegionUsers: Record<string, string>; // Track remote user who last updated for conflict resolution
   selectedRegionId: string | null;
   selectedRegion: RegionData | null;
   playbackWithinRegion: string | null;
@@ -93,6 +96,14 @@ interface EditorState {
   getRegionVersion: (id: string) => number;
   setRegionVersion: (id: string, version: number) => void;
   isPendingEdit: (regionId: string, field?: string) => boolean;
+  
+  // Remote value tracking for conflict resolution
+  setRemoteRegionText: (id: string, text: string) => void;
+  getRemoteRegionText: (id: string) => string | null;
+  setRemoteRegionTranslation: (id: string, text: string) => void;
+  getRemoteRegionTranslation: (id: string) => string | null;
+  setRemoteRegionUser: (id: string, user: string) => void;
+  getRemoteRegionUser: (id: string) => string | null;
 
   // Permissions
   setCanEdit: (canEdit: boolean) => void;
@@ -112,6 +123,9 @@ export const useEditorStore = create<EditorState>()(
       regions: [],
       regionMap: {},
       regionVersions: {},
+      remoteRegionTexts: {},
+      remoteRegionTranslations: {},
+      remoteRegionUsers: {},
       selectedRegionId: null,
       selectedRegion: null,
       playbackWithinRegion: null,
@@ -408,6 +422,43 @@ export const useEditorStore = create<EditorState>()(
         set({
           regionVersions: { ...regionVersions, [id]: version }
         });
+      },
+
+      // Remote value tracking for conflict resolution
+      setRemoteRegionText: (id, text) => {
+        const { remoteRegionTexts } = get();
+        set({
+          remoteRegionTexts: { ...remoteRegionTexts, [id]: text }
+        });
+      },
+
+      getRemoteRegionText: (id) => {
+        const { remoteRegionTexts } = get();
+        return remoteRegionTexts[id] || null;
+      },
+
+      setRemoteRegionTranslation: (id, text) => {
+        const { remoteRegionTranslations } = get();
+        set({
+          remoteRegionTranslations: { ...remoteRegionTranslations, [id]: text }
+        });
+      },
+
+      getRemoteRegionTranslation: (id) => {
+        const { remoteRegionTranslations } = get();
+        return remoteRegionTranslations[id] || null;
+      },
+
+      setRemoteRegionUser: (id, user) => {
+        const { remoteRegionUsers } = get();
+        set({
+          remoteRegionUsers: { ...remoteRegionUsers, [id]: user }
+        });
+      },
+
+      getRemoteRegionUser: (id) => {
+        const { remoteRegionUsers } = get();
+        return remoteRegionUsers[id] || null;
       },
 
       isPendingEdit: (regionId, field) => {

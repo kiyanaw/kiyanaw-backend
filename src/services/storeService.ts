@@ -52,6 +52,31 @@ export const storeService = {
     return useEditorStore.getState().getRegionVersion(regionId);
   },
 
+  // Remote value operations (for conflict resolution)
+  setRemoteRegionText: (regionId: string, text: string): void => {
+    useEditorStore.getState().setRemoteRegionText(regionId, text);
+  },
+
+  getRemoteRegionText: (regionId: string): string | null => {
+    return useEditorStore.getState().getRemoteRegionText(regionId);
+  },
+
+  setRemoteRegionTranslation: (regionId: string, text: string): void => {
+    useEditorStore.getState().setRemoteRegionTranslation(regionId, text);
+  },
+
+  getRemoteRegionTranslation: (regionId: string): string | null => {
+    return useEditorStore.getState().getRemoteRegionTranslation(regionId);
+  },
+
+  setRemoteRegionUser: (regionId: string, user: string): void => {
+    useEditorStore.getState().setRemoteRegionUser(regionId, user);
+  },
+
+  getRemoteRegionUser: (regionId: string): string | null => {
+    return useEditorStore.getState().getRemoteRegionUser(regionId);
+  },
+
   // Pending edits operations
   isPendingEdit: (regionId: string, field?: string): boolean => {
     const state = useEditorStore.getState();

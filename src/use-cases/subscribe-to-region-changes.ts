@@ -82,6 +82,7 @@ export class SubscribeToRegionChangesUseCase {
 
       case 'UPDATE': {
         console.log('🔌 Handling UPDATE for region:', region.id);
+
         const currentRegion = store.regionById(region.id);
         
         if (!currentRegion) {
@@ -92,6 +93,8 @@ export class SubscribeToRegionChangesUseCase {
                 // HYBRID APPROACH: Protect active typing AND preserve version for conflict detection
         // Check if user is actively typing (has pending edits)
         const isActivelyTyping = store.isPendingEdit(region.id);
+        
+
         
         if (isActivelyTyping) {
           console.log('🔌 User actively typing - updating bounds/analysis but preserving version and text:', region.id);
@@ -132,6 +135,18 @@ export class SubscribeToRegionChangesUseCase {
         start: updatedRegion.start,
         end: updatedRegion.end
       });
+    }
+
+    // Store remote text/translation values for conflict resolution
+    // Only store if different from current main store values (indicating a true remote change)
+    if (updatedRegion.regionText !== undefined && updatedRegion.regionText !== currentRegion.regionText) {
+      store.setRemoteRegionText(updatedRegion.id, updatedRegion.regionText);
+    }
+    if (updatedRegion.translation !== undefined && updatedRegion.translation !== currentRegion.translation) {
+      store.setRemoteRegionTranslation(updatedRegion.id, updatedRegion.translation);
+    }
+    if (updatedRegion.userLastUpdated) {
+      store.setRemoteRegionUser(updatedRegion.id, updatedRegion.userLastUpdated);
     }
   
     // Update regionAnalysis if it exists (safe to update - doesn't affect typing)
@@ -185,6 +200,17 @@ export class SubscribeToRegionChangesUseCase {
     // Check if translation changed
     if (currentRegion.translation !== updatedRegion.translation) {
       store.setRegionTranslation(updatedRegion.id, updatedRegion.translation || '');
+    }
+
+    // Store remote values for conflict resolution (when not protecting typing)
+    if (updatedRegion.regionText !== undefined) {
+      store.setRemoteRegionText(updatedRegion.id, updatedRegion.regionText);
+    }
+    if (updatedRegion.translation !== undefined) {
+      store.setRemoteRegionTranslation(updatedRegion.id, updatedRegion.translation);
+    }
+    if (updatedRegion.userLastUpdated) {
+      store.setRemoteRegionUser(updatedRegion.id, updatedRegion.userLastUpdated);
     }
 
     // Set regionAnalysis if it exists (do this last to avoid duplicates)
