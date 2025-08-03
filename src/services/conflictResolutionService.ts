@@ -1,14 +1,16 @@
+type ConflictValue = string | number | boolean;
+
 export interface ConflictData {
   regionId: string;
   // Legacy single field support (for backward compatibility)
   field?: string;
-  localValue?: any;
-  remoteValue?: any;
+  localValue?: ConflictValue;
+  remoteValue?: ConflictValue;
   // New multi-field support
   conflictingFields?: Array<{
     field: string;
-    localValue: any;
-    remoteValue: any;
+    localValue: ConflictValue;
+    remoteValue: ConflictValue;
     fieldType: 'text' | 'number' | 'boolean';
   }>;
   localVersion: number;

@@ -6,7 +6,7 @@ interface ConflictDialogState {
   isOpen: boolean;
   conflict: ConflictData | null;
   resolver: ((result: ConflictResolutionResult) => void) | null;
-  rejecter: ((reason?: any) => void) | null;
+  rejecter: ((reason?: unknown) => void) | null;
 }
 
 export const useConflictDialog = () => {
@@ -38,7 +38,7 @@ export const useConflictDialog = () => {
       resolver: null,
       rejecter: null
     });
-  }, [dialogState.resolver]);
+  }, [dialogState]);
 
   const handleCancel = useCallback(() => {
     if (dialogState.rejecter) {
@@ -50,7 +50,7 @@ export const useConflictDialog = () => {
       resolver: null,
       rejecter: null
     });
-  }, [dialogState.rejecter]);
+  }, [dialogState]);
 
   const ConflictDialogComponent = useCallback(() => {
     if (!dialogState.isOpen || !dialogState.conflict) {

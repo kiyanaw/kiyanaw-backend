@@ -1,6 +1,5 @@
 import { services } from '../services';
 import { UpdateRegionUseCase } from './update-region';
-import type { ConflictData } from '../services/conflictResolutionService';
 
 // NOTE: Conflict handling functions moved to versionConflictService.ts for reuse
 

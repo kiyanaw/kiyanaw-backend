@@ -114,10 +114,14 @@ export class SubscribeToRegionChangesUseCase {
    * Allows parallel editing of different fields (text + translation, text + bounds, etc.)
    */
   private applyRemoteChangesWithSelectiveProtection(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     currentRegion: any, 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     updatedRegion: any, 
     protection: { protectText: boolean; protectTranslation: boolean; protectBounds?: boolean }
   ): void {
+    // Use parameters directly for property access
+    
     const store = this.config.services.storeService;
     const wavesurferService = this.config.services.wavesurferService;
     const rteService = this.config.services.rteService;
@@ -127,10 +131,10 @@ export class SubscribeToRegionChangesUseCase {
       const boundsChanged = currentRegion.start !== updatedRegion.start || currentRegion.end !== updatedRegion.end;
       
       if (boundsChanged) {
-        store.updateRegionBounds(updatedRegion.id, updatedRegion.start, updatedRegion.end);
-        wavesurferService.setRegionPosition(updatedRegion.id, {
-          start: updatedRegion.start,
-          end: updatedRegion.end
+        store.updateRegionBounds(updatedRegion.id as string, updatedRegion.start as number, updatedRegion.end as number);
+        wavesurferService.setRegionPosition(updatedRegion.id as string, {
+          start: updatedRegion.start as number,
+          end: updatedRegion.end as number
         });
       }
     } else if (protection.protectBounds) {
@@ -139,17 +143,17 @@ export class SubscribeToRegionChangesUseCase {
     
     // Conditionally update text (only if not being actively edited)
     if (updatedRegion.regionText !== undefined && !protection.protectText) {
-      store.setRegionText(updatedRegion.id, updatedRegion.regionText);
+      store.setRegionText(updatedRegion.id as string, updatedRegion.regionText as string);
       
       // Update RTE if it exists
       const mainEditorKey = `${updatedRegion.id}:main` as const;
       if (rteService.hasEditor(mainEditorKey)) {
         console.log('🔌 Updating RTE with remote text change (translation being edited)');
-        rteService.setContent(mainEditorKey, updatedRegion.regionText);
+        rteService.setContent(mainEditorKey, updatedRegion.regionText as string);
         
         // Reapply known words formatting after content update
         // Use updated analysis if provided, otherwise fall back to current analysis
-        const regionAnalysis = updatedRegion.regionAnalysis || store.regionById(updatedRegion.id)?.regionAnalysis;
+        const regionAnalysis = (updatedRegion.regionAnalysis as string[]) || store.regionById(updatedRegion.id as string)?.regionAnalysis;
         if (regionAnalysis && regionAnalysis.length > 0) {
           rteService.applyKnownWordsFormatting(mainEditorKey, regionAnalysis);
         }
@@ -158,17 +162,17 @@ export class SubscribeToRegionChangesUseCase {
     
     // Conditionally update translation (only if not being actively edited)
     if (updatedRegion.translation !== undefined && !protection.protectTranslation) {
-      store.setRegionTranslation(updatedRegion.id, updatedRegion.translation);
+      store.setRegionTranslation(updatedRegion.id as string, updatedRegion.translation as string);
       
       // Update translation RTE if it exists
       const translationEditorKey = `${updatedRegion.id}:translation` as const;
       if (rteService.hasEditor(translationEditorKey)) {
         console.log('🔌 Updating RTE with remote translation change (text being edited)');
-        rteService.setContent(translationEditorKey, updatedRegion.translation);
+        rteService.setContent(translationEditorKey, updatedRegion.translation as string);
         
         // Reapply known words formatting after content update
         // Use updated analysis if provided, otherwise fall back to current analysis
-        const regionAnalysis = updatedRegion.regionAnalysis || store.regionById(updatedRegion.id)?.regionAnalysis;
+        const regionAnalysis = (updatedRegion.regionAnalysis as string[]) || store.regionById(updatedRegion.id as string)?.regionAnalysis;
         if (regionAnalysis && regionAnalysis.length > 0) {
           rteService.applyKnownWordsFormatting(translationEditorKey, regionAnalysis);
         }
@@ -177,19 +181,12 @@ export class SubscribeToRegionChangesUseCase {
     
     // Update region analysis (always unprotected)
     if (updatedRegion.regionAnalysis !== undefined) {
-      store.setRegionAnalysis(updatedRegion.id, updatedRegion.regionAnalysis);
-      store.addKnownWords(updatedRegion.regionAnalysis);
+      store.setRegionAnalysis(updatedRegion.id as string, updatedRegion.regionAnalysis as string[]);
+      store.addKnownWords(updatedRegion.regionAnalysis as string[]);
     }
     
     // Update version tracking - only block if ALL remote updates are for protected fields
     // This ensures conflicts are detected when same field is edited, but allows parallel saves for different fields
-    const storedRegion = store.regionById(updatedRegion.id);
-    
-    // For version update decisions, only block if ALL changes are to protected fields
-    // Don't try to detect "what actually changed" since local store has unsaved edits
-    // Simple rule: if there are unprotected changes (bounds/analysis), allow version update
-    const hasProtectedTextChange = false; // Don't block based on text comparison
-    const hasProtectedTranslationChange = false; // Don't block based on translation comparison
     
         // BRILLIANT USER INSIGHT: Compare subscription vs BASELINE (before edits), not current store
     // This tells us exactly what the OTHER browser changed
@@ -231,7 +228,9 @@ export class SubscribeToRegionChangesUseCase {
    * Apply remote changes while protecting user's active typing
    * Updates bounds, analysis, but NOT text content or version
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private applyRemoteChangesButProtectTyping(currentRegion: any, updatedRegion: any): void {
+    
     const store = this.config.services.storeService;
     const wavesurferService = this.config.services.wavesurferService;
     
@@ -265,6 +264,7 @@ export class SubscribeToRegionChangesUseCase {
     console.log('🔌 Protected text content but updated bounds/version - allows parallel saves');
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private applyRemoteChanges(currentRegion: any, updatedRegion: any): void {
     const store = this.config.services.storeService;
     const wavesurferService = this.config.services.wavesurferService;

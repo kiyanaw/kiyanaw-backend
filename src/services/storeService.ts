@@ -1,6 +1,7 @@
 import { useEditorStore } from '../stores/useEditorStore';
 import type { RegionData } from './adt';
 import type { ConflictDetail } from './conflictDetectionService';
+import type { LazyRegion } from '../models';
 
 /**
  * Service wrapper for all Zustand store operations.
@@ -74,7 +75,7 @@ export const storeService = {
     return useEditorStore.getState().conflictQueue;
   },
 
-  addConflictToQueue: (conflictData: any): void => {
+  addConflictToQueue: (conflictData: ConflictDetail): void => {
     useEditorStore.getState().addConflictToQueue(conflictData);
   },
 
@@ -83,7 +84,7 @@ export const storeService = {
   },
 
   // Store access for region data
-  regionById: (regionId: string): any => {
+  regionById: (regionId: string): RegionData | null => {
     const state = useEditorStore.getState();
     return state.regionMap[regionId] || null;
   },
@@ -93,14 +94,14 @@ export const storeService = {
   },
 
   // Get baseline region state from pending edits (for conflict detection)
-  getBaselineForRegion: (regionId: string): any => {
+  getBaselineForRegion: (regionId: string): RegionData | LazyRegion | null => {
     const state = useEditorStore.getState();
     
     // Find baseline from any pending edit for this region
     for (const key in state.pendingEdits) {
       const edit = state.pendingEdits[key];
       if (edit.regionId === regionId && edit.baseline) {
-        return edit.baseline;
+        return edit.baseline as RegionData | LazyRegion;
       }
     }
     

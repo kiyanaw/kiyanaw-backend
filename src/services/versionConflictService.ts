@@ -1,11 +1,30 @@
 import { services } from './index';
 import type { ConflictData } from './conflictResolutionService';
+import type { ConflictDetail } from './conflictDetectionService';
+type ConflictValue = string | number | boolean;
+import type { RegionData } from './adt';
+import type { LazyRegion } from '../models';
+
+// Types for error handling
+type ErrorObject = {
+  message?: string;
+  errors?: Array<{ 
+    message?: string; 
+    errorMessage?: string; 
+    errorType?: string; 
+  }>;
+  toString?: () => string;
+};
+
+// Type for region-like objects that may be incomplete
+type RegionLike = Partial<RegionData & LazyRegion>;
 
 /**
  * Check if an error is a version conflict error from DynamoDB/AppSync
  */
-export function isVersionConflictError(error: any): boolean {
-  const errorMessage = error?.message || error?.toString() || '';
+export function isVersionConflictError(error: unknown): boolean {
+  const errorObj = error as ErrorObject;
+  const errorMessage = errorObj?.message || errorObj?.toString?.() || '';
   
   // Check direct error message for various version conflict indicators
   const directMatch = errorMessage.includes('ConditionalCheckFailedException') ||
@@ -15,7 +34,7 @@ export function isVersionConflictError(error: any): boolean {
                      errorMessage.includes('version') && errorMessage.includes('conflict');
   
   // Check GraphQL errors array (AppSync format)
-  const graphqlMatch = error?.errors && error.errors.some((e: any) => {
+  const graphqlMatch = errorObj?.errors?.some((e) => {
     const msg = e.message || e.errorMessage || '';
     return msg.includes('ConditionalCheckFailedException') ||
            msg.includes('OptimisticLockException') ||
@@ -28,7 +47,7 @@ export function isVersionConflictError(error: any): boolean {
            // AWS Amplify DataStore specific errors
            e.errorType === 'ConflictUnhandled' ||
            e.errorType === 'Conflict';
-  });
+  }) ?? false;
   
   return directMatch || graphqlMatch;
 }
@@ -38,18 +57,18 @@ export function isVersionConflictError(error: any): boolean {
  */
 export async function analyzeRegionConflict(
   regionId: string, 
-  attemptedChanges: { [key: string]: any },
+  attemptedChanges: Record<string, unknown>,
   localVersion: number,
-  store: any
+  store: typeof services.storeService
 ): Promise<{ 
   isRealConflict: boolean; 
-  remoteRegion?: any;
+  remoteRegion?: RegionLike;
   remoteVersion?: number; 
   remoteUser?: string;
   conflictingFields?: Array<{
     field: string;
-    localValue: any;
-    remoteValue: any;
+    localValue: unknown;
+    remoteValue: unknown;
     fieldType: 'text' | 'number' | 'boolean';
   }>;
 }> {
@@ -100,7 +119,7 @@ export async function analyzeRegionConflict(
 
     console.log('⚠️ Real content conflicts detected:', {
       conflictCount: conflictResult.conflictDetails.length,
-      fields: conflictResult.conflictDetails.map((c: any) => c.field)
+      fields: conflictResult.conflictDetails.map((c: ConflictDetail) => c.field)
     });
 
     return {
@@ -108,7 +127,7 @@ export async function analyzeRegionConflict(
       remoteRegion,
       remoteVersion: remoteRegion._version,
       remoteUser: remoteRegion.userLastUpdated,
-      conflictingFields: conflictResult.conflictDetails.map((conflict: any) => ({
+      conflictingFields: conflictResult.conflictDetails.map((conflict: ConflictDetail) => ({
         field: conflict.field,
         localValue: conflict.localValue,
         remoteValue: conflict.remoteValue,
@@ -128,15 +147,15 @@ export async function analyzeRegionConflict(
 export function createConflictData(
   regionId: string,
   primaryField: string,
-  localValue: any,
-  remoteValue: any,
+  localValue: unknown,
+  remoteValue: unknown,
   localVersion: number,
   remoteVersion: number,
   remoteUser?: string,
   conflictingFields?: Array<{
     field: string;
-    localValue: any;
-    remoteValue: any;
+    localValue: unknown;
+    remoteValue: unknown;
     fieldType: 'text' | 'number' | 'boolean';
   }>
 ): ConflictData {
@@ -144,10 +163,14 @@ export function createConflictData(
     regionId,
     // Legacy single field support (for backward compatibility)
     field: primaryField,
-    localValue,
-    remoteValue,
+    localValue: localValue as ConflictValue,
+    remoteValue: remoteValue as ConflictValue,
     // New multi-field support
-    conflictingFields,
+    conflictingFields: conflictingFields?.map(field => ({
+      ...field,
+      localValue: field.localValue as ConflictValue,
+      remoteValue: field.remoteValue as ConflictValue
+    })),
     localVersion,
     remoteVersion,
     remoteUserLastUpdated: remoteUser,
@@ -161,11 +184,11 @@ export function createConflictData(
  */
 export async function handleVersionConflict(
   regionId: string,
-  attemptedChanges: { [key: string]: any },
+  attemptedChanges: Record<string, unknown>,
   primaryField: string,
   localVersion: number,
-  store: any,
-  onAcceptRemote: (remoteRegion: any) => Promise<void>,
+  store: typeof services.storeService,
+  onAcceptRemote: (remoteRegion: RegionLike) => Promise<void>,
   onKeepLocal: (latestVersion: number) => Promise<void>
 ): Promise<void> {
   try {
@@ -174,7 +197,7 @@ export async function handleVersionConflict(
     
     // Always show conflict dialog - user should decide how to resolve
     const primaryLocalValue = attemptedChanges[primaryField];
-    const primaryRemoteValue = conflictAnalysis.remoteRegion?.[primaryField];
+    const primaryRemoteValue = (conflictAnalysis.remoteRegion as Record<string, unknown>)?.[primaryField];
     
     const conflictData = createConflictData(
       regionId,
@@ -193,7 +216,11 @@ export async function handleVersionConflict(
     // Handle user's resolution choice
     if (resolution.action === 'accept_remote') {
       console.log('🔄 User chose to accept remote changes');
-      await onAcceptRemote(conflictAnalysis.remoteRegion);
+      if (conflictAnalysis.remoteRegion) {
+        await onAcceptRemote(conflictAnalysis.remoteRegion);
+      } else {
+        console.error('Cannot accept remote changes: no remote region data available');
+      }
     } else if (resolution.action === 'keep_local') {
       console.log('🔄 User chose to keep their changes - force overwriting remote version');
       

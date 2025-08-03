@@ -3,7 +3,7 @@ export interface PendingEdit {
   field: 'regionText' | 'translation' | 'bounds';
   startedAt: Date;
   lastActivity: Date;
-  baseline?: any; // Original region state when edit started (for conflict detection)
+  baseline?: Record<string, unknown>; // Original region state when edit started (for conflict detection)
 }
 
 /**

@@ -1,16 +1,27 @@
 import { services } from '../services';
 import { UpdateTranscriptionUseCase } from './update-transcription';
 import { isVersionConflictError, handleVersionConflict } from '../services/versionConflictService';
+import type { RegionData } from '../services/adt';
+import type { LazyRegion } from '../models';
 import Timeout from 'smart-timeout';
+
+// Type for changes that can be made to a region
+type RegionChanges = {
+  regionText?: string;
+  translation?: string;
+  start?: number;
+  end?: number;
+  regionAnalysis?: string[];
+};
 
 interface UpdateRegionConfig {
   regionId: string;
-  changes: { [field: string]: any }; // e.g., { regionText: "new text" } or { start: 10, end: 20 }
+  changes: RegionChanges; // e.g., { regionText: "new text" } or { start: 10, end: 20 }
   debounceMs: number; // 3000 for text, 2500 for bounds
   primaryField: string; // For conflict resolution UI (regionText, start, etc.)
   pendingEditField?: string; // For text/translation pending edit tracking
   services: typeof services;
-  store: any;
+  store: typeof services.storeService;
 }
 
 // Debounced save state at module level
@@ -49,7 +60,7 @@ export class UpdateRegionUseCase {
 
     // Check if there's actually a change
     const hasChanges = Object.keys(changes).some(field => 
-      existingRegion[field] !== changes[field]
+      (existingRegion as unknown as Record<string, unknown>)[field] !== (changes as unknown as Record<string, unknown>)[field]
     );
     
     if (!hasChanges) {
@@ -103,36 +114,37 @@ export class UpdateRegionUseCase {
     pendingSaves.set(regionId, timeoutKey);
   }
 
-  private applyChangesToStore(changes: { [field: string]: any }, existingRegion: any, store: any): void {
+  private applyChangesToStore(changes: RegionChanges, existingRegion: RegionData, store: typeof services.storeService): void {
     // Handle different field types
     Object.keys(changes).forEach(field => {
-      const value = changes[field];
+      const value = (changes as unknown as Record<string, unknown>)[field];
       
       switch (field) {
         case 'regionText':
-          store.setRegionText(existingRegion.id, value);
+          store.setRegionText(existingRegion.id, value as string);
           break;
         case 'translation':
-          store.setRegionTranslation(existingRegion.id, value);
+          store.setRegionTranslation(existingRegion.id, value as string);
           break;
         case 'start':
-        case 'end':
+        case 'end': {
           // For bounds changes, update both start and end together
           const newStart = changes.start !== undefined ? changes.start : existingRegion.start;
           const newEnd = changes.end !== undefined ? changes.end : existingRegion.end;
           store.updateRegionBounds(existingRegion.id, newStart, newEnd);
           break;
+        }
         default:
           console.warn(`Unknown field type for store update: ${field}`);
       }
     });
   }
 
-  private async performSave(existingRegion: any, user: any): Promise<void> {
-    const { regionId, changes, primaryField, pendingEditField, services, store } = this.config;
+  private async performSave(existingRegion: RegionData, user: { username: string }): Promise<void> {
+    const { regionId, changes, primaryField, services, store } = this.config;
     
     // Prepare update data
-    let updateData = { ...changes };
+    const updateData = { ...changes };
     
     // If updating main text, include current analysis from store at save time
     if (changes.regionText !== undefined) {
@@ -184,7 +196,7 @@ export class UpdateRegionUseCase {
           currentVersion,
           store,
           // onAcceptRemote
-          async (remoteRegion: any) => {
+          async (remoteRegion: Partial<RegionData & LazyRegion>) => {
             this.applyRemoteChangesToStore(remoteRegion, store, services);
             // Update version to match remote version
             if (remoteRegion._version) {
@@ -214,17 +226,17 @@ export class UpdateRegionUseCase {
     }
   }
 
-  private revertChangesToStore(changes: { [field: string]: any }, existingRegion: any, store: any): void {
+  private revertChangesToStore(changes: RegionChanges, existingRegion: RegionData, store: typeof services.storeService): void {
     // Revert optimistic updates
     Object.keys(changes).forEach(field => {
-      const originalValue = existingRegion[field];
+      const originalValue = (existingRegion as unknown as Record<string, unknown>)[field];
       
       switch (field) {
         case 'regionText':
-          store.setRegionText(existingRegion.id, originalValue);
+          store.setRegionText(existingRegion.id, originalValue as string);
           break;
         case 'translation':
-          store.setRegionTranslation(existingRegion.id, originalValue);
+          store.setRegionTranslation(existingRegion.id, originalValue as string);
           break;
         case 'start':
         case 'end':
@@ -234,8 +246,8 @@ export class UpdateRegionUseCase {
     });
   }
 
-  private applyRemoteChangesToStore(remoteRegion: any, store: any, services: any): void {
-    const { regionId, primaryField, pendingEditField } = this.config;
+  private applyRemoteChangesToStore(remoteRegion: Partial<RegionData & LazyRegion>, store: typeof services.storeService, servicesArg: typeof services): void {
+    const { regionId } = this.config;
     
     // Apply all remote changes to store
     if (remoteRegion.regionText !== undefined) {
@@ -243,9 +255,9 @@ export class UpdateRegionUseCase {
       
       // Update RTE editor if exists
       const editorKey = `${regionId}:main` as const;
-      if (services.rteService.hasEditor(editorKey)) {
+      if (servicesArg.rteService.hasEditor(editorKey)) {
         console.log('🔄 Updating RTE editor with remote content');
-        services.rteService.setContent(editorKey, remoteRegion.regionText);
+        servicesArg.rteService.setContent(editorKey, remoteRegion.regionText);
       }
     }
     
@@ -254,8 +266,8 @@ export class UpdateRegionUseCase {
       
       // Update translation RTE if exists
       const translationEditorKey = `${regionId}:translation` as const;
-      if (services.rteService.hasEditor(translationEditorKey)) {
-        services.rteService.setContent(translationEditorKey, remoteRegion.translation);
+      if (servicesArg.rteService.hasEditor(translationEditorKey)) {
+        servicesArg.rteService.setContent(translationEditorKey, remoteRegion.translation);
       }
     }
     
@@ -263,7 +275,7 @@ export class UpdateRegionUseCase {
       store.updateRegionBounds(regionId, remoteRegion.start, remoteRegion.end);
       
       // Update wavesurfer position
-      services.wavesurferService.setRegionPosition(regionId, {
+      servicesArg.wavesurferService.setRegionPosition(regionId, {
         start: remoteRegion.start,
         end: remoteRegion.end
       });

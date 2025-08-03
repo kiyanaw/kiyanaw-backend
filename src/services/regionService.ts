@@ -154,12 +154,13 @@ export const updateRegion = async (regionId: string, updates: Partial<RegionData
     
     // Log detailed error information for debugging
     if (error && typeof error === 'object') {
+      const errorObj = error as Record<string, unknown>;
       console.error('Error details:', {
-        message: (error as any).message,
-        errors: (error as any).errors,
-        data: (error as any).data,
-        name: (error as any).name,
-        code: (error as any).code
+        message: errorObj.message,
+        errors: errorObj.errors,
+        data: errorObj.data,
+        name: errorObj.name,
+        code: errorObj.code
       });
     }
     

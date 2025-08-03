@@ -52,6 +52,7 @@ export const ConflictResolutionDialog: React.FC<ConflictResolutionDialogProps> =
   };
 
   // Helper to format field values for display
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const formatFieldValue = (value: any, fieldType: string): string => {
     if (value === null || value === undefined) return '';
     if (fieldType === 'number') {
@@ -110,8 +111,10 @@ export const ConflictResolutionDialog: React.FC<ConflictResolutionDialogProps> =
                     {fieldType === 'text' ? (
                       remoteValue ? (
                         <DiffHighlight
-                          oldText={localValue || ''}
-                          newText={remoteValue || ''}
+                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                          oldText={(localValue as any) || ''}
+                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                          newText={(remoteValue as any) || ''}
                           variant="show-remote-only"
                           className="text-sm"
                         />
@@ -126,7 +129,8 @@ export const ConflictResolutionDialog: React.FC<ConflictResolutionDialogProps> =
                   </div>
                   {fieldType === 'text' && (
                     <button
-                      onClick={() => copyToClipboard(remoteValue || '')}
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      onClick={() => copyToClipboard((remoteValue as any) || '')}
                       className="mt-2 text-sm text-blue-600 hover:text-blue-800"
                     >
                       📋 Copy their {getFieldDisplayName(field).toLowerCase()}
@@ -155,8 +159,10 @@ export const ConflictResolutionDialog: React.FC<ConflictResolutionDialogProps> =
                     {fieldType === 'text' ? (
                       localValue ? (
                         <DiffHighlight
-                          oldText={localValue || ''}
-                          newText={remoteValue || ''}
+                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                          oldText={(localValue as any) || ''}
+                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                          newText={(remoteValue as any) || ''}
                           variant="show-local-only"
                           className="text-sm"
                         />
@@ -171,7 +177,8 @@ export const ConflictResolutionDialog: React.FC<ConflictResolutionDialogProps> =
                   </div>
                   {fieldType === 'text' && (
                     <button
-                      onClick={() => copyToClipboard(localValue || '')}
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      onClick={() => copyToClipboard((localValue as any) || '')}
                       className="mt-2 text-sm text-green-600 hover:text-green-800"
                     >
                       📋 Copy your {getFieldDisplayName(field).toLowerCase()}
