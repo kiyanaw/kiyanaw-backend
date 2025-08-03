@@ -7,8 +7,29 @@ describe('UpdateRegionTextUseCase', () => {
   const mockStore = {
     setRegionText: mockSetRegionText,
     setRegionTranslation: mockSetRegionTranslation,
-    getRegionVersion: jest.fn(),
-    regionById: jest.fn(),
+    getRegionVersion: jest.fn().mockReturnValue(7),
+    regionById: jest.fn().mockReturnValue({
+      id: 'test-region-id',
+      regionText: 'existing text',
+      translation: 'existing translation',
+      transcriptionId: 'test-transcription-id',
+      _version: 7
+    }),
+    setRegionVersion: jest.fn(),
+    regionMap: {
+      'test-region-id': {
+        id: 'test-region-id',
+        regionText: 'existing text',
+        translation: 'existing translation',
+        transcriptionId: 'test-transcription-id',
+        _version: 7
+      }
+    },
+    transcription: {
+      id: 'test-transcription-id',
+      title: 'Test Transcription'
+    },
+    calculateTranscriptionMetadata: jest.fn().mockReturnValue({ coverage: 0.5 }),
     getState: jest.fn().mockReturnValue({
       setRegionText: mockSetRegionText,
       setRegionTranslation: mockSetRegionTranslation
@@ -22,14 +43,29 @@ describe('UpdateRegionTextUseCase', () => {
     regionService: {
       updateRegion: jest.fn(),
       getRegion: jest.fn(),
-      // updateRegion: jest.fn()
     },
     conflictDetectionService: {
       detectConflict: jest.fn()
     },
     conflictResolutionService: {
       showConflictDialog: jest.fn()
-    }
+    },
+    storeService: {
+      startPendingEdit: jest.fn(),
+      endPendingEdit: jest.fn(),
+      regionById: jest.fn(),
+      getRegionVersion: jest.fn().mockReturnValue(1),
+      setRegionText: mockSetRegionText,
+      setRegionTranslation: mockSetRegionTranslation,
+      setRegionVersion: jest.fn(),
+      getBaselineForRegion: jest.fn().mockReturnValue(null),
+    },
+    transcriptionService: {
+      updateTranscription: jest.fn().mockResolvedValue({}),
+    },
+    userService: {
+      currentUser: jest.fn().mockReturnValue({ username: 'test-user' }),
+    },
   } as any;
 
   const validConfig = {

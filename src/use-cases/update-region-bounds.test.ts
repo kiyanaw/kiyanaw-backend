@@ -13,14 +13,52 @@ describe('UpdateRegionBounds', () => {
       authService: {
         currentUser: jest.fn().mockReturnValue({ username: 'testuser' }),
       },
+      storeService: {
+        startPendingEdit: jest.fn(),
+        endPendingEdit: jest.fn(),
+        regionById: jest.fn(),
+        getRegionVersion: jest.fn().mockReturnValue(1),
+        updateRegionBounds: jest.fn(),
+        setRegionVersion: jest.fn(),
+        getBaselineForRegion: jest.fn().mockReturnValue(null),
+      },
+      transcriptionService: {
+        updateTranscription: jest.fn().mockResolvedValue({}),
+      },
+      userService: {
+        currentUser: jest.fn().mockReturnValue({ username: 'testuser' }),
+      },
+      wavesurferService: {
+        setRegionPosition: jest.fn(),
+      },
     };
 
     mockStore = {
-        updateRegionBounds: jest.fn(),
-  regionById: jest.fn(),
-  getRegionVersion: jest.fn(),
+      updateRegionBounds: jest.fn(),
+      regionById: jest.fn().mockReturnValue({
+        id: 'test-region-id',
+        start: 1.0,
+        end: 2.0,
+        transcriptionId: 'test-transcription-id',
+        _version: 1
+      }),
+      getRegionVersion: jest.fn().mockReturnValue(1),
+      setRegionVersion: jest.fn(),
       regions: [],
-      regionMap: {},
+      regionMap: {
+        'test-region-id': {
+          id: 'test-region-id',
+          start: 1.0,
+          end: 2.0,
+          transcriptionId: 'test-transcription-id',
+          _version: 1
+        }
+      },
+      transcription: {
+        id: 'test-transcription-id',
+        title: 'Test Transcription'
+      },
+      calculateTranscriptionMetadata: jest.fn().mockReturnValue({ coverage: 0.5 }),
     };
 
     config = {

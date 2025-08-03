@@ -1324,4 +1324,6 @@ describe('SubscribeToRegionChangesUseCase', () => {
       expect(mockServices.conflictDetectionService.detectConflict).not.toHaveBeenCalled();
     });
       });
+
+
 }); 
