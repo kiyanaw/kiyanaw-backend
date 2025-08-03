@@ -32,13 +32,6 @@ function isVersionConflictError(error: any): boolean {
            e.errorType === 'Conflict';
   });
   
-  console.log(`🔍 Version conflict check: direct=${directMatch}, graphql=${graphqlMatch}`, {
-    errorMessage,
-    errorCount: error?.errors?.length || 0,
-    firstError: error?.errors?.[0]?.message || 'none',
-    firstErrorType: error?.errors?.[0]?.errorType || 'none'
-  });
-  
   return directMatch || graphqlMatch;
 }
 
@@ -46,7 +39,7 @@ function isVersionConflictError(error: any): boolean {
 
 /**
  * Determine if this is a "real" content conflict or just a version mismatch
- * Uses the store's current state (which reflects latest remote data from subscriptions)
+ * Fetches the current remote region data and compares with local attempt
  */
 async function analyzeConflict(
   regionId: string, 
@@ -54,43 +47,89 @@ async function analyzeConflict(
   attemptedValue: string,
   localVersion: number,
   store: any
-): Promise<{ isRealConflict: boolean; remoteValue?: string; remoteVersion?: number; remoteUser?: string }> {
+): Promise<{ 
+  isRealConflict: boolean; 
+  remoteValue?: string; 
+  remoteVersion?: number; 
+  remoteUser?: string;
+  conflictingFields?: Array<{
+    field: string;
+    localValue: any;
+    remoteValue: any;
+    fieldType: 'text' | 'number' | 'boolean';
+  }>;
+}> {
   try {
-    // Get remote values that were stored from the last subscription update
-    // (These are preserved even when we protect the user's typing)
-    const remoteValue = field === 'regionText' 
-      ? store.getRemoteRegionText(regionId)
-      : store.getRemoteRegionTranslation(regionId);
-    const remoteVersion = store.getRegionVersion(regionId);
-    const remoteUser = store.getRemoteRegionUser(regionId);
+    // Get current local region data from store
+    const localRegion = store.regionById(regionId);
+    if (!localRegion) {
+      console.error('Local region not found in store:', regionId);
+      return { isRealConflict: true };
+    }
+
+    // Fetch the current remote region data directly from the database
+    const regionService = services.regionService;
+    const remoteRegion = await regionService.getRegion(regionId);
     
-    // If values are the same, it's just a version mismatch (auto-retry)
-    if (remoteValue === attemptedValue) {
-      console.log('🔄 Version mismatch but same content - will auto-retry');
+    if (!remoteRegion) {
+      console.error('Remote region not found:', regionId);
+      return { isRealConflict: true };
+    }
+
+    console.log('🔍 Analyzing conflict:', {
+      regionId,
+      field,
+      localVersion,
+      remoteVersion: remoteRegion._version,
+      localText: localRegion.regionText?.substring(0, 50) + '...',
+      remoteText: remoteRegion.regionText?.substring(0, 50) + '...'
+    });
+
+    // Build local region data with the attempted change
+    const localRegionData = {
+      id: regionId,
+      regionText: field === 'regionText' ? attemptedValue : localRegion.regionText,
+      translation: field === 'translation' ? attemptedValue : localRegion.translation,
+      start: localRegion.start,
+      end: localRegion.end,
+      transcriptionId: localRegion.transcriptionId,
+      _version: localVersion
+    };
+
+    // Use ConflictDetectionService to detect all conflicts
+    const conflictDetectionService = services.conflictDetectionService;
+    const conflictResult = conflictDetectionService.detectConflict(localRegionData, remoteRegion);
+
+    if (!conflictResult.hasConflict || !conflictResult.conflictDetails) {
+      console.log('🟢 No real conflicts detected - just version mismatch');
       return { 
-        isRealConflict: false, 
-        remoteValue, 
-        remoteVersion,
-        remoteUser
+        isRealConflict: false,
+        remoteValue: (remoteRegion as any)[field],
+        remoteVersion: remoteRegion._version,
+        remoteUser: remoteRegion.userLastUpdated
       };
     }
-    
-    // If values differ, it's a real conflict (show dialog)
-    console.log('⚠️ Real content conflict detected:', {
-      attemptedValue: attemptedValue?.substring(0, 50) + '...',
-      remoteValue: remoteValue?.substring(0, 50) + '...'
+
+    console.log('⚠️ Real content conflicts detected:', {
+      conflictCount: conflictResult.conflictDetails.length,
+      fields: conflictResult.conflictDetails.map((c: any) => c.field)
     });
-    
-    return { 
-      isRealConflict: true, 
-      remoteValue, 
-      remoteVersion,
-      remoteUser
+
+    return {
+      isRealConflict: true,
+      remoteValue: (remoteRegion as any)[field],
+      remoteVersion: remoteRegion._version,
+      remoteUser: remoteRegion.userLastUpdated,
+      conflictingFields: conflictResult.conflictDetails.map((conflict: any) => ({
+        field: conflict.field,
+        localValue: conflict.localValue,
+        remoteValue: conflict.remoteValue,
+        fieldType: typeof conflict.localValue === 'number' ? 'number' : 'text'
+      }))
     };
-    
+
   } catch (error) {
-    console.error('Failed to analyze conflict:', error);
-    // If we can't analyze, assume it's a real conflict to be safe
+    console.error('Error analyzing conflict:', error);
     return { isRealConflict: true };
   }
 }
@@ -105,13 +144,22 @@ function createConflictData(
   remoteValue: string,
   localVersion: number,
   remoteVersion: number,
-  remoteUser?: string
+  remoteUser?: string,
+  conflictingFields?: Array<{
+    field: string;
+    localValue: any;
+    remoteValue: any;
+    fieldType: 'text' | 'number' | 'boolean';
+  }>
 ): ConflictData {
   return {
     regionId,
+    // Legacy single field support (for backward compatibility)
     field,
     localValue,
     remoteValue,
+    // New multi-field support
+    conflictingFields,
     localVersion,
     remoteVersion,
     remoteUserLastUpdated: remoteUser,
@@ -184,7 +232,6 @@ export class UpdateRegionTextUseCase {
 
       // Get current version for optimistic concurrency control (moved outside try block)
       const currentVersion = store.getRegionVersion(regionId);
-      console.log(`🔢 Save attempt for region ${regionId} using version: ${currentVersion}`);
       
       try {
         // Get fresh state at save time
@@ -225,7 +272,6 @@ export class UpdateRegionTextUseCase {
 
         // End pending edit on successful save
         services.storeService.endPendingEdit(regionId, field);
-        console.log('🟢 Ended pending edit for region:', regionId, 'field:', field);
         
       } catch (error) {
         console.error('Failed to save region text:', error);
@@ -253,7 +299,6 @@ export class UpdateRegionTextUseCase {
             
             // Always show conflict dialog - user should decide how to resolve
             // Even if content appears the same, the user should be aware someone else was editing
-            console.log('🔥 Version conflict detected - showing resolution dialog');
             
             const conflictData = createConflictData(
               regionId,
@@ -262,7 +307,8 @@ export class UpdateRegionTextUseCase {
               conflictAnalysis.remoteValue || '', // Current DB value
               currentVersion, // User's version
               conflictAnalysis.remoteVersion || currentVersion + 1, // DB version
-              conflictAnalysis.remoteUser // Remote user who last updated
+              conflictAnalysis.remoteUser, // Remote user who last updated
+              conflictAnalysis.conflictingFields // All conflicting fields
             );
             
             // Show conflict resolution dialog

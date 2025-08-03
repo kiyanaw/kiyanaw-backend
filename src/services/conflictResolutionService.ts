@@ -1,8 +1,16 @@
 export interface ConflictData {
   regionId: string;
-  field: string;
-  localValue: string;
-  remoteValue: string;
+  // Legacy single field support (for backward compatibility)
+  field?: string;
+  localValue?: string;
+  remoteValue?: string;
+  // New multi-field support
+  conflictingFields?: Array<{
+    field: string;
+    localValue: any;
+    remoteValue: any;
+    fieldType: 'text' | 'number' | 'boolean';
+  }>;
   localVersion: number;
   remoteVersion: number;
   remoteUserLastUpdated?: string; // The user who last updated the remote version

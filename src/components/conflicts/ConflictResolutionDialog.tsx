@@ -32,6 +32,51 @@ export const ConflictResolutionDialog: React.FC<ConflictResolutionDialogProps> =
     return atIndex > 0 ? userLastUpdated.substring(0, atIndex) : userLastUpdated;
   };
 
+  // Get the conflicting fields - either from new multi-field structure or legacy single field
+  const conflictingFields = conflict.conflictingFields || (conflict.field ? [{
+    field: conflict.field,
+    localValue: conflict.localValue,
+    remoteValue: conflict.remoteValue,
+    fieldType: (conflict.field === 'start' || conflict.field === 'end') ? 'number' as const : 'text' as const
+  }] : []);
+
+  // Helper to get friendly field names
+  const getFieldDisplayName = (field: string): string => {
+    switch (field) {
+      case 'regionText': return 'Text';
+      case 'translation': return 'Translation';
+      case 'start': return 'Start Time';
+      case 'end': return 'End Time';
+      default: return field;
+    }
+  };
+
+  // Helper to format field values for display
+  const formatFieldValue = (value: any, fieldType: string): string => {
+    if (value === null || value === undefined) return '';
+    if (fieldType === 'number') {
+      return typeof value === 'number' ? value.toFixed(2) + 's' : String(value);
+    }
+    return String(value);
+  };
+
+  // Generate description based on conflict types
+  const getConflictDescription = (): string => {
+    if (conflictingFields.length === 1) {
+      const field = conflictingFields[0].field;
+      return `Someone else has modified the ${getFieldDisplayName(field).toLowerCase()} while you were editing.`;
+    }
+    
+    const hasText = conflictingFields.some(f => f.field === 'regionText' || f.field === 'translation');
+    const hasTiming = conflictingFields.some(f => f.field === 'start' || f.field === 'end');
+    
+    const parts = [];
+    if (hasText) parts.push('text content');
+    if (hasTiming) parts.push('timing');
+    
+    return `Someone else has modified the ${parts.join(' and ')} of this region while you were editing.`;
+  };
+
   return (
     <div className="fixed inset-0 bg-gray-100 bg-opacity-75 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full m-4 max-h-[90vh] overflow-hidden flex flex-col">
@@ -41,8 +86,7 @@ export const ConflictResolutionDialog: React.FC<ConflictResolutionDialogProps> =
             Conflict Detected
           </h2>
           <p className="text-gray-600">
-            Someone else has modified this {conflict.field === 'regionText' ? 'text' : 'translation'} while you were editing. 
-            Please choose how to resolve this conflict.
+            {getConflictDescription()} Please choose how to resolve {conflictingFields.length > 1 ? 'these conflicts' : 'this conflict'}.
           </p>
         </div>
 
@@ -57,28 +101,41 @@ export const ConflictResolutionDialog: React.FC<ConflictResolutionDialogProps> =
               </p>
             </div>
             <div className="flex-1 p-4 overflow-auto">
-              <div className="bg-gray-50 p-3 rounded border min-h-[200px]">
-                {conflict.remoteValue ? (
-                  <DiffHighlight
-                    oldText={conflict.localValue || ''}
-                    newText={conflict.remoteValue || ''}
-                    variant="show-remote-only"
-                    className="text-sm"
-                  />
-                ) : (
-                  <span className="text-gray-400 italic">{'<empty>'}</span>
-                )}
-              </div>
-              <button
-                onClick={() => copyToClipboard(conflict.remoteValue)}
-                className="mt-2 text-sm text-blue-600 hover:text-blue-800"
-              >
-                📋 Copy their text
-              </button>
+              {conflictingFields.map(({ field, localValue, remoteValue, fieldType }) => (
+                <div key={field} className="mb-4 last:mb-0">
+                  {conflictingFields.length > 1 && (
+                    <h4 className="font-medium text-gray-900 mb-2">{getFieldDisplayName(field)}</h4>
+                  )}
+                  <div className="bg-gray-50 p-3 rounded border min-h-[100px]">
+                    {fieldType === 'text' ? (
+                      remoteValue ? (
+                        <DiffHighlight
+                          oldText={localValue || ''}
+                          newText={remoteValue || ''}
+                          variant="show-remote-only"
+                          className="text-sm"
+                        />
+                      ) : (
+                        <span className="text-gray-400 italic">{'<empty>'}</span>
+                      )
+                    ) : (
+                      <span className="font-mono text-sm">
+                        {formatFieldValue(remoteValue, fieldType)}
+                      </span>
+                    )}
+                  </div>
+                  {fieldType === 'text' && (
+                    <button
+                      onClick={() => copyToClipboard(remoteValue || '')}
+                      className="mt-2 text-sm text-blue-600 hover:text-blue-800"
+                    >
+                      📋 Copy their {getFieldDisplayName(field).toLowerCase()}
+                    </button>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
-
-
 
           {/* Local Version (Right) */}
           <div className="flex-1 flex flex-col">
@@ -89,24 +146,39 @@ export const ConflictResolutionDialog: React.FC<ConflictResolutionDialogProps> =
               </p>
             </div>
             <div className="flex-1 p-4 overflow-auto">
-              <div className="bg-gray-50 p-3 rounded border min-h-[200px]">
-                {conflict.localValue ? (
-                  <DiffHighlight
-                    oldText={conflict.localValue || ''}
-                    newText={conflict.remoteValue || ''}
-                    variant="show-local-only"
-                    className="text-sm"
-                  />
-                ) : (
-                  <span className="text-gray-400 italic">{'<empty>'}</span>
-                )}
-              </div>
-              <button
-                onClick={() => copyToClipboard(conflict.localValue)}
-                className="mt-2 text-sm text-green-600 hover:text-green-800"
-              >
-                📋 Copy your text
-              </button>
+              {conflictingFields.map(({ field, localValue, remoteValue, fieldType }) => (
+                <div key={field} className="mb-4 last:mb-0">
+                  {conflictingFields.length > 1 && (
+                    <h4 className="font-medium text-gray-900 mb-2">{getFieldDisplayName(field)}</h4>
+                  )}
+                  <div className="bg-gray-50 p-3 rounded border min-h-[100px]">
+                    {fieldType === 'text' ? (
+                      localValue ? (
+                        <DiffHighlight
+                          oldText={localValue || ''}
+                          newText={remoteValue || ''}
+                          variant="show-local-only"
+                          className="text-sm"
+                        />
+                      ) : (
+                        <span className="text-gray-400 italic">{'<empty>'}</span>
+                      )
+                    ) : (
+                      <span className="font-mono text-sm">
+                        {formatFieldValue(localValue, fieldType)}
+                      </span>
+                    )}
+                  </div>
+                  {fieldType === 'text' && (
+                    <button
+                      onClick={() => copyToClipboard(localValue || '')}
+                      className="mt-2 text-sm text-green-600 hover:text-green-800"
+                    >
+                      📋 Copy your {getFieldDisplayName(field).toLowerCase()}
+                    </button>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -165,7 +237,7 @@ export const ConflictResolutionDialog: React.FC<ConflictResolutionDialogProps> =
               disabled={!selectedAction}
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Resolve Conflict
+              Resolve Conflict{conflictingFields.length > 1 ? 's' : ''}
             </button>
           </div>
         </div>

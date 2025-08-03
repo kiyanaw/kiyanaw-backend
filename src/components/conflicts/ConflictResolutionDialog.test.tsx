@@ -35,7 +35,7 @@ describe('ConflictResolutionDialog', () => {
 
     // Check header
     expect(screen.getByText('Conflict Detected')).toBeInTheDocument();
-    expect(screen.getByText(/Someone else has modified this text/)).toBeInTheDocument();
+    expect(screen.getByText(/Someone else has modified the.*while you were editing/)).toBeInTheDocument();
 
     // Check version information
     expect(screen.getByText('Their Changes')).toBeInTheDocument();
@@ -70,7 +70,7 @@ describe('ConflictResolutionDialog', () => {
       />
     );
 
-    expect(screen.getByText(/Someone else has modified this translation/)).toBeInTheDocument();
+    expect(screen.getByText(/Someone else has modified the.*while you were editing/)).toBeInTheDocument();
   });
 
   it('should enable resolve button only when option is selected', () => {
@@ -217,5 +217,57 @@ describe('ConflictResolutionDialog', () => {
 
     // Should fall back to "another user"
     expect(screen.getByText(/Last updated by another user/)).toBeInTheDocument();
+  });
+
+  it('should handle multi-field conflicts correctly', () => {
+    const multiFieldConflict = {
+      ...mockConflict,
+      conflictingFields: [
+        {
+          field: 'regionText',
+          localValue: 'My local text',
+          remoteValue: 'Their remote text',
+          fieldType: 'text' as const
+        },
+        {
+          field: 'start',
+          localValue: 10.5,
+          remoteValue: 12.3,
+          fieldType: 'number' as const
+        },
+        {
+          field: 'translation',
+          localValue: 'My translation',
+          remoteValue: 'Their translation',
+          fieldType: 'text' as const
+        }
+      ]
+    };
+
+    render(
+      <ConflictResolutionDialog
+        conflict={multiFieldConflict}
+        onResolve={mockOnResolve}
+        onCancel={mockOnCancel}
+      />
+    );
+
+    // Should show appropriate header text for multiple conflicts
+    expect(screen.getByText(/Someone else has modified the.*content.*timing.*while you were editing/)).toBeInTheDocument();
+    expect(screen.getByText(/these conflicts/)).toBeInTheDocument(); // Only appears in header
+    expect(screen.getByText('Resolve Conflicts')).toBeInTheDocument(); // Button text for plural
+
+    // Should show all conflicting field headers (only when multiple fields)
+    expect(screen.getAllByText('Text')).toHaveLength(2); // Field header appears in both left and right columns
+    expect(screen.getAllByText('Start Time')).toHaveLength(2); 
+    expect(screen.getAllByText('Translation')).toHaveLength(2);
+
+    // Should show formatted time values
+    expect(screen.getByText('10.50s')).toBeInTheDocument(); // Local start time
+    expect(screen.getByText('12.30s')).toBeInTheDocument(); // Remote start time
+
+    // Should show copy buttons for text fields but not time fields
+    expect(screen.getAllByText(/📋 Copy their/)).toHaveLength(2); // text and translation only
+    expect(screen.getAllByText(/📋 Copy your/)).toHaveLength(2); // text and translation only
   });
 }); 

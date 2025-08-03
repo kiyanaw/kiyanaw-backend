@@ -52,50 +52,21 @@ export const storeService = {
     return useEditorStore.getState().getRegionVersion(regionId);
   },
 
-  // Remote value operations (for conflict resolution)
-  setRemoteRegionText: (regionId: string, text: string): void => {
-    useEditorStore.getState().setRemoteRegionText(regionId, text);
-  },
-
-  getRemoteRegionText: (regionId: string): string | null => {
-    return useEditorStore.getState().getRemoteRegionText(regionId);
-  },
-
-  setRemoteRegionTranslation: (regionId: string, text: string): void => {
-    useEditorStore.getState().setRemoteRegionTranslation(regionId, text);
-  },
-
-  getRemoteRegionTranslation: (regionId: string): string | null => {
-    return useEditorStore.getState().getRemoteRegionTranslation(regionId);
-  },
-
-  setRemoteRegionUser: (regionId: string, user: string): void => {
-    useEditorStore.getState().setRemoteRegionUser(regionId, user);
-  },
-
-  getRemoteRegionUser: (regionId: string): string | null => {
-    return useEditorStore.getState().getRemoteRegionUser(regionId);
-  },
-
-  // Pending edits operations
+  // Pending edit operations for conflict protection
   isPendingEdit: (regionId: string, field?: string): boolean => {
-    const state = useEditorStore.getState();
-    return state.isPendingEdit(regionId, field);
+    return useEditorStore.getState().isPendingEdit(regionId, field);
   },
 
   startPendingEdit: (regionId: string, field: string): void => {
-    const state = useEditorStore.getState();
-    state.startPendingEdit(regionId, field);
+    useEditorStore.getState().startPendingEdit(regionId, field);
   },
 
   endPendingEdit: (regionId: string, field: string): void => {
-    const state = useEditorStore.getState();
-    state.endPendingEdit(regionId, field);
+    useEditorStore.getState().endPendingEdit(regionId, field);
   },
 
   updatePendingEditActivity: (regionId: string, field: string): void => {
-    const state = useEditorStore.getState();
-    state.updatePendingEditActivity(regionId, field);
+    useEditorStore.getState().updatePendingEditActivity(regionId, field);
   },
 
   // Conflict queue operations
@@ -103,17 +74,18 @@ export const storeService = {
     return useEditorStore.getState().conflictQueue;
   },
 
-  addConflictToQueue: (conflict: ConflictDetail): void => {
-    useEditorStore.getState().addConflictToQueue(conflict);
+  addConflictToQueue: (conflictData: any): void => {
+    useEditorStore.getState().addConflictToQueue(conflictData);
   },
 
   removeConflictFromQueue: (conflictId: string): void => {
     useEditorStore.getState().removeConflictFromQueue(conflictId);
   },
 
-  // Read operations
-  regionById: (regionId: string): RegionData | null => {
-    return useEditorStore.getState().regionById(regionId);
+  // Store access for region data
+  regionById: (regionId: string): any => {
+    const state = useEditorStore.getState();
+    return state.regionMap[regionId] || null;
   },
 
   canEdit: (): boolean => {

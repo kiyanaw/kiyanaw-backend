@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import type { TranscriptionData, RegionData, ProcessedIssue } from '../types/shared';
-import type { PendingEdit } from '../services/pendingEditsService';
 import type { ConflictDetail } from '../services/conflictDetectionService';
+import type { PendingEdit } from '../services/pendingEditsService';
 import Timeout from 'smart-timeout';
 
 interface EditorDataPayload {
@@ -26,17 +26,14 @@ interface EditorState {
   regions: RegionData[];
   regionMap: Record<string, RegionData>;
   regionVersions: Record<string, number>; // Track versions locally for conflict resolution
-  remoteRegionTexts: Record<string, string>; // Track remote text values for conflict resolution  
-  remoteRegionTranslations: Record<string, string>; // Track remote translation values for conflict resolution
-  remoteRegionUsers: Record<string, string>; // Track remote user who last updated for conflict resolution
   selectedRegionId: string | null;
   selectedRegion: RegionData | null;
   playbackWithinRegion: string | null;
-
-  // Known words for spell checking
+  
+  // Word analysis cache
   knownWords: Set<string>;
 
-  // Pending edits state
+  // Pending edits tracking
   pendingEdits: Record<string, PendingEdit>;
 
   // Conflict queue state
@@ -97,16 +94,9 @@ interface EditorState {
   setRegionVersion: (id: string, version: number) => void;
   isPendingEdit: (regionId: string, field?: string) => boolean;
   
-  // Remote value tracking for conflict resolution
-  setRemoteRegionText: (id: string, text: string) => void;
-  getRemoteRegionText: (id: string) => string | null;
-  setRemoteRegionTranslation: (id: string, text: string) => void;
-  getRemoteRegionTranslation: (id: string) => string | null;
-  setRemoteRegionUser: (id: string, user: string) => void;
-  getRemoteRegionUser: (id: string) => string | null;
-
-  // Permissions
-  setCanEdit: (canEdit: boolean) => void;
+  // Pending edit operations  
+  setPendingEdit: (regionId: string, field: string) => void;
+  clearPendingEdit: (regionId: string) => void;
 }
 
 
@@ -123,12 +113,6 @@ export const useEditorStore = create<EditorState>()(
       regions: [],
       regionMap: {},
       regionVersions: {},
-      remoteRegionTexts: {},
-      remoteRegionTranslations: {},
-      remoteRegionUsers: {},
-      selectedRegionId: null,
-      selectedRegion: null,
-      playbackWithinRegion: null,
       knownWords: new Set<string>(),
       pendingEdits: {},
       conflictQueue: [],
@@ -424,41 +408,34 @@ export const useEditorStore = create<EditorState>()(
         });
       },
 
-      // Remote value tracking for conflict resolution
-      setRemoteRegionText: (id, text) => {
-        const { remoteRegionTexts } = get();
-        set({
-          remoteRegionTexts: { ...remoteRegionTexts, [id]: text }
-        });
+      // Pending edit operations  
+      setPendingEdit: (regionId, field) => {
+        const { pendingEdits } = get();
+        const key = `${regionId}:${field}`;
+        const now = new Date();
+        
+        const newPendingEdits = {
+          ...pendingEdits,
+          [key]: {
+            regionId,
+            field: field as PendingEdit['field'],
+            startedAt: now,
+            lastActivity: now,
+          },
+        };
+        
+        set({ pendingEdits: newPendingEdits });
       },
 
-      getRemoteRegionText: (id) => {
-        const { remoteRegionTexts } = get();
-        return remoteRegionTexts[id] || null;
-      },
-
-      setRemoteRegionTranslation: (id, text) => {
-        const { remoteRegionTranslations } = get();
-        set({
-          remoteRegionTranslations: { ...remoteRegionTranslations, [id]: text }
-        });
-      },
-
-      getRemoteRegionTranslation: (id) => {
-        const { remoteRegionTranslations } = get();
-        return remoteRegionTranslations[id] || null;
-      },
-
-      setRemoteRegionUser: (id, user) => {
-        const { remoteRegionUsers } = get();
-        set({
-          remoteRegionUsers: { ...remoteRegionUsers, [id]: user }
-        });
-      },
-
-      getRemoteRegionUser: (id) => {
-        const { remoteRegionUsers } = get();
-        return remoteRegionUsers[id] || null;
+      clearPendingEdit: (regionId) => {
+        const { pendingEdits } = get();
+        const newPendingEdits = { ...pendingEdits };
+        for (const key in newPendingEdits) {
+          if (newPendingEdits[key].regionId === regionId) {
+            delete newPendingEdits[key];
+          }
+        }
+        set({ pendingEdits: newPendingEdits });
       },
 
       isPendingEdit: (regionId, field) => {
