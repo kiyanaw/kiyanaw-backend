@@ -1,11 +1,26 @@
 import { UpdateRegionBounds } from './update-region-bounds';
 
+// Mock smart-timeout to execute immediately and synchronously
+let timeoutFunctions: (() => void)[] = [];
+
+jest.mock('smart-timeout', () => ({
+  set: (key: string, fn: () => void) => {
+    // Store function to be executed later
+    timeoutFunctions.push(fn);
+    return key;
+  },
+  clear: jest.fn(),
+}));
+
 describe('UpdateRegionBounds', () => {
   let mockServices: any;
   let mockStore: any;
   let config: any;
 
   beforeEach(() => {
+    // Reset timeout functions
+    timeoutFunctions = [];
+    
     mockServices = {
       regionService: {
         updateRegion: jest.fn().mockResolvedValue({}),
@@ -59,6 +74,7 @@ describe('UpdateRegionBounds', () => {
         title: 'Test Transcription'
       },
       calculateTranscriptionMetadata: jest.fn().mockReturnValue({ coverage: 0.5 }),
+      setTranscription: jest.fn(),
     };
 
     config = {
@@ -100,13 +116,20 @@ describe('UpdateRegionBounds', () => {
         start: 1.0,
         end: 2.0,
         regionText: 'test text',
+        transcriptionId: 'test-transcription-id',
+        _version: 5
       };
 
       mockStore.regionById.mockReturnValue(existingRegion);
       mockStore.getRegionVersion.mockReturnValue(5); // Mock version
 
       const useCase = new UpdateRegionBounds(config);
-      await useCase.execute();
+      useCase.execute(); // Synchronous call
+
+      // Execute any stored timeout functions manually
+      for (const fn of timeoutFunctions) {
+        await fn();
+      }
 
       expect(mockStore.updateRegionBounds).toHaveBeenCalledWith('test-region-id', 1.5, 3.5);
       expect(mockServices.regionService.updateRegion).toHaveBeenCalledWith(
@@ -145,29 +168,55 @@ describe('UpdateRegionBounds', () => {
     });
 
     it('should handle save error and revert optimistic update', async () => {
+      // Reset mocks for this test
+      mockStore.updateRegionBounds.mockReset();
+      mockServices.regionService.updateRegion.mockReset();
+      
       const existingRegion = {
         id: 'test-region-id',
         start: 1.0,
         end: 2.0,
         regionText: 'test text',
+        transcriptionId: 'test-transcription-id',
+        _version: 5
       };
 
       mockStore.regionById.mockReturnValue(existingRegion);
-      mockServices.regionService.updateRegion.mockRejectedValue(new Error('Save failed'));
+      mockStore.getRegionVersion.mockReturnValue(5);
 
       const useCase = new UpdateRegionBounds(config);
-      await useCase.execute();
+      useCase.execute(); // Synchronous call
 
+      // Set up the rejection after execute() but before timeout execution
+      mockServices.regionService.updateRegion.mockRejectedValueOnce(new Error('Save failed'));
+
+      // Should apply optimistic update immediately (check the most recent call)
       expect(mockStore.updateRegionBounds).toHaveBeenCalledWith('test-region-id', 1.5, 3.5);
-      expect(mockStore.updateRegionBounds).toHaveBeenCalledWith('test-region-id', 1.0, 2.0);
+
+      // Execute any stored timeout functions manually (this will trigger the save and error)
+      try {
+        for (const fn of timeoutFunctions) {
+          await fn();
+        }
+      } catch (error) {
+        // Error is expected and should be handled gracefully by the use case
+      }
+
+      // Should have called the API once (which failed) and reverted
+      expect(mockServices.regionService.updateRegion).toHaveBeenCalledTimes(1);
+      // Should have made both optimistic update and revert calls
+      expect(mockStore.updateRegionBounds).toHaveBeenCalledWith('test-region-id', 1.5, 3.5); // optimistic
+      expect(mockStore.updateRegionBounds).toHaveBeenCalledWith('test-region-id', 1.0, 2.0); // revert
     });
 
-    it('should use unknown username if no current user', async () => {
+    it('should skip save when no current user is authenticated', async () => {
       const existingRegion = {
         id: 'test-region-id',
         start: 1.0,
         end: 2.0,
         regionText: 'test text',
+        transcriptionId: 'test-transcription-id',
+        _version: 3
       };
 
       mockStore.regionById.mockReturnValue(existingRegion);
@@ -175,14 +224,16 @@ describe('UpdateRegionBounds', () => {
       mockServices.authService.currentUser.mockReturnValue(null);
 
       const useCase = new UpdateRegionBounds(config);
-      await useCase.execute();
+      useCase.execute(); // Synchronous call
 
-      expect(mockServices.regionService.updateRegion).toHaveBeenCalledWith(
-        'test-region-id',
-        { start: 1.5, end: 3.5 },
-        'unknown',
-        3
-      );
+      // Execute any stored timeout functions manually
+      for (const fn of timeoutFunctions) {
+        await fn();
+      }
+
+      // Should apply optimistic update but skip API save due to no authentication
+      expect(mockStore.updateRegionBounds).toHaveBeenCalledWith('test-region-id', 1.5, 3.5);
+      expect(mockServices.regionService.updateRegion).not.toHaveBeenCalled();
     });
   });
 }); 

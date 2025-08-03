@@ -8,13 +8,13 @@ describe('UpdateRegionTextUseCase', () => {
     setRegionText: mockSetRegionText,
     setRegionTranslation: mockSetRegionTranslation,
     getRegionVersion: jest.fn().mockReturnValue(7),
-    regionById: jest.fn().mockReturnValue({
-      id: 'test-region-id',
+    regionById: jest.fn().mockImplementation((regionId) => ({
+      id: regionId,
       regionText: 'existing text',
       translation: 'existing translation',
       transcriptionId: 'test-transcription-id',
       _version: 7
-    }),
+    })),
     setRegionVersion: jest.fn(),
     regionMap: {
       'test-region-id': {
@@ -30,6 +30,7 @@ describe('UpdateRegionTextUseCase', () => {
       title: 'Test Transcription'
     },
     calculateTranscriptionMetadata: jest.fn().mockReturnValue({ coverage: 0.5 }),
+    setTranscription: jest.fn(),
     getState: jest.fn().mockReturnValue({
       setRegionText: mockSetRegionText,
       setRegionTranslation: mockSetRegionTranslation
@@ -53,8 +54,14 @@ describe('UpdateRegionTextUseCase', () => {
     storeService: {
       startPendingEdit: jest.fn(),
       endPendingEdit: jest.fn(),
-      regionById: jest.fn(),
-      getRegionVersion: jest.fn().mockReturnValue(1),
+      regionById: jest.fn().mockImplementation((regionId) => ({
+        id: regionId,
+        regionText: 'existing text',
+        translation: 'existing translation',
+        transcriptionId: 'test-transcription-id',
+        _version: 7
+      })),
+      getRegionVersion: jest.fn().mockReturnValue(7),
       setRegionText: mockSetRegionText,
       setRegionTranslation: mockSetRegionTranslation,
       setRegionVersion: jest.fn(),
@@ -366,7 +373,13 @@ describe('UpdateRegionTextUseCase', () => {
       const realisticStore = {
         setRegionText: mockSetRegionText,
         setRegionTranslation: mockSetRegionTranslation,
-        regionById: jest.fn(() => ({ transcriptionId: 'test-transcription-id', regionAnalysis: ['word1', 'word2'] })),
+        regionById: jest.fn((regionId) => ({ 
+          id: regionId,
+          transcriptionId: 'test-transcription-id', 
+          regionAnalysis: ['word1', 'word2'],
+          regionText: 'existing text',
+          _version: 7
+        })),
         regions: [],
         selectedRegionId: null
       } as any; // Type assertion for testing
