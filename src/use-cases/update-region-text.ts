@@ -272,11 +272,25 @@ export class UpdateRegionTextUseCase {
             if (resolution.action === 'accept_remote') {
               console.log('🔄 User chose to accept remote changes');
               // Update store with remote value and end pending edit
+              const remoteValue = conflictAnalysis.remoteValue || '';
               if (field === 'regionText') {
-                store.setRegionText(regionId, conflictAnalysis.remoteValue || '');
+                store.setRegionText(regionId, remoteValue);
               } else {
-                store.setRegionTranslation(regionId, conflictAnalysis.remoteValue || '');
+                store.setRegionTranslation(regionId, remoteValue);
               }
+              
+              // Update the RTE editor to show the remote content
+              const editorKey = `${regionId}:${field === 'regionText' ? 'main' : 'translation'}` as const;
+              if (services.rteService.hasEditor(editorKey)) {
+                console.log('🔄 Updating RTE editor with remote content');
+                services.rteService.setContent(editorKey, remoteValue);
+              }
+              
+              // Update version to match remote version to prevent further conflicts
+              if (conflictAnalysis.remoteVersion) {
+                store.setRegionVersion(regionId, conflictAnalysis.remoteVersion);
+              }
+              
               services.storeService.endPendingEdit(regionId, field);
             } else if (resolution.action === 'keep_local') {
               console.log('🔄 User chose to keep their changes - retrying save');
