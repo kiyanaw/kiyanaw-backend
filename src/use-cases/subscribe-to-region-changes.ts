@@ -33,7 +33,7 @@ export class SubscribeToRegionChangesUseCase {
     const { mutation, region } = event;
     
     // DEBUG: Track all subscription events to debug parallel editing issues
-    console.log('🔌 SUBSCRIPTION:', { mutation, regionId: region.id, version: region._version });
+
     const store = this.config.services.storeService;
     const wavesurferService = this.config.services.wavesurferService;
     const flashService = this.config.services.flashIndicatorService;
@@ -205,24 +205,11 @@ export class SubscribeToRegionChangesUseCase {
     // Determine if there are unprotected changes (what we should allow)
     const hasUnprotectedChanges = 
       actualChanges.bounds ||                                    // Bounds always unprotected
-      actualChanges.analysis ||                                  // Analysis always unprotected  
+      (actualChanges.analysis && !actualChanges.text && !actualChanges.translation) || // Analysis ONLY when standalone (not side effect)
       (!protection.protectText && actualChanges.text) ||        // Text when not editing text
       (!protection.protectTranslation && actualChanges.translation); // Translation when not editing translation
 
-    console.log('🔍 BASELINE COMPARISON:', {
-      regionId: updatedRegion.id,
-      actualChanges,
-      hasUnprotectedChanges,
-      protection,
-      baselineExists: !!baseline
-    });
 
-    // DEBUG: Simple version decision log
-    console.log('🔍 DECISION:', { 
-      regionId: updatedRegion.id,
-      hasUnprotectedChanges,
-      willUpdateVersion: updatedRegion._version !== undefined && hasUnprotectedChanges
-    });
     
     // Simple rule: Always update version UNLESS user is editing and NO unprotected changes
     // This ensures conflicts only when same field edited, parallel saves for different fields
@@ -230,16 +217,7 @@ export class SubscribeToRegionChangesUseCase {
     
     if (updatedRegion._version !== undefined && !shouldBlockVersion) {
       store.setRegionVersion(updatedRegion.id, updatedRegion._version);
-      console.log('🔌 Updated version - allows parallel saves for different fields');
-    } else {
-      console.log('🔌 Protected version - will force conflict when same field is saved');
     }
-    
-    const protectedFields = [];
-    if (protection.protectText) protectedFields.push('text');
-    if (protection.protectTranslation) protectedFields.push('translation');
-    
-    console.log(`🔌 Applied selective protection - protected: [${protectedFields.join(', ')}]`);
   }
 
   /**

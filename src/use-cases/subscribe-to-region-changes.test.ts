@@ -34,6 +34,7 @@ const mockServices = {
     addConflictToQueue: jest.fn(),
     removeConflictFromQueue: jest.fn(),
     isPendingEdit: jest.fn(),
+    getBaselineForRegion: jest.fn(), // NEW: For baseline comparison logic
     get conflictQueue() { 
       return this._conflictQueue || []; 
     },
@@ -606,6 +607,14 @@ describe('SubscribeToRegionChangesUseCase', () => {
             return field === 'regionText'; // Only text is being edited
           });
 
+          // Mock baseline (what text looked like before Browser A's change)
+          const baseline = { 
+            id: 'region-1', 
+            regionText: 'ORIGINAL TEXT', 
+            _version: 0 
+          };
+          mockServices.storeService.getBaselineForRegion.mockReturnValue(baseline);
+
           // Browser A's text update arrives (with regionAnalysis side effect)
           // IMPORTANT: Only include the fields that actually changed to avoid false unprotected changes
           const updatedRegion = {
@@ -736,8 +745,9 @@ describe('SubscribeToRegionChangesUseCase', () => {
           expect(mockServices.storeService.setRegionText).not.toHaveBeenCalled();
         });
 
-        describe('COMPREHENSIVE: All Parallel Editing Scenarios', () => {
+        describe('COMPREHENSIVE: All Parallel Editing Scenarios (Baseline Comparison)', () => {
           // Test matrix: Browser A editing X, Browser B saves Y → Expected result
+          // NEW: Tests use baseline comparison logic
           
           it('CONFLICT: A editing text, B saves text → should block version (force conflict)', () => {
             // Browser A is editing text
@@ -745,10 +755,14 @@ describe('SubscribeToRegionChangesUseCase', () => {
               return field === 'regionText';
             });
 
-            // Browser B saves text change
+            // Mock baseline (what region looked like when A started editing)
+            const baseline = { id: 'region-1', regionText: 'ORIGINAL TEXT', _version: 1 };
+            mockServices.storeService.getBaselineForRegion.mockReturnValue(baseline);
+
+            // Browser B saves text change (subscription contains B's new text)
             const updatedRegion = {
               id: 'region-1',
-              regionText: 'DIFFERENT TEXT FROM B',  // Text actually changed
+              regionText: 'DIFFERENT TEXT FROM B',  // Text actually changed from baseline
               userLastUpdated: 'browser.b@user.com',
               _version: 2
             } as any;
@@ -768,9 +782,14 @@ describe('SubscribeToRegionChangesUseCase', () => {
               return field === 'regionText';
             });
 
+            // Mock baseline (original state)
+            const baseline = { id: 'region-1', regionText: 'ORIGINAL TEXT', translation: 'ORIGINAL TRANSLATION', _version: 1 };
+            mockServices.storeService.getBaselineForRegion.mockReturnValue(baseline);
+
+            // Browser B saves translation change
             const updatedRegion = {
               id: 'region-1',
-              translation: 'NEW TRANSLATION FROM B',
+              translation: 'NEW TRANSLATION FROM B',  // Translation changed from baseline
               userLastUpdated: 'browser.b@user.com',
               _version: 2
             } as any;
@@ -787,10 +806,15 @@ describe('SubscribeToRegionChangesUseCase', () => {
               return field === 'regionText';
             });
 
+            // Mock baseline (original bounds)
+            const baseline = { id: 'region-1', regionText: 'ORIGINAL TEXT', start: 10, end: 20, _version: 1 };
+            mockServices.storeService.getBaselineForRegion.mockReturnValue(baseline);
+
+            // Browser B saves bounds change (THIS IS THE KEY SCENARIO THAT WAS BROKEN)
             const updatedRegion = {
               id: 'region-1',
-              start: 30,
-              end: 40,
+              start: 30,  // Bounds changed from baseline (10 → 30)
+              end: 40,    // Bounds changed from baseline (20 → 40)
               userLastUpdated: 'browser.b@user.com',
               _version: 2
             } as any;
@@ -925,6 +949,82 @@ describe('SubscribeToRegionChangesUseCase', () => {
 
             expect(mockServices.storeService.setRegionAnalysis).toHaveBeenCalledWith('region-1', ['new', 'analysis', 'words']);
             expect(mockServices.storeService.setRegionVersion).toHaveBeenCalledWith('region-1', 2);
+          });
+        });
+
+        describe('REGRESSION: Baseline Comparison Fixes', () => {
+          it('CRITICAL: Should use baseline comparison to detect actual changes (main fix)', () => {
+            // Browser A is editing text
+            mockServices.storeService.isPendingEdit.mockImplementation((regionId, field) => {
+              return field === 'regionText';
+            });
+
+            // Mock baseline: original region state when A started editing
+            const baseline = { 
+              id: 'region-1', 
+              regionText: 'ORIGINAL TEXT', 
+              start: 10, 
+              end: 20, 
+              _version: 40 
+            };
+            mockServices.storeService.getBaselineForRegion.mockReturnValue(baseline);
+
+            // Browser B moves region and subscription arrives
+            // GraphQL sends COMPLETE object, not just changes
+            const updatedRegion = {
+              id: 'region-1',
+              regionText: 'ORIGINAL TEXT',       // Same as baseline - text unchanged
+              start: 30,                        // Changed from baseline (10 → 30)
+              end: 40,                          // Changed from baseline (20 → 40)
+              regionAnalysis: ['word1', 'word2'], // Present in subscription
+              userLastUpdated: 'browser.b@user.com',
+              _version: 41
+            } as any;
+
+            const event = { mutation: 'UPDATE', region: updatedRegion };
+            subscriptionCallback(event);
+
+            // The NEW logic should:
+            // 1. Compare subscription vs baseline (not vs current store)
+            // 2. Detect bounds actually changed: baseline.start(10) vs subscription.start(30)
+            // 3. Allow version update because bounds are unprotected
+            // 4. Enable parallel editing: A can save text with version 41
+
+            expect(mockServices.storeService.updateRegionBounds).toHaveBeenCalledWith('region-1', 30, 40);
+            expect(mockServices.storeService.setRegionVersion).toHaveBeenCalledWith('region-1', 41);
+            
+            // Text should be protected since A is editing it
+            expect(mockServices.storeService.setRegionText).not.toHaveBeenCalled();
+          });
+
+          it('CRITICAL: Should still detect same-field conflicts with baseline comparison', () => {
+            // Browser A is editing text
+            mockServices.storeService.isPendingEdit.mockImplementation((regionId, field) => {
+              return field === 'regionText';
+            });
+
+            // Mock baseline
+            const baseline = { 
+              id: 'region-1', 
+              regionText: 'ORIGINAL TEXT', 
+              _version: 40 
+            };
+            mockServices.storeService.getBaselineForRegion.mockReturnValue(baseline);
+
+            // Browser B also edits text and subscription arrives
+            const updatedRegion = {
+              id: 'region-1',
+              regionText: 'DIFFERENT TEXT FROM B',  // Changed from baseline!
+              userLastUpdated: 'browser.b@user.com',
+              _version: 41
+            } as any;
+
+            const event = { mutation: 'UPDATE', region: updatedRegion };
+            subscriptionCallback(event);
+
+            // Should still block same-field conflicts
+            expect(mockServices.storeService.setRegionText).not.toHaveBeenCalled();
+            expect(mockServices.storeService.setRegionVersion).not.toHaveBeenCalled();
           });
         });
 
@@ -1121,6 +1221,10 @@ describe('SubscribeToRegionChangesUseCase', () => {
       // Mock store to return current region
       mockStoreService.regionById.mockReturnValue(currentRegion);
       mockStoreService.isPendingEdit.mockReturnValue(true); // User IS actively typing
+
+      // Mock baseline (what text looked like before user started typing)
+      const baseline = createMockRegion({ regionText: 'original text', _version: 1 });
+      mockStoreService.getBaselineForRegion.mockReturnValue(baseline);
 
       const event = createMockSubscriptionEvent('UPDATE', remoteRegion);
       useCase.handleRegionSubscriptionEvent(event);
