@@ -80,16 +80,17 @@ export class SubscribeToRegionChangesUseCase {
           return;
         }
 
-                // HYBRID APPROACH: Protect active typing AND preserve version for conflict detection
-        // Check if user is actively typing (has pending edits)
-        const isActivelyTyping = store.isPendingEdit(region.id);
+        // GRANULAR APPROACH: Check for field-specific pending edits
+        // Allow parallel editing of different fields (text + translation, text + bounds, etc.)
+        const isEditingText = store.isPendingEdit(region.id, 'regionText');
+        const isEditingTranslation = store.isPendingEdit(region.id, 'translation');
         
-
-        
-        if (isActivelyTyping) {
-          // Apply bounds/analysis changes but DON'T update version or text
-          // This preserves the stale version for conflict detection at save time
-          this.applyRemoteChangesButProtectTyping(currentRegion, region);
+        if (isEditingText || isEditingTranslation) {
+          // Apply selective protection: only protect fields being actively edited
+          this.applyRemoteChangesWithSelectiveProtection(currentRegion, region, {
+            protectText: isEditingText,
+            protectTranslation: isEditingTranslation
+          });
         } else {
           // User not actively typing, apply everything including version tracking
           this.applyRemoteChanges(currentRegion, region);
@@ -101,6 +102,67 @@ export class SubscribeToRegionChangesUseCase {
       default:
         console.warn('🔌 Unknown mutation type:', mutation);
     }
+  }
+
+  /**
+   * Apply remote changes with selective field protection
+   * Allows parallel editing of different fields (text + translation, text + bounds, etc.)
+   */
+  private applyRemoteChangesWithSelectiveProtection(
+    currentRegion: any, 
+    updatedRegion: any, 
+    protection: { protectText: boolean; protectTranslation: boolean }
+  ): void {
+    const store = this.config.services.storeService;
+    const wavesurferService = this.config.services.wavesurferService;
+    const rteService = this.config.services.rteService;
+    
+    // Always update bounds (safe to update during any type of editing)
+    if (updatedRegion.start !== undefined && updatedRegion.end !== undefined) {
+      const boundsChanged = currentRegion.start !== updatedRegion.start || currentRegion.end !== updatedRegion.end;
+      if (boundsChanged) {
+        store.updateRegionBounds(updatedRegion.id, updatedRegion.start, updatedRegion.end);
+        wavesurferService.setRegionPosition(updatedRegion.id, {
+          start: updatedRegion.start,
+          end: updatedRegion.end
+        });
+      }
+    }
+    
+    // Conditionally update text (only if not being actively edited)
+    if (updatedRegion.regionText !== undefined && !protection.protectText) {
+      store.setRegionText(updatedRegion.id, updatedRegion.regionText);
+      
+      // Update RTE if it exists
+      const mainEditorKey = `${updatedRegion.id}:main` as const;
+      if (rteService.hasEditor(mainEditorKey)) {
+        console.log('🔌 Updating RTE with remote text change (translation being edited)');
+        rteService.setContent(mainEditorKey, updatedRegion.regionText);
+      }
+    }
+    
+    // Conditionally update translation (only if not being actively edited)
+    if (updatedRegion.translation !== undefined && !protection.protectTranslation) {
+      store.setRegionTranslation(updatedRegion.id, updatedRegion.translation);
+      
+      // Update translation RTE if it exists
+      const translationEditorKey = `${updatedRegion.id}:translation` as const;
+      if (rteService.hasEditor(translationEditorKey)) {
+        console.log('🔌 Updating RTE with remote translation change (text being edited)');
+        rteService.setContent(translationEditorKey, updatedRegion.translation);
+      }
+    }
+    
+    // Always update version (allows parallel saves of different fields)
+    if (updatedRegion._version !== undefined) {
+      store.setRegionVersion(updatedRegion.id, updatedRegion._version);
+    }
+    
+    const protectedFields = [];
+    if (protection.protectText) protectedFields.push('text');
+    if (protection.protectTranslation) protectedFields.push('translation');
+    
+    console.log(`🔌 Applied selective protection - protected: [${protectedFields.join(', ')}]`);
   }
 
   /**
