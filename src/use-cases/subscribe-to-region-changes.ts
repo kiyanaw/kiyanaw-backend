@@ -138,6 +138,13 @@ export class SubscribeToRegionChangesUseCase {
       if (rteService.hasEditor(mainEditorKey)) {
         console.log('🔌 Updating RTE with remote text change (translation being edited)');
         rteService.setContent(mainEditorKey, updatedRegion.regionText);
+        
+        // Reapply known words formatting after content update
+        // Use updated analysis if provided, otherwise fall back to current analysis
+        const regionAnalysis = updatedRegion.regionAnalysis || store.regionById(updatedRegion.id)?.regionAnalysis;
+        if (regionAnalysis && regionAnalysis.length > 0) {
+          rteService.applyKnownWordsFormatting(mainEditorKey, regionAnalysis);
+        }
       }
     }
     
@@ -150,6 +157,13 @@ export class SubscribeToRegionChangesUseCase {
       if (rteService.hasEditor(translationEditorKey)) {
         console.log('🔌 Updating RTE with remote translation change (text being edited)');
         rteService.setContent(translationEditorKey, updatedRegion.translation);
+        
+        // Reapply known words formatting after content update
+        // Use updated analysis if provided, otherwise fall back to current analysis
+        const regionAnalysis = updatedRegion.regionAnalysis || store.regionById(updatedRegion.id)?.regionAnalysis;
+        if (regionAnalysis && regionAnalysis.length > 0) {
+          rteService.applyKnownWordsFormatting(translationEditorKey, regionAnalysis);
+        }
       }
     }
     
@@ -209,6 +223,13 @@ export class SubscribeToRegionChangesUseCase {
       if (rteService.hasEditor(mainEditorKey)) {
         console.log('🔌 Updating RTE with remote text change');
         rteService.setContent(mainEditorKey, updatedRegion.regionText);
+        
+        // Reapply known words formatting after content update
+        // Use updated analysis if provided, otherwise fall back to current analysis
+        const regionAnalysis = updatedRegion.regionAnalysis || store.regionById(updatedRegion.id)?.regionAnalysis;
+        if (regionAnalysis && regionAnalysis.length > 0) {
+          rteService.applyKnownWordsFormatting(mainEditorKey, regionAnalysis);
+        }
       }
     }
     if (updatedRegion.translation !== undefined) {
@@ -219,6 +240,13 @@ export class SubscribeToRegionChangesUseCase {
       if (rteService.hasEditor(translationEditorKey)) {
         console.log('🔌 Updating RTE with remote translation change');
         rteService.setContent(translationEditorKey, updatedRegion.translation);
+        
+        // Reapply known words formatting after content update
+        // Use updated analysis if provided, otherwise fall back to current analysis
+        const regionAnalysis = updatedRegion.regionAnalysis || store.regionById(updatedRegion.id)?.regionAnalysis;
+        if (regionAnalysis && regionAnalysis.length > 0) {
+          rteService.applyKnownWordsFormatting(translationEditorKey, regionAnalysis);
+        }
       }
     }
     if (updatedRegion.start !== undefined && updatedRegion.end !== undefined) {
