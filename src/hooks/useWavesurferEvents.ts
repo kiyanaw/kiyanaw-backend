@@ -132,6 +132,7 @@ export const useWavesurferEvents = (transcriptionId: string, source?: string): v
 
     const handleReadyWithDuration = (data: unknown) => {
       const event = data as ReadyEvent;
+      console.log('wavesurfer ready', event)
       usePlayerStore.getState().setLoadedAndReady(true);
       usePlayerStore.getState().setDuration(event.duration);
       

@@ -276,7 +276,7 @@ export const useEditorStore = create<EditorState>()(
         // Remove from regionVersions
         const newRegionVersions = { ...regionVersions };
         delete newRegionVersions[regionId];
-        
+
         // Remove from regions array
         const newRegions = regions.filter(r => r.id !== regionId);
         

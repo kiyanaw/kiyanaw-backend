@@ -156,11 +156,11 @@ describe('WaveformPlayer', () => {
         issueById: jest.fn(() => null),
         issuesByRegion: jest.fn(() => []),
         calculateTranscriptionMetadata: jest.fn(() => ({ regionCount: 0, coverage: 0 })),
+
         conflictQueue: [],
         addConflictToQueue: jest.fn(),
         removeConflictFromQueue: jest.fn(),
         processConflictQueue: jest.fn(),
-
       };
       return selector(state);
     });
