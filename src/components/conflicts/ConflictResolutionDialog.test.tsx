@@ -18,7 +18,6 @@ const mockConflict: ConflictData = {
 
 describe('ConflictResolutionDialog', () => {
   const mockOnResolve = jest.fn();
-  const mockOnCancel = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -29,7 +28,6 @@ describe('ConflictResolutionDialog', () => {
       <ConflictResolutionDialog
         conflict={mockConflict}
         onResolve={mockOnResolve}
-        onCancel={mockOnCancel}
       />
     );
 
@@ -66,32 +64,27 @@ describe('ConflictResolutionDialog', () => {
       <ConflictResolutionDialog
         conflict={translationConflict}
         onResolve={mockOnResolve}
-        onCancel={mockOnCancel}
       />
     );
 
     expect(screen.getByText(/Someone else has modified the.*while you were editing/)).toBeInTheDocument();
   });
 
-  it('should enable resolve button only when option is selected', () => {
+  it('should have accept_remote selected by default and resolve button enabled', () => {
     render(
       <ConflictResolutionDialog
         conflict={mockConflict}
         onResolve={mockOnResolve}
-        onCancel={mockOnCancel}
       />
     );
 
     const resolveButton = screen.getByText('Resolve Conflict');
-    
-    // Initially disabled
-    expect(resolveButton).toBeDisabled();
-
-    // Select an option
     const acceptRemoteRadio = screen.getByDisplayValue('accept_remote');
-    fireEvent.click(acceptRemoteRadio);
-
-    // Should be enabled now
+    
+    // Should have accept_remote selected by default
+    expect(acceptRemoteRadio).toBeChecked();
+    
+    // Should be enabled by default since an option is selected
     expect(resolveButton).toBeEnabled();
   });
 
@@ -100,15 +93,10 @@ describe('ConflictResolutionDialog', () => {
       <ConflictResolutionDialog
         conflict={mockConflict}
         onResolve={mockOnResolve}
-        onCancel={mockOnCancel}
       />
     );
 
-    // Select accept remote
-    const acceptRemoteRadio = screen.getByDisplayValue('accept_remote');
-    fireEvent.click(acceptRemoteRadio);
-
-    // Click resolve
+    // accept_remote is already selected by default, just click resolve
     const resolveButton = screen.getByText('Resolve Conflict');
     fireEvent.click(resolveButton);
 
@@ -122,7 +110,6 @@ describe('ConflictResolutionDialog', () => {
       <ConflictResolutionDialog
         conflict={mockConflict}
         onResolve={mockOnResolve}
-        onCancel={mockOnCancel}
       />
     );
 
@@ -139,21 +126,6 @@ describe('ConflictResolutionDialog', () => {
     });
   });
 
-  it('should call onCancel when cancel button is clicked', () => {
-    render(
-      <ConflictResolutionDialog
-        conflict={mockConflict}
-        onResolve={mockOnResolve}
-        onCancel={mockOnCancel}
-      />
-    );
-
-    const cancelButton = screen.getByText('Cancel');
-    fireEvent.click(cancelButton);
-
-    expect(mockOnCancel).toHaveBeenCalled();
-  });
-
   it('should handle empty values gracefully', () => {
     const emptyConflict = {
       ...mockConflict,
@@ -165,7 +137,6 @@ describe('ConflictResolutionDialog', () => {
       <ConflictResolutionDialog
         conflict={emptyConflict}
         onResolve={mockOnResolve}
-        onCancel={mockOnCancel}
       />
     );
 
@@ -177,7 +148,6 @@ describe('ConflictResolutionDialog', () => {
       <ConflictResolutionDialog
         conflict={mockConflict}
         onResolve={mockOnResolve}
-        onCancel={mockOnCancel}
       />
     );
 
@@ -192,7 +162,6 @@ describe('ConflictResolutionDialog', () => {
       <ConflictResolutionDialog
         conflict={mockConflict}
         onResolve={mockOnResolve}
-        onCancel={mockOnCancel}
       />
     );
 
@@ -211,7 +180,6 @@ describe('ConflictResolutionDialog', () => {
       <ConflictResolutionDialog
         conflict={conflictWithoutUser}
         onResolve={mockOnResolve}
-        onCancel={mockOnCancel}
       />
     );
 
@@ -248,7 +216,6 @@ describe('ConflictResolutionDialog', () => {
       <ConflictResolutionDialog
         conflict={multiFieldConflict}
         onResolve={mockOnResolve}
-        onCancel={mockOnCancel}
       />
     );
 

@@ -64,20 +64,13 @@ class ConflictResolutionServiceImpl implements ConflictResolutionService {
       remoteVersion: conflict.remoteVersion
     });
     
-    try {
-      // Use the global dialog manager to show the real UI dialog
-      const { conflictDialogManager } = await import('./conflictDialogManager');
-      const result = await conflictDialogManager.showDialog(conflict);
-      
-      console.log('🔥 User resolved conflict:', result);
-      this.activeConflicts.delete(conflictKey);
-      return result;
-    } catch (error) {
-      console.error('Error showing conflict dialog:', error);
-      // Fallback to accepting remote changes if dialog fails
-      this.activeConflicts.delete(conflictKey);
-      return { action: 'accept_remote' };
-    }
+    // Use the global dialog manager to show the real UI dialog
+    const { conflictDialogManager } = await import('./conflictDialogManager');
+    const result = await conflictDialogManager.showDialog(conflict);
+    
+    console.log('🔥 User resolved conflict:', result);
+    this.activeConflicts.delete(conflictKey);
+    return result;
   }
   
   hasActiveConflict(regionId: string, field: string): boolean {

@@ -6,24 +6,21 @@ interface ConflictDialogState {
   isOpen: boolean;
   conflict: ConflictData | null;
   resolver: ((result: ConflictResolutionResult) => void) | null;
-  rejecter: ((reason?: unknown) => void) | null;
 }
 
 export const useConflictDialog = () => {
   const [dialogState, setDialogState] = useState<ConflictDialogState>({
     isOpen: false,
     conflict: null,
-    resolver: null,
-    rejecter: null
+    resolver: null
   });
 
   const showConflictDialog = useCallback((conflict: ConflictData): Promise<ConflictResolutionResult> => {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       setDialogState({
         isOpen: true,
         conflict,
-        resolver: resolve,
-        rejecter: reject
+        resolver: resolve
       });
     });
   }, []);
@@ -35,20 +32,7 @@ export const useConflictDialog = () => {
     setDialogState({
       isOpen: false,
       conflict: null,
-      resolver: null,
-      rejecter: null
-    });
-  }, [dialogState]);
-
-  const handleCancel = useCallback(() => {
-    if (dialogState.rejecter) {
-      dialogState.rejecter(new Error('User cancelled conflict resolution'));
-    }
-    setDialogState({
-      isOpen: false,
-      conflict: null,
-      resolver: null,
-      rejecter: null
+      resolver: null
     });
   }, [dialogState]);
 
@@ -61,10 +45,9 @@ export const useConflictDialog = () => {
       <ConflictResolutionDialog
         conflict={dialogState.conflict}
         onResolve={handleResolve}
-        onCancel={handleCancel}
       />
     );
-  }, [dialogState.isOpen, dialogState.conflict, handleResolve, handleCancel]);
+  }, [dialogState.isOpen, dialogState.conflict, handleResolve]);
 
   return {
     showConflictDialog,
