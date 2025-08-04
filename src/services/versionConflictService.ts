@@ -216,11 +216,7 @@ export async function handleVersionConflict(
     // Handle user's resolution choice
     if (resolution.action === 'accept_remote') {
       console.log('🔄 User chose to accept remote changes');
-      if (conflictAnalysis.remoteRegion) {
-        await onAcceptRemote(conflictAnalysis.remoteRegion);
-      } else {
-        console.error('Cannot accept remote changes: no remote region data available');
-      }
+      await onAcceptRemote(conflictAnalysis.remoteRegion!);
     } else if (resolution.action === 'keep_local') {
       console.log('🔄 User chose to keep their changes - force overwriting remote version');
       
