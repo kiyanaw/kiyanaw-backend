@@ -30,7 +30,7 @@ export class ConflictDetectionService {
     }
 
     // Helper function to normalize null/undefined/empty string values for comparison
-    const normalizeEmptyValue = (value: any): string => {
+    const normalizeEmptyValue = (value: string | number | boolean | string[] | null | undefined): string => {
       if (value === null || value === undefined || value === '') {
         return '';
       }
@@ -261,7 +261,7 @@ export class ConflictDetectionService {
    */
   private getAllConflictedFields(local: RegionData, remote: RegionData): string[] {
     // Helper function to normalize null/undefined/empty string values for comparison
-    const normalizeEmptyValue = (value: any): string => {
+    const normalizeEmptyValue = (value: string | number | boolean | string[] | null | undefined): string => {
       if (value === null || value === undefined || value === '') {
         return '';
       }

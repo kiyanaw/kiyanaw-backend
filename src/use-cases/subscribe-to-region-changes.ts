@@ -191,7 +191,7 @@ export class SubscribeToRegionChangesUseCase {
     const wavesurferService = this.config.services.wavesurferService;
     
     // Helper function to normalize null/undefined/empty string values for comparison
-    const normalizeEmptyValue = (value: any): string => {
+    const normalizeEmptyValue = (value: string | number | boolean | string[] | null | undefined): string => {
       if (value === null || value === undefined || value === '') {
         return '';
       }
@@ -251,10 +251,6 @@ export class SubscribeToRegionChangesUseCase {
       store.setRegionAnalysis(updatedRegion.id as string, updatedRegion.regionAnalysis as string[]);
       store.addKnownWords(updatedRegion.regionAnalysis as string[]);
     }
-    
-
-
-
 
     // Determine if there are unprotected changes
     const unprotectedBounds = !protection.protectBounds && actualChanges.bounds;
@@ -264,12 +260,8 @@ export class SubscribeToRegionChangesUseCase {
     
     const hasUnprotectedChanges = unprotectedBounds || unprotectedAnalysisOnly || unprotectedText || unprotectedTranslation;
     
-
-    
     // Update version unless user is editing and there are no unprotected changes
     const shouldBlockVersion = (protection.protectText || protection.protectTranslation || protection.protectBounds) && !hasUnprotectedChanges;
-    
-
     
     if (updatedRegion._version !== undefined && !shouldBlockVersion) {
       store.setRegionVersion(updatedRegion.id, updatedRegion._version);
