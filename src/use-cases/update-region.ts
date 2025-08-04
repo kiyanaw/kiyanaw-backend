@@ -17,7 +17,7 @@ type RegionChanges = {
 interface UpdateRegionConfig {
   regionId: string;
   changes: RegionChanges; // e.g., { regionText: "new text" } or { start: 10, end: 20 }
-  debounceMs: number; // 3000 for text, 2500 for bounds
+  debounceMs: number;
   primaryField: string; // For conflict resolution UI (regionText, start, etc.)
   pendingEditField?: string; // For text/translation pending edit tracking
   services: typeof services;
