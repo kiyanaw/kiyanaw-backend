@@ -101,6 +101,7 @@ export const storeService = {
     for (const key in state.pendingEdits) {
       const edit = state.pendingEdits[key];
       if (edit.regionId === regionId && edit.baseline) {
+
         return edit.baseline as RegionData | LazyRegion;
       }
     }

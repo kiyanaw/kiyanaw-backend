@@ -31,6 +31,7 @@ const mockServices = {
     setRegionText: jest.fn(),
     setRegionTranslation: jest.fn(),
     setRegionVersion: jest.fn(),
+    getRegionVersion: jest.fn().mockReturnValue(1), // Add missing mock
     addConflictToQueue: jest.fn(),
     removeConflictFromQueue: jest.fn(),
     isPendingEdit: jest.fn(),
@@ -1048,6 +1049,80 @@ describe('SubscribeToRegionChangesUseCase', () => {
           
           // VERSION SHOULD BE UPDATED - regionAnalysis alone is not a conflicting change
           expect(mockServices.storeService.setRegionVersion).toHaveBeenCalledWith('region-1', 1);
+        });
+
+        it('REGRESSION: Should NOT detect false changes from null vs empty string differences', () => {
+          // User is editing text (so translation should use baseline comparison)
+          mockServices.storeService.isPendingEdit.mockImplementation((regionId, field) => {
+            return field === 'regionText';
+          });
+
+          // Mock baseline with empty string translation
+          const baseline = { 
+            id: 'region-1', 
+            regionText: 'user typing here',
+            translation: '', // Empty string
+            _version: 1 
+          };
+          mockServices.storeService.getBaselineForRegion.mockReturnValue(baseline);
+
+          // Remote subscription arrives with null translation (GraphQL sometimes sends null instead of "")
+          const updatedRegion = {
+            id: 'region-1',
+            regionText: 'remote text change', // Text changed (should be protected)
+            translation: null, // null instead of "" - should NOT be considered a change
+            userLastUpdated: 'other@user.com',
+            _version: 2
+          } as any;
+
+          const event = { mutation: 'UPDATE', region: updatedRegion };
+          subscriptionCallback(event);
+
+          // Text should be protected (user is editing it)
+          expect(mockServices.storeService.setRegionText).not.toHaveBeenCalled();
+          
+          // Translation should NOT be updated (null vs "" should not be considered a change)
+          expect(mockServices.storeService.setRegionTranslation).not.toHaveBeenCalled();
+          
+          // VERSION SHOULD NOT UPDATE - no actual unprotected changes detected
+          expect(mockServices.storeService.setRegionVersion).not.toHaveBeenCalled();
+        });
+
+        it('REGRESSION: Should NOT detect false changes from empty string vs null text differences', () => {
+          // User is editing translation (so text should use baseline comparison)
+          mockServices.storeService.isPendingEdit.mockImplementation((regionId, field) => {
+            return field === 'translation';
+          });
+
+          // Mock baseline with null text
+          const baseline = { 
+            id: 'region-1', 
+            regionText: null, // null text
+            translation: 'user typing translation',
+            _version: 1 
+          };
+          mockServices.storeService.getBaselineForRegion.mockReturnValue(baseline);
+
+          // Remote subscription arrives with empty string text
+          const updatedRegion = {
+            id: 'region-1',
+            regionText: '', // Empty string instead of null - should NOT be considered a change
+            translation: 'remote translation change', // Translation changed (should be protected)
+            userLastUpdated: 'other@user.com',
+            _version: 2
+          } as any;
+
+          const event = { mutation: 'UPDATE', region: updatedRegion };
+          subscriptionCallback(event);
+
+          // Translation should be protected (user is editing it)
+          expect(mockServices.storeService.setRegionTranslation).not.toHaveBeenCalled();
+          
+          // Text should NOT be updated (null vs "" should not be considered a change)
+          expect(mockServices.storeService.setRegionText).not.toHaveBeenCalled();
+          
+          // VERSION SHOULD NOT UPDATE - no actual unprotected changes detected
+          expect(mockServices.storeService.setRegionVersion).not.toHaveBeenCalled();
         });
       });
 

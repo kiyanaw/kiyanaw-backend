@@ -436,7 +436,9 @@ export const useEditorStore = create<EditorState>()(
         const now = new Date();
         
         // Capture baseline region state for conflict detection
-        const baseline = regionMap[regionId] ? { ...regionMap[regionId] } : null;
+        const baseline = regionMap[regionId] ? { ...regionMap[regionId] } : undefined;
+        
+
         
         const newPendingEdits = {
           ...pendingEdits,

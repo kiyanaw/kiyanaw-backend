@@ -29,6 +29,14 @@ export class ConflictDetectionService {
       throw new Error('Cannot detect conflicts between different regions');
     }
 
+    // Helper function to normalize null/undefined/empty string values for comparison
+    const normalizeEmptyValue = (value: any): string => {
+      if (value === null || value === undefined || value === '') {
+        return '';
+      }
+      return String(value);
+    };
+
     const conflictDetails: ConflictDetail[] = [];
     const conflictableFields = ['regionText', 'translation', 'start', 'end'];
     
@@ -37,7 +45,15 @@ export class ConflictDetectionService {
       const localValue = local[field as keyof RegionData];
       const remoteValue = remote[field as keyof RegionData];
       
-      if (localValue !== remoteValue) {
+      // For text fields, use normalized comparison to avoid null vs empty string false conflicts
+      let hasConflict = false;
+      if (field === 'regionText' || field === 'translation') {
+        hasConflict = normalizeEmptyValue(localValue) !== normalizeEmptyValue(remoteValue);
+      } else {
+        hasConflict = localValue !== remoteValue;
+      }
+      
+      if (hasConflict) {
         const canAutoMerge = this.canFieldAutoMerge(field, local, remote);
         
         conflictDetails.push({
@@ -244,11 +260,30 @@ export class ConflictDetectionService {
    * @returns Array of field names that differ
    */
   private getAllConflictedFields(local: RegionData, remote: RegionData): string[] {
+    // Helper function to normalize null/undefined/empty string values for comparison
+    const normalizeEmptyValue = (value: any): string => {
+      if (value === null || value === undefined || value === '') {
+        return '';
+      }
+      return String(value);
+    };
+
     const conflicted: string[] = [];
     const fieldsToCheck = ['regionText', 'translation', 'start', 'end'];
 
     for (const field of fieldsToCheck) {
-      if (local[field as keyof RegionData] !== remote[field as keyof RegionData]) {
+      const localValue = local[field as keyof RegionData];
+      const remoteValue = remote[field as keyof RegionData];
+      
+      // For text fields, use normalized comparison to avoid null vs empty string false conflicts
+      let hasConflict = false;
+      if (field === 'regionText' || field === 'translation') {
+        hasConflict = normalizeEmptyValue(localValue) !== normalizeEmptyValue(remoteValue);
+      } else {
+        hasConflict = localValue !== remoteValue;
+      }
+
+      if (hasConflict) {
         conflicted.push(field);
       }
     }

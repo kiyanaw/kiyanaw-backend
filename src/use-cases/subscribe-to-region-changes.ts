@@ -126,7 +126,7 @@ export class SubscribeToRegionChangesUseCase {
         protectBounds: isEditingBounds
       });
     } else {
-      this.applyRemoteChanges(currentRegion, updatedRegion);
+      this.applyRemoteChanges(updatedRegion);
       store.setRegionVersion(updatedRegion.id, updatedRegion._version!);
     }
   }
@@ -190,6 +190,37 @@ export class SubscribeToRegionChangesUseCase {
     const store = this.config.services.storeService;
     const wavesurferService = this.config.services.wavesurferService;
     
+    // Helper function to normalize null/undefined/empty string values for comparison
+    const normalizeEmptyValue = (value: any): string => {
+      if (value === null || value === undefined || value === '') {
+        return '';
+      }
+      return String(value);
+    };
+
+    // Calculate what actually changed using baseline comparison
+    const baseline = store.getBaselineForRegion(updatedRegion.id);
+    const hasAnyPendingEdits = protection.protectText || protection.protectTranslation || protection.protectBounds;
+    
+    const actualChanges = {
+      bounds: hasAnyPendingEdits && baseline ? (
+        (updatedRegion.start !== undefined && baseline.start !== updatedRegion.start) || 
+        (updatedRegion.end !== undefined && baseline.end !== updatedRegion.end)
+      ) : (updatedRegion.start !== undefined || updatedRegion.end !== undefined),
+      
+      text: hasAnyPendingEdits && baseline ? 
+        (updatedRegion.regionText !== undefined && normalizeEmptyValue(baseline.regionText) !== normalizeEmptyValue(updatedRegion.regionText)) :
+        (updatedRegion.regionText !== undefined),
+        
+      translation: hasAnyPendingEdits && baseline ?
+        (updatedRegion.translation !== undefined && normalizeEmptyValue(baseline.translation) !== normalizeEmptyValue(updatedRegion.translation)) :
+        (updatedRegion.translation !== undefined),
+        
+      analysis: hasAnyPendingEdits && baseline ?
+        (updatedRegion.regionAnalysis !== undefined && JSON.stringify(baseline.regionAnalysis) !== JSON.stringify(updatedRegion.regionAnalysis)) :
+        (updatedRegion.regionAnalysis !== undefined)
+    };
+    
     // Update bounds if not being actively edited
     if (updatedRegion.start !== undefined && updatedRegion.end !== undefined && !protection.protectBounds) {
       const boundsChanged = currentRegion.start !== updatedRegion.start || currentRegion.end !== updatedRegion.end;
@@ -203,14 +234,14 @@ export class SubscribeToRegionChangesUseCase {
       }
     }
     
-    // Update text if not being actively edited
-    if (updatedRegion.regionText !== undefined && !protection.protectText) {
+    // Update text if not being actively edited AND it actually changed
+    if (updatedRegion.regionText !== undefined && !protection.protectText && actualChanges.text) {
       store.setRegionText(updatedRegion.id as string, updatedRegion.regionText as string);
       this.updateRteIfExists(`${updatedRegion.id}:main` as const, updatedRegion.regionText as string, updatedRegion);
     }
     
-    // Update translation if not being actively edited
-    if (updatedRegion.translation !== undefined && !protection.protectTranslation) {
+    // Update translation if not being actively edited AND it actually changed
+    if (updatedRegion.translation !== undefined && !protection.protectTranslation && actualChanges.translation) {
       store.setRegionTranslation(updatedRegion.id as string, updatedRegion.translation as string);
       this.updateRteIfExists(`${updatedRegion.id}:translation` as const, updatedRegion.translation as string, updatedRegion);
     }
@@ -221,27 +252,24 @@ export class SubscribeToRegionChangesUseCase {
       store.addKnownWords(updatedRegion.regionAnalysis as string[]);
     }
     
-    // Compare subscription vs baseline to determine what actually changed
-    const baseline = store.getBaselineForRegion(updatedRegion.id);
-    
-    const actualChanges = {
-      bounds: (updatedRegion.start !== undefined && baseline?.start !== updatedRegion.start) || 
-              (updatedRegion.end !== undefined && baseline?.end !== updatedRegion.end),
-      text: updatedRegion.regionText !== undefined && baseline?.regionText !== updatedRegion.regionText,
-      translation: updatedRegion.translation !== undefined && baseline?.translation !== updatedRegion.translation,
-      analysis: updatedRegion.regionAnalysis !== undefined && 
-                JSON.stringify(baseline?.regionAnalysis) !== JSON.stringify(updatedRegion.regionAnalysis)
-    };
+
+
+
 
     // Determine if there are unprotected changes
-    const hasUnprotectedChanges = 
-      (!protection.protectBounds && actualChanges.bounds) ||
-      (actualChanges.analysis && !actualChanges.text && !actualChanges.translation) ||
-      (!protection.protectText && actualChanges.text) ||
-      (!protection.protectTranslation && actualChanges.translation);
+    const unprotectedBounds = !protection.protectBounds && actualChanges.bounds;
+    const unprotectedAnalysisOnly = actualChanges.analysis && !actualChanges.text && !actualChanges.translation;
+    const unprotectedText = !protection.protectText && actualChanges.text;
+    const unprotectedTranslation = !protection.protectTranslation && actualChanges.translation;
+    
+    const hasUnprotectedChanges = unprotectedBounds || unprotectedAnalysisOnly || unprotectedText || unprotectedTranslation;
+    
+
     
     // Update version unless user is editing and there are no unprotected changes
     const shouldBlockVersion = (protection.protectText || protection.protectTranslation || protection.protectBounds) && !hasUnprotectedChanges;
+    
+
     
     if (updatedRegion._version !== undefined && !shouldBlockVersion) {
       store.setRegionVersion(updatedRegion.id, updatedRegion._version);
@@ -249,7 +277,7 @@ export class SubscribeToRegionChangesUseCase {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private applyRemoteChanges(currentRegion: any, updatedRegion: any): void {
+  private applyRemoteChanges(updatedRegion: any): void {
     const store = this.config.services.storeService;
     const wavesurferService = this.config.services.wavesurferService;
     
