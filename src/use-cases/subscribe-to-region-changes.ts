@@ -126,7 +126,7 @@ export class SubscribeToRegionChangesUseCase {
         protectBounds: isEditingBounds
       });
     } else {
-      this.applyRemoteChanges(currentRegion, updatedRegion);
+      this.applyRemoteChanges(updatedRegion);
       store.setRegionVersion(updatedRegion.id, updatedRegion._version!);
     }
   }
@@ -249,7 +249,7 @@ export class SubscribeToRegionChangesUseCase {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private applyRemoteChanges(currentRegion: any, updatedRegion: any): void {
+  private applyRemoteChanges(updatedRegion: any): void {
     const store = this.config.services.storeService;
     const wavesurferService = this.config.services.wavesurferService;
     

@@ -161,6 +161,13 @@ export class UpdateRegionUseCase {
     // Get current version for optimistic concurrency control
     const currentVersion = store.getRegionVersion(regionId);
 
+    console.log(`💾 Attempting to save region ${regionId} with version ${currentVersion}:`, {
+      primaryField,
+      changes: Object.keys(changes),
+      currentVersion,
+      updateData: Object.keys(updateData)
+    });
+
     try {
       // Save to database
       await services.regionService.updateRegion(
@@ -187,7 +194,12 @@ export class UpdateRegionUseCase {
       
       // Check if this is a version conflict error
       if (isVersionConflictError(error)) {
-        console.warn('✅ Version conflict detected, showing resolution dialog...', { regionId, error });
+        console.warn('🔥 VERSION CONFLICT DETECTED! This should show conflict dialog:', { 
+          regionId, 
+          primaryField,
+          currentVersion, 
+          error: error instanceof Error ? error.message : String(error)
+        });
         
         await handleVersionConflict(
           regionId,
