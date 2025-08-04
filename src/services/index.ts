@@ -10,6 +10,12 @@ import { awsConfigService } from './awsConfigService';
 import { uploadService } from './uploadService';
 import * as toastService from './toastService';
 import * as inviteService from './inviteService';
+import { storeService } from './storeService';
+import { flashIndicatorService } from './flashIndicatorService';
+import { pendingEditsService } from './pendingEditsService';
+import { conflictDetectionService } from './conflictDetectionService';
+import { conflictResolutionService } from './conflictResolutionService';
+import * as versionConflictService from './versionConflictService';
 
 export const services = {
   userService: authService,
@@ -25,4 +31,10 @@ export const services = {
   uploadService,
   toastService,
   inviteService,
+  storeService,
+  flashIndicatorService,
+  pendingEditsService,
+  conflictDetectionService,
+  conflictResolutionService,
+  versionConflictService,
 };

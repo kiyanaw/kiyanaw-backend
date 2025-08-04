@@ -120,7 +120,10 @@ describe('CreateRegion', () => {
       await useCase.execute();
       
       expect(mockAddNewRegion).toHaveBeenCalledTimes(1);
-      expect(mockAddNewRegion).toHaveBeenCalledWith(validConfig.newRegion);
+      expect(mockAddNewRegion).toHaveBeenCalledWith({
+        ...validConfig.newRegion,
+        transcriptionId: validConfig.transcriptionId
+      });
     });
 
     it('should call regionService.createRegion with correct parameters', async () => {
@@ -183,7 +186,10 @@ describe('CreateRegion', () => {
       
       await useCase.execute();
       
-      expect(mockAddNewRegion).toHaveBeenCalledWith(differentRegion);
+      expect(mockAddNewRegion).toHaveBeenCalledWith({
+        ...differentRegion,
+        transcriptionId: validConfig.transcriptionId
+      });
       expect(mockCreateRegion).toHaveBeenCalledWith(
         validConfig.transcriptionId,
         differentRegion,

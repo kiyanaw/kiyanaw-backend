@@ -4,6 +4,8 @@ import { useEffect } from 'react';
 import { useEditorStore } from '../stores/useEditorStore';
 import { useLoadTranscription } from '../hooks/useLoadTranscription';
 import { useWavesurferEvents } from '../hooks/useWavesurferEvents';
+import { useSubscriptions } from '../hooks/useSubscriptions';
+
 import { browserService } from '../services/browserService';
 import { wavesurferService } from '../services/wavesurferService';
 
@@ -19,6 +21,7 @@ export const EditorPage = () => {
   const navigate = useNavigate();
   
   useLoadTranscription(transcriptionId!);
+  useSubscriptions(transcriptionId!);
   
   // Editor store selectors
   const transcription = useEditorStore((state) => state.transcription);

@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import type { TranscriptionData, RegionData, ProcessedIssue } from '../types/shared';
+import type { ConflictDetail } from '../services/conflictDetectionService';
+import type { PendingEdit } from '../services/pendingEditsService';
 import Timeout from 'smart-timeout';
 
 interface EditorDataPayload {
@@ -23,12 +25,19 @@ interface EditorState {
   // Regions state
   regions: RegionData[];
   regionMap: Record<string, RegionData>;
+  regionVersions: Record<string, number>; // Track versions locally for conflict resolution
   selectedRegionId: string | null;
   selectedRegion: RegionData | null;
   playbackWithinRegion: string | null;
-
-  // Known words for spell checking
+  
+  // Word analysis cache
   knownWords: Set<string>;
+
+  // Pending edits tracking
+  pendingEdits: Record<string, PendingEdit>;
+
+  // Conflict queue state
+  conflictQueue: ConflictDetail[];
 
   // Issues state
   issues: ProcessedIssue[];
@@ -62,6 +71,13 @@ interface EditorState {
   addKnownWords: (words: string[]) => void;
   setRegionAnalysis: (regionId: string, knownWords: string[]) => void;
 
+  // Pending edits actions moved below
+
+  // Conflict queue actions
+  addConflictToQueue: (conflict: ConflictDetail) => void;
+  removeConflictFromQueue: (conflictId: string) => void;
+  processConflictQueue: () => void;
+
   // Computed properties
   isVideo: boolean;
   isTranscriptionAuthor: (user: { username: string; userId: string } | null) => boolean;
@@ -71,9 +87,14 @@ interface EditorState {
   regionById: (id: string) => RegionData | null;
   issueById: (id: string) => ProcessedIssue | null;
   issuesByRegion: (regionId: string) => ProcessedIssue[];
-
-  // Permissions
-  setCanEdit: (canEdit: boolean) => void;
+  getRegionVersion: (id: string) => number;
+  setRegionVersion: (id: string, version: number) => void;
+  isPendingEdit: (regionId: string, field?: string) => boolean;
+  
+  // Pending edit operations  
+  startPendingEdit: (regionId: string, field: string) => void;
+  endPendingEdit: (regionId: string, field: string) => void;
+  updatePendingEditActivity: (regionId: string, field: string) => void;
 }
 
 
@@ -89,10 +110,10 @@ export const useEditorStore = create<EditorState>()(
       canEdit: false,
       regions: [],
       regionMap: {},
-      selectedRegionId: null,
-      selectedRegion: null,
-      playbackWithinRegion: null,
+      regionVersions: {},
       knownWords: new Set<string>(),
+      pendingEdits: {},
+      conflictQueue: [],
       issues: [],
       issueMap: {},
       _subscriptions: [],
@@ -114,8 +135,17 @@ export const useEditorStore = create<EditorState>()(
 
         // Process regions
         const regionMap: Record<string, RegionData> = {};
+        const regionVersions: Record<string, number> = {};
         regions.forEach((region) => {
           regionMap[region.id] = region;
+          
+          // Validate that existing regions from DB have versions
+          if (region._version === undefined) {
+            console.error('Region from DB missing _version:', region.id, region);
+            throw new Error(`Region ${region.id} from database is missing _version field`);
+          }
+          
+          regionVersions[region.id] = region._version;
         });
 
         // Process issues
@@ -129,6 +159,7 @@ export const useEditorStore = create<EditorState>()(
           transcription,
           regions,
           regionMap,
+          regionVersions,
           issues,
           issueMap,
           peaks: peaks,
@@ -148,7 +179,7 @@ export const useEditorStore = create<EditorState>()(
         set({ accessDenied: denied });
       },
 
-      setCanEdit: (canEdit) => {
+      setCanEdit: (canEdit: boolean) => {
         set({ canEdit });
       },
 
@@ -161,7 +192,10 @@ export const useEditorStore = create<EditorState>()(
           accessDenied: false,
           regions: [],
           regionMap: {},
+          regionVersions: {},
           knownWords: new Set<string>(),
+          pendingEdits: {},
+          conflictQueue: [],
           issues: [],
           issueMap: {},
           selectedRegionId: null,
@@ -200,10 +234,21 @@ export const useEditorStore = create<EditorState>()(
 
 
       addNewRegion: (region: RegionData) => {
-        const { regions, regionMap } = get();
+        const { regions, regionMap, regionVersions } = get();
         
         // Add to regionMap for O(1) lookups
         const newRegionMap = { ...regionMap, [region.id]: region };
+        
+        // Track version locally
+        // New regions (from UI) don't have _version yet, assign temporary version 0
+        // Existing regions (from subscriptions/DB) should have _version
+        let version = region._version;
+        if (version === undefined) {
+          console.log('📝 Adding new region without _version (will be updated from subscription):', region.id);
+          version = 0; // Temporary version for new regions
+        }
+
+        const newRegionVersions = { ...regionVersions, [region.id]: version };
         
         // Insert into regions array maintaining sort order (by start time)
         const newRegions = [...regions];
@@ -217,15 +262,20 @@ export const useEditorStore = create<EditorState>()(
         set({
           regions: newRegions,
           regionMap: newRegionMap,
+          regionVersions: newRegionVersions,
         });
       },
 
       deleteRegion: (regionId: string) => {
-        const { regions, regionMap, selectedRegionId } = get();
+        const { regions, regionMap, regionVersions, selectedRegionId } = get();
         
         // Remove from regionMap
         const newRegionMap = { ...regionMap };
         delete newRegionMap[regionId];
+        
+        // Remove from regionVersions
+        const newRegionVersions = { ...regionVersions };
+        delete newRegionVersions[regionId];
         
         // Remove from regions array
         const newRegions = regions.filter(r => r.id !== regionId);
@@ -234,6 +284,7 @@ export const useEditorStore = create<EditorState>()(
         const updateObj: Partial<EditorState> = {
           regions: newRegions,
           regionMap: newRegionMap,
+          regionVersions: newRegionVersions,
         };
         
         // If this was the selected region, clear the selection
@@ -324,13 +375,6 @@ export const useEditorStore = create<EditorState>()(
         set(updateObj);
       },
 
-
-
-
-
-
-
-
       // Computed getters
       regionById: (id) => {
         const { regionMap } = get();
@@ -347,11 +391,122 @@ export const useEditorStore = create<EditorState>()(
         return issues.filter(issue => issue.regionId === regionId);
       },
 
+      getRegionVersion: (id) => {
+        const { regionVersions } = get();
+        const version = regionVersions[id];
+        
+        if (version === undefined) {
+          throw new Error(`No version tracked for region ${id} - this indicates a data integrity issue`);
+        }
+        
+        return version;
+      },
+
+      setRegionVersion: (id, version) => {
+        const { regionVersions } = get();
+        set({
+          regionVersions: { ...regionVersions, [id]: version }
+        });
+      },
+
+      // Pending edit operations use startPendingEdit/endPendingEdit below
+
+      isPendingEdit: (regionId, field) => {
+        const { pendingEdits } = get();
+        
+        if (field) {
+          const key = `${regionId}:${field}`;
+          return key in pendingEdits;
+        }
+        
+        // Check if ANY field for this region is being edited
+        for (const key in pendingEdits) {
+          if (pendingEdits[key].regionId === regionId) {
+            return true;
+          }
+        }
+        
+        return false;
+      },
+
+      // Pending edits actions
+      startPendingEdit: (regionId, field) => {
+        const { pendingEdits, regionMap } = get();
+        const key = `${regionId}:${field}`;
+        const now = new Date();
+        
+        // Capture baseline region state for conflict detection
+        const baseline = regionMap[regionId] ? { ...regionMap[regionId] } : null;
+        
+        const newPendingEdits = {
+          ...pendingEdits,
+          [key]: {
+            regionId,
+            field: field as PendingEdit['field'],
+            startedAt: now,
+            lastActivity: now,
+            baseline, // Store original state when edit started
+          },
+        };
+        
+        set({ pendingEdits: newPendingEdits });
+      },
+
+      endPendingEdit: (regionId, field) => {
+        const { pendingEdits } = get();
+        const key = `${regionId}:${field}`;
+        
+        const newPendingEdits = { ...pendingEdits };
+        delete newPendingEdits[key];
+        
+        set({ pendingEdits: newPendingEdits });
+      },
+
+      updatePendingEditActivity: (regionId, field) => {
+        const { pendingEdits } = get();
+        const key = `${regionId}:${field}`;
+        const existing = pendingEdits[key];
+        
+        if (existing) {
+          const newPendingEdits = {
+            ...pendingEdits,
+            [key]: {
+              ...existing,
+              lastActivity: new Date(),
+            },
+          };
+          
+          set({ pendingEdits: newPendingEdits });
+        }
+      },
+
+      // Conflict queue actions
+      addConflictToQueue: (conflict) => {
+        const { conflictQueue } = get();
+        const newQueue = [...conflictQueue, conflict];
+        set({ conflictQueue: newQueue });
+      },
+
+      removeConflictFromQueue: (conflictId) => {
+        const { conflictQueue } = get();
+        const newQueue = conflictQueue.filter(c => c.conflictId !== conflictId);
+        set({ conflictQueue: newQueue });
+      },
+
+      processConflictQueue: () => {
+        const { conflictQueue } = get();
+        // For now, just log the conflicts - actual processing will be implemented in Phase 4
+        console.log('Processing conflict queue:', conflictQueue);
+        // TODO: Implement actual conflict processing logic in Phase 4
+      },
+
       // Spell checking actions
       addKnownWords: (words) => {
         const { knownWords } = get();
         const newKnownWords = new Set(knownWords);
-        words.forEach(word => newKnownWords.add(word));
+        words.forEach(word => {
+          newKnownWords.add(word);
+        });
         set({ knownWords: newKnownWords });
       },
 

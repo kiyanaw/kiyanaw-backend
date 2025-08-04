@@ -67,30 +67,32 @@ export class AnalyzeRegionTextUseCase {
     // Get global known words from store
     const globalKnownWords = store.knownWords as Set<string>;
     
-    // Separate words into already known and unknown
-    const alreadyKnownWords: string[] = [];
-    const unknownWords: string[] = [];
+
     
-    words.forEach(word => {
+    // Get unique words to minimize API calls
+    const uniqueWords = [...new Set(words)];
+    
+    // Separate unique words into already known and unknown
+    const knownUniqueWords = new Set<string>();
+    const unknownUniqueWords: string[] = [];
+    
+    uniqueWords.forEach(word => {
       if (globalKnownWords.has(word)) {
-        alreadyKnownWords.push(word);
+        knownUniqueWords.add(word);
       } else {
-        unknownWords.push(word);
+        unknownUniqueWords.push(word);
       }
     });
 
-    // Start with words we already know are known
-    const allKnownWords = [...alreadyKnownWords];
-
     // Only make API call if we have unknown words
-    if (unknownWords.length > 0) {
+    if (unknownUniqueWords.length > 0) {
       try {
         // Check unknown words against API
-        const result = await spellCheckerService.check(unknownWords);
+        const result = await spellCheckerService.check(unknownUniqueWords);
         
-        // Add newly discovered known words
+        // Add newly discovered known words to our known set
         if (result.known.length > 0) {
-          allKnownWords.push(...result.known);
+          result.known.forEach(word => knownUniqueWords.add(word));
           // Update global store with newly discovered known words
           store.addKnownWords(result.known);
         }
@@ -98,6 +100,11 @@ export class AnalyzeRegionTextUseCase {
         console.error('Error checking unknown words:', error);
       }
     }
+
+    // Build final analysis array as unique known words (for highlighting reference)
+    const allKnownWords = Array.from(knownUniqueWords);
+
+
 
     // Update region analysis in store (this will be picked up by the coordinated save)
     store.setRegionAnalysis(regionId, allKnownWords);

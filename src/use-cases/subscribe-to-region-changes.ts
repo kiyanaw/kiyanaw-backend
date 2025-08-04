@@ -1,0 +1,301 @@
+import { services } from '../services';
+import type { RegionSubscriptionEvent } from '../services/regionService';
+
+export interface SubscribeToRegionChangesConfig {
+  transcriptionId: string;
+  services: typeof services;
+}
+
+export class SubscribeToRegionChangesUseCase {
+  constructor(private config: SubscribeToRegionChangesConfig) {}
+
+  validate(): void {
+    if (!this.config.transcriptionId || !this.config.transcriptionId.trim()) {
+      throw new Error('transcriptionId is required');
+    }
+  }
+
+  execute(): (() => void) | undefined {
+    this.validate();
+
+    const unsubscribe = this.config.services.regionService.subscribeToRegionChanges(
+      this.config.transcriptionId,
+      (event) => {
+        this.handleRegionSubscriptionEvent(event);
+      }
+    );
+
+    return unsubscribe;
+  }
+
+  handleRegionSubscriptionEvent(event: RegionSubscriptionEvent): void {
+    const { mutation, region } = event;
+    
+    const store = this.config.services.storeService;
+    const wavesurferService = this.config.services.wavesurferService;
+    const flashService = this.config.services.flashIndicatorService;
+    
+    // Check if this is a self-triggered event
+    const currentUser = this.config.services.userService.currentUser();
+    const isSelfTriggered = currentUser && region.userLastUpdated === currentUser.username;
+    
+    if (isSelfTriggered) {
+      store.setRegionVersion(region.id, region._version!);
+      return;
+    }
+
+    // Trigger flash indicator for all remote changes
+    if (region.userLastUpdated) {
+      flashService.flashRegion(region.id, region.userLastUpdated);
+    }
+
+    switch (mutation) {
+      case 'CREATE':
+        store.addNewRegion(region);
+        wavesurferService.addRegionWithId({
+          id: region.id,
+          start: region.start,
+          end: region.end
+        });
+        break;
+
+      case 'DELETE':
+        store.deleteRegion(region.id);
+        wavesurferService.deleteRegion(region.id);
+        break;
+
+      case 'UPDATE':
+        this.handleRegionUpdate(region);
+        break;
+
+      default:
+        console.warn('🔌 Unknown mutation type:', mutation);
+    }
+  }
+
+  /**
+   * Handle remote region updates with intelligent conflict avoidance.
+   * 
+   * This method is the decision engine for applying remote updates to regions.
+   * It determines whether to use selective protection (for parallel editing) or
+   * apply all changes directly based on current user activity.
+   * 
+   * Decision Flow:
+   * ┌─────────────────────────────────────────────────────────────────────────────┐
+   * │                           Remote UPDATE received                            │
+   * │                                    │                                        │
+   * │                                    ▼                                        │
+   * │                        Does region exist locally?                           │
+   * │                               │           │                                 │
+   * │                          NO   │           │  YES                            │
+   * │                               ▼           ▼                                 │
+   * │                        Log warning    Check for active                      │
+   * │                        & return       editing sessions                      │
+   * │                                            │                                │
+   * │                                            ▼                                │
+   * │                               Any fields being edited?                      │
+   * │                                  │                │                         │
+   * │                             NO   │                │  YES                    │
+   * │                                  ▼                ▼                         │
+   * │                         Apply all changes   Use selective                   │
+   * │                         + update version    protection                      │
+   * │                                             (parallel editing)              │
+   * └─────────────────────────────────────────────────────────────────────────────┘
+   * 
+   * @param updatedRegion The remote region update from the subscription
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private handleRegionUpdate(updatedRegion: any): void {
+    const store = this.config.services.storeService;
+    const currentRegion = store.regionById(updatedRegion.id);
+    
+    if (!currentRegion) {
+      console.warn('🔌 Received UPDATE for unknown region:', updatedRegion.id);
+      return;
+    }
+
+    // Check for field-specific pending edits to allow parallel editing
+    const isEditingText = store.isPendingEdit(updatedRegion.id, 'regionText');
+    const isEditingTranslation = store.isPendingEdit(updatedRegion.id, 'translation');
+    const isEditingBounds = store.isPendingEdit(updatedRegion.id, 'bounds');
+    
+    if (isEditingText || isEditingTranslation || isEditingBounds) {
+      this.applyRemoteChangesWithSelectiveProtection(currentRegion, updatedRegion, {
+        protectText: isEditingText,
+        protectTranslation: isEditingTranslation,
+        protectBounds: isEditingBounds
+      });
+    } else {
+      this.applyRemoteChanges(currentRegion, updatedRegion);
+      store.setRegionVersion(updatedRegion.id, updatedRegion._version!);
+    }
+  }
+
+  /**
+   * Apply remote changes with selective field protection for parallel editing.
+   * 
+   * This method enables real-time collaboration where multiple users can edit different
+   * fields of the same region simultaneously without conflicts. It protects fields that
+   * are currently being edited while allowing updates to unprotected fields.
+   * 
+   * Use Cases:
+   * ┌─────────────────────────────────────────────────────────────────────────────┐
+   * │ Scenario 1: User A edits text, User B edits translation                     │
+   * │ ┌─────────────┐    ┌─────────────┐    ┌─────────────┐                       │
+   * │ │ User A      │    │ Remote      │    │ User A      │                       │
+   * │ │ typing...   │───▶│ saves       │───▶│ sees trans  │                       │
+   * │ │ [text]      │    │ translation │    │ update      │                       │
+   * │ │             │    │             │    │ [text protected]                    │
+   * │ └─────────────┘    └─────────────┘    └─────────────┘                       │
+   * │ Result: Translation updates, text editing continues uninterrupted           │
+   * └─────────────────────────────────────────────────────────────────────────────┘
+   * 
+   * ┌─────────────────────────────────────────────────────────────────────────────┐
+   * │ Scenario 2: User A edits bounds, User B edits text                          │
+   * │ ┌─────────────┐    ┌─────────────┐    ┌─────────────┐                       │
+   * │ │ User A      │    │ Remote      │    │ User A      │                       │
+   * │ │ dragging    │───▶│ saves       │───▶│ sees text   │                       │
+   * │ │ [bounds]    │    │ text change │    │ update      │                       │
+   * │ │             │    │             │    │ [bounds protected]                  │
+   * │ └─────────────┘    └─────────────┘    └─────────────┘                       │
+   * │ Result: Text updates, bounds editing continues uninterrupted                │
+   * └─────────────────────────────────────────────────────────────────────────────┘
+   * 
+   * Key Logic:
+   * 1. PROTECTION: Fields being actively edited are protected from remote updates
+   * 2. BASELINE COMPARISON: Compares remote changes against the original state
+   *    (before any local edits) to determine what the other user actually changed
+   * 3. VERSION TRACKING: Only updates version if there are unprotected changes,
+   *    ensuring conflicts are only detected when the same field is edited
+   * 
+   * Example Flow:
+   * - Baseline: { text: "hello", translation: "hola", version: 5 }
+   * - User A starts editing text (protectText = true)
+   * - User B saves translation: "bonjour"
+   * - Remote update: { text: "hello", translation: "bonjour", version: 6 }
+   * - Comparison: translation changed (hello→bonjour), text unchanged
+   * - Result: Update translation, protect text, update version to 6
+   * 
+   * @param currentRegion Current region state in the store
+   * @param updatedRegion Remote region update from subscription
+   * @param protection Which fields to protect from updates
+   */
+  private applyRemoteChangesWithSelectiveProtection(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    currentRegion: any, 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    updatedRegion: any, 
+    protection: { protectText: boolean; protectTranslation: boolean; protectBounds?: boolean }
+  ): void {
+    const store = this.config.services.storeService;
+    const wavesurferService = this.config.services.wavesurferService;
+    
+    // Update bounds if not being actively edited
+    if (updatedRegion.start !== undefined && updatedRegion.end !== undefined && !protection.protectBounds) {
+      const boundsChanged = currentRegion.start !== updatedRegion.start || currentRegion.end !== updatedRegion.end;
+      
+      if (boundsChanged) {
+        store.updateRegionBounds(updatedRegion.id as string, updatedRegion.start as number, updatedRegion.end as number);
+        wavesurferService.setRegionPosition(updatedRegion.id as string, {
+          start: updatedRegion.start as number,
+          end: updatedRegion.end as number
+        });
+      }
+    }
+    
+    // Update text if not being actively edited
+    if (updatedRegion.regionText !== undefined && !protection.protectText) {
+      store.setRegionText(updatedRegion.id as string, updatedRegion.regionText as string);
+      this.updateRteIfExists(`${updatedRegion.id}:main` as const, updatedRegion.regionText as string, updatedRegion);
+    }
+    
+    // Update translation if not being actively edited
+    if (updatedRegion.translation !== undefined && !protection.protectTranslation) {
+      store.setRegionTranslation(updatedRegion.id as string, updatedRegion.translation as string);
+      this.updateRteIfExists(`${updatedRegion.id}:translation` as const, updatedRegion.translation as string, updatedRegion);
+    }
+    
+    // Update region analysis (always unprotected)
+    if (updatedRegion.regionAnalysis !== undefined) {
+      store.setRegionAnalysis(updatedRegion.id as string, updatedRegion.regionAnalysis as string[]);
+      store.addKnownWords(updatedRegion.regionAnalysis as string[]);
+    }
+    
+    // Compare subscription vs baseline to determine what actually changed
+    const baseline = store.getBaselineForRegion(updatedRegion.id);
+    
+    const actualChanges = {
+      bounds: (updatedRegion.start !== undefined && baseline?.start !== updatedRegion.start) || 
+              (updatedRegion.end !== undefined && baseline?.end !== updatedRegion.end),
+      text: updatedRegion.regionText !== undefined && baseline?.regionText !== updatedRegion.regionText,
+      translation: updatedRegion.translation !== undefined && baseline?.translation !== updatedRegion.translation,
+      analysis: updatedRegion.regionAnalysis !== undefined && 
+                JSON.stringify(baseline?.regionAnalysis) !== JSON.stringify(updatedRegion.regionAnalysis)
+    };
+
+    // Determine if there are unprotected changes
+    const hasUnprotectedChanges = 
+      (!protection.protectBounds && actualChanges.bounds) ||
+      (actualChanges.analysis && !actualChanges.text && !actualChanges.translation) ||
+      (!protection.protectText && actualChanges.text) ||
+      (!protection.protectTranslation && actualChanges.translation);
+    
+    // Update version unless user is editing and there are no unprotected changes
+    const shouldBlockVersion = (protection.protectText || protection.protectTranslation || protection.protectBounds) && !hasUnprotectedChanges;
+    
+    if (updatedRegion._version !== undefined && !shouldBlockVersion) {
+      store.setRegionVersion(updatedRegion.id, updatedRegion._version);
+    }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private applyRemoteChanges(currentRegion: any, updatedRegion: any): void {
+    const store = this.config.services.storeService;
+    const wavesurferService = this.config.services.wavesurferService;
+    
+    if (updatedRegion.regionText !== undefined) {
+      store.setRegionText(updatedRegion.id, updatedRegion.regionText);
+      this.updateRteIfExists(`${updatedRegion.id}:main` as const, updatedRegion.regionText, updatedRegion);
+    }
+    
+    if (updatedRegion.translation !== undefined) {
+      store.setRegionTranslation(updatedRegion.id, updatedRegion.translation);
+      this.updateRteIfExists(`${updatedRegion.id}:translation` as const, updatedRegion.translation, updatedRegion);
+    }
+    
+    if (updatedRegion.start !== undefined && updatedRegion.end !== undefined) {
+      store.updateRegionBounds(updatedRegion.id, updatedRegion.start, updatedRegion.end);
+      wavesurferService.setRegionPosition(updatedRegion.id, {
+        start: updatedRegion.start,
+        end: updatedRegion.end
+      });
+    }
+    
+    if (updatedRegion.regionAnalysis !== undefined) {
+      store.setRegionAnalysis(updatedRegion.id, updatedRegion.regionAnalysis);
+      if (updatedRegion.regionAnalysis.length > 0) {
+        store.addKnownWords(updatedRegion.regionAnalysis);
+      }
+    }
+    
+    if (updatedRegion._version !== undefined) {
+      store.setRegionVersion(updatedRegion.id, updatedRegion._version);
+    }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private updateRteIfExists(editorKey: `${string}:main` | `${string}:translation`, content: string, updatedRegion: any): void {
+    const rteService = this.config.services.rteService;
+    const store = this.config.services.storeService;
+    
+    if (rteService.hasEditor(editorKey)) {
+      rteService.setContent(editorKey, content);
+      
+      // Reapply known words formatting after content update
+      const regionAnalysis = (updatedRegion.regionAnalysis as string[]) || store.regionById(updatedRegion.id as string)?.regionAnalysis;
+      if (regionAnalysis && regionAnalysis.length > 0) {
+        rteService.applyKnownWordsFormatting(editorKey, regionAnalysis);
+      }
+    }
+  }
+} 

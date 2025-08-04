@@ -1,6 +1,8 @@
 import { services } from '../services';
-import { UpdateTranscriptionUseCase } from './update-transcription';
+import { UpdateRegionUseCase } from './update-region';
 import type { User } from '../types/shared';
+
+// NOTE: Conflict handling functions moved to versionConflictService.ts for reuse
 
 interface UpdateRegionBoundsConfig {
   regionId: string;
@@ -31,53 +33,21 @@ export class UpdateRegionBounds {
     }
   }
 
-  async execute() {
+  execute(): void {
     this.validate();
 
     const { regionId, newStart, newEnd, services, store } = this.config;
 
-    // Check if the region exists
-    const existingRegion = store.regionById(regionId);
-    if (!existingRegion) {
-      console.warn(`Region ${regionId} not found in store, skipping update`);
-      return;
-    }
+    // Delegate to unified UpdateRegionUseCase
+    const updateRegionUseCase = new UpdateRegionUseCase({
+      regionId,
+      changes: { start: newStart, end: newEnd },
+      debounceMs: 2500, // 2.5 second debounce for bounds
+      primaryField: 'start', // Primary field for conflict resolution UI
+      services,
+      store
+    });
 
-    // Check if there's actually a change
-    if (existingRegion.start === newStart && existingRegion.end === newEnd) {
-      console.log(`Region ${regionId} bounds unchanged, skipping update`);
-      return;
-    }
-
-    // Update store optimistically (for immediate UI feedback)
-    store.updateRegionBounds(regionId, newStart, newEnd);
-
-    try {
-      // Get current user for audit trail
-      const currentUser = services.authService.currentUser();
-      const username = currentUser?.username || 'unknown';
-
-      // Save to database with debouncing
-      await services.regionService.updateRegion(
-        regionId,
-        { start: newStart, end: newEnd },
-        username
-      );
-
-      // Update the transcription with metadata  
-      const updateTranscriptionUseCase = new UpdateTranscriptionUseCase({
-        transcriptionId: existingRegion.transcriptionId,
-        services,
-        store: store,
-      });
-      
-      await updateTranscriptionUseCase.execute();
-
-    } catch (error) {
-      console.error(`❌ Failed to save region ${regionId} bounds:`, error);
-      
-      // Revert optimistic update on error
-      store.updateRegionBounds(regionId, existingRegion.start, existingRegion.end);
-    }
+    updateRegionUseCase.execute();
   }
 } 
