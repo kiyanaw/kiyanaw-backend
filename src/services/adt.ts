@@ -35,6 +35,7 @@ export interface RegionData {
   index?: number;
   regionAnalysis?: string[]; // Array of known words
   updatedAt?: string; // Additional property needed for tests
+  _version?: number; // Version tracking for conflict resolution
 }
 
 export interface IssueComment {
@@ -284,6 +285,7 @@ export class RegionModel {
   public userLastUpdated?: string;
   public index?: number;
   public regionAnalysis: string[];
+  public _version: number;
 
   constructor(data: RegionData) {
     try {
@@ -303,6 +305,15 @@ export class RegionModel {
 
       // Use regionAnalysis directly as array
       this.regionAnalysis = data.regionAnalysis || [];
+
+      // Set version tracking - must exist for existing regions
+      if (data._version === undefined) {
+        // Only allow missing version for brand new regions being created
+        console.warn('RegionModel: Missing _version for region', data.id, '- should only happen during initial creation');
+        this._version = 1; // Temporary until DB assigns version
+      } else {
+        this._version = data._version;
+      }
 
     } catch (e) {
       console.error('Error constructing RegionModel:', e);

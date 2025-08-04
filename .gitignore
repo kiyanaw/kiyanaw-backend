@@ -49,3 +49,4 @@ amplifytools.xcconfig
 **.sample
 #amplify-do-not-edit-end
 
+coverage/

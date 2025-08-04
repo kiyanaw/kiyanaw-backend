@@ -9,6 +9,15 @@ import { createRegion as createRegionMutation, updateRegion as updateRegionMutat
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - generated JS GraphQL
 import { getRegion as getRegionQuery } from '../graphql/queries.js';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore - generated JS GraphQL
+import { 
+  onCreateRegion, 
+  onUpdateRegion, 
+  onDeleteRegion 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore - generated JS GraphQL
+} from '../graphql/subscriptions.js';
 
 import { RegionModel } from './adt';
 import { type RegionData } from './adt';
@@ -116,28 +125,20 @@ export const createRegion = async (
  * @param regionId The ID of the region to update
  * @param updates The fields to update (text, translation, start, end, etc.)
  * @param username The username of the user making the update
+ * @param version The current version of the region for conflict detection
  */
-export const updateRegion = async (regionId: string, updates: Partial<RegionData>, username: string) => {
+export const updateRegion = async (regionId: string, updates: Partial<RegionData>, username: string, version: number) => {
   try {
-    // Fetch current version to satisfy conflict detection
-    const { data: getData } = await getClient().graphql({
-      query: getRegionQuery,
-      variables: { id: regionId },
-    }) as GetRegionResponse;
-
-    const existing = getData?.getRegion;
-    if (!existing) {
-      throw new Error(`Region with ID ${regionId} not found`);
-    }
-
-    // Create input for GraphQL
+    // Create input for GraphQL using provided version (no pre-save fetch needed)
     const input: RegionUpdateInput = {
       id: regionId,
-      _version: existing._version,
+      _version: version,
       ...updates,
       dateLastUpdated: new Date().toISOString(),
       userLastUpdated: username,
     };
+
+
 
     await getClient().graphql({
       query: updateRegionMutation,
@@ -150,7 +151,39 @@ export const updateRegion = async (regionId: string, updates: Partial<RegionData
     
   } catch (error) {
     console.error(`❌ Failed to save region ${regionId}:`, error);
+    
+    // Log detailed error information for debugging
+    if (error && typeof error === 'object') {
+      const errorObj = error as Record<string, unknown>;
+      console.error('Error details:', {
+        message: errorObj.message,
+        errors: errorObj.errors,
+        data: errorObj.data,
+        name: errorObj.name,
+        code: errorObj.code
+      });
+    }
+    
     throw error;
+  }
+};
+
+/**
+ * Gets a region by ID using GraphQL API.
+ * @param regionId The ID of the region to fetch
+ * @returns Promise that resolves to the region data or null if not found
+ */
+export const getRegion = async (regionId: string) => {
+  try {
+    const { data: getData } = await getClient().graphql({
+      query: getRegionQuery,
+      variables: { id: regionId },
+    }) as GetRegionResponse;
+
+    return getData?.getRegion || null;
+  } catch (error) {
+    console.error(`Failed to get region ${regionId}:`, error);
+    return null;
   }
 };
 
@@ -162,12 +195,7 @@ export const updateRegion = async (regionId: string, updates: Partial<RegionData
 export const deleteRegion = async (regionId: string) => {
   try {
     // Fetch current version to satisfy conflict detection
-    const { data: getData } = await getClient().graphql({
-      query: getRegionQuery,
-      variables: { id: regionId },
-    }) as GetRegionResponse;
-
-    const region = getData?.getRegion;
+    const region = await getRegion(regionId);
     if (!region) {
       throw new Error(`Region with ID ${regionId} not found`);
     }
@@ -189,5 +217,106 @@ export const deleteRegion = async (regionId: string) => {
     console.error(`❌ Failed to delete region ${regionId}:`, error);
     throw error;
   }
+};
+
+export type RegionSubscriptionEvent = {
+  mutation: 'CREATE' | 'UPDATE' | 'DELETE';
+  region: RegionData;
+};
+
+export const subscribeToRegionChanges = (
+  transcriptionId: string,
+  callback: (event: RegionSubscriptionEvent) => void
+): (() => void) => {
+  console.log('🔌 Setting up subscriptions for transcriptionId:', transcriptionId);
+  
+  const client = getClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const subscriptions: any[] = [];
+
+  // Filter to only get regions for this transcription
+  const filter = {
+    transcriptionId: { eq: transcriptionId }
+  };
+
+  try {
+    // Subscribe to create events
+    const createSub = (client.graphql({
+      query: onCreateRegion,
+      variables: { filter }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    }) as any).subscribe({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      next: (result: any) => {
+        const region = result.data?.onCreateRegion;
+        if (region && !region._deleted) {
+          callback({
+            mutation: 'CREATE',
+            region: region as RegionData
+          });
+        }
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      error: (error: any) => console.error('Create subscription error:', error)
+    });
+
+    // Subscribe to update events  
+    const updateSub = (client.graphql({
+      query: onUpdateRegion,
+      variables: { filter }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    }) as any).subscribe({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      next: (result: any) => {
+        const region = result.data?.onUpdateRegion;
+        if (region && !region._deleted) {
+          callback({
+            mutation: 'UPDATE',
+            region: region as RegionData
+          });
+        }
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      error: (error: any) => console.error('Update subscription error:', error)
+    });
+
+    // Subscribe to delete events
+    const deleteSub = (client.graphql({
+      query: onDeleteRegion,
+      variables: { filter }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    }) as any).subscribe({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      next: (result: any) => {
+        const region = result.data?.onDeleteRegion;
+        if (region) {
+          callback({
+            mutation: 'DELETE',
+            region: region as RegionData
+          });
+        }
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      error: (error: any) => console.error('Delete subscription error:', error)
+    });
+
+    subscriptions.push(createSub, updateSub, deleteSub);
+    console.log('🔌 Subscriptions established for transcriptionId:', transcriptionId);
+
+  } catch (error) {
+    console.error('🔌 Failed to establish subscriptions:', error);
+  }
+
+  // Return unsubscribe function
+  return () => {
+    console.log('🔌 Unsubscribing from transcriptionId:', transcriptionId);
+    subscriptions.forEach(sub => {
+      try {
+        sub.unsubscribe();
+      } catch (error) {
+        console.error('Error unsubscribing:', error);
+      }
+    });
+  };
 };
 

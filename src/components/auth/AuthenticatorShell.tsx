@@ -25,8 +25,6 @@ const AuthenticatedApp = ({ children }: { children: ReactNode }) => {
       userId: user.userId,
       signInDetails: user.signInDetails,
     } : null;
-
-    console.log('current user', currentUser)
     
     // Check if the store actually needs updating
     const storeUser = useAuthStore.getState().user;

@@ -4,6 +4,7 @@ import {
   Route,
   Navigate,
 } from 'react-router-dom';
+import { useEffect } from 'react';
 import { AuthenticatorShell } from './components/auth/AuthenticatorShell';
 import { AppLayout } from './components/layout/AppLayout';
 import { TranscribeListPage } from './pages/TranscribeListPage';
@@ -13,9 +14,19 @@ import { UploadForm } from './components/upload/UploadForm';
 import { EditorPage } from './pages/EditorPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { InvitationsPage } from './pages/InvitationsPage';
+import { useConflictDialog } from './hooks/useConflictDialog';
+import { conflictDialogManager } from './services/conflictDialogManager';
 import './App.css';
 
 function App() {
+  const { showConflictDialog, ConflictDialogComponent } = useConflictDialog();
+
+  // Register the dialog function with the global manager
+  useEffect(() => {
+    conflictDialogManager.setDialogFunction(showConflictDialog);
+    console.log('🔧 Conflict dialog manager initialized');
+  }, [showConflictDialog]);
+
   return (
     <AuthenticatorShell>
       <Router>
@@ -37,6 +48,9 @@ function App() {
           </Route>
         </Routes>
       </Router>
+      
+      {/* Global conflict resolution dialog */}
+      <ConflictDialogComponent />
     </AuthenticatorShell>
   );
 }

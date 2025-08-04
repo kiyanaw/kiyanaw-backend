@@ -7,6 +7,30 @@ describe('UpdateRegionTextUseCase', () => {
   const mockStore = {
     setRegionText: mockSetRegionText,
     setRegionTranslation: mockSetRegionTranslation,
+    getRegionVersion: jest.fn().mockReturnValue(7),
+    regionById: jest.fn().mockImplementation((regionId) => ({
+      id: regionId,
+      regionText: 'existing text',
+      translation: 'existing translation',
+      transcriptionId: 'test-transcription-id',
+      _version: 7
+    })),
+    setRegionVersion: jest.fn(),
+    regionMap: {
+      'test-region-id': {
+        id: 'test-region-id',
+        regionText: 'existing text',
+        translation: 'existing translation',
+        transcriptionId: 'test-transcription-id',
+        _version: 7
+      }
+    },
+    transcription: {
+      id: 'test-transcription-id',
+      title: 'Test Transcription'
+    },
+    calculateTranscriptionMetadata: jest.fn().mockReturnValue({ coverage: 0.5 }),
+    setTranscription: jest.fn(),
     getState: jest.fn().mockReturnValue({
       setRegionText: mockSetRegionText,
       setRegionTranslation: mockSetRegionTranslation
@@ -19,8 +43,36 @@ describe('UpdateRegionTextUseCase', () => {
     },
     regionService: {
       updateRegion: jest.fn(),
-      // updateRegion: jest.fn()
-    }
+      getRegion: jest.fn(),
+    },
+    conflictDetectionService: {
+      detectConflict: jest.fn()
+    },
+    conflictResolutionService: {
+      showConflictDialog: jest.fn()
+    },
+    storeService: {
+      startPendingEdit: jest.fn(),
+      endPendingEdit: jest.fn(),
+      regionById: jest.fn().mockImplementation((regionId) => ({
+        id: regionId,
+        regionText: 'existing text',
+        translation: 'existing translation',
+        transcriptionId: 'test-transcription-id',
+        _version: 7
+      })),
+      getRegionVersion: jest.fn().mockReturnValue(7),
+      setRegionText: mockSetRegionText,
+      setRegionTranslation: mockSetRegionTranslation,
+      setRegionVersion: jest.fn(),
+      getBaselineForRegion: jest.fn().mockReturnValue(null),
+    },
+    transcriptionService: {
+      updateTranscription: jest.fn().mockResolvedValue({}),
+    },
+    userService: {
+      currentUser: jest.fn().mockReturnValue({ username: 'test-user' }),
+    },
   } as any;
 
   const validConfig = {
@@ -42,6 +94,8 @@ describe('UpdateRegionTextUseCase', () => {
 
   describe('save functionality', () => {
     it('should call regionService.updateRegion with correct parameters when user is authenticated', async () => {
+      mockStore.getRegionVersion.mockReturnValue(7); // Mock version
+      
       const useCase = new UpdateRegionTextUseCase(validConfig);
       
       useCase.execute();
@@ -58,7 +112,8 @@ describe('UpdateRegionTextUseCase', () => {
       expect(mockServices.regionService.updateRegion).toHaveBeenCalledWith(
         'test-region-id',
         { regionText: 'Test text content' },
-        'test-user'
+        'test-user',
+        7
       );
     });
 
@@ -81,6 +136,8 @@ describe('UpdateRegionTextUseCase', () => {
     });
 
     it('should call regionService.updateRegion with translation field', async () => {
+      mockStore.getRegionVersion.mockReturnValue(4); // Mock version
+      
       const translationConfig = {
         ...validConfig,
         field: 'translation' as const,
@@ -103,7 +160,8 @@ describe('UpdateRegionTextUseCase', () => {
       expect(mockServices.regionService.updateRegion).toHaveBeenCalledWith(
         'test-region-id',
         { translation: 'Translation text' },
-        'test-user'
+        'test-user',
+        4
       );
     });
   });
@@ -315,7 +373,13 @@ describe('UpdateRegionTextUseCase', () => {
       const realisticStore = {
         setRegionText: mockSetRegionText,
         setRegionTranslation: mockSetRegionTranslation,
-        regionById: jest.fn(() => ({ transcriptionId: 'test-transcription-id', regionAnalysis: ['word1', 'word2'] })),
+        regionById: jest.fn((regionId) => ({ 
+          id: regionId,
+          transcriptionId: 'test-transcription-id', 
+          regionAnalysis: ['word1', 'word2'],
+          regionText: 'existing text',
+          _version: 7
+        })),
         regions: [],
         selectedRegionId: null
       } as any; // Type assertion for testing
@@ -331,4 +395,6 @@ describe('UpdateRegionTextUseCase', () => {
       expect(mockSetRegionText).toHaveBeenCalledWith('test-region-id', 'Test text content');
     });
   });
+
+    // Note: Simplified conflict resolution tests removed - feature not yet implemented
 }); 

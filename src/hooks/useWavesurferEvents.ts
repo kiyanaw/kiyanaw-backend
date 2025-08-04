@@ -139,7 +139,6 @@ export const useWavesurferEvents = (transcriptionId: string, source?: string): v
       // Update transcription length with the actual duration from wavesurfer
       const store = useEditorStore.getState();
       const transcription = store.transcription
-      console.log(transcription, event)
       if (transcription && transcription.length === 0 && event.duration > 0) {
         const updateTranscriptionUseCase = new UpdateTranscriptionUseCase({
           transcriptionId: transcription.id,

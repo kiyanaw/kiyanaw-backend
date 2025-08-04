@@ -3,6 +3,7 @@ import Regions from 'wavesurfer.js/dist/plugins/regions.esm.js';
 import Timeline from 'wavesurfer.js/dist/plugins/timeline.esm.js';
 import mitt from 'mitt';
 import { generateSignedUrl } from './transcriptionService';
+import { FLASH_CONFIG } from './flashIndicatorService';
 
 // Type definitions for WaveSurfer service
 interface RegionEvent {
@@ -49,6 +50,8 @@ class WaveSurferService {
   private _inboundRegionCurrentHighlighted: RegionEvent | null = null
   // Tracks the region we want to stop playback at (for region-bounded playback)
   private _playbackBoundRegion: RegionEvent | null = null
+  // Flag to prevent subscription-created regions from triggering creation flow
+  private _isAddingSubscriptionRegion: boolean = false
   private _canEdit: boolean = false
 
   private REGION_BACKGROUND_COLOR = 'rgba(0, 0, 0, 0.1)'
@@ -219,11 +222,15 @@ class WaveSurferService {
     // Region events
     this.regionsPlugin?.on('region-created', (event: unknown) => {
       const regionEvent = event as RegionEvent;
-      this.emitEvent('region-created', {
-        id: regionEvent.id,
-        start: regionEvent.start,
-        end: regionEvent.end
-      });
+      
+      // Don't emit creation event for subscription-created regions to prevent double creation
+      if (!this._isAddingSubscriptionRegion) {
+        this.emitEvent('region-created', {
+          id: regionEvent.id,
+          start: regionEvent.start,
+          end: regionEvent.end
+        });
+      }
       this.updateRegionIndices()
     });
 
@@ -471,6 +478,163 @@ class WaveSurferService {
 
   playPause(): Promise<void> {
     return this.wavesurfer?.playPause() || Promise.resolve();
+  }
+
+  setRegionPosition(regionId: string, bounds: { start: number; end: number }): void {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const region = this.regionsPlugin!.getRegions().find((r: any) => r.id === regionId);
+    if (!region) {
+      console.warn('🎵 Cannot set region position: region not found:', regionId);
+      return;
+    }
+
+    try {
+      region.setOptions({
+        start: bounds.start,
+        end: bounds.end
+      });
+      // Update region indices after position change
+      this.updateRegionIndices();
+    } catch (error) {
+      console.error('🎵 Failed to set region position:', error);
+    }
+  }
+
+  /**
+   * Add a region with a predefined ID (used for realtime/subscription events)
+   */
+  addRegionWithId(regionData: { id: string; start: number; end: number }): void {
+    try {
+      // Temporarily mark this as a subscription-created region to prevent double creation
+      this._isAddingSubscriptionRegion = true;
+      console.log('📡 Adding region from subscription (will not trigger creation event):', regionData.id);
+      
+      this.regionsPlugin!.addRegion({
+        id: regionData.id,
+        start: regionData.start,
+        end: regionData.end,
+        content: '', // Will be set by updateRegionIndices
+        resize: this._canEdit,
+        drag: this._canEdit
+      });
+      this.updateRegionIndices();
+    } catch (error) {
+      console.error('🎵 Failed to add region:', error);
+    } finally {
+      // Always reset the flag
+      this._isAddingSubscriptionRegion = false;
+    }
+  }
+
+  deleteRegion(regionId: string): void {
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const region = this.regionsPlugin!.getRegions().find((r: any) => r.id === regionId);
+    if (!region) {
+      console.warn('🎵 Cannot delete region: region not found:', regionId);
+      return;
+    }
+
+    try {
+      region.remove();
+      this.updateRegionIndices();
+    } catch (error) {
+      console.error('🎵 Failed to delete region:', error);
+    }
+  }
+
+  /**
+   * Flash the background color of a region briefly (for realtime updates)
+   */
+  flashRegionBackground(regionId: string, username?: string): void {
+    if (!this.regionsPlugin) {
+      console.warn('🎵 Cannot flash region: regions plugin not available');
+      return;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const region = this.regionsPlugin.getRegions().find((r: any) => r.id === regionId);
+    if (!region?.element) {
+      console.warn('🎵 Cannot flash region: region not found or no element:', regionId);
+      return;
+    }
+
+    try {
+      // Determine current color (highlighted vs normal)
+      const isHighlighted = this._inboundRegionCurrentHighlighted?.id === regionId;
+      const originalColor = isHighlighted ? this.REGION_HIGHLIGHTED_COLOR : this.REGION_BACKGROUND_COLOR;
+      
+      // Flash green briefly
+      const flashColor = FLASH_CONFIG.flashColor; // Light green
+      
+      // Apply flash with CSS transition
+      region.element.style.transition = `background-color ${FLASH_CONFIG.backgroundFlashDuration}ms ${FLASH_CONFIG.backgroundEasing}`;
+      region.element.style.backgroundColor = flashColor;
+      
+      // Add username text if provided
+      let textElement: HTMLElement | null = null;
+      if (username) {
+        // Ensure region element has relative positioning for absolute child
+        const originalPosition = region.element.style.position;
+        if (!originalPosition || originalPosition === 'static') {
+          region.element.style.position = 'relative';
+        }
+
+        textElement = document.createElement('div');
+        textElement.textContent = username;
+        textElement.style.cssText = `
+          position: absolute;
+          bottom: 2px;
+          right: 4px;
+          font-size: 10px;
+          font-weight: 600;
+          color: ${FLASH_CONFIG.textColor};
+          padding: 2px 6px;
+          border-radius: 3px;
+          pointer-events: none;
+          opacity: 0;
+          transition: opacity ${FLASH_CONFIG.usernameFadeDuration}ms ${FLASH_CONFIG.usernameEasing};
+          z-index: 10;
+          text-shadow: 0 0 4px rgba(255,255,255,0.9);
+        `;
+        region.element.appendChild(textElement);
+
+        // Fade in the text
+        setTimeout(() => {
+          if (textElement) textElement.style.opacity = '1';
+        }, 100);
+      }
+      
+      // Restore background color after flash duration
+      setTimeout(() => {
+        if (region.element) { // Guard against region deletion during flash
+          region.element.style.backgroundColor = originalColor;
+          // Remove transition after animation completes
+          setTimeout(() => {
+            if (region.element) {
+              region.element.style.transition = '';
+            }
+          }, FLASH_CONFIG.backgroundFlashDuration);
+        }
+      }, FLASH_CONFIG.textFadeDuration);
+
+      // Fade out and remove username text after visible duration
+      if (textElement) {
+        setTimeout(() => {
+          if (textElement) {
+            textElement.style.opacity = '0';
+            setTimeout(() => {
+              if (textElement && textElement.parentNode) {
+                textElement.remove();
+              }
+            }, FLASH_CONFIG.usernameFadeDuration);
+          }
+        }, FLASH_CONFIG.usernameVisibleDuration);
+      }
+
+    } catch (error) {
+      console.error('🎵 Failed to flash region background:', error);
+    }
   }
   
   destroy(): void {

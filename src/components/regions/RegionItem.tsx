@@ -1,6 +1,8 @@
 import { useMemo } from 'react';
 import { useEditorStore } from '../../stores/useEditorStore';
 import { textHighlightService } from '../../services/textHighlightService';
+import { useFlashIndicator } from '../../hooks/useFlashIndicator';
+import { FLASH_CONFIG } from '../../services/flashIndicatorService';
 
 interface RegionItemProps {
   regionId: string;
@@ -21,6 +23,9 @@ export const RegionItem = ({
 }: RegionItemProps) => {
   // Get region data from store using selector
   const region = useEditorStore((state) => state.regionById(regionId));
+  
+  // Flash state for text animation
+  const flashState = useFlashIndicator(regionId);
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
@@ -97,6 +102,19 @@ export const RegionItem = ({
           className="absolute bottom-0 pl-1 text-xs bg-white bg-opacity-90 rounded px-1 py-0.5"
           dangerouslySetInnerHTML={{ __html: editorIndicator }}
         />
+      )}
+
+      {flashState && (
+        <div
+          className="absolute bottom-0 right-1 text-xs font-medium text-green-700"
+          style={{ 
+            opacity: flashState.opacity,
+            textShadow: flashState.isFlashing ? '0 0 8px rgba(34, 197, 94, 0.6)' : 'none',
+            transition: `opacity ${FLASH_CONFIG.textFadeDuration}ms ${FLASH_CONFIG.textEasing}`
+          }}
+        >
+          {flashState.username}
+        </div>
       )}
     </div>
   );

@@ -102,3 +102,4 @@ Whenever changes are made to a region in a transcription, that region's data is 
 ## Fresh Deployment Setup
 
 After deploying to a new AWS account, several manual configurations are required to get the system fully operational. See the [Fresh Amplify Deployment Checklist](docs/fresh_amplify_deploy_checklist.md) for detailed step-by-step instructions.
+

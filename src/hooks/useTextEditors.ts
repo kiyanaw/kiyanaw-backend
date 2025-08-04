@@ -48,6 +48,16 @@ export const useTextEditors = (regionId: string, activeTab: 'main' | 'translatio
     // Set up text change listener only if user can edit
     if (canEdit) {
       rteService.onTextChange(mainEditorKey, (text) => {
+        // Track pending edit (start if first change, update activity if ongoing)
+        if (!services.storeService.isPendingEdit(regionId, 'regionText')) {
+          // Start new pending edit
+          services.storeService.startPendingEdit(regionId, 'regionText');
+          console.log('🟡 Started pending edit for region:', regionId, 'field: regionText');
+        } else {
+          // Update existing pending edit activity
+          services.storeService.updatePendingEditActivity(regionId, 'regionText');
+        }
+
         // Update region text
         new UpdateRegionTextUseCase({
           regionId,
@@ -106,6 +116,16 @@ export const useTextEditors = (regionId: string, activeTab: 'main' | 'translatio
     // Set up text change listener for translation only if user can edit
     if (canEdit) {
       rteService.onTextChange(translationEditorKey, (text) => {
+        // Track pending edit (start if first change, update activity if ongoing)
+        if (!services.storeService.isPendingEdit(regionId, 'translation')) {
+          // Start new pending edit
+          services.storeService.startPendingEdit(regionId, 'translation');
+          console.log('🟡 Started pending edit for region:', regionId, 'field: translation');
+        } else {
+          // Update existing pending edit activity
+          services.storeService.updatePendingEditActivity(regionId, 'translation');
+        }
+
         new UpdateRegionTextUseCase({
           regionId,
           text,

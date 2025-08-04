@@ -41,8 +41,14 @@ export class CreateRegion {
     const transcriptionId = this.config.transcriptionId
     const userLastUpdated = this.user?.username || 'unknown'
 
+    // Add transcriptionId to region before saving to store (needed for text updates)
+    const regionWithTranscriptionId = {
+      ...newRegion,
+      transcriptionId: transcriptionId
+    };
+
     // save to store (optimistic update)
-    store.addNewRegion(newRegion)
+    store.addNewRegion(regionWithTranscriptionId)
 
     try {
       // async save to DB
