@@ -216,12 +216,47 @@ export async function handleVersionConflict(
     // Handle user's resolution choice
     if (resolution.action === 'accept_remote') {
       console.log('🔄 User chose to accept remote changes');
-      await onAcceptRemote(conflictAnalysis.remoteRegion!);
+      
+      // Use the most recent conflict data if available (handles live updates)
+      if (resolution.resolvedConflictData) {
+        console.log('🔄 Using updated conflict data from live dialog:', {
+          originalVersion: conflictAnalysis.remoteVersion,
+          resolvedVersion: resolution.resolvedConflictData.remoteVersion,
+          regionId: resolution.resolvedConflictData.regionId
+        });
+        
+        // Create a synthetic remote region from the resolved conflict data
+        const baseRegion = { ...conflictAnalysis.remoteRegion! };
+        const fieldUpdates: Record<string, unknown> = {};
+        
+        // Update the primary field with the resolved value
+        fieldUpdates[resolution.resolvedConflictData.field || 'regionText'] = resolution.resolvedConflictData.remoteValue;
+        
+        // Update conflictingFields if present
+        if (resolution.resolvedConflictData.conflictingFields) {
+          for (const field of resolution.resolvedConflictData.conflictingFields) {
+            fieldUpdates[field.field] = field.remoteValue;
+          }
+        }
+        
+        const resolvedRemoteRegion: RegionLike = {
+          ...baseRegion,
+          ...fieldUpdates,
+          _version: resolution.resolvedConflictData.remoteVersion
+        };
+        
+        await onAcceptRemote(resolvedRemoteRegion);
+      } else {
+        // Fallback to original analysis if no resolved data
+        await onAcceptRemote(conflictAnalysis.remoteRegion!);
+      }
     } else if (resolution.action === 'keep_local') {
       console.log('🔄 User chose to keep their changes - force overwriting remote version');
       
-      // For force overwrite, we need the absolute latest version from the database
-      const latestDbVersion = conflictAnalysis.remoteVersion || localVersion;
+      // Use the latest version from resolved conflict data if available
+      const latestDbVersion = resolution.resolvedConflictData?.remoteVersion || 
+                             conflictAnalysis.remoteVersion || 
+                             localVersion;
       await onKeepLocal(latestDbVersion);
     }
     // manual_merge action will be handled in Phase 5

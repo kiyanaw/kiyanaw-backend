@@ -1,5 +1,6 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { ConflictResolutionDialog } from '../components/conflicts/ConflictResolutionDialog';
+import { conflictDialogManager } from '../services/conflictDialogManager';
 import type { ConflictData, ConflictResolutionResult } from '../services/conflictResolutionService';
 
 interface ConflictDialogState {
@@ -25,6 +26,18 @@ export const useConflictDialog = () => {
     });
   }, []);
 
+  const updateConflictDialog = useCallback((updatedConflict: ConflictData) => {
+    setDialogState(prevState => {
+      if (prevState.isOpen && prevState.conflict) {
+        return {
+          ...prevState,
+          conflict: updatedConflict
+        };
+      }
+      return prevState;
+    });
+  }, []);
+
   const handleResolve = useCallback((result: ConflictResolutionResult) => {
     if (dialogState.resolver) {
       dialogState.resolver(result);
@@ -35,6 +48,11 @@ export const useConflictDialog = () => {
       resolver: null
     });
   }, [dialogState]);
+
+  // Register the update function with the dialog manager
+  useEffect(() => {
+    conflictDialogManager.setUpdateFunction(updateConflictDialog);
+  }, [updateConflictDialog]);
 
   const ConflictDialogComponent = useCallback(() => {
     if (!dialogState.isOpen || !dialogState.conflict) {
@@ -51,6 +69,7 @@ export const useConflictDialog = () => {
 
   return {
     showConflictDialog,
+    updateConflictDialog,
     ConflictDialogComponent
   };
 }; 

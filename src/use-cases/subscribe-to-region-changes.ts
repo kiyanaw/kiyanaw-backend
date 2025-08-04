@@ -19,16 +19,16 @@ export class SubscribeToRegionChangesUseCase {
     this.validate();
 
     const unsubscribe = this.config.services.regionService.subscribeToRegionChanges(
-      this.config.transcriptionId,
-      (event) => {
-        this.handleRegionSubscriptionEvent(event);
-      }
+              this.config.transcriptionId,
+        async (event) => {
+          await this.handleRegionSubscriptionEvent(event);
+        }
     );
 
     return unsubscribe;
   }
 
-  handleRegionSubscriptionEvent(event: RegionSubscriptionEvent): void {
+  async handleRegionSubscriptionEvent(event: RegionSubscriptionEvent): Promise<void> {
     const { mutation, region } = event;
     
     const store = this.config.services.storeService;
@@ -65,7 +65,7 @@ export class SubscribeToRegionChangesUseCase {
         break;
 
       case 'UPDATE':
-        this.handleRegionUpdate(region);
+        await this.handleRegionUpdate(region);
         break;
 
       default:
@@ -105,7 +105,7 @@ export class SubscribeToRegionChangesUseCase {
    * @param updatedRegion The remote region update from the subscription
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private handleRegionUpdate(updatedRegion: any): void {
+  private async handleRegionUpdate(updatedRegion: any): Promise<void> {
     const store = this.config.services.storeService;
     const currentRegion = store.regionById(updatedRegion.id);
     
@@ -113,6 +113,9 @@ export class SubscribeToRegionChangesUseCase {
       console.warn('🔌 Received UPDATE for unknown region:', updatedRegion.id);
       return;
     }
+
+    // Check if there are active conflicts for this region that need updating
+    await this.updateActiveConflictsIfNeeded(currentRegion, updatedRegion);
 
     // Check for field-specific pending edits to allow parallel editing
     const isEditingText = store.isPendingEdit(updatedRegion.id, 'regionText');
@@ -315,6 +318,73 @@ export class SubscribeToRegionChangesUseCase {
       const regionAnalysis = (updatedRegion.regionAnalysis as string[]) || store.regionById(updatedRegion.id as string)?.regionAnalysis;
       if (regionAnalysis && regionAnalysis.length > 0) {
         rteService.applyKnownWordsFormatting(editorKey, regionAnalysis);
+      }
+    }
+  }
+
+  /**
+   * Update active conflict dialogs when new remote changes arrive for the same region.
+   * This ensures users see the most recent conflict state and resolve against latest data.
+   * 
+   * @param currentRegion The current local region data
+   * @param updatedRegion The incoming remote region update
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private async updateActiveConflictsIfNeeded(_currentRegion: any, updatedRegion: any): Promise<void> {
+    const conflictResolutionService = this.config.services.conflictResolutionService;
+    
+    // Early return if conflict resolution service is not available (e.g., in tests)
+    if (!conflictResolutionService) {
+      return;
+    }
+    
+    // Check if there are any active conflicts for this region
+    if (!conflictResolutionService.hasActiveConflict(updatedRegion.id)) {
+      return;
+    }
+
+    console.log('🔄 Active conflict detected for region, checking for updates:', updatedRegion.id);
+
+    // Get all active conflicts for this region
+    const activeConflicts = conflictResolutionService.getActiveConflictsForRegion(updatedRegion.id);
+    
+    for (const activeConflict of activeConflicts) {
+      const field = activeConflict.field;
+      if (!field) continue;
+
+      // Check if the remote value for this field has changed
+      const currentRemoteValue = activeConflict.remoteValue;
+      const newRemoteValue = updatedRegion[field];
+
+      if (currentRemoteValue !== newRemoteValue) {
+        console.log('🔄 Remote value changed for active conflict:', {
+          regionId: updatedRegion.id,
+          field,
+          oldRemote: currentRemoteValue,
+          newRemote: newRemoteValue,
+          newVersion: updatedRegion._version
+        });
+
+        // Create updated conflict data with new remote values
+        const updatedConflictData = {
+          ...activeConflict,
+          remoteValue: newRemoteValue,
+          remoteVersion: updatedRegion._version,
+          timestamp: Date.now(),
+          // Update conflictingFields if present
+          conflictingFields: activeConflict.conflictingFields?.map(cf => 
+            cf.field === field 
+              ? { ...cf, remoteValue: newRemoteValue }
+              : cf
+          )
+        };
+
+        // Update the active conflict dialog
+        await conflictResolutionService.updateActiveConflict(
+          updatedRegion.id, 
+          field, 
+          updatedConflictData
+        );
       }
     }
   }
