@@ -89,7 +89,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
   });
 
   describe('validation', () => {
-    it('should throw error if transcriptionId is empty', () => {
+    it('should throw error if transcriptionId is empty', async () => {
       const useCaseWithEmptyId = new SubscribeToRegionChangesUseCase({
         transcriptionId: '',
         services: mockServices
@@ -98,7 +98,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
       expect(() => useCaseWithEmptyId.validate()).toThrow('transcriptionId is required');
     });
 
-    it('should throw error if transcriptionId is whitespace', () => {
+    it('should throw error if transcriptionId is whitespace', async () => {
       const useCaseWithWhitespace = new SubscribeToRegionChangesUseCase({
         transcriptionId: '   ',
         services: mockServices
@@ -107,13 +107,13 @@ describe('SubscribeToRegionChangesUseCase', () => {
       expect(() => useCaseWithWhitespace.validate()).toThrow('transcriptionId is required');
     });
 
-    it('should not throw error for valid transcriptionId', () => {
+    it('should not throw error for valid transcriptionId', async () => {
       expect(() => useCase.validate()).not.toThrow();
     });
   });
 
   describe('execute', () => {
-    it('should set up subscription with correct transcriptionId', () => {
+    it('should set up subscription with correct transcriptionId', async () => {
       useCase.execute();
 
       expect(mockServices.regionService.subscribeToRegionChanges).toHaveBeenCalledWith(
@@ -122,7 +122,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
       );
     });
 
-    it('should return unsubscribe function', () => {
+    it('should return unsubscribe function', async () => {
       const result = useCase.execute();
 
       expect(result).toBe(mockUnsubscribe);
@@ -138,7 +138,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
     });
 
     describe('self-event filtering', () => {
-      it('should ignore events from current user', () => {
+      it('should ignore events from current user', async () => {
         mockServices.userService.currentUser.mockReturnValue({ username: 'current@user.com' });
 
         const event = {
@@ -148,13 +148,13 @@ describe('SubscribeToRegionChangesUseCase', () => {
           })
         };
 
-        subscriptionCallback(event);
+        await subscriptionCallback(event);
 
         expect(mockServices.flashIndicatorService.flashRegion).not.toHaveBeenCalled();
         expect(mockServices.storeService.setRegionText).not.toHaveBeenCalled();
       });
 
-      it('should process events from other users', () => {
+      it('should process events from other users', async () => {
         mockServices.userService.currentUser.mockReturnValue({ username: 'current@user.com' });
 
         const event = {
@@ -170,7 +170,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
           regionText: 'old text'
         });
 
-        subscriptionCallback(event);
+        await subscriptionCallback(event);
 
         expect(mockServices.flashIndicatorService.flashRegion).toHaveBeenCalledWith('region-1', 'other@user.com');
       });
@@ -181,7 +181,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
         mockServices.userService.currentUser.mockReturnValue({ username: 'current@user.com' });
       });
 
-      it('should trigger flash for CREATE events', () => {
+      it('should trigger flash for CREATE events', async () => {
         const event = {
           mutation: 'CREATE',
           region: createMockRegion({
@@ -189,12 +189,12 @@ describe('SubscribeToRegionChangesUseCase', () => {
           })
         };
 
-        subscriptionCallback(event);
+        await subscriptionCallback(event);
 
         expect(mockServices.flashIndicatorService.flashRegion).toHaveBeenCalledWith('region-1', 'other@user.com');
       });
 
-      it('should trigger flash for UPDATE events', () => {
+      it('should trigger flash for UPDATE events', async () => {
         const event = {
           mutation: 'UPDATE',
           region: createMockRegion({
@@ -204,12 +204,12 @@ describe('SubscribeToRegionChangesUseCase', () => {
 
         mockServices.storeService.regionById.mockReturnValue({ id: 'region-1' });
 
-        subscriptionCallback(event);
+        await subscriptionCallback(event);
 
         expect(mockServices.flashIndicatorService.flashRegion).toHaveBeenCalledWith('region-1', 'other@user.com');
       });
 
-      it('should trigger flash for DELETE events', () => {
+      it('should trigger flash for DELETE events', async () => {
         const event = {
           mutation: 'DELETE',
           region: createMockRegion({
@@ -217,12 +217,12 @@ describe('SubscribeToRegionChangesUseCase', () => {
           })
         };
 
-        subscriptionCallback(event);
+        await subscriptionCallback(event);
 
         expect(mockServices.flashIndicatorService.flashRegion).toHaveBeenCalledWith('region-1', 'other@user.com');
       });
 
-      it('should not trigger flash if userLastUpdated is missing', () => {
+      it('should not trigger flash if userLastUpdated is missing', async () => {
         const event = {
           mutation: 'UPDATE',
           region: createMockRegion({
@@ -232,14 +232,14 @@ describe('SubscribeToRegionChangesUseCase', () => {
 
         mockServices.storeService.regionById.mockReturnValue({ id: 'region-1' });
 
-        subscriptionCallback(event);
+        await subscriptionCallback(event);
 
         expect(mockServices.flashIndicatorService.flashRegion).not.toHaveBeenCalled();
       });
     });
 
     describe('CREATE event handling', () => {
-      it('should add region to store and wavesurfer', () => {
+      it('should add region to store and wavesurfer', async () => {
         mockServices.userService.currentUser.mockReturnValue({ username: 'current@user.com' });
 
         const region = createMockRegion({
@@ -250,7 +250,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
 
         const event = { mutation: 'CREATE', region };
 
-        subscriptionCallback(event);
+        await subscriptionCallback(event);
 
         expect(mockServices.storeService.addNewRegion).toHaveBeenCalledWith(region);
         expect(mockServices.wavesurferService.addRegionWithId).toHaveBeenCalledWith({
@@ -262,7 +262,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
     });
 
     describe('DELETE event handling', () => {
-      it('should remove region from store and wavesurfer', () => {
+      it('should remove region from store and wavesurfer', async () => {
         mockServices.userService.currentUser.mockReturnValue({ username: 'current@user.com' });
 
         const event = {
@@ -272,7 +272,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
           })
         };
 
-        subscriptionCallback(event);
+        await subscriptionCallback(event);
 
         expect(mockServices.storeService.deleteRegion).toHaveBeenCalledWith('region-1');
         expect(mockServices.wavesurferService.deleteRegion).toHaveBeenCalledWith('region-1');
@@ -291,7 +291,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
         });
       });
 
-      it('should handle bounds changes', () => {
+      it('should handle bounds changes', async () => {
         const currentRegion = { id: 'region-1', start: 10, end: 20 };
         const updatedRegion = createMockRegion({ 
           start: 15, 
@@ -303,7 +303,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
 
         const event = { mutation: 'UPDATE', region: updatedRegion };
 
-        subscriptionCallback(event);
+        await await subscriptionCallback(event);
 
         expect(mockServices.storeService.updateRegionBounds).toHaveBeenCalledWith('region-1', 15, 25);
         expect(mockServices.wavesurferService.setRegionPosition).toHaveBeenCalledWith('region-1', {
@@ -312,7 +312,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
         });
       });
 
-      it('should handle region analysis updates', () => {
+      it('should handle region analysis updates', async () => {
         const currentRegion = { id: 'region-1' };
         const updatedRegion = createMockRegion({ 
           regionAnalysis: ['word1', 'word2'],
@@ -323,13 +323,13 @@ describe('SubscribeToRegionChangesUseCase', () => {
 
         const event = { mutation: 'UPDATE', region: updatedRegion };
 
-        subscriptionCallback(event);
+        await await subscriptionCallback(event);
 
         expect(mockServices.storeService.setRegionAnalysis).toHaveBeenCalledWith('region-1', ['word1', 'word2']);
         expect(mockServices.storeService.addKnownWords).toHaveBeenCalledWith(['word1', 'word2']);
       });
 
-      it('should handle text changes and update RTE if available', () => {
+      it('should handle text changes and update RTE if available', async () => {
         const currentRegion = { id: 'region-1', regionText: 'old text' };
         const updatedRegion = createMockRegion({ 
           regionText: 'new text',
@@ -342,7 +342,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
 
         const event = { mutation: 'UPDATE', region: updatedRegion };
 
-        subscriptionCallback(event);
+        await subscriptionCallback(event);
 
         expect(mockServices.storeService.setRegionText).toHaveBeenCalledWith('region-1', 'new text');
         expect(mockServices.rteService.hasEditor).toHaveBeenCalledWith('region-1:main');
@@ -350,7 +350,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
         expect(mockServices.rteService.applyKnownWordsFormatting).toHaveBeenCalledWith('region-1:main', ['word1']);
       });
 
-      it('should handle translation changes', () => {
+      it('should handle translation changes', async () => {
         const currentRegion = { id: 'region-1', translation: 'old translation' };
         const updatedRegion = createMockRegion({ 
           translation: 'new translation',
@@ -361,12 +361,12 @@ describe('SubscribeToRegionChangesUseCase', () => {
 
         const event = { mutation: 'UPDATE', region: updatedRegion };
 
-        subscriptionCallback(event);
+        await subscriptionCallback(event);
 
         expect(mockServices.storeService.setRegionTranslation).toHaveBeenCalledWith('region-1', 'new translation');
       });
 
-      it('should warn and return early for unknown region', () => {
+      it('should warn and return early for unknown region', async () => {
         const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
         
         mockServices.storeService.regionById.mockReturnValue(null);
@@ -379,7 +379,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
           })
         };
 
-        subscriptionCallback(event);
+        await subscriptionCallback(event);
 
         expect(consoleSpy).toHaveBeenCalledWith('🔌 Received UPDATE for unknown region:', 'unknown-region');
         expect(mockServices.storeService.setRegionText).not.toHaveBeenCalled();
@@ -388,7 +388,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
       });
     });
 
-    it('should warn for unknown mutation types', () => {
+    it('should warn for unknown mutation types', async () => {
       const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
       
       mockServices.userService.currentUser.mockReturnValue({ username: 'current@user.com' });
@@ -400,7 +400,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
         })
       };
 
-      subscriptionCallback(event);
+      await subscriptionCallback(event);
 
       expect(consoleSpy).toHaveBeenCalledWith('🔌 Unknown mutation type:', 'UNKNOWN');
 
@@ -412,7 +412,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
         mockServices.userService.currentUser.mockReturnValue({ username: 'current@user.com' });
       });
 
-      it('should update version tracking for self-triggered events', () => {
+      it('should update version tracking for self-triggered events', async () => {
         const region = createMockRegion({
           userLastUpdated: 'current@user.com',
           _version: 42
@@ -426,7 +426,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
         // Mock store methods
         mockServices.storeService.setRegionVersion = jest.fn();
 
-        subscriptionCallback(event);
+        await subscriptionCallback(event);
 
         // Should only update version tracking, not content
         expect(mockServices.storeService.setRegionVersion).toHaveBeenCalledWith('region-1', 42);
@@ -440,7 +440,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
         expect(mockServices.flashIndicatorService.flashRegion).not.toHaveBeenCalled();
       });
 
-      it('should handle remote events normally (not self-triggered)', () => {
+      it('should handle remote events normally (not self-triggered)', async () => {
         const region = createMockRegion({
           userLastUpdated: 'other@user.com',
           regionText: 'new text',
@@ -455,7 +455,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
         mockServices.storeService.regionById.mockReturnValue(createMockRegion());
         mockServices.storeService.setRegionVersion = jest.fn();
 
-        subscriptionCallback(event);
+        await subscriptionCallback(event);
 
         // Should update version tracking
         expect(mockServices.storeService.setRegionVersion).toHaveBeenCalledWith('region-1', 43);
@@ -467,7 +467,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
         expect(mockServices.flashIndicatorService.flashRegion).toHaveBeenCalledWith('region-1', 'other@user.com');
       });
 
-      it('should prevent stale version usage that causes array concatenation', () => {
+      it('should prevent stale version usage that causes array concatenation', async () => {
         // This test ensures that self-triggered events update version tracking
         // which prevents the issue where multiple saves use the same stale version
         
@@ -486,13 +486,13 @@ describe('SubscribeToRegionChangesUseCase', () => {
         mockServices.storeService.setRegionVersion = jest.fn();
 
         // First save subscription (should update version)
-        subscriptionCallback({
+        await subscriptionCallback({
           mutation: 'UPDATE',
           region: firstSaveRegion
         });
 
         // Second save subscription (should update version again)
-        subscriptionCallback({
+        await subscriptionCallback({
           mutation: 'UPDATE', 
           region: secondSaveRegion
         });
@@ -517,7 +517,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
         });
       });
 
-      it('should protect text while allowing translation updates during text editing', () => {
+      it('should protect text while allowing translation updates during text editing', async () => {
         // User is editing text, not translation
         mockServices.storeService.isPendingEdit.mockImplementation((regionId, field) => {
           if (field === 'regionText') return true;
@@ -532,7 +532,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
         });
 
         const event = { mutation: 'UPDATE', region: updatedRegion };
-        subscriptionCallback(event);
+        await subscriptionCallback(event);
 
         // Text should be protected (not updated)
         expect(mockServices.storeService.setRegionText).not.toHaveBeenCalled();
@@ -544,7 +544,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
         expect(mockServices.storeService.setRegionVersion).toHaveBeenCalledWith('region-1', 1);
       });
 
-      it('should protect translation while allowing text updates during translation editing', () => {
+      it('should protect translation while allowing text updates during translation editing', async () => {
         // User is editing translation, not text
         mockServices.storeService.isPendingEdit.mockImplementation((regionId, field) => {
           if (field === 'regionText') return false;
@@ -559,7 +559,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
         });
 
         const event = { mutation: 'UPDATE', region: updatedRegion };
-        subscriptionCallback(event);
+        await subscriptionCallback(event);
 
         // Text should be updated
         expect(mockServices.storeService.setRegionText).toHaveBeenCalledWith('region-1', 'remote text change');
@@ -571,7 +571,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
         expect(mockServices.storeService.setRegionVersion).toHaveBeenCalledWith('region-1', 1);
       });
 
-      it('should allow bounds updates during text editing (parallel editing)', () => {
+      it('should allow bounds updates during text editing (parallel editing)', async () => {
         // User is editing text only
         mockServices.storeService.isPendingEdit.mockImplementation((regionId, field) => {
           if (field === 'regionText') return true;
@@ -585,7 +585,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
         });
 
         const event = { mutation: 'UPDATE', region: updatedRegion };
-        subscriptionCallback(event);
+        await subscriptionCallback(event);
 
         // Bounds should be updated
         expect(mockServices.storeService.updateRegionBounds).toHaveBeenCalledWith('region-1', 30, 40);
@@ -599,7 +599,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
       });
 
       describe('REGRESSION TESTS: Conflict Detection Logic', () => {
-        it('CRITICAL: Should NOT update version when both browsers edit SAME FIELD (text)', () => {
+        it('CRITICAL: Should NOT update version when both browsers edit SAME FIELD (text)', async () => {
           // REGRESSION: This was broken because regionAnalysis was considered "unprotected change"
           // When both browsers edit text, Browser B should keep old version to force conflict
           
@@ -627,7 +627,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
           } as any;
 
           const event = { mutation: 'UPDATE', region: updatedRegion };
-          subscriptionCallback(event);
+          await subscriptionCallback(event);
 
           // Text should be protected (Browser B is editing it)
           expect(mockServices.storeService.setRegionText).not.toHaveBeenCalled();
@@ -639,7 +639,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
           // Note: Can't easily test console.log in this setup, but the logic is tested above
         });
 
-        it('CRITICAL: Should NOT update version when both browsers edit SAME FIELD (translation)', () => {
+        it('CRITICAL: Should NOT update version when both browsers edit SAME FIELD (translation)', async () => {
           // User is editing translation in Browser B
           mockServices.storeService.isPendingEdit.mockImplementation((regionId, field) => {
             return field === 'translation'; // Only translation is being edited
@@ -655,7 +655,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
           } as any;
 
           const event = { mutation: 'UPDATE', region: updatedRegion };
-          subscriptionCallback(event);
+          await subscriptionCallback(event);
 
           // Translation should be protected
           expect(mockServices.storeService.setRegionTranslation).not.toHaveBeenCalled();
@@ -664,7 +664,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
           expect(mockServices.storeService.setRegionVersion).not.toHaveBeenCalled();
         });
 
-        it('CRITICAL: SHOULD update version for DIFFERENT FIELD edits (text vs translation)', () => {
+        it('CRITICAL: SHOULD update version for DIFFERENT FIELD edits (text vs translation)', async () => {
           // User is editing text in Browser B
           mockServices.storeService.isPendingEdit.mockImplementation((regionId, field) => {
             return field === 'regionText'; // Only text is being edited
@@ -679,7 +679,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
           } as any;
 
           const event = { mutation: 'UPDATE', region: updatedRegion };
-          subscriptionCallback(event);
+          await subscriptionCallback(event);
 
           // Translation should be updated (not protected)
           expect(mockServices.storeService.setRegionTranslation).toHaveBeenCalledWith('region-1', 'Browser A updated translation');
@@ -688,7 +688,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
           expect(mockServices.storeService.setRegionVersion).toHaveBeenCalledWith('region-1', 1);
         });
 
-        it('CRITICAL: SHOULD update version for DIFFERENT FIELD edits (text vs bounds)', () => {
+        it('CRITICAL: SHOULD update version for DIFFERENT FIELD edits (text vs bounds)', async () => {
           // User is editing text in Browser B
           mockServices.storeService.isPendingEdit.mockImplementation((regionId, field) => {
             return field === 'regionText'; // Only text is being edited
@@ -704,7 +704,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
           } as any;
 
           const event = { mutation: 'UPDATE', region: updatedRegion };
-          subscriptionCallback(event);
+          await subscriptionCallback(event);
 
           // Bounds should be updated
           expect(mockServices.storeService.updateRegionBounds).toHaveBeenCalledWith('region-1', 30, 40);
@@ -713,7 +713,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
           expect(mockServices.storeService.setRegionVersion).toHaveBeenCalledWith('region-1', 1);
         });
 
-        it('CRITICAL: Should NOT protect version when bounds change while user edits text (parallel editing)', () => {
+        it('CRITICAL: Should NOT protect version when bounds change while user edits text (parallel editing)', async () => {
           // REGRESSION: This was broken - Browser A editing text received Browser B's bounds 
           // change but incorrectly protected version, causing conflict when Browser A tried to save
           
@@ -734,7 +734,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
           } as any;
 
           const event = { mutation: 'UPDATE', region: updatedRegion };
-          subscriptionCallback(event);
+          await subscriptionCallback(event);
 
           // Bounds should be updated (not protected)
           expect(mockServices.storeService.updateRegionBounds).toHaveBeenCalledWith('region-1', 25, 35);
@@ -750,7 +750,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
           // Test matrix: Browser A editing X, Browser B saves Y → Expected result
           // NEW: Tests use baseline comparison logic
           
-          it('CONFLICT: A editing text, B saves text → should block version (force conflict)', () => {
+          it('CONFLICT: A editing text, B saves text → should block version (force conflict)', async () => {
             // Browser A is editing text
             mockServices.storeService.isPendingEdit.mockImplementation((regionId, field) => {
               return field === 'regionText';
@@ -769,7 +769,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
             } as any;
 
             const event = { mutation: 'UPDATE', region: updatedRegion };
-            subscriptionCallback(event);
+            await subscriptionCallback(event);
 
             // Text should be protected (A is editing)
             expect(mockServices.storeService.setRegionText).not.toHaveBeenCalled();
@@ -778,7 +778,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
             expect(mockServices.storeService.setRegionVersion).not.toHaveBeenCalled();
           });
 
-          it('PARALLEL: A editing text, B saves translation → should update version (allow parallel)', () => {
+          it('PARALLEL: A editing text, B saves translation → should update version (allow parallel)', async () => {
             mockServices.storeService.isPendingEdit.mockImplementation((regionId, field) => {
               return field === 'regionText';
             });
@@ -796,13 +796,13 @@ describe('SubscribeToRegionChangesUseCase', () => {
             } as any;
 
             const event = { mutation: 'UPDATE', region: updatedRegion };
-            subscriptionCallback(event);
+            await subscriptionCallback(event);
 
             expect(mockServices.storeService.setRegionTranslation).toHaveBeenCalledWith('region-1', 'NEW TRANSLATION FROM B');
             expect(mockServices.storeService.setRegionVersion).toHaveBeenCalledWith('region-1', 2);
           });
 
-          it('PARALLEL: A editing text, B saves bounds → should update version (allow parallel)', () => {
+          it('PARALLEL: A editing text, B saves bounds → should update version (allow parallel)', async () => {
             mockServices.storeService.isPendingEdit.mockImplementation((regionId, field) => {
               return field === 'regionText';
             });
@@ -821,13 +821,13 @@ describe('SubscribeToRegionChangesUseCase', () => {
             } as any;
 
             const event = { mutation: 'UPDATE', region: updatedRegion };
-            subscriptionCallback(event);
+            await subscriptionCallback(event);
 
             expect(mockServices.storeService.updateRegionBounds).toHaveBeenCalledWith('region-1', 30, 40);
             expect(mockServices.storeService.setRegionVersion).toHaveBeenCalledWith('region-1', 2);
           });
 
-          it('PARALLEL: A editing translation, B saves text → should update version (allow parallel)', () => {
+          it('PARALLEL: A editing translation, B saves text → should update version (allow parallel)', async () => {
             mockServices.storeService.isPendingEdit.mockImplementation((regionId, field) => {
               return field === 'translation';
             });
@@ -840,13 +840,13 @@ describe('SubscribeToRegionChangesUseCase', () => {
             } as any;
 
             const event = { mutation: 'UPDATE', region: updatedRegion };
-            subscriptionCallback(event);
+            await subscriptionCallback(event);
 
             expect(mockServices.storeService.setRegionText).toHaveBeenCalledWith('region-1', 'NEW TEXT FROM B');
             expect(mockServices.storeService.setRegionVersion).toHaveBeenCalledWith('region-1', 2);
           });
 
-          it('CONFLICT: A editing translation, B saves translation → should block version (force conflict)', () => {
+          it('CONFLICT: A editing translation, B saves translation → should block version (force conflict)', async () => {
             mockServices.storeService.isPendingEdit.mockImplementation((regionId, field) => {
               return field === 'translation';
             });
@@ -859,13 +859,13 @@ describe('SubscribeToRegionChangesUseCase', () => {
             } as any;
 
             const event = { mutation: 'UPDATE', region: updatedRegion };
-            subscriptionCallback(event);
+            await subscriptionCallback(event);
 
             expect(mockServices.storeService.setRegionTranslation).not.toHaveBeenCalled();
             expect(mockServices.storeService.setRegionVersion).not.toHaveBeenCalled();
           });
 
-          it('PARALLEL: A editing translation, B saves bounds → should update version (allow parallel)', () => {
+          it('PARALLEL: A editing translation, B saves bounds → should update version (allow parallel)', async () => {
             mockServices.storeService.isPendingEdit.mockImplementation((regionId, field) => {
               return field === 'translation';
             });
@@ -879,13 +879,13 @@ describe('SubscribeToRegionChangesUseCase', () => {
             } as any;
 
             const event = { mutation: 'UPDATE', region: updatedRegion };
-            subscriptionCallback(event);
+            await subscriptionCallback(event);
 
             expect(mockServices.storeService.updateRegionBounds).toHaveBeenCalledWith('region-1', 25, 35);
             expect(mockServices.storeService.setRegionVersion).toHaveBeenCalledWith('region-1', 2);
           });
 
-          it('PARALLEL: A not editing, B saves anything → should always update version (no protection)', () => {
+          it('PARALLEL: A not editing, B saves anything → should always update version (no protection)', async () => {
             mockServices.storeService.isPendingEdit.mockReturnValue(false); // Not editing anything
 
             const updatedRegion = {
@@ -899,13 +899,13 @@ describe('SubscribeToRegionChangesUseCase', () => {
             } as any;
 
             const event = { mutation: 'UPDATE', region: updatedRegion };
-            subscriptionCallback(event);
+            await subscriptionCallback(event);
 
             // Should apply everything normally (no selective protection)
             expect(mockServices.storeService.setRegionVersion).toHaveBeenCalledWith('region-1', 2);
           });
 
-          it('EDGE CASE: A editing text, B saves mixed changes → should update version (has unprotected changes)', () => {
+          it('EDGE CASE: A editing text, B saves mixed changes → should update version (has unprotected changes)', async () => {
             mockServices.storeService.isPendingEdit.mockImplementation((regionId, field) => {
               return field === 'regionText';
             });
@@ -921,7 +921,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
             } as any;
 
             const event = { mutation: 'UPDATE', region: updatedRegion };
-            subscriptionCallback(event);
+            await subscriptionCallback(event);
 
             // Text should be protected
             expect(mockServices.storeService.setRegionText).not.toHaveBeenCalled();
@@ -933,7 +933,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
             expect(mockServices.storeService.setRegionVersion).toHaveBeenCalledWith('region-1', 2);
           });
 
-          it('EDGE CASE: A editing text, B saves only regionAnalysis → should update version (analysis not protected)', () => {
+          it('EDGE CASE: A editing text, B saves only regionAnalysis → should update version (analysis not protected)', async () => {
             mockServices.storeService.isPendingEdit.mockImplementation((regionId, field) => {
               return field === 'regionText';
             });
@@ -946,7 +946,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
             } as any;
 
             const event = { mutation: 'UPDATE', region: updatedRegion };
-            subscriptionCallback(event);
+            await subscriptionCallback(event);
 
             expect(mockServices.storeService.setRegionAnalysis).toHaveBeenCalledWith('region-1', ['new', 'analysis', 'words']);
             expect(mockServices.storeService.setRegionVersion).toHaveBeenCalledWith('region-1', 2);
@@ -954,7 +954,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
         });
 
         describe('REGRESSION: Baseline Comparison Fixes', () => {
-          it('CRITICAL: Should use baseline comparison to detect actual changes (main fix)', () => {
+          it('CRITICAL: Should use baseline comparison to detect actual changes (main fix)', async () => {
             // Browser A is editing text
             mockServices.storeService.isPendingEdit.mockImplementation((regionId, field) => {
               return field === 'regionText';
@@ -983,7 +983,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
             } as any;
 
             const event = { mutation: 'UPDATE', region: updatedRegion };
-            subscriptionCallback(event);
+            await subscriptionCallback(event);
 
             // The NEW logic should:
             // 1. Compare subscription vs baseline (not vs current store)
@@ -998,7 +998,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
             expect(mockServices.storeService.setRegionText).not.toHaveBeenCalled();
           });
 
-          it('CRITICAL: Should still detect same-field conflicts with baseline comparison', () => {
+          it('CRITICAL: Should still detect same-field conflicts with baseline comparison', async () => {
             // Browser A is editing text
             mockServices.storeService.isPendingEdit.mockImplementation((regionId, field) => {
               return field === 'regionText';
@@ -1021,7 +1021,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
             } as any;
 
             const event = { mutation: 'UPDATE', region: updatedRegion };
-            subscriptionCallback(event);
+            await subscriptionCallback(event);
 
             // Should still block same-field conflicts
             expect(mockServices.storeService.setRegionText).not.toHaveBeenCalled();
@@ -1029,7 +1029,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
           });
         });
 
-        it('REGRESSION: regionAnalysis alone should NOT prevent version updates', () => {
+        it('REGRESSION: regionAnalysis alone should NOT prevent version updates', async () => {
           // User is NOT editing anything
           mockServices.storeService.isPendingEdit.mockReturnValue(false);
 
@@ -1042,7 +1042,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
           } as any;
 
           const event = { mutation: 'UPDATE', region: updatedRegion };
-          subscriptionCallback(event);
+          await subscriptionCallback(event);
 
           // Should update regionAnalysis
           expect(mockServices.storeService.setRegionAnalysis).toHaveBeenCalledWith('region-1', ['new', 'analysis', 'words']);
@@ -1051,7 +1051,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
           expect(mockServices.storeService.setRegionVersion).toHaveBeenCalledWith('region-1', 1);
         });
 
-        it('REGRESSION: Should NOT detect false changes from null vs empty string differences', () => {
+        it('REGRESSION: Should NOT detect false changes from null vs empty string differences', async () => {
           // User is editing text (so translation should use baseline comparison)
           mockServices.storeService.isPendingEdit.mockImplementation((regionId, field) => {
             return field === 'regionText';
@@ -1076,7 +1076,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
           } as any;
 
           const event = { mutation: 'UPDATE', region: updatedRegion };
-          subscriptionCallback(event);
+          await subscriptionCallback(event);
 
           // Text should be protected (user is editing it)
           expect(mockServices.storeService.setRegionText).not.toHaveBeenCalled();
@@ -1088,7 +1088,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
           expect(mockServices.storeService.setRegionVersion).not.toHaveBeenCalled();
         });
 
-        it('REGRESSION: Should NOT detect false changes from empty string vs null text differences', () => {
+        it('REGRESSION: Should NOT detect false changes from empty string vs null text differences', async () => {
           // User is editing translation (so text should use baseline comparison)
           mockServices.storeService.isPendingEdit.mockImplementation((regionId, field) => {
             return field === 'translation';
@@ -1113,7 +1113,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
           } as any;
 
           const event = { mutation: 'UPDATE', region: updatedRegion };
-          subscriptionCallback(event);
+          await subscriptionCallback(event);
 
           // Translation should be protected (user is editing it)
           expect(mockServices.storeService.setRegionTranslation).not.toHaveBeenCalled();
@@ -1131,7 +1131,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
           mockServices.rteService.hasEditor.mockReturnValue(true);
         });
 
-        it('should update RTE and reapply known words formatting for text changes', () => {
+        it('should update RTE and reapply known words formatting for text changes', async () => {
           // User is not editing anything
           mockServices.storeService.isPendingEdit.mockReturnValue(false);
 
@@ -1142,7 +1142,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
           });
 
           const event = { mutation: 'UPDATE', region: updatedRegion };
-          subscriptionCallback(event);
+          await subscriptionCallback(event);
 
           // RTE should be updated
           expect(mockServices.rteService.hasEditor).toHaveBeenCalledWith('region-1:main');
@@ -1152,7 +1152,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
           expect(mockServices.rteService.applyKnownWordsFormatting).toHaveBeenCalledWith('region-1:main', ['known', 'words']);
         });
 
-        it('should update translation RTE and reapply known words formatting', () => {
+        it('should update translation RTE and reapply known words formatting', async () => {
           // User is not editing anything
           mockServices.storeService.isPendingEdit.mockReturnValue(false);
 
@@ -1163,7 +1163,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
           });
 
           const event = { mutation: 'UPDATE', region: updatedRegion };
-          subscriptionCallback(event);
+          await subscriptionCallback(event);
 
           // Translation RTE should be updated
           expect(mockServices.rteService.hasEditor).toHaveBeenCalledWith('region-1:translation');
@@ -1173,7 +1173,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
           expect(mockServices.rteService.applyKnownWordsFormatting).toHaveBeenCalledWith('region-1:translation', ['known', 'words']);
         });
 
-        it('should use fallback region analysis when updated region has no analysis', () => {
+        it('should use fallback region analysis when updated region has no analysis', async () => {
           // User is not editing anything
           mockServices.storeService.isPendingEdit.mockReturnValue(false);
 
@@ -1184,7 +1184,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
           });
 
           const event = { mutation: 'UPDATE', region: updatedRegion };
-          subscriptionCallback(event);
+          await subscriptionCallback(event);
 
           // RTE should be updated
           expect(mockServices.rteService.setContent).toHaveBeenCalledWith('region-1:main', 'remote text change');
@@ -1193,7 +1193,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
           expect(mockServices.rteService.applyKnownWordsFormatting).toHaveBeenCalledWith('region-1:main', ['known', 'words']);
         });
 
-        it('should update RTE during selective protection for non-protected fields', () => {
+        it('should update RTE during selective protection for non-protected fields', async () => {
           // User is editing text, so translation updates should sync to RTE
           mockServices.storeService.isPendingEdit.mockImplementation((regionId, field) => {
             if (field === 'regionText') return true;
@@ -1208,7 +1208,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
           });
 
           const event = { mutation: 'UPDATE', region: updatedRegion };
-          subscriptionCallback(event);
+          await subscriptionCallback(event);
 
           // Translation should be updated in store
           expect(mockServices.storeService.setRegionTranslation).toHaveBeenCalledWith('region-1', 'remote translation change');
@@ -1221,7 +1221,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
           expect(mockServices.rteService.applyKnownWordsFormatting).toHaveBeenCalledWith('region-1:translation', ['test', 'words']);
         });
 
-        it('should not update RTE when editor does not exist', () => {
+        it('should not update RTE when editor does not exist', async () => {
           mockServices.rteService.hasEditor.mockReturnValue(false);
           mockServices.storeService.isPendingEdit.mockReturnValue(false);
 
@@ -1231,7 +1231,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
           });
 
           const event = { mutation: 'UPDATE', region: updatedRegion };
-          subscriptionCallback(event);
+          await subscriptionCallback(event);
 
           // Store should be updated
           expect(mockServices.storeService.setRegionText).toHaveBeenCalledWith('region-1', 'remote text change');
@@ -1286,7 +1286,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
       });
     });
 
-        it('should protect text content when user is actively typing', () => {
+        it('should protect text content when user is actively typing', async () => {
       const currentRegion = createMockRegion({ regionText: 'local text' });
       const remoteRegion = createMockRegion({ 
         regionText: 'remote text',
@@ -1302,7 +1302,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
       mockStoreService.getBaselineForRegion.mockReturnValue(baseline);
 
       const event = createMockSubscriptionEvent('UPDATE', remoteRegion);
-      useCase.handleRegionSubscriptionEvent(event);
+      await useCase.handleRegionSubscriptionEvent(event);
 
       // Should NOT apply text changes (protect user's typing)
       expect(mockStoreService.setRegionText).not.toHaveBeenCalled();
@@ -1314,7 +1314,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
       expect(mockStoreService.addConflictToQueue).not.toHaveBeenCalled();
     });
 
-    it('should apply all changes when user is not actively typing', () => {
+    it('should apply all changes when user is not actively typing', async () => {
       const currentRegion = createMockRegion({ regionText: 'local text' });
       const remoteRegion = createMockRegion({ 
         regionText: 'remote text',
@@ -1326,7 +1326,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
       mockStoreService.isPendingEdit.mockReturnValue(false); // User NOT actively typing
 
       const event = createMockSubscriptionEvent('UPDATE', remoteRegion);
-      useCase.handleRegionSubscriptionEvent(event);
+      await useCase.handleRegionSubscriptionEvent(event);
 
       // Should apply all remote changes including text and version
       expect(mockStoreService.setRegionText).toHaveBeenCalledWith('test-region-1', 'remote text');
@@ -1336,7 +1336,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
       expect(mockStoreService.addConflictToQueue).not.toHaveBeenCalled();
     });
 
-    it('should apply remote changes directly when no conflicts detected', () => {
+    it('should apply remote changes directly when no conflicts detected', async () => {
       const currentRegion = createMockRegion({ regionText: 'same text' });
       const remoteRegion = createMockRegion({ 
         regionText: 'same text',
@@ -1354,7 +1354,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
       });
 
       const event = createMockSubscriptionEvent('UPDATE', remoteRegion);
-      useCase.handleRegionSubscriptionEvent(event);
+      await useCase.handleRegionSubscriptionEvent(event);
 
       // Should apply the remote changes
       expect(mockStoreService.updateRegionBounds).toHaveBeenCalledWith('test-region-1', 15, 20);
@@ -1369,7 +1369,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
 
     // Note: Removed complex multi-field conflicts test - we now always apply remote changes directly
 
-    it('REGRESSION: should apply simple remote updates directly when user is not editing (no conflict detection)', () => {
+    it('REGRESSION: should apply simple remote updates directly when user is not editing (no conflict detection)', async () => {
       // This test ensures we don't break the core functionality again
       const currentRegion = createMockRegion({
         regionText: 'old text',
@@ -1385,7 +1385,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
       mockStoreService.isPendingEdit.mockReturnValue(false); // User NOT editing
 
       const event = createMockSubscriptionEvent('UPDATE', remoteRegion);
-      useCase.handleRegionSubscriptionEvent(event);
+      await useCase.handleRegionSubscriptionEvent(event);
 
       // Should apply changes directly without any conflict detection
       expect(mockStoreService.setRegionText).toHaveBeenCalledWith('test-region-1', 'old text kiya');
