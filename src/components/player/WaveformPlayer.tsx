@@ -26,7 +26,6 @@ interface WaveformPlayerProps {
 
 export const WaveformPlayer = ({
   source,
-  regions, // Now using this for region count
   isVideo,
   title,
   onOpenSettings,
