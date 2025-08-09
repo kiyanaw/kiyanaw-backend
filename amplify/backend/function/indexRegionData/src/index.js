@@ -91,9 +91,9 @@ exports.handler = async (event) => {
   console.log('Deleted', deleted)
 
   /**
-   * Parse known words from region
+   * Index region analysis words
    */
-  const indexedWords = await search.indexKnownWords(region, transcription)
+  const indexedWords = await search.indexRegionAnalysis(region, transcription)
   console.log('Indexed', indexedWords)
 
   /**

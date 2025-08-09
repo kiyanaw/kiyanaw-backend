@@ -20,20 +20,46 @@ const clearKnownWordsForRegion = async (regionId) => {
   return deleted
 }
 
-const indexKnownWords = async (region, transcription) => {
-  const text = JSON.parse(region.regionText)
-  const words = text
-    .filter((item) => item.attributes && item.attributes['known-word'])
-    .map((item) => item.insert)
-  console.log('Words to index', words)
+const indexRegionAnalysis = async (region, transcription) => {
+  // Skip indexing if transcription has no language index set
+  if (!transcription.index) {
+    console.log('⚠️ Skipping indexing - no language index set on transcription')
+    return
+  }
 
-  const sentence = text.map((item) => item.insert).join('')
+  // Use regionAnalysis array instead of parsing regionText for known words
+  const words = region.regionAnalysis || []
+  console.log('Words to index from regionAnalysis:', words)
+
+  if (words.length === 0) {
+    console.log('No words in regionAnalysis to index')
+    return
+  }
+
+  // Get full region text for context (if available)
+  let sentence = ''
+  if (region.regionText) {
+    try {
+      const text = JSON.parse(region.regionText)
+      sentence = text.map((item) => item.insert).join('')
+    } catch (e) {
+      // Fallback if regionText is not valid JSON
+      sentence = region.regionText || ''
+    }
+  }
 
   for (const word of words) {
     let surface = utils.toCircumflex(word)
     // strip out any goofy characters
     surface = surface.replace(/[.,\/#!$%\^&\*;:{}=_`~()]/g, '').trim()
-    console.log('Normalized: ', surface)
+    
+    if (!surface) {
+      console.log('Skipping empty word after normalization')
+      continue
+    }
+    
+    console.log('Normalized word:', surface)
+    
     // TODO: check for IPC
     // TODO: pull only wolvengrey
     // TODO: exact-match results
@@ -46,10 +72,8 @@ const indexKnownWords = async (region, transcription) => {
       const wordClass = results[0].lemma_wordform.wordclass
       console.log(`Got lemma for surface form '${surface}': ${lemma}`)
 
-      // TODO: index transcription name
-      // TODO: index start/end time
       const toIndex = {
-        lang: 'crk',
+        lang: transcription.index, // Use transcription language
         lemma,
         surface,
         transcriptionId: region.transcriptionId,
@@ -82,5 +106,5 @@ const indexKnownWords = async (region, transcription) => {
 module.exports = {
   clearKnownWordsForRegion,
   // client,
-  indexKnownWords,
+  indexRegionAnalysis,
 }
