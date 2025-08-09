@@ -36,6 +36,15 @@ describe('TextHighlightService', () => {
       
       expect(result).toBe('<span class="known-word">hello</span>, <span class="known-word">world</span>! <span class="known-word">êkwa</span>?');
     });
+
+    it('should handle hyphenated words', () => {
+      const knownWordsWithHyphens = new Set(['hello', 'kâ-kîsikâk', 'world']);
+      const text = 'hello kâ-kîsikâk world';
+      const result = textHighlightService.generateHTML(text, knownWordsWithHyphens);
+      
+      // This test will demonstrate the current limitation
+      expect(result).toBe('<span class="known-word">hello</span> <span class="known-word">kâ-kîsikâk</span> <span class="known-word">world</span>');
+    });
   });
 
   describe('findMatches', () => {
