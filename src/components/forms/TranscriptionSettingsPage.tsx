@@ -13,8 +13,8 @@ interface TranscriptionSettingsPageProps {
   regionCount: number;
   transcriptionId: string;
   isPrivate?: boolean;
-  index?: string;
-  onSave: (updates: { title?: string; comments?: string; isPrivate?: boolean; index?: string }) => void;
+  lang?: string;
+  onSave: (updates: { title?: string; comments?: string; isPrivate?: boolean; lang?: string }) => void;
   onBack: () => void;
   isOwner: boolean;
 }
@@ -27,7 +27,7 @@ export const TranscriptionSettingsPage = ({
   regionCount,
   transcriptionId,
   isPrivate: initialIsPrivate,
-  index: initialIndex,
+  lang: initialLang,
   onSave,
   onBack,
   isOwner,
@@ -35,7 +35,7 @@ export const TranscriptionSettingsPage = ({
   const [title, setTitle] = useState(initialTitle);
   const [comments, setComments] = useState(initialComments || '');
   const [isPrivate, setIsPrivate] = useState(initialIsPrivate ?? true);
-  const [index, setIndex] = useState(initialIndex || '');
+  const [lang, setLang] = useState(initialLang || '');
   
   // Invite management state
   const [invites, setInvites] = useState<InviteModel[]>([]);
@@ -76,7 +76,7 @@ export const TranscriptionSettingsPage = ({
   }, [transcriptionId, loadInvites]);
 
   const handleSave = () => {
-    const updates: { title?: string; comments?: string; isPrivate?: boolean; index?: string } = {};
+    const updates: { title?: string; comments?: string; isPrivate?: boolean; lang?: string } = {};
     
     if (title !== initialTitle) {
       updates.title = title;
@@ -90,8 +90,8 @@ export const TranscriptionSettingsPage = ({
       updates.isPrivate = isPrivate;
     }
 
-    if (index !== (initialIndex || '')) {
-      updates.index = index;
+    if (lang !== (initialLang || '')) {
+      updates.lang = lang;
     }
 
     if (Object.keys(updates).length > 0) {
@@ -105,11 +105,11 @@ export const TranscriptionSettingsPage = ({
     setTitle(initialTitle);
     setComments(initialComments || '');
     setIsPrivate(initialIsPrivate ?? true);
-    setIndex(initialIndex || '');
+    setLang(initialLang || '');
     onBack();
   };
 
-  const hasChanges = title !== initialTitle || comments !== (initialComments || '') || isPrivate !== (initialIsPrivate ?? true) || index !== (initialIndex || '');
+  const hasChanges = title !== initialTitle || comments !== (initialComments || '') || isPrivate !== (initialIsPrivate ?? true) || lang !== (initialLang || '');
 
   const formatDate = (dateString: string) => {
     try {
@@ -203,10 +203,10 @@ export const TranscriptionSettingsPage = ({
               {hasChanges && (
                 <button
                   onClick={() => {
-                    setTitle(initialTitle);
-                    setComments(initialComments || '');
-                    setIsPrivate(initialIsPrivate ?? true);
-                    setIndex(initialIndex || '');
+                        setTitle(initialTitle);
+    setComments(initialComments || '');
+    setIsPrivate(initialIsPrivate ?? true);
+    setLang(initialLang || '');
                   }}
                   className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
                 >
@@ -270,13 +270,13 @@ export const TranscriptionSettingsPage = ({
                 </div>
 
                 <div>
-                  <label htmlFor="index" className="block text-md font-medium text-gray-700 mb-2">
+                  <label htmlFor="lang" className="block text-md font-medium text-gray-700 mb-2">
                     Language
                   </label>
                   <select
-                    id="index"
-                    value={index}
-                    onChange={(e) => setIndex(e.target.value)}
+                    id="lang"
+                    value={lang}
+                    onChange={(e) => setLang(e.target.value)}
                     disabled={!isOwner}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-600 disabled:cursor-not-allowed text-base"
                   >

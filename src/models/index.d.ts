@@ -31,6 +31,7 @@ type EagerTranscription = {
   readonly tags?: string | null;
   readonly source?: string | null;
   readonly index?: string | null;
+  readonly lang?: string | null;
   readonly title: string;
   readonly type: string;
   readonly isPrivate?: boolean | null;
@@ -59,6 +60,7 @@ type LazyTranscription = {
   readonly tags?: string | null;
   readonly source?: string | null;
   readonly index?: string | null;
+  readonly lang?: string | null;
   readonly title: string;
   readonly type: string;
   readonly isPrivate?: boolean | null;

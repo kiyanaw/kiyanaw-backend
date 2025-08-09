@@ -49,7 +49,7 @@ export class LoadTranscription {
 
     // Extract and populate known words from existing regions (business logic)
     // Only do this if the transcription has a language index set for spell checking
-    if (data.transcription.index) {
+    if (data.transcription.lang) {
       const allKnownWords = this.extractKnownWordsFromRegions(data.regions);
       if (allKnownWords.length > 0) {
         // Populate spell checker service cache

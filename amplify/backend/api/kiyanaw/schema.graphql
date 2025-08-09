@@ -25,12 +25,13 @@ type Transcription
   comments: String
   tags: String
   source: String
-  index: String
+  index: String # deprecated field, use `lang`
+  lang: String
   title: String! @index(name: "ByTitle", queryField: "byTitle")
   type: String!
   isPrivate: Boolean
   isPublished: Boolean
-  disableAnalyzer: Boolean # deprecated field
+  disableAnalyzer: Boolean # deprecated field, use `lang`
   # ACL fields (no field-level auth, handled in custom resolvers)
   editors: [String]
   viewers: [String]

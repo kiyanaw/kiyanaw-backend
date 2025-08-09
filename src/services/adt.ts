@@ -18,7 +18,7 @@ export interface TranscriptionData {
   createdAt?: string;
   updatedAt?: string;
   isVideo?: boolean;
-  index?: string; // language index for spell-checking
+  lang?: string; // language code for spell-checking
 }
 
 export interface RegionData {
@@ -118,7 +118,7 @@ export class TranscriptionModel {
   public editors?: string[] | null;
   public viewers?: string[] | null;
   public accessLevel?: 'owner' | 'editor' | 'viewer' | null;
-  public index?: string;
+  public lang?: string;
   private length: number;
 
   constructor(data: TranscriptionData) {
@@ -146,7 +146,7 @@ export class TranscriptionModel {
     this.editors = data.editors;
     this.viewers = data.viewers;
     this.isVideo = data.type?.includes('video') || false;
-    this.index = data.index;
+    this.lang = data.lang;
     this.length = data.length || 0;
   }
 

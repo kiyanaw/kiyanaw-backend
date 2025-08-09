@@ -11,7 +11,7 @@ export interface UpdateTranscriptionConfig {
     source?: string;
     length?: number;
     isPrivate?: boolean;
-    index?: string;
+    lang?: string;
   };
   services: typeof services;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

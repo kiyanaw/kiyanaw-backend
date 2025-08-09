@@ -417,7 +417,7 @@ describe('LoadTranscription', () => {
   describe('extractKnownWordsFromRegions', () => {
     it('should extract known words from regions with regionAnalysis', async () => {
       const mockData = {
-        transcription: { source: 'test.mp4', index: 'crk' }, // Add index for spell checking
+        transcription: { source: 'test.mp4', lang: 'crk' }, // Add language for spell checking
         peaks: [],
         regions: [
           {
@@ -479,7 +479,7 @@ describe('LoadTranscription', () => {
 
     it('should handle regions with non-array regionAnalysis gracefully', async () => {
       const mockData = {
-        transcription: { source: 'test.mp4', index: 'crk' }, // Add index for spell checking
+        transcription: { source: 'test.mp4', lang: 'crk' }, // Add language for spell checking
         peaks: [],
         regions: [
           {
@@ -505,9 +505,9 @@ describe('LoadTranscription', () => {
        ]);
     });
 
-    it('should skip known words extraction when transcription has no index', async () => {
+    it('should skip known words extraction when transcription has no language', async () => {
       const mockData = {
-        transcription: { source: 'test.mp4' }, // No index field
+        transcription: { source: 'test.mp4' }, // No language field
         peaks: [],
         regions: [
           {
@@ -527,14 +527,14 @@ describe('LoadTranscription', () => {
 
       await useCase.execute();
 
-      // Should not call spell checker or store when no index is set
+      // Should not call spell checker or store when no language is set
       expect(services.spellCheckerService.addKnownWords).not.toHaveBeenCalled();
       expect(mockStore.addKnownWords).not.toHaveBeenCalled();
     });
 
-    it('should extract known words when transcription index is set to crgn', async () => {
+    it('should extract known words when transcription language is set to crgn', async () => {
       const mockData = {
-        transcription: { source: 'test.mp4', index: 'crgn' }, // Northern Michif
+        transcription: { source: 'test.mp4', lang: 'crgn' }, // Northern Michif
         peaks: [],
         regions: [
           {
