@@ -19,6 +19,7 @@ export const onCreateTranscription = /* GraphQL */ `
       tags
       source
       index
+      lang
       title
       type
       isPrivate
@@ -65,6 +66,7 @@ export const onUpdateTranscription = /* GraphQL */ `
       tags
       source
       index
+      lang
       title
       type
       isPrivate
@@ -111,6 +113,7 @@ export const onDeleteTranscription = /* GraphQL */ `
       tags
       source
       index
+      lang
       title
       type
       isPrivate
@@ -164,6 +167,7 @@ export const onCreateRegion = /* GraphQL */ `
         tags
         source
         index
+        lang
         title
         type
         isPrivate
@@ -215,6 +219,7 @@ export const onUpdateRegion = /* GraphQL */ `
         tags
         source
         index
+        lang
         title
         type
         isPrivate
@@ -266,6 +271,7 @@ export const onDeleteRegion = /* GraphQL */ `
         tags
         source
         index
+        lang
         title
         type
         isPrivate
@@ -316,6 +322,7 @@ export const onCreateIssue = /* GraphQL */ `
         tags
         source
         index
+        lang
         title
         type
         isPrivate
@@ -366,6 +373,7 @@ export const onUpdateIssue = /* GraphQL */ `
         tags
         source
         index
+        lang
         title
         type
         isPrivate
@@ -416,6 +424,7 @@ export const onDeleteIssue = /* GraphQL */ `
         tags
         source
         index
+        lang
         title
         type
         isPrivate

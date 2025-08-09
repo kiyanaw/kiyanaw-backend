@@ -138,17 +138,12 @@ export const updateRegion = async (regionId: string, updates: Partial<RegionData
       userLastUpdated: username,
     };
 
-
-
     await getClient().graphql({
       query: updateRegionMutation,
       variables: { input },
       authMode: 'iam',
     });
 
-    const analysisInfo = updates.regionAnalysis ? ` + analysis` : '';
-    console.log(`✅ Saved region ${regionId}${analysisInfo}`);
-    
   } catch (error) {
     console.error(`❌ Failed to save region ${regionId}:`, error);
     

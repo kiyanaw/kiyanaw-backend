@@ -1,10 +1,12 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useEditorStore } from '../stores/useEditorStore';
 import { useLoadTranscription } from '../hooks/useLoadTranscription';
 import { useWavesurferEvents } from '../hooks/useWavesurferEvents';
 import { useSubscriptions } from '../hooks/useSubscriptions';
+import { useUpdateTranscription } from '../hooks/useUpdateTranscription';
+import { useAuthStore } from '../stores/useAuthStore';
 
 import { browserService } from '../services/browserService';
 import { wavesurferService } from '../services/wavesurferService';
@@ -12,6 +14,7 @@ import { wavesurferService } from '../services/wavesurferService';
 import { WaveformPlayer } from '../components/player/WaveformPlayer';
 import { RegionList } from '../components/regions/RegionList';
 import { StationaryInspector } from '../components/inspector/StationaryInspector';
+import { TranscriptionSettingsPage } from '../components/forms/TranscriptionSettingsPage';
 
 export const EditorPage = () => {
   const { id: transcriptionId } = useParams<{
@@ -20,16 +23,33 @@ export const EditorPage = () => {
   
   const navigate = useNavigate();
   
+  // Settings page state
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  
   useLoadTranscription(transcriptionId!);
   useSubscriptions(transcriptionId!);
   
   // Editor store selectors
   const transcription = useEditorStore((state) => state.transcription);
   const accessDenied = useEditorStore((state) => state.accessDenied);
+  const user = useAuthStore((state) => state.user);
+  
+  // Hooks for settings functionality
+  const updateTranscription = useUpdateTranscription(transcriptionId!);
   
   useWavesurferEvents(transcriptionId!, transcription?.source);
   const regions = useEditorStore((state) => state.regions);
   const selectedRegion = useEditorStore((state) => state.selectedRegion);
+
+  // Settings handlers
+  const handleOpenSettings = () => setIsSettingsOpen(true);
+  const handleCloseSettings = () => setIsSettingsOpen(false);
+  const handleSaveChanges = (updates: { title?: string; comments?: string; isPrivate?: boolean; lang?: string }) => {
+    updateTranscription(updates);
+  };
+  
+  // Determine if current user is the owner
+  const isOwner = transcription?.author === user?.userId;
 
   // Redirect to 404 if access is denied
   useEffect(() => {
@@ -78,6 +98,7 @@ export const EditorPage = () => {
               regions={regions}
               isVideo={isVideo}
               title={transcription.title || ''}
+              onOpenSettings={handleOpenSettings}
             />
           </div>
         </div>
@@ -101,6 +122,25 @@ export const EditorPage = () => {
           />
         </div>
       </div>
+
+      {/* Settings Page Overlay */}
+      {isSettingsOpen && transcription && (
+        <div className="absolute inset-0 z-50">
+          <TranscriptionSettingsPage
+            title={transcription.title || ''}
+            comments={transcription.comments}
+            author={transcription.authorFriendly || 'Unknown'}
+            dateLastUpdated={transcription.dateLastUpdated || '0'}
+            regionCount={regions.length}
+            transcriptionId={transcription.id || ''}
+            isPrivate={transcription.isPrivate}
+                            lang={transcription.lang}
+            onSave={handleSaveChanges}
+            onBack={handleCloseSettings}
+            isOwner={isOwner}
+          />
+        </div>
+      )}
 
     </div>
   );

@@ -16,6 +16,7 @@ export const getTranscription = /* GraphQL */ `
       tags
       source
       index
+      lang
       title
       type
       isPrivate
@@ -72,6 +73,7 @@ export const listTranscriptions = /* GraphQL */ `
         tags
         source
         index
+        lang
         title
         type
         isPrivate
@@ -120,6 +122,7 @@ export const syncTranscriptions = /* GraphQL */ `
         tags
         source
         index
+        lang
         title
         type
         isPrivate
@@ -170,6 +173,7 @@ export const byTitle = /* GraphQL */ `
         tags
         source
         index
+        lang
         title
         type
         isPrivate
@@ -217,6 +221,7 @@ export const getRegion = /* GraphQL */ `
         tags
         source
         index
+        lang
         title
         type
         isPrivate
@@ -382,6 +387,7 @@ export const getIssue = /* GraphQL */ `
         tags
         source
         index
+        lang
         title
         type
         isPrivate

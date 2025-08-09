@@ -18,6 +18,7 @@ describe('ADT Models', () => {
       dateLastUpdated: '2023-01-01T00:00:00Z',
       userLastUpdated: 'test-user',
       length: 123.45,
+      lang: 'crk',
     };
 
     beforeEach(() => {
@@ -50,6 +51,7 @@ describe('ADT Models', () => {
         expect(model.disableAnalyzer).toBe(mockTranscriptionData.disableAnalyzer);
         expect(model.dateLastUpdated).toBe(mockTranscriptionData.dateLastUpdated);
         expect(model.userLastUpdated).toBe(mockTranscriptionData.userLastUpdated);
+        expect(model.lang).toBe(mockTranscriptionData.lang);
       });
 
       it('should store original data reference', () => {
@@ -193,6 +195,7 @@ describe('ADT Models', () => {
         expect(model.dateLastUpdated).toBeUndefined();
         expect(model.userLastUpdated).toBeUndefined();
         expect(model.editors).toBeUndefined();
+        expect(model.lang).toBeUndefined();
       });
 
       it('should handle null values appropriately', () => {

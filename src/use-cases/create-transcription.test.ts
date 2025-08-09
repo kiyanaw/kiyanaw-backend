@@ -140,7 +140,8 @@ describe('CreateTranscriptionUseCase', () => {
         source: 'https://example.com/file-key.mp3',
         type: 'audio/mpeg',
         author: 'user-id',  // Now uses userId for author
-        userLastUpdated: 'testuser'
+        userLastUpdated: 'testuser',
+        isPrivate: true  // New transcriptions default to private
       });
 
       // Verify result
@@ -284,7 +285,8 @@ describe('CreateTranscriptionUseCase', () => {
         source: 'https://example.com/file-key.mp3',
         type: 'audio/mpeg',
         author: 'user-id',
-        userLastUpdated: 'john.doe' // Should be extracted from email
+        userLastUpdated: 'john.doe', // Should be extracted from email
+        isPrivate: true  // New transcriptions default to private
       });
     });
 
@@ -313,7 +315,8 @@ describe('CreateTranscriptionUseCase', () => {
         source: 'https://example.com/file-key.mp3',
         type: 'audio/mpeg',
         author: 'user-id',
-        userLastUpdated: 'plainusername' // Should remain unchanged
+        userLastUpdated: 'plainusername', // Should remain unchanged
+        isPrivate: true  // New transcriptions default to private
       });
     });
   });

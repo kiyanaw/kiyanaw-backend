@@ -20,6 +20,32 @@
           "create"
         ]
       }
+    },
+    "/crgn/bulk-lookup": {
+      "name": "/crgn/bulk-lookup",
+      "lambdaFunction": "crkSpellCheck",
+      "permissions": {
+        "setting": "private",
+        "auth": [
+          "create",
+          "read",
+          "update",
+          "delete"
+        ]
+      }
+    },
+    "/crgn/suggest": {
+      "name": "/crgn/suggest",
+      "lambdaFunction": "crkSpellCheck",
+      "permissions": {
+        "setting": "private",
+        "auth": [
+          "create",
+          "read",
+          "update",
+          "delete"
+        ]
+      }
     }
   }
 }
