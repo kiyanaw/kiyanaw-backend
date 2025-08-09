@@ -80,7 +80,7 @@ exports.handler = async (event) => {
   console.log('transcription', transcription)
 
   if (transcription.isPrivate || transcription.disableAnalyzer) {
-    console.log('Not processing transcription')
+    console.log('Not processing transcription, isPrivate = true')
     return okResponse()
   }
 
