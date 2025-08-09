@@ -19,6 +19,35 @@ export interface ConflictResult {
 
 export class ConflictDetectionService {
   /**
+   * Helper function to normalize null/undefined/empty string values for comparison
+   * @param value The value to normalize
+   * @returns Normalized string value
+   */
+  private normalizeEmptyValue(value: string | number | boolean | string[] | null | undefined): string {
+    if (value === null || value === undefined || value === '') {
+      return '';
+    }
+    return String(value);
+  }
+
+  /**
+   * Determines if a field has conflicts between local and remote values
+   * @param field The field name to check
+   * @param localValue The local field value
+   * @param remoteValue The remote field value
+   * @returns true if there is a conflict
+   */
+  private hasFieldConflict(field: string, localValue: unknown, remoteValue: unknown): boolean {
+    // For text fields, use normalized comparison to avoid null vs empty string false conflicts
+    if (field === 'regionText' || field === 'translation') {
+      return this.normalizeEmptyValue(localValue as string | number | boolean | string[] | null | undefined) !== 
+             this.normalizeEmptyValue(remoteValue as string | number | boolean | string[] | null | undefined);
+    } else {
+      return localValue !== remoteValue;
+    }
+  }
+
+  /**
    * Detects conflicts between local and remote region data
    * @param local The local region data (what user has been editing)
    * @param remote The incoming remote region data
@@ -37,7 +66,7 @@ export class ConflictDetectionService {
       const localValue = local[field as keyof RegionData];
       const remoteValue = remote[field as keyof RegionData];
       
-      if (localValue !== remoteValue) {
+      if (this.hasFieldConflict(field, localValue, remoteValue)) {
         const canAutoMerge = this.canFieldAutoMerge(field, local, remote);
         
         conflictDetails.push({
@@ -248,7 +277,10 @@ export class ConflictDetectionService {
     const fieldsToCheck = ['regionText', 'translation', 'start', 'end'];
 
     for (const field of fieldsToCheck) {
-      if (local[field as keyof RegionData] !== remote[field as keyof RegionData]) {
+      const localValue = local[field as keyof RegionData];
+      const remoteValue = remote[field as keyof RegionData];
+      
+      if (this.hasFieldConflict(field, localValue, remoteValue)) {
         conflicted.push(field);
       }
     }

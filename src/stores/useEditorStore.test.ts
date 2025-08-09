@@ -377,7 +377,7 @@ describe('useEditorStore known words functionality', () => {
         field: 'regionText',
         startedAt: expect.any(Date),
         lastActivity: expect.any(Date),
-        baseline: null, // NEW: Baseline is captured but null if no region exists
+        baseline: undefined, // NEW: Baseline is captured but undefined if no region exists
       });
     });
 

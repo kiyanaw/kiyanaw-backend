@@ -22,6 +22,7 @@ export interface ConflictData {
 
 export interface ConflictResolutionResult {
   action: 'accept_remote' | 'keep_local';
+  resolvedConflictData?: ConflictData; // Include the final conflict data used for resolution
 }
 
 class ConflictResolutionService {
@@ -34,13 +35,56 @@ class ConflictResolutionService {
     
     const result = await conflictDialogManager.showDialog(conflict);
     
+    // Get the most recent conflict data that was resolved against
+    const finalConflictData = this.activeConflicts.get(conflictKey) || conflict;
+    
     this.activeConflicts.delete(conflictKey);
-    return result;
+    
+    return {
+      ...result,
+      resolvedConflictData: finalConflictData
+    };
   }
   
-  hasActiveConflict(regionId: string, field: string): boolean {
+  hasActiveConflict(regionId: string, field?: string): boolean {
+    if (field) {
+      const conflictKey = `${regionId}:${field}`;
+      return this.activeConflicts.has(conflictKey);
+    }
+    
+    // Check if any conflict exists for this region
+    for (const key of this.activeConflicts.keys()) {
+      if (key.startsWith(`${regionId}:`)) {
+        return true;
+      }
+    }
+    return false;
+  }
+  
+  getActiveConflict(regionId: string, field: string): ConflictData | undefined {
     const conflictKey = `${regionId}:${field}`;
-    return this.activeConflicts.has(conflictKey);
+    return this.activeConflicts.get(conflictKey);
+  }
+  
+  getActiveConflictsForRegion(regionId: string): ConflictData[] {
+    const conflicts: ConflictData[] = [];
+    for (const [key, conflict] of this.activeConflicts.entries()) {
+      if (key.startsWith(`${regionId}:`)) {
+        conflicts.push(conflict);
+      }
+    }
+    return conflicts;
+  }
+  
+  async updateActiveConflict(regionId: string, field: string, updatedConflict: ConflictData): Promise<void> {
+    const conflictKey = `${regionId}:${field}`;
+    
+    if (this.activeConflicts.has(conflictKey)) {
+      this.activeConflicts.set(conflictKey, updatedConflict);
+      
+      // Notify the dialog manager about the update
+      await conflictDialogManager.updateDialog(updatedConflict);
+    }
   }
   
   dismissConflict(regionId: string, field: string): void {

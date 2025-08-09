@@ -1,4 +1,5 @@
-import { conflictResolutionService, ConflictData } from './conflictResolutionService';
+import { conflictResolutionService, ConflictData, ConflictResolutionResult } from './conflictResolutionService';
+import { conflictDialogManager } from './conflictDialogManager';
 
 describe('ConflictResolutionService', () => {
   beforeEach(() => {
@@ -23,7 +24,15 @@ describe('ConflictResolutionService', () => {
       const result = await conflictResolutionService.showConflictDialog(conflictData);
 
       expect(result).toEqual({
-        action: 'accept_remote'
+        action: 'accept_remote',
+        resolvedConflictData: expect.objectContaining({
+          regionId: 'test-region-1',
+          field: 'regionText',
+          localValue: 'User typed this',
+          remoteValue: 'Remote saved this',
+          localVersion: 5,
+          remoteVersion: 6
+        })
       });
     });
 
@@ -126,6 +135,65 @@ describe('ConflictResolutionService', () => {
 
       const result = await conflictResolutionService.showConflictDialog(conflictData);
       expect(result.action).toBe('accept_remote');
+    });
+  });
+
+  describe('Live Conflict Updates', () => {
+    it('should return updated conflict data when dialog is updated during resolution', async () => {
+      const originalConflict: ConflictData = {
+        regionId: 'test-region-1',
+        field: 'regionText',
+        localValue: 'User typed this',
+        remoteValue: 'Remote version 1',
+        localVersion: 5,
+        remoteVersion: 6,
+        timestamp: Date.now(),
+        conflictId: 'conflict-123'
+      };
+
+      const updatedConflict: ConflictData = {
+        ...originalConflict,
+        remoteValue: 'Remote version 2 (updated)',
+        remoteVersion: 7,
+        timestamp: Date.now()
+      };
+
+      // Mock the dialog manager to simulate a user interaction after an update
+      let dialogResolve: ((result: ConflictResolutionResult) => void) | null = null;
+      
+      const mockShowDialog = jest.fn().mockImplementation((conflict: ConflictData) => {
+        return new Promise<ConflictResolutionResult>((resolve) => {
+          dialogResolve = resolve;
+        });
+      });
+
+      conflictDialogManager.setDialogFunction(mockShowDialog);
+
+      // Start the conflict resolution
+      const resultPromise = conflictResolutionService.showConflictDialog(originalConflict);
+
+      // Simulate a live update while dialog is open
+      await conflictResolutionService.updateActiveConflict(
+        'test-region-1', 
+        'regionText', 
+        updatedConflict
+      );
+
+      // User resolves the conflict
+      dialogResolve!({ action: 'accept_remote' });
+
+      const result = await resultPromise;
+
+      // Should return the updated conflict data, not the original
+      expect(result).toEqual({
+        action: 'accept_remote',
+        resolvedConflictData: expect.objectContaining({
+          regionId: 'test-region-1',
+          field: 'regionText',
+          remoteValue: 'Remote version 2 (updated)', // Updated value
+          remoteVersion: 7 // Updated version
+        })
+      });
     });
   });
 }); 

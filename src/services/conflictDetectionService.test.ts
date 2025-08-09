@@ -285,5 +285,67 @@ describe('ConflictDetectionService', () => {
       expect(result.conflictType).toBe('text'); // Text conflicts take precedence
       expect(result.conflictDetails).toHaveLength(4); // regionText, translation, start, end
     });
+
+    it('REGRESSION: should NOT detect conflicts for null vs empty string differences', () => {
+      // Test case 1: Local has empty string, remote has null
+      const local1 = createTestRegion({
+        regionText: 'User typed text',
+        translation: ''  // Empty string
+      });
+      const remote1 = createTestRegion({
+        regionText: 'User typed text',
+        translation: null as any  // null
+      });
+
+      const result1 = service.detectConflict(local1, remote1);
+      expect(result1.hasConflict).toBe(false);
+      expect(result1.conflictType).toBe('none');
+
+      // Test case 2: Local has null, remote has empty string
+      const local2 = createTestRegion({
+        regionText: null as any,  // null
+        translation: 'User typed translation'
+      });
+      const remote2 = createTestRegion({
+        regionText: '',  // Empty string
+        translation: 'User typed translation'
+      });
+
+      const result2 = service.detectConflict(local2, remote2);
+      expect(result2.hasConflict).toBe(false);
+      expect(result2.conflictType).toBe('none');
+
+      // Test case 3: Both fields have null vs empty string differences
+      const local3 = createTestRegion({
+        regionText: '',    // Empty string
+        translation: null as any  // null
+      });
+      const remote3 = createTestRegion({
+        regionText: null as any,  // null
+        translation: ''    // Empty string
+      });
+
+      const result3 = service.detectConflict(local3, remote3);
+      expect(result3.hasConflict).toBe(false);
+      expect(result3.conflictType).toBe('none');
+    });
+
+    it('REGRESSION: should still detect real text conflicts after null/empty normalization', () => {
+      // Ensure we don't break real conflict detection
+      const local = createTestRegion({
+        regionText: 'Local text change',
+        translation: ''  // Empty string
+      });
+      const remote = createTestRegion({
+        regionText: 'Remote text change',
+        translation: null as any  // null (should not conflict)
+      });
+
+      const result = service.detectConflict(local, remote);
+      expect(result.hasConflict).toBe(true);
+      expect(result.conflictType).toBe('text');
+      expect(result.conflictDetails).toHaveLength(1); // Only regionText should conflict
+      expect(result.conflictDetails![0].field).toBe('regionText');
+    });
   });
 }); 
