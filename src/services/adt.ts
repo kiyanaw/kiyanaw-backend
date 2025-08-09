@@ -118,6 +118,7 @@ export class TranscriptionModel {
   public editors?: string[] | null;
   public viewers?: string[] | null;
   public accessLevel?: 'owner' | 'editor' | 'viewer' | null;
+  public index?: string;
   private length: number;
 
   constructor(data: TranscriptionData) {
@@ -145,6 +146,7 @@ export class TranscriptionModel {
     this.editors = data.editors;
     this.viewers = data.viewers;
     this.isVideo = data.type?.includes('video') || false;
+    this.index = data.index;
     this.length = data.length || 0;
   }
 

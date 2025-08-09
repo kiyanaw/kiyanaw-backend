@@ -285,7 +285,7 @@ export const TranscriptionSettingsPage = ({
                     <option value="crgn">Northern Michif</option>
                   </select>
                   <p className="text-xs text-gray-500 mt-1">
-                    Select the language index for this transcription. This will determine how the text is analyzed (spell check). If "Is Private" is disabled, will determine the section of the Language Database used for indexing.
+                    Select the spell checker to use for this transctiption. If "Is Private?" is disabled, will determine the index of the Language Database used.
                   </p>
                 </div>
 
