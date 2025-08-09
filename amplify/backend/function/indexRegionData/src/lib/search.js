@@ -22,7 +22,9 @@ const clearKnownWordsForRegion = async (regionId) => {
 
 const indexRegionAnalysis = async (region, transcription) => {
   // Skip indexing if transcription has no language index set
-  if (!transcription.index) {
+  // Check both 'lang' (new field) and 'index' (deprecated field) for backward compatibility
+  const languageCode = transcription.lang || transcription.index
+  if (!languageCode) {
     console.log('⚠️ Skipping indexing - no language index set on transcription')
     return
   }
@@ -39,13 +41,8 @@ const indexRegionAnalysis = async (region, transcription) => {
   // Get full region text for context (if available)
   let sentence = ''
   if (region.regionText) {
-    try {
-      const text = JSON.parse(region.regionText)
-      sentence = text.map((item) => item.insert).join('')
-    } catch (e) {
-      // Fallback if regionText is not valid JSON
-      sentence = region.regionText || ''
-    }
+    // regionText is now stored as plain text
+    sentence = region.regionText
   }
 
   for (const word of words) {
@@ -73,7 +70,7 @@ const indexRegionAnalysis = async (region, transcription) => {
       console.log(`Got lemma for surface form '${surface}': ${lemma}`)
 
       const toIndex = {
-        lang: transcription.index, // Use transcription language
+        lang: languageCode, // Use transcription language
         lemma,
         surface,
         transcriptionId: region.transcriptionId,

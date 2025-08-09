@@ -28,8 +28,7 @@ module.exports = {
       issues:
         '[{"id":"issue-needs-help-1604737548033","type":"needs-help","createdAt":"1604737548033","resolved":true,"owner":"bengodden","text":"kā-isi-nocihtācik","comments":[],"index":7}]',
       createdAt: '2020-11-07T08:22:26.895Z',
-      regionText:
-        '[{"attributes":{"known-word":"true"},"insert":"tānisi"},{"insert":" "},{"attributes":{},"insert":"k-isi-nōcihtācik"},{"insert":" pē-pimātisiwin \\n"}]',
+      regionText: 'tānisi k-isi-nōcihtācik pē-pimātisiwin \n',
       regionAnalysis: ['tānisi'], // Added regionAnalysis field with known words
       translation: '\n',
       transcriptionId: '73150c90',
