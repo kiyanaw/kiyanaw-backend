@@ -13,7 +13,8 @@ interface TranscriptionSettingsPageProps {
   regionCount: number;
   transcriptionId: string;
   isPrivate?: boolean;
-  onSave: (updates: { title?: string; comments?: string; isPrivate?: boolean }) => void;
+  index?: string;
+  onSave: (updates: { title?: string; comments?: string; isPrivate?: boolean; index?: string }) => void;
   onBack: () => void;
   isOwner: boolean;
 }
@@ -26,6 +27,7 @@ export const TranscriptionSettingsPage = ({
   regionCount,
   transcriptionId,
   isPrivate: initialIsPrivate,
+  index: initialIndex,
   onSave,
   onBack,
   isOwner,
@@ -33,6 +35,7 @@ export const TranscriptionSettingsPage = ({
   const [title, setTitle] = useState(initialTitle);
   const [comments, setComments] = useState(initialComments || '');
   const [isPrivate, setIsPrivate] = useState(initialIsPrivate ?? true);
+  const [index, setIndex] = useState(initialIndex || '');
   
   // Invite management state
   const [invites, setInvites] = useState<InviteModel[]>([]);
@@ -73,7 +76,7 @@ export const TranscriptionSettingsPage = ({
   }, [transcriptionId, loadInvites]);
 
   const handleSave = () => {
-    const updates: { title?: string; comments?: string; isPrivate?: boolean } = {};
+    const updates: { title?: string; comments?: string; isPrivate?: boolean; index?: string } = {};
     
     if (title !== initialTitle) {
       updates.title = title;
@@ -87,6 +90,10 @@ export const TranscriptionSettingsPage = ({
       updates.isPrivate = isPrivate;
     }
 
+    if (index !== (initialIndex || '')) {
+      updates.index = index;
+    }
+
     if (Object.keys(updates).length > 0) {
       onSave(updates);
     }
@@ -98,10 +105,11 @@ export const TranscriptionSettingsPage = ({
     setTitle(initialTitle);
     setComments(initialComments || '');
     setIsPrivate(initialIsPrivate ?? true);
+    setIndex(initialIndex || '');
     onBack();
   };
 
-  const hasChanges = title !== initialTitle || comments !== (initialComments || '') || isPrivate !== (initialIsPrivate ?? true);
+  const hasChanges = title !== initialTitle || comments !== (initialComments || '') || isPrivate !== (initialIsPrivate ?? true) || index !== (initialIndex || '');
 
   const formatDate = (dateString: string) => {
     try {
@@ -198,6 +206,7 @@ export const TranscriptionSettingsPage = ({
                     setTitle(initialTitle);
                     setComments(initialComments || '');
                     setIsPrivate(initialIsPrivate ?? true);
+                    setIndex(initialIndex || '');
                   }}
                   className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
                 >
@@ -232,7 +241,7 @@ export const TranscriptionSettingsPage = ({
 
               <div className="space-y-4">
                 <div>
-                  <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="title" className="block text-md font-medium text-gray-700 mb-2">
                     Title
                   </label>
                   <input
@@ -246,7 +255,7 @@ export const TranscriptionSettingsPage = ({
                 </div>
 
                 <div>
-                  <label htmlFor="comments" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="comments" className="block text-md font-medium text-gray-700 mb-2">
                     Comments
                   </label>
                   <textarea
@@ -259,14 +268,34 @@ export const TranscriptionSettingsPage = ({
                     placeholder="Add any comments about this transcription..."
                   />
                 </div>
-                
+
+                <div>
+                  <label htmlFor="index" className="block text-md font-medium text-gray-700 mb-2">
+                    Language
+                  </label>
+                  <select
+                    id="index"
+                    value={index}
+                    onChange={(e) => setIndex(e.target.value)}
+                    disabled={!isOwner}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-600 disabled:cursor-not-allowed text-base"
+                  >
+                    <option value="">None</option>
+                    <option value="crk">Plains Cree Y-dialect</option>
+                    <option value="crgn">Northern Michif</option>
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Select the language index for this transcription. This will determine how the text is analyzed (spell check). If "Is Private" is disabled, will determine the section of the Language Database used for indexing.
+                  </p>
+                </div>
+
                 <div>
                   <div className="flex items-center justify-between">
                     <div>
-                      <label htmlFor="isPrivate" className="block text-sm font-medium text-gray-700">
+                      <label htmlFor="isPrivate" className="block text-md font-medium text-gray-700">
                         Is Private?
                       </label>
-                      <p className="text-sm text-gray-500 mt-1 mr-1">
+                      <p className="text-xs text-gray-500 mt-1 mr-1">
                         Private transcriptions will not be indexed or discoverable in the Language Database (coming soon...)
                       </p>
                     </div>
@@ -291,6 +320,7 @@ export const TranscriptionSettingsPage = ({
                     </button>
                   </div>
                 </div>
+
               </div>
 
               {!isOwner && (

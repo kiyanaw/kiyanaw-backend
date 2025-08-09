@@ -18,6 +18,7 @@ export interface TranscriptionData {
   createdAt?: string;
   updatedAt?: string;
   isVideo?: boolean;
+  index?: string;
 }
 
 export interface RegionData {
