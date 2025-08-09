@@ -33,6 +33,7 @@ const mockStateActions = {
 
 const mockStore = {
   knownWords: new Set<string>(['existing', 'word', 'hello', 'êkwa', 'itwêw']),
+  transcription: { index: 'crk' }, // Add transcription with index for spell checking
   setRegionAnalysis: jest.fn(),
   addKnownWords: jest.fn(),
   getState: jest.fn(),
@@ -90,8 +91,8 @@ describe('AnalyzeRegionTextUseCase', () => {
       // Should tokenize the text
       expect(mockSpellCheckerService.tokenize).toHaveBeenCalledWith('hello world êkwa');
       
-      // Should check tokens for known words
-      expect(mockSpellCheckerService.check).toHaveBeenCalledWith(['world']); // only unknown words
+      // Should check tokens for known words with language code
+      expect(mockSpellCheckerService.check).toHaveBeenCalledWith(['world'], 'crk'); // only unknown words with language
       
       // Should not call addKnownWords since no new words were discovered
       expect(mockStore.addKnownWords).not.toHaveBeenCalled();
@@ -169,7 +170,7 @@ describe('AnalyzeRegionTextUseCase', () => {
       jest.advanceTimersByTime(2000);
       await promise;
 
-      expect(mockSpellCheckerService.check).toHaveBeenCalledWith(['tâpwê']); // only unknown word
+      expect(mockSpellCheckerService.check).toHaveBeenCalledWith(['tâpwê'], 'crk'); // only unknown word with language
       expect(mockStore.addKnownWords).toHaveBeenCalledWith(['tâpwê']);
       expect(mockStore.setRegionAnalysis).toHaveBeenCalledWith('region-1', ['itwêw', 'êkwa', 'tâpwê']);
       
@@ -263,6 +264,95 @@ describe('AnalyzeRegionTextUseCase', () => {
       expect(mockSpellCheckerService.tokenize).toHaveBeenCalledTimes(2);
       expect(mockStore.setRegionAnalysis).toHaveBeenCalledWith('region-1', expect.any(Array));
       expect(mockStore.setRegionAnalysis).toHaveBeenCalledWith('region-2', expect.any(Array));
+      
+      jest.useRealTimers();
+    });
+
+    it('should skip spell checking when transcription has no index', async () => {
+      // Create a store without index
+      const storeWithoutIndex = {
+        ...mockStore,
+        transcription: null // No transcription means no index
+      };
+
+      const useCase = new AnalyzeRegionTextUseCase({
+        regionId: 'region-1',
+        text: 'hello world êkwa',
+        services: mockServices,
+        store: storeWithoutIndex
+      });
+
+      jest.useFakeTimers();
+      const promise = useCase.execute();
+      jest.advanceTimersByTime(500);
+      await promise;
+
+      // Should not call spell checker, only set empty analysis
+      expect(mockSpellCheckerService.tokenize).not.toHaveBeenCalled();
+      expect(mockSpellCheckerService.check).not.toHaveBeenCalled();
+      expect(storeWithoutIndex.setRegionAnalysis).toHaveBeenCalledWith('region-1', []);
+      
+      jest.useRealTimers();
+    });
+
+    it('should use different language code when transcription index is set to crgn', async () => {
+      // Create a store with Northern Michif language index and fresh known words cache
+      const storeWithCrgn = {
+        ...mockStore,
+        transcription: { index: 'crgn' }, // Northern Michif
+        knownWords: new Set<string>(['hello']) // Only hello is known, so other words will be checked
+      };
+
+      const useCase = new AnalyzeRegionTextUseCase({
+        regionId: 'region-1',
+        text: 'hello kinwês omâmâ', // Use Northern Michif words not in cache
+        services: mockServices,
+        store: storeWithCrgn
+      });
+
+      // Mock spell checker to return some words as known for Northern Michif
+      mockSpellCheckerService.tokenize.mockReturnValue(['hello', 'kinwês', 'omâmâ']);
+      mockSpellCheckerService.check.mockResolvedValue({
+        known: ['kinwês'],
+        unknown: ['omâmâ'] // Different result for Northern Michif
+      });
+
+      jest.useFakeTimers();
+      const promise = useCase.execute();
+      jest.advanceTimersByTime(500);
+      await promise;
+
+      // Should use 'crgn' language code instead of default 'crk'
+      expect(mockSpellCheckerService.check).toHaveBeenCalledWith(['kinwês', 'omâmâ'], 'crgn');
+      expect(storeWithCrgn.addKnownWords).toHaveBeenCalledWith(['kinwês']);
+      expect(storeWithCrgn.setRegionAnalysis).toHaveBeenCalledWith('region-1', ['hello', 'kinwês']);
+      
+      jest.useRealTimers();
+    });
+
+    it('should skip spell checking when transcription index is empty', async () => {
+      // Create a store with empty index
+      const storeWithEmptyIndex = {
+        ...mockStore,
+        transcription: { index: null }
+      };
+
+      const useCase = new AnalyzeRegionTextUseCase({
+        regionId: 'region-1',
+        text: 'hello world êkwa',
+        services: mockServices,
+        store: storeWithEmptyIndex
+      });
+
+      jest.useFakeTimers();
+      const promise = useCase.execute();
+      jest.advanceTimersByTime(500);
+      await promise;
+
+      // Should not call spell checker, only set empty analysis
+      expect(mockSpellCheckerService.tokenize).not.toHaveBeenCalled();
+      expect(mockSpellCheckerService.check).not.toHaveBeenCalled();
+      expect(storeWithEmptyIndex.setRegionAnalysis).toHaveBeenCalledWith('region-1', []);
       
       jest.useRealTimers();
     });

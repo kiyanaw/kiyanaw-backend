@@ -417,7 +417,7 @@ describe('LoadTranscription', () => {
   describe('extractKnownWordsFromRegions', () => {
     it('should extract known words from regions with regionAnalysis', async () => {
       const mockData = {
-        transcription: { source: 'test.mp4' },
+        transcription: { source: 'test.mp4', index: 'crk' }, // Add index for spell checking
         peaks: [],
         regions: [
           {
@@ -479,7 +479,7 @@ describe('LoadTranscription', () => {
 
     it('should handle regions with non-array regionAnalysis gracefully', async () => {
       const mockData = {
-        transcription: { source: 'test.mp4' },
+        transcription: { source: 'test.mp4', index: 'crk' }, // Add index for spell checking
         peaks: [],
         regions: [
           {
@@ -503,6 +503,64 @@ describe('LoadTranscription', () => {
        expect(services.spellCheckerService.addKnownWords).toHaveBeenCalledWith([
          'valid', 'words'
        ]);
+    });
+
+    it('should skip known words extraction when transcription has no index', async () => {
+      const mockData = {
+        transcription: { source: 'test.mp4' }, // No index field
+        peaks: [],
+        regions: [
+          {
+            id: 'region1',
+            regionAnalysis: ['itwêw', 'êkwa']
+          },
+          {
+            id: 'region2',
+            regionAnalysis: ['tâpwê', 'hello']
+          }
+        ],
+        issues: []
+      };
+
+      (services.transcriptionService.loadInFull as jest.Mock).mockResolvedValue(mockData);
+      (services.browserService.getRegionIdFromUrl as jest.Mock).mockReturnValue(null);
+
+      await useCase.execute();
+
+      // Should not call spell checker or store when no index is set
+      expect(services.spellCheckerService.addKnownWords).not.toHaveBeenCalled();
+      expect(mockStore.addKnownWords).not.toHaveBeenCalled();
+    });
+
+    it('should extract known words when transcription index is set to crgn', async () => {
+      const mockData = {
+        transcription: { source: 'test.mp4', index: 'crgn' }, // Northern Michif
+        peaks: [],
+        regions: [
+          {
+            id: 'region1',
+            regionAnalysis: ['kinwês', 'omâmâ'] // Northern Michif words
+          },
+          {
+            id: 'region2',
+            regionAnalysis: ['tânisi', 'kinwês'] // duplicate should be deduplicated
+          }
+        ],
+        issues: []
+      };
+
+      (services.transcriptionService.loadInFull as jest.Mock).mockResolvedValue(mockData);
+      (services.browserService.getRegionIdFromUrl as jest.Mock).mockReturnValue(null);
+
+      await useCase.execute();
+
+      // Should extract known words regardless of language (language code is used in spell checking, not extraction)
+      expect(services.spellCheckerService.addKnownWords).toHaveBeenCalledWith([
+        'kinwês', 'omâmâ', 'tânisi'
+      ]);
+      expect(mockStore.addKnownWords).toHaveBeenCalledWith([
+        'kinwês', 'omâmâ', 'tânisi'
+      ]);
     });
   });
 }); 

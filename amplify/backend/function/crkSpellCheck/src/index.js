@@ -55,9 +55,9 @@ exports.handler = async (event, context) => {
   console.log('received event:', event);
 
   let response;
-  if (event.path === '/crk/bulk-lookup') {
+  if (event.path === '/crk/bulk-lookup' || event.path === '/crgn/bulk-lookup') {
     response = await bulkLookup(event);
-  } else if (event.path === '/crk/suggest') {
+  } else if (event.path === '/crk/suggest' || event.path === '/crgn/suggest') {
     response = await suggest(event);
   } else {
     response = {

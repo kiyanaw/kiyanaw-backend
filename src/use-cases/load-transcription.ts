@@ -48,12 +48,15 @@ export class LoadTranscription {
     this.config.store.setFullTranscriptionData(data, selectedRegionId || null);
 
     // Extract and populate known words from existing regions (business logic)
-    const allKnownWords = this.extractKnownWordsFromRegions(data.regions);
-    if (allKnownWords.length > 0) {
-      // Populate spell checker service cache
-      spellCheckerService.addKnownWords(allKnownWords);
-      // Update store with known words
-      this.config.store.addKnownWords(allKnownWords);
+    // Only do this if the transcription has a language index set for spell checking
+    if (data.transcription.index) {
+      const allKnownWords = this.extractKnownWordsFromRegions(data.regions);
+      if (allKnownWords.length > 0) {
+        // Populate spell checker service cache
+        spellCheckerService.addKnownWords(allKnownWords);
+        // Update store with known words
+        this.config.store.addKnownWords(allKnownWords);
+      }
     }
 
     // load wavesurfer details _outside_ the React system

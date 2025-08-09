@@ -89,10 +89,6 @@ export const useInviteStore = create<InviteState>()(
             loadedForUser: userEmail
           });
 
-          console.log('✅ Invites loaded successfully:', { 
-            total: result.total, 
-            pending 
-          });
         } catch (err) {
           console.error('❌ Failed to load invites:', err);
           const errorMessage = err instanceof Error ? err.message : 'Failed to load invitations';

@@ -18,7 +18,7 @@ export interface TranscriptionData {
   createdAt?: string;
   updatedAt?: string;
   isVideo?: boolean;
-  index?: string;
+  index?: string; // language index for spell-checking
 }
 
 export interface RegionData {

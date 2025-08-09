@@ -56,6 +56,15 @@ export class AnalyzeRegionTextUseCase {
   private async performAnalysis(text: string): Promise<void> {
     const { regionId, store } = this.config;
 
+    // Check if transcription has an index set for spell checking
+    const transcription = store.transcription;
+    if (!transcription?.index) {
+      // No language index set - skip spell checking and set empty analysis
+      console.log('⚠️ Skipping spell checking - no language index set on transcription');
+      store.setRegionAnalysis(regionId, []);
+      return;
+    }
+
     // Tokenize the text
     const words = spellCheckerService.tokenize(text);
     if (words.length === 0) {
@@ -87,8 +96,9 @@ export class AnalyzeRegionTextUseCase {
     // Only make API call if we have unknown words
     if (unknownUniqueWords.length > 0) {
       try {
-        // Check unknown words against API
-        const result = await spellCheckerService.check(unknownUniqueWords);
+        // Check unknown words against API using the transcription's language index
+        console.log(`🔍 Spell checking ${unknownUniqueWords.length} words with language: ${transcription.index}`);
+        const result = await spellCheckerService.check(unknownUniqueWords, transcription.index);
         
         // Add newly discovered known words to our known set
         if (result.known.length > 0) {
