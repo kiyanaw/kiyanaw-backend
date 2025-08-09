@@ -332,6 +332,7 @@ export const updateTranscription = async (
   updates: {
     title?: string;
     comments?: string;
+    isPrivate?: boolean;
     userLastUpdated: string;
   }
 ): Promise<SharedTranscriptionData> => {

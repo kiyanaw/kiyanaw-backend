@@ -8,7 +8,7 @@ export const useUpdateTranscription = (transcriptionId: string) => {
   const lastCalled = useRef<string>();
   const user = useAuthStore((state) => state.user);
 
-  return (updates: { title?: string; comments?: string }) => {
+  return (updates: { title?: string; comments?: string; isPrivate?: boolean }) => {
     const cacheKey = `${transcriptionId}-${JSON.stringify(updates)}`;
     
     if (lastCalled.current !== cacheKey) {

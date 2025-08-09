@@ -10,6 +10,7 @@ export interface UpdateTranscriptionConfig {
     comments?: string;
     source?: string;
     length?: number;
+    isPrivate?: boolean;
   };
   services: typeof services;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
