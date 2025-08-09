@@ -44,7 +44,7 @@ export const EditorPage = () => {
   // Settings handlers
   const handleOpenSettings = () => setIsSettingsOpen(true);
   const handleCloseSettings = () => setIsSettingsOpen(false);
-  const handleSaveChanges = (updates: { title?: string; comments?: string }) => {
+  const handleSaveChanges = (updates: { title?: string; comments?: string; isPrivate?: boolean }) => {
     updateTranscription(updates);
   };
   
@@ -133,6 +133,7 @@ export const EditorPage = () => {
             dateLastUpdated={transcription.dateLastUpdated || '0'}
             regionCount={regions.length}
             transcriptionId={transcription.id || ''}
+            isPrivate={transcription.isPrivate}
             onSave={handleSaveChanges}
             onBack={handleCloseSettings}
             isOwner={isOwner}

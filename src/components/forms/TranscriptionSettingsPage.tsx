@@ -12,7 +12,8 @@ interface TranscriptionSettingsPageProps {
   dateLastUpdated: string;
   regionCount: number;
   transcriptionId: string;
-  onSave: (updates: { title?: string; comments?: string }) => void;
+  isPrivate?: boolean;
+  onSave: (updates: { title?: string; comments?: string; isPrivate?: boolean }) => void;
   onBack: () => void;
   isOwner: boolean;
 }
@@ -24,12 +25,14 @@ export const TranscriptionSettingsPage = ({
   dateLastUpdated,
   regionCount,
   transcriptionId,
+  isPrivate: initialIsPrivate,
   onSave,
   onBack,
   isOwner,
 }: TranscriptionSettingsPageProps) => {
   const [title, setTitle] = useState(initialTitle);
   const [comments, setComments] = useState(initialComments || '');
+  const [isPrivate, setIsPrivate] = useState(initialIsPrivate ?? true);
   
   // Invite management state
   const [invites, setInvites] = useState<InviteModel[]>([]);
@@ -70,7 +73,7 @@ export const TranscriptionSettingsPage = ({
   }, [transcriptionId, loadInvites]);
 
   const handleSave = () => {
-    const updates: { title?: string; comments?: string } = {};
+    const updates: { title?: string; comments?: string; isPrivate?: boolean } = {};
     
     if (title !== initialTitle) {
       updates.title = title;
@@ -78,6 +81,10 @@ export const TranscriptionSettingsPage = ({
     
     if (comments !== initialComments) {
       updates.comments = comments;
+    }
+
+    if (isPrivate !== (initialIsPrivate ?? true)) {
+      updates.isPrivate = isPrivate;
     }
 
     if (Object.keys(updates).length > 0) {
@@ -90,10 +97,11 @@ export const TranscriptionSettingsPage = ({
   const handleCancel = () => {
     setTitle(initialTitle);
     setComments(initialComments || '');
+    setIsPrivate(initialIsPrivate ?? true);
     onBack();
   };
 
-  const hasChanges = title !== initialTitle || comments !== (initialComments || '');
+  const hasChanges = title !== initialTitle || comments !== (initialComments || '') || isPrivate !== (initialIsPrivate ?? true);
 
   const formatDate = (dateString: string) => {
     try {
@@ -189,6 +197,7 @@ export const TranscriptionSettingsPage = ({
                   onClick={() => {
                     setTitle(initialTitle);
                     setComments(initialComments || '');
+                    setIsPrivate(initialIsPrivate ?? true);
                   }}
                   className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
                 >
@@ -249,6 +258,38 @@ export const TranscriptionSettingsPage = ({
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-600 disabled:cursor-not-allowed resize-vertical text-base"
                     placeholder="Add any comments about this transcription..."
                   />
+                </div>
+                
+                <div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <label htmlFor="isPrivate" className="block text-sm font-medium text-gray-700">
+                        Is Private?
+                      </label>
+                      <p className="text-sm text-gray-500 mt-1 mr-1">
+                        Private transcriptions will not be indexed or discoverable in the Language Database (coming soon...)
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={isPrivate}
+                      onClick={() => setIsPrivate(!isPrivate)}
+                      disabled={!isOwner}
+                      className={`
+                        relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed
+                        ${isPrivate ? 'bg-blue-600' : 'bg-gray-200'}
+                      `}
+                    >
+                      <span
+                        aria-hidden="true"
+                        className={`
+                          pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out
+                          ${isPrivate ? 'translate-x-5' : 'translate-x-0'}
+                        `}
+                      />
+                    </button>
+                  </div>
                 </div>
               </div>
 

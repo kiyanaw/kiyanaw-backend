@@ -62,6 +62,7 @@ export class CreateTranscriptionUseCase {
       type: file.type,
       author: userId,  // Use userId for Amplify auth compatibility
       userLastUpdated: displayUsername,  // Use username part of email for display
+      isPrivate: true,  // Default new transcriptions to private
     });
 
     return {
