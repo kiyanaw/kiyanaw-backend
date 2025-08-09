@@ -4,10 +4,7 @@ import { wavesurferService } from '../../services/wavesurferService';
 import { usePlayerStore } from '../../stores/usePlayerStore';
 import { usePlay } from '../../hooks/usePlay';
 import { usePause } from '../../hooks/usePause';
-import { useUpdateTranscription } from '../../hooks/useUpdateTranscription';
 import { useEditorStore } from '../../stores/useEditorStore';
-import { useAuthStore } from '../../stores/useAuthStore';
-import { TranscriptionSettingsPage } from '../forms/TranscriptionSettingsPage';
 
 interface Region {
   id: string;
@@ -24,6 +21,7 @@ interface WaveformPlayerProps {
   regions: Region[]; // Now using this for region count
   isVideo: boolean;
   title: string;
+  onOpenSettings: () => void;
 }
 
 export const WaveformPlayer = ({
@@ -31,6 +29,7 @@ export const WaveformPlayer = ({
   regions, // Now using this for region count
   isVideo,
   title,
+  onOpenSettings,
 }: WaveformPlayerProps) => {
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -40,22 +39,15 @@ export const WaveformPlayer = ({
   /** RARE PERMITTED LOCAL STATE */
   const [speed, setSpeed] = useState(100);
   const [zoom, setZoom] = useState(20);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   
   const isPlaying = usePlayerStore((state) => state.playing)
   const loadedAndReady = usePlayerStore((state) => state.loadedAndReady)
   const currentTime = usePlayerStore((state) => state.currentTime)
   const duration = usePlayerStore((state) => state.duration)
-  const transcription = useEditorStore((state) => state.transcription);
   const canEdit = useEditorStore((state) => state.canEdit);
-  const user = useAuthStore((state) => state.user);
-  
-  // Determine if current user is the owner
-  const isOwner = transcription?.author === user?.userId;
   
   const play = usePlay()
   const pause = usePause()
-  const updateTranscription = useUpdateTranscription(transcription?.id || '');
 
   // Initialize WaveSurfer when container is ready
   const initializeWaveSurfer = useCallback(() => {
@@ -110,17 +102,7 @@ export const WaveformPlayer = ({
     return `${mins}:${secsStr}`;
   };
 
-  const handleOpenSettings = () => {
-    setIsSettingsOpen(true);
-  };
 
-  const handleCloseSettings = () => {
-    setIsSettingsOpen(false);
-  };
-
-  const handleSaveChanges = (updates: { title?: string; comments?: string }) => {
-    updateTranscription(updates);
-  };
 
   return (
     <>
@@ -129,7 +111,7 @@ export const WaveformPlayer = ({
         <div className="flex justify-between items-center bg-[#dbdbdb] h-8 px-4 text-gray-900 font-bold text-sm">
           <div className="uppercase overflow-hidden text-ellipsis whitespace-nowrap flex-1">
             <button
-              onClick={handleOpenSettings}
+              onClick={onOpenSettings}
               className="flex items-center gap-2 text-left hover:text-gray-700 transition-colors cursor-pointer"
               title="Click to open transcription settings"
             >
@@ -234,19 +216,6 @@ export const WaveformPlayer = ({
         )}
       </div>
 
-      {/* Settings Page */}
-      <TranscriptionSettingsPage
-        isOpen={isSettingsOpen}
-        onClose={handleCloseSettings}
-        title={transcription?.title || title}
-        comments={transcription?.comments}
-        author={transcription?.authorFriendly || 'Unknown'}
-        dateLastUpdated={transcription?.dateLastUpdated || '0'}
-        regionCount={regions.length}
-        transcriptionId={transcription?.id || ''}
-        onSave={handleSaveChanges}
-        isOwner={isOwner}
-      />
     </>
   );
 };

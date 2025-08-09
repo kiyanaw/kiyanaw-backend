@@ -79,6 +79,7 @@ describe('WaveformPlayer', () => {
     regions: [],
     isVideo: false,
     title: 'Test Title',
+    onOpenSettings: jest.fn(),
   };
 
   beforeEach(() => {
