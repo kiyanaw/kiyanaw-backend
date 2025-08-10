@@ -43,6 +43,9 @@ jobs:
       run: |
         cd amplify/backend/function/inviteHandler/src
         npm install
-        cd ../../../indexRegionData/src
+
+    - name: Install indexRegionData Lambda dependencies
+      run: |
+        cd amplify/backend/function/indexRegionData/src
         npm install
     - run: npm run test
