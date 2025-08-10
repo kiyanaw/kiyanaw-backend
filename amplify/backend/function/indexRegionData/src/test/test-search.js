@@ -27,7 +27,6 @@ describe('search.clearKnownWordsForRegion()', function () {
 
     assert.deepEqual(deleteStub.args[0][0], {
       index: 'knownwords-test',
-      type: '_doc',
       body: {
         query: {
           match: { regionId: 'some-region-id' },
@@ -132,7 +131,6 @@ describe('search.indexRegionAnalysis()', function () {
     assert.equal(searchStub.callCount, 1)
     assert.deepEqual(searchStub.args[0][0], {
       index: 'knownwords-test',
-      type: '_doc',
       id: `wavesurfer_72hcq2e2q88-tânisi`,
       body: {
         doc: {

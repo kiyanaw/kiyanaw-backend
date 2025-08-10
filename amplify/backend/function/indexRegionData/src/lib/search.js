@@ -7,10 +7,9 @@ const { client } = require('./es')
 
 const clearKnownWordsForRegion = async (regionId) => {
   const indexName = `knownwords-${process.env.ENV}`
-  console.log('Clearing out region contents for ', regionId, 'in index', indexName)
+  console.log('Clearing out region items for ', regionId, 'in index', indexName)
   const deleted = await client.deleteByQuery({
     index: indexName,
-    type: '_doc',
     body: {
       query: {
         match: { regionId: regionId },
@@ -86,7 +85,6 @@ const indexRegionAnalysis = async (region, transcription) => {
       const indexName = `knownwords-${process.env.ENV}`
       const success = await client.update({
         index: indexName,
-        type: '_doc',
         id: `${toIndex.regionId}-${surface}`,
         body: {
           // put the partial document under the `doc` key
