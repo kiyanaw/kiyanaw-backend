@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "Lambda Function resource stack creation using Amplify CLI",
+  "Description": "{\"createdOn\":\"Mac\",\"createdBy\":\"Amplify\",\"createdWith\":\"14.0.0\",\"stackType\":\"function-Lambda\",\"metadata\":{\"whyContinueWithGen1\":\"\"}}",
   "Parameters": {
     "CloudWatchRule": {
       "Type": "String",
@@ -103,32 +103,6 @@
                   {
                     "Fn::ImportValue": {
                       "Fn::Sub": "${apikiyanawGraphQLAPIIdOutput}:GetAtt:TranscriptionTable:Name"
-                    }
-                  }
-                ]
-              ]
-            },
-            "API_KIYANAW_REGIONTABLE_NAME": {
-              "Fn::ImportValue": {
-                "Fn::Sub": "${apikiyanawGraphQLAPIIdOutput}:GetAtt:RegionTable:Name"
-              }
-            },
-            "API_KIYANAW_REGIONTABLE_ARN": {
-              "Fn::Join": [
-                "",
-                [
-                  "arn:aws:dynamodb:",
-                  {
-                    "Ref": "AWS::Region"
-                  },
-                  ":",
-                  {
-                    "Ref": "AWS::AccountId"
-                  },
-                  ":table/",
-                  {
-                    "Fn::ImportValue": {
-                      "Fn::Sub": "${apikiyanawGraphQLAPIIdOutput}:GetAtt:RegionTable:Name"
                     }
                   }
                 ]
