@@ -70,7 +70,6 @@ exports.handler = async (event) => {
     return okResponse()
   }
 
-  // TODO: test this
   if (!transcription) {
     console.warn('Transcription not found', region.transcriptionId)
     return okResponse()
@@ -79,8 +78,13 @@ exports.handler = async (event) => {
   transcription = transcription.Item
   console.log('transcription', transcription)
 
-  if (transcription.isPrivate || transcription.disableAnalyzer) {
+  if (transcription.isPrivate) {
     console.log('Not processing transcription, isPrivate = true')
+    return okResponse()
+  }
+
+  if (!transcription.lang) {
+    console.log('Not processing transcription, no lang')
     return okResponse()
   }
 

@@ -97,12 +97,12 @@ describe('handler()', function () {
     assert.ok(!searchStub.called)
   })
 
-  it('should bail if the transcription analyzer disabled', async function () {
+  it('should bail if the transcription has no lang set', async function () {
     const searchStub = sinon.stub(search, 'clearKnownWordsForRegion')
-    const privateTranscription = {
+    const transcriptionWithoutLang = {
       Item: {
         ...transcription.Item,
-        disableAnalyzer: true,
+        lang: null,
       },
     }
     const dbStub = sinon
@@ -110,7 +110,7 @@ describe('handler()', function () {
       .onFirstCall()
       .resolves(region)
       .onSecondCall()
-      .resolves(privateTranscription)
+      .resolves(transcriptionWithoutLang)
     const result = await handler(event)
 
     assert.equal(result.body, '{"message": "ok"}')

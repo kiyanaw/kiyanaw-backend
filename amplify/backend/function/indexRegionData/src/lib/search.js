@@ -20,13 +20,12 @@ const clearKnownWordsForRegion = async (regionId) => {
 }
 
 const indexRegionAnalysis = async (region, transcription) => {
-  // Skip indexing if transcription has no language index set
-  // Check both 'lang' (new field) and 'index' (deprecated field) for backward compatibility
-  const languageCode = transcription.lang || transcription.index
-  if (!languageCode) {
-    console.log('⚠️ Skipping indexing - no language index set on transcription')
+  // Skip indexing if transcription has no language set
+  if (!transcription.lang) {
+    console.log('⚠️ Skipping indexing - no lang set on transcription')
     return
   }
+  const languageCode = transcription.lang
 
   // Use regionAnalysis array instead of parsing regionText for known words
   const words = region.regionAnalysis || []

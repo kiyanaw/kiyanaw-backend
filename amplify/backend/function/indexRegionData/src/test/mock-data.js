@@ -18,6 +18,7 @@ module.exports = {
       title: 'YT - Francis McAdam',
       type: 'video/mp4',
       userLastUpdated: 'aaronfay',
+      lang: 'crk', // Language field for processing
       index: 'crk', // Added language index field
     },
   },

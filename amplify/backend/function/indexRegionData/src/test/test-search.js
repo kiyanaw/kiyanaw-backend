@@ -49,18 +49,18 @@ describe('search.indexRegionAnalysis()', function () {
     delete process.env.ENV
   })
   
-  it('should skip indexing if transcription has no language index', async function () {
+  it('should skip indexing if transcription has no lang field', async function () {
     const sapirStub = sinon.stub(sapir, 'clickInText')
     const searchStub = sinon.stub(client, 'update')
     
-    const transcriptionWithoutIndex = {
+    const transcriptionWithoutLang = {
       Item: {
         ...transcription.Item,
-        index: null
+        lang: null
       }
     }
 
-    await search.indexRegionAnalysis(region.Item, transcriptionWithoutIndex.Item)
+    await search.indexRegionAnalysis(region.Item, transcriptionWithoutLang.Item)
 
     assert.ok(!sapirStub.called)
     assert.ok(!searchStub.called)
@@ -138,7 +138,7 @@ describe('search.indexRegionAnalysis()', function () {
       id: `wavesurfer_72hcq2e2q88-tânisi`,
       body: {
         doc: {
-          lang: 'crk', // Should use transcription.index instead of hardcoded 'crk'
+          lang: 'crk', // Uses transcription.lang field
           lemma: 'some lemma',
           surface: 'tânisi',
           timestamp: '211.69267466560015:214.74777862951606',
@@ -175,7 +175,7 @@ describe('search.indexRegionAnalysis()', function () {
 
     const transcriptionWithCrgn = {
       ...transcription,
-      index: 'crgn'
+      lang: 'crgn'
     }
 
     await search.indexRegionAnalysis(region, transcriptionWithCrgn)
