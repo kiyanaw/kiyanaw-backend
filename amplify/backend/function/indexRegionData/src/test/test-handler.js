@@ -52,6 +52,27 @@ describe('handler()', function () {
     assert.equal(dbStub.callCount, 1)
   })
 
+  it('should clean up search index when region is not found (deleted)', async function () {
+    const searchStub = sinon.stub(search, 'clearKnownWordsForRegion').resolves({ deleted: 5 })
+    const dbStub = sinon.stub(dynamo, 'getDoc').onFirstCall().resolves(null) // Region not found
+    const result = await handler(event)
+
+    assert.equal(result.body, '{"message": "ok"}')
+
+    // check that it used the appropriate region ID
+    assert.deepEqual(dbStub.args[0][0], {
+      Key: {
+        id: 'wavesurfer_72hcq2e2q88',
+      },
+      TableName: 'Region-test',
+    })
+
+    // search cleanup should be called with the region ID
+    assert.ok(searchStub.called)
+    assert.equal(searchStub.args[0][0], 'wavesurfer_72hcq2e2q88')
+    assert.equal(dbStub.callCount, 1)
+  })
+
   it('should return if loading the transcription fails', async function () {
     const searchStub = sinon.stub(search, 'clearKnownWordsForRegion')
     const dbStub = sinon
