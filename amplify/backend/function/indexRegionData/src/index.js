@@ -46,9 +46,17 @@ exports.handler = async (event) => {
     return okResponse()
   }
 
-  // TODO: test this
+  // Handle case where region is not found (deleted) - still clean up search index
   if (!region) {
-    console.warn('Region not found', regionId)
+    console.warn('Region not found (possibly deleted)', regionId)
+    console.log('Cleaning up search index entries for region:', regionId)
+    
+    /**
+     * Delete words for region (cleanup for deleted regions)
+     */
+    const deleted = await search.clearKnownWordsForRegion(regionId)
+    console.log('Deleted entries for missing region:', deleted)
+    
     return okResponse()
   }
 
