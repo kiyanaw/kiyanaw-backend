@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "storage": {
+      "transcriptions": [
+        "read",
+        "update",
+        "delete"
+      ]
+    }
+  },
+  "lambdaLayers": []
+}
