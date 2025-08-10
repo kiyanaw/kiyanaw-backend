@@ -39,6 +39,7 @@
         "aws:asset:property": "Code"
       },
       "Properties": {
+        "MemorySize": 512,
         "Handler": "index.handler",
         "FunctionName": {
           "Fn::If": [

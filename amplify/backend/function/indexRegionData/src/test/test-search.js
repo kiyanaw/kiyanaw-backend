@@ -120,7 +120,11 @@ describe('search.indexRegionAnalysis()', function () {
     ]
     const sapirStub = sinon.stub(sapir, 'clickInText').resolves({ data: { results } })
     const searchStub = sinon.stub(client, 'update').resolves({
-      result: 'created',
+      body: {
+        _shards: { successful: 1 },
+        result: 'created'
+      },
+      statusCode: 200
     })
 
     await search.indexRegionAnalysis(region, transcription)
@@ -162,7 +166,11 @@ describe('search.indexRegionAnalysis()', function () {
     ]
     const sapirStub = sinon.stub(sapir, 'clickInText').resolves({ data: { results } })
     const searchStub = sinon.stub(client, 'update').resolves({
-      result: 'created',
+      body: {
+        _shards: { successful: 1 },
+        result: 'created'
+      },
+      statusCode: 200
     })
 
     const transcriptionWithCrgn = {
