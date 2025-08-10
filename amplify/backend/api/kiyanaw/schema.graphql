@@ -73,6 +73,7 @@ type Issue
   id: ID! @primaryKey
   text: String!
   owner: String! @index(name: "ByOwner")
+  ownerFriendly: String!
   index: Int!
   resolved: Boolean
   type: String! @index(name: "ByType")

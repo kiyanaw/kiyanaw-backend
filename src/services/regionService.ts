@@ -58,14 +58,11 @@ export const loadRegionsForTranscription = async (transcriptionId: string) => {
         _deleted: { ne: true }
 
       },
-      limit: 1000 // arbitrarily high
+      limit: 2000 // arbitrarily high
     }
   }) as ListRegionsResponse;
 
   const items = data?.listRegions?.items ?? [];
-
-  // Filter out soft-deleted regions (Amplify marks deleted items with _deleted = true)
-  // const filtered = items.filter((item: RegionData) => !item._deleted);
 
   // Sort and map to RegionModel
   const regions = items
