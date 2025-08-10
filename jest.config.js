@@ -41,7 +41,7 @@ export default {
         '/amplify/',
       ],
     },
-    // Lambda function tests
+    // Lambda function tests - inviteHandler
     {
       displayName: 'Lambda Functions',
       testEnvironment: 'node',
@@ -52,6 +52,23 @@ export default {
       collectCoverageFrom: [
         'actions/**/*.(js|ts)',
         '!actions/**/*.(test|spec).(js|ts)',
+      ],
+      testPathIgnorePatterns: [
+        '/node_modules/',
+      ],
+    },
+    // Lambda function tests - indexRegionData
+    {
+      displayName: 'Lambda Functions - IndexRegionData',
+      testEnvironment: 'node',
+      rootDir: 'amplify/backend/function/indexRegionData/src',
+      testMatch: [
+        '<rootDir>/test/test-*.(js|ts)',
+      ],
+      collectCoverageFrom: [
+        'lib/**/*.(js|ts)',
+        'index.js',
+        '!test/**/*.(js|ts)',
       ],
       testPathIgnorePatterns: [
         '/node_modules/',

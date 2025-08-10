@@ -31,6 +31,12 @@ describe('SpellCheckerService', () => {
       expect(spellCheckerService.tokenize('')).toEqual([]);
       expect(spellCheckerService.tokenize('   ')).toEqual([]);
     });
+
+    it('should handle hyphenated words', () => {
+      const text = 'kâ-kîsikâk and nîso-pîkiskwêwin';
+      const tokens = spellCheckerService.tokenize(text);
+      expect(tokens).toEqual(['kâ-kîsikâk', 'and', 'nîso-pîkiskwêwin']);
+    });
   });
 
   describe('check', () => {

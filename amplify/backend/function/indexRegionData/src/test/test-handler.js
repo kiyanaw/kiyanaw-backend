@@ -11,8 +11,18 @@ const event = require('./event.json')
 const { transcription, region } = require('./mock-data')
 
 describe('handler()', function () {
+  beforeEach(function () {
+    // Set up environment variables for tests
+    process.env.ENV = 'test'
+    process.env.API_KIYANAW_TRANSCRIPTIONTABLE_NAME = 'Transcription-test'
+    process.env.API_KIYANAW_REGIONTABLE_NAME = 'Region-test'
+  })
+  
   afterEach(function () {
     sinon.restore()
+    delete process.env.ENV
+    delete process.env.API_KIYANAW_TRANSCRIPTIONTABLE_NAME
+    delete process.env.API_KIYANAW_REGIONTABLE_NAME
   })
 
   it('should return if there are no records', async function () {
@@ -36,7 +46,7 @@ describe('handler()', function () {
       Key: {
         id: 'wavesurfer_72hcq2e2q88',
       },
-      TableName: 'Region-2f6oi2uymzaunf4rb564agznt4-prod',
+      TableName: 'Region-test',
     })
 
     assert.equal(dbStub.callCount, 1)
@@ -59,7 +69,7 @@ describe('handler()', function () {
       Key: {
         id: '73150c90',
       },
-      TableName: 'Transcription-2f6oi2uymzaunf4rb564agznt4-prod',
+      TableName: 'Transcription-test',
     })
 
     assert(searchStub.called === false)
@@ -87,12 +97,12 @@ describe('handler()', function () {
     assert.ok(!searchStub.called)
   })
 
-  it('should bail if the transcription analyzer disabled', async function () {
+  it('should bail if the transcription has no lang set', async function () {
     const searchStub = sinon.stub(search, 'clearKnownWordsForRegion')
-    const privateTranscription = {
+    const transcriptionWithoutLang = {
       Item: {
         ...transcription.Item,
-        disableAnalyzer: true,
+        lang: null,
       },
     }
     const dbStub = sinon
@@ -100,7 +110,7 @@ describe('handler()', function () {
       .onFirstCall()
       .resolves(region)
       .onSecondCall()
-      .resolves(privateTranscription)
+      .resolves(transcriptionWithoutLang)
     const result = await handler(event)
 
     assert.equal(result.body, '{"message": "ok"}')
@@ -111,7 +121,7 @@ describe('handler()', function () {
 
   it('should delete all entries for a region then index', async function () {
     const deleteStub = sinon.stub(search, 'clearKnownWordsForRegion')
-    const indexStub = sinon.stub(search, 'indexKnownWords')
+    const indexStub = sinon.stub(search, 'indexRegionAnalysis')
     const dbStub = sinon
       .stub(dynamo, 'getDoc')
       .onFirstCall()

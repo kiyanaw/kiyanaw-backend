@@ -70,7 +70,6 @@ exports.handler = async (event) => {
     return okResponse()
   }
 
-  // TODO: test this
   if (!transcription) {
     console.warn('Transcription not found', region.transcriptionId)
     return okResponse()
@@ -79,8 +78,13 @@ exports.handler = async (event) => {
   transcription = transcription.Item
   console.log('transcription', transcription)
 
-  if (transcription.isPrivate || transcription.disableAnalyzer) {
-    console.log('Not processing transcription')
+  if (transcription.isPrivate) {
+    console.log('Not processing transcription, isPrivate = true')
+    return okResponse()
+  }
+
+  if (!transcription.lang) {
+    console.log('Not processing transcription, no lang')
     return okResponse()
   }
 
@@ -91,9 +95,9 @@ exports.handler = async (event) => {
   console.log('Deleted', deleted)
 
   /**
-   * Parse known words from region
+   * Index region analysis words
    */
-  const indexedWords = await search.indexKnownWords(region, transcription)
+  const indexedWords = await search.indexRegionAnalysis(region, transcription)
   console.log('Indexed', indexedWords)
 
   /**

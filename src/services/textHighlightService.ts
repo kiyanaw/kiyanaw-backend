@@ -20,7 +20,8 @@ export interface TextHighlightService {
 
 class TextHighlightServiceImpl implements TextHighlightService {
   // Unicode-aware tokenizer that captures words and preserves separators
-  private readonly tokenPattern = /([\p{L}\p{N}_]+)/u;
+  // Include hyphens to match spellCheckerService tokenization for words like "kâ-kîsikâk"
+  private readonly tokenPattern = /([\p{L}\p{N}_-]+)/u;
   
   generateHTML(text: string, knownWords: Set<string>): string {
     if (!text || knownWords.size === 0) {
