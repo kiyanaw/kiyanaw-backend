@@ -323,8 +323,11 @@ export const onDeleteRegion = /* GraphQL */ `
   }
 `;
 export const onCreateIssue = /* GraphQL */ `
-  subscription OnCreateIssue($filter: ModelSubscriptionIssueFilterInput) {
-    onCreateIssue(filter: $filter) {
+  subscription OnCreateIssue(
+    $filter: ModelSubscriptionIssueFilterInput
+    $owner: String
+  ) {
+    onCreateIssue(filter: $filter, owner: $owner) {
       id
       text
       owner
@@ -377,8 +380,11 @@ export const onCreateIssue = /* GraphQL */ `
   }
 `;
 export const onUpdateIssue = /* GraphQL */ `
-  subscription OnUpdateIssue($filter: ModelSubscriptionIssueFilterInput) {
-    onUpdateIssue(filter: $filter) {
+  subscription OnUpdateIssue(
+    $filter: ModelSubscriptionIssueFilterInput
+    $owner: String
+  ) {
+    onUpdateIssue(filter: $filter, owner: $owner) {
       id
       text
       owner
@@ -431,8 +437,11 @@ export const onUpdateIssue = /* GraphQL */ `
   }
 `;
 export const onDeleteIssue = /* GraphQL */ `
-  subscription OnDeleteIssue($filter: ModelSubscriptionIssueFilterInput) {
-    onDeleteIssue(filter: $filter) {
+  subscription OnDeleteIssue(
+    $filter: ModelSubscriptionIssueFilterInput
+    $owner: String
+  ) {
+    onDeleteIssue(filter: $filter, owner: $owner) {
       id
       text
       owner

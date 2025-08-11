@@ -69,10 +69,10 @@ export const IssuesPanel = ({
     const matchesRegion =
       !selectedRegionId || issue.regionId === selectedRegionId;
 
-    // Debug filtering
-    if (selectedRegionId && issue.regionId === selectedRegionId) {
-      console.log(`🔍 Issue "${issue.text}": resolved=${issue.resolved}, filter=${filter}, matchesFilter=${matchesFilter}, matchesRegion=${matchesRegion}`);
-    }
+    // Debug filtering (commented out)
+    // if (selectedRegionId && issue.regionId === selectedRegionId) {
+    //   console.log(`🔍 Issue "${issue.text}": resolved=${issue.resolved}, filter=${filter}, matchesFilter=${matchesFilter}, matchesRegion=${matchesRegion}`);
+    // }
 
     return matchesFilter && matchesRegion;
   });
@@ -234,7 +234,10 @@ export const IssuesPanel = ({
           filteredIssues.map((issue) => {
             const typeInfo = getIssueTypeInfo(issue.type);
             const isExpanded = expandedIssues.has(issue.id);
-            const canModify = canEdit && user?.username === issue.owner;
+            // Based on auth rules: issue owners can delete, anyone with transcription edit access can resolve/update
+            const isIssueOwner = user?.userId === issue.owner;
+            const canDelete = canEdit && isIssueOwner; // Only issue owners can delete
+            const canResolve = canEdit; // Anyone with transcription edit access can resolve/update
 
             return (
               <div
@@ -278,7 +281,7 @@ export const IssuesPanel = ({
                 {isExpanded && (
                   <div className="p-4 pt-0">
                     <div className="flex gap-2 mb-4 md:flex-row flex-col">
-                      {canEdit && (
+                      {canResolve && (
                         <button
                           onClick={() => handleToggleResolved(issue)}
                           className={`py-1.5 px-3 border-none rounded text-sm cursor-pointer transition-colors duration-200 ${
@@ -291,7 +294,7 @@ export const IssuesPanel = ({
                         </button>
                       )}
 
-                      {canModify && (
+                      {canDelete && (
                         <button
                           onClick={() => handleDeleteIssue(issue.id)}
                           className="py-1.5 px-3 bg-red-600 text-white border-none rounded text-sm cursor-pointer transition-colors duration-200 hover:bg-red-700"

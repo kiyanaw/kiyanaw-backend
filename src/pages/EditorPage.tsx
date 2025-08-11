@@ -51,25 +51,6 @@ export const EditorPage = () => {
   const selectedRegion = useEditorStore((state) => state.selectedRegion);
   const issues = useEditorStore((state) => state.issues);
 
-  // Debug: Log issues for selected region
-  useEffect(() => {
-    if (selectedRegion) {
-      const regionIssues = issues.filter(issue => issue.regionId === selectedRegion.id);
-      console.log(`🔍 Issues for selected region "${selectedRegion.id}":`, regionIssues);
-      console.log(`📊 Total issues in region: ${regionIssues.length}`);
-      regionIssues.forEach((issue, index) => {
-        console.log(`${index + 1}. Issue text: "${issue.text}" | Type: ${issue.type} | Resolved: ${issue.resolved}`);
-      });
-      
-      // Also log the region text to compare
-      if (selectedRegion.regionText) {
-        console.log(`📝 Region text: "${selectedRegion.regionText}"`);
-      }
-    } else {
-      console.log('🔍 No region selected');
-    }
-  }, [selectedRegion, issues]);
-
   // Settings handlers
   const handleOpenSettings = () => setIsSettingsOpen(true);
   const handleCloseSettings = () => setIsSettingsOpen(false);
@@ -77,9 +58,11 @@ export const EditorPage = () => {
     updateTranscription(updates);
   };
   
-  // Determine if current user is the owner
+  // Determine user permissions for this transcription
   const isOwner = transcription?.author === user?.userId;
-
+  const isEditor = transcription?.editors?.includes(user?.userId || '') || false;
+  const canEdit = isOwner || isEditor;
+  
   // Issue management handlers
   const handleCreateIssue = async (issue: {
     text: string;
@@ -196,25 +179,27 @@ export const EditorPage = () => {
           {/* Issues Panel Area - Takes remaining space */}
           <div className="flex-1 overflow-auto">
             {transcription && (
-              <IssuesPanel
-                selectedRegionId={selectedRegion?.id}
-                issues={issues.map(issue => ({
-                  id: issue.id,
-                  text: issue.text,
-                  type: issue.type as 'needs-help' | 'indexing' | 'new-word' | 'general',
-                  owner: issue.ownerFriendly || issue.owner,
-                  regionId: issue.regionId,
-                  resolved: issue.resolved || false,
-                  createdAt: issue.createdAt || new Date().toISOString(),
-                  updatedAt: issue.updatedAt || new Date().toISOString(),
-                  comments: [], // TODO: Implement comments when available
-                }))}
-                canEdit={isOwner}
-                onCreateIssue={handleCreateIssue}
-                onUpdateIssue={handleUpdateIssue}
-                onDeleteIssue={handleDeleteIssue}
-                onAddComment={handleAddComment}
-              />
+              <>
+                <IssuesPanel
+                  selectedRegionId={selectedRegion?.id}
+                  issues={issues.map(issue => ({
+                    id: issue.id,
+                    text: issue.text,
+                    type: issue.type as 'needs-help' | 'indexing' | 'new-word' | 'general',
+                    owner: issue.ownerFriendly || issue.owner,
+                    regionId: issue.regionId,
+                    resolved: issue.resolved || false,
+                    createdAt: issue.createdAt || new Date().toISOString(),
+                    updatedAt: issue.updatedAt || new Date().toISOString(),
+                    comments: [], // TODO: Implement comments when available
+                  }))}
+                  canEdit={canEdit}
+                  onCreateIssue={handleCreateIssue}
+                  onUpdateIssue={handleUpdateIssue}
+                  onDeleteIssue={handleDeleteIssue}
+                  onAddComment={handleAddComment}
+                />
+              </>
             )}
           </div>
         </div>

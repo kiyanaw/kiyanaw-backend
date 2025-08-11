@@ -70,8 +70,17 @@ type Region
 type Issue
   @model
   @auth(rules: [
-    { allow: private, provider: identityPool, operations: [create, read, update, delete] },
+    # 1) Allow IAM callers full CRUD (e.g. DataStore sync, Lambda functions)
+    { allow: private, provider: identityPool, operations: [create, read, update, delete] }
+    
+    # 2) Owners (issue creators) can manage their own issues
+    { allow: owner, ownerField: "owner", operations: [create, read, update, delete] }
+    
+    # 3) Inherit access from parent transcription - users with transcription access can read/update issues
     { allow: private, operations: [read, update] }
+    
+    # 4) Admins can manage all issues
+    { allow: groups, groups: ["Admins"], operations: [create, read, update, delete] }
   ]) {
   id: ID! @primaryKey
   text: String!
