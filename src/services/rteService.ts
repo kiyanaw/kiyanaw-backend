@@ -4,6 +4,8 @@ import 'react-quill/dist/quill.snow.css';
 // Import quill-cursors for collaborative editing
 import QuillCursors from 'quill-cursors';
 import { textHighlightService, type IssueHighlight, type IssueType } from './textHighlightService';
+import { useEditorStore } from '../stores/useEditorStore';
+import { issueHighlightService } from './issueHighlightService';
 
 // Quill-related interfaces
 interface QuillModulesConfig extends Record<string, unknown> {
@@ -504,6 +506,33 @@ class RTEServiceImpl {
       this.offScreenParent.parentNode.removeChild(this.offScreenParent);
       this.offScreenParent = null;
     }
+  }
+
+  /**
+   * Update issue highlighting for a specific region's editor
+   */
+  updateIssueHighlighting(regionId: string): void {
+    const editorKey = `${regionId}:main` as EditorKey;
+    const instance = this.registry.get(editorKey);
+    if (!instance) {
+      return;
+    }
+
+    // Get current state from store
+    const state = useEditorStore.getState();
+    const knownWords = Array.from(state.knownWords);
+    const issues = typeof state.getIssuesForRegion === 'function' 
+      ? state.getIssuesForRegion(regionId) 
+      : [];
+
+    // Convert issues to highlights (this will filter out resolved issues)
+    const issueHighlights = issueHighlightService.convertIssuesToHighlights(issues);
+
+    // Re-apply highlighting
+    this.applyHighlighting(editorKey, {
+      knownWords,
+      issues: issueHighlights
+    });
   }
 }
 

@@ -96,7 +96,6 @@ export const IssuesPanel = ({
   const handleToggleResolved = (issue: Issue) => {
     onUpdateIssue(issue.id, {
       resolved: !issue.resolved,
-      updatedAt: new Date().toISOString(),
     });
   };
 

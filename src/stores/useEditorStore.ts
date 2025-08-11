@@ -73,6 +73,11 @@ interface EditorState {
   setRegionTranslation: (regionId: string, translation: string) => void;
   updateRegionBounds: (regionId: string, start: number, end: number) => void;
 
+  // Issue actions
+  addNewIssue: (issue: IssueData) => void;
+  updateIssue: (issueId: string, updates: Partial<IssueData>) => void;
+  deleteIssue: (issueId: string) => void;
+
   // Transcription metadata helpers
   calculateTranscriptionMetadata: () => { regionCount: number; coverage: number };
 
@@ -137,6 +142,7 @@ export const useEditorStore = create<EditorState>()(
       issues: [],
       issueMap: {},
       issuesByRegionMap: {},
+
       comments: [],
       commentMap: {},
       commentsByEntityMap: {},
@@ -436,6 +442,92 @@ export const useEditorStore = create<EditorState>()(
         }
         
         set(updateObj);
+      },
+
+      // Issue actions
+      addNewIssue: (issue: IssueData) => {
+        const { issues, issueMap, issuesByRegionMap } = get();
+        
+        // Add to issues array
+        const newIssues = [...issues, issue];
+        
+        // Add to issueMap
+        const newIssueMap = { ...issueMap, [issue.id]: issue };
+        
+        // Add to issuesByRegionMap
+        const newIssuesByRegionMap = { ...issuesByRegionMap };
+        if (!newIssuesByRegionMap[issue.regionId]) {
+          newIssuesByRegionMap[issue.regionId] = [];
+        }
+        newIssuesByRegionMap[issue.regionId] = [...newIssuesByRegionMap[issue.regionId], issue];
+        
+        set({
+          issues: newIssues,
+          issueMap: newIssueMap,
+          issuesByRegionMap: newIssuesByRegionMap,
+        });
+      },
+
+      updateIssue: (issueId: string, updates: Partial<IssueData>) => {
+        const { issues, issueMap, issuesByRegionMap } = get();
+        const existingIssue = issueMap[issueId];
+        
+        if (!existingIssue) {
+          console.warn(`Attempted to update non-existent issue: ${issueId}`);
+          return;
+        }
+
+        // Create updated issue
+        const updatedIssue = { ...existingIssue, ...updates };
+        
+        // Update issues array
+        const newIssues = issues.map(issue => 
+          issue.id === issueId ? updatedIssue : issue
+        );
+        
+        // Update issueMap
+        const newIssueMap = { ...issueMap, [issueId]: updatedIssue };
+        
+        // Rebuild issuesByRegionMap (in case regionId changed)
+        const newIssuesByRegionMap: Record<string, IssueData[]> = {};
+        newIssues.forEach((issue) => {
+          if (!newIssuesByRegionMap[issue.regionId]) {
+            newIssuesByRegionMap[issue.regionId] = [];
+          }
+          newIssuesByRegionMap[issue.regionId].push(issue);
+        });
+        
+        set({
+          issues: newIssues,
+          issueMap: newIssueMap,
+          issuesByRegionMap: newIssuesByRegionMap,
+        });
+      },
+
+      deleteIssue: (issueId: string) => {
+        const { issues, issueMap, issuesByRegionMap } = get();
+        
+        // Remove from issues array
+        const newIssues = issues.filter(issue => issue.id !== issueId);
+        
+        // Remove from issueMap
+        const newIssueMap = { ...issueMap };
+        delete newIssueMap[issueId];
+        
+        // Rebuild issuesByRegionMap
+        const newIssuesByRegionMap: Record<string, IssueData[]> = {};
+        newIssues.forEach((issue) => {
+          if (!newIssuesByRegionMap[issue.regionId]) {
+            newIssuesByRegionMap[issue.regionId] = [];
+          }
+          newIssuesByRegionMap[issue.regionId].push(issue);
+        });
+        
+        set({
+          issues: newIssues,
+          issueMap: newIssueMap,
+          issuesByRegionMap: newIssuesByRegionMap,
+        });
       },
 
       // Computed getters

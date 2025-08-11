@@ -80,16 +80,21 @@ export const createIssueForRegion = async (issueData: {
 /**
  * Updates an existing issue
  */
-export const updateExistingIssue = async (issueId: string, updates: Partial<IssueData>): Promise<IssueData> => {
+export const updateExistingIssue = async (issueId: string, updates: Partial<IssueData>, version: number): Promise<IssueData> => {
   try {
     console.log(`🔧 Updating issue ${issueId} via GraphQL...`);
+    
+    // Filter out read-only fields that shouldn't be sent to GraphQL
+    // Keep _version for optimistic concurrency control
+    const { createdAt, updatedAt, __typename, ...allowedUpdates } = updates as any;
     
     const result = await client.graphql({
       query: updateIssue,
       variables: {
         input: {
           id: issueId,
-          ...updates,
+          _version: version,
+          ...allowedUpdates,
         }
       }
     }) as { data: { updateIssue: IssueData } };

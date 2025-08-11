@@ -1,5 +1,6 @@
 import { createIssueForRegion } from '../services/issueService';
 import { useEditorStore } from '../stores/useEditorStore';
+import { rteService } from '../services/rteService';
 import type { IssueData } from '../services/adt';
 
 export interface CreateIssueInput {
@@ -41,25 +42,12 @@ export class CreateIssueUseCase {
         transcriptionId: input.transcriptionId,
       });
 
-      // Update the store with the new issue
+      // Update the store with the new issue using the proper store method
       const store = useEditorStore.getState();
-      const currentIssues = store.issues;
-      const updatedIssues = [newIssue, ...currentIssues];
-      
-      // Update issues and rebuild the issues by region map
-      const issuesByRegionMap: Record<string, IssueData[]> = {};
-      updatedIssues.forEach((issue) => {
-        if (!issuesByRegionMap[issue.regionId]) {
-          issuesByRegionMap[issue.regionId] = [];
-        }
-        issuesByRegionMap[issue.regionId].push(issue);
-      });
+      store.addNewIssue(newIssue);
 
-      // Update the store
-      store.setEditorData({
-        issues: updatedIssues,
-        issuesByRegionMap,
-      });
+      // Update text editor highlighting for the affected region
+      rteService.updateIssueHighlighting(newIssue.regionId);
 
       return newIssue;
     } catch (error) {

@@ -38,7 +38,10 @@ class IssueHighlightServiceImpl implements IssueHighlightService {
       return [];
     }
 
-    return issues.map(issue => ({
+    // Filter out resolved issues - they should not be highlighted
+    const activeIssues = issues.filter(issue => !issue.resolved);
+
+    return activeIssues.map(issue => ({
       text: issue.text,
       id: issue.id,
       type: this.mapIssueType(issue.type)

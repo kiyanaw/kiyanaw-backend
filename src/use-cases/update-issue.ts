@@ -1,5 +1,6 @@
 import { updateExistingIssue } from '../services/issueService';
 import { useEditorStore } from '../stores/useEditorStore';
+import { rteService } from '../services/rteService';
 import type { IssueData } from '../services/adt';
 
 export interface UpdateIssueInput {
@@ -23,30 +24,21 @@ export class UpdateIssueUseCase {
     this.validate(input);
 
     try {
-      // Update the issue via the service
-      const updatedIssue = await updateExistingIssue(input.issueId, input.updates);
-
-      // Update the store with the updated issue
+      // Get the current issue and its version from the store
       const store = useEditorStore.getState();
-      const currentIssues = store.issues;
-      const updatedIssues = currentIssues.map(issue => 
-        issue.id === input.issueId ? updatedIssue : issue
-      );
-      
-      // Rebuild the issues by region map
-      const issuesByRegionMap: Record<string, IssueData[]> = {};
-      updatedIssues.forEach((issue) => {
-        if (!issuesByRegionMap[issue.regionId]) {
-          issuesByRegionMap[issue.regionId] = [];
-        }
-        issuesByRegionMap[issue.regionId].push(issue);
-      });
+      const currentIssue = store.issueById(input.issueId);
+      if (!currentIssue) {
+        throw new Error(`Issue ${input.issueId} not found`);
+      }
 
-      // Update the store
-      store.setEditorData({
-        issues: updatedIssues,
-        issuesByRegionMap,
-      });
+      // Update the issue via the service with version
+      const updatedIssue = await updateExistingIssue(input.issueId, input.updates, currentIssue._version || 0);
+
+      // Update the store with the updated issue using the proper store method
+      store.updateIssue(input.issueId, updatedIssue);
+
+      // Update text editor highlighting for the affected region
+      rteService.updateIssueHighlighting(updatedIssue.regionId);
 
       return updatedIssue;
     } catch (error) {
