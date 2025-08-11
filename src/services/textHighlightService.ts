@@ -60,7 +60,7 @@ class TextHighlightServiceImpl implements TextHighlightService {
     // Create issue text lookup with type information for efficient matching
     const issueTextMap = new Map<string, IssueType>();
     issues.forEach(issue => {
-      issueTextMap.set(issue.text.toLowerCase(), issue.type);
+      issueTextMap.set(issue.text.trim().toLowerCase(), issue.type);
     });
     
     // Split text into tokens while preserving separators
@@ -69,7 +69,7 @@ class TextHighlightServiceImpl implements TextHighlightService {
     return tokens.map(token => {
       // Check if token is a word (matches our pattern)
       if (this.tokenPattern.test(token)) {
-        const lowerToken = token.toLowerCase();
+        const lowerToken = token.trim().toLowerCase();
         
         // Issues take priority over known words
         const issueType = issueTextMap.get(lowerToken);

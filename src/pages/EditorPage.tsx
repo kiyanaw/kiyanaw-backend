@@ -7,6 +7,9 @@ import { useWavesurferEvents } from '../hooks/useWavesurferEvents';
 import { useSubscriptions } from '../hooks/useSubscriptions';
 import { useUpdateTranscription } from '../hooks/useUpdateTranscription';
 import { useAuthStore } from '../stores/useAuthStore';
+import { useCreateIssue } from '../hooks/useCreateIssue';
+import { useUpdateIssue } from '../hooks/useUpdateIssue';
+import { useDeleteIssue } from '../hooks/useDeleteIssue';
 
 import { browserService } from '../services/browserService';
 import { wavesurferService } from '../services/wavesurferService';
@@ -15,6 +18,7 @@ import { WaveformPlayer } from '../components/player/WaveformPlayer';
 import { RegionList } from '../components/regions/RegionList';
 import { StationaryInspector } from '../components/inspector/StationaryInspector';
 import { TranscriptionSettingsPage } from '../components/forms/TranscriptionSettingsPage';
+import { IssuesPanel } from '../components/issues/IssuesPanel';
 
 export const EditorPage = () => {
   const { id: transcriptionId } = useParams<{
@@ -37,9 +41,34 @@ export const EditorPage = () => {
   // Hooks for settings functionality
   const updateTranscription = useUpdateTranscription(transcriptionId!);
   
+  // Issue management hooks
+  const createIssue = useCreateIssue();
+  const updateIssue = useUpdateIssue();
+  const deleteIssue = useDeleteIssue();
+  
   useWavesurferEvents(transcriptionId!, transcription?.source);
   const regions = useEditorStore((state) => state.regions);
   const selectedRegion = useEditorStore((state) => state.selectedRegion);
+  const issues = useEditorStore((state) => state.issues);
+
+  // Debug: Log issues for selected region
+  useEffect(() => {
+    if (selectedRegion) {
+      const regionIssues = issues.filter(issue => issue.regionId === selectedRegion.id);
+      console.log(`🔍 Issues for selected region "${selectedRegion.id}":`, regionIssues);
+      console.log(`📊 Total issues in region: ${regionIssues.length}`);
+      regionIssues.forEach((issue, index) => {
+        console.log(`${index + 1}. Issue text: "${issue.text}" | Type: ${issue.type} | Resolved: ${issue.resolved}`);
+      });
+      
+      // Also log the region text to compare
+      if (selectedRegion.regionText) {
+        console.log(`📝 Region text: "${selectedRegion.regionText}"`);
+      }
+    } else {
+      console.log('🔍 No region selected');
+    }
+  }, [selectedRegion, issues]);
 
   // Settings handlers
   const handleOpenSettings = () => setIsSettingsOpen(true);
@@ -50,6 +79,54 @@ export const EditorPage = () => {
   
   // Determine if current user is the owner
   const isOwner = transcription?.author === user?.userId;
+
+  // Issue management handlers
+  const handleCreateIssue = async (issue: {
+    text: string;
+    type: 'needs-help' | 'indexing' | 'new-word' | 'general';
+    owner: string;
+    regionId?: string;
+    resolved: boolean;
+  }) => {
+    if (!transcriptionId || !user?.userId) return;
+    
+    try {
+      await createIssue({
+        text: issue.text,
+        type: issue.type,
+        owner: user.userId,
+        regionId: issue.regionId,
+        transcriptionId: transcriptionId,
+      });
+    } catch (error) {
+      console.error('Failed to create issue:', error);
+    }
+  };
+
+  const handleUpdateIssue = async (issueId: string, updates: { resolved?: boolean; text?: string; type?: string }) => {
+    try {
+      await updateIssue({
+        issueId,
+        updates,
+      });
+    } catch (error) {
+      console.error('Failed to update issue:', error);
+    }
+  };
+
+  const handleDeleteIssue = async (issueId: string) => {
+    try {
+      await deleteIssue({ issueId });
+    } catch (error) {
+      console.error('Failed to delete issue:', error);
+    }
+  };
+
+  const handleAddComment = async (issueId: string, comment: { text: string; author: string }) => {
+    // For now, we'll add comments as issue updates
+    // In the future, this could be expanded to use a proper comment system
+    console.log('Add comment functionality not yet implemented:', { issueId, comment });
+  };
 
   // Redirect to 404 if access is denied
   useEffect(() => {
@@ -107,11 +184,39 @@ export const EditorPage = () => {
 
       {/* Main Editor Layout */}
       <div className="flex flex-1 overflow-hidden min-h-0">
-        {/* Stationary Inspector */}
-        <div className="flex-1 bg-white border-r border-gray-300 overflow-hidden flex flex-col">
-          <StationaryInspector
-            selectedRegion={selectedRegion}
-          />
+        {/* Left Side Container */}
+        <div className="flex-1 bg-white border-r border-gray-300 flex flex-col">
+          {/* Stationary Inspector - Fixed Height */}
+          <div className="h-[500px] overflow-hidden flex flex-col border-b border-gray-300">
+            <StationaryInspector
+              selectedRegion={selectedRegion}
+            />
+          </div>
+          
+          {/* Issues Panel Area - Takes remaining space */}
+          <div className="flex-1 overflow-auto">
+            {transcription && (
+              <IssuesPanel
+                selectedRegionId={selectedRegion?.id}
+                issues={issues.map(issue => ({
+                  id: issue.id,
+                  text: issue.text,
+                  type: issue.type as 'needs-help' | 'indexing' | 'new-word' | 'general',
+                  owner: issue.ownerFriendly || issue.owner,
+                  regionId: issue.regionId,
+                  resolved: issue.resolved || false,
+                  createdAt: issue.createdAt || new Date().toISOString(),
+                  updatedAt: issue.updatedAt || new Date().toISOString(),
+                  comments: [], // TODO: Implement comments when available
+                }))}
+                canEdit={isOwner}
+                onCreateIssue={handleCreateIssue}
+                onUpdateIssue={handleUpdateIssue}
+                onDeleteIssue={handleDeleteIssue}
+                onAddComment={handleAddComment}
+              />
+            )}
+          </div>
         </div>
 
         {/* Region List */}

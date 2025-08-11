@@ -2,6 +2,9 @@ import { generateClient } from 'aws-amplify/api';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - GraphQL queries are generated as JS files
 import { listIssues } from '../graphql/queries.js';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore - GraphQL mutations are generated as JS files
+import { createIssue, updateIssue, deleteIssue } from '../graphql/mutations.js';
 import type { IssueData } from './adt';
 
 // Create GraphQL client
@@ -39,5 +42,83 @@ export const loadIssuesForTranscription = async (transcriptionId: string): Promi
     console.error('❌ Failed to load issues via GraphQL:', error);
     // Return empty array on error to prevent app crashes
     return [];
+  }
+};
+
+/**
+ * Creates a new issue
+ */
+export const createIssueForRegion = async (issueData: {
+  text: string;
+  type: string;
+  owner: string;
+  regionId: string;
+  transcriptionId: string;
+}): Promise<IssueData> => {
+  try {
+    console.log('🔨 Creating new issue via GraphQL...');
+    
+    const result = await client.graphql({
+      query: createIssue,
+      variables: {
+        input: {
+          ...issueData,
+          resolved: false,
+          index: 0, // Will be auto-incremented by the backend
+        }
+      }
+    }) as { data: { createIssue: IssueData } };
+    
+    console.log('✅ Issue created successfully');
+    return result.data.createIssue;
+  } catch (error) {
+    console.error('❌ Failed to create issue:', error);
+    throw error;
+  }
+};
+
+/**
+ * Updates an existing issue
+ */
+export const updateExistingIssue = async (issueId: string, updates: Partial<IssueData>): Promise<IssueData> => {
+  try {
+    console.log(`🔧 Updating issue ${issueId} via GraphQL...`);
+    
+    const result = await client.graphql({
+      query: updateIssue,
+      variables: {
+        input: {
+          id: issueId,
+          ...updates,
+        }
+      }
+    }) as { data: { updateIssue: IssueData } };
+    
+    console.log('✅ Issue updated successfully');
+    return result.data.updateIssue;
+  } catch (error) {
+    console.error('❌ Failed to update issue:', error);
+    throw error;
+  }
+};
+
+/**
+ * Deletes an issue
+ */
+export const deleteExistingIssue = async (issueId: string): Promise<void> => {
+  try {
+    console.log(`🗑️ Deleting issue ${issueId} via GraphQL...`);
+    
+    await client.graphql({
+      query: deleteIssue,
+      variables: {
+        input: { id: issueId }
+      }
+    });
+    
+    console.log('✅ Issue deleted successfully');
+  } catch (error) {
+    console.error('❌ Failed to delete issue:', error);
+    throw error;
   }
 }; 

@@ -57,7 +57,7 @@ export const IssuesPanel = ({
   const [newIssueType, setNewIssueType] = useState<Issue['type']>('general');
   const [expandedIssues, setExpandedIssues] = useState<Set<string>>(new Set());
   const [commentTexts, setCommentTexts] = useState<Record<string, string>>({});
-  const [filter, setFilter] = useState<'all' | 'open' | 'resolved'>('all');
+  const [filter, setFilter] = useState<'all' | 'open' | 'resolved'>('open');
 
   // Filter issues based on current filter and selected region
   const filteredIssues = issues.filter((issue) => {
@@ -68,6 +68,11 @@ export const IssuesPanel = ({
 
     const matchesRegion =
       !selectedRegionId || issue.regionId === selectedRegionId;
+
+    // Debug filtering
+    if (selectedRegionId && issue.regionId === selectedRegionId) {
+      console.log(`🔍 Issue "${issue.text}": resolved=${issue.resolved}, filter=${filter}, matchesFilter=${matchesFilter}, matchesRegion=${matchesRegion}`);
+    }
 
     return matchesFilter && matchesRegion;
   });
@@ -249,7 +254,14 @@ export const IssuesPanel = ({
                     >
                       {typeInfo.label}
                     </span>
-                    <span className="text-sm text-gray-800">{issue.text}</span>
+                    {issue.resolved && (
+                      <span className="inline-block py-0.5 px-2 rounded-xl text-xs font-medium uppercase bg-green-600 text-white flex-shrink-0">
+                        RESOLVED
+                      </span>
+                    )}
+                    <span className={`text-sm ${issue.resolved ? 'text-gray-500 line-through' : 'text-gray-800'}`}>
+                      {issue.text}
+                    </span>
                   </div>
 
                   <div className="flex items-center gap-2 text-xs text-gray-500 md:flex-row md:gap-2 flex-col gap-1">
