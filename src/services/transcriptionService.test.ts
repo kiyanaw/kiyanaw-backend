@@ -128,7 +128,7 @@ describe('TranscriptionService', () => {
     it('should query GraphQL API with correct transcriptionId', async () => {
       await loadInFull(mockTranscriptionId);
       
-      expect(mockGraphqlClient.graphql).toHaveBeenCalledTimes(1);
+      expect(mockGraphqlClient.graphql).toHaveBeenCalledTimes(2); // 1 for transcription, 1 for comments
       expect(mockGraphqlClient.graphql).toHaveBeenCalledWith({
         query: expect.any(String), // The actual query string
         variables: { id: mockTranscriptionId },
@@ -168,6 +168,7 @@ describe('TranscriptionService', () => {
         peaks: mockPeaksData,
         regions: mockRegions,
         issues: mockIssues,
+        comments: [],
       });
     });
   });
@@ -361,7 +362,7 @@ describe('TranscriptionService', () => {
       const result = await loadInFull(mockTranscriptionId);
       
       // Verify all dependencies were called
-      expect(mockGraphqlClient.graphql).toHaveBeenCalledTimes(1);
+      expect(mockGraphqlClient.graphql).toHaveBeenCalledTimes(2); // 1 for transcription, 1 for comments
       expect(TranscriptionModel).toHaveBeenCalledTimes(1);
       expect(global.fetch).toHaveBeenCalledTimes(1);
       expect(loadRegionsForTranscription).toHaveBeenCalledTimes(1);
@@ -373,6 +374,7 @@ describe('TranscriptionService', () => {
         peaks: mockPeaksData,
         regions: mockRegions,
         issues: mockIssues,
+        comments: [],
       });
     });
 
@@ -573,7 +575,7 @@ describe('TranscriptionService', () => {
       it('should call GraphQL API with listTranscriptions query', async () => {
         await loadAll();
         
-        expect(mockGraphqlClient.graphql).toHaveBeenCalledTimes(1);
+        expect(mockGraphqlClient.graphql).toHaveBeenCalledTimes(1); // Only listTranscriptions
         expect(mockGraphqlClient.graphql).toHaveBeenCalledWith({
           query: expect.any(String), // The listTranscriptions query
         });
@@ -738,7 +740,7 @@ describe('TranscriptionService', () => {
         const result = await loadAll();
         
         // Verify GraphQL was called
-        expect(mockGraphqlClient.graphql).toHaveBeenCalledTimes(1);
+        expect(mockGraphqlClient.graphql).toHaveBeenCalledTimes(1); // Only listTranscriptions
         
         // Verify TranscriptionModel was called for each item
         expect(TranscriptionModel).toHaveBeenCalledTimes(2);

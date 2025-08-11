@@ -2,8 +2,8 @@
 
 // Import ADT types for proper return types
 import type { TranscriptionModel, RegionModel } from '../services/adt';
-import type { ProcessedIssue as ADTProcessedIssue } from '../services/adt';
-import type { RegionData as ADTRegionData, TranscriptionData as ADTTranscriptionData } from '../services/adt';
+import type { IssueData } from '../services/adt';
+import type { RegionData as ADTRegionData, TranscriptionData as ADTTranscriptionData, CommentData } from '../services/adt';
 
 // Re-export ADT types for external use
 export type RegionData = ADTRegionData;
@@ -72,29 +72,9 @@ export interface IssueComment {
   text: string;
 }
 
-export interface IssueData {
-  id: string;
-  transcriptionId: string;
-  regionId: string;
-  type: string;
-  status: string;
-  priority: string;
-  title: string;
-  description: string;
-  comments: string; // JSON string
-  assignedTo?: string;
-  createdBy: string;
-  dateLastUpdated: string;
-  userLastUpdated: string;
-  createdAt: string;
-  updatedAt: string;
-  _version?: number;
-  _deleted?: boolean;
-}
 
-export interface ProcessedIssue extends Omit<IssueData, 'comments'> {
-  comments: IssueComment[];
-}
+
+
 
 export interface ListIssuesResponse {
   listIssues: {
@@ -121,7 +101,8 @@ export type LoadTranscriptionResult = {
   transcription: TranscriptionModel;
   peaks: number[];
   regions: RegionModel[];
-  issues: ADTProcessedIssue[];
+  issues: IssueData[];
+  comments: CommentData[];
 };
 
 export interface User {

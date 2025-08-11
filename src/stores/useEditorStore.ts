@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import type { TranscriptionData, RegionData } from '../types/shared';
-import type { IssueData } from '../services/adt';
+import type { IssueData, CommentData } from '../services/adt';
 import type { ConflictDetail } from '../services/conflictDetectionService';
 import type { PendingEdit } from '../services/pendingEditsService';
 import Timeout from 'smart-timeout';
@@ -10,6 +10,7 @@ interface EditorDataPayload {
   transcription: TranscriptionData;
   regions: RegionData[];
   issues: IssueData[];
+  comments: CommentData[];
   source?: string;
   peaks?: number[];
   isVideo?: boolean;
@@ -44,6 +45,12 @@ interface EditorState {
   issues: IssueData[];
   issueMap: Record<string, IssueData>;
   issuesByRegionMap: Record<string, IssueData[]>; // regionId -> issues[]
+
+  // Comments state
+  comments: CommentData[];
+  commentMap: Record<string, CommentData>;
+  commentsByEntityMap: Record<string, CommentData[]>; // entityId -> comments[]
+  commentsByTranscriptionMap: CommentData[]; // transcription-level comments
 
   // Subscriptions
   _subscriptions: { unsubscribe: () => void }[];
@@ -90,6 +97,12 @@ interface EditorState {
   issueById: (id: string) => IssueData | null;
   issuesByRegion: (regionId: string) => IssueData[];
   getIssuesForRegion: (regionId: string) => IssueData[];
+  commentById: (id: string) => CommentData | null;
+  commentsByEntity: (entityId: string) => CommentData[];
+  commentsByRegion: (regionId: string) => CommentData[];
+  commentsByIssue: (issueId: string) => CommentData[];
+  commentsByTranscription: () => CommentData[];
+  getCommentsForEntity: (entityId: string) => CommentData[];
   getRegionVersion: (id: string) => number;
   setRegionVersion: (id: string, version: number) => void;
   isPendingEdit: (regionId: string, field?: string) => boolean;
@@ -102,8 +115,9 @@ interface EditorState {
 
 
 
-// Stable empty array to prevent unnecessary re-renders
+// Stable empty arrays to prevent unnecessary re-renders
 const EMPTY_ISSUES_ARRAY: IssueData[] = [];
+const EMPTY_COMMENTS_ARRAY: CommentData[] = [];
 
 export const useEditorStore = create<EditorState>()(
   devtools(
@@ -123,6 +137,10 @@ export const useEditorStore = create<EditorState>()(
       issues: [],
       issueMap: {},
       issuesByRegionMap: {},
+      comments: [],
+      commentMap: {},
+      commentsByEntityMap: {},
+      commentsByTranscriptionMap: [],
       _subscriptions: [],
 
       isTranscriptionAuthor: (user) => {
@@ -136,7 +154,7 @@ export const useEditorStore = create<EditorState>()(
 
       // Action to set data from TanStack Query
       setFullTranscriptionData: (data, selectedRegionId) => {
-        const { transcription, regions, issues, peaks } = data;
+        const { transcription, regions, issues, comments, peaks } = data;
         const state = get();
         state.cleanup();
 
@@ -169,6 +187,26 @@ export const useEditorStore = create<EditorState>()(
           issuesByRegionMap[issue.regionId].push(issue);
         });
 
+        // Process comments
+        const commentMap: Record<string, CommentData> = {};
+        const commentsByEntityMap: Record<string, CommentData[]> = {};
+        const commentsByTranscriptionMap: CommentData[] = [];
+        
+        comments.forEach((comment) => {
+          commentMap[comment.id] = comment;
+          
+          // Group comments by entityId for efficient lookup
+          if (!commentsByEntityMap[comment.entityId]) {
+            commentsByEntityMap[comment.entityId] = [];
+          }
+          commentsByEntityMap[comment.entityId].push(comment);
+          
+          // Separate transcription-level comments
+          if (comment.entityType === 'transcription') {
+            commentsByTranscriptionMap.push(comment);
+          }
+        });
+
         // Set initial state
         const newState: Partial<EditorState> = {
           transcription,
@@ -178,6 +216,10 @@ export const useEditorStore = create<EditorState>()(
           issues,
           issueMap,
           issuesByRegionMap,
+          comments,
+          commentMap,
+          commentsByEntityMap,
+          commentsByTranscriptionMap,
           peaks: peaks,
           knownWords: new Set<string>() // Will be populated by use-case
         };
@@ -215,6 +257,10 @@ export const useEditorStore = create<EditorState>()(
           issues: [],
           issueMap: {},
           issuesByRegionMap: {},
+          comments: [],
+          commentMap: {},
+          commentsByEntityMap: {},
+          commentsByTranscriptionMap: [],
           selectedRegionId: null,
           selectedRegion: null,
           playbackWithinRegion: null,
@@ -411,6 +457,36 @@ export const useEditorStore = create<EditorState>()(
       getIssuesForRegion: (regionId) => {
         const { issuesByRegionMap } = get();
         return issuesByRegionMap[regionId] || EMPTY_ISSUES_ARRAY;
+      },
+
+      commentById: (id) => {
+        const { commentMap } = get();
+        return commentMap[id] || null;
+      },
+
+      commentsByEntity: (entityId) => {
+        const { commentsByEntityMap } = get();
+        return commentsByEntityMap[entityId] || EMPTY_COMMENTS_ARRAY;
+      },
+
+      commentsByRegion: (regionId) => {
+        const { commentsByEntityMap } = get();
+        return commentsByEntityMap[regionId] || EMPTY_COMMENTS_ARRAY;
+      },
+
+      commentsByIssue: (issueId) => {
+        const { commentsByEntityMap } = get();
+        return commentsByEntityMap[issueId] || EMPTY_COMMENTS_ARRAY;
+      },
+
+      commentsByTranscription: () => {
+        const { commentsByTranscriptionMap } = get();
+        return commentsByTranscriptionMap;
+      },
+
+      getCommentsForEntity: (entityId) => {
+        const { commentsByEntityMap } = get();
+        return commentsByEntityMap[entityId] || EMPTY_COMMENTS_ARRAY;
       },
 
       getRegionVersion: (id) => {

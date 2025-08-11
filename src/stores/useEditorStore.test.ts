@@ -335,6 +335,7 @@ describe('useEditorStore known words functionality', () => {
           createTestRegion({ id: 'region-3', _version: 4 }) // All regions must have versions
         ],
         issues: [],
+        comments: [],
         peaks: []
       };
 
@@ -652,6 +653,7 @@ describe('useEditorStore known words functionality', () => {
           createTestRegion({ id: 'region-2', _version: undefined }) // Missing version
         ],
         issues: [],
+        comments: [],
         peaks: []
       };
 

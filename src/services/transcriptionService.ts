@@ -9,6 +9,7 @@ import { createTranscription as createTranscriptionMutation, updateTranscription
 
 import { loadRegionsForTranscription } from './regionService';
 import { loadIssuesForTranscription } from './issueService';
+import { loadCommentsForTranscription } from './commentService';
 import { TranscriptionModel, type TranscriptionData as ADTTranscriptionData } from './adt';
 import { currentUser } from './userService';
 import { 
@@ -236,9 +237,10 @@ export const loadInFull = async (transcriptionId: string): Promise<false | LoadT
   
   const peaks = await fetchPeaksData(transcription.source);
 
-  const [regions, issues] = await Promise.all([
+  const [regions, issues, comments] = await Promise.all([
     loadRegionsForTranscription(transcriptionId),
-    loadIssuesForTranscription(transcriptionId)
+    loadIssuesForTranscription(transcriptionId),
+    loadCommentsForTranscription(transcriptionId)
   ]);
 
   return {
@@ -246,6 +248,7 @@ export const loadInFull = async (transcriptionId: string): Promise<false | LoadT
     peaks,
     regions,
     issues,
+    comments,
   };
 };
 
