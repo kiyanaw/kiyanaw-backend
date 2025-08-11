@@ -102,6 +102,7 @@ export function createMockStore(options: MockStoreOptions = {}) {
     regionById: jest.fn(() => null),
     issueById: jest.fn(() => null),
     issuesByRegion: jest.fn(() => []),
+    getIssuesForRegion: jest.fn(() => []),
     getState: jest.fn(),
     calculateTranscriptionMetadata: jest.fn(() => ({ regionCount: 0, coverage: 0 })),
   };

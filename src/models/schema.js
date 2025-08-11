@@ -66,6 +66,13 @@ export const schema = {
                     "isRequired": false,
                     "attributes": []
                 },
+                "commentCount": {
+                    "name": "commentCount",
+                    "isArray": false,
+                    "type": "Int",
+                    "isRequired": false,
+                    "attributes": []
+                },
                 "tags": {
                     "name": "tags",
                     "isArray": false,
@@ -355,6 +362,13 @@ export const schema = {
                     "isRequired": false,
                     "attributes": []
                 },
+                "commentCount": {
+                    "name": "commentCount",
+                    "isArray": false,
+                    "type": "Int",
+                    "isRequired": false,
+                    "attributes": []
+                },
                 "translation": {
                     "name": "translation",
                     "isArray": false,
@@ -512,6 +526,13 @@ export const schema = {
                     "name": "comments",
                     "isArray": false,
                     "type": "AWSJSON",
+                    "isRequired": false,
+                    "attributes": []
+                },
+                "commentCount": {
+                    "name": "commentCount",
+                    "isArray": false,
+                    "type": "Int",
                     "isRequired": false,
                     "attributes": []
                 },
@@ -1008,5 +1029,5 @@ export const schema = {
     "enums": {},
     "nonModels": {},
     "codegenVersion": "3.4.4",
-    "version": "ecea79ccbc045024631fb59a59658299"
+    "version": "f48ab61061299216aab3e89a22bacda3"
 };

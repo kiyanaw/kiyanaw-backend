@@ -4,12 +4,28 @@ export interface HighlightMatch {
   length: number;
 }
 
+export interface IssueHighlight {
+  text: string;
+  id: string;
+}
+
+export interface HighlightOptions {
+  knownWords?: Set<string>;
+  issues?: IssueHighlight[];
+}
+
 export interface TextHighlightService {
   /**
    * Generate HTML markup with known words wrapped in spans
    * Optimized for RegionItem rendering - O(tokens) complexity
    */
   generateHTML(text: string, knownWords: Set<string>): string;
+  
+  /**
+   * Generate HTML markup with both known words and issue highlighting
+   * Issues take priority over known words for overlapping text
+   */
+  generateHTMLWithOptions(text: string, options: HighlightOptions): string;
   
   /**
    * Find character indices of known words for RTE formatting
@@ -24,17 +40,37 @@ class TextHighlightServiceImpl implements TextHighlightService {
   private readonly tokenPattern = /([\p{L}\p{N}_-]+)/u;
   
   generateHTML(text: string, knownWords: Set<string>): string {
-    if (!text || knownWords.size === 0) {
-      return text || '';
+    return this.generateHTMLWithOptions(text, { knownWords });
+  }
+
+  generateHTMLWithOptions(text: string, options: HighlightOptions): string {
+    if (!text) {
+      return '';
     }
 
+    const { knownWords = new Set(), issues = [] } = options;
+    
+    if (knownWords.size === 0 && issues.length === 0) {
+      return text;
+    }
+
+    // Create issue text lookup for efficient matching
+    const issueTextSet = new Set(issues.map(issue => issue.text.toLowerCase()));
+    
     // Split text into tokens while preserving separators
     const tokens = text.split(this.tokenPattern);
     
     return tokens.map(token => {
-      // Check if token is a word (matches our pattern) and is known
-      if (this.tokenPattern.test(token) && knownWords.has(token.toLowerCase())) {
-        return `<span class="known-word">${token}</span>`;
+      // Check if token is a word (matches our pattern)
+      if (this.tokenPattern.test(token)) {
+        const lowerToken = token.toLowerCase();
+        
+        // Issues take priority over known words
+        if (issueTextSet.has(lowerToken)) {
+          return `<span class="issue-text">${token}</span>`;
+        } else if (knownWords.has(lowerToken)) {
+          return `<span class="known-word">${token}</span>`;
+        }
       }
       return token;
     }).join('');

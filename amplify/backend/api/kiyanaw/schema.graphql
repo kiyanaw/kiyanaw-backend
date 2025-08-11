@@ -22,7 +22,8 @@ type Transcription
   userLastUpdated: String
   length: Float
   issues: String
-  comments: String
+  comments: String # going to call this "Notes" in the app, comments moving to Comments
+  commentCount: Int
   tags: String
   source: String
   index: String # deprecated field, use `lang`
@@ -57,7 +58,8 @@ type Region
   end: Float!
   regionText: String
   regionAnalysis: [String]
-  isNote: Boolean
+  isNote: Boolean # deprecated field, notes moving into Comments
+  commentCount: Int
   translation: String
   dateLastUpdated: String!
   userLastUpdated: String!
@@ -78,7 +80,8 @@ type Issue
   index: Int!
   resolved: Boolean
   type: String! @index(name: "ByType")
-  comments: AWSJSON
+  comments: AWSJSON # deprecated field, comments moving to Comment field
+  commentCount: Int
   regionId: String!
   transcription: Transcription! @belongsTo(fields: ["transcriptionId"])
   transcriptionId: ID! @index(name: "ByTranscription", queryField: "issuesByTranscription")

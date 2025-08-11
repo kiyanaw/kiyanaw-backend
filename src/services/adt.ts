@@ -48,18 +48,34 @@ export interface IssueComment {
 
 export interface IssueData {
   id: string;
+  text: string;
+  owner: string;
+  ownerFriendly: string;
+  index: number;
+  resolved?: boolean;
+  type: string;
+  comments?: string; // AWSJSON - deprecated field, comments moving to Comment field
+  commentCount?: number;
+  regionId: string;
   transcriptionId: string;
-  regionId?: string;
-  createdAt: string;
-  updatedAt?: string;
-  title: string;
-  description?: string;
-  status: 'open' | 'closed' | 'in-progress';
-  priority: 'low' | 'medium' | 'high';
-  type: 'bug' | 'suggestion' | 'question' | 'other';
+  createdAt?: string; // Amplify auto-added field
+  updatedAt?: string; // Amplify auto-added field
+  _version?: number;
+}
+
+export interface CommentData {
+  id: string;
+  text: string;
   author: string;
-  assignedTo?: string;
-  comments: string; // JSON string of IssueComment array
+  authorFriendly: string;
+  createdAt: string;
+  updatedAt: string;
+  transcriptionId: string;
+  entityType: 'region' | 'issue' | 'transcription';
+  entityId: string;
+  parentCommentId?: string;
+  metadata?: string; // AWSJSON
+  _version?: number;
 }
 
 export interface InviteData {
@@ -77,9 +93,7 @@ export interface InviteData {
   updatedAt?: string;
 }
 
-export interface ProcessedIssue extends Omit<IssueData, 'comments'> {
-  comments: IssueComment[];
-}
+
 
 function pad(num: number, size: number): string {
   return ('000000000' + num).substr(-size);
@@ -322,6 +336,117 @@ export class RegionModel {
       console.error('Error constructing RegionModel:', e);
       console.error('Data:', JSON.stringify(data, null, 2));
       throw e;
+    }
+  }
+}
+
+export class CommentModel {
+  public id: string;
+  public text: string;
+  public author: string;
+  public authorFriendly: string;
+  public createdAt: string;
+  public updatedAt: string;
+  public transcriptionId: string;
+  public entityType: 'region' | 'issue' | 'transcription';
+  public entityId: string;
+  public parentCommentId?: string;
+  public metadata?: Record<string, unknown>;
+  public _version: number;
+
+  constructor(data: CommentData) {
+    this.id = data.id;
+    this.text = data.text;
+    this.author = data.author;
+    this.authorFriendly = data.authorFriendly;
+    this.createdAt = data.createdAt;
+    this.updatedAt = data.updatedAt;
+    this.transcriptionId = data.transcriptionId;
+    this.entityType = data.entityType;
+    this.entityId = data.entityId;
+    this.parentCommentId = data.parentCommentId;
+    
+    // Parse metadata if it's a JSON string
+    if (data.metadata) {
+      try {
+        this.metadata = typeof data.metadata === 'string' ? JSON.parse(data.metadata) : data.metadata;
+      } catch (e) {
+        console.warn('Failed to parse comment metadata:', e);
+        this.metadata = {};
+      }
+    }
+
+    // Set version tracking
+    if (data._version === undefined) {
+      console.warn('CommentModel: Missing _version for comment', data.id, '- should only happen during initial creation');
+      this._version = 1; // Temporary until DB assigns version
+    } else {
+      this._version = data._version;
+    }
+  }
+
+  /**
+   * Helper function to strip domain from email addresses
+   */
+  private stripEmailDomain(email: string): string {
+    if (!email) return email;
+    const atIndex = email.indexOf('@');
+    return atIndex !== -1 ? email.substring(0, atIndex) : email;
+  }
+
+  /**
+   * Check if the current user is the author of this comment
+   */
+  isMine(currentUserId?: string): boolean {
+    if (!currentUserId) return false;
+    return this.author === currentUserId;
+  }
+
+  /**
+   * Get the display name for the author, showing "me" if it's the current user
+   */
+  getAuthorDisplay(currentUserId?: string): string {
+    if (this.isMine(currentUserId)) {
+      return 'me';
+    }
+    return this.stripEmailDomain(this.authorFriendly);
+  }
+
+  /**
+   * Get a formatted date string for display
+   */
+  get createdAtFormatted(): string {
+    try {
+      const date = new Date(this.createdAt);
+      if (isNaN(date.getTime())) {
+        return 'Invalid Date';
+      }
+      return date.toLocaleDateString();
+    } catch {
+      return 'Invalid Date';
+    }
+  }
+
+  /**
+   * Check if this comment is a reply to another comment
+   */
+  get isReply(): boolean {
+    return !!this.parentCommentId;
+  }
+
+  /**
+   * Get the entity type display name
+   */
+  get entityTypeDisplay(): string {
+    switch (this.entityType) {
+      case 'region':
+        return 'Region';
+      case 'issue':
+        return 'Issue';
+      case 'transcription':
+        return 'Transcription';
+      default:
+        return 'Unknown';
     }
   }
 }

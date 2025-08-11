@@ -75,7 +75,7 @@ describe('RegionService (Simple GraphQL Test)', () => {
             transcriptionId: { eq: transcriptionId },
             _deleted: { ne: true },
           },
-          limit: 1000,
+          limit: 2000,
         },
       });
 

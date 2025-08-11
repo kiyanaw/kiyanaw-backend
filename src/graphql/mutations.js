@@ -16,6 +16,7 @@ export const createTranscription = /* GraphQL */ `
       length
       issues
       comments
+      commentCount
       tags
       source
       index
@@ -68,6 +69,7 @@ export const updateTranscription = /* GraphQL */ `
       length
       issues
       comments
+      commentCount
       tags
       source
       index
@@ -120,6 +122,7 @@ export const deleteTranscription = /* GraphQL */ `
       length
       issues
       comments
+      commentCount
       tags
       source
       index
@@ -169,6 +172,7 @@ export const createRegion = /* GraphQL */ `
       regionText
       regionAnalysis
       isNote
+      commentCount
       translation
       dateLastUpdated
       userLastUpdated
@@ -182,6 +186,7 @@ export const createRegion = /* GraphQL */ `
         length
         issues
         comments
+        commentCount
         tags
         source
         index
@@ -224,6 +229,7 @@ export const updateRegion = /* GraphQL */ `
       regionText
       regionAnalysis
       isNote
+      commentCount
       translation
       dateLastUpdated
       userLastUpdated
@@ -237,6 +243,7 @@ export const updateRegion = /* GraphQL */ `
         length
         issues
         comments
+        commentCount
         tags
         source
         index
@@ -279,6 +286,7 @@ export const deleteRegion = /* GraphQL */ `
       regionText
       regionAnalysis
       isNote
+      commentCount
       translation
       dateLastUpdated
       userLastUpdated
@@ -292,6 +300,7 @@ export const deleteRegion = /* GraphQL */ `
         length
         issues
         comments
+        commentCount
         tags
         source
         index
@@ -336,6 +345,7 @@ export const createIssue = /* GraphQL */ `
       resolved
       type
       comments
+      commentCount
       regionId
       transcription {
         id
@@ -347,6 +357,7 @@ export const createIssue = /* GraphQL */ `
         length
         issues
         comments
+        commentCount
         tags
         source
         index
@@ -391,6 +402,7 @@ export const updateIssue = /* GraphQL */ `
       resolved
       type
       comments
+      commentCount
       regionId
       transcription {
         id
@@ -402,6 +414,7 @@ export const updateIssue = /* GraphQL */ `
         length
         issues
         comments
+        commentCount
         tags
         source
         index
@@ -446,6 +459,7 @@ export const deleteIssue = /* GraphQL */ `
       resolved
       type
       comments
+      commentCount
       regionId
       transcription {
         id
@@ -457,6 +471,7 @@ export const deleteIssue = /* GraphQL */ `
         length
         issues
         comments
+        commentCount
         tags
         source
         index
@@ -585,6 +600,7 @@ export const createComment = /* GraphQL */ `
         length
         issues
         comments
+        commentCount
         tags
         source
         index
@@ -661,6 +677,7 @@ export const updateComment = /* GraphQL */ `
         length
         issues
         comments
+        commentCount
         tags
         source
         index
@@ -737,6 +754,7 @@ export const deleteComment = /* GraphQL */ `
         length
         issues
         comments
+        commentCount
         tags
         source
         index

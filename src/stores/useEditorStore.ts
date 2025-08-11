@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import type { TranscriptionData, RegionData, ProcessedIssue } from '../types/shared';
+import type { TranscriptionData, RegionData } from '../types/shared';
+import type { IssueData } from '../services/adt';
 import type { ConflictDetail } from '../services/conflictDetectionService';
 import type { PendingEdit } from '../services/pendingEditsService';
 import Timeout from 'smart-timeout';
@@ -8,7 +9,7 @@ import Timeout from 'smart-timeout';
 interface EditorDataPayload {
   transcription: TranscriptionData;
   regions: RegionData[];
-  issues: ProcessedIssue[];
+  issues: IssueData[];
   source?: string;
   peaks?: number[];
   isVideo?: boolean;
@@ -40,8 +41,9 @@ interface EditorState {
   conflictQueue: ConflictDetail[];
 
   // Issues state
-  issues: ProcessedIssue[];
-  issueMap: Record<string, ProcessedIssue>;
+  issues: IssueData[];
+  issueMap: Record<string, IssueData>;
+  issuesByRegionMap: Record<string, IssueData[]>; // regionId -> issues[]
 
   // Subscriptions
   _subscriptions: { unsubscribe: () => void }[];
@@ -85,8 +87,9 @@ interface EditorState {
 
   // Computed getters
   regionById: (id: string) => RegionData | null;
-  issueById: (id: string) => ProcessedIssue | null;
-  issuesByRegion: (regionId: string) => ProcessedIssue[];
+  issueById: (id: string) => IssueData | null;
+  issuesByRegion: (regionId: string) => IssueData[];
+  getIssuesForRegion: (regionId: string) => IssueData[];
   getRegionVersion: (id: string) => number;
   setRegionVersion: (id: string, version: number) => void;
   isPendingEdit: (regionId: string, field?: string) => boolean;
@@ -98,6 +101,9 @@ interface EditorState {
 }
 
 
+
+// Stable empty array to prevent unnecessary re-renders
+const EMPTY_ISSUES_ARRAY: IssueData[] = [];
 
 export const useEditorStore = create<EditorState>()(
   devtools(
@@ -116,6 +122,7 @@ export const useEditorStore = create<EditorState>()(
       conflictQueue: [],
       issues: [],
       issueMap: {},
+      issuesByRegionMap: {},
       _subscriptions: [],
 
       isTranscriptionAuthor: (user) => {
@@ -149,9 +156,17 @@ export const useEditorStore = create<EditorState>()(
         });
 
         // Process issues
-        const issueMap: Record<string, ProcessedIssue> = {};
+        const issueMap: Record<string, IssueData> = {};
+        const issuesByRegionMap: Record<string, IssueData[]> = {};
+        
         issues.forEach((issue) => {
           issueMap[issue.id] = issue;
+          
+          // Group issues by regionId for efficient lookup
+          if (!issuesByRegionMap[issue.regionId]) {
+            issuesByRegionMap[issue.regionId] = [];
+          }
+          issuesByRegionMap[issue.regionId].push(issue);
         });
 
         // Set initial state
@@ -162,6 +177,7 @@ export const useEditorStore = create<EditorState>()(
           regionVersions,
           issues,
           issueMap,
+          issuesByRegionMap,
           peaks: peaks,
           knownWords: new Set<string>() // Will be populated by use-case
         };
@@ -198,6 +214,7 @@ export const useEditorStore = create<EditorState>()(
           conflictQueue: [],
           issues: [],
           issueMap: {},
+          issuesByRegionMap: {},
           selectedRegionId: null,
           selectedRegion: null,
           playbackWithinRegion: null,
@@ -387,8 +404,13 @@ export const useEditorStore = create<EditorState>()(
       },
 
       issuesByRegion: (regionId) => {
-        const { issues } = get();
-        return issues.filter(issue => issue.regionId === regionId);
+        const { issuesByRegionMap } = get();
+        return issuesByRegionMap[regionId] || EMPTY_ISSUES_ARRAY;
+      },
+
+      getIssuesForRegion: (regionId) => {
+        const { issuesByRegionMap } = get();
+        return issuesByRegionMap[regionId] || EMPTY_ISSUES_ARRAY;
       },
 
       getRegionVersion: (id) => {

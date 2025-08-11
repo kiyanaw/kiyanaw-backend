@@ -30,6 +30,7 @@ type EagerTranscription = {
   readonly length?: number | null;
   readonly issues?: string | null;
   readonly comments?: string | null;
+  readonly commentCount?: number | null;
   readonly tags?: string | null;
   readonly source?: string | null;
   readonly index?: string | null;
@@ -60,6 +61,7 @@ type LazyTranscription = {
   readonly length?: number | null;
   readonly issues?: string | null;
   readonly comments?: string | null;
+  readonly commentCount?: number | null;
   readonly tags?: string | null;
   readonly source?: string | null;
   readonly index?: string | null;
@@ -93,6 +95,7 @@ type EagerRegion = {
   readonly regionText?: string | null;
   readonly regionAnalysis?: (string | null)[] | null;
   readonly isNote?: boolean | null;
+  readonly commentCount?: number | null;
   readonly translation?: string | null;
   readonly dateLastUpdated: string;
   readonly userLastUpdated: string;
@@ -108,6 +111,7 @@ type LazyRegion = {
   readonly regionText?: string | null;
   readonly regionAnalysis?: (string | null)[] | null;
   readonly isNote?: boolean | null;
+  readonly commentCount?: number | null;
   readonly translation?: string | null;
   readonly dateLastUpdated: string;
   readonly userLastUpdated: string;
@@ -131,6 +135,7 @@ type EagerIssue = {
   readonly resolved?: boolean | null;
   readonly type: string;
   readonly comments?: string | null;
+  readonly commentCount?: number | null;
   readonly regionId: string;
   readonly transcription: Transcription;
   readonly createdAt?: string | null;
@@ -146,6 +151,7 @@ type LazyIssue = {
   readonly resolved?: boolean | null;
   readonly type: string;
   readonly comments?: string | null;
+  readonly commentCount?: number | null;
   readonly regionId: string;
   readonly transcription: AsyncItem<Transcription>;
   readonly createdAt?: string | null;

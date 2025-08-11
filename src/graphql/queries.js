@@ -13,6 +13,7 @@ export const getTranscription = /* GraphQL */ `
       length
       issues
       comments
+      commentCount
       tags
       source
       index
@@ -75,6 +76,7 @@ export const listTranscriptions = /* GraphQL */ `
         length
         issues
         comments
+        commentCount
         tags
         source
         index
@@ -124,6 +126,7 @@ export const syncTranscriptions = /* GraphQL */ `
         length
         issues
         comments
+        commentCount
         tags
         source
         index
@@ -175,6 +178,7 @@ export const byTitle = /* GraphQL */ `
         length
         issues
         comments
+        commentCount
         tags
         source
         index
@@ -210,6 +214,7 @@ export const getRegion = /* GraphQL */ `
       regionText
       regionAnalysis
       isNote
+      commentCount
       translation
       dateLastUpdated
       userLastUpdated
@@ -223,6 +228,7 @@ export const getRegion = /* GraphQL */ `
         length
         issues
         comments
+        commentCount
         tags
         source
         index
@@ -275,6 +281,7 @@ export const listRegions = /* GraphQL */ `
         regionText
         regionAnalysis
         isNote
+        commentCount
         translation
         dateLastUpdated
         userLastUpdated
@@ -312,6 +319,7 @@ export const syncRegions = /* GraphQL */ `
         regionText
         regionAnalysis
         isNote
+        commentCount
         translation
         dateLastUpdated
         userLastUpdated
@@ -351,6 +359,7 @@ export const regionsByTranscription = /* GraphQL */ `
         regionText
         regionAnalysis
         isNote
+        commentCount
         translation
         dateLastUpdated
         userLastUpdated
@@ -379,6 +388,7 @@ export const getIssue = /* GraphQL */ `
       resolved
       type
       comments
+      commentCount
       regionId
       transcription {
         id
@@ -390,6 +400,7 @@ export const getIssue = /* GraphQL */ `
         length
         issues
         comments
+        commentCount
         tags
         source
         index
@@ -444,6 +455,7 @@ export const listIssues = /* GraphQL */ `
         resolved
         type
         comments
+        commentCount
         regionId
         transcriptionId
         createdAt
@@ -481,6 +493,7 @@ export const syncIssues = /* GraphQL */ `
         resolved
         type
         comments
+        commentCount
         regionId
         transcriptionId
         createdAt
@@ -520,6 +533,7 @@ export const issuesByTranscription = /* GraphQL */ `
         resolved
         type
         comments
+        commentCount
         regionId
         transcriptionId
         createdAt
@@ -731,6 +745,7 @@ export const getComment = /* GraphQL */ `
         length
         issues
         comments
+        commentCount
         tags
         source
         index
