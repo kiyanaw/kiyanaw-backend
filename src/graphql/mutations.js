@@ -39,6 +39,11 @@ export const createTranscription = /* GraphQL */ `
         startedAt
         __typename
       }
+      relatedComments {
+        nextToken
+        startedAt
+        __typename
+      }
       createdAt
       updatedAt
       _version
@@ -86,6 +91,11 @@ export const updateTranscription = /* GraphQL */ `
         startedAt
         __typename
       }
+      relatedComments {
+        nextToken
+        startedAt
+        __typename
+      }
       createdAt
       updatedAt
       _version
@@ -129,6 +139,11 @@ export const deleteTranscription = /* GraphQL */ `
         __typename
       }
       issueList {
+        nextToken
+        startedAt
+        __typename
+      }
+      relatedComments {
         nextToken
         startedAt
         __typename
@@ -316,6 +331,7 @@ export const createIssue = /* GraphQL */ `
       id
       text
       owner
+      ownerFriendly
       index
       resolved
       type
@@ -370,6 +386,7 @@ export const updateIssue = /* GraphQL */ `
       id
       text
       owner
+      ownerFriendly
       index
       resolved
       type
@@ -424,6 +441,7 @@ export const deleteIssue = /* GraphQL */ `
       id
       text
       owner
+      ownerFriendly
       index
       resolved
       type
@@ -537,6 +555,234 @@ export const deleteInvite = /* GraphQL */ `
       transcriptionId
       transcriptionTitle
       updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;
+export const createComment = /* GraphQL */ `
+  mutation CreateComment(
+    $input: CreateCommentInput!
+    $condition: ModelCommentConditionInput
+  ) {
+    createComment(input: $input, condition: $condition) {
+      id
+      text
+      author
+      authorFriendly
+      createdAt
+      updatedAt
+      transcriptionId
+      transcription {
+        id
+        author
+        authorFriendly
+        coverage
+        dateLastUpdated
+        userLastUpdated
+        length
+        issues
+        comments
+        tags
+        source
+        index
+        lang
+        title
+        type
+        isPrivate
+        isPublished
+        disableAnalyzer
+        editors
+        viewers
+        editorGroups
+        viewerGroups
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      entityType
+      entityId
+      parentCommentId
+      parentComment {
+        id
+        text
+        author
+        authorFriendly
+        createdAt
+        updatedAt
+        transcriptionId
+        entityType
+        entityId
+        parentCommentId
+        metadata
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      replies {
+        nextToken
+        startedAt
+        __typename
+      }
+      metadata
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;
+export const updateComment = /* GraphQL */ `
+  mutation UpdateComment(
+    $input: UpdateCommentInput!
+    $condition: ModelCommentConditionInput
+  ) {
+    updateComment(input: $input, condition: $condition) {
+      id
+      text
+      author
+      authorFriendly
+      createdAt
+      updatedAt
+      transcriptionId
+      transcription {
+        id
+        author
+        authorFriendly
+        coverage
+        dateLastUpdated
+        userLastUpdated
+        length
+        issues
+        comments
+        tags
+        source
+        index
+        lang
+        title
+        type
+        isPrivate
+        isPublished
+        disableAnalyzer
+        editors
+        viewers
+        editorGroups
+        viewerGroups
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      entityType
+      entityId
+      parentCommentId
+      parentComment {
+        id
+        text
+        author
+        authorFriendly
+        createdAt
+        updatedAt
+        transcriptionId
+        entityType
+        entityId
+        parentCommentId
+        metadata
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      replies {
+        nextToken
+        startedAt
+        __typename
+      }
+      metadata
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;
+export const deleteComment = /* GraphQL */ `
+  mutation DeleteComment(
+    $input: DeleteCommentInput!
+    $condition: ModelCommentConditionInput
+  ) {
+    deleteComment(input: $input, condition: $condition) {
+      id
+      text
+      author
+      authorFriendly
+      createdAt
+      updatedAt
+      transcriptionId
+      transcription {
+        id
+        author
+        authorFriendly
+        coverage
+        dateLastUpdated
+        userLastUpdated
+        length
+        issues
+        comments
+        tags
+        source
+        index
+        lang
+        title
+        type
+        isPrivate
+        isPublished
+        disableAnalyzer
+        editors
+        viewers
+        editorGroups
+        viewerGroups
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      entityType
+      entityId
+      parentCommentId
+      parentComment {
+        id
+        text
+        author
+        authorFriendly
+        createdAt
+        updatedAt
+        transcriptionId
+        entityType
+        entityId
+        parentCommentId
+        metadata
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      replies {
+        nextToken
+        startedAt
+        __typename
+      }
+      metadata
       _version
       _deleted
       _lastChangedAt

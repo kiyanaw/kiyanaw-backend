@@ -39,6 +39,11 @@ export const onCreateTranscription = /* GraphQL */ `
         startedAt
         __typename
       }
+      relatedComments {
+        nextToken
+        startedAt
+        __typename
+      }
       createdAt
       updatedAt
       _version
@@ -86,6 +91,11 @@ export const onUpdateTranscription = /* GraphQL */ `
         startedAt
         __typename
       }
+      relatedComments {
+        nextToken
+        startedAt
+        __typename
+      }
       createdAt
       updatedAt
       _version
@@ -129,6 +139,11 @@ export const onDeleteTranscription = /* GraphQL */ `
         __typename
       }
       issueList {
+        nextToken
+        startedAt
+        __typename
+      }
+      relatedComments {
         nextToken
         startedAt
         __typename
@@ -304,6 +319,7 @@ export const onCreateIssue = /* GraphQL */ `
       id
       text
       owner
+      ownerFriendly
       index
       resolved
       type
@@ -355,6 +371,7 @@ export const onUpdateIssue = /* GraphQL */ `
       id
       text
       owner
+      ownerFriendly
       index
       resolved
       type
@@ -406,6 +423,7 @@ export const onDeleteIssue = /* GraphQL */ `
       id
       text
       owner
+      ownerFriendly
       index
       resolved
       type
@@ -522,6 +540,234 @@ export const onDeleteInvite = /* GraphQL */ `
       transcriptionId
       transcriptionTitle
       updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;
+export const onCreateComment = /* GraphQL */ `
+  subscription OnCreateComment(
+    $filter: ModelSubscriptionCommentFilterInput
+    $author: String
+  ) {
+    onCreateComment(filter: $filter, author: $author) {
+      id
+      text
+      author
+      authorFriendly
+      createdAt
+      updatedAt
+      transcriptionId
+      transcription {
+        id
+        author
+        authorFriendly
+        coverage
+        dateLastUpdated
+        userLastUpdated
+        length
+        issues
+        comments
+        tags
+        source
+        index
+        lang
+        title
+        type
+        isPrivate
+        isPublished
+        disableAnalyzer
+        editors
+        viewers
+        editorGroups
+        viewerGroups
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      entityType
+      entityId
+      parentCommentId
+      parentComment {
+        id
+        text
+        author
+        authorFriendly
+        createdAt
+        updatedAt
+        transcriptionId
+        entityType
+        entityId
+        parentCommentId
+        metadata
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      replies {
+        nextToken
+        startedAt
+        __typename
+      }
+      metadata
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;
+export const onUpdateComment = /* GraphQL */ `
+  subscription OnUpdateComment(
+    $filter: ModelSubscriptionCommentFilterInput
+    $author: String
+  ) {
+    onUpdateComment(filter: $filter, author: $author) {
+      id
+      text
+      author
+      authorFriendly
+      createdAt
+      updatedAt
+      transcriptionId
+      transcription {
+        id
+        author
+        authorFriendly
+        coverage
+        dateLastUpdated
+        userLastUpdated
+        length
+        issues
+        comments
+        tags
+        source
+        index
+        lang
+        title
+        type
+        isPrivate
+        isPublished
+        disableAnalyzer
+        editors
+        viewers
+        editorGroups
+        viewerGroups
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      entityType
+      entityId
+      parentCommentId
+      parentComment {
+        id
+        text
+        author
+        authorFriendly
+        createdAt
+        updatedAt
+        transcriptionId
+        entityType
+        entityId
+        parentCommentId
+        metadata
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      replies {
+        nextToken
+        startedAt
+        __typename
+      }
+      metadata
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;
+export const onDeleteComment = /* GraphQL */ `
+  subscription OnDeleteComment(
+    $filter: ModelSubscriptionCommentFilterInput
+    $author: String
+  ) {
+    onDeleteComment(filter: $filter, author: $author) {
+      id
+      text
+      author
+      authorFriendly
+      createdAt
+      updatedAt
+      transcriptionId
+      transcription {
+        id
+        author
+        authorFriendly
+        coverage
+        dateLastUpdated
+        userLastUpdated
+        length
+        issues
+        comments
+        tags
+        source
+        index
+        lang
+        title
+        type
+        isPrivate
+        isPublished
+        disableAnalyzer
+        editors
+        viewers
+        editorGroups
+        viewerGroups
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      entityType
+      entityId
+      parentCommentId
+      parentComment {
+        id
+        text
+        author
+        authorFriendly
+        createdAt
+        updatedAt
+        transcriptionId
+        entityType
+        entityId
+        parentCommentId
+        metadata
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      replies {
+        nextToken
+        startedAt
+        __typename
+      }
+      metadata
       _version
       _deleted
       _lastChangedAt
