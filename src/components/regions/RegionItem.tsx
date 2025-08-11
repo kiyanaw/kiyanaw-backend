@@ -92,7 +92,7 @@ export const RegionItem = ({
             <span className="block font-mono font-bold text-red-600">{formatTime(region.end)}</span>
           </div>
           <div
-            className="pr-4 leading-relaxed [&_.known-word]:text-blue-600 [&_.unknown-word]:bg-red-50 [&_.unknown-word]:text-red-800 [&_.proper-noun]:font-bold [&_.proper-noun]:text-blue-700 [&_.emphasis]:italic [&_.strong]:font-bold [&_.issue-text]:bg-red-50 [&_.issue-text]:text-red-800 [&_.issue-text]:px-0.5 [&_.issue-text]:rounded empty:before:content-['No_text_content'] empty:before:text-gray-400 empty:before:italic"
+            className="pr-4 leading-relaxed [&_.known-word]:text-blue-600 [&_.unknown-word]:bg-red-50 [&_.unknown-word]:text-red-800 [&_.proper-noun]:font-bold [&_.proper-noun]:text-blue-700 [&_.emphasis]:italic [&_.strong]:font-bold [&_.issue-needs-help]:bg-red-50 [&_.issue-needs-help]:text-red-800 [&_.issue-needs-help]:px-0.5 [&_.issue-needs-help]:rounded [&_.issue-indexing]:bg-yellow-50 [&_.issue-indexing]:text-yellow-800 [&_.issue-indexing]:px-0.5 [&_.issue-indexing]:rounded [&_.issue-new-word]:bg-green-50 [&_.issue-new-word]:text-green-800 [&_.issue-new-word]:px-0.5 [&_.issue-new-word]:rounded empty:before:content-['No_text_content'] empty:before:text-gray-400 empty:before:italic"
             dangerouslySetInnerHTML={{ __html: renderTextContent }}
           />
           <span className="absolute top-0 right-1 text-3xl font-black text-gray-200 pointer-events-none">{index + 1}</span>

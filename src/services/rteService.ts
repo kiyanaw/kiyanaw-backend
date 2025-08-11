@@ -3,7 +3,7 @@ import 'react-quill/dist/quill.snow.css';
 
 // Import quill-cursors for collaborative editing
 import QuillCursors from 'quill-cursors';
-import { textHighlightService } from './textHighlightService';
+import { textHighlightService, type IssueHighlight, type IssueType } from './textHighlightService';
 
 // Quill-related interfaces
 interface QuillModulesConfig extends Record<string, unknown> {
@@ -72,7 +72,88 @@ class KnownWordBlot extends Inline implements BlotInstance {
   }
 }
 
+class IssueNeedsHelpBlot extends Inline implements BlotInstance {
+  declare domNode: HTMLElement;
+  
+  static blotName = 'issue-needs-help';
+  static tagName = 'span';
+  static className = 'issue-needs-help';
+  
+  static create() {
+    const node = super.create();
+    node.setAttribute('class', 'issue-needs-help');
+    return node;
+  }
+  
+  static formats(node: HTMLElement) {
+    return node.getAttribute('class') === 'issue-needs-help';
+  }
+  
+  format(name: string, value: boolean | string) {
+    if (name !== 'issue-needs-help' || !value) {
+      super.format(name, value);
+    } else {
+      this.domNode.setAttribute('class', 'issue-needs-help');
+    }
+  }
+}
+
+class IssueIndexingBlot extends Inline implements BlotInstance {
+  declare domNode: HTMLElement;
+  
+  static blotName = 'issue-indexing';
+  static tagName = 'span';
+  static className = 'issue-indexing';
+  
+  static create() {
+    const node = super.create();
+    node.setAttribute('class', 'issue-indexing');
+    return node;
+  }
+  
+  static formats(node: HTMLElement) {
+    return node.getAttribute('class') === 'issue-indexing';
+  }
+  
+  format(name: string, value: boolean | string) {
+    if (name !== 'issue-indexing' || !value) {
+      super.format(name, value);
+    } else {
+      this.domNode.setAttribute('class', 'issue-indexing');
+    }
+  }
+}
+
+class IssueNewWordBlot extends Inline implements BlotInstance {
+  declare domNode: HTMLElement;
+  
+  static blotName = 'issue-new-word';
+  static tagName = 'span';
+  static className = 'issue-new-word';
+  
+  static create() {
+    const node = super.create();
+    node.setAttribute('class', 'issue-new-word');
+    return node;
+  }
+  
+  static formats(node: HTMLElement) {
+    return node.getAttribute('class') === 'issue-new-word';
+  }
+  
+  format(name: string, value: boolean | string) {
+    if (name !== 'issue-new-word' || !value) {
+      super.format(name, value);
+    } else {
+      this.domNode.setAttribute('class', 'issue-new-word');
+    }
+  }
+}
+
 Quill.register('formats/known-word', KnownWordBlot);
+Quill.register('formats/issue-needs-help', IssueNeedsHelpBlot);
+Quill.register('formats/issue-indexing', IssueIndexingBlot);
+Quill.register('formats/issue-new-word', IssueNewWordBlot);
 
 // Custom formats are now defined in src/index.css
 
@@ -134,7 +215,7 @@ class RTEServiceImpl {
           matchVisual: false,
         },
       },
-      formats: ['bold', 'italic', 'underline', 'color', 'background', 'known-word']
+      formats: ['bold', 'italic', 'underline', 'color', 'background', 'known-word', 'issue-needs-help', 'issue-indexing', 'issue-new-word']
     };
 
     const defaultTranslationConfig = {
@@ -288,6 +369,43 @@ class RTEServiceImpl {
     instance.quill.off('text-change');
   }
 
+  // Find issue matches in text (similar to findMatches but for issues)
+  private findIssueMatches(text: string, issues: IssueHighlight[]) {
+    if (!text || issues.length === 0) {
+      return [];
+    }
+
+    const matches: Array<{ index: number; length: number; id: string; type: IssueType }> = [];
+    const tokenPattern = /([\p{L}\p{N}_-]+)/u;
+    const tokens = text.split(tokenPattern);
+    let currentIndex = 0;
+    
+    // Create issue text lookup for efficient matching
+    const issueTextMap = new Map(issues.map(issue => [issue.text.toLowerCase(), { id: issue.id, type: issue.type }]));
+    
+    for (const token of tokens) {
+      if (tokenPattern.test(token)) {
+        const lowerToken = token.toLowerCase();
+        const issueInfo = issueTextMap.get(lowerToken);
+        if (issueInfo) {
+          matches.push({
+            index: currentIndex,
+            length: token.length,
+            id: issueInfo.id,
+            type: issueInfo.type
+          });
+        }
+      }
+      currentIndex += token.length;
+    }
+    
+    // Sort by index for safe RTE formatting
+    return matches.sort((a, b) => {
+      if (a.index !== b.index) return a.index - b.index;
+      return b.length - a.length;
+    });
+  }
+
   // Apply known words formatting to editor
   applyKnownWordsFormatting(key: EditorKey, knownWords: string[]): void {
     const instance = this.registry.get(key);
@@ -309,6 +427,70 @@ class RTEServiceImpl {
     matches.forEach(({ index, length }) => {
       instance.quill.formatText(index, length, 'known-word', true, 'api');
     });
+  }
+
+  // Apply issue formatting to editor
+  applyIssueFormatting(key: EditorKey, issues: IssueHighlight[]): void {
+    const instance = this.registry.get(key);
+    if (!instance || issues.length === 0) {
+      return;
+    }
+
+    const text = instance.quill.getText();
+    if (!text) return;
+
+    // Clear any existing issue formatting first
+    ['issue-needs-help', 'issue-indexing', 'issue-new-word'].forEach(format => {
+      instance.quill.formatText(0, text.length, format, false, 'api');
+    });
+
+    // Find issue matches
+    const matches = this.findIssueMatches(text, issues);
+    
+    // Apply specific issue formatting based on type
+    matches.forEach(({ index, length, type }) => {
+      const formatName = `issue-${type}`;
+      instance.quill.formatText(index, length, formatName, true, 'api');
+    });
+  }
+
+  // Apply both known words and issue formatting (issues take priority)
+  applyHighlighting(key: EditorKey, options: { knownWords?: string[]; issues?: IssueHighlight[] }): void {
+    const instance = this.registry.get(key);
+    if (!instance) {
+      return;
+    }
+
+    const text = instance.quill.getText();
+    if (!text) return;
+
+    const { knownWords = [], issues = [] } = options;
+
+    // Clear all existing formatting first
+    instance.quill.formatText(0, text.length, 'known-word', false, 'api');
+    ['issue-needs-help', 'issue-indexing', 'issue-new-word'].forEach(format => {
+      instance.quill.formatText(0, text.length, format, false, 'api');
+    });
+
+    // Apply known words first
+    if (knownWords.length > 0) {
+      const knownWordsSet = new Set(knownWords);
+      const knownWordMatches = textHighlightService.findMatches(text, knownWordsSet);
+      knownWordMatches.forEach(({ index, length }) => {
+        instance.quill.formatText(index, length, 'known-word', true, 'api');
+      });
+    }
+
+    // Apply issues second (they will override known words where they overlap)
+    if (issues.length > 0) {
+      const issueMatches = this.findIssueMatches(text, issues);
+      issueMatches.forEach(({ index, length, type }) => {
+        // Clear known-word formatting at this position first, then apply issue formatting
+        instance.quill.formatText(index, length, 'known-word', false, 'api');
+        const formatName = `issue-${type}`;
+        instance.quill.formatText(index, length, formatName, true, 'api');
+      });
+    }
   }
 
   // Clean up all editors (useful for testing or app shutdown)

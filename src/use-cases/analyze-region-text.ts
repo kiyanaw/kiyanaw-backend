@@ -1,5 +1,6 @@
 import { spellCheckerService } from '../services/spellCheckerService';
-import { rteService, type EditorKey } from '../services/rteService';
+import type { EditorKey } from '../services/rteService';
+import { issueHighlightService } from '../services/issueHighlightService';
 import { services } from '../services';
 import Timeout from 'smart-timeout';
 
@@ -117,10 +118,25 @@ export class AnalyzeRegionTextUseCase {
     // Update region analysis in store (this will be picked up by the coordinated save)
     store.setRegionAnalysis(regionId, allKnownWords);
 
-    // Apply formatting to the main editor
+    // Apply known words and issue highlighting to the main editor
     const mainEditorKey: EditorKey = `${regionId}:main`;
-    if (rteService.hasEditor(mainEditorKey)) {
-      rteService.applyKnownWordsFormatting(mainEditorKey, allKnownWords);
+    const configRteService = this.config.services.rteService;
+    if (configRteService.hasEditor(mainEditorKey)) {
+      // Try to get issues if store supports it, otherwise use empty array
+      const issues = typeof store.getIssuesForRegion === 'function' 
+        ? store.getIssuesForRegion(regionId) 
+        : [];
+      const issueHighlights = issueHighlightService.convertIssuesToHighlights(issues);
+      
+      // Use applyHighlighting if available, fallback to applyKnownWordsFormatting
+      if (typeof configRteService.applyHighlighting === 'function') {
+        configRteService.applyHighlighting(mainEditorKey, {
+          knownWords: allKnownWords,
+          issues: issueHighlights
+        });
+      } else {
+        configRteService.applyKnownWordsFormatting(mainEditorKey, allKnownWords);
+      }
     }
 
     //console.log(`Analyzed "${text.slice(0, 50)}..." - Found ${allKnownWords.length} known words (${alreadyKnownWords.length} cached, ${allKnownWords.length - alreadyKnownWords.length} from API):`, allKnownWords);

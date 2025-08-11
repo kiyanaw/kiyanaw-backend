@@ -30,8 +30,8 @@ describe('IssueHighlightService', () => {
       const result = issueHighlightService.convertIssuesToHighlights(issues);
 
       expect(result).toEqual([
-        { text: 'problematic word', id: 'issue-1' },
-        { text: 'another issue', id: 'issue-2' }
+        { text: 'problematic word', id: 'issue-1', type: 'needs-help' },
+        { text: 'another issue', id: 'issue-2', type: 'needs-help' }
       ]);
     });
 

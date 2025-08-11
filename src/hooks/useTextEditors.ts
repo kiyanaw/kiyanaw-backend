@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef } from 'react';
 import { rteService, type EditorKey } from '../services/rteService';
+import { issueHighlightService } from '../services/issueHighlightService';
 import { UpdateRegionTextUseCase } from '../use-cases/update-region-text';
 import { AnalyzeRegionTextUseCase } from '../use-cases/analyze-region-text';
 import { useEditorStore } from '../stores/useEditorStore';
@@ -38,9 +39,22 @@ export const useTextEditors = (regionId: string, activeTab: 'main' | 'translatio
     if (!currentContent && currentRegion?.regionText) {
       rteService.setContent(mainEditorKey, currentRegion.regionText);
       
-      // Apply known words formatting from cache immediately
-      const knownWords = Array.from(useEditorStore.getState().knownWords);
-      if (knownWords.length > 0) {
+      // Apply known words and issue highlighting from cache immediately
+      const state = useEditorStore.getState();
+      const knownWords = Array.from(state.knownWords);
+      // Try to get issues if store supports it, otherwise use empty array
+      const issues = typeof state.getIssuesForRegion === 'function' 
+        ? state.getIssuesForRegion(regionId) 
+        : [];
+      const issueHighlights = issueHighlightService.convertIssuesToHighlights(issues);
+      
+      // Use applyHighlighting if available, fallback to applyKnownWordsFormatting
+      if (typeof rteService.applyHighlighting === 'function') {
+        rteService.applyHighlighting(mainEditorKey, {
+          knownWords,
+          issues: issueHighlights
+        });
+      } else {
         rteService.applyKnownWordsFormatting(mainEditorKey, knownWords);
       }
     }
@@ -67,10 +81,25 @@ export const useTextEditors = (regionId: string, activeTab: 'main' | 'translatio
           services
         }).execute();
 
-        // IMMEDIATELY apply cached known words formatting
+        // IMMEDIATELY apply cached known words and issue highlighting
         // This solves format inheritance and word splitting issues
-        const knownWords = Array.from(useEditorStore.getState().knownWords);
-        rteService.applyKnownWordsFormatting(mainEditorKey, knownWords);
+        const state = useEditorStore.getState();
+        const knownWords = Array.from(state.knownWords);
+        // Try to get issues if store supports it, otherwise use empty array
+        const issues = typeof state.getIssuesForRegion === 'function' 
+          ? state.getIssuesForRegion(regionId) 
+          : [];
+        const issueHighlights = issueHighlightService.convertIssuesToHighlights(issues);
+        
+        // Use applyHighlighting if available, fallback to applyKnownWordsFormatting
+        if (typeof rteService.applyHighlighting === 'function') {
+          rteService.applyHighlighting(mainEditorKey, {
+            knownWords,
+            issues: issueHighlights
+          });
+        } else {
+          rteService.applyKnownWordsFormatting(mainEditorKey, knownWords);
+        }
 
         // Analyze text for known words
         new AnalyzeRegionTextUseCase({

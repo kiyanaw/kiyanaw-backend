@@ -4,9 +4,12 @@ export interface HighlightMatch {
   length: number;
 }
 
+export type IssueType = 'needs-help' | 'indexing' | 'new-word';
+
 export interface IssueHighlight {
   text: string;
   id: string;
+  type: IssueType;
 }
 
 export interface HighlightOptions {
@@ -54,8 +57,11 @@ class TextHighlightServiceImpl implements TextHighlightService {
       return text;
     }
 
-    // Create issue text lookup for efficient matching
-    const issueTextSet = new Set(issues.map(issue => issue.text.toLowerCase()));
+    // Create issue text lookup with type information for efficient matching
+    const issueTextMap = new Map<string, IssueType>();
+    issues.forEach(issue => {
+      issueTextMap.set(issue.text.toLowerCase(), issue.type);
+    });
     
     // Split text into tokens while preserving separators
     const tokens = text.split(this.tokenPattern);
@@ -66,8 +72,9 @@ class TextHighlightServiceImpl implements TextHighlightService {
         const lowerToken = token.toLowerCase();
         
         // Issues take priority over known words
-        if (issueTextSet.has(lowerToken)) {
-          return `<span class="issue-text">${token}</span>`;
+        const issueType = issueTextMap.get(lowerToken);
+        if (issueType) {
+          return `<span class="issue-${issueType}">${token}</span>`;
         } else if (knownWords.has(lowerToken)) {
           return `<span class="known-word">${token}</span>`;
         }

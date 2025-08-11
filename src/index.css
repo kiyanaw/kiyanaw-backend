@@ -39,6 +39,8 @@
     color: #3b82f6;
   }
   
+
+  
   .ql-editor .ignore-word {
     color: #777;
   }
@@ -52,7 +54,7 @@
   }
   
   .ql-editor .issue-new-word {
-    background-color: #e6f3ff;
+    background-color: #f0fdf4;
   }
   
   .ql-editor .suggestion {

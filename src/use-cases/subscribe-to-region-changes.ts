@@ -1,5 +1,6 @@
 import { services } from '../services';
 import type { RegionSubscriptionEvent } from '../services/regionService';
+import { issueHighlightService } from '../services/issueHighlightService';
 
 export interface SubscribeToRegionChangesConfig {
   transcriptionId: string;
@@ -314,10 +315,24 @@ export class SubscribeToRegionChangesUseCase {
     if (rteService.hasEditor(editorKey)) {
       rteService.setContent(editorKey, content);
       
-      // Reapply known words formatting after content update
+      // Reapply known words and issue highlighting after content update
       const regionAnalysis = (updatedRegion.regionAnalysis as string[]) || store.regionById(updatedRegion.id as string)?.regionAnalysis;
-      if (regionAnalysis && regionAnalysis.length > 0) {
-        rteService.applyKnownWordsFormatting(editorKey, regionAnalysis);
+      // Try to get issues if store supports it, otherwise use empty array
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const issues = typeof (store as any).getIssuesForRegion === 'function' 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ? (store as any).getIssuesForRegion(updatedRegion.id as string) 
+        : [];
+      const issueHighlights = issueHighlightService.convertIssuesToHighlights(issues);
+      
+      // Use applyHighlighting if available, fallback to applyKnownWordsFormatting
+      if (typeof rteService.applyHighlighting === 'function') {
+        rteService.applyHighlighting(editorKey, {
+          knownWords: regionAnalysis || [],
+          issues: issueHighlights
+        });
+      } else {
+        rteService.applyKnownWordsFormatting(editorKey, regionAnalysis || []);
       }
     }
   }
