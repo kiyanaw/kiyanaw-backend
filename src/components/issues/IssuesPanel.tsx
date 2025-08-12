@@ -7,6 +7,8 @@ import { UpdateIssueTextUseCase } from '../../use-cases/update-issue-text';
 import { IssueDetailsDialog } from './IssueDetailsDialog';
 import { useNavigateIssueRegions } from '../../hooks/useNavigateIssueRegions';
 import { useCreateIssueFromSelection } from '../../hooks/useCreateIssueFromSelection';
+import { useIssueFlashIndicator } from '../../hooks/useIssueFlashIndicator';
+import { FLASH_CONFIG } from '../../services/flashIndicatorService';
 
 // Suggestion Popover Component
 interface SuggestionPopoverProps {
@@ -354,10 +356,14 @@ export const IssuesPanel = ({
             const canResolve = canEdit; // Anyone with transcription edit access can resolve/update
             
 
+            // Flash state for issue-specific flash indicator
+            const issueFlash = useIssueFlashIndicator(issue.id);
+
             return (
               <div
                 key={issue.id}
-                className={`border border-gray-200 rounded-lg mb-3 bg-white transition-all duration-200 hover:border-gray-400 hover:shadow-sm ${
+                id={`issueitem-${issue.id}`}
+                className={`border border-gray-200 rounded-lg mb-3 bg-white transition-all duration-200 hover:border-gray-400 hover:shadow-sm relative ${
                   issue.resolved ? 'opacity-70 bg-gray-50' : ''
                 }`}
               >
@@ -516,6 +522,20 @@ export const IssuesPanel = ({
                     )}
                   </div>
                 </div>
+                
+                {/* Flash indicator overlay */}
+                {issueFlash && (
+                  <div
+                    className="absolute bottom-1 right-2 text-xs font-medium text-green-700 pointer-events-none z-20 bg-white bg-opacity-90 rounded px-1 py-0.5"
+                    style={{
+                      opacity: issueFlash.opacity,
+                      textShadow: issueFlash.isFlashing ? '0 0 8px rgba(34, 197, 94, 0.6)' : 'none',
+                      transition: `opacity ${FLASH_CONFIG.textFadeDuration}ms ${FLASH_CONFIG.textEasing}`
+                    }}
+                  >
+                    {issueFlash.username}
+                  </div>
+                )}
               </div>
             );
           })

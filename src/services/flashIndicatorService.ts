@@ -32,6 +32,7 @@ type FlashEventCallback = (username: string) => void;
 
 class FlashIndicatorServiceImpl {
   private listeners = new Map<string, Set<FlashEventCallback>>();
+  private issueListeners = new Map<string, Set<FlashEventCallback>>();
 
   /**
    * Trigger a flash for a specific region
@@ -58,6 +59,29 @@ class FlashIndicatorServiceImpl {
   }
 
   /**
+   * Trigger a flash for a specific issue (flashes both the issue and its region)
+   */
+  flashIssue(issueId: string, regionId: string, userEmail: string): void {
+    const username = userEmail.includes('@') 
+      ? userEmail.split('@')[0] 
+      : userEmail;
+
+    console.log('⚡ Flash triggered for issue:', issueId, 'region:', regionId, 'by user:', username);
+
+    // 1) Flash the associated region (waveform + region list)
+    this.flashRegion(regionId, userEmail);
+
+    // 2) Trigger issue-specific flash
+    const issueListeners = this.issueListeners.get(issueId);
+    if (issueListeners) {
+      issueListeners.forEach(callback => callback(username));
+    }
+
+    // 3) Flash the issue card background
+    this.flashIssueCardBackground(issueId);
+  }
+
+  /**
    * Subscribe to flash events for a specific region
    */
   onFlash(regionId: string, callback: FlashEventCallback): () => void {
@@ -78,6 +102,26 @@ class FlashIndicatorServiceImpl {
   }
 
   /**
+   * Subscribe to flash events for a specific issue
+   */
+  onIssueFlash(issueId: string, callback: FlashEventCallback): () => void {
+    if (!this.issueListeners.has(issueId)) {
+      this.issueListeners.set(issueId, new Set());
+    }
+
+    const issueListeners = this.issueListeners.get(issueId)!;
+    issueListeners.add(callback);
+
+    // Return unsubscribe function
+    return () => {
+      issueListeners.delete(callback);
+      if (issueListeners.size === 0) {
+        this.issueListeners.delete(issueId);
+      }
+    };
+  }
+
+  /**
    * Get count of active listeners (for debugging)
    */
   getListenerCount(): number {
@@ -86,10 +130,19 @@ class FlashIndicatorServiceImpl {
   }
 
   /**
+   * Get count of active issue listeners (for debugging)
+   */
+  getIssueListenerCount(): number {
+    return Array.from(this.issueListeners.values())
+      .reduce((total, set) => total + set.size, 0);
+  }
+
+  /**
    * Clear all listeners (for testing/cleanup)
    */
   clearAll(): void {
     this.listeners.clear();
+    this.issueListeners.clear();
   }
 
   /**
@@ -135,6 +188,45 @@ class FlashIndicatorServiceImpl {
       console.log('⚡ Flashed region list background:', regionId, hasBlueBackground ? 'with blue restore' : 'normal');
     } catch (error) {
       console.error('⚡ Failed to flash region list background:', error);
+    }
+  }
+
+  /**
+   * Flash the background of an issue card briefly
+   */
+  private flashIssueCardBackground(issueId: string): void {
+    const issueElement = document.getElementById(`issueitem-${issueId}`);
+    if (!issueElement) {
+      console.warn('⚡ Cannot flash issue card background: element not found:', issueId);
+      return;
+    }
+
+    try {
+      // Get current background
+      const computedStyle = window.getComputedStyle(issueElement);
+      const currentBackground = computedStyle.backgroundColor;
+      
+      // Flash green briefly
+      const flashColor = FLASH_CONFIG.flashColor;
+      
+      // Apply flash with CSS transition
+      issueElement.style.transition = `background-color ${FLASH_CONFIG.backgroundFlashDuration}ms ${FLASH_CONFIG.backgroundEasing}`;
+      issueElement.style.backgroundColor = flashColor;
+      
+      // Restore background after flash duration
+      setTimeout(() => {
+        // Restore original background
+        issueElement.style.backgroundColor = currentBackground;
+        
+        // Remove transition after animation completes
+        setTimeout(() => {
+          issueElement.style.transition = '';
+        }, FLASH_CONFIG.backgroundFlashDuration);
+      }, FLASH_CONFIG.backgroundFlashDuration);
+
+      console.log('⚡ Flashed issue card background:', issueId);
+    } catch (error) {
+      console.error('⚡ Failed to flash issue card background:', error);
     }
   }
 }

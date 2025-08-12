@@ -33,6 +33,7 @@ export class SubscribeToIssueChangesUseCase {
     const { mutation, issue } = event;
     
     const store = this.config.services.storeService;
+    const flashService = this.config.services.flashIndicatorService;
     
     // Check if this is a self-triggered event
     const currentUser = this.config.services.userService.currentUser();
@@ -46,6 +47,12 @@ export class SubscribeToIssueChangesUseCase {
     }
 
     console.log(`🔌 Processing remote issue ${mutation} event:`, issue.id);
+
+    // Trigger flash indicator for all remote changes
+    if (issue.owner && issue.regionId) {
+      const displayUser = issue.ownerFriendly || issue.owner;
+      flashService.flashIssue(issue.id, issue.regionId, displayUser);
+    }
 
     switch (mutation) {
       case 'CREATE':

@@ -53,6 +53,9 @@ const mockServices = {
   },
   userService: {
     currentUser: jest.fn()
+  },
+  flashIndicatorService: {
+    flashIssue: jest.fn()
   }
 };
 
@@ -146,6 +149,21 @@ describe('SubscribeToIssueChangesUseCase', () => {
         expect(mockServices.rteService.hasEditor).toHaveBeenCalledWith('region-1:translation');
       });
 
+      it('should trigger flash indicator for remote CREATE events', async () => {
+        const event = {
+          mutation: 'CREATE' as const,
+          issue: mockIssue
+        };
+
+        await subscriptionCallback(event);
+
+        expect(mockServices.flashIndicatorService.flashIssue).toHaveBeenCalledWith(
+          'issue-1',
+          'region-1', 
+          'Test User'
+        );
+      });
+
       it('should skip self-triggered CREATE events', async () => {
         mockServices.userService.currentUser.mockReturnValue({
           userId: 'user-123', // Same as issue owner
@@ -160,6 +178,7 @@ describe('SubscribeToIssueChangesUseCase', () => {
         await subscriptionCallback(event);
 
         expect(mockServices.storeService.addNewIssue).not.toHaveBeenCalled();
+        expect(mockServices.flashIndicatorService.flashIssue).not.toHaveBeenCalled();
       });
     });
 
@@ -191,6 +210,21 @@ describe('SubscribeToIssueChangesUseCase', () => {
         expect(mockServices.storeService.regionById).toHaveBeenCalledWith('region-1');
       });
 
+      it('should trigger flash indicator for remote UPDATE events', async () => {
+        const event = {
+          mutation: 'UPDATE' as const,
+          issue: mockIssue
+        };
+
+        await subscriptionCallback(event);
+
+        expect(mockServices.flashIndicatorService.flashIssue).toHaveBeenCalledWith(
+          'issue-1',
+          'region-1', 
+          'Test User'
+        );
+      });
+
       it('should skip self-triggered UPDATE events', async () => {
         mockServices.userService.currentUser.mockReturnValue({
           userId: 'user-123', // Same as issue owner
@@ -205,6 +239,7 @@ describe('SubscribeToIssueChangesUseCase', () => {
         await subscriptionCallback(event);
 
         expect(mockServices.storeService.updateIssue).not.toHaveBeenCalled();
+        expect(mockServices.flashIndicatorService.flashIssue).not.toHaveBeenCalled();
       });
     });
 
@@ -221,6 +256,21 @@ describe('SubscribeToIssueChangesUseCase', () => {
         expect(mockServices.storeService.regionById).toHaveBeenCalledWith('region-1');
       });
 
+      it('should trigger flash indicator for remote DELETE events', async () => {
+        const event = {
+          mutation: 'DELETE' as const,
+          issue: mockIssue
+        };
+
+        await subscriptionCallback(event);
+
+        expect(mockServices.flashIndicatorService.flashIssue).toHaveBeenCalledWith(
+          'issue-1',
+          'region-1', 
+          'Test User'
+        );
+      });
+
       it('should skip self-triggered DELETE events', async () => {
         mockServices.userService.currentUser.mockReturnValue({
           userId: 'user-123', // Same as issue owner
@@ -235,6 +285,7 @@ describe('SubscribeToIssueChangesUseCase', () => {
         await subscriptionCallback(event);
 
         expect(mockServices.storeService.deleteIssue).not.toHaveBeenCalled();
+        expect(mockServices.flashIndicatorService.flashIssue).not.toHaveBeenCalled();
       });
     });
 
