@@ -34,6 +34,9 @@ interface EditorState {
   // Issue selection (for deep-linking to a conversation)
   selectedIssueId?: string | null;
   
+  // Text selection state for creating issues
+  regionSelections: Record<string, { index: number; length: number; text: string } | null>;
+  
   // Word analysis cache
   knownWords: Set<string>;
 
@@ -74,6 +77,7 @@ interface EditorState {
   setSelectedRegion: (regionId: string | null) => void;
   setSelectedIssueId?: (issueId: string | null) => void;
   setPlaybackWithinRegion: (regionId: string | null) => void;
+  setRegionSelection: (regionId: string, selection: { index: number; length: number; text: string } | null) => void;
   addNewRegion: (region: RegionData) => void;
   deleteRegion: (regionId: string) => void;
   setRegionText: (regionId: string, text: string) => void;
@@ -154,6 +158,7 @@ export const useEditorStore = create<EditorState>()(
       regionMap: {},
       regionVersions: {},
       selectedIssueId: null,
+      regionSelections: {},
       knownWords: new Set<string>(),
       pendingEdits: {},
       conflictQueue: [],
@@ -293,6 +298,7 @@ export const useEditorStore = create<EditorState>()(
           selectedRegionId: null,
           selectedRegion: null,
           playbackWithinRegion: null,
+          regionSelections: {},
           _subscriptions: [],
         });
       },
@@ -324,6 +330,16 @@ export const useEditorStore = create<EditorState>()(
 
       setPlaybackWithinRegion: (regionId) => {
         set({ playbackWithinRegion: regionId });
+      },
+
+      setRegionSelection: (regionId, selection) => {
+        const { regionSelections } = get();
+        set({
+          regionSelections: {
+            ...regionSelections,
+            [regionId]: selection
+          }
+        });
       },
 
 

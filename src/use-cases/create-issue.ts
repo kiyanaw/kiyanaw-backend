@@ -7,6 +7,7 @@ export interface CreateIssueInput {
   text: string;
   type: string;
   owner: string;
+  ownerFriendly: string;
   regionId?: string;
   transcriptionId: string;
 }
@@ -24,6 +25,9 @@ export class CreateIssueUseCase {
     if (!input.owner) {
       throw new Error('Issue owner is required');
     }
+    if (!input.ownerFriendly) {
+      throw new Error('Issue owner friendly name is required');
+    }
     if (!input.transcriptionId) {
       throw new Error('Transcription ID is required');
     }
@@ -32,26 +36,50 @@ export class CreateIssueUseCase {
   async execute(input: CreateIssueInput): Promise<IssueData> {
     this.validate(input);
 
+    // Create optimistic issue object for immediate UI update
+    const optimisticIssue: IssueData = {
+      id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // Temporary ID
+      text: input.text.trim(),
+      type: input.type as any, // Type assertion for now
+      owner: input.owner,
+      ownerFriendly: input.ownerFriendly,
+      regionId: input.regionId || '',
+      transcriptionId: input.transcriptionId,
+      resolved: false,
+      index: 0, // Will be updated from backend
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      commentCount: 0,
+      _version: 1, // Temporary version
+    };
+
+    // Update UI immediately with optimistic issue
+    const store = useEditorStore.getState();
+    store.addNewIssue(optimisticIssue);
+    rteService.updateIssueHighlighting(optimisticIssue.regionId);
+
     try {
-      // Create the issue via the service
-      const newIssue = await createIssueForRegion({
+      // Save to backend
+      const savedIssue = await createIssueForRegion({
         text: input.text.trim(),
         type: input.type,
         owner: input.owner,
+        ownerFriendly: input.ownerFriendly,
         regionId: input.regionId || '',
         transcriptionId: input.transcriptionId,
       });
 
-      // Update the store with the new issue using the proper store method
-      const store = useEditorStore.getState();
-      store.addNewIssue(newIssue);
+      // Replace optimistic issue with real one from backend
+      store.deleteIssue(optimisticIssue.id);
+      store.addNewIssue(savedIssue);
+      rteService.updateIssueHighlighting(savedIssue.regionId);
 
-      // Update text editor highlighting for the affected region
-      rteService.updateIssueHighlighting(newIssue.regionId);
-
-      return newIssue;
+      return savedIssue;
     } catch (error) {
       console.error('Failed to create issue:', error);
+      // Remove optimistic issue on failure
+      store.deleteIssue(optimisticIssue.id);
+      rteService.updateIssueHighlighting(optimisticIssue.regionId);
       throw error;
     }
   }

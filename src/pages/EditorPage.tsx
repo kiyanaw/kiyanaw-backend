@@ -7,7 +7,7 @@ import { useWavesurferEvents } from '../hooks/useWavesurferEvents';
 import { useSubscriptions } from '../hooks/useSubscriptions';
 import { useUpdateTranscription } from '../hooks/useUpdateTranscription';
 import { useAuthStore } from '../stores/useAuthStore';
-import { useCreateIssue } from '../hooks/useCreateIssue';
+
 import { useUpdateIssue } from '../hooks/useUpdateIssue';
 import { useDeleteIssue } from '../hooks/useDeleteIssue';
 
@@ -42,7 +42,6 @@ export const EditorPage = () => {
   const updateTranscription = useUpdateTranscription(transcriptionId!);
   
   // Issue management hooks
-  const createIssue = useCreateIssue();
   const updateIssue = useUpdateIssue();
   const deleteIssue = useDeleteIssue();
   
@@ -64,28 +63,6 @@ export const EditorPage = () => {
   const canEdit = isOwner || isEditor;
   
   // Issue management handlers
-  const handleCreateIssue = async (issue: {
-    text: string;
-    type: 'needs-help' | 'indexing' | 'new-word' | 'general';
-    owner: string;
-    regionId?: string;
-    resolved: boolean;
-  }) => {
-    if (!transcriptionId || !user?.userId) return;
-    
-    try {
-      await createIssue({
-        text: issue.text,
-        type: issue.type,
-        owner: user.userId,
-        regionId: issue.regionId,
-        transcriptionId: transcriptionId,
-      });
-    } catch (error) {
-      console.error('Failed to create issue:', error);
-    }
-  };
-
   const handleUpdateIssue = async (issueId: string, updates: { resolved?: boolean; text?: string; type?: string }) => {
     try {
       await updateIssue({
@@ -199,7 +176,6 @@ export const EditorPage = () => {
                     };
                   })}
                   canEdit={canEdit}
-                  onCreateIssue={handleCreateIssue}
                   onUpdateIssue={handleUpdateIssue}
                   onDeleteIssue={handleDeleteIssue}
                 />

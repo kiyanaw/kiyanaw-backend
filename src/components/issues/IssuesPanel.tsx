@@ -6,6 +6,7 @@ import { browserService } from '../../services/browserService';
 import { UpdateIssueTextUseCase } from '../../use-cases/update-issue-text';
 import { IssueDetailsDialog } from './IssueDetailsDialog';
 import { useNavigateIssueRegions } from '../../hooks/useNavigateIssueRegions';
+import { useCreateIssueFromSelection } from '../../hooks/useCreateIssueFromSelection';
 
 // Suggestion Popover Component
 interface SuggestionPopoverProps {
@@ -75,9 +76,6 @@ interface IssuesPanelProps {
   selectedRegionId?: string;
   issues: Issue[];
   canEdit: boolean;
-  onCreateIssue: (
-    issue: Omit<Issue, 'id' | 'createdAt' | 'updatedAt' | 'commentCount' | 'ownerFriendly'>
-  ) => void;
   onUpdateIssue: (issueId: string, updates: Partial<Issue>) => void;
   onDeleteIssue: (issueId: string) => void;
 }
@@ -92,15 +90,10 @@ export const IssuesPanel = ({
   selectedRegionId,
   issues,
   canEdit,
-  onCreateIssue,
   onUpdateIssue,
   onDeleteIssue,
 }: IssuesPanelProps) => {
   const user = useAuthStore((state) => state.user);
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [newIssueText, setNewIssueText] = useState('');
-  const [newIssueType, setNewIssueType] = useState<Issue['type']>('new-word');
-
   const [showResolved, setShowResolved] = useState(false);
   const [expandedTypeIssueId, setExpandedTypeIssueId] = useState<string | null>(null);
   const [suggestionPopoverIssueId, setSuggestionPopoverIssueId] = useState<string | null>(null);
@@ -161,21 +154,22 @@ export const IssuesPanel = ({
     navigateIssueRegions(direction);
   };
 
-  const handleCreateIssue = () => {
-    if (!newIssueText.trim()) return;
-
-    onCreateIssue({
-      text: newIssueText.trim(),
-      type: newIssueType,
-      owner: user?.username || 'anonymous',
-      regionId: selectedRegionId,
-      resolved: false,
-    });
-
-    setNewIssueText('');
-    setNewIssueType('new-word');
-    setShowCreateForm(false);
+  // Create issue from current text selection
+  const createIssueFromSelection = useCreateIssueFromSelection();
+  const handleCreateFromSelection = async () => {
+    try {
+      await createIssueFromSelection();
+    } catch (error) {
+      console.error('Failed to create issue from selection:', error);
+      // Could show a toast notification here in the future
+    }
   };
+
+  // Check if there's a text selection in the current region
+  const regionSelection = useEditorStore(state => 
+    selectedRegionId ? state.regionSelections[selectedRegionId] : null
+  );
+  const hasSelection = regionSelection && regionSelection.length > 0 && regionSelection.text.trim().length > 0;
 
   const handleToggleResolved = (issue: Issue) => {
     onUpdateIssue(issue.id, {
@@ -305,60 +299,19 @@ export const IssuesPanel = ({
           </div>
           {canEdit && (
             <button
-              className="py-2 px-4 bg-blue-600 text-white border-none rounded text-sm font-medium cursor-pointer transition-colors duration-200 hover:bg-blue-700"
-              onClick={() => setShowCreateForm(!showCreateForm)}
+              disabled={!hasSelection}
+              className={`py-2 px-4 border-none rounded text-sm font-medium transition-colors duration-200 ${
+                hasSelection 
+                  ? 'bg-blue-600 text-white cursor-pointer hover:bg-blue-700' 
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
+              onClick={hasSelection ? handleCreateFromSelection : undefined}
             >
-              + New Issue
+              Create +
             </button>
           )}
         </div>
       </div>
-
-      {showCreateForm && (
-        <div className="p-4 bg-gray-50 border-b border-gray-200">
-          <div className="mb-3">
-            <label className="block mb-1 font-semibold text-gray-700 text-sm">Issue Type</label>
-            <select
-              value={newIssueType}
-              onChange={(e) => setNewIssueType(e.target.value as Issue['type'])}
-              className="w-full py-2 px-3 border border-gray-300 rounded text-sm text-gray-700"
-            >
-              {issueTypes.map((type) => (
-                <option key={type.value} value={type.value}>
-                  {type.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="mb-3">
-            <label className="block mb-1 font-semibold text-gray-700 text-sm">Description</label>
-            <textarea
-              value={newIssueText}
-              onChange={(e) => setNewIssueText(e.target.value)}
-              placeholder="Describe the issue..."
-              className="w-full py-2 px-3 border border-gray-300 rounded text-sm text-gray-700 resize-y min-h-[60px] font-inherit"
-              rows={3}
-            />
-          </div>
-
-          <div className="flex gap-2 mt-4">
-            <button
-              onClick={handleCreateIssue}
-              disabled={!newIssueText.trim()}
-              className="py-2 px-4 bg-green-600 text-white border-none rounded text-sm cursor-pointer transition-colors duration-200 hover:bg-green-700 disabled:bg-gray-500 disabled:cursor-not-allowed"
-            >
-              Create Issue
-            </button>
-            <button
-              onClick={() => setShowCreateForm(false)}
-              className="py-2 px-4 bg-gray-500 text-white border-none rounded text-sm cursor-pointer transition-colors duration-200 hover:bg-gray-600"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
 
       <div className="flex-1 overflow-y-auto p-4">
         {filteredIssues.length === 0 ? (

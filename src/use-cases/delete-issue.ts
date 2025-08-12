@@ -19,13 +19,18 @@ export class DeleteIssueUseCase {
     this.validate(input);
 
     try {
-      // Get the issue's regionId before deleting it
+      // Get the issue and its version before deleting it
       const store = useEditorStore.getState();
       const issue = store.issues.find(i => i.id === input.issueId);
-      const regionId = issue?.regionId;
+      if (!issue) {
+        throw new Error(`Issue with ID ${input.issueId} not found`);
+      }
+      
+      const regionId = issue.regionId;
+      const version = issue._version || 0;
 
-      // Delete the issue via the service
-      await deleteExistingIssue(input.issueId);
+      // Delete the issue via the service with version for conflict resolution
+      await deleteExistingIssue(input.issueId, version);
 
       // Update the store by removing the deleted issue using the proper store method
       store.deleteIssue(input.issueId);

@@ -4,6 +4,14 @@ export const currentUser = (): AuthUser | null => {
   return useAuthStore.getState().user;
 };
 
+export const currentUserFriendly = (): string | null => {
+  const user = currentUser();
+  if (!user?.username) {
+    return null;
+  }
+  return user.username.split('@')[0];
+};
+
 interface TranscriptionForPermissions {
   id: string;
   author: string;

@@ -67,6 +67,25 @@ export const useTextEditors = (regionId: string, activeTab: 'main' | 'translatio
 
     // Set up text change listener only if user can edit
     if (canEdit) {
+      // Track text selection changes
+      rteService.onSelectionChange(mainEditorKey, (range) => {
+        const store = useEditorStore.getState();
+        if (range && range.length > 0) {
+          const selectedText = rteService.getSelectedText(mainEditorKey);
+          if (selectedText && selectedText.trim().length > 0) {
+            store.setRegionSelection(regionId, {
+              index: range.index,
+              length: range.length,
+              text: selectedText
+            });
+          } else {
+            store.setRegionSelection(regionId, null);
+          }
+        } else {
+          store.setRegionSelection(regionId, null);
+        }
+      });
+
       rteService.onTextChange(mainEditorKey, (text) => {
         // Check if we're typing inside an issue and handle issue text updates
         const selectionIndex = rteService.getSelection(mainEditorKey);
@@ -144,6 +163,7 @@ export const useTextEditors = (regionId: string, activeTab: 'main' | 'translatio
     return () => {
       if (canEdit) {
         rteService.offTextChange(mainEditorKey);
+        rteService.offSelectionChange(mainEditorKey);
       }
       rteService.detach(mainEditorKey);
     };

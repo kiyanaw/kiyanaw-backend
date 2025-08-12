@@ -534,6 +534,56 @@ class RTEServiceImpl {
     return selection ? selection.index : null;
   }
 
+  // Get current selection range (index + length)
+  getSelectionRange(key: EditorKey): { index: number; length: number } | null {
+    const instance = this.registry.get(key);
+    if (!instance) {
+      return null;
+    }
+
+    const selection = instance.quill.getSelection();
+    return selection ? { index: selection.index, length: selection.length } : null;
+  }
+
+  // Get the currently selected text
+  getSelectedText(key: EditorKey): string | null {
+    const instance = this.registry.get(key);
+    if (!instance) {
+      return null;
+    }
+
+    const selection = instance.quill.getSelection();
+    if (!selection || selection.length === 0) {
+      return null;
+    }
+
+    return instance.quill.getText(selection.index, selection.length).trim();
+  }
+
+  // Subscribe to selection changes
+  onSelectionChange(key: EditorKey, callback: (range: { index: number; length: number } | null) => void): void {
+    const instance = this.registry.get(key);
+    if (!instance) {
+      throw new Error(`RTE instance not found for key: ${key}`);
+    }
+
+    // Set up Quill selection-change listener
+    instance.quill.on('selection-change', (range: { index: number; length: number } | null) => {
+      callback(range);
+    });
+  }
+
+  // Unsubscribe from selection changes
+  offSelectionChange(key: EditorKey): void {
+    const instance = this.registry.get(key);
+    if (!instance) {
+      return; // Already removed or never existed
+    }
+
+    // Remove Quill listeners
+    instance.quill.off('selection-change');
+  }
+
   // Get issue context at a specific index
   getIssueContext(key: EditorKey, index: number): { issueId: string | null; type: IssueType | null } {
     const instance = this.registry.get(key);

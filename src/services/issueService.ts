@@ -52,6 +52,7 @@ export const createIssueForRegion = async (issueData: {
   text: string;
   type: string;
   owner: string;
+  ownerFriendly: string;
   regionId: string;
   transcriptionId: string;
 }): Promise<IssueData> => {
@@ -111,14 +112,17 @@ export const updateExistingIssue = async (issueId: string, updates: Partial<Issu
 /**
  * Deletes an issue
  */
-export const deleteExistingIssue = async (issueId: string): Promise<void> => {
+export const deleteExistingIssue = async (issueId: string, version: number): Promise<void> => {
   try {
     console.log(`🗑️ Deleting issue ${issueId} via GraphQL...`);
     
     await client.graphql({
       query: deleteIssue,
       variables: {
-        input: { id: issueId }
+        input: { 
+          id: issueId,
+          _version: version
+        }
       }
     });
     
