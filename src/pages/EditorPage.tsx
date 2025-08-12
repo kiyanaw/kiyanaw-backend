@@ -185,19 +185,18 @@ export const EditorPage = () => {
                   issues={issues.map(issue => ({
                     id: issue.id,
                     text: issue.text,
-                    type: issue.type as 'needs-help' | 'indexing' | 'new-word' | 'general',
+                    type: issue.type as 'needs-help' | 'indexing' | 'new-word',
                     owner: issue.ownerFriendly || issue.owner,
                     regionId: issue.regionId,
                     resolved: issue.resolved || false,
                     createdAt: issue.createdAt || new Date().toISOString(),
                     updatedAt: issue.updatedAt || new Date().toISOString(),
-                    comments: [], // TODO: Implement comments when available
+                    commentCount: issue.commentCount || 0,
                   }))}
                   canEdit={canEdit}
                   onCreateIssue={handleCreateIssue}
                   onUpdateIssue={handleUpdateIssue}
                   onDeleteIssue={handleDeleteIssue}
-                  onAddComment={handleAddComment}
                 />
               </>
             )}

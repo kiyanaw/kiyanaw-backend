@@ -1,45 +1,35 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuthStore } from '../../stores/useAuthStore';
 
 interface Issue {
   id: string;
   text: string;
-  type: 'needs-help' | 'indexing' | 'new-word' | 'general';
+  type: 'needs-help' | 'indexing' | 'new-word';
   owner: string;
   regionId?: string;
   resolved: boolean;
   createdAt: string;
   updatedAt: string;
-  comments: IssueComment[];
+  commentCount: number;
 }
 
-interface IssueComment {
-  id: string;
-  text: string;
-  author: string;
-  createdAt: string;
-}
+
 
 interface IssuesPanelProps {
   selectedRegionId?: string;
   issues: Issue[];
   canEdit: boolean;
   onCreateIssue: (
-    issue: Omit<Issue, 'id' | 'createdAt' | 'updatedAt' | 'comments'>
+    issue: Omit<Issue, 'id' | 'createdAt' | 'updatedAt' | 'commentCount'>
   ) => void;
   onUpdateIssue: (issueId: string, updates: Partial<Issue>) => void;
   onDeleteIssue: (issueId: string) => void;
-  onAddComment: (
-    issueId: string,
-    comment: Omit<IssueComment, 'id' | 'createdAt'>
-  ) => void;
 }
 
 const issueTypes = [
   { value: 'needs-help', label: 'Needs Help', color: '#dc3545' },
   { value: 'indexing', label: 'Indexing', color: '#ffc107' },
   { value: 'new-word', label: 'New Word', color: '#17a2b8' },
-  { value: 'general', label: 'General', color: '#6c757d' },
 ] as const;
 
 export const IssuesPanel = ({
@@ -49,15 +39,28 @@ export const IssuesPanel = ({
   onCreateIssue,
   onUpdateIssue,
   onDeleteIssue,
-  onAddComment,
 }: IssuesPanelProps) => {
   const user = useAuthStore((state) => state.user);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newIssueText, setNewIssueText] = useState('');
-  const [newIssueType, setNewIssueType] = useState<Issue['type']>('general');
-  const [expandedIssues, setExpandedIssues] = useState<Set<string>>(new Set());
-  const [commentTexts, setCommentTexts] = useState<Record<string, string>>({});
+  const [newIssueType, setNewIssueType] = useState<Issue['type']>('new-word');
+
   const [filter, setFilter] = useState<'all' | 'open' | 'resolved'>('open');
+  const [expandedTypeIssueId, setExpandedTypeIssueId] = useState<string | null>(null);
+
+  // Close expanded type selector on escape key
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setExpandedTypeIssueId(null);
+      }
+    };
+
+    if (expandedTypeIssueId) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [expandedTypeIssueId]);
 
   // Filter issues based on current filter and selected region
   const filteredIssues = issues.filter((issue) => {
@@ -89,7 +92,7 @@ export const IssuesPanel = ({
     });
 
     setNewIssueText('');
-    setNewIssueType('general');
+    setNewIssueType('new-word');
     setShowCreateForm(false);
   };
 
@@ -99,33 +102,41 @@ export const IssuesPanel = ({
     });
   };
 
+  const handleTypeChange = (issueId: string, newType: Issue['type']) => {
+    // Find the current issue to check if type is actually changing
+    const currentIssue = issues.find(issue => issue.id === issueId);
+    
+    // Only save if the type is actually different
+    if (currentIssue && currentIssue.type !== newType) {
+      onUpdateIssue(issueId, {
+        type: newType,
+      });
+    }
+    
+    setExpandedTypeIssueId(null); // Always collapse after selection
+  };
+
+  const handleTypeClick = (issueId: string) => {
+    console.log('🔵 Type click handler triggered for issue:', issueId);
+    console.log('🔵 Current expandedTypeIssueId:', expandedTypeIssueId);
+    if (expandedTypeIssueId === issueId) {
+      console.log('🔵 Collapsing expanded issue');
+      setExpandedTypeIssueId(null); // Collapse if already expanded
+    } else {
+      console.log('🔵 Expanding issue type selector');
+      setExpandedTypeIssueId(issueId); // Expand this issue's type selector
+    }
+  };
+
   const handleDeleteIssue = (issueId: string) => {
     if (window.confirm('Are you sure you want to delete this issue?')) {
       onDeleteIssue(issueId);
     }
   };
 
-  const handleToggleExpanded = (issueId: string) => {
-    const newExpanded = new Set(expandedIssues);
-    if (newExpanded.has(issueId)) {
-      newExpanded.delete(issueId);
-    } else {
-      newExpanded.add(issueId);
-    }
-    setExpandedIssues(newExpanded);
-  };
 
-  const handleAddComment = (issueId: string) => {
-    const commentText = commentTexts[issueId]?.trim();
-    if (!commentText) return;
 
-    onAddComment(issueId, {
-      text: commentText,
-              author: user?.userId || 'anonymous',
-    });
-
-    setCommentTexts((prev) => ({ ...prev, [issueId]: '' }));
-  };
+  
 
   const formatDate = (dateString: string) => {
     try {
@@ -144,11 +155,24 @@ export const IssuesPanel = ({
   };
 
   const getIssueTypeInfo = (type: Issue['type']) => {
-    return issueTypes.find((t) => t.value === type) || issueTypes[3];
+    return issueTypes.find((t) => t.value === type) || issueTypes[0];
   };
 
   return (
-    <div className="flex flex-col h-full bg-white rounded-lg overflow-hidden">
+    <>
+      <style>{`
+        @keyframes slideInFade {
+          from {
+            opacity: 0;
+            transform: translateX(10px) scale(0.8);
+          }
+          to {
+            opacity: 0.6;
+            transform: translateX(0px) scale(1);
+          }
+        }
+      `}</style>
+      <div className="flex flex-col h-full bg-white rounded-lg overflow-hidden">
       <div className="flex justify-between items-center p-4 bg-gray-50 border-b border-gray-200 md:flex-row md:p-4 flex-col p-3 gap-3">
         <h3 className="m-0 text-lg font-semibold text-gray-800">Issues</h3>
         <div className="flex gap-3 items-center md:gap-3 gap-2">
@@ -232,7 +256,7 @@ export const IssuesPanel = ({
         ) : (
           filteredIssues.map((issue) => {
             const typeInfo = getIssueTypeInfo(issue.type);
-            const isExpanded = expandedIssues.has(issue.id);
+            const commentCount = issue.commentCount || 0;
             // Based on auth rules: issue owners can delete, anyone with transcription edit access can resolve/update
             const isIssueOwner = user?.userId === issue.owner;
             const canDelete = canEdit && isIssueOwner; // Only issue owners can delete
@@ -245,123 +269,118 @@ export const IssuesPanel = ({
                   issue.resolved ? 'opacity-70 bg-gray-50' : ''
                 }`}
               >
-                <div
-                  className="p-3 px-4 cursor-pointer flex justify-between items-start gap-3 md:flex-row md:items-start flex-col items-stretch"
-                  onClick={() => handleToggleExpanded(issue.id)}
-                >
-                  <div className="flex-1 flex items-start gap-2">
+                <div className="p-3 flex items-center gap-3">
+                  {/* Type badge - expanding pill group for unresolved issues, static badge for resolved */}
+                  {!issue.resolved && canEdit ? (
+                    <div className="flex items-center">
+                      {/* Current pill - always visible in normal position */}
+                      <span
+                        onClick={() => handleTypeClick(issue.id)}
+                        className={`inline-block py-0.5 px-2 rounded-xl text-xs font-medium uppercase text-white cursor-pointer hover:opacity-90 transition-all duration-300 ease-out ${
+                          expandedTypeIssueId === issue.id ? 'ring-2 ring-white ring-offset-2' : ''
+                        }`}
+                        style={{ backgroundColor: typeInfo.color }}
+                        title="Click to change issue type"
+                      >
+                        {typeInfo.label}
+                      </span>
+                      
+                      {/* Expanding container for other pills */}
+                      <div 
+                        className="overflow-hidden transition-all duration-300 ease-out"
+                        style={{
+                          width: expandedTypeIssueId === issue.id ? 'auto' : '0px',
+                          marginLeft: expandedTypeIssueId === issue.id ? '4px' : '0px'
+                        }}
+                      >
+                        <div className="flex items-center gap-1 whitespace-nowrap">
+                          {issueTypes
+                            .filter(type => type.value !== issue.type)
+                            .map((type) => (
+                              <span
+                                key={type.value}
+                                onClick={() => handleTypeChange(issue.id, type.value as Issue['type'])}
+                                className="inline-block py-0.5 px-2 rounded-xl text-xs font-medium uppercase text-white cursor-pointer opacity-60 hover:opacity-80 transition-all duration-300 ease-out"
+                                style={{ backgroundColor: type.color }}
+                                title={type.label}
+                              >
+                                {type.label}
+                              </span>
+                            ))}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    // Static badge for resolved issues or when user can't edit
                     <span
                       className="inline-block py-0.5 px-2 rounded-xl text-xs font-medium uppercase text-white flex-shrink-0"
                       style={{ backgroundColor: typeInfo.color }}
                     >
                       {typeInfo.label}
                     </span>
-                    {issue.resolved && (
-                      <span className="inline-block py-0.5 px-2 rounded-xl text-xs font-medium uppercase bg-green-600 text-white flex-shrink-0">
-                        RESOLVED
-                      </span>
-                    )}
-                    <span className={`text-sm ${issue.resolved ? 'text-gray-500 line-through' : 'text-gray-800'}`}>
-                      {issue.text}
-                    </span>
-                  </div>
+                  )}
 
-                  <div className="flex items-center gap-2 text-xs text-gray-500 md:flex-row md:gap-2 flex-col gap-1">
+                  {/* Resolved badge */}
+                  {issue.resolved && (
+                    <span className="inline-block py-0.5 px-2 rounded-xl text-xs font-medium uppercase bg-green-600 text-white flex-shrink-0">
+                      RESOLVED
+                    </span>
+                  )}
+
+                  {/* Issue text - takes up remaining space */}
+                  <span className={`flex-1 text-sm ${issue.resolved ? 'text-gray-500 line-through' : 'text-gray-800'}`}>
+                    {issue.text}
+                  </span>
+
+                  {/* Right side: comment count, metadata, and actions */}
+                  <div className="flex items-center gap-2 text-xs text-gray-500 flex-shrink-0">
+                    {commentCount > 0 && (
+                      <div className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded">
+                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
+                        </svg>
+                        <span>{commentCount}</span>
+                      </div>
+                    )}
                     <span>by {issue.owner}</span>
                     <span>{formatDate(issue.createdAt)}</span>
-                    <span
-                      className={`transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
-                    >
-                      ▼
-                    </span>
+
+                    {/* Action icons */}
+                    {canResolve && (
+                      <button
+                        onClick={() => handleToggleResolved(issue)}
+                        className={`ml-2 p-1.5 rounded-md border transition-all duration-200 ${
+                          issue.resolved 
+                            ? 'bg-green-100 border-green-300 text-green-700 hover:bg-green-200 hover:border-green-400' 
+                            : 'bg-gray-50 border-gray-300 text-gray-500 hover:bg-gray-100 hover:border-gray-400 hover:text-gray-700'
+                        }`}
+                        title={issue.resolved ? 'Click to reopen issue' : 'Click to resolve issue'}
+                      >
+                        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </button>
+                    )}
+
+                    {canDelete && (
+                      <button
+                        onClick={() => handleDeleteIssue(issue.id)}
+                        className="ml-1 p-1.5 rounded-md border bg-red-50 border-red-200 text-red-600 hover:bg-red-100 hover:border-red-300 hover:text-red-700 transition-all duration-200"
+                        title="Delete issue"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                        </svg>
+                      </button>
+                    )}
                   </div>
                 </div>
-
-                {isExpanded && (
-                  <div className="p-4 pt-0">
-                    <div className="flex gap-2 mb-4 md:flex-row flex-col">
-                      {canResolve && (
-                        <button
-                          onClick={() => handleToggleResolved(issue)}
-                          className={`py-1.5 px-3 border-none rounded text-sm cursor-pointer transition-colors duration-200 ${
-                            issue.resolved
-                              ? 'bg-yellow-600 text-white hover:bg-yellow-700'
-                              : 'bg-green-600 text-white hover:bg-green-700'
-                          }`}
-                        >
-                          {issue.resolved ? 'Reopen' : 'Resolve'}
-                        </button>
-                      )}
-
-                      {canDelete && (
-                        <button
-                          onClick={() => handleDeleteIssue(issue.id)}
-                          className="py-1.5 px-3 bg-red-600 text-white border-none rounded text-sm cursor-pointer transition-colors duration-200 hover:bg-red-700"
-                        >
-                          Delete
-                        </button>
-                      )}
-                    </div>
-
-                    {issue.comments.length > 0 && (
-                      <div className="mb-4">
-                        <h4 className="m-0 mb-3 text-sm font-semibold text-gray-700">Comments ({issue.comments.length})</h4>
-                        <div className="space-y-3">
-                          {issue.comments
-                            .sort(
-                              (a, b) =>
-                                new Date(b.createdAt).getTime() -
-                                new Date(a.createdAt).getTime()
-                            )
-                            .map((comment) => (
-                              <div key={comment.id} className="border border-gray-200 rounded p-3 bg-gray-50">
-                                <div className="flex justify-between items-center mb-2">
-                                  <span className="font-medium text-sm text-gray-800">
-                                    {comment.author}
-                                  </span>
-                                  <span className="text-xs text-gray-500">
-                                    {formatDate(comment.createdAt)}
-                                  </span>
-                                </div>
-                                <div className="text-sm text-gray-700 leading-relaxed">
-                                  {comment.text}
-                                </div>
-                              </div>
-                            ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {canEdit && (
-                      <div className="mt-4">
-                        <textarea
-                          value={commentTexts[issue.id] || ''}
-                          onChange={(e) =>
-                            setCommentTexts((prev) => ({
-                              ...prev,
-                              [issue.id]: e.target.value,
-                            }))
-                          }
-                          placeholder="Add a comment..."
-                          className="w-full py-2 px-3 border border-gray-300 rounded text-sm text-gray-700 resize-y min-h-[50px] font-inherit mb-2"
-                          rows={2}
-                        />
-                        <button
-                          onClick={() => handleAddComment(issue.id)}
-                          disabled={!commentTexts[issue.id]?.trim()}
-                          className="py-1.5 px-3 bg-blue-600 text-white border-none rounded text-sm cursor-pointer transition-colors duration-200 hover:bg-blue-700 disabled:bg-gray-500 disabled:cursor-not-allowed"
-                        >
-                          Add Comment
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
             );
           })
         )}
       </div>
     </div>
+    </>
   );
 };
