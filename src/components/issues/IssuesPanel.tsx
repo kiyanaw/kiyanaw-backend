@@ -366,14 +366,14 @@ export const IssuesPanel = ({
                   {!issue.resolved && (
                     <>
                       {canEdit ? (
-                        <div className="flex items-center">
+                        <div className="relative flex-shrink-0">
                           {/* Current pill - always visible in normal position */}
                           <span
                             onClick={(e) => {
                               e.stopPropagation();
                               handleTypeClick(issue.id);
                             }}
-                            className={`inline-block py-0.5 px-2 rounded-xl text-xs font-medium uppercase cursor-pointer transition-all duration-300 ease-out ${
+                            className={`inline-block py-0.5 px-2 rounded-xl text-xs font-medium uppercase cursor-pointer transition-all duration-300 ease-out whitespace-nowrap ${
                               expandedTypeIssueId === issue.id ? 'ring-2 ring-gray-400 ring-offset-2' : ''
                             }`}
                             style={{ backgroundColor: typeInfo.bgColor, color: typeInfo.color, border: `1px solid ${typeInfo.color}` }}
@@ -382,12 +382,13 @@ export const IssuesPanel = ({
                             {typeInfo.label}
                           </span>
                           
-                          {/* Expanding container for other pills */}
+                          {/* Expanding container for other pills - overlaying on top with animation */}
                           <div 
-                            className="overflow-hidden transition-all duration-300 ease-out"
+                            className="absolute top-0 left-full ml-1 z-50 overflow-hidden transition-all duration-300 ease-out flex items-center"
                             style={{
-                              width: expandedTypeIssueId === issue.id ? 'auto' : '0px',
-                              marginLeft: expandedTypeIssueId === issue.id ? '4px' : '0px'
+                              width: expandedTypeIssueId === issue.id ? '240px' : '0px',
+                              opacity: expandedTypeIssueId === issue.id ? 1 : 0,
+                              height: '100%' // Match the height of the main pill
                             }}
                           >
                             <div className="flex items-center gap-1 whitespace-nowrap">
@@ -400,8 +401,13 @@ export const IssuesPanel = ({
                                       e.stopPropagation();
                                       handleTypeChange(issue.id, type.value as Issue['type']);
                                     }}
-                                    className="inline-block py-0.5 px-2 rounded-xl text-xs font-medium uppercase cursor-pointer opacity-60 hover:opacity-80 transition-all duration-300 ease-out"
-                                    style={{ backgroundColor: type.bgColor, color: type.color, border: `1px solid ${type.color}` }}
+                                    className="inline-block py-0.5 px-2 rounded-xl text-xs font-medium uppercase cursor-pointer hover:opacity-90 transition-all duration-300 ease-out whitespace-nowrap shadow-lg"
+                                    style={{ 
+                                      backgroundColor: type.bgColor, 
+                                      color: type.color, 
+                                      border: `1px solid ${type.color}`,
+                                      opacity: 1 // Full opacity so text isn't visible through
+                                    }}
                                     title={type.label}
                                   >
                                     {type.label}
@@ -413,7 +419,7 @@ export const IssuesPanel = ({
                       ) : (
                         // Static badge for unresolved issues when user can't edit
                         <span
-                          className="inline-block py-0.5 px-2 rounded-xl text-xs font-medium uppercase flex-shrink-0"
+                          className="inline-block py-0.5 px-2 rounded-xl text-xs font-medium uppercase flex-shrink-0 whitespace-nowrap"
                           style={{ backgroundColor: typeInfo.bgColor, color: typeInfo.color, border: `1px solid ${typeInfo.color}` }}
                         >
                           {typeInfo.label}
@@ -424,7 +430,7 @@ export const IssuesPanel = ({
 
                   {/* Resolved badge - only badge shown for resolved issues */}
                   {issue.resolved && (
-                    <span className="inline-block py-0.5 px-2 rounded-xl text-xs font-medium uppercase bg-green-600 text-white flex-shrink-0">
+                    <span className="inline-block py-0.5 px-2 rounded-xl text-xs font-medium uppercase bg-green-600 text-white flex-shrink-0 whitespace-nowrap">
                       RESOLVED
                     </span>
                   )}
