@@ -20,6 +20,10 @@ export const RegionEditor = memo(({
   const { deleteRegion } = useDeleteRegion();
   const playRegion = useSelectAndPlayRegion();
   const canEdit = useEditorStore((state) => state.canEdit);
+  const regions = useEditorStore((state) => state.regions);
+  
+  // Get the region number (1-based index)
+  const regionNumber = regions.findIndex(r => r.id === region.id) + 1;
 
   // Toolbar actions - simplified for now
   const handlePlay = () => {
@@ -51,7 +55,7 @@ export const RegionEditor = memo(({
       {/* Header with region info and toolbar */}
       <div className="flex justify-between items-center p-2 bg-gray-50 border-b border-gray-200">
         <div className="flex items-center gap-3">
-          <h3 className="m-0 text-base font-semibold text-gray-800">Region {region.id}</h3>
+          <h3 className="m-0 text-base font-semibold text-gray-800">Region {regionNumber}</h3>
           <span className="text-sm text-gray-500 font-mono">
             {formatTime(region.start)} - {formatTime(region.end)}
           </span>

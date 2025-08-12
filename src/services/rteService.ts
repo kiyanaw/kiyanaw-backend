@@ -677,22 +677,8 @@ class RTEServiceImpl {
     // Get current text from editor
     const regionText = instance.quill.getText();
 
-    // Use matching service to detect matched/unmatched issues
-    console.log(`🔍 Matching issues for region ${regionId}:`, {
-      regionText: regionText.substring(0, 100),
-      issueCount: issues.length,
-      issues: issues.map(i => ({ id: i.id, text: i.text, resolved: i.resolved }))
-    });
-    
     const matchResult = issueMatchingService.match(regionText, issues);
     
-    console.log(`📊 Match results:`, {
-      matched: Array.from(matchResult.matched),
-      unmatched: Array.from(matchResult.unmatched),
-      suggestions: Object.keys(matchResult.suggestions).length,
-      suggestionDetails: matchResult.suggestions
-    });
-
     // Update store with link statuses and suggestions
     const linkStatuses: Record<string, 'matched' | 'unmatched'> = {};
     for (const issueId of matchResult.matched) {
@@ -704,9 +690,6 @@ class RTEServiceImpl {
 
     state.setIssueLinkStatuses(regionId, linkStatuses);
     state.setIssueSuggestions(regionId, matchResult.suggestions);
-    
-    console.log(`🏪 Updated store with link statuses:`, linkStatuses);
-    console.log(`🏪 Updated store with suggestions:`, matchResult.suggestions);
 
     // Only highlight matched issues
     const matchedIssues = issues.filter(issue => matchResult.matched.has(issue.id));
