@@ -42,7 +42,6 @@
           "VolumeType": "gp3",
           "VolumeSize": 10
         },
-
         "EncryptionAtRestOptions": {
           "Enabled": true
         },

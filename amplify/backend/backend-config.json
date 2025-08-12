@@ -198,6 +198,13 @@
           ],
           "category": "api",
           "resourceName": "kiyanaw"
+        },
+        {
+          "attributes": [
+            "OpenSearchDomainEndpoint"
+          ],
+          "category": "custom",
+          "resourceName": "statsOpenSearch"
         }
       ],
       "providerPlugin": "awscloudformation",
@@ -311,22 +318,6 @@
         {
           "category": "function",
           "resourceName": "indexRegionData"
-        }
-      ]
-    },
-    "AMPLIFY_function_inviteHandler_deploymentBucketName": {
-      "usedBy": [
-        {
-          "category": "function",
-          "resourceName": "inviteHandler"
-        }
-      ]
-    },
-    "AMPLIFY_function_inviteHandler_s3Key": {
-      "usedBy": [
-        {
-          "category": "function",
-          "resourceName": "inviteHandler"
         }
       ]
     },

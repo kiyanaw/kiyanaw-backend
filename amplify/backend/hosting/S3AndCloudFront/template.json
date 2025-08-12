@@ -4,9 +4,6 @@
   "Parameters": {
     "env": {
       "Type": "String"
-    },
-    "bucketName": {
-      "Type": "String"
     }
   },
   "Conditions": {
@@ -16,6 +13,14 @@
           "Ref": "env"
         },
         "NONE"
+      ]
+    },
+    "IsProduction": {
+      "Fn::Equals": [
+        {
+          "Ref": "env"
+        },
+        "production"
       ]
     }
   },
@@ -28,14 +33,22 @@
           "Fn::If": [
             "ShouldNotCreateEnvResources",
             {
-              "Ref": "bucketName"
+              "Fn::If": [
+                "IsProduction",
+                "kiyanaw-20250811160100-hostingbucket",
+                "kiyanaw-20250708160100-hostingbucket"
+              ]
             },
             {
               "Fn::Join": [
                 "",
                 [
                   {
-                    "Ref": "bucketName"
+                    "Fn::If": [
+                      "IsProduction",
+                      "kiyanaw-20250811160100-hostingbucket",
+                      "kiyanaw-20250708160100-hostingbucket"
+                    ]
                   },
                   "-",
                   {
