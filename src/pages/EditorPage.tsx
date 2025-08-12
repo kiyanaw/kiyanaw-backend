@@ -176,6 +176,7 @@ export const EditorPage = () => {
               <>
                 <IssuesPanel
                   selectedRegionId={selectedRegion?.id}
+                  // TODO: why is this mapping happenning here and not our ADT?
                   issues={(issues || []).map(issue => {
                     // Get link status and suggestions from store
                     const storeState = useEditorStore.getState();
