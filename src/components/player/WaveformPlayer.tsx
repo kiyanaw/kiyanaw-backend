@@ -152,7 +152,14 @@ export const WaveformPlayer = ({
 
           <div className="flex items-center gap-4 md:gap-4 gap-2 flex-col md:flex-row">
             <div className="flex items-center gap-2">
-              <ZoomIn size={16} className="text-gray-600" />
+              <button
+                onClick={() => handleZoomChange(50)}
+                disabled={!loadedAndReady}
+                className="p-1 rounded transition-colors hover:bg-gray-200 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Reset zoom to default"
+              >
+                <ZoomIn size={16} className="text-gray-600" />
+              </button>
               <input
                 type="range"
                 min="5"
@@ -165,7 +172,14 @@ export const WaveformPlayer = ({
             </div>
 
             <div className="flex items-center gap-2">
-              <Gauge size={16} className="text-gray-600" />
+              <button
+                onClick={() => handleSpeedChange(100)}
+                disabled={!loadedAndReady}
+                className="p-1 rounded transition-colors hover:bg-gray-200 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Reset speed to default"
+              >
+                <Gauge size={16} className="text-gray-600" />
+              </button>
               <input
                 type="range"
                 min="50"
@@ -184,7 +198,7 @@ export const WaveformPlayer = ({
         {isVideo && (
           <video
             ref={setVideoElement}
-            className="fixed bottom-4 right-4 max-w-[350px] max-h-[350px] z-[190] shadow-lg cursor-pointer rounded md:max-w-[350px] md:max-h-[350px] max-w-[250px] max-h-[200px]"
+            className="fixed bottom-4 right-4 max-w-[350px] max-h-[350px] z-40 shadow-lg cursor-pointer rounded md:max-w-[350px] md:max-h-[350px] max-w-[250px] max-h-[200px]"
             preload="auto"
             title="Video playback"
             controls={false}

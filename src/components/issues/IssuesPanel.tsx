@@ -321,7 +321,7 @@ export const IssuesPanel = ({
           {canEdit && (
             <button
               disabled={!hasSelection}
-              className={`py-2 px-4 border-none rounded text-sm font-medium transition-colors duration-200 ${
+              className={`py-1.5 px-3 border-none rounded text-sm font-medium transition-colors duration-200 ${
                 hasSelection 
                   ? 'bg-blue-600 text-white cursor-pointer hover:bg-blue-700' 
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
