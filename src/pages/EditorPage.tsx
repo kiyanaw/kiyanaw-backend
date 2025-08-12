@@ -185,7 +185,7 @@ export const EditorPage = () => {
         </div>
 
         {/* Region List */}
-        <div className="w-96 flex-shrink-0 bg-gray-50 border-l border-gray-300 flex flex-col min-h-0">
+        <div className="w-[500px] flex-shrink-0 bg-gray-50 border-l border-gray-300 flex flex-col min-h-0">
           <RegionList
             regions={regions}
             disableAnalyzer={transcription?.disableAnalyzer}

@@ -1,5 +1,5 @@
 import { useRef, useCallback, useState } from 'react';
-import { Play, Pause, ZoomIn, Gauge, Loader2, Settings } from 'lucide-react';
+import { Play, Pause, ZoomIn, Gauge, Loader2, Settings, ArrowLeft, Circle, ArrowRight, Minimize2, Maximize2 } from 'lucide-react';
 import { wavesurferService } from '../../services/wavesurferService';
 import { usePlayerStore } from '../../stores/usePlayerStore';
 import { usePlay } from '../../hooks/usePlay';
@@ -38,6 +38,9 @@ export const WaveformPlayer = ({
   /** RARE PERMITTED LOCAL STATE */
   const [speed, setSpeed] = useState(100);
   const [zoom, setZoom] = useState(20);
+  const [isVideoHovered, setIsVideoHovered] = useState(false);
+  const [videoPosition, setVideoPosition] = useState<'left' | 'center' | 'right'>('right');
+  const [videoSize, setVideoSize] = useState<'small' | 'big'>('small');
   
   const isPlaying = usePlayerStore((state) => state.playing)
   const loadedAndReady = usePlayerStore((state) => state.loadedAndReady)
@@ -92,6 +95,47 @@ export const WaveformPlayer = ({
   const handleSpeedChange = (value: number) => {
     setSpeed(value);
     wavesurferService.setPlaybackRate(value);
+  };
+
+  // Video control handlers
+  const handleVideoPosition = (position: 'left' | 'center' | 'right') => {
+    setVideoPosition(position);
+  };
+
+  const handleVideoSize = (size: 'small' | 'big') => {
+    setVideoSize(size);
+  };
+
+  // Calculate video container classes based on position and size
+  const getVideoContainerClasses = () => {
+    let positionClasses = '';
+    let sizeClasses = '';
+
+    // Position classes
+    switch (videoPosition) {
+      case 'left':
+        positionClasses = 'bottom-4 left-4';
+        break;
+      case 'center':
+        positionClasses = 'bottom-4 left-1/2 transform -translate-x-1/2';
+        break;
+      case 'right':
+      default:
+        positionClasses = 'bottom-4 right-4';
+        break;
+    }
+
+    // Size classes - default (small) is 25% bigger, big is more reasonable
+    switch (videoSize) {
+      case 'small':
+        sizeClasses = 'max-w-[440px] max-h-[440px] md:max-w-[440px] md:max-h-[440px] max-w-[315px] max-h-[250px]';
+        break;
+      case 'big':
+        sizeClasses = 'max-w-[700px] max-h-[700px] md:max-w-[700px] md:max-h-[700px] max-w-[480px] max-h-[360px]';
+        break;
+    }
+
+    return `fixed ${positionClasses} ${sizeClasses} z-40 rounded group`;
   };
 
   const formatTime = (seconds: number) => {
@@ -194,19 +238,96 @@ export const WaveformPlayer = ({
           </div>
         </div>
 
-        {/* Video Element */}
+        {/* Video Element with Hover Controls */}
         {isVideo && (
-          <video
-            ref={setVideoElement}
-            className="fixed bottom-4 right-4 max-w-[350px] max-h-[350px] z-40 shadow-lg cursor-pointer rounded md:max-w-[350px] md:max-h-[350px] max-w-[250px] max-h-[200px]"
-            preload="auto"
-            title="Video playback"
-            controls={false}
-            playsInline
-            webkit-playsinline=""
+          <div 
+            className={getVideoContainerClasses()}
+            onMouseEnter={() => setIsVideoHovered(true)}
+            onMouseLeave={() => setIsVideoHovered(false)}
           >
-            <source src={source} />
-          </video>
+            <video
+              ref={setVideoElement}
+              className="w-full h-full shadow-lg cursor-pointer rounded"
+              preload="auto"
+              title="Video playback"
+              controls={false}
+              playsInline
+              webkit-playsinline=""
+            >
+              <source src={source} />
+            </video>
+
+            {/* Position Controls - Upper Left */}
+            <div 
+              className={`absolute top-2 left-2 flex bg-black bg-opacity-50 rounded transition-opacity duration-200 ${
+                isVideoHovered ? 'opacity-100' : 'opacity-0'
+              }`}
+            >
+              <button 
+                onClick={() => handleVideoPosition('left')}
+                className={`p-1.5 transition-all rounded-l ${
+                  videoPosition === 'left' 
+                    ? 'text-gray-900 bg-white bg-opacity-80' 
+                    : 'text-white hover:text-gray-900 hover:bg-white hover:bg-opacity-80'
+                }`}
+                title="Move left"
+              >
+                <ArrowLeft size={14} />
+              </button>
+              <button 
+                onClick={() => handleVideoPosition('center')}
+                className={`p-1.5 transition-all border-l border-white border-opacity-30 ${
+                  videoPosition === 'center' 
+                    ? 'text-gray-900 bg-white bg-opacity-80' 
+                    : 'text-white hover:text-gray-900 hover:bg-white hover:bg-opacity-80'
+                }`}
+                title="Center"
+              >
+                <Circle size={14} />
+              </button>
+              <button 
+                onClick={() => handleVideoPosition('right')}
+                className={`p-1.5 transition-all border-l border-white border-opacity-30 rounded-r ${
+                  videoPosition === 'right' 
+                    ? 'text-gray-900 bg-white bg-opacity-80' 
+                    : 'text-white hover:text-gray-900 hover:bg-white hover:bg-opacity-80'
+                }`}
+                title="Move right"
+              >
+                <ArrowRight size={14} />
+              </button>
+            </div>
+
+            {/* Size Controls - Upper Right */}
+            <div 
+              className={`absolute top-2 right-2 flex bg-black bg-opacity-50 rounded transition-opacity duration-200 ${
+                isVideoHovered ? 'opacity-100' : 'opacity-0'
+              }`}
+            >
+              <button 
+                onClick={() => handleVideoSize('small')}
+                className={`p-1.5 transition-all rounded-l ${
+                  videoSize === 'small' 
+                    ? 'text-gray-900 bg-white bg-opacity-80' 
+                    : 'text-white hover:text-gray-900 hover:bg-white hover:bg-opacity-80'
+                }`}
+                title="Small size"
+              >
+                <Minimize2 size={14} />
+              </button>
+              <button 
+                onClick={() => handleVideoSize('big')}
+                className={`p-1.5 transition-all border-l border-white border-opacity-30 rounded-r ${
+                  videoSize === 'big' 
+                    ? 'text-gray-900 bg-white bg-opacity-80' 
+                    : 'text-white hover:text-gray-900 hover:bg-white hover:bg-opacity-80'
+                }`}
+                title="Large size"
+              >
+                <Maximize2 size={14} />
+              </button>
+            </div>
+          </div>
         )}
       </div>
 
