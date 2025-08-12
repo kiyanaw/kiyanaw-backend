@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Check, Trash2, MessageSquare, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { useEditorStore } from '../../stores/useEditorStore';
@@ -22,8 +22,26 @@ const SuggestionPopover: React.FC<SuggestionPopoverProps> = ({
   onSelectSuggestion, 
   onClose 
 }) => {
+  const popoverRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (popoverRef.current && !popoverRef.current.contains(event.target as Node)) {
+        onClose();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [onClose]);
+
   return (
-    <div className="absolute z-50 top-full left-0 mt-1 w-64 bg-white border border-gray-300 rounded-lg shadow-lg">
+    <div 
+      ref={popoverRef}
+      className="absolute z-50 top-full left-0 mt-1 w-64 bg-white border border-gray-300 rounded-lg shadow-lg"
+    >
       <div className="p-3">
         <div className="text-sm font-medium text-gray-700 mb-2">
           Suggested matches:
