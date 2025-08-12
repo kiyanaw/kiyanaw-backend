@@ -1,5 +1,5 @@
 import { useEditorStore } from '../stores/useEditorStore';
-import type { RegionData } from './adt';
+import type { RegionData, IssueData } from './adt';
 import type { ConflictDetail } from './conflictDetectionService';
 import type { LazyRegion } from '../models';
 
@@ -42,6 +42,23 @@ export const storeService = {
 
   deleteRegion: (regionId: string): void => {
     useEditorStore.getState().deleteRegion(regionId);
+  },
+
+  // Issue operations for subscription updates
+  addNewIssue: (issue: IssueData): void => {
+    useEditorStore.getState().addNewIssue(issue);
+  },
+
+  updateIssue: (issueId: string, updates: Partial<IssueData>): void => {
+    useEditorStore.getState().updateIssue(issueId, updates);
+  },
+
+  deleteIssue: (issueId: string): void => {
+    useEditorStore.getState().deleteIssue(issueId);
+  },
+
+  getIssuesForRegion: (regionId: string): IssueData[] => {
+    return useEditorStore.getState().getIssuesForRegion(regionId);
   },
 
   // Version operations

@@ -5,10 +5,22 @@ import { listIssues } from '../graphql/queries.js';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - GraphQL mutations are generated as JS files
 import { createIssue, updateIssue, deleteIssue } from '../graphql/mutations.js';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore - GraphQL subscriptions are generated as JS files
+import { 
+  onCreateIssue, 
+  onUpdateIssue, 
+  onDeleteIssue 
+} from '../graphql/subscriptions.js';
 import type { IssueData } from './adt';
 
 // Create GraphQL client
 const client = generateClient();
+
+export type IssueSubscriptionEvent = {
+  mutation: 'CREATE' | 'UPDATE' | 'DELETE';
+  issue: IssueData;
+};
 
 /**
  * Loads issues for a given transcription.
@@ -133,5 +145,98 @@ export const deleteExistingIssue = async (issueId: string, version: number): Pro
   } catch (error) {
     console.error('❌ Failed to delete issue:', error);
     throw error;
+  }
+};
+
+/**
+ * Subscribe to issue changes for a given transcription
+ * @param transcriptionId The ID of the transcription to subscribe to
+ * @param onEvent Callback function to handle subscription events
+ * @returns Object with unsubscribe function
+ */
+export const subscribeToIssueChanges = (
+  transcriptionId: string,
+  onEvent: (event: IssueSubscriptionEvent) => void
+): (() => void) => {
+  console.log('🔌 Setting up issue subscriptions for transcriptionId:', transcriptionId);
+
+  try {
+    const subscriptions: Array<{ unsubscribe: () => void }> = [];
+
+    // Subscribe to issue creation
+    const createSub = (client.graphql({
+      query: onCreateIssue,
+      variables: {
+        filter: {
+          transcriptionId: { eq: transcriptionId },
+          _deleted: { ne: true }
+        }
+      }
+    }) as any).subscribe({
+      next: (result: any) => {
+        const issue = result.data?.onCreateIssue;
+        if (issue) {
+          console.log('🔌 Issue CREATE subscription event:', issue.id);
+          onEvent({ mutation: 'CREATE', issue });
+        }
+      },
+      error: (error: any) => console.error('Create issue subscription error:', error)
+    });
+
+    // Subscribe to issue updates
+    const updateSub = (client.graphql({
+      query: onUpdateIssue,
+      variables: {
+        filter: {
+          transcriptionId: { eq: transcriptionId },
+          _deleted: { ne: true }
+        }
+      }
+    }) as any).subscribe({
+      next: (result: any) => {
+        const issue = result.data?.onUpdateIssue;
+        if (issue) {
+          console.log('🔌 Issue UPDATE subscription event:', issue.id);
+          onEvent({ mutation: 'UPDATE', issue });
+        }
+      },
+      error: (error: any) => console.error('Update issue subscription error:', error)
+    });
+
+    // Subscribe to issue deletion
+    const deleteSub = (client.graphql({
+      query: onDeleteIssue,
+      variables: {
+        filter: {
+          transcriptionId: { eq: transcriptionId }
+        }
+      }
+    }) as any).subscribe({
+      next: (result: any) => {
+        const issue = result.data?.onDeleteIssue;
+        if (issue) {
+          console.log('🔌 Issue DELETE subscription event:', issue.id);
+          onEvent({ mutation: 'DELETE', issue });
+        }
+      },
+      error: (error: any) => console.error('Delete issue subscription error:', error)
+    });
+
+    subscriptions.push(createSub, updateSub, deleteSub);
+
+    // Return unsubscribe function
+    return () => {
+      console.log('🔌 Unsubscribing from issue changes');
+      subscriptions.forEach(sub => {
+        try {
+          sub.unsubscribe();
+        } catch (error) {
+          console.warn('Error unsubscribing from issue subscription:', error);
+        }
+      });
+    };
+  } catch (error) {
+    console.error('🔌 Failed to establish issue subscriptions:', error);
+    return () => {}; // Return no-op function on error
   }
 }; 

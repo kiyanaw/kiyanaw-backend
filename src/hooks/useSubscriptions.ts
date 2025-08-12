@@ -1,20 +1,29 @@
 import { useEffect } from 'react';
 import { SubscribeToRegionChangesUseCase } from '../use-cases/subscribe-to-region-changes';
+import { SubscribeToIssueChangesUseCase } from '../use-cases/subscribe-to-issue-changes';
 import { services } from '../services';
 
 export const useSubscriptions = (transcriptionId: string): void => {
   useEffect(() => {
     if (!transcriptionId) return;
 
-    const useCase = new SubscribeToRegionChangesUseCase({
+    const regionUseCase = new SubscribeToRegionChangesUseCase({
       transcriptionId,
       services
     });
 
-    const unsubscribe = useCase.execute();
+    const issueUseCase = new SubscribeToIssueChangesUseCase({
+      transcriptionId,
+      services
+    });
+
+    const unsubscribeFunctions = [
+      regionUseCase.execute(),
+      issueUseCase.execute(),
+    ].filter(Boolean) as Array<() => void>;
 
     return () => {
-      unsubscribe?.();
+      unsubscribeFunctions.forEach(unsub => unsub());
     };
   }, [transcriptionId]);
 }; 
