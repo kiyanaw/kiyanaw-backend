@@ -1,7 +1,6 @@
 import { deleteExistingIssue } from '../services/issueService';
 import { useEditorStore } from '../stores/useEditorStore';
 import { rteService } from '../services/rteService';
-import type { IssueData } from '../services/adt';
 
 export interface DeleteIssueInput {
   issueId: string;

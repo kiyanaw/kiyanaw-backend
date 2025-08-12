@@ -105,12 +105,6 @@ export const EditorPage = () => {
     }
   };
 
-  const handleAddComment = async (issueId: string, comment: { text: string; author: string }) => {
-    // For now, we'll add comments as issue updates
-    // In the future, this could be expanded to use a proper comment system
-    console.log('Add comment functionality not yet implemented:', { issueId, comment });
-  };
-
   // Redirect to 404 if access is denied
   useEffect(() => {
     if (accessDenied) {
@@ -182,7 +176,7 @@ export const EditorPage = () => {
               <>
                 <IssuesPanel
                   selectedRegionId={selectedRegion?.id}
-                  issues={issues.map(issue => ({
+                  issues={(issues || []).map(issue => ({
                     id: issue.id,
                     text: issue.text,
                     type: issue.type as 'needs-help' | 'indexing' | 'new-word',

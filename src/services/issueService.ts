@@ -86,7 +86,8 @@ export const updateExistingIssue = async (issueId: string, updates: Partial<Issu
     
     // Filter out read-only fields that shouldn't be sent to GraphQL
     // Keep _version for optimistic concurrency control
-    const { createdAt, updatedAt, __typename, ...allowedUpdates } = updates as any;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { createdAt, updatedAt, __typename, ...allowedUpdates } = updates as Record<string, unknown>;
     
     const result = await client.graphql({
       query: updateIssue,

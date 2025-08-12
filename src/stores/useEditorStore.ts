@@ -469,7 +469,7 @@ export const useEditorStore = create<EditorState>()(
       },
 
       updateIssue: (issueId: string, updates: Partial<IssueData>) => {
-        const { issues, issueMap, issuesByRegionMap } = get();
+        const { issues, issueMap } = get();
         const existingIssue = issueMap[issueId];
         
         if (!existingIssue) {
@@ -505,7 +505,7 @@ export const useEditorStore = create<EditorState>()(
       },
 
       deleteIssue: (issueId: string) => {
-        const { issues, issueMap, issuesByRegionMap } = get();
+        const { issues, issueMap } = get();
         
         // Remove from issues array
         const newIssues = issues.filter(issue => issue.id !== issueId);
