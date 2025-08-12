@@ -689,7 +689,8 @@ class RTEServiceImpl {
     console.log(`📊 Match results:`, {
       matched: Array.from(matchResult.matched),
       unmatched: Array.from(matchResult.unmatched),
-      suggestions: Object.keys(matchResult.suggestions).length
+      suggestions: Object.keys(matchResult.suggestions).length,
+      suggestionDetails: matchResult.suggestions
     });
 
     // Update store with link statuses and suggestions
@@ -705,6 +706,7 @@ class RTEServiceImpl {
     state.setIssueSuggestions(regionId, matchResult.suggestions);
     
     console.log(`🏪 Updated store with link statuses:`, linkStatuses);
+    console.log(`🏪 Updated store with suggestions:`, matchResult.suggestions);
 
     // Only highlight matched issues
     const matchedIssues = issues.filter(issue => matchResult.matched.has(issue.id));

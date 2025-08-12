@@ -23,18 +23,26 @@ export class IssueMatchingService {
   
   /**
    * Tokenize text into words with their positions
+   * Simplified: just split by spaces and find positions
    */
   private tokenizeText(text: string): Token[] {
     const tokens: Token[] = [];
-    const tokenPattern = /([\p{L}\p{N}_-]+)/gu;
-    let match;
+    const words = text.split(/\s+/);
+    let currentIndex = 0;
 
-    while ((match = tokenPattern.exec(text)) !== null) {
-      tokens.push({
-        token: match[1].trim().toLowerCase(),
-        start: match.index,
-        end: match.index + match[1].length
-      });
+    for (const word of words) {
+      if (word.trim()) {
+        // Find the actual position of this word in the original text
+        const wordStart = text.indexOf(word, currentIndex);
+        if (wordStart !== -1) {
+          tokens.push({
+            token: word.trim().toLowerCase(),
+            start: wordStart,
+            end: wordStart + word.length
+          });
+          currentIndex = wordStart + word.length;
+        }
+      }
     }
 
     return tokens;
@@ -82,28 +90,41 @@ export class IssueMatchingService {
 
   /**
    * Find the best token candidates for an issue text
+   * Prioritize by first letter match and similar length
    */
-  private findCandidates(issueText: string, tokens: Token[], maxSuggestions = 3): TokenCandidate[] {
+  private findCandidates(issueText: string, tokens: Token[], maxSuggestions = 10): TokenCandidate[] {
     const normalizedIssueText = this.normalizeText(issueText);
     const candidates: TokenCandidate[] = [];
 
-    // Calculate edit distance for each token
     for (const token of tokens) {
-      const score = this.editDistance(normalizedIssueText, token.token);
+      // Skip if length difference is too large (more than 50% different)
+      const lengthDiff = Math.abs(normalizedIssueText.length - token.token.length);
+      const maxLengthDiff = Math.max(normalizedIssueText.length, token.token.length) * 0.5;
       
-      // Only consider candidates within reasonable edit distance
-      const maxDistance = Math.max(1, Math.floor(normalizedIssueText.length * 0.3));
-      if (score <= maxDistance) {
-        candidates.push({
-          token: token.token,
-          start: token.start,
-          end: token.end,
-          score
-        });
+      if (lengthDiff > maxLengthDiff && lengthDiff > 3) {
+        continue; // Skip very different lengths
       }
+
+      let score = this.editDistance(normalizedIssueText, token.token);
+      
+      // Bonus for same first letter
+      if (normalizedIssueText[0] === token.token[0]) {
+        score -= 5; // Lower score = better priority
+      }
+      
+      // Bonus for similar length
+      const lengthSimilarity = 1 - (lengthDiff / Math.max(normalizedIssueText.length, token.token.length));
+      score -= lengthSimilarity * 2;
+
+      candidates.push({
+        token: token.token,
+        start: token.start,
+        end: token.end,
+        score
+      });
     }
 
-    // Sort by score (lower = better) and return top candidates
+    // Sort by score (lower = better) and return suggestions
     candidates.sort((a, b) => a.score - b.score);
     return candidates.slice(0, maxSuggestions);
   }

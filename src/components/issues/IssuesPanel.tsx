@@ -23,28 +23,31 @@ const SuggestionPopover: React.FC<SuggestionPopoverProps> = ({
   onClose 
 }) => {
   return (
-    <div className="absolute z-10 mt-1 w-64 bg-white border border-gray-300 rounded-lg shadow-lg">
+    <div className="absolute z-50 top-full left-0 mt-1 w-64 bg-white border border-gray-300 rounded-lg shadow-lg">
       <div className="p-3">
         <div className="text-sm font-medium text-gray-700 mb-2">
           Suggested matches:
         </div>
-        <div className="space-y-1">
+        <div className="max-h-48 overflow-y-auto space-y-1">
           {suggestions.map((suggestion, index) => (
             <button
               key={index}
-              onClick={() => onSelectSuggestion(issueId, suggestion.token)}
-              className="w-full text-left p-2 text-sm rounded border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelectSuggestion(issueId, suggestion.token);
+              }}
+              className="w-full text-left px-3 py-2 text-sm rounded border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-colors"
             >
               <div className="font-medium text-gray-800">{suggestion.token}</div>
-              <div className="text-xs text-gray-500">
-                Score: {suggestion.score} | Position: {suggestion.start}-{suggestion.end}
-              </div>
             </button>
           ))}
         </div>
         <div className="mt-2 pt-2 border-t border-gray-200">
           <button
-            onClick={onClose}
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
             className="text-sm text-gray-500 hover:text-gray-700"
           >
             Cancel
