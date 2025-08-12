@@ -186,7 +186,8 @@ export const EditorPage = () => {
                     id: issue.id,
                     text: issue.text,
                     type: issue.type as 'needs-help' | 'indexing' | 'new-word',
-                    owner: issue.ownerFriendly || issue.owner,
+                    owner: issue.owner, // Use actual owner UUID for permission checking
+                    ownerFriendly: issue.ownerFriendly,
                     regionId: issue.regionId,
                     resolved: issue.resolved || false,
                     createdAt: issue.createdAt || new Date().toISOString(),
