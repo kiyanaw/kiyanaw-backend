@@ -44,7 +44,8 @@ class IssueHighlightServiceImpl implements IssueHighlightService {
     return activeIssues.map(issue => ({
       text: issue.text,
       id: issue.id,
-      type: this.mapIssueType(issue.type)
+      type: this.mapIssueType(issue.type),
+      commentCount: issue.commentCount || 0
     }));
   }
 }

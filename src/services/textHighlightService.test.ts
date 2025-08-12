@@ -97,5 +97,30 @@ describe('TextHighlightService', () => {
       
       expect(result).toBe('<span class="known-word">Hello</span>, world! This is a <span class="issue-needs-help">test</span>.');
     });
+
+    it('should include comment icons for issues with comments', () => {
+      const text = 'hello commented word test';
+      const issues: IssueHighlight[] = [
+        { text: 'commented', id: 'issue-1', type: 'new-word', commentCount: 2 },
+        { text: 'test', id: 'issue-2', type: 'needs-help', commentCount: 0 }
+      ];
+      const options: HighlightOptions = { issues };
+      
+      const result = textHighlightService.generateHTMLWithOptions(text, options);
+      
+      expect(result).toBe('hello <span class="issue-new-word">commented<span class="issue-comment-icon"><svg class="w-3 h-3 inline ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg><span class="text-xs ml-0.5">2</span></span></span> word <span class="issue-needs-help">test</span>');
+    });
+
+    it('should not include comment icons when commentCount is 0', () => {
+      const text = 'hello uncommented word';
+      const issues: IssueHighlight[] = [
+        { text: 'uncommented', id: 'issue-1', type: 'indexing', commentCount: 0 }
+      ];
+      const options: HighlightOptions = { issues };
+      
+      const result = textHighlightService.generateHTMLWithOptions(text, options);
+      
+      expect(result).toBe('hello <span class="issue-indexing">uncommented</span> word');
+    });
   });
 });

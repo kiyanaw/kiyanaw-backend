@@ -30,8 +30,8 @@ describe('IssueHighlightService', () => {
       const result = issueHighlightService.convertIssuesToHighlights(issues);
 
       expect(result).toEqual([
-        { text: 'problematic word', id: 'issue-1', type: 'needs-help' },
-        { text: 'another issue', id: 'issue-2', type: 'needs-help' }
+        { text: 'problematic word', id: 'issue-1', type: 'needs-help', commentCount: 0 },
+        { text: 'another issue', id: 'issue-2', type: 'needs-help', commentCount: 0 }
       ]);
     });
 
@@ -49,6 +49,42 @@ describe('IssueHighlightService', () => {
 
       expect(result1).toEqual([]);
       expect(result2).toEqual([]);
+    });
+
+    it('should include comment count in highlight data', () => {
+      const issues: IssueData[] = [
+        {
+          id: 'issue-with-comments',
+          text: 'commented word',
+          type: 'new-word',
+          owner: 'user1',
+          ownerFriendly: 'User One',
+          resolved: false,
+          index: 1,
+          regionId: 'region-1',
+          transcriptionId: 'transcription-1',
+          commentCount: 3
+        },
+        {
+          id: 'issue-no-comments',
+          text: 'uncommented word',
+          type: 'indexing',
+          owner: 'user1',
+          ownerFriendly: 'User One', 
+          resolved: false,
+          index: 2,
+          regionId: 'region-1',
+          transcriptionId: 'transcription-1'
+          // No commentCount - should default to 0
+        }
+      ];
+
+      const result = issueHighlightService.convertIssuesToHighlights(issues);
+
+      expect(result).toEqual([
+        { text: 'commented word', id: 'issue-with-comments', type: 'new-word', commentCount: 3 },
+        { text: 'uncommented word', id: 'issue-no-comments', type: 'indexing', commentCount: 0 }
+      ]);
     });
   });
 });

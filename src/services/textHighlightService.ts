@@ -10,6 +10,7 @@ export interface IssueHighlight {
   text: string;
   id: string;
   type: IssueType;
+  commentCount?: number;
 }
 
 export interface HighlightOptions {
@@ -57,10 +58,13 @@ class TextHighlightServiceImpl implements TextHighlightService {
       return text;
     }
 
-    // Create issue text lookup with type information for efficient matching
-    const issueTextMap = new Map<string, IssueType>();
+    // Create issue text lookup with type and comment information for efficient matching
+    const issueTextMap = new Map<string, { type: IssueType; commentCount: number }>();
     issues.forEach(issue => {
-      issueTextMap.set(issue.text.trim().toLowerCase(), issue.type);
+      issueTextMap.set(issue.text.trim().toLowerCase(), { 
+        type: issue.type, 
+        commentCount: issue.commentCount || 0 
+      });
     });
     
     // Split text into tokens while preserving separators
@@ -72,9 +76,12 @@ class TextHighlightServiceImpl implements TextHighlightService {
         const lowerToken = token.trim().toLowerCase();
         
         // Issues take priority over known words
-        const issueType = issueTextMap.get(lowerToken);
-        if (issueType) {
-          return `<span class="issue-${issueType}">${token}</span>`;
+        const issueInfo = issueTextMap.get(lowerToken);
+        if (issueInfo) {
+          const commentIcon = issueInfo.commentCount > 0 
+            ? `<span class="issue-comment-icon"><svg class="w-3 h-3 inline ml-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg><span class="text-xs ml-0.5">${issueInfo.commentCount}</span></span>` 
+            : '';
+          return `<span class="issue-${issueInfo.type}">${token}${commentIcon}</span>`;
         } else if (knownWords.has(lowerToken)) {
           return `<span class="known-word">${token}</span>`;
         }
