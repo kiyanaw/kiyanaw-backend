@@ -31,14 +31,20 @@ export class UpdateIssueUseCase {
         throw new Error(`Issue ${input.issueId} not found`);
       }
 
-      // Update the issue via the service with version
+      // Create optimistic update for immediate UI feedback
+      const optimisticUpdate = { ...currentIssue, ...input.updates };
+
+      // 1. Update the store immediately (optimistic update)
+      store.updateIssue(input.issueId, optimisticUpdate);
+
+      // 2. Update text editor highlighting immediately
+      rteService.updateIssueHighlighting(optimisticUpdate.regionId);
+
+      // 3. Save to backend (async, in background)
       const updatedIssue = await updateExistingIssue(input.issueId, input.updates, currentIssue._version || 0);
 
-      // Update the store with the updated issue using the proper store method
+      // 4. Update store with server response (in case server changed anything)
       store.updateIssue(input.issueId, updatedIssue);
-
-      // Update text editor highlighting for the affected region
-      rteService.updateIssueHighlighting(updatedIssue.regionId);
 
       return updatedIssue;
     } catch (error) {
