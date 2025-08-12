@@ -889,11 +889,12 @@ describe('WaveformPlayer', () => {
       const videoElement = container.querySelector('video') as HTMLVideoElement;
       expect(videoElement).toBeInTheDocument();
       
-      // Check that the video element has the correct positioning classes (not hidden)
-      expect(videoElement.className).toContain('fixed');
-      expect(videoElement.className).toContain('bottom-4');
-      expect(videoElement.className).toContain('right-4');
-      expect(videoElement.className).not.toContain('hidden');
+      // Check that the video container has the correct positioning classes (not hidden)
+      const videoContainer = videoElement.parentElement as HTMLDivElement;
+      expect(videoContainer.className).toContain('fixed');
+      expect(videoContainer.className).toContain('bottom-4');
+      expect(videoContainer.className).toContain('right-4');
+      expect(videoContainer.className).not.toContain('hidden');
     });
   });
 
