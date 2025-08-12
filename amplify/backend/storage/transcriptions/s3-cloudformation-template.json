@@ -2,9 +2,6 @@
   "AWSTemplateFormatVersion": "2010-09-09",
   "Description": "{\"createdOn\":\"Mac\",\"createdBy\":\"Amplify\",\"createdWith\":\"14.0.0\",\"stackType\":\"storage-S3\",\"metadata\":{\"whyContinueWithGen1\":\"\"}}",
   "Parameters": {
-    "bucketName": {
-      "Type": "String"
-    },
     "authPolicyName": {
       "Type": "String"
     },
@@ -91,6 +88,14 @@
           "Ref": "env"
         },
         "NONE"
+      ]
+    },
+    "IsProduction": {
+      "Fn::Equals": [
+        {
+          "Ref": "env"
+        },
+        "production"
       ]
     },
     "CreateAuthPublic": {
@@ -199,14 +204,22 @@
           "Fn::If": [
             "ShouldNotCreateEnvResources",
             {
-              "Ref": "bucketName"
+              "Fn::If": [
+                "IsProduction",
+                "kiyanaw-20250811160100-transcriptionsbucket",
+                "kiyanaw-20250708160100-transcriptionsbucket"
+              ]
             },
             {
               "Fn::Join": [
                 "",
                 [
                   {
-                    "Ref": "bucketName"
+                    "Fn::If": [
+                      "IsProduction",
+                      "kiyanaw-20250811160100-transcriptionsbucket",
+                      "kiyanaw-20250708160100-transcriptionsbucket"
+                    ]
                   },
                   "-",
                   {

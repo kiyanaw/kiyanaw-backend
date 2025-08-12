@@ -14,14 +14,14 @@
       "resourceName": "kiyanawffmpeg",
       "version": "Always choose latest version",
       "isLatestVersionSelected": true,
-      "env": "staging"
+      "env": "production"
     },
     {
       "type": "ProjectLayer",
       "resourceName": "kiyanawaudiowaveform",
       "version": "Always choose latest version",
       "isLatestVersionSelected": true,
-      "env": "staging"
+      "env": "production"
     }
   ]
 }

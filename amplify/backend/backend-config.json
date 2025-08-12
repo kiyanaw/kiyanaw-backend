@@ -198,6 +198,13 @@
           ],
           "category": "api",
           "resourceName": "kiyanaw"
+        },
+        {
+          "attributes": [
+            "OpenSearchDomainEndpoint"
+          ],
+          "category": "custom",
+          "resourceName": "statsOpenSearch"
         }
       ],
       "providerPlugin": "awscloudformation",
