@@ -41,11 +41,16 @@ export class LoadTranscription {
     const canEdit = userService.canEditTranscription(data.transcription);
     this.config.store.setCanEdit(canEdit);
     
-    // Check if there's a regionId in the URL that we should select
+    // Read deep-link params
     const selectedRegionId = browserService.getRegionIdFromUrl();
+    const selectedIssueId = browserService.getIssueIdFromUrl?.() || null;
     
     // Set transcription data in store - use null instead of undefined for consistency with tests
     this.config.store.setFullTranscriptionData(data, selectedRegionId || null);
+    // Persist selected issue id in store if provided
+    if (selectedIssueId && this.config.store.setSelectedIssueId) {
+      this.config.store.setSelectedIssueId(selectedIssueId);
+    }
 
     // Extract and populate known words from existing regions (business logic)
     // Only do this if the transcription has a language index set for spell checking
@@ -71,6 +76,20 @@ export class LoadTranscription {
         wavesurferService.seekToRegion(selectedRegion);
         // Apply selected region styling
         browserService.setSelectedRegion(selectedRegionId);
+      }
+    } else if (selectedIssueId) {
+      // If only issueId is present, seek to its region if found
+      const issue = (data as any).issues?.find((i: any) => i.id === selectedIssueId);
+      const regionIdFromIssue = issue?.regionId;
+      if (regionIdFromIssue) {
+        const selectedRegion = (data as any).regions.find((r: any) => r.id === regionIdFromIssue);
+        if (selectedRegion) {
+          wavesurferService.seekToRegion(selectedRegion);
+          browserService.setSelectedRegion(regionIdFromIssue);
+          if (this.config.store.setSelectedRegion) {
+            this.config.store.setSelectedRegion(regionIdFromIssue);
+          }
+        }
       }
     }
   }

@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Check, Trash2, MessageSquare, AlertTriangle } from 'lucide-react';
 import { useAuthStore } from '../../stores/useAuthStore';
+import { useEditorStore } from '../../stores/useEditorStore';
+import { browserService } from '../../services/browserService';
 import { UpdateIssueTextUseCase } from '../../use-cases/update-issue-text';
 import { IssueDetailsDialog } from './IssueDetailsDialog';
 
@@ -101,8 +103,21 @@ export const IssuesPanel = ({
   const [showResolved, setShowResolved] = useState(false);
   const [expandedTypeIssueId, setExpandedTypeIssueId] = useState<string | null>(null);
   const [suggestionPopoverIssueId, setSuggestionPopoverIssueId] = useState<string | null>(null);
-  const [dialogIssueId, setDialogIssueId] = useState<string | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const selectedIssueId = useEditorStore((s) => s.selectedIssueId ?? null);
+  const setSelectedIssueId = useEditorStore((s) => s.setSelectedIssueId ?? (() => {}));
+  const [dialogIssueId, setDialogIssueId] = useState<string | null>(selectedIssueId);
+  const [isDialogOpen, setIsDialogOpen] = useState(!!selectedIssueId);
+
+  // Sync store selectedIssueId with local dialog state
+  useEffect(() => {
+    if (selectedIssueId) {
+      setDialogIssueId(selectedIssueId);
+      setIsDialogOpen(true);
+    } else {
+      setIsDialogOpen(false);
+      setDialogIssueId(null);
+    }
+  }, [selectedIssueId]);
 
   // Close expanded type selector on escape key
   useEffect(() => {
@@ -201,11 +216,15 @@ export const IssuesPanel = ({
   const handleOpenDialog = (issueId: string) => {
     setDialogIssueId(issueId);
     setIsDialogOpen(true);
+    setSelectedIssueId(issueId);
+    browserService.setSelectedIssue(issueId);
   };
 
   const handleCloseDialog = () => {
     setIsDialogOpen(false);
     setDialogIssueId(null);
+    setSelectedIssueId(null);
+    browserService.clearSelectedIssue();
   };
 
   const formatDate = (dateString: string) => {

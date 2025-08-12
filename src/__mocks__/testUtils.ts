@@ -147,6 +147,10 @@ export function createMockServices(options: MockServicesOptions = {}) {
     browserService: {
       updateUrl: jest.fn(),
       setSelectedRegion: jest.fn(),
+      getRegionIdFromUrl: jest.fn(),
+      getIssueIdFromUrl: jest.fn(),
+      setSelectedIssue: jest.fn(),
+      clearSelectedIssue: jest.fn(),
       addCustomStyle: jest.fn(),
       removeCustomStyle: jest.fn(),
     },

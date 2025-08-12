@@ -31,6 +31,8 @@ interface EditorState {
   selectedRegionId: string | null;
   selectedRegion: RegionData | null;
   playbackWithinRegion: string | null;
+  // Issue selection (for deep-linking to a conversation)
+  selectedIssueId?: string | null;
   
   // Word analysis cache
   knownWords: Set<string>;
@@ -70,6 +72,7 @@ interface EditorState {
 
   // Region actions
   setSelectedRegion: (regionId: string | null) => void;
+  setSelectedIssueId?: (issueId: string | null) => void;
   setPlaybackWithinRegion: (regionId: string | null) => void;
   addNewRegion: (region: RegionData) => void;
   deleteRegion: (regionId: string) => void;
@@ -150,6 +153,7 @@ export const useEditorStore = create<EditorState>()(
       regions: [],
       regionMap: {},
       regionVersions: {},
+      selectedIssueId: null,
       knownWords: new Set<string>(),
       pendingEdits: {},
       conflictQueue: [],
@@ -312,6 +316,10 @@ export const useEditorStore = create<EditorState>()(
           selectedRegionId: regionId,
           selectedRegion: regionId ? regionMap[regionId] : null,
         });
+      },
+
+      setSelectedIssueId: (issueId) => {
+        set({ selectedIssueId: issueId ?? null });
       },
 
       setPlaybackWithinRegion: (regionId) => {
