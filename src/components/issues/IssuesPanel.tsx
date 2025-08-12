@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Check, Trash2, MessageSquare, AlertTriangle } from 'lucide-react';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { UpdateIssueTextUseCase } from '../../use-cases/update-issue-text';
+import { IssueDetailsDialog } from './IssueDetailsDialog';
 
 // Suggestion Popover Component
 interface SuggestionPopoverProps {
@@ -79,9 +80,9 @@ interface IssuesPanelProps {
 }
 
 const issueTypes = [
-  { value: 'needs-help', label: 'Needs Help', color: '#dc3545' },
-  { value: 'indexing', label: 'Indexing', color: '#ffc107' },
-  { value: 'new-word', label: 'New Word', color: '#17a2b8' },
+  { value: 'needs-help', label: 'Needs Help', color: '#dc2626', bgColor: '#ffe6e6' },
+  { value: 'indexing', label: 'Indexing', color: '#d97706', bgColor: '#fff9e6' },
+  { value: 'new-word', label: 'New Word', color: '#166534', bgColor: '#f0fdf4' },
 ] as const;
 
 export const IssuesPanel = ({
@@ -100,6 +101,8 @@ export const IssuesPanel = ({
   const [showResolved, setShowResolved] = useState(false);
   const [expandedTypeIssueId, setExpandedTypeIssueId] = useState<string | null>(null);
   const [suggestionPopoverIssueId, setSuggestionPopoverIssueId] = useState<string | null>(null);
+  const [dialogIssueId, setDialogIssueId] = useState<string | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   // Close expanded type selector on escape key
   useEffect(() => {
@@ -193,6 +196,16 @@ export const IssuesPanel = ({
     } catch (error) {
       console.error('Failed to update issue text:', error);
     }
+  };
+
+  const handleOpenDialog = (issueId: string) => {
+    setDialogIssueId(issueId);
+    setIsDialogOpen(true);
+  };
+
+  const handleCloseDialog = () => {
+    setIsDialogOpen(false);
+    setDialogIssueId(null);
   };
 
   const formatDate = (dateString: string) => {
@@ -349,11 +362,14 @@ export const IssuesPanel = ({
                         <div className="flex items-center">
                           {/* Current pill - always visible in normal position */}
                           <span
-                            onClick={() => handleTypeClick(issue.id)}
-                            className={`inline-block py-0.5 px-2 rounded-xl text-xs font-medium uppercase text-white cursor-pointer hover:opacity-90 transition-all duration-300 ease-out ${
-                              expandedTypeIssueId === issue.id ? 'ring-2 ring-white ring-offset-2' : ''
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleTypeClick(issue.id);
+                            }}
+                            className={`inline-block py-0.5 px-2 rounded-xl text-xs font-medium uppercase cursor-pointer transition-all duration-300 ease-out ${
+                              expandedTypeIssueId === issue.id ? 'ring-2 ring-gray-400 ring-offset-2' : ''
                             }`}
-                            style={{ backgroundColor: typeInfo.color }}
+                            style={{ backgroundColor: typeInfo.bgColor, color: typeInfo.color, border: `1px solid ${typeInfo.color}` }}
                             title="Click to change issue type"
                           >
                             {typeInfo.label}
@@ -373,9 +389,12 @@ export const IssuesPanel = ({
                                 .map((type) => (
                                   <span
                                     key={type.value}
-                                    onClick={() => handleTypeChange(issue.id, type.value as Issue['type'])}
-                                    className="inline-block py-0.5 px-2 rounded-xl text-xs font-medium uppercase text-white cursor-pointer opacity-60 hover:opacity-80 transition-all duration-300 ease-out"
-                                    style={{ backgroundColor: type.color }}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleTypeChange(issue.id, type.value as Issue['type']);
+                                    }}
+                                    className="inline-block py-0.5 px-2 rounded-xl text-xs font-medium uppercase cursor-pointer opacity-60 hover:opacity-80 transition-all duration-300 ease-out"
+                                    style={{ backgroundColor: type.bgColor, color: type.color, border: `1px solid ${type.color}` }}
                                     title={type.label}
                                   >
                                     {type.label}
@@ -387,8 +406,8 @@ export const IssuesPanel = ({
                       ) : (
                         // Static badge for unresolved issues when user can't edit
                         <span
-                          className="inline-block py-0.5 px-2 rounded-xl text-xs font-medium uppercase text-white flex-shrink-0"
-                          style={{ backgroundColor: typeInfo.color }}
+                          className="inline-block py-0.5 px-2 rounded-xl text-xs font-medium uppercase flex-shrink-0"
+                          style={{ backgroundColor: typeInfo.bgColor, color: typeInfo.color, border: `1px solid ${typeInfo.color}` }}
                         >
                           {typeInfo.label}
                         </span>
@@ -404,7 +423,11 @@ export const IssuesPanel = ({
                   )}
 
                   {/* Issue text with comment icon and warning icon - takes up remaining space */}
-                  <div className="flex-1 flex items-center gap-2 relative">
+                  <div 
+                    className="flex-1 flex items-center gap-2 relative cursor-pointer hover:bg-gray-50 rounded p-2 -m-2 transition-colors"
+                    onClick={() => handleOpenDialog(issue.id)}
+                    title="Click to view issue details and comments"
+                  >
                     <span className={`text-sm ${issue.resolved ? 'text-gray-500 line-through' : 'text-gray-800'}`}>
                       {issue.text}
                     </span>
@@ -412,9 +435,12 @@ export const IssuesPanel = ({
                     {/* Warning icon for unmatched issues */}
                     {!issue.resolved && issue.linkStatus === 'unmatched' && (
                       <button
-                        onClick={() => setSuggestionPopoverIssueId(
-                          suggestionPopoverIssueId === issue.id ? null : issue.id
-                        )}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSuggestionPopoverIssueId(
+                            suggestionPopoverIssueId === issue.id ? null : issue.id
+                          );
+                        }}
                         className="p-1 rounded hover:bg-yellow-100 transition-colors"
                         title="This issue text doesn't match any text in the editor. Click for suggestions."
                       >
@@ -448,7 +474,10 @@ export const IssuesPanel = ({
                     {/* Action icons */}
                     {canResolve && (
                       <button
-                        onClick={() => handleToggleResolved(issue)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleResolved(issue);
+                        }}
                         className={`ml-2 p-1.5 rounded-md border transition-all duration-200 ${
                           issue.resolved 
                             ? 'bg-green-100 border-green-300 text-green-700 hover:bg-green-200 hover:border-green-400' 
@@ -462,7 +491,10 @@ export const IssuesPanel = ({
 
                     {canDelete && (
                       <button
-                        onClick={() => handleDeleteIssue(issue.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteIssue(issue.id);
+                        }}
                         className="ml-1 p-1.5 rounded-md border bg-red-50 border-red-200 text-red-600 hover:bg-red-100 hover:border-red-300 hover:text-red-700 transition-all duration-200"
                         title="Delete issue"
                       >
@@ -489,6 +521,17 @@ export const IssuesPanel = ({
           </div>
         )}
       </div>
+
+      {/* Issue Details Dialog */}
+      {isDialogOpen && dialogIssueId && (
+        <IssueDetailsDialog
+          issueId={dialogIssueId}
+          isOpen={isDialogOpen}
+          onClose={handleCloseDialog}
+          onUpdateIssue={onUpdateIssue}
+          onDeleteIssue={onDeleteIssue}
+        />
+      )}
     </div>
     </>
   );

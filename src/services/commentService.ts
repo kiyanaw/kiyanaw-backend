@@ -2,6 +2,9 @@ import { generateClient } from 'aws-amplify/api';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - GraphQL queries are generated as JS files
 import { listComments } from '../graphql/queries.js';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore - GraphQL mutations are generated as JS files
+import { createComment, updateComment, deleteComment } from '../graphql/mutations.js';
 import type { CommentData } from './adt';
 import type { GraphQLClient } from '../types/shared';
 
@@ -51,5 +54,106 @@ export const loadCommentsForTranscription = async (transcriptionId: string): Pro
     console.error('❌ Failed to load comments via GraphQL:', error);
     // Return empty array on error to prevent app crashes
     return [];
+  }
+};
+
+/**
+ * Creates a new comment.
+ * @param input Comment data without ID, timestamps, and version
+ * @returns The created comment
+ */
+export const createNewComment = async (
+  input: Omit<CommentData, 'id' | 'createdAt' | 'updatedAt' | '_version'>
+): Promise<CommentData> => {
+  try {
+    console.log(`📝 Creating comment for entity ${input.entityType}:${input.entityId}...`);
+    
+    const result = await getClient().graphql({
+      query: createComment,
+      variables: { input },
+    }) as { data: { createComment: CommentData } };
+    
+    const comment = result.data?.createComment;
+    if (!comment) {
+      throw new Error('Failed to create comment - no data returned');
+    }
+    
+    console.log(`✅ Comment created successfully: ${comment.id}`);
+    return comment;
+  } catch (error) {
+    console.error('❌ Failed to create comment:', error);
+    throw error;
+  }
+};
+
+/**
+ * Updates an existing comment.
+ * @param commentId The ID of the comment to update
+ * @param updates Partial comment data to update
+ * @param version Current version for optimistic concurrency control
+ * @returns The updated comment
+ */
+export const updateExistingComment = async (
+  commentId: string,
+  updates: Partial<CommentData>,
+  version: number
+): Promise<CommentData> => {
+  try {
+    console.log(`📝 Updating comment ${commentId} (version ${version})...`);
+    
+    // Filter out read-only fields that shouldn't be sent to GraphQL
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { id, createdAt, updatedAt, _version, __typename, ...filteredUpdates } = updates as Record<string, unknown>;
+    
+    const result = await getClient().graphql({
+      query: updateComment,
+      variables: { 
+        input: { 
+          id: commentId, 
+          _version: version,
+          ...filteredUpdates 
+        } 
+      },
+    }) as { data: { updateComment: CommentData } };
+    
+    const comment = result.data?.updateComment;
+    if (!comment) {
+      throw new Error('Failed to update comment - no data returned');
+    }
+    
+    console.log(`✅ Comment updated successfully: ${comment.id}`);
+    return comment;
+  } catch (error) {
+    console.error('❌ Failed to update comment:', error);
+    throw error;
+  }
+};
+
+/**
+ * Deletes a comment.
+ * @param commentId The ID of the comment to delete
+ * @param version Current version for optimistic concurrency control
+ */
+export const deleteExistingComment = async (
+  commentId: string,
+  version: number
+): Promise<void> => {
+  try {
+    console.log(`🗑️ Deleting comment ${commentId} (version ${version})...`);
+    
+    await getClient().graphql({
+      query: deleteComment,
+      variables: { 
+        input: { 
+          id: commentId, 
+          _version: version 
+        } 
+      },
+    });
+    
+    console.log(`✅ Comment deleted successfully: ${commentId}`);
+  } catch (error) {
+    console.error('❌ Failed to delete comment:', error);
+    throw error;
   }
 };
