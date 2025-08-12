@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef } from 'react';
 import { rteService, type EditorKey } from '../services/rteService';
 import { issueHighlightService } from '../services/issueHighlightService';
 import { UpdateRegionTextUseCase } from '../use-cases/update-region-text';
+import { UpdateIssueTextUseCase } from '../use-cases/update-issue-text';
 import { AnalyzeRegionTextUseCase } from '../use-cases/analyze-region-text';
 import { useEditorStore } from '../stores/useEditorStore';
 import { services } from '../services';
@@ -39,29 +40,53 @@ export const useTextEditors = (regionId: string, activeTab: 'main' | 'translatio
     if (!currentContent && currentRegion?.regionText) {
       rteService.setContent(mainEditorKey, currentRegion.regionText);
       
-      // Apply known words and issue highlighting from cache immediately
+      // Apply highlighting and run issue matching detection
       const state = useEditorStore.getState();
       const knownWords = Array.from(state.knownWords);
-      // Try to get issues if store supports it, otherwise use empty array
-      const issues = typeof state.getIssuesForRegion === 'function' 
-        ? state.getIssuesForRegion(regionId) 
-        : [];
-      const issueHighlights = issueHighlightService.convertIssuesToHighlights(issues);
       
-      // Use applyHighlighting if available, fallback to applyKnownWordsFormatting
-      if (typeof rteService.applyHighlighting === 'function') {
-        rteService.applyHighlighting(mainEditorKey, {
-          knownWords,
-          issues: issueHighlights
-        });
+      // Use updateIssueHighlighting which includes matching service detection
+      if (typeof rteService.updateIssueHighlighting === 'function') {
+        rteService.updateIssueHighlighting(regionId);
       } else {
-        rteService.applyKnownWordsFormatting(mainEditorKey, knownWords);
+        // Fallback to old method if updateIssueHighlighting doesn't exist
+        const issues = typeof state.getIssuesForRegion === 'function' 
+          ? state.getIssuesForRegion(regionId) 
+          : [];
+        const issueHighlights = issueHighlightService.convertIssuesToHighlights(issues);
+        
+        if (typeof rteService.applyHighlighting === 'function') {
+          rteService.applyHighlighting(mainEditorKey, {
+            knownWords,
+            issues: issueHighlights
+          });
+        } else {
+          rteService.applyKnownWordsFormatting(mainEditorKey, knownWords);
+        }
       }
     }
 
     // Set up text change listener only if user can edit
     if (canEdit) {
       rteService.onTextChange(mainEditorKey, (text) => {
+        // Check if we're typing inside an issue and handle issue text updates
+        const selectionIndex = rteService.getSelection(mainEditorKey);
+        if (selectionIndex !== null) {
+          const issueContext = rteService.getIssueContext(mainEditorKey, selectionIndex);
+          if (issueContext.issueId) {
+            // We're typing inside an issue - get the current word/token
+            const currentWord = rteService.getWordAt(mainEditorKey, selectionIndex);
+            if (currentWord) {
+              // Update the issue text in the store immediately to maintain highlighting
+              new UpdateIssueTextUseCase().execute({
+                issueId: issueContext.issueId,
+                newText: currentWord
+              }).catch(error => {
+                console.error('Failed to update issue text:', error);
+              });
+            }
+          }
+        }
+
         // Track pending edit (start if first change, update activity if ongoing)
         if (!services.storeService.isPendingEdit(regionId, 'regionText')) {
           // Start new pending edit
@@ -81,24 +106,29 @@ export const useTextEditors = (regionId: string, activeTab: 'main' | 'translatio
           services
         }).execute();
 
-        // IMMEDIATELY apply cached known words and issue highlighting
+        // IMMEDIATELY apply highlighting and run issue matching detection
         // This solves format inheritance and word splitting issues
         const state = useEditorStore.getState();
         const knownWords = Array.from(state.knownWords);
-        // Try to get issues if store supports it, otherwise use empty array
-        const issues = typeof state.getIssuesForRegion === 'function' 
-          ? state.getIssuesForRegion(regionId) 
-          : [];
-        const issueHighlights = issueHighlightService.convertIssuesToHighlights(issues);
         
-        // Use applyHighlighting if available, fallback to applyKnownWordsFormatting
-        if (typeof rteService.applyHighlighting === 'function') {
-          rteService.applyHighlighting(mainEditorKey, {
-            knownWords,
-            issues: issueHighlights
-          });
+        // Use updateIssueHighlighting which includes matching service detection
+        if (typeof rteService.updateIssueHighlighting === 'function') {
+          rteService.updateIssueHighlighting(regionId);
         } else {
-          rteService.applyKnownWordsFormatting(mainEditorKey, knownWords);
+          // Fallback to old method if updateIssueHighlighting doesn't exist
+          const issues = typeof state.getIssuesForRegion === 'function' 
+            ? state.getIssuesForRegion(regionId) 
+            : [];
+          const issueHighlights = issueHighlightService.convertIssuesToHighlights(issues);
+          
+          if (typeof rteService.applyHighlighting === 'function') {
+            rteService.applyHighlighting(mainEditorKey, {
+              knownWords,
+              issues: issueHighlights
+            });
+          } else {
+            rteService.applyKnownWordsFormatting(mainEditorKey, knownWords);
+          }
         }
 
         // Analyze text for known words

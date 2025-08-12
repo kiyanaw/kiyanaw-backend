@@ -1,6 +1,54 @@
 import { useState, useEffect } from 'react';
-import { Check, Trash2, MessageSquare } from 'lucide-react';
+import { Check, Trash2, MessageSquare, AlertTriangle } from 'lucide-react';
 import { useAuthStore } from '../../stores/useAuthStore';
+import { UpdateIssueTextUseCase } from '../../use-cases/update-issue-text';
+
+// Suggestion Popover Component
+interface SuggestionPopoverProps {
+  issueId: string;
+  suggestions: Array<{ token: string; start: number; end: number; score: number }>;
+  onSelectSuggestion: (issueId: string, newText: string) => void;
+  onClose: () => void;
+}
+
+const SuggestionPopover: React.FC<SuggestionPopoverProps> = ({ 
+  issueId, 
+  suggestions, 
+  onSelectSuggestion, 
+  onClose 
+}) => {
+  return (
+    <div className="absolute z-10 mt-1 w-64 bg-white border border-gray-300 rounded-lg shadow-lg">
+      <div className="p-3">
+        <div className="text-sm font-medium text-gray-700 mb-2">
+          Suggested matches:
+        </div>
+        <div className="space-y-1">
+          {suggestions.map((suggestion, index) => (
+            <button
+              key={index}
+              onClick={() => onSelectSuggestion(issueId, suggestion.token)}
+              className="w-full text-left p-2 text-sm rounded border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-colors"
+            >
+              <div className="font-medium text-gray-800">{suggestion.token}</div>
+              <div className="text-xs text-gray-500">
+                Score: {suggestion.score} | Position: {suggestion.start}-{suggestion.end}
+              </div>
+            </button>
+          ))}
+        </div>
+        <div className="mt-2 pt-2 border-t border-gray-200">
+          <button
+            onClick={onClose}
+            className="text-sm text-gray-500 hover:text-gray-700"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 interface Issue {
   id: string;
@@ -13,6 +61,8 @@ interface Issue {
   createdAt: string;
   updatedAt: string;
   commentCount: number;
+  linkStatus?: 'matched' | 'unmatched';
+  suggestions?: Array<{ token: string; start: number; end: number; score: number }>;
 }
 
 
@@ -49,6 +99,7 @@ export const IssuesPanel = ({
 
   const [showResolved, setShowResolved] = useState(false);
   const [expandedTypeIssueId, setExpandedTypeIssueId] = useState<string | null>(null);
+  const [suggestionPopoverIssueId, setSuggestionPopoverIssueId] = useState<string | null>(null);
 
   // Close expanded type selector on escape key
   useEffect(() => {
@@ -135,9 +186,14 @@ export const IssuesPanel = ({
     }
   };
 
-
-
-  
+  const handleSelectSuggestion = async (issueId: string, newText: string) => {
+    try {
+      await new UpdateIssueTextUseCase().execute({ issueId, newText });
+      setSuggestionPopoverIssueId(null); // Close popover after successful update
+    } catch (error) {
+      console.error('Failed to update issue text:', error);
+    }
+  };
 
   const formatDate = (dateString: string) => {
     try {
@@ -175,7 +231,24 @@ export const IssuesPanel = ({
       `}</style>
       <div className="flex flex-col h-full bg-white rounded-lg overflow-hidden">
       <div className="flex justify-between items-center p-4 bg-gray-50 border-b border-gray-200">
-        <h3 className="m-0 text-lg font-semibold text-gray-800">Issues</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="m-0 text-lg font-semibold text-gray-800">Issues</h3>
+          {(() => {
+            // Count unmatched issues
+            const unmatchedCount = filteredIssues.filter(issue => 
+              !issue.resolved && issue.linkStatus === 'unmatched'
+            ).length;
+            
+            if (unmatchedCount > 0) {
+              return (
+                <div title={`${unmatchedCount} issue${unmatchedCount > 1 ? 's' : ''} not matching editor text`}>
+                  <AlertTriangle className="w-4 h-4 text-yellow-600" />
+                </div>
+              );
+            }
+            return null;
+          })()}
+        </div>
         {canEdit && (
           <button
             className="py-2 px-4 bg-blue-600 text-white border-none rounded text-sm font-medium cursor-pointer transition-colors duration-200 hover:bg-blue-700"
@@ -251,6 +324,14 @@ export const IssuesPanel = ({
             const canDelete = canEdit && isIssueOwner; // Only issue owners can delete
             const canResolve = canEdit; // Anyone with transcription edit access can resolve/update
             
+            // Debug link status
+            console.log(`🔗 Issue ${issue.id} link status:`, {
+              text: issue.text,
+              linkStatus: issue.linkStatus,
+              hasSuggestions: issue.suggestions?.length || 0,
+              resolved: issue.resolved
+            });
+            
 
 
             return (
@@ -322,16 +403,40 @@ export const IssuesPanel = ({
                     </span>
                   )}
 
-                  {/* Issue text with comment icon - takes up remaining space */}
-                  <div className="flex-1 flex items-center gap-2">
+                  {/* Issue text with comment icon and warning icon - takes up remaining space */}
+                  <div className="flex-1 flex items-center gap-2 relative">
                     <span className={`text-sm ${issue.resolved ? 'text-gray-500 line-through' : 'text-gray-800'}`}>
                       {issue.text}
                     </span>
+                    
+                    {/* Warning icon for unmatched issues */}
+                    {!issue.resolved && issue.linkStatus === 'unmatched' && (
+                      <button
+                        onClick={() => setSuggestionPopoverIssueId(
+                          suggestionPopoverIssueId === issue.id ? null : issue.id
+                        )}
+                        className="p-1 rounded hover:bg-yellow-100 transition-colors"
+                        title="This issue text doesn't match any text in the editor. Click for suggestions."
+                      >
+                        <AlertTriangle className="w-4 h-4 text-yellow-600" />
+                      </button>
+                    )}
+
                     {commentCount > 0 && (
                       <div className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded text-xs text-gray-500">
                         <MessageSquare className="w-3 h-3" />
                         <span>{commentCount}</span>
                       </div>
+                    )}
+
+                    {/* Suggestion Popover */}
+                    {suggestionPopoverIssueId === issue.id && issue.suggestions && issue.suggestions.length > 0 && (
+                      <SuggestionPopover
+                        issueId={issue.id}
+                        suggestions={issue.suggestions}
+                        onSelectSuggestion={handleSelectSuggestion}
+                        onClose={() => setSuggestionPopoverIssueId(null)}
+                      />
                     )}
                   </div>
 

@@ -52,6 +52,10 @@ interface EditorState {
   commentsByEntityMap: Record<string, CommentData[]>; // entityId -> comments[]
   commentsByTranscriptionMap: CommentData[]; // transcription-level comments
 
+  // Issue link status tracking
+  issueLinkStatusesByRegion: Record<string, Record<string, 'matched' | 'unmatched'>>; // regionId -> issueId -> status
+  issueSuggestionsByRegion: Record<string, Record<string, Array<{ token: string; start: number; end: number; score: number }>>>; // regionId -> issueId -> suggestions
+
   // Subscriptions
   _subscriptions: { unsubscribe: () => void }[];
 
@@ -77,6 +81,11 @@ interface EditorState {
   addNewIssue: (issue: IssueData) => void;
   updateIssue: (issueId: string, updates: Partial<IssueData>) => void;
   deleteIssue: (issueId: string) => void;
+
+  // Issue link status actions
+  setIssueLinkStatuses: (regionId: string, statuses: Record<string, 'matched' | 'unmatched'>) => void;
+  setIssueSuggestions: (regionId: string, suggestions: Record<string, Array<{ token: string; start: number; end: number; score: number }>>) => void;
+  clearIssueSuggestionsForIssue: (issueId: string) => void;
 
   // Transcription metadata helpers
   calculateTranscriptionMetadata: () => { regionCount: number; coverage: number };
@@ -147,6 +156,11 @@ export const useEditorStore = create<EditorState>()(
       commentMap: {},
       commentsByEntityMap: {},
       commentsByTranscriptionMap: [],
+      
+      // Issue link status initial state
+      issueLinkStatusesByRegion: {},
+      issueSuggestionsByRegion: {},
+      
       _subscriptions: [],
 
       isTranscriptionAuthor: (user) => {
@@ -527,6 +541,43 @@ export const useEditorStore = create<EditorState>()(
           issues: newIssues,
           issueMap: newIssueMap,
           issuesByRegionMap: newIssuesByRegionMap,
+        });
+      },
+
+      // Issue link status actions
+      setIssueLinkStatuses: (regionId: string, statuses: Record<string, 'matched' | 'unmatched'>) => {
+        const { issueLinkStatusesByRegion } = get();
+        set({
+          issueLinkStatusesByRegion: {
+            ...issueLinkStatusesByRegion,
+            [regionId]: statuses
+          }
+        });
+      },
+
+      setIssueSuggestions: (regionId: string, suggestions: Record<string, Array<{ token: string; start: number; end: number; score: number }>>) => {
+        const { issueSuggestionsByRegion } = get();
+        set({
+          issueSuggestionsByRegion: {
+            ...issueSuggestionsByRegion,
+            [regionId]: suggestions
+          }
+        });
+      },
+
+      clearIssueSuggestionsForIssue: (issueId: string) => {
+        const { issueSuggestionsByRegion } = get();
+        const newSuggestions = { ...issueSuggestionsByRegion };
+        
+        // Remove suggestions for this issue from all regions
+        Object.keys(newSuggestions).forEach(regionId => {
+          const regionSuggestions = { ...newSuggestions[regionId] };
+          delete regionSuggestions[issueId];
+          newSuggestions[regionId] = regionSuggestions;
+        });
+        
+        set({
+          issueSuggestionsByRegion: newSuggestions
         });
       },
 

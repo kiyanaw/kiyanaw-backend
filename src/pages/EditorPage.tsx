@@ -176,18 +176,27 @@ export const EditorPage = () => {
               <>
                 <IssuesPanel
                   selectedRegionId={selectedRegion?.id}
-                  issues={(issues || []).map(issue => ({
-                    id: issue.id,
-                    text: issue.text,
-                    type: issue.type as 'needs-help' | 'indexing' | 'new-word',
-                    owner: issue.owner, // Use actual owner UUID for permission checking
-                    ownerFriendly: issue.ownerFriendly,
-                    regionId: issue.regionId,
-                    resolved: issue.resolved || false,
-                    createdAt: issue.createdAt || new Date().toISOString(),
-                    updatedAt: issue.updatedAt || new Date().toISOString(),
-                    commentCount: issue.commentCount || 0,
-                  }))}
+                  issues={(issues || []).map(issue => {
+                    // Get link status and suggestions from store
+                    const storeState = useEditorStore.getState();
+                    const linkStatus = selectedRegion?.id ? storeState.issueLinkStatusesByRegion[selectedRegion.id]?.[issue.id] : undefined;
+                    const suggestions = selectedRegion?.id ? storeState.issueSuggestionsByRegion[selectedRegion.id]?.[issue.id] : undefined;
+                    
+                    return {
+                      id: issue.id,
+                      text: issue.text,
+                      type: issue.type as 'needs-help' | 'indexing' | 'new-word',
+                      owner: issue.owner, // Use actual owner UUID for permission checking
+                      ownerFriendly: issue.ownerFriendly,
+                      regionId: issue.regionId,
+                      resolved: issue.resolved || false,
+                      createdAt: issue.createdAt || new Date().toISOString(),
+                      updatedAt: issue.updatedAt || new Date().toISOString(),
+                      commentCount: issue.commentCount || 0,
+                      linkStatus,
+                      suggestions,
+                    };
+                  })}
                   canEdit={canEdit}
                   onCreateIssue={handleCreateIssue}
                   onUpdateIssue={handleUpdateIssue}

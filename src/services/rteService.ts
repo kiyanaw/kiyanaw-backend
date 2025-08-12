@@ -6,6 +6,7 @@ import QuillCursors from 'quill-cursors';
 import { textHighlightService, type IssueHighlight, type IssueType } from './textHighlightService';
 import { useEditorStore } from '../stores/useEditorStore';
 import { issueHighlightService } from './issueHighlightService';
+import { issueMatchingService } from './issueMatchingService';
 
 // Quill-related interfaces
 interface QuillModulesConfig extends Record<string, unknown> {
@@ -81,14 +82,20 @@ class IssueNeedsHelpBlot extends Inline implements BlotInstance {
   static tagName = 'span';
   static className = 'issue-needs-help';
   
-  static create() {
+  static create(value?: string) {
     const node = super.create();
     node.setAttribute('class', 'issue-needs-help');
+    if (value) {
+      node.setAttribute('data-issue-id', value);
+    }
     return node;
   }
   
   static formats(node: HTMLElement) {
-    return node.getAttribute('class') === 'issue-needs-help';
+    if (node.getAttribute('class') === 'issue-needs-help') {
+      return node.getAttribute('data-issue-id') || true;
+    }
+    return false;
   }
   
   format(name: string, value: boolean | string) {
@@ -96,6 +103,9 @@ class IssueNeedsHelpBlot extends Inline implements BlotInstance {
       super.format(name, value);
     } else {
       this.domNode.setAttribute('class', 'issue-needs-help');
+      if (typeof value === 'string') {
+        this.domNode.setAttribute('data-issue-id', value);
+      }
     }
   }
 }
@@ -107,14 +117,20 @@ class IssueIndexingBlot extends Inline implements BlotInstance {
   static tagName = 'span';
   static className = 'issue-indexing';
   
-  static create() {
+  static create(value?: string) {
     const node = super.create();
     node.setAttribute('class', 'issue-indexing');
+    if (value) {
+      node.setAttribute('data-issue-id', value);
+    }
     return node;
   }
   
   static formats(node: HTMLElement) {
-    return node.getAttribute('class') === 'issue-indexing';
+    if (node.getAttribute('class') === 'issue-indexing') {
+      return node.getAttribute('data-issue-id') || true;
+    }
+    return false;
   }
   
   format(name: string, value: boolean | string) {
@@ -122,6 +138,9 @@ class IssueIndexingBlot extends Inline implements BlotInstance {
       super.format(name, value);
     } else {
       this.domNode.setAttribute('class', 'issue-indexing');
+      if (typeof value === 'string') {
+        this.domNode.setAttribute('data-issue-id', value);
+      }
     }
   }
 }
@@ -133,14 +152,20 @@ class IssueNewWordBlot extends Inline implements BlotInstance {
   static tagName = 'span';
   static className = 'issue-new-word';
   
-  static create() {
+  static create(value?: string) {
     const node = super.create();
     node.setAttribute('class', 'issue-new-word');
+    if (value) {
+      node.setAttribute('data-issue-id', value);
+    }
     return node;
   }
   
   static formats(node: HTMLElement) {
-    return node.getAttribute('class') === 'issue-new-word';
+    if (node.getAttribute('class') === 'issue-new-word') {
+      return node.getAttribute('data-issue-id') || true;
+    }
+    return false;
   }
   
   format(name: string, value: boolean | string) {
@@ -148,6 +173,9 @@ class IssueNewWordBlot extends Inline implements BlotInstance {
       super.format(name, value);
     } else {
       this.domNode.setAttribute('class', 'issue-new-word');
+      if (typeof value === 'string') {
+        this.domNode.setAttribute('data-issue-id', value);
+      }
     }
   }
 }
@@ -450,9 +478,9 @@ class RTEServiceImpl {
     const matches = this.findIssueMatches(text, issues);
     
     // Apply specific issue formatting based on type
-    matches.forEach(({ index, length, type }) => {
+    matches.forEach(({ index, length, type, id }) => {
       const formatName = `issue-${type}`;
-      instance.quill.formatText(index, length, formatName, true, 'api');
+      instance.quill.formatText(index, length, formatName, id, 'api');
     });
   }
 
@@ -486,13 +514,84 @@ class RTEServiceImpl {
     // Apply issues second (they will override known words where they overlap)
     if (issues.length > 0) {
       const issueMatches = this.findIssueMatches(text, issues);
-      issueMatches.forEach(({ index, length, type }) => {
+      issueMatches.forEach(({ index, length, type, id }) => {
         // Clear known-word formatting at this position first, then apply issue formatting
         instance.quill.formatText(index, length, 'known-word', false, 'api');
         const formatName = `issue-${type}`;
-        instance.quill.formatText(index, length, formatName, true, 'api');
+        instance.quill.formatText(index, length, formatName, id, 'api');
       });
     }
+  }
+
+  // Get current selection index (caret position)
+  getSelection(key: EditorKey): number | null {
+    const instance = this.registry.get(key);
+    if (!instance) {
+      return null;
+    }
+
+    const selection = instance.quill.getSelection();
+    return selection ? selection.index : null;
+  }
+
+  // Get issue context at a specific index
+  getIssueContext(key: EditorKey, index: number): { issueId: string | null; type: IssueType | null } {
+    const instance = this.registry.get(key);
+    if (!instance) {
+      return { issueId: null, type: null };
+    }
+
+    // Get formatting at the specified index
+    const formats = instance.quill.getFormat(index);
+    
+    // Check each issue format type
+    const issueFormats = ['issue-needs-help', 'issue-indexing', 'issue-new-word'] as const;
+    
+    for (const formatName of issueFormats) {
+      const formatValue = formats[formatName];
+      if (formatValue) {
+        // Extract type from format name
+        const type = formatName.replace('issue-', '') as IssueType;
+        const issueId = typeof formatValue === 'string' ? formatValue : null;
+        return { issueId, type };
+      }
+    }
+
+    return { issueId: null, type: null };
+  }
+
+  // Get the word/token at a specific index
+  getWordAt(key: EditorKey, index: number): string | null {
+    const instance = this.registry.get(key);
+    if (!instance) {
+      return null;
+    }
+
+    const text = instance.quill.getText();
+    if (index < 0 || index >= text.length) {
+      return null;
+    }
+
+    // Use the same tokenization pattern as our text highlighting
+    const tokenPattern = /([\p{L}\p{N}_-]+)/u;
+    
+    // Find word boundaries around the index
+    let start = index;
+    let end = index;
+    
+    // Move start backwards to find word beginning
+    while (start > 0 && tokenPattern.test(text[start - 1])) {
+      start--;
+    }
+    
+    // Move end forwards to find word end
+    while (end < text.length && tokenPattern.test(text[end])) {
+      end++;
+    }
+    
+    // Extract the word
+    const word = text.slice(start, end).trim();
+    return word || null;
   }
 
   // Clean up all editors (useful for testing or app shutdown)
@@ -525,8 +624,41 @@ class RTEServiceImpl {
       ? state.getIssuesForRegion(regionId) 
       : [];
 
-    // Convert issues to highlights (this will filter out resolved issues)
-    const issueHighlights = issueHighlightService.convertIssuesToHighlights(issues);
+    // Get current text from editor
+    const regionText = instance.quill.getText();
+
+    // Use matching service to detect matched/unmatched issues
+    console.log(`🔍 Matching issues for region ${regionId}:`, {
+      regionText: regionText.substring(0, 100),
+      issueCount: issues.length,
+      issues: issues.map(i => ({ id: i.id, text: i.text, resolved: i.resolved }))
+    });
+    
+    const matchResult = issueMatchingService.match(regionText, issues);
+    
+    console.log(`📊 Match results:`, {
+      matched: Array.from(matchResult.matched),
+      unmatched: Array.from(matchResult.unmatched),
+      suggestions: Object.keys(matchResult.suggestions).length
+    });
+
+    // Update store with link statuses and suggestions
+    const linkStatuses: Record<string, 'matched' | 'unmatched'> = {};
+    for (const issueId of matchResult.matched) {
+      linkStatuses[issueId] = 'matched';
+    }
+    for (const issueId of matchResult.unmatched) {
+      linkStatuses[issueId] = 'unmatched';
+    }
+
+    state.setIssueLinkStatuses(regionId, linkStatuses);
+    state.setIssueSuggestions(regionId, matchResult.suggestions);
+    
+    console.log(`🏪 Updated store with link statuses:`, linkStatuses);
+
+    // Only highlight matched issues
+    const matchedIssues = issues.filter(issue => matchResult.matched.has(issue.id));
+    const issueHighlights = issueHighlightService.convertIssuesToHighlights(matchedIssues);
 
     // Re-apply highlighting
     this.applyHighlighting(editorKey, {
