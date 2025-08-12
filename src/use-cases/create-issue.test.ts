@@ -38,7 +38,8 @@ describe('CreateIssueUseCase', () => {
 
     // Mock editor store
     mockEditorStore = {
-      addNewIssue: jest.fn()
+      addNewIssue: jest.fn(),
+      deleteIssue: jest.fn()
     };
     (useEditorStore.getState as jest.Mock).mockReturnValue(mockEditorStore);
 
@@ -52,27 +53,32 @@ describe('CreateIssueUseCase', () => {
 
   describe('validate', () => {
     it('should throw error for missing text', () => {
-      const input = { text: '', type: 'new-word', owner: 'user-123', transcriptionId: 'trans-789' };
+      const input = { text: '', type: 'new-word', owner: 'user-123', ownerFriendly: 'Test User', transcriptionId: 'trans-789' };
       expect(() => useCase.validate(input)).toThrow('Issue text is required');
     });
 
     it('should throw error for whitespace-only text', () => {
-      const input = { text: '   ', type: 'new-word', owner: 'user-123', transcriptionId: 'trans-789' };
+      const input = { text: '   ', type: 'new-word', owner: 'user-123', ownerFriendly: 'Test User', transcriptionId: 'trans-789' };
       expect(() => useCase.validate(input)).toThrow('Issue text is required');
     });
 
     it('should throw error for missing type', () => {
-      const input = { text: 'Test issue', type: '', owner: 'user-123', transcriptionId: 'trans-789' };
+      const input = { text: 'Test issue', type: '', owner: 'user-123', ownerFriendly: 'Test User', transcriptionId: 'trans-789' };
       expect(() => useCase.validate(input)).toThrow('Issue type is required');
     });
 
     it('should throw error for missing owner', () => {
-      const input = { text: 'Test issue', type: 'new-word', owner: '', transcriptionId: 'trans-789' };
+      const input = { text: 'Test issue', type: 'new-word', owner: '', ownerFriendly: 'Test User', transcriptionId: 'trans-789' };
       expect(() => useCase.validate(input)).toThrow('Issue owner is required');
     });
 
+    it('should throw error for missing ownerFriendly', () => {
+      const input = { text: 'Test issue', type: 'new-word', owner: 'user-123', ownerFriendly: '', transcriptionId: 'trans-789' };
+      expect(() => useCase.validate(input)).toThrow('Issue owner friendly name is required');
+    });
+
     it('should throw error for missing transcriptionId', () => {
-      const input = { text: 'Test issue', type: 'new-word', owner: 'user-123', transcriptionId: '' };
+      const input = { text: 'Test issue', type: 'new-word', owner: 'user-123', ownerFriendly: 'Test User', transcriptionId: '' };
       expect(() => useCase.validate(input)).toThrow('Transcription ID is required');
     });
 
@@ -81,6 +87,7 @@ describe('CreateIssueUseCase', () => {
         text: 'Test issue', 
         type: 'new-word', 
         owner: 'user-123', 
+        ownerFriendly: 'Test User',
         transcriptionId: 'trans-789' 
       };
       expect(() => useCase.validate(input)).not.toThrow();
@@ -91,6 +98,7 @@ describe('CreateIssueUseCase', () => {
         text: 'Test issue', 
         type: 'new-word', 
         owner: 'user-123', 
+        ownerFriendly: 'Test User',
         regionId: 'region-456',
         transcriptionId: 'trans-789' 
       };
@@ -103,6 +111,7 @@ describe('CreateIssueUseCase', () => {
       text: 'Test issue text',
       type: 'new-word',
       owner: 'user-123',
+      ownerFriendly: 'Test User',
       regionId: 'region-456',
       transcriptionId: 'trans-789'
     };
@@ -117,6 +126,7 @@ describe('CreateIssueUseCase', () => {
         text: 'Test issue text',
         type: 'new-word',
         owner: 'user-123',
+        ownerFriendly: 'Test User',
         regionId: 'region-456',
         transcriptionId: 'trans-789'
       });
@@ -142,6 +152,7 @@ describe('CreateIssueUseCase', () => {
         text: 'Test issue text',
         type: 'new-word',
         owner: 'user-123',
+        ownerFriendly: 'Test User',
         regionId: '',
         transcriptionId: 'trans-789'
       });
@@ -160,6 +171,7 @@ describe('CreateIssueUseCase', () => {
         text: 'Test issue text',
         type: 'new-word',
         owner: 'user-123',
+        ownerFriendly: 'Test User',
         regionId: 'region-456',
         transcriptionId: 'trans-789'
       });
@@ -176,6 +188,7 @@ describe('CreateIssueUseCase', () => {
         text: 'ē-mânokâkēcik issue',
         type: 'new-word',
         owner: 'user-123',
+        ownerFriendly: 'Test User',
         regionId: 'region-456',
         transcriptionId: 'trans-789'
       });
@@ -194,6 +207,7 @@ describe('CreateIssueUseCase', () => {
         text: 'Test issue text',
         type: 'needs-help',
         owner: 'user-123',
+        ownerFriendly: 'Test User',
         regionId: 'region-456',
         transcriptionId: 'trans-789'
       });
@@ -208,8 +222,10 @@ describe('CreateIssueUseCase', () => {
       await expect(useCase.execute(validInput)).rejects.toThrow('Service error');
 
       expect(console.error).toHaveBeenCalledWith('Failed to create issue:', serviceError);
-      expect(mockEditorStore.addNewIssue).not.toHaveBeenCalled();
-      expect(rteService.updateIssueHighlighting).not.toHaveBeenCalled();
+      // Optimistic update happens before the error, but then gets cleaned up
+      expect(mockEditorStore.addNewIssue).toHaveBeenCalledTimes(1);
+      expect(mockEditorStore.deleteIssue).toHaveBeenCalledTimes(1);
+      expect(rteService.updateIssueHighlighting).toHaveBeenCalledTimes(2); // Once for add, once for cleanup
     });
 
     it('should handle validation errors', async () => {
@@ -234,6 +250,7 @@ describe('CreateIssueUseCase', () => {
         text: longText,
         type: 'new-word',
         owner: 'user-123',
+        ownerFriendly: 'Test User',
         regionId: 'region-456',
         transcriptionId: 'trans-789'
       });
@@ -252,6 +269,7 @@ describe('CreateIssueUseCase', () => {
         text: 'Text with \n newlines \t and tabs',
         type: 'new-word',
         owner: 'user-123',
+        ownerFriendly: 'Test User',
         regionId: 'region-456',
         transcriptionId: 'trans-789'
       });
@@ -270,6 +288,7 @@ describe('CreateIssueUseCase', () => {
         text: 'Test issue text',
         type: 'new-word',
         owner: 'user-123',
+        ownerFriendly: 'Test User',
         regionId: '',
         transcriptionId: 'trans-789'
       });

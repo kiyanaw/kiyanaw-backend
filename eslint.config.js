@@ -18,6 +18,7 @@ export default tseslint.config(
       'src/ui-components/studioTheme.js.d.ts',
       'src/ui-components/studioTheme.js', 
       'src/ui-components/utils.js',
+      'src/ui-components/*.jsx',
       'amplify/#current-cloud-backend/**',
       'amplify/backend/custom/regionChangeSQS/build/**',
       'amplify/backend/custom/inviteHandlerSES/cdk-stack.ts',

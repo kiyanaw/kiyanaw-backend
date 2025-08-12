@@ -88,7 +88,10 @@ describe('issueService', () => {
       expect(mockClient.graphql).toHaveBeenCalledWith({
         query: 'mock-list-issues-query',
         variables: {
-          filter: { transcriptionId: { eq: transcriptionId } },
+          filter: { 
+            transcriptionId: { eq: transcriptionId },
+            _deleted: { ne: true }
+          },
           limit: 2000
         }
       });
@@ -164,6 +167,7 @@ describe('issueService', () => {
       text: 'New test issue',
       type: 'new-word',
       owner: 'user-123',
+      ownerFriendly: 'Test User',
       regionId: 'region-456',
       transcriptionId: 'trans-789'
     };
@@ -314,16 +318,20 @@ describe('issueService', () => {
 
   describe('deleteExistingIssue', () => {
     const issueId = 'issue-to-delete';
+    const version = 3;
 
     it('should delete an issue successfully', async () => {
       mockClient.graphql.mockResolvedValue({});
 
-      await deleteExistingIssue(issueId);
+      await deleteExistingIssue(issueId, version);
 
       expect(mockClient.graphql).toHaveBeenCalledWith({
         query: 'mock-delete-issue-mutation',
         variables: {
-          input: { id: issueId }
+          input: { 
+            id: issueId,
+            _version: version
+          }
         }
       });
 
@@ -335,7 +343,7 @@ describe('issueService', () => {
       const error = new Error('Delete issue failed');
       mockClient.graphql.mockRejectedValue(error);
 
-      await expect(deleteExistingIssue(issueId)).rejects.toThrow('Delete issue failed');
+      await expect(deleteExistingIssue(issueId, version)).rejects.toThrow('Delete issue failed');
       expect(console.error).toHaveBeenCalledWith('❌ Failed to delete issue:', error);
     });
   });

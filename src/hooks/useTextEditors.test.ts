@@ -34,7 +34,11 @@ jest.mock('../services/rteService', () => ({
       getText: jest.fn().mockReturnValue({ trim: jest.fn().mockReturnValue('') })
     }),
     hasEditor: jest.fn().mockReturnValue(true),
-    applyKnownWordsFormatting: jest.fn()
+    applyKnownWordsFormatting: jest.fn(),
+    onSelectionChange: jest.fn(),
+    offSelectionChange: jest.fn(),
+    getSelectedText: jest.fn().mockReturnValue(''),
+    getSelectionRange: jest.fn().mockReturnValue(null)
   }
 }));
 

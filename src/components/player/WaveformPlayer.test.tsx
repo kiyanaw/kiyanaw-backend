@@ -183,6 +183,8 @@ describe('WaveformPlayer', () => {
         addConflictToQueue: jest.fn(),
         removeConflictFromQueue: jest.fn(),
         processConflictQueue: jest.fn(),
+        regionSelections: {},
+        setRegionSelection: jest.fn(),
       };
       return selector(state);
     });
@@ -610,6 +612,8 @@ describe('WaveformPlayer', () => {
         addConflictToQueue: jest.fn(),
         removeConflictFromQueue: jest.fn(),
         processConflictQueue: jest.fn(),
+        regionSelections: {},
+        setRegionSelection: jest.fn(),
       };
       
       mockUseEditorStore.mockImplementation((selector) => selector(mockStateWithNoEdit));
@@ -727,6 +731,8 @@ describe('WaveformPlayer', () => {
           addConflictToQueue: jest.fn(),
           removeConflictFromQueue: jest.fn(),
           processConflictQueue: jest.fn(),
+        regionSelections: {},
+        setRegionSelection: jest.fn(),
         };
         return selector(state);
       });

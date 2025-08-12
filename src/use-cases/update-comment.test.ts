@@ -56,7 +56,8 @@ describe('UpdateCommentUseCase', () => {
 
     it('should update a comment successfully', async () => {
       mockEditorStore.commentById.mockReturnValue(mockComment);
-      mockUpdateExistingComment.mockResolvedValue(undefined);
+      const updatedComment = { ...mockComment, text: 'Updated comment text' };
+      mockUpdateExistingComment.mockResolvedValue(updatedComment);
 
       await useCase.execute(validInput);
 
@@ -108,7 +109,8 @@ describe('UpdateCommentUseCase', () => {
 
     it('should trim whitespace from input text', async () => {
       mockEditorStore.commentById.mockReturnValue(mockComment);
-      mockUpdateExistingComment.mockResolvedValue(undefined);
+      const updatedComment = { ...mockComment, text: 'Updated comment text' };
+      mockUpdateExistingComment.mockResolvedValue(updatedComment);
 
       const whitespaceInput = { ...validInput, text: '  Updated comment text  ' };
 
@@ -137,7 +139,8 @@ describe('UpdateCommentUseCase', () => {
     it('should handle missing _version gracefully', async () => {
       const commentWithoutVersion = { ...mockComment, _version: undefined };
       mockEditorStore.commentById.mockReturnValue(commentWithoutVersion);
-      mockUpdateExistingComment.mockResolvedValue(undefined);
+      const updatedComment = { ...mockComment, text: 'Updated comment text' };
+      mockUpdateExistingComment.mockResolvedValue(updatedComment);
 
       await useCase.execute(validInput);
 
@@ -164,7 +167,8 @@ describe('UpdateCommentUseCase', () => {
 
     it('should preserve original version for backend call despite optimistic updates', async () => {
       mockEditorStore.commentById.mockReturnValue(mockComment);
-      mockUpdateExistingComment.mockResolvedValue(undefined);
+      const updatedComment = { ...mockComment, text: 'Updated comment text' };
+      mockUpdateExistingComment.mockResolvedValue(updatedComment);
 
       await useCase.execute(validInput);
 
@@ -174,10 +178,13 @@ describe('UpdateCommentUseCase', () => {
 
     it('should handle various input edge cases', async () => {
       mockEditorStore.commentById.mockReturnValue(mockComment);
-      mockUpdateExistingComment.mockResolvedValue(undefined);
+      const updatedComment = { ...mockComment, text: 'Updated comment text' };
+      mockUpdateExistingComment.mockResolvedValue(updatedComment);
 
       // Test with newlines and special characters
       const specialTextInput = { ...validInput, text: '  Line 1\nLine 2\t  ' };
+      const specialUpdatedComment = { ...mockComment, text: 'Line 1\nLine 2' };
+      mockUpdateExistingComment.mockResolvedValue(specialUpdatedComment);
 
       await useCase.execute(specialTextInput);
 
@@ -186,9 +193,12 @@ describe('UpdateCommentUseCase', () => {
 
     it('should handle unicode characters correctly', async () => {
       mockEditorStore.commentById.mockReturnValue(mockComment);
-      mockUpdateExistingComment.mockResolvedValue(undefined);
+      const updatedComment = { ...mockComment, text: 'Updated comment text' };
+      mockUpdateExistingComment.mockResolvedValue(updatedComment);
 
       const unicodeInput = { ...validInput, text: 'ē-mânokâkēcik comment' };
+      const unicodeUpdatedComment = { ...mockComment, text: 'ē-mânokâkēcik comment' };
+      mockUpdateExistingComment.mockResolvedValue(unicodeUpdatedComment);
 
       await useCase.execute(unicodeInput);
 
@@ -197,10 +207,13 @@ describe('UpdateCommentUseCase', () => {
 
     it('should handle very long text input', async () => {
       mockEditorStore.commentById.mockReturnValue(mockComment);
-      mockUpdateExistingComment.mockResolvedValue(undefined);
+      const updatedComment = { ...mockComment, text: 'Updated comment text' };
+      mockUpdateExistingComment.mockResolvedValue(updatedComment);
 
       const longText = 'A'.repeat(10000);
       const longTextInput = { ...validInput, text: longText };
+      const longTextUpdatedComment = { ...mockComment, text: longText };
+      mockUpdateExistingComment.mockResolvedValue(longTextUpdatedComment);
 
       await useCase.execute(longTextInput);
 

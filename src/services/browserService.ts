@@ -193,7 +193,7 @@ class BrowserService {
       const url = new URL(window.location.href);
       url.searchParams.set('issueId', issueId);
       this.replaceUrl(url.toString());
-    } catch (error) {
+    } catch {
       // Be resilient in non-browser environments
     }
   }
@@ -207,7 +207,7 @@ class BrowserService {
       const url = new URL(window.location.href);
       url.searchParams.delete('issueId');
       this.replaceUrl(url.toString());
-    } catch (error) {
+    } catch {
       // Be resilient in non-browser environments
     }
   }

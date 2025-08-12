@@ -70,8 +70,7 @@ export class LoadTranscription {
     
     // If we have a selected region, seek to it in the wavesurfer and apply styling
     if (selectedRegionId) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const selectedRegion = data.regions.find((region: any) => region.id === selectedRegionId);
+      const selectedRegion = data.regions.find((region) => region.id === selectedRegionId);
       if (selectedRegion) {
         wavesurferService.seekToRegion(selectedRegion);
         // Apply selected region styling
@@ -79,10 +78,10 @@ export class LoadTranscription {
       }
     } else if (selectedIssueId) {
       // If only issueId is present, seek to its region if found
-      const issue = (data as any).issues?.find((i: any) => i.id === selectedIssueId);
+      const issue = data.issues?.find((i) => i.id === selectedIssueId);
       const regionIdFromIssue = issue?.regionId;
       if (regionIdFromIssue) {
-        const selectedRegion = (data as any).regions.find((r: any) => r.id === regionIdFromIssue);
+        const selectedRegion = data.regions.find((r) => r.id === regionIdFromIssue);
         if (selectedRegion) {
           wavesurferService.seekToRegion(selectedRegion);
           browserService.setSelectedRegion(regionIdFromIssue);

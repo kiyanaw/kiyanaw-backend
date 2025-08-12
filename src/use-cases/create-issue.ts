@@ -40,7 +40,7 @@ export class CreateIssueUseCase {
     const optimisticIssue: IssueData = {
       id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // Temporary ID
       text: input.text.trim(),
-      type: input.type as any, // Type assertion for now
+      type: input.type,
       owner: input.owner,
       ownerFriendly: input.ownerFriendly,
       regionId: input.regionId || '',
