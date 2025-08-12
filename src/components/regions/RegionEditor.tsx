@@ -1,8 +1,9 @@
 import { useState, memo } from 'react';
-import { Play, Pause, AlertTriangle, EyeOff, RotateCcw, Trash2 } from 'lucide-react';
+import { Play, Pause, Trash2 } from 'lucide-react';
 import { type RegionData as Region } from '../../services/adt';
 import { useTextEditors } from '../../hooks/useTextEditors';
 import { useDeleteRegion } from '../../hooks/useDeleteRegion';
+import { useSelectAndPlayRegion } from '../../hooks/useSelectAndPlayRegion';
 import { useEditorStore } from '../../stores/useEditorStore';
 
 interface RegionEditorProps {
@@ -17,13 +18,13 @@ export const RegionEditor = memo(({
 
   const { mainEditorRef, translationEditorRef } = useTextEditors(region.id, activeTab);
   const { deleteRegion } = useDeleteRegion();
+  const playRegion = useSelectAndPlayRegion();
   const canEdit = useEditorStore((state) => state.canEdit);
 
   // Toolbar actions - simplified for now
-  const handlePlay = () => {};
-  const handleCreateIssue = () => {};
-  const handleIgnoreWord = () => {};
-  const handleClearFormat = () => {};
+  const handlePlay = () => {
+    playRegion(region.id);
+  };
   const handleDeleteRegion = () => {
     deleteRegion(region.id);
   };
@@ -67,45 +68,6 @@ export const RegionEditor = memo(({
             title="Play region"
           >
             {isPlaying ? <Pause size={16} /> : <Play size={16} />}
-          </button>
-
-          <button
-            className={`flex items-center justify-center w-9 h-9 border border-gray-300 rounded-md bg-white transition-all duration-200 text-base ${
-              canEdit 
-                ? 'cursor-pointer hover:bg-yellow-50 hover:text-yellow-700 hover:border-yellow-300' 
-                : 'cursor-not-allowed opacity-50 text-gray-400'
-            }`}
-            onClick={canEdit ? handleCreateIssue : undefined}
-            disabled={!canEdit}
-            title="Create issue"
-          >
-            <AlertTriangle size={16} />
-          </button>
-
-          <button
-            className={`flex items-center justify-center w-9 h-9 border border-gray-300 rounded-md bg-white transition-all duration-200 text-base ${
-              canEdit 
-                ? 'cursor-pointer hover:bg-purple-50 hover:text-purple-700 hover:border-purple-300' 
-                : 'cursor-not-allowed opacity-50 text-gray-400'
-            }`}
-            onClick={canEdit ? handleIgnoreWord : undefined}
-            disabled={!canEdit}
-            title="Ignore word"
-          >
-            <EyeOff size={16} />
-          </button>
-
-          <button
-            className={`flex items-center justify-center w-9 h-9 border border-gray-300 rounded-md bg-white transition-all duration-200 text-base ${
-              canEdit 
-                ? 'cursor-pointer hover:bg-orange-50 hover:text-orange-700 hover:border-orange-300' 
-                : 'cursor-not-allowed opacity-50 text-gray-400'
-            }`}
-            onClick={canEdit ? handleClearFormat : undefined}
-            disabled={!canEdit}
-            title="Clear format"
-          >
-            <RotateCcw size={16} />
           </button>
 
           <button

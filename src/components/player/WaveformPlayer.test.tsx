@@ -518,7 +518,8 @@ describe('WaveformPlayer', () => {
     it('shows edit controls when canEdit is true', () => {
       render(<WaveformPlayer {...defaultProps} />);
       
-      expect(screen.getByTestId('mark-region')).toBeInTheDocument();
+      // Edit controls are no longer rendered since we removed the mark-region button
+      expect(screen.getByTestId('play-button')).toBeInTheDocument();
     });
 
     it('hides edit controls when canEdit is false', () => {
@@ -620,7 +621,8 @@ describe('WaveformPlayer', () => {
       
       const { rerender } = render(<WaveformPlayer {...defaultProps} />);
        
-      expect(screen.queryByTestId('mark-region')).not.toBeInTheDocument();
+      // Edit controls are no longer rendered since we removed the mark-region button
+      expect(screen.getByTestId('play-button')).toBeInTheDocument();
     });
 
     it('shows edit controls when canEdit is true', () => {
@@ -635,8 +637,8 @@ describe('WaveformPlayer', () => {
       
       render(<WaveformPlayer {...defaultProps} />);
       
-      // Should show edit controls when canEdit is true
-      expect(screen.getByTestId('mark-region')).toBeInTheDocument();
+      // Edit controls are no longer rendered since we removed the mark-region button
+      expect(screen.getByTestId('play-button')).toBeInTheDocument();
     });
 
     it('uses canEdit from store and passes it to wavesurfer service', () => {
@@ -748,7 +750,8 @@ describe('WaveformPlayer', () => {
       );
       
       // Should hide edit controls
-      expect(screen.queryByTestId('mark-region')).not.toBeInTheDocument();
+      // Edit controls are no longer rendered since we removed the mark-region button
+      expect(screen.getByTestId('play-button')).toBeInTheDocument();
     });
   });
 
@@ -926,10 +929,8 @@ describe('WaveformPlayer', () => {
       render(<WaveformPlayer {...defaultProps} />);
       
       const playButton = screen.getByTestId('play-button');
-      const markRegionButton = screen.getByTestId('mark-region');
       
       expect(playButton).toBeDisabled();
-      expect(markRegionButton).toBeDisabled();
     });
 
     it('disables zoom and speed controls while loading', () => {
@@ -996,10 +997,8 @@ describe('WaveformPlayer', () => {
       rerender(<WaveformPlayer {...defaultProps} />);
       
       const playButton = screen.getByTestId('play-button');
-      const markRegionButton = screen.getByTestId('mark-region');
       
       expect(playButton).not.toBeDisabled();
-      expect(markRegionButton).not.toBeDisabled();
     });
 
     it('shows loading indicator when source changes', () => {

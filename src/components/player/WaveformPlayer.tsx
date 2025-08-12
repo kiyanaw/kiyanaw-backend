@@ -1,5 +1,5 @@
 import { useRef, useCallback, useState } from 'react';
-import { Play, Pause, Target, X, ZoomIn, Gauge, Loader2, Settings } from 'lucide-react';
+import { Play, Pause, ZoomIn, Gauge, Loader2, Settings } from 'lucide-react';
 import { wavesurferService } from '../../services/wavesurferService';
 import { usePlayerStore } from '../../stores/usePlayerStore';
 import { usePlay } from '../../hooks/usePlay';
@@ -147,26 +147,7 @@ export const WaveformPlayer = ({
               {isPlaying ? <Pause size={16} /> : <Play size={16} />}
             </button>
 
-            {canEdit && (
-              <>
-                <button
-                  className="bg-none border-none text-base cursor-pointer px-2 py-1 rounded transition-colors hover:bg-gray-200 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  onClick={() => {/* noop */}}
-                  disabled={!loadedAndReady}
-                  data-testid="mark-region"
-                >
-                  <Target size={16} />
-                </button>
 
-                <button
-                  className="bg-none border-none text-base cursor-pointer px-2 py-1 rounded transition-colors hover:bg-gray-200 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  onClick={() => {/* noop */}}
-                  disabled={!loadedAndReady}
-                >
-                  <X size={16} />
-                </button>
-              </>
-            )}
           </div>
 
           <div className="flex items-center gap-4 md:gap-4 gap-2 flex-col md:flex-row">
