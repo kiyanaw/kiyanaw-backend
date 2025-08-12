@@ -5,14 +5,14 @@
       "resourceName": "kiyanawlibHfstol",
       "version": "Always choose latest version",
       "isLatestVersionSelected": true,
-      "env": "production"
+      "env": "staging"
     },
     {
       "type": "ProjectLayer",
       "resourceName": "kiyanawcrkFSTs",
       "version": "Always choose latest version",
       "isLatestVersionSelected": true,
-      "env": "production"
+      "env": "staging"
     }
   ]
 }

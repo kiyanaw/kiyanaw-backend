@@ -321,22 +321,6 @@
         }
       ]
     },
-    "AMPLIFY_function_inviteHandler_deploymentBucketName": {
-      "usedBy": [
-        {
-          "category": "function",
-          "resourceName": "inviteHandler"
-        }
-      ]
-    },
-    "AMPLIFY_function_inviteHandler_s3Key": {
-      "usedBy": [
-        {
-          "category": "function",
-          "resourceName": "inviteHandler"
-        }
-      ]
-    },
     "AMPLIFY_function_kiyanawaudiowaveform_deploymentBucketName": {
       "usedBy": [
         {
