@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Check, Trash2, MessageSquare, AlertTriangle } from 'lucide-react';
+import { Check, Trash2, MessageSquare, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { useEditorStore } from '../../stores/useEditorStore';
 import { browserService } from '../../services/browserService';
 import { UpdateIssueTextUseCase } from '../../use-cases/update-issue-text';
 import { IssueDetailsDialog } from './IssueDetailsDialog';
+import { useNavigateIssueRegions } from '../../hooks/useNavigateIssueRegions';
 
 // Suggestion Popover Component
 interface SuggestionPopoverProps {
@@ -154,6 +155,12 @@ export const IssuesPanel = ({
     issue.resolved && (!selectedRegionId || issue.regionId === selectedRegionId)
   ).length;
 
+  // Navigate to prev/next region that has unresolved issues
+  const navigateIssueRegions = useNavigateIssueRegions();
+  const handleNavigateIssues = (direction: 'prev' | 'next') => () => {
+    navigateIssueRegions(direction);
+  };
+
   const handleCreateIssue = () => {
     if (!newIssueText.trim()) return;
 
@@ -281,14 +288,30 @@ export const IssuesPanel = ({
             return null;
           })()}
         </div>
-        {canEdit && (
-          <button
-            className="py-2 px-4 bg-blue-600 text-white border-none rounded text-sm font-medium cursor-pointer transition-colors duration-200 hover:bg-blue-700"
-            onClick={() => setShowCreateForm(!showCreateForm)}
-          >
-            + New Issue
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1" title="Navigate regions with unresolved issues">
+            <button
+              onClick={handleNavigateIssues('prev')}
+              className="p-1.5 rounded border border-gray-300 hover:bg-gray-100"
+            >
+              <ChevronLeft className="w-4 h-4 text-gray-700" />
+            </button>
+            <button
+              onClick={handleNavigateIssues('next')}
+              className="p-1.5 rounded border border-gray-300 hover:bg-gray-100"
+            >
+              <ChevronRight className="w-4 h-4 text-gray-700" />
+            </button>
+          </div>
+          {canEdit && (
+            <button
+              className="py-2 px-4 bg-blue-600 text-white border-none rounded text-sm font-medium cursor-pointer transition-colors duration-200 hover:bg-blue-700"
+              onClick={() => setShowCreateForm(!showCreateForm)}
+            >
+              + New Issue
+            </button>
+          )}
+        </div>
       </div>
 
       {showCreateForm && (
@@ -356,15 +379,6 @@ export const IssuesPanel = ({
             const canDelete = canEdit && isIssueOwner; // Only issue owners can delete
             const canResolve = canEdit; // Anyone with transcription edit access can resolve/update
             
-            // Debug link status
-            console.log(`🔗 Issue ${issue.id} link status:`, {
-              text: issue.text,
-              linkStatus: issue.linkStatus,
-              hasSuggestions: issue.suggestions?.length || 0,
-              resolved: issue.resolved
-            });
-            
-
 
             return (
               <div
