@@ -22,7 +22,10 @@ export const loadIssuesForTranscription = async (transcriptionId: string): Promi
     const result = await client.graphql({
       query: listIssues,
       variables: { 
-        filter: { transcriptionId: { eq: transcriptionId } },
+        filter: { 
+          transcriptionId: { eq: transcriptionId },
+          _deleted: { ne: true }
+        },
         limit: 2000 // arbitrarily high
       },
     }) as { data: { listIssues: { items: IssueData[] } } };
