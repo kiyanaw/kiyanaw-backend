@@ -49,13 +49,13 @@ export const RegionEditor = memo(({
   return (
     <div className="flex flex-col h-full bg-white rounded-lg overflow-hidden">
       {/* Header with region info and toolbar */}
-      <div className="flex justify-between items-center p-4 bg-gray-50 border-b border-gray-200">
-        <div>
-          <h3 className="m-0 mb-1 text-lg font-semibold text-gray-800">Region {region.id}</h3>
+      <div className="flex justify-between items-center p-2 bg-gray-50 border-b border-gray-200">
+        <div className="flex items-center gap-3">
+          <h3 className="m-0 text-base font-semibold text-gray-800">Region {region.id}</h3>
           <span className="text-sm text-gray-500 font-mono">
             {formatTime(region.start)} - {formatTime(region.end)}
           </span>
-          {region.isNote && <span className="inline-block ml-2 py-0.5 px-2 bg-yellow-400 text-gray-800 rounded-xl text-xs font-medium">Note</span>}
+          {region.isNote && <span className="py-0.5 px-2 bg-yellow-400 text-gray-800 rounded-xl text-xs font-medium">Note</span>}
         </div>
 
         {/* Custom Toolbar */}
@@ -88,7 +88,7 @@ export const RegionEditor = memo(({
       {/* Tab Navigation */}
       <div className="flex bg-gray-100 border-b border-gray-300">
         <button
-          className={`flex-1 py-3 px-4 text-sm font-medium transition-all duration-200 ${
+          className={`flex-1 py-2 px-3 text-sm font-medium transition-all duration-200 ${
             activeTab === 'main'
               ? 'bg-white text-blue-600 border-b-2 border-blue-600'
               : canEdit 
@@ -101,7 +101,7 @@ export const RegionEditor = memo(({
           Original Text
         </button>
         <button
-          className={`flex-1 py-3 px-4 text-sm font-medium transition-all duration-200 ${
+          className={`flex-1 py-2 px-3 text-sm font-medium transition-all duration-200 ${
             activeTab === 'translation'
               ? 'bg-white text-blue-600 border-b-2 border-blue-600'
               : canEdit 

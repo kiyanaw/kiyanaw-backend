@@ -140,15 +140,15 @@ export const EditorPage = () => {
       <div className="flex flex-1 overflow-hidden min-h-0">
         {/* Left Side Container */}
         <div className="flex-1 bg-white border-r border-gray-300 flex flex-col">
-          {/* Stationary Inspector - Fixed Height */}
-          <div className="h-[500px] overflow-hidden flex flex-col border-b border-gray-300">
+          {/* Stationary Inspector - 50% height */}
+          <div className="h-1/2 overflow-hidden flex flex-col border-b border-gray-300">
             <StationaryInspector
               selectedRegion={selectedRegion}
             />
           </div>
           
-          {/* Issues Panel Area - Takes remaining space */}
-          <div className="flex-1 overflow-auto">
+          {/* Issues Panel Area - 50% height */}
+          <div className="h-1/2 overflow-hidden flex flex-col">
             {transcription && (
               <>
                 <IssuesPanel
