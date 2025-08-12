@@ -56,7 +56,7 @@ export const RegionEditor = memo(({
       <div className="flex justify-between items-center p-2 bg-gray-50 border-b border-gray-200">
         <div className="flex items-center gap-3">
           <h3 className="m-0 text-base font-semibold text-gray-800">Region {regionNumber}</h3>
-          <span className="text-sm text-gray-500 font-mono">
+          <span className="text-xs text-gray-500 font-mono">
             {formatTime(region.start)} - {formatTime(region.end)}
           </span>
           {region.isNote && <span className="py-0.5 px-2 bg-yellow-400 text-gray-800 rounded-xl text-xs font-medium">Note</span>}
