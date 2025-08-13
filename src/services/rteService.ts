@@ -677,9 +677,7 @@ class RTEServiceImpl {
     // Get current state from store
     const state = useEditorStore.getState();
     const knownWords = Array.from(state.knownWords);
-    const issues = typeof state.getIssuesForRegion === 'function' 
-      ? state.getIssuesForRegion(regionId) 
-      : [];
+    const issues = state.getIssuesForRegion(regionId);
 
     // Get current text from editor
     const regionText = instance.quill.getText();

@@ -54,6 +54,8 @@ describe('issueService', () => {
         transcriptionId,
         index: 1,
         resolved: false,
+        dateLastUpdated: '2023-01-02T00:00:00Z',
+        userLastUpdated: 'user-1',
         createdAt: '2023-01-02T00:00:00Z',
         updatedAt: '2023-01-02T00:00:00Z',
         _version: 1
@@ -68,6 +70,8 @@ describe('issueService', () => {
         transcriptionId,
         index: 2,
         resolved: true,
+        dateLastUpdated: '2023-01-01T00:00:00Z',
+        userLastUpdated: 'user-2',
         createdAt: '2023-01-01T00:00:00Z',
         updatedAt: '2023-01-01T00:00:00Z',
         _version: 1
@@ -178,6 +182,8 @@ describe('issueService', () => {
       ownerFriendly: 'Test User',
       index: 1,
       resolved: false,
+      dateLastUpdated: '2023-01-01T00:00:00Z',
+      userLastUpdated: 'test-user',
       createdAt: '2023-01-01T00:00:00Z',
       updatedAt: '2023-01-01T00:00:00Z',
       _version: 1
@@ -190,7 +196,7 @@ describe('issueService', () => {
         }
       });
 
-      const result = await createIssueForRegion(issueData);
+      const result = await createIssueForRegion(issueData, 'test-user');
 
       expect(mockClient.graphql).toHaveBeenCalledWith({
         query: 'mock-create-issue-mutation',
@@ -198,7 +204,9 @@ describe('issueService', () => {
           input: {
             ...issueData,
             resolved: false,
-            index: 0
+            index: 0,
+            dateLastUpdated: expect.any(String),
+            userLastUpdated: 'test-user'
           }
         }
       });
@@ -212,7 +220,7 @@ describe('issueService', () => {
       const error = new Error('Create issue failed');
       mockClient.graphql.mockRejectedValue(error);
 
-      await expect(createIssueForRegion(issueData)).rejects.toThrow('Create issue failed');
+      await expect(createIssueForRegion(issueData, 'test-user')).rejects.toThrow('Create issue failed');
       expect(console.error).toHaveBeenCalledWith('❌ Failed to create issue:', error);
     });
   });
@@ -240,6 +248,8 @@ describe('issueService', () => {
       transcriptionId: 'trans-1',
       index: 1,
       resolved: true,
+      dateLastUpdated: '2023-01-02T00:00:00Z',
+      userLastUpdated: 'test-user',
       createdAt: '2023-01-01T00:00:00Z',
       updatedAt: '2023-01-02T00:00:00Z',
       _version: 6
@@ -252,7 +262,7 @@ describe('issueService', () => {
         }
       });
 
-      const result = await updateExistingIssue(issueId, updates, version);
+      const result = await updateExistingIssue(issueId, updates, version, 'test-user');
 
       expect(mockClient.graphql).toHaveBeenCalledWith({
         query: 'mock-update-issue-mutation',
@@ -262,7 +272,9 @@ describe('issueService', () => {
             _version: version,
             text: 'Updated issue text',
             resolved: true,
-            type: 'needs-help'
+            type: 'needs-help',
+            dateLastUpdated: expect.any(String),
+            userLastUpdated: 'test-user'
             // createdAt, updatedAt, __typename should be filtered out
           }
         }
@@ -278,7 +290,7 @@ describe('issueService', () => {
         data: { updateIssue: mockUpdatedIssue }
       });
 
-      await updateExistingIssue(issueId, updates, version);
+      await updateExistingIssue(issueId, updates, version, 'test-user');
 
       const calledWith = mockClient.graphql.mock.calls[0][0];
       const input = calledWith.variables.input;
@@ -295,7 +307,7 @@ describe('issueService', () => {
         data: { updateIssue: mockUpdatedIssue }
       });
 
-      await updateExistingIssue(issueId, partialUpdates, version);
+      await updateExistingIssue(issueId, partialUpdates, version, 'test-user');
 
       const calledWith = mockClient.graphql.mock.calls[0][0];
       const input = calledWith.variables.input;
@@ -303,7 +315,9 @@ describe('issueService', () => {
       expect(input).toEqual({
         id: issueId,
         _version: version,
-        resolved: true
+        resolved: true,
+        dateLastUpdated: expect.any(String),
+        userLastUpdated: 'test-user'
       });
     });
 
@@ -311,7 +325,7 @@ describe('issueService', () => {
       const error = new Error('Update issue failed');
       mockClient.graphql.mockRejectedValue(error);
 
-      await expect(updateExistingIssue(issueId, updates, version)).rejects.toThrow('Update issue failed');
+      await expect(updateExistingIssue(issueId, updates, version, 'test-user')).rejects.toThrow('Update issue failed');
       expect(console.error).toHaveBeenCalledWith('❌ Failed to update issue:', error);
     });
   });

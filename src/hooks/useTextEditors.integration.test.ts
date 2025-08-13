@@ -19,6 +19,7 @@ jest.mock('../services/rteService', () => ({
     }),
     hasEditor: jest.fn().mockReturnValue(true),
     applyKnownWordsFormatting: jest.fn(),
+    updateIssueHighlighting: jest.fn(),
     getSelection: jest.fn().mockReturnValue(null),
     getIssueContext: jest.fn().mockReturnValue({ issueId: null, type: null }),
     getWordAt: jest.fn().mockReturnValue(null),

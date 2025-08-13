@@ -36,13 +36,11 @@ export class SubscribeToIssueChangesUseCase {
     const store = this.config.services.storeService;
     const flashService = this.config.services.flashIndicatorService;
     
-    // Check if this is a self-triggered event
+    // Check if this is a self-triggered event using userLastUpdated
     const currentUser = this.config.services.userService.currentUser();
-    const isSelfTriggered = currentUser && issue.owner === currentUser.userId;
+    const isSelfTriggered = currentUser && issue.userLastUpdated === currentUser.username;
     
     if (isSelfTriggered) {
-      // For self-triggered events, just update version if we're tracking issue versions
-      // For now, we'll skip version tracking and just return
       console.log('🔌 Self-triggered issue event, skipping:', issue.id);
       return;
     }
@@ -134,27 +132,17 @@ export class SubscribeToIssueChangesUseCase {
     const translationEditorKey = `${regionId}:translation` as const;
 
     if (rteService.hasEditor(mainEditorKey)) {
-      if (typeof rteService.applyHighlighting === 'function') {
-        rteService.applyHighlighting(mainEditorKey, {
-          knownWords,
-          issues: issueHighlights
-        });
-      } else {
-        // Fallback to known words only if applyHighlighting is not available
-        rteService.applyKnownWordsFormatting(mainEditorKey, knownWords);
-      }
+      rteService.applyHighlighting(mainEditorKey, {
+        knownWords,
+        issues: issueHighlights
+      });
     }
 
     if (rteService.hasEditor(translationEditorKey)) {
-      if (typeof rteService.applyHighlighting === 'function') {
-        rteService.applyHighlighting(translationEditorKey, {
-          knownWords,
-          issues: issueHighlights
-        });
-      } else {
-        // Fallback to known words only if applyHighlighting is not available
-        rteService.applyKnownWordsFormatting(translationEditorKey, knownWords);
-      }
+      rteService.applyHighlighting(translationEditorKey, {
+        knownWords,
+        issues: issueHighlights
+      });
     }
   }
 }

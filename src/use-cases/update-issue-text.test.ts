@@ -2,6 +2,7 @@ import { UpdateIssueTextUseCase, UpdateIssueTextInput } from './update-issue-tex
 import { updateExistingIssue } from '../services/issueService';
 import { useEditorStore } from '../stores/useEditorStore';
 import { rteService } from '../services/rteService';
+import { currentUser } from '../services/userService';
 import Timeout from 'smart-timeout';
 import type { IssueData } from '../services/adt';
 
@@ -9,6 +10,7 @@ import type { IssueData } from '../services/adt';
 jest.mock('../services/issueService');
 jest.mock('../stores/useEditorStore');
 jest.mock('../services/rteService');
+jest.mock('../services/userService');
 jest.mock('smart-timeout');
 
 const mockUpdateExistingIssue = updateExistingIssue as jest.MockedFunction<typeof updateExistingIssue>;
@@ -33,6 +35,8 @@ describe('UpdateIssueTextUseCase', () => {
     transcriptionId: 'trans-789',
     index: 1,
     resolved: false,
+    dateLastUpdated: '2023-01-01T00:00:00Z',
+    userLastUpdated: 'user-123',
     createdAt: '2023-01-01T00:00:00Z',
     updatedAt: '2023-01-01T00:00:00Z',
     _version: 5
@@ -55,6 +59,12 @@ describe('UpdateIssueTextUseCase', () => {
 
     // Mock rteService
     (rteService.updateIssueHighlighting as jest.Mock).mockImplementation(() => {});
+    
+    // Mock currentUser
+    (currentUser as jest.Mock).mockReturnValue({
+      userId: 'user-123',
+      username: 'test-user'
+    });
   });
 
   afterEach(() => {
@@ -188,7 +198,7 @@ describe('UpdateIssueTextUseCase', () => {
       mockUpdateExistingIssue.mockResolvedValue(mockIssue);
       await timeoutCallback();
       
-      expect(mockUpdateExistingIssue).toHaveBeenCalledWith('issue-123', { text: 'Updated issue text' }, 0);
+      expect(mockUpdateExistingIssue).toHaveBeenCalledWith('issue-123', { text: 'Updated issue text' }, 0, 'test-user');
     });
 
     it('should handle issue without regionId', async () => {
@@ -213,7 +223,7 @@ describe('UpdateIssueTextUseCase', () => {
       await timeoutCallback();
 
       // Should use original version (5) not any potentially modified version
-      expect(mockUpdateExistingIssue).toHaveBeenCalledWith('issue-123', { text: 'Updated issue text' }, 5);
+      expect(mockUpdateExistingIssue).toHaveBeenCalledWith('issue-123', { text: 'Updated issue text' }, 5, 'test-user');
     });
 
     it('should handle backend save success', async () => {
@@ -234,6 +244,12 @@ describe('UpdateIssueTextUseCase', () => {
       mockEditorStore.issueById.mockReturnValue(mockIssue);
       const saveError = new Error('Backend save failed');
       mockUpdateExistingIssue.mockRejectedValue(saveError);
+      
+      // Ensure user is authenticated for this test
+      (currentUser as jest.Mock).mockReturnValue({
+        userId: 'user-123',
+        username: 'test-user'
+      });
 
       await useCase.execute(validInput);
 

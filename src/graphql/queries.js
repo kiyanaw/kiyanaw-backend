@@ -387,6 +387,8 @@ export const getIssue = /* GraphQL */ `
       index
       resolved
       type
+      dateLastUpdated
+      userLastUpdated
       comments
       commentCount
       regionId
@@ -454,6 +456,8 @@ export const listIssues = /* GraphQL */ `
         index
         resolved
         type
+        dateLastUpdated
+        userLastUpdated
         comments
         commentCount
         regionId
@@ -492,6 +496,8 @@ export const syncIssues = /* GraphQL */ `
         index
         resolved
         type
+        dateLastUpdated
+        userLastUpdated
         comments
         commentCount
         regionId
@@ -532,6 +538,8 @@ export const issuesByTranscription = /* GraphQL */ `
         index
         resolved
         type
+        dateLastUpdated
+        userLastUpdated
         comments
         commentCount
         regionId

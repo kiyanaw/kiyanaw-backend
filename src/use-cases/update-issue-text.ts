@@ -1,6 +1,7 @@
 import { updateExistingIssue } from '../services/issueService';
 import { useEditorStore } from '../stores/useEditorStore';
 import { rteService } from '../services/rteService';
+import { currentUser } from '../services/userService';
 import Timeout from 'smart-timeout';
 
 export interface UpdateIssueTextInput {
@@ -65,8 +66,15 @@ export class UpdateIssueTextUseCase {
       
       Timeout.set(timeoutKey, async () => {
         try {
+          // Get current user for the save operation
+          const user = currentUser();
+          if (!user) {
+            console.error(`❌ User not authenticated, cannot save issue text for ${issueId}`);
+            return;
+          }
+
           console.log(`💾 Saving issue text for ${issueId}: "${newText.trim()}" (version: ${originalVersion})`);
-          await updateExistingIssue(issueId, { text: newText.trim() }, originalVersion);
+          await updateExistingIssue(issueId, { text: newText.trim() }, originalVersion, user.username);
           console.log(`✅ Issue text saved successfully for ${issueId}`);
         } catch (error) {
           console.error(`❌ Failed to save issue text for ${issueId}:`, error);

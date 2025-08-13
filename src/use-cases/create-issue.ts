@@ -1,6 +1,7 @@
 import { createIssueForRegion } from '../services/issueService';
 import { useEditorStore } from '../stores/useEditorStore';
 import { rteService } from '../services/rteService';
+import { currentUser } from '../services/userService';
 import type { IssueData } from '../services/adt';
 
 export interface CreateIssueConfig {
@@ -36,6 +37,12 @@ export class CreateIssueUseCase {
   async execute(): Promise<IssueData> {
     this.validate();
 
+    // Get current user for optimistic issue
+    const user = currentUser();
+    if (!user) {
+      throw new Error('User must be authenticated to create issues');
+    }
+
     // Create optimistic issue object for immediate UI update
     const optimisticIssue: IssueData = {
       id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // Temporary ID
@@ -47,6 +54,8 @@ export class CreateIssueUseCase {
       transcriptionId: this.config.transcriptionId,
       resolved: false,
       index: 0, // Will be updated from backend
+      dateLastUpdated: new Date().toISOString(),
+      userLastUpdated: user.username,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       commentCount: 0,
@@ -59,6 +68,7 @@ export class CreateIssueUseCase {
     rteService.updateIssueHighlighting(optimisticIssue.regionId);
 
     try {
+
       // Save to backend
       const savedIssue = await createIssueForRegion({
         text: this.config.text.trim(),
@@ -67,7 +77,7 @@ export class CreateIssueUseCase {
         ownerFriendly: this.config.ownerFriendly,
         regionId: this.config.regionId || '',
         transcriptionId: this.config.transcriptionId,
-      });
+      }, user.username);
 
       // Replace optimistic issue with real one from backend
       store.deleteIssue(optimisticIssue.id);

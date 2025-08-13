@@ -317,23 +317,16 @@ export class SubscribeToRegionChangesUseCase {
       
       // Reapply known words and issue highlighting after content update
       const regionAnalysis = (updatedRegion.regionAnalysis as string[]) || store.regionById(updatedRegion.id as string)?.regionAnalysis;
-      // Try to get issues if store supports it, otherwise use empty array
+      // Get issues for the region
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const issues = typeof (store as any).getIssuesForRegion === 'function' 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ? (store as any).getIssuesForRegion(updatedRegion.id as string) 
-        : [];
+      const issues = (store as any).getIssuesForRegion(updatedRegion.id as string);
       const issueHighlights = issueHighlightService.convertIssuesToHighlights(issues);
       
-      // Use applyHighlighting if available, fallback to applyKnownWordsFormatting
-      if (typeof rteService.applyHighlighting === 'function') {
-        rteService.applyHighlighting(editorKey, {
-          knownWords: regionAnalysis || [],
-          issues: issueHighlights
-        });
-      } else {
-        rteService.applyKnownWordsFormatting(editorKey, regionAnalysis || []);
-      }
+      // Apply highlighting with both known words and issues
+      rteService.applyHighlighting(editorKey, {
+        knownWords: regionAnalysis || [],
+        issues: issueHighlights
+      });
     }
   }
 

@@ -68,3 +68,7 @@ function badExample() {
 Use `serena` MCP tools for searching for contextual information, for instance search_for_pattern, find_symbol, find_referencing_symbols, find_file, read_file
 
 Following our architecture, the code is strict. Do not use defensive programming unless you know a value is optional, we prefer strictness with solid testing over "defensive programing" that is overly prone to grabbing the wrong data.
+
+NO FALLBACK CODE UNLESS EXPLICITLY ASKED. ASK FOR CLARIFICATION if you are running into a problem where you think you need fallback code.
+
+if (store.someFunction === 'function') << is an antipattern, NEVER do this, those methods should always exist. if they don't then you probably haven't created it yet.

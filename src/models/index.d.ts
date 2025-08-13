@@ -26,7 +26,7 @@ type EagerTranscription = {
   readonly authorFriendly: string;
   readonly coverage?: number | null;
   readonly dateLastUpdated: string;
-  readonly userLastUpdated?: string | null;
+  readonly userLastUpdated: string;
   readonly length?: number | null;
   readonly issues?: string | null;
   readonly comments?: string | null;
@@ -57,7 +57,7 @@ type LazyTranscription = {
   readonly authorFriendly: string;
   readonly coverage?: number | null;
   readonly dateLastUpdated: string;
-  readonly userLastUpdated?: string | null;
+  readonly userLastUpdated: string;
   readonly length?: number | null;
   readonly issues?: string | null;
   readonly comments?: string | null;
@@ -134,6 +134,8 @@ type EagerIssue = {
   readonly index: number;
   readonly resolved?: boolean | null;
   readonly type: string;
+  readonly dateLastUpdated: string;
+  readonly userLastUpdated: string;
   readonly comments?: string | null;
   readonly commentCount?: number | null;
   readonly regionId: string;
@@ -150,6 +152,8 @@ type LazyIssue = {
   readonly index: number;
   readonly resolved?: boolean | null;
   readonly type: string;
+  readonly dateLastUpdated: string;
+  readonly userLastUpdated: string;
   readonly comments?: string | null;
   readonly commentCount?: number | null;
   readonly regionId: string;

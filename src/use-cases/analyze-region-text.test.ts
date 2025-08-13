@@ -2,6 +2,7 @@
 jest.mock('../services/rteService', () => ({
   rteService: {
     applyKnownWordsFormatting: jest.fn(),
+    applyHighlighting: jest.fn(),
     hasEditor: jest.fn().mockReturnValue(true)
   }
 }));
@@ -33,6 +34,7 @@ const mockStore = {
   transcription: { lang: 'crk' }, // Add transcription with language for spell checking
   setRegionAnalysis: jest.fn(),
   addKnownWords: jest.fn(),
+  getIssuesForRegion: jest.fn().mockReturnValue([]),
   getState: jest.fn(),
   setState: jest.fn(),
   subscribe: jest.fn()
@@ -399,9 +401,12 @@ describe('AnalyzeRegionTextUseCase', () => {
       
       // CRITICAL: Verify RTE formatting was applied with ALL known words (including newly discovered)
       expect(mockRteServiceImport.hasEditor).toHaveBeenCalledWith('region-1:main');
-      expect(mockRteServiceImport.applyKnownWordsFormatting).toHaveBeenCalledWith(
+      expect(mockRteServiceImport.applyHighlighting).toHaveBeenCalledWith(
         'region-1:main', 
-        ['hello', 'world', 'tânisi']
+        {
+          knownWords: ['hello', 'world', 'tânisi'],
+          issues: []
+        }
       );
       
       jest.useRealTimers();
@@ -482,9 +487,12 @@ describe('AnalyzeRegionTextUseCase', () => {
       expect(mockSpellCheckerService.check).not.toHaveBeenCalled();
       
       // But RTE formatting should still be applied with cached words
-      expect(mockRteServiceImport.applyKnownWordsFormatting).toHaveBeenCalledWith(
+      expect(mockRteServiceImport.applyHighlighting).toHaveBeenCalledWith(
         'region-1:main', 
-        ['hello', 'world', 'tânisi']
+        {
+          knownWords: ['hello', 'world', 'tânisi'],
+          issues: []
+        }
       );
       
       expect(storeWithAllWords.setRegionAnalysis).toHaveBeenCalledWith('region-1', ['hello', 'world', 'tânisi']);

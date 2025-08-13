@@ -19,7 +19,7 @@ type Transcription
   authorFriendly: String! # Friendly identifier
   coverage: Float
   dateLastUpdated: String!
-  userLastUpdated: String
+  userLastUpdated: String!
   length: Float
   issues: String
   comments: String # going to call this "Notes" in the app, comments moving to Comments
@@ -89,6 +89,8 @@ type Issue
   index: Int!
   resolved: Boolean
   type: String! @index(name: "ByType")
+  dateLastUpdated: String!
+  userLastUpdated: String!
   comments: AWSJSON # deprecated field, comments moving to Comment field
   commentCount: Int
   regionId: String!

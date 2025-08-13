@@ -32,6 +32,7 @@ const mockServices = {
     setRegionTranslation: jest.fn(),
     setRegionVersion: jest.fn(),
     getRegionVersion: jest.fn().mockReturnValue(1), // Add missing mock
+    getIssuesForRegion: jest.fn().mockReturnValue([]), // Add missing mock for issues
     addConflictToQueue: jest.fn(),
     removeConflictFromQueue: jest.fn(),
     isPendingEdit: jest.fn(),
@@ -58,7 +59,8 @@ const mockServices = {
   rteService: {
     hasEditor: jest.fn(),
     setContent: jest.fn(),
-    applyKnownWordsFormatting: jest.fn()
+    applyKnownWordsFormatting: jest.fn(),
+    applyHighlighting: jest.fn()
   },
   conflictDetectionService: {
     detectConflict: jest.fn()
@@ -347,7 +349,10 @@ describe('SubscribeToRegionChangesUseCase', () => {
         expect(mockServices.storeService.setRegionText).toHaveBeenCalledWith('region-1', 'new text');
         expect(mockServices.rteService.hasEditor).toHaveBeenCalledWith('region-1:main');
         expect(mockServices.rteService.setContent).toHaveBeenCalledWith('region-1:main', 'new text');
-        expect(mockServices.rteService.applyKnownWordsFormatting).toHaveBeenCalledWith('region-1:main', ['word1']);
+        expect(mockServices.rteService.applyHighlighting).toHaveBeenCalledWith('region-1:main', {
+          knownWords: ['word1'],
+          issues: []
+        });
       });
 
       it('should handle translation changes', async () => {
@@ -1148,8 +1153,11 @@ describe('SubscribeToRegionChangesUseCase', () => {
           expect(mockServices.rteService.hasEditor).toHaveBeenCalledWith('region-1:main');
           expect(mockServices.rteService.setContent).toHaveBeenCalledWith('region-1:main', 'remote text with known words');
           
-          // Known words formatting should be reapplied
-          expect(mockServices.rteService.applyKnownWordsFormatting).toHaveBeenCalledWith('region-1:main', ['known', 'words']);
+          // Known words formatting should be reapplied via applyHighlighting
+          expect(mockServices.rteService.applyHighlighting).toHaveBeenCalledWith('region-1:main', {
+            knownWords: ['known', 'words'],
+            issues: []
+          });
         });
 
         it('should update translation RTE and reapply known words formatting', async () => {
@@ -1169,8 +1177,11 @@ describe('SubscribeToRegionChangesUseCase', () => {
           expect(mockServices.rteService.hasEditor).toHaveBeenCalledWith('region-1:translation');
           expect(mockServices.rteService.setContent).toHaveBeenCalledWith('region-1:translation', 'remote translation with known words');
           
-          // Known words formatting should be reapplied
-          expect(mockServices.rteService.applyKnownWordsFormatting).toHaveBeenCalledWith('region-1:translation', ['known', 'words']);
+          // Known words formatting should be reapplied via applyHighlighting
+          expect(mockServices.rteService.applyHighlighting).toHaveBeenCalledWith('region-1:translation', {
+            knownWords: ['known', 'words'],
+            issues: []
+          });
         });
 
         it('should use fallback region analysis when updated region has no analysis', async () => {
@@ -1189,8 +1200,11 @@ describe('SubscribeToRegionChangesUseCase', () => {
           // RTE should be updated
           expect(mockServices.rteService.setContent).toHaveBeenCalledWith('region-1:main', 'remote text change');
           
-          // Should use fallback analysis from store
-          expect(mockServices.rteService.applyKnownWordsFormatting).toHaveBeenCalledWith('region-1:main', ['known', 'words']);
+          // Should use fallback analysis from store via applyHighlighting
+          expect(mockServices.rteService.applyHighlighting).toHaveBeenCalledWith('region-1:main', {
+            knownWords: ['known', 'words'],
+            issues: []
+          });
         });
 
         it('should update RTE during selective protection for non-protected fields', async () => {
@@ -1217,8 +1231,11 @@ describe('SubscribeToRegionChangesUseCase', () => {
           expect(mockServices.rteService.hasEditor).toHaveBeenCalledWith('region-1:translation');
           expect(mockServices.rteService.setContent).toHaveBeenCalledWith('region-1:translation', 'remote translation change');
           
-          // Known words formatting should be reapplied to translation RTE
-          expect(mockServices.rteService.applyKnownWordsFormatting).toHaveBeenCalledWith('region-1:translation', ['test', 'words']);
+          // Known words formatting should be reapplied to translation RTE via applyHighlighting
+          expect(mockServices.rteService.applyHighlighting).toHaveBeenCalledWith('region-1:translation', {
+            knownWords: ['test', 'words'],
+            issues: []
+          });
         });
 
         it('should not update RTE when editor does not exist', async () => {

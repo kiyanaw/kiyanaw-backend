@@ -352,26 +352,7 @@ describe('SubscribeToCommentChangesUseCase', () => {
       );
     });
 
-    it('should fallback to applyKnownWordsFormatting when applyHighlighting is not available', async () => {
-      mockServices.storeService.issueById.mockReturnValue(mockIssue);
-      mockServices.rteService.applyHighlighting = undefined;
 
-      const event: CommentSubscriptionEvent = {
-        mutation: 'CREATE',
-        comment: mockComment,
-      };
-
-      await useCase.handleCommentSubscriptionEvent(event);
-
-      // Execute the timeout callback
-      const timeoutCallback = mockTimeout.set.mock.calls[0][1];
-      await timeoutCallback();
-
-      expect(mockServices.rteService.applyKnownWordsFormatting).toHaveBeenCalledWith(
-        'region-456:main',
-        ['test', 'region']
-      );
-    });
 
     it('should handle unknown region gracefully', async () => {
       mockServices.storeService.issueById.mockReturnValue(mockIssue);

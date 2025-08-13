@@ -72,7 +72,7 @@ export const createIssueForRegion = async (issueData: {
   ownerFriendly: string;
   regionId: string;
   transcriptionId: string;
-}): Promise<IssueData> => {
+}, username: string): Promise<IssueData> => {
   try {
     console.log('🔨 Creating new issue via GraphQL...');
     
@@ -83,6 +83,8 @@ export const createIssueForRegion = async (issueData: {
           ...issueData,
           resolved: false,
           index: 0, // Will be auto-incremented by the backend
+          dateLastUpdated: new Date().toISOString(),
+          userLastUpdated: username,
         }
       }
     }) as { data: { createIssue: IssueData } };
@@ -98,7 +100,7 @@ export const createIssueForRegion = async (issueData: {
 /**
  * Updates an existing issue
  */
-export const updateExistingIssue = async (issueId: string, updates: Partial<IssueData>, version: number): Promise<IssueData> => {
+export const updateExistingIssue = async (issueId: string, updates: Partial<IssueData>, version: number, username: string): Promise<IssueData> => {
   try {
     console.log(`🔧 Updating issue ${issueId} via GraphQL...`);
     
@@ -114,6 +116,8 @@ export const updateExistingIssue = async (issueId: string, updates: Partial<Issu
           id: issueId,
           _version: version,
           ...allowedUpdates,
+          dateLastUpdated: new Date().toISOString(),
+          userLastUpdated: username,
         }
       }
     }) as { data: { updateIssue: IssueData } };

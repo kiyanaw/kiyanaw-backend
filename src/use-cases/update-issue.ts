@@ -1,6 +1,7 @@
 import { updateExistingIssue } from '../services/issueService';
 import { useEditorStore } from '../stores/useEditorStore';
 import { rteService } from '../services/rteService';
+import { currentUser } from '../services/userService';
 import type { IssueData } from '../services/adt';
 
 export interface UpdateIssueInput {
@@ -40,8 +41,13 @@ export class UpdateIssueUseCase {
       // 2. Update text editor highlighting immediately
       rteService.updateIssueHighlighting(optimisticUpdate.regionId);
 
-      // 3. Save to backend (async, in background)
-      const updatedIssue = await updateExistingIssue(input.issueId, input.updates, currentIssue._version || 0);
+      // 3. Get current user and save to backend (async, in background)
+      const user = currentUser();
+      if (!user) {
+        throw new Error('User must be authenticated to update issues');
+      }
+      
+      const updatedIssue = await updateExistingIssue(input.issueId, input.updates, currentIssue._version || 0, user.username);
 
       // 4. Update store with server response (in case server changed anything)
       store.updateIssue(input.issueId, updatedIssue);

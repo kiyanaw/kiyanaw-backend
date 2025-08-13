@@ -14,6 +14,8 @@ const mockIssue: IssueData = {
   transcriptionId: 'transcription-1',
   commentCount: 0,
   index: 1,
+  dateLastUpdated: '2023-01-01T00:00:00.000Z',
+  userLastUpdated: 'remote-user', // Different from current user for remote events
   createdAt: '2023-01-01T00:00:00.000Z',
   updatedAt: '2023-01-01T00:00:00.000Z',
   _version: 1 // Always include version for subscription events
@@ -165,15 +167,20 @@ describe('SubscribeToIssueChangesUseCase', () => {
         );
       });
 
-      it('should skip self-triggered CREATE events', async () => {
+      it('should skip self-triggered CREATE events using userLastUpdated', async () => {
+        const selfTriggeredIssue = {
+          ...mockIssue,
+          userLastUpdated: 'user-123' // Same as current user's username
+        };
+
         mockServices.userService.currentUser.mockReturnValue({
-          userId: 'user-123', // Same as issue owner
+          userId: 'user-123',
           username: 'user-123'
         });
 
         const event = {
           mutation: 'CREATE' as const,
-          issue: mockIssue
+          issue: selfTriggeredIssue
         };
 
         await subscriptionCallback(event);
@@ -227,14 +234,19 @@ describe('SubscribeToIssueChangesUseCase', () => {
       });
 
       it('should skip self-triggered UPDATE events', async () => {
+        const selfTriggeredIssue = {
+          ...mockIssue,
+          userLastUpdated: 'user-123' // Same as current user's username
+        };
+
         mockServices.userService.currentUser.mockReturnValue({
-          userId: 'user-123', // Same as issue owner
+          userId: 'user-123',
           username: 'user-123'
         });
 
         const event = {
           mutation: 'UPDATE' as const,
-          issue: mockIssue
+          issue: selfTriggeredIssue
         };
 
         await subscriptionCallback(event);
@@ -339,14 +351,19 @@ describe('SubscribeToIssueChangesUseCase', () => {
       });
 
       it('should skip self-triggered DELETE events', async () => {
+        const selfTriggeredIssue = {
+          ...mockIssue,
+          userLastUpdated: 'user-123' // Same as current user's username
+        };
+
         mockServices.userService.currentUser.mockReturnValue({
-          userId: 'user-123', // Same as issue owner
+          userId: 'user-123',
           username: 'user-123'
         });
 
         const event = {
           mutation: 'DELETE' as const,
-          issue: mockIssue
+          issue: selfTriggeredIssue
         };
 
         await subscriptionCallback(event);
@@ -378,24 +395,7 @@ describe('SubscribeToIssueChangesUseCase', () => {
         });
       });
 
-      it('should fallback to applyKnownWordsFormatting when applyHighlighting unavailable', async () => {
-        // Store reference to original method and replace with undefined
-        const originalApplyHighlighting = mockServices.rteService.applyHighlighting;
-        mockServices.rteService.applyHighlighting = undefined as any;
 
-        const event = {
-          mutation: 'CREATE' as const,
-          issue: mockIssue
-        };
-
-        await subscriptionCallback(event);
-
-        expect(mockServices.rteService.applyKnownWordsFormatting).toHaveBeenCalledWith('region-1:main', ['test', 'text']);
-        expect(mockServices.rteService.applyKnownWordsFormatting).toHaveBeenCalledWith('region-1:translation', ['test', 'text']);
-        
-        // Restore original method
-        mockServices.rteService.applyHighlighting = originalApplyHighlighting;
-      });
 
       it('should skip highlighting refresh if editors do not exist', async () => {
         mockServices.rteService.hasEditor.mockReturnValue(false);

@@ -42,7 +42,7 @@ export const schema = {
                     "name": "userLastUpdated",
                     "isArray": false,
                     "type": "String",
-                    "isRequired": false,
+                    "isRequired": true,
                     "attributes": []
                 },
                 "length": {
@@ -517,6 +517,20 @@ export const schema = {
                 },
                 "type": {
                     "name": "type",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": true,
+                    "attributes": []
+                },
+                "dateLastUpdated": {
+                    "name": "dateLastUpdated",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": true,
+                    "attributes": []
+                },
+                "userLastUpdated": {
+                    "name": "userLastUpdated",
                     "isArray": false,
                     "type": "String",
                     "isRequired": true,
@@ -1055,5 +1069,5 @@ export const schema = {
     "enums": {},
     "nonModels": {},
     "codegenVersion": "3.4.4",
-    "version": "f48ab61061299216aab3e89a22bacda3"
+    "version": "49ef55354cf5626ba37857549cb75acc"
 };

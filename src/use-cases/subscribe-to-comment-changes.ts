@@ -125,27 +125,17 @@ export class SubscribeToCommentChangesUseCase {
       const translationEditorKey = `${regionId}:translation` as const;
 
       if (rteService.hasEditor(mainEditorKey)) {
-        if (typeof rteService.applyHighlighting === 'function') {
-          rteService.applyHighlighting(mainEditorKey, {
-            knownWords,
-            issues: issueHighlights
-          });
-        } else {
-          // Fallback to known words only if applyHighlighting is not available
-          rteService.applyKnownWordsFormatting(mainEditorKey, knownWords);
-        }
+        rteService.applyHighlighting(mainEditorKey, {
+          knownWords,
+          issues: issueHighlights
+        });
       }
 
       if (rteService.hasEditor(translationEditorKey)) {
-        if (typeof rteService.applyHighlighting === 'function') {
-          rteService.applyHighlighting(translationEditorKey, {
-            knownWords,
-            issues: issueHighlights
-          });
-        } else {
-          // Fallback to known words only if applyHighlighting is not available
-          rteService.applyKnownWordsFormatting(translationEditorKey, knownWords);
-        }
+        rteService.applyHighlighting(translationEditorKey, {
+          knownWords,
+          issues: issueHighlights
+        });
       }
 
       // Clean up timeout reference

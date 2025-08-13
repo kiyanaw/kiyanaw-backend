@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef } from 'react';
 import { rteService, type EditorKey } from '../services/rteService';
-import { issueHighlightService } from '../services/issueHighlightService';
+
 import { UpdateRegionTextUseCase } from '../use-cases/update-region-text';
 import { UpdateIssueTextUseCase } from '../use-cases/update-issue-text';
 import { AnalyzeRegionTextUseCase } from '../use-cases/analyze-region-text';
@@ -42,26 +42,7 @@ export const useTextEditors = (regionId: string, activeTab: 'main' | 'translatio
     }
 
     // Always run matching/highlighting on attach to compute link statuses
-    {
-      const state = useEditorStore.getState();
-      const knownWords = Array.from(state.knownWords);
-      if (typeof rteService.updateIssueHighlighting === 'function') {
-        rteService.updateIssueHighlighting(regionId);
-      } else {
-        const issues = typeof state.getIssuesForRegion === 'function'
-          ? state.getIssuesForRegion(regionId)
-          : [];
-        const issueHighlights = issueHighlightService.convertIssuesToHighlights(issues);
-        if (typeof rteService.applyHighlighting === 'function') {
-          rteService.applyHighlighting(mainEditorKey, {
-            knownWords,
-            issues: issueHighlights,
-          });
-        } else {
-          rteService.applyKnownWordsFormatting(mainEditorKey, knownWords);
-        }
-      }
-    }
+    rteService.updateIssueHighlighting(regionId);
 
     // Set up text change listener only if user can edit
     if (canEdit) {
@@ -125,28 +106,7 @@ export const useTextEditors = (regionId: string, activeTab: 'main' | 'translatio
 
         // IMMEDIATELY apply highlighting and run issue matching detection
         // This solves format inheritance and word splitting issues
-        const state = useEditorStore.getState();
-        const knownWords = Array.from(state.knownWords);
-        
-        // Use updateIssueHighlighting which includes matching service detection
-        if (typeof rteService.updateIssueHighlighting === 'function') {
-          rteService.updateIssueHighlighting(regionId);
-        } else {
-          // Fallback to old method if updateIssueHighlighting doesn't exist
-          const issues = typeof state.getIssuesForRegion === 'function' 
-            ? state.getIssuesForRegion(regionId) 
-            : [];
-          const issueHighlights = issueHighlightService.convertIssuesToHighlights(issues);
-          
-          if (typeof rteService.applyHighlighting === 'function') {
-            rteService.applyHighlighting(mainEditorKey, {
-              knownWords,
-              issues: issueHighlights
-            });
-          } else {
-            rteService.applyKnownWordsFormatting(mainEditorKey, knownWords);
-          }
-        }
+        rteService.updateIssueHighlighting(regionId);
 
         // Analyze text for known words
         new AnalyzeRegionTextUseCase({

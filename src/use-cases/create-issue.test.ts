@@ -2,12 +2,14 @@ import { CreateIssueUseCase, CreateIssueConfig } from './create-issue';
 import { createIssueForRegion } from '../services/issueService';
 import { useEditorStore } from '../stores/useEditorStore';
 import { rteService } from '../services/rteService';
+import { currentUser } from '../services/userService';
 import type { IssueData } from '../services/adt';
 
 // Mock the dependencies
 jest.mock('../services/issueService');
 jest.mock('../stores/useEditorStore');
 jest.mock('../services/rteService');
+jest.mock('../services/userService');
 
 const mockCreateIssueForRegion = createIssueForRegion as jest.MockedFunction<typeof createIssueForRegion>;
 
@@ -25,6 +27,8 @@ describe('CreateIssueUseCase', () => {
     transcriptionId: 'trans-789',
     index: 1,
     resolved: false,
+    dateLastUpdated: '2023-01-01T00:00:00Z',
+    userLastUpdated: 'user-123',
     createdAt: '2023-01-01T00:00:00Z',
     updatedAt: '2023-01-01T00:00:00Z',
     _version: 1
@@ -45,6 +49,12 @@ describe('CreateIssueUseCase', () => {
 
     // Mock rteService
     (rteService.updateIssueHighlighting as jest.Mock).mockImplementation(() => {});
+    
+    // Mock currentUser
+    (currentUser as jest.Mock).mockReturnValue({
+      userId: 'user-123',
+      username: 'test-user'
+    });
   });
 
   afterEach(() => {
@@ -138,7 +148,7 @@ describe('CreateIssueUseCase', () => {
         ownerFriendly: 'Test User',
         regionId: 'region-456',
         transcriptionId: 'trans-789'
-      });
+      }, 'test-user');
 
       // Verify store update
       expect(mockEditorStore.addNewIssue).toHaveBeenCalledWith(mockCreatedIssue);
@@ -165,7 +175,7 @@ describe('CreateIssueUseCase', () => {
         ownerFriendly: 'Test User',
         regionId: '',
         transcriptionId: 'trans-789'
-      });
+      }, 'test-user');
 
       expect(rteService.updateIssueHighlighting).toHaveBeenCalledWith('');
       expect(result).toEqual(issueWithEmptyRegion);
@@ -185,7 +195,7 @@ describe('CreateIssueUseCase', () => {
         ownerFriendly: 'Test User',
         regionId: 'region-456',
         transcriptionId: 'trans-789'
-      });
+      }, 'test-user');
     });
 
     it('should handle unicode characters correctly', async () => {
@@ -203,7 +213,7 @@ describe('CreateIssueUseCase', () => {
         ownerFriendly: 'Test User',
         regionId: 'region-456',
         transcriptionId: 'trans-789'
-      });
+      }, 'test-user');
 
       expect(result).toEqual(unicodeIssue);
     });
@@ -223,7 +233,7 @@ describe('CreateIssueUseCase', () => {
         ownerFriendly: 'Test User',
         regionId: 'region-456',
         transcriptionId: 'trans-789'
-      });
+      }, 'test-user');
 
       expect(result.type).toBe('needs-help');
     });
@@ -269,7 +279,7 @@ describe('CreateIssueUseCase', () => {
         ownerFriendly: 'Test User',
         regionId: 'region-456',
         transcriptionId: 'trans-789'
-      });
+      }, 'test-user');
 
       expect(result.text).toBe(longText);
     });
@@ -289,7 +299,7 @@ describe('CreateIssueUseCase', () => {
         ownerFriendly: 'Test User',
         regionId: 'region-456',
         transcriptionId: 'trans-789'
-      });
+      }, 'test-user');
 
       expect(result.text).toBe('Text with \n newlines \t and tabs');
     });
@@ -309,7 +319,7 @@ describe('CreateIssueUseCase', () => {
         ownerFriendly: 'Test User',
         regionId: '',
         transcriptionId: 'trans-789'
-      });
+      }, 'test-user');
 
       expect(rteService.updateIssueHighlighting).toHaveBeenCalledWith('');
     });

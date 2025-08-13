@@ -344,6 +344,8 @@ export const createIssue = /* GraphQL */ `
       index
       resolved
       type
+      dateLastUpdated
+      userLastUpdated
       comments
       commentCount
       regionId
@@ -401,6 +403,8 @@ export const updateIssue = /* GraphQL */ `
       index
       resolved
       type
+      dateLastUpdated
+      userLastUpdated
       comments
       commentCount
       regionId
@@ -458,6 +462,8 @@ export const deleteIssue = /* GraphQL */ `
       index
       resolved
       type
+      dateLastUpdated
+      userLastUpdated
       comments
       commentCount
       regionId

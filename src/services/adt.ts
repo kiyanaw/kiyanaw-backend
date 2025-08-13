@@ -11,7 +11,7 @@ export interface TranscriptionData {
   isPrivate?: boolean;
   disableAnalyzer?: boolean;
   dateLastUpdated?: string;
-  userLastUpdated?: string;
+  userLastUpdated: string;
   length: number;
   editors?: string[] | null;
   viewers?: string[] | null;
@@ -54,6 +54,8 @@ export interface IssueData {
   index: number;
   resolved?: boolean;
   type: string;
+  dateLastUpdated: string;
+  userLastUpdated: string;
   comments?: string; // AWSJSON - deprecated field, comments moving to Comment field
   commentCount?: number;
   regionId: string;
@@ -127,7 +129,7 @@ export class TranscriptionModel {
   public isPrivate: boolean;
   public disableAnalyzer: boolean;
   public dateLastUpdated?: string;
-  public userLastUpdated?: string;
+  public userLastUpdated: string;
   public isVideo: boolean;
   public editors?: string[] | null;
   public viewers?: string[] | null;
