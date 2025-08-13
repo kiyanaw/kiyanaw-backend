@@ -7,6 +7,7 @@ import { textHighlightService, type IssueHighlight, type IssueType } from './tex
 import { useEditorStore } from '../stores/useEditorStore';
 import { issueHighlightService } from './issueHighlightService';
 import { issueMatchingService } from './issueMatchingService';
+import { REGION_TEXT_MATCH_PATTERN } from '../constants/text-patterns';
 
 // Quill-related interfaces
 interface QuillModulesConfig extends Record<string, unknown> {
@@ -406,8 +407,7 @@ class RTEServiceImpl {
     }
 
     const matches: Array<{ index: number; length: number; id: string; type: IssueType }> = [];
-    const tokenPattern = /([\p{L}\p{N}_-]+)/u;
-    const tokens = text.split(tokenPattern);
+    const tokens = text.split(REGION_TEXT_MATCH_PATTERN);
     let currentIndex = 0;
     
     // Create issue text lookup for efficient matching
@@ -415,13 +415,13 @@ class RTEServiceImpl {
     const issueTextMap = new Map<string, { id: string; type: IssueType }>();
     for (const issue of issues) {
       const normalized = issue.text.trim().toLowerCase();
-      const match = normalized.match(tokenPattern);
+      const match = normalized.match(REGION_TEXT_MATCH_PATTERN);
       const key = match ? match[0] : normalized;
       issueTextMap.set(key, { id: issue.id, type: issue.type });
     }
     
     for (const token of tokens) {
-      if (tokenPattern.test(token)) {
+      if (REGION_TEXT_MATCH_PATTERN.test(token)) {
         const lowerToken = token.trim().toLowerCase();
         const issueInfo = issueTextMap.get(lowerToken);
         if (issueInfo) {
@@ -630,19 +630,18 @@ class RTEServiceImpl {
     }
 
     // Use the same tokenization pattern as our text highlighting
-    const tokenPattern = /([\p{L}\p{N}_-]+)/u;
     
     // Find word boundaries around the index
     let start = index;
     let end = index;
     
     // Move start backwards to find word beginning
-    while (start > 0 && tokenPattern.test(text[start - 1])) {
+    while (start > 0 && REGION_TEXT_MATCH_PATTERN.test(text[start - 1])) {
       start--;
     }
     
     // Move end forwards to find word end
-    while (end < text.length && tokenPattern.test(text[end])) {
+    while (end < text.length && REGION_TEXT_MATCH_PATTERN.test(text[end])) {
       end++;
     }
     

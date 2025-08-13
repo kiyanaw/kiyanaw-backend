@@ -1,3 +1,5 @@
+import { REGION_TEXT_MATCH_PATTERN, REGION_TEXT_MATCH_PATTERN_GLOBAL } from '../constants/text-patterns';
+
 export interface HighlightMatch {
   word: string;
   index: number;
@@ -41,7 +43,6 @@ export interface TextHighlightService {
 class TextHighlightServiceImpl implements TextHighlightService {
   // Unicode-aware tokenizer that captures words and preserves separators
   // Include hyphens to match spellCheckerService tokenization for words like "kâ-kîsikâk"
-  private readonly tokenPattern = /([\p{L}\p{N}_-]+)/u;
   
   generateHTML(text: string, knownWords: Set<string>): string {
     return this.generateHTMLWithOptions(text, { knownWords });
@@ -61,13 +62,11 @@ class TextHighlightServiceImpl implements TextHighlightService {
     // Create issue text lookup with type and comment information for efficient matching
     // Normalize to extract letters/numbers/_/- only (consistent with tokenization)
     const issueTextMap = new Map<string, { type: IssueType; commentCount: number }>();
-    const tokenPattern = /([\p{L}\p{N}_-]+)/u;
     issues.forEach(issue => {
       const normalized = issue.text.trim().toLowerCase();
       // Prefer the longest word-like token from the issue text to avoid short affixes like (ē-)
-      const re = new RegExp(tokenPattern, 'gu');
       const tokens: string[] = [];
-      for (const m of normalized.matchAll(re)) {
+      for (const m of normalized.matchAll(REGION_TEXT_MATCH_PATTERN_GLOBAL)) {
         if (m[0]) tokens.push(m[0]);
       }
       const key = tokens.length > 0
@@ -80,11 +79,11 @@ class TextHighlightServiceImpl implements TextHighlightService {
     });
     
     // Split text into tokens while preserving separators
-    const tokens = text.split(this.tokenPattern);
+    const tokens = text.split(REGION_TEXT_MATCH_PATTERN);
     
     return tokens.map(token => {
       // Check if token is a word (matches our pattern)
-      if (this.tokenPattern.test(token)) {
+      if (REGION_TEXT_MATCH_PATTERN.test(token)) {
         const lowerToken = token.trim().toLowerCase();
         
         // Issues take priority over known words
@@ -108,11 +107,11 @@ class TextHighlightServiceImpl implements TextHighlightService {
     }
 
     const matches: HighlightMatch[] = [];
-    const tokens = text.split(this.tokenPattern);
+    const tokens = text.split(REGION_TEXT_MATCH_PATTERN);
     let currentIndex = 0;
     
     for (const token of tokens) {
-      if (this.tokenPattern.test(token) && knownWords.has(token.toLowerCase())) {
+      if (REGION_TEXT_MATCH_PATTERN.test(token) && knownWords.has(token.toLowerCase())) {
         matches.push({
           word: token,
           index: currentIndex,

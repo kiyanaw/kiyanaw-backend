@@ -1,4 +1,5 @@
 import type { IssueData } from './adt';
+import { REGION_TEXT_MATCH_PATTERN_GLOBAL } from '../constants/text-patterns';
 
 export interface TokenCandidate {
   token: string;
@@ -27,8 +28,7 @@ export class IssueMatchingService {
    */
   private tokenizeText(text: string): Token[] {
     const tokens: Token[] = [];
-    const tokenPattern = /([\p{L}\p{N}_-]+)/u; // Same pattern as RTEService
-    const matches = text.matchAll(new RegExp(tokenPattern, 'gu'));
+    const matches = text.matchAll(REGION_TEXT_MATCH_PATTERN_GLOBAL);
     
     for (const match of matches) {
       if (match[0] && match.index !== undefined) {
@@ -81,11 +81,9 @@ export class IssueMatchingService {
    * Uses same pattern as RTEService to ensure consistent matching
    */
   private normalizeText(text: string): string {
-    const tokenPattern = /([\p{L}\p{N}_-]+)/u;
     // Extract all tokens and choose the longest to avoid matching short affixes like (ē-)
-    const re = new RegExp(tokenPattern, 'gu');
     const tokens: string[] = [];
-    for (const m of text.toLowerCase().matchAll(re)) {
+    for (const m of text.toLowerCase().matchAll(REGION_TEXT_MATCH_PATTERN_GLOBAL)) {
       if (m[0]) tokens.push(m[0]);
     }
     if (tokens.length === 0) return '';
