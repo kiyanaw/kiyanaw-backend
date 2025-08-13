@@ -49,6 +49,9 @@ export const EditorPage = () => {
   const regions = useEditorStore((state) => state.regions);
   const selectedRegion = useEditorStore((state) => state.selectedRegion);
   const issues = useEditorStore((state) => state.issues);
+  // Subscribe to the full maps (stable references); index by selectedRegionId below to avoid infinite loops
+  const issueLinkStatusesByRegion = useEditorStore((state) => state.issueLinkStatusesByRegion);
+  const issueSuggestionsByRegion = useEditorStore((state) => state.issueSuggestionsByRegion);
 
   // Settings handlers
   const handleOpenSettings = () => setIsSettingsOpen(true);
@@ -155,11 +158,13 @@ export const EditorPage = () => {
                   selectedRegionId={selectedRegion?.id}
                   // TODO: why is this mapping happenning here and not our ADT?
                   issues={(issues || []).map(issue => {
-                    // Get link status and suggestions from store
-                    const storeState = useEditorStore.getState();
-                    const linkStatus = selectedRegion?.id ? storeState.issueLinkStatusesByRegion[selectedRegion.id]?.[issue.id] : undefined;
-                    const suggestions = selectedRegion?.id ? storeState.issueSuggestionsByRegion[selectedRegion.id]?.[issue.id] : undefined;
-                    
+                    const linkStatus = selectedRegion?.id
+                      ? issueLinkStatusesByRegion[selectedRegion.id]?.[issue.id]
+                      : undefined;
+                    const suggestions = selectedRegion?.id
+                      ? issueSuggestionsByRegion[selectedRegion.id]?.[issue.id]
+                      : undefined;
+
                     return {
                       id: issue.id,
                       text: issue.text,

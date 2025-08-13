@@ -39,25 +39,23 @@ export const useTextEditors = (regionId: string, activeTab: 'main' | 'translatio
     const currentContent = rteService.getInstance(mainEditorKey)?.getText().trim() || '';
     if (!currentContent && currentRegion?.regionText) {
       rteService.setContent(mainEditorKey, currentRegion.regionText);
-      
-      // Apply highlighting and run issue matching detection
+    }
+
+    // Always run matching/highlighting on attach to compute link statuses
+    {
       const state = useEditorStore.getState();
       const knownWords = Array.from(state.knownWords);
-      
-      // Use updateIssueHighlighting which includes matching service detection
       if (typeof rteService.updateIssueHighlighting === 'function') {
         rteService.updateIssueHighlighting(regionId);
       } else {
-        // Fallback to old method if updateIssueHighlighting doesn't exist
-        const issues = typeof state.getIssuesForRegion === 'function' 
-          ? state.getIssuesForRegion(regionId) 
+        const issues = typeof state.getIssuesForRegion === 'function'
+          ? state.getIssuesForRegion(regionId)
           : [];
         const issueHighlights = issueHighlightService.convertIssuesToHighlights(issues);
-        
         if (typeof rteService.applyHighlighting === 'function') {
           rteService.applyHighlighting(mainEditorKey, {
             knownWords,
-            issues: issueHighlights
+            issues: issueHighlights,
           });
         } else {
           rteService.applyKnownWordsFormatting(mainEditorKey, knownWords);
