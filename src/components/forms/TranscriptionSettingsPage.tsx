@@ -34,7 +34,7 @@ export const TranscriptionSettingsPage = ({
 }: TranscriptionSettingsPageProps) => {
   const [title, setTitle] = useState(initialTitle);
   const [comments, setComments] = useState(initialComments || '');
-  const [isPublic, setIsPublic] = useState(!(initialIsPrivate ?? true));
+  const [isPrivate, setIsPrivate] = useState(initialIsPrivate ?? true);
   const [lang, setLang] = useState(initialLang || '');
   
   // Invite management state
@@ -86,8 +86,8 @@ export const TranscriptionSettingsPage = ({
       updates.comments = comments;
     }
 
-    if (isPublic !== (!(initialIsPrivate ?? true))) {
-      updates.isPrivate = !isPublic;
+    if (isPrivate !== (initialIsPrivate ?? true)) {
+      updates.isPrivate = isPrivate;
     }
 
     if (lang !== (initialLang || '')) {
@@ -104,12 +104,12 @@ export const TranscriptionSettingsPage = ({
   const handleCancel = () => {
     setTitle(initialTitle);
     setComments(initialComments || '');
-    setIsPublic(!(initialIsPrivate ?? true));
+    setIsPrivate(initialIsPrivate ?? true);
     setLang(initialLang || '');
     onBack();
   };
 
-  const hasChanges = title !== initialTitle || comments !== (initialComments || '') || isPublic !== (!(initialIsPrivate ?? true)) || lang !== (initialLang || '');
+  const hasChanges = title !== initialTitle || comments !== (initialComments || '') || isPrivate !== (initialIsPrivate ?? true) || lang !== (initialLang || '');
 
   const formatDate = (dateString: string) => {
     try {
@@ -205,7 +205,7 @@ export const TranscriptionSettingsPage = ({
                   onClick={() => {
                         setTitle(initialTitle);
     setComments(initialComments || '');
-    setIsPublic(!(initialIsPrivate ?? true));
+    setIsPrivate(initialIsPrivate ?? true);
     setLang(initialLang || '');
                   }}
                   className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
@@ -303,19 +303,19 @@ export const TranscriptionSettingsPage = ({
                       <button
                         type="button"
                         role="switch"
-                        aria-checked={isPublic}
-                        onClick={() => setIsPublic(!isPublic)}
+                        aria-checked={!isPrivate}
+                        onClick={() => setIsPrivate(!isPrivate)}
                         disabled={!isOwner}
                         className={`
                           relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed
-                          ${isPublic ? 'bg-blue-600' : 'bg-gray-200'}
+                          ${!isPrivate ? 'bg-blue-600' : 'bg-gray-200'}
                         `}
                       >
                         <span
                           aria-hidden="true"
                           className={`
                             pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out
-                            ${isPublic ? 'translate-x-5' : 'translate-x-0'}
+                            ${!isPrivate ? 'translate-x-5' : 'translate-x-0'}
                           `}
                         />
                       </button>

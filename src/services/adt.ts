@@ -153,7 +153,7 @@ export class TranscriptionModel {
     // this.issues = Number(data.issues) || 0;
     this.source = data.source;
     this.coverage = data.coverage || 0;
-    this.isPrivate = data.isPrivate || false;
+    this.isPrivate = data.isPrivate ?? true;
     this.disableAnalyzer = !!data.disableAnalyzer;
     this.dateLastUpdated = data.dateLastUpdated;
     this.userLastUpdated = data.userLastUpdated;
