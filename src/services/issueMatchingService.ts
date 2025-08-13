@@ -23,25 +23,20 @@ export class IssueMatchingService {
   
   /**
    * Tokenize text into words with their positions
-   * Simplified: just split by spaces and find positions
+   * Uses same pattern as RTEService to ensure consistent matching
    */
   private tokenizeText(text: string): Token[] {
     const tokens: Token[] = [];
-    const words = text.split(/\s+/);
-    let currentIndex = 0;
-
-    for (const word of words) {
-      if (word.trim()) {
-        // Find the actual position of this word in the original text
-        const wordStart = text.indexOf(word, currentIndex);
-        if (wordStart !== -1) {
-          tokens.push({
-            token: word.trim().toLowerCase(),
-            start: wordStart,
-            end: wordStart + word.length
-          });
-          currentIndex = wordStart + word.length;
-        }
+    const tokenPattern = /([\p{L}\p{N}_-]+)/u; // Same pattern as RTEService
+    const matches = text.matchAll(new RegExp(tokenPattern, 'gu'));
+    
+    for (const match of matches) {
+      if (match[0] && match.index !== undefined) {
+        tokens.push({
+          token: match[0].toLowerCase(),
+          start: match.index,
+          end: match.index + match[0].length
+        });
       }
     }
 
@@ -82,10 +77,13 @@ export class IssueMatchingService {
   }
 
   /**
-   * Normalize text for matching (trim, lowercase, etc.)
+   * Normalize text for matching (extract letters/numbers/hyphens only, lowercase)
+   * Uses same pattern as RTEService to ensure consistent matching
    */
   private normalizeText(text: string): string {
-    return text.trim().toLowerCase();
+    const tokenPattern = /([\p{L}\p{N}_-]+)/u;
+    const match = text.match(tokenPattern);
+    return match ? match[0].toLowerCase() : '';
   }
 
   /**

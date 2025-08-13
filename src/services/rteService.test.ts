@@ -636,4 +636,5 @@ describe('rteService', () => {
       expect(mockFormatText).toHaveBeenCalledTimes(3);
     });
   });
-}); 
+
+});

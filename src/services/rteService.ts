@@ -411,7 +411,14 @@ class RTEServiceImpl {
     let currentIndex = 0;
     
     // Create issue text lookup for efficient matching
-    const issueTextMap = new Map(issues.map(issue => [issue.text.trim().toLowerCase(), { id: issue.id, type: issue.type }]));
+    // Normalize issue text the same way tokens are created: extract letters/numbers/_/- only
+    const issueTextMap = new Map<string, { id: string; type: IssueType }>();
+    for (const issue of issues) {
+      const normalized = issue.text.trim().toLowerCase();
+      const match = normalized.match(tokenPattern);
+      const key = match ? match[0] : normalized;
+      issueTextMap.set(key, { id: issue.id, type: issue.type });
+    }
     
     for (const token of tokens) {
       if (tokenPattern.test(token)) {

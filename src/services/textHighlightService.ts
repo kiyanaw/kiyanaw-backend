@@ -59,9 +59,14 @@ class TextHighlightServiceImpl implements TextHighlightService {
     }
 
     // Create issue text lookup with type and comment information for efficient matching
+    // Normalize to extract letters/numbers/_/- only (consistent with tokenization)
     const issueTextMap = new Map<string, { type: IssueType; commentCount: number }>();
+    const tokenPattern = /([\p{L}\p{N}_-]+)/u;
     issues.forEach(issue => {
-      issueTextMap.set(issue.text.trim().toLowerCase(), { 
+      const normalized = issue.text.trim().toLowerCase();
+      const match = normalized.match(tokenPattern);
+      const key = match ? match[0] : normalized;
+      issueTextMap.set(key, { 
         type: issue.type, 
         commentCount: issue.commentCount || 0 
       });

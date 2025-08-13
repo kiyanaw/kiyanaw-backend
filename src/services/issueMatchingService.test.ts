@@ -30,14 +30,14 @@ describe('IssueMatchingService', () => {
       ]);
     });
 
-    it('should handle mixed punctuation and preserve word boundaries', () => {
+    it('should handle mixed punctuation and strip punctuation from tokens', () => {
       const text = 'word1, word2! word3?';
       const result = (service as any).tokenizeText(text);
       
       expect(result).toEqual([
-        { token: 'word1,', start: 0, end: 6 },
-        { token: 'word2!', start: 7, end: 13 },
-        { token: 'word3?', start: 14, end: 20 }
+        { token: 'word1', start: 0, end: 5 },
+        { token: 'word2', start: 7, end: 12 },
+        { token: 'word3', start: 14, end: 19 }
       ]);
     });
 
@@ -48,9 +48,7 @@ describe('IssueMatchingService', () => {
 
     it('should handle text with only punctuation', () => {
       const result = (service as any).tokenizeText('!@#$%^&*()');
-      expect(result).toEqual([
-        { token: '!@#$%^&*()', start: 0, end: 10 }
-      ]);
+      expect(result).toEqual([]); // No tokens since punctuation is stripped
     });
 
     it('should normalize tokens to lowercase', () => {
@@ -103,9 +101,9 @@ describe('IssueMatchingService', () => {
   });
 
   describe('normalizeText', () => {
-    it('should trim and lowercase text', () => {
+    it('should extract first word and lowercase it', () => {
       const result = (service as any).normalizeText('  Hello World  ');
-      expect(result).toBe('hello world');
+      expect(result).toBe('hello');
     });
 
     it('should handle unicode characters', () => {
@@ -113,9 +111,15 @@ describe('IssueMatchingService', () => {
       expect(result).toBe('ē-mânokâkēcik');
     });
 
+    it('should strip punctuation', () => {
+      const result = (service as any).normalizeText('hello,');
+      expect(result).toBe('hello');
+    });
+
     it('should handle empty/whitespace text', () => {
       expect((service as any).normalizeText('')).toBe('');
       expect((service as any).normalizeText('   ')).toBe('');
+      expect((service as any).normalizeText('!@#$%')).toBe('');
     });
   });
 
@@ -295,16 +299,55 @@ describe('IssueMatchingService', () => {
 
     it('should handle whitespace and punctuation correctly', () => {
       const regionText = '  hello,  world!  ';
-      // The tokenizer splits by spaces, so we get ['hello,', 'world!']
+      // The tokenizer strips punctuation, so we get ['hello', 'world']
       const issues = [
-        createMockIssue('issue1', 'hello,'),      // Should match exactly  
-        createMockIssue('issue2', 'world!')       // Should match exactly
+        createMockIssue('issue1', 'hello,'),      // Should match 'hello' (punctuation stripped)
+        createMockIssue('issue2', 'world!'),      // Should match 'world' (punctuation stripped)
+        createMockIssue('issue3', 'hello'),       // Should match 'hello' exactly
+        createMockIssue('issue4', 'world')        // Should match 'world' exactly
       ];
 
       const result = service.match(regionText, issues);
 
       expect(result.matched).toContain('issue1');
       expect(result.matched).toContain('issue2');
+      expect(result.matched).toContain('issue3');
+      expect(result.matched).toContain('issue4');
+    });
+
+    it('should match issues with commas against region text without commas', () => {
+      const regionText = 'paskwāw-okimāw test';
+      const issues = [
+        createMockIssue('issue1', 'paskwāw-okimāw,'),  // Issue has comma
+        createMockIssue('issue2', 'paskwāw-okimāw'),   // Issue without comma
+        createMockIssue('issue3', 'test,'),            // Test with comma
+        createMockIssue('issue4', 'missing')           // Should not match
+      ];
+
+      const result = service.match(regionText, issues);
+
+      expect(result.matched).toContain('issue1'); // Comma stripped, matches
+      expect(result.matched).toContain('issue2'); // Exact match
+      expect(result.matched).toContain('issue3'); // Comma stripped, matches
+      expect(result.unmatched).toContain('issue4');
+      expect(result.matched.size).toBe(3);
+      expect(result.unmatched.size).toBe(1);
+    });
+
+    it('should handle mixed case and extra whitespace with punctuation', () => {
+      const regionText = '  PASKWĀW-OKIMĀW,   test!  ';
+      const issues = [
+        createMockIssue('issue1', 'paskwāw-okimāw,   '), // Extra spaces + comma
+        createMockIssue('issue2', 'TEST'),                // Different case
+        createMockIssue('issue3', 'paskwāw-okimāw')       // No punctuation
+      ];
+
+      const result = service.match(regionText, issues);
+
+      expect(result.matched).toContain('issue1'); // Normalized and matched
+      expect(result.matched).toContain('issue2'); // Case insensitive
+      expect(result.matched).toContain('issue3'); // Exact match after normalization
+      expect(result.matched.size).toBe(3);
     });
   });
 
