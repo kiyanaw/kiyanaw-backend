@@ -95,6 +95,234 @@ interface Issue {
 
 
 
+interface IssueListItemProps {
+  issue: Issue;
+  canEdit: boolean;
+  currentUserId?: string | null;
+  expandedTypeIssueId: string | null;
+  setExpandedTypeIssueId: (id: string | null) => void;
+  suggestionPopoverIssueId: string | null;
+  setSuggestionPopoverIssueId: (id: string | null) => void;
+  onUpdateIssue: (issueId: string, updates: Partial<Issue>) => void;
+  onDeleteIssue: (issueId: string) => void;
+  onOpenDialog: (issueId: string) => void;
+  onSelectSuggestion: (issueId: string, newText: string) => Promise<void> | void;
+  getIssueTypeInfo: (type: Issue['type']) => { value: string; label: string; color: string; bgColor: string };
+  formatDate: (dateString: string) => string;
+}
+
+const IssueListItem: React.FC<IssueListItemProps> = ({
+  issue,
+  canEdit,
+  currentUserId,
+  expandedTypeIssueId,
+  setExpandedTypeIssueId,
+  suggestionPopoverIssueId,
+  setSuggestionPopoverIssueId,
+  onUpdateIssue,
+  onDeleteIssue,
+  onOpenDialog,
+  onSelectSuggestion,
+  getIssueTypeInfo,
+  formatDate,
+}) => {
+  const typeInfo = getIssueTypeInfo(issue.type);
+  const commentCount = issue.commentCount || 0;
+  const isIssueOwner = currentUserId ? currentUserId === issue.owner : false;
+  const canDelete = canEdit && isIssueOwner;
+  const canResolve = canEdit;
+
+  const handleTypeClick = (issueId: string) => {
+    if (expandedTypeIssueId === issueId) {
+      setExpandedTypeIssueId(null);
+    } else {
+      setExpandedTypeIssueId(issueId);
+    }
+  };
+
+  const handleTypeChange = (issueId: string, newType: Issue['type']) => {
+    if (issue.type !== newType) {
+      onUpdateIssue(issueId, { type: newType });
+    }
+    setExpandedTypeIssueId(null);
+  };
+
+  const handleToggleResolved = () => {
+    onUpdateIssue(issue.id, { resolved: !issue.resolved });
+  };
+
+  const issueFlash = useIssueFlashIndicator(issue.id);
+
+  return (
+    <div
+      key={issue.id}
+      id={`issueitem-${issue.id}`}
+      className={`border border-gray-200 rounded-lg mb-3 bg-white transition-all duration-200 hover:border-gray-400 hover:shadow-sm relative ${
+        issue.resolved ? 'opacity-70 bg-gray-50' : ''
+      }`}
+    >
+      <div className="p-3 flex items-center gap-3">
+        {!issue.resolved && (
+          <>
+            {canEdit ? (
+              <div className="relative flex-shrink-0">
+                <span
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleTypeClick(issue.id);
+                  }}
+                  className={`inline-block py-0.5 px-2 rounded-xl text-xs font-medium uppercase cursor-pointer transition-all duration-300 ease-out whitespace-nowrap ${
+                    expandedTypeIssueId === issue.id ? 'ring-2 ring-gray-400 ring-offset-2' : ''
+                  }`}
+                  style={{ backgroundColor: typeInfo.bgColor, color: typeInfo.color, border: `1px solid ${typeInfo.color}` }}
+                  title="Click to change issue type"
+                >
+                  {typeInfo.label}
+                </span>
+
+                <div 
+                  className="absolute top-0 left-full ml-1 z-50 overflow-hidden transition-all duration-300 ease-out flex items-center"
+                  style={{
+                    width: expandedTypeIssueId === issue.id ? '240px' : '0px',
+                    opacity: expandedTypeIssueId === issue.id ? 1 : 0,
+                    height: '100%'
+                  }}
+                >
+                  <div className="flex items-center gap-1 whitespace-nowrap">
+                    {issueTypes
+                      .filter(type => type.value !== issue.type)
+                      .map((type) => (
+                        <span
+                          key={type.value}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleTypeChange(issue.id, type.value as Issue['type']);
+                          }}
+                          className="inline-block py-0.5 px-2 rounded-xl text-xs font-medium uppercase cursor-pointer hover:opacity-90 transition-all duration-300 ease-out whitespace-nowrap shadow-lg"
+                          style={{ 
+                            backgroundColor: type.bgColor, 
+                            color: type.color, 
+                            border: `1px solid ${type.color}`,
+                            opacity: 1
+                          }}
+                          title={type.label}
+                        >
+                          {type.label}
+                        </span>
+                      ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <span
+                className="inline-block py-0.5 px-2 rounded-xl text-xs font-medium uppercase flex-shrink-0 whitespace-nowrap"
+                style={{ backgroundColor: typeInfo.bgColor, color: typeInfo.color, border: `1px solid ${typeInfo.color}` }}
+              >
+                {typeInfo.label}
+              </span>
+            )}
+          </>
+        )}
+
+        {issue.resolved && (
+          <span className="inline-block py-0.5 px-2 rounded-xl text-xs font-medium uppercase bg-green-600 text-white flex-shrink-0 whitespace-nowrap">
+            RESOLVED
+          </span>
+        )}
+
+        <div 
+          className="flex-1 flex items-center gap-2 relative cursor-pointer hover:bg-gray-50 rounded p-2 -m-2 transition-colors"
+          onClick={() => onOpenDialog(issue.id)}
+          title="Click to view issue details and comments"
+        >
+          <span className={`text-sm ${issue.resolved ? 'text-gray-500 line-through' : 'text-gray-800'}`}>
+            {issue.text}
+          </span>
+
+          {!issue.resolved && issue.linkStatus === 'unmatched' && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setSuggestionPopoverIssueId(
+                  suggestionPopoverIssueId === issue.id ? null : issue.id
+                );
+              }}
+              className="p-1 rounded hover:bg-yellow-100 transition-colors"
+              title="This issue text doesn't match any text in the editor. Click for suggestions."
+            >
+              <AlertTriangle className="w-4 h-4 text-yellow-600" />
+            </button>
+          )}
+
+          {commentCount > 0 && (
+            <div className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded text-xs text-gray-500">
+              <MessageSquare className="w-3 h-3" />
+              <span>{commentCount}</span>
+            </div>
+          )}
+
+          {suggestionPopoverIssueId === issue.id && issue.suggestions && issue.suggestions.length > 0 && (
+            <SuggestionPopover
+              issueId={issue.id}
+              suggestions={issue.suggestions}
+              onSelectSuggestion={onSelectSuggestion}
+              onClose={() => setSuggestionPopoverIssueId(null)}
+            />
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 text-xs text-gray-500 flex-shrink-0">
+          <span>by {currentUserId && currentUserId === issue.owner ? 'me' : issue.ownerFriendly}</span>
+          <span>{formatDate(issue.createdAt)}</span>
+
+          {canResolve && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleToggleResolved();
+              }}
+              className={`ml-2 p-1.5 rounded-md border transition-all duration-200 ${
+                issue.resolved 
+                  ? 'bg-green-100 border-green-300 text-green-700 hover:bg-green-200 hover:border-green-400' 
+                  : 'bg-gray-50 border-gray-300 text-gray-500 hover:bg-gray-100 hover:border-gray-400 hover:text-gray-700'
+              }`}
+              title={issue.resolved ? 'Click to reopen issue' : 'Click to resolve issue'}
+            >
+              <Check className="w-3.5 h-3.5" />
+            </button>
+          )}
+
+          {canDelete && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDeleteIssue(issue.id);
+              }}
+              className="ml-1 p-1.5 rounded-md border bg-red-50 border-red-200 text-red-600 hover:bg-red-100 hover:border-red-300 hover:text-red-700 transition-all duration-200"
+              title="Delete issue"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {issueFlash && (
+        <div
+          className="absolute bottom-1 right-2 text-xs font-medium text-green-700 pointer-events-none z-20 bg-white bg-opacity-90 rounded px-1 py-0.5"
+          style={{
+            opacity: issueFlash.opacity,
+            textShadow: issueFlash.isFlashing ? '0 0 8px rgba(34, 197, 94, 0.6)' : 'none',
+            transition: `opacity ${FLASH_CONFIG.textFadeDuration}ms ${FLASH_CONFIG.textEasing}`
+          }}
+        >
+          {issueFlash.username}
+        </div>
+      )}
+    </div>
+  );
+};
+
 interface IssuesPanelProps {
   selectedRegionId?: string;
   issues: Issue[];
@@ -194,39 +422,7 @@ export const IssuesPanel = ({
   );
   const hasSelection = regionSelection && regionSelection.length > 0 && regionSelection.text.trim().length > 0;
 
-  const handleToggleResolved = (issue: Issue) => {
-    onUpdateIssue(issue.id, {
-      resolved: !issue.resolved,
-    });
-  };
-
-  const handleTypeChange = (issueId: string, newType: Issue['type']) => {
-    // Find the current issue to check if type is actually changing
-    const currentIssue = issues.find(issue => issue.id === issueId);
-    
-    // Only save if the type is actually different
-    if (currentIssue && currentIssue.type !== newType) {
-      onUpdateIssue(issueId, {
-        type: newType,
-      });
-    }
-    
-    setExpandedTypeIssueId(null); // Always collapse after selection
-  };
-
-  const handleTypeClick = (issueId: string) => {
-    if (expandedTypeIssueId === issueId) {
-      setExpandedTypeIssueId(null); // Collapse if already expanded
-    } else {
-      setExpandedTypeIssueId(issueId); // Expand this issue's type selector
-    }
-  };
-
-  const handleDeleteIssue = (issueId: string) => {
-    if (window.confirm('Are you sure you want to delete this issue?')) {
-      onDeleteIssue(issueId);
-    }
-  };
+  // handlers moved into IssueListItem to avoid dynamic hook ordering in the parent
 
   const handleSelectSuggestion = async (issueId: string, newText: string) => {
     try {
@@ -347,198 +543,24 @@ export const IssuesPanel = ({
             )}
           </div>
         ) : (
-          filteredIssues.map((issue) => {
-            const typeInfo = getIssueTypeInfo(issue.type);
-            const commentCount = issue.commentCount || 0;
-            // Based on auth rules: issue owners can delete, anyone with transcription edit access can resolve/update
-            const isIssueOwner = user?.userId === issue.owner;
-            const canDelete = canEdit && isIssueOwner; // Only issue owners can delete
-            const canResolve = canEdit; // Anyone with transcription edit access can resolve/update
-            
-
-            // Flash state for issue-specific flash indicator
-            const issueFlash = useIssueFlashIndicator(issue.id);
-
-            return (
-              <div
-                key={issue.id}
-                id={`issueitem-${issue.id}`}
-                className={`border border-gray-200 rounded-lg mb-3 bg-white transition-all duration-200 hover:border-gray-400 hover:shadow-sm relative ${
-                  issue.resolved ? 'opacity-70 bg-gray-50' : ''
-                }`}
-              >
-                <div className="p-3 flex items-center gap-3">
-                  {/* Type badges - only show for unresolved issues */}
-                  {!issue.resolved && (
-                    <>
-                      {canEdit ? (
-                        <div className="relative flex-shrink-0">
-                          {/* Current pill - always visible in normal position */}
-                          <span
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleTypeClick(issue.id);
-                            }}
-                            className={`inline-block py-0.5 px-2 rounded-xl text-xs font-medium uppercase cursor-pointer transition-all duration-300 ease-out whitespace-nowrap ${
-                              expandedTypeIssueId === issue.id ? 'ring-2 ring-gray-400 ring-offset-2' : ''
-                            }`}
-                            style={{ backgroundColor: typeInfo.bgColor, color: typeInfo.color, border: `1px solid ${typeInfo.color}` }}
-                            title="Click to change issue type"
-                          >
-                            {typeInfo.label}
-                          </span>
-                          
-                          {/* Expanding container for other pills - overlaying on top with animation */}
-                          <div 
-                            className="absolute top-0 left-full ml-1 z-50 overflow-hidden transition-all duration-300 ease-out flex items-center"
-                            style={{
-                              width: expandedTypeIssueId === issue.id ? '240px' : '0px',
-                              opacity: expandedTypeIssueId === issue.id ? 1 : 0,
-                              height: '100%' // Match the height of the main pill
-                            }}
-                          >
-                            <div className="flex items-center gap-1 whitespace-nowrap">
-                              {issueTypes
-                                .filter(type => type.value !== issue.type)
-                                .map((type) => (
-                                  <span
-                                    key={type.value}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleTypeChange(issue.id, type.value as Issue['type']);
-                                    }}
-                                    className="inline-block py-0.5 px-2 rounded-xl text-xs font-medium uppercase cursor-pointer hover:opacity-90 transition-all duration-300 ease-out whitespace-nowrap shadow-lg"
-                                    style={{ 
-                                      backgroundColor: type.bgColor, 
-                                      color: type.color, 
-                                      border: `1px solid ${type.color}`,
-                                      opacity: 1 // Full opacity so text isn't visible through
-                                    }}
-                                    title={type.label}
-                                  >
-                                    {type.label}
-                                  </span>
-                                ))}
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        // Static badge for unresolved issues when user can't edit
-                        <span
-                          className="inline-block py-0.5 px-2 rounded-xl text-xs font-medium uppercase flex-shrink-0 whitespace-nowrap"
-                          style={{ backgroundColor: typeInfo.bgColor, color: typeInfo.color, border: `1px solid ${typeInfo.color}` }}
-                        >
-                          {typeInfo.label}
-                        </span>
-                      )}
-                    </>
-                  )}
-
-                  {/* Resolved badge - only badge shown for resolved issues */}
-                  {issue.resolved && (
-                    <span className="inline-block py-0.5 px-2 rounded-xl text-xs font-medium uppercase bg-green-600 text-white flex-shrink-0 whitespace-nowrap">
-                      RESOLVED
-                    </span>
-                  )}
-
-                  {/* Issue text with comment icon and warning icon - takes up remaining space */}
-                  <div 
-                    className="flex-1 flex items-center gap-2 relative cursor-pointer hover:bg-gray-50 rounded p-2 -m-2 transition-colors"
-                    onClick={() => handleOpenDialog(issue.id)}
-                    title="Click to view issue details and comments"
-                  >
-                    <span className={`text-sm ${issue.resolved ? 'text-gray-500 line-through' : 'text-gray-800'}`}>
-                      {issue.text}
-                    </span>
-                    
-                    {/* Warning icon for unmatched issues */}
-                    {!issue.resolved && issue.linkStatus === 'unmatched' && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSuggestionPopoverIssueId(
-                            suggestionPopoverIssueId === issue.id ? null : issue.id
-                          );
-                        }}
-                        className="p-1 rounded hover:bg-yellow-100 transition-colors"
-                        title="This issue text doesn't match any text in the editor. Click for suggestions."
-                      >
-                        <AlertTriangle className="w-4 h-4 text-yellow-600" />
-                      </button>
-                    )}
-
-                    {commentCount > 0 && (
-                      <div className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded text-xs text-gray-500">
-                        <MessageSquare className="w-3 h-3" />
-                        <span>{commentCount}</span>
-                      </div>
-                    )}
-
-                    {/* Suggestion Popover */}
-                    {suggestionPopoverIssueId === issue.id && issue.suggestions && issue.suggestions.length > 0 && (
-                      <SuggestionPopover
-                        issueId={issue.id}
-                        suggestions={issue.suggestions}
-                        onSelectSuggestion={handleSelectSuggestion}
-                        onClose={() => setSuggestionPopoverIssueId(null)}
-                      />
-                    )}
-                  </div>
-
-                  {/* Right side: metadata and actions */}
-                  <div className="flex items-center gap-2 text-xs text-gray-500 flex-shrink-0">
-                    <span>by {user?.userId === issue.owner ? 'me' : issue.ownerFriendly}</span>
-                    <span>{formatDate(issue.createdAt)}</span>
-
-                    {/* Action icons */}
-                    {canResolve && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleToggleResolved(issue);
-                        }}
-                        className={`ml-2 p-1.5 rounded-md border transition-all duration-200 ${
-                          issue.resolved 
-                            ? 'bg-green-100 border-green-300 text-green-700 hover:bg-green-200 hover:border-green-400' 
-                            : 'bg-gray-50 border-gray-300 text-gray-500 hover:bg-gray-100 hover:border-gray-400 hover:text-gray-700'
-                        }`}
-                        title={issue.resolved ? 'Click to reopen issue' : 'Click to resolve issue'}
-                      >
-                        <Check className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-
-                    {canDelete && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteIssue(issue.id);
-                        }}
-                        className="ml-1 p-1.5 rounded-md border bg-red-50 border-red-200 text-red-600 hover:bg-red-100 hover:border-red-300 hover:text-red-700 transition-all duration-200"
-                        title="Delete issue"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-                
-                {/* Flash indicator overlay */}
-                {issueFlash && (
-                  <div
-                    className="absolute bottom-1 right-2 text-xs font-medium text-green-700 pointer-events-none z-20 bg-white bg-opacity-90 rounded px-1 py-0.5"
-                    style={{
-                      opacity: issueFlash.opacity,
-                      textShadow: issueFlash.isFlashing ? '0 0 8px rgba(34, 197, 94, 0.6)' : 'none',
-                      transition: `opacity ${FLASH_CONFIG.textFadeDuration}ms ${FLASH_CONFIG.textEasing}`
-                    }}
-                  >
-                    {issueFlash.username}
-                  </div>
-                )}
-              </div>
-            );
-          })
+          filteredIssues.map((issue) => (
+            <IssueListItem
+              key={issue.id}
+              issue={issue}
+              canEdit={canEdit}
+              currentUserId={user?.userId ?? null}
+              expandedTypeIssueId={expandedTypeIssueId}
+              setExpandedTypeIssueId={setExpandedTypeIssueId}
+              suggestionPopoverIssueId={suggestionPopoverIssueId}
+              setSuggestionPopoverIssueId={setSuggestionPopoverIssueId}
+              onUpdateIssue={onUpdateIssue}
+              onDeleteIssue={onDeleteIssue}
+              onOpenDialog={handleOpenDialog}
+              onSelectSuggestion={handleSelectSuggestion}
+              getIssueTypeInfo={getIssueTypeInfo}
+              formatDate={formatDate}
+            />
+          ))
         )}
         
         {/* Toggle link for resolved issues */}
