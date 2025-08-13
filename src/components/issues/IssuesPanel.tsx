@@ -488,7 +488,14 @@ export const IssuesPanel = ({
       <div className="flex flex-col h-full bg-white rounded-lg overflow-hidden">
       <div className="flex justify-between items-center p-4 bg-gray-50 border-b border-gray-200">
         <div className="flex items-center gap-2">
-          <h3 className="m-0 text-lg font-semibold text-gray-800">Issues</h3>
+          {(() => {
+            const count = selectedRegionId
+              ? issues.filter(i => i.regionId === selectedRegionId).length
+              : issues.length;
+            return (
+              <h3 className="m-0 text-lg font-semibold text-gray-800">{`Issues (${count})`}</h3>
+            );
+          })()}
           {(() => {
             // Count unmatched issues
             const unmatchedCount = filteredIssues.filter(issue => 

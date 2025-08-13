@@ -31,7 +31,7 @@ describe('IssuesPanel deletion', () => {
 
   it('asks for confirmation and calls onDeleteIssue when confirmed', () => {
     const onDeleteIssue = jest.fn();
-    render(
+    const { rerender } = render(
       <IssuesPanel
         selectedRegionId={'r1'}
         issues={[baseIssue]}
@@ -44,6 +44,23 @@ describe('IssuesPanel deletion', () => {
         onDeleteIssue={onDeleteIssue}
       />
     );
+
+    // Heading shows region-scoped count
+    expect(screen.getByText('Issues (1)')).toBeInTheDocument();
+
+    // Switch to no region selection and assert total count heading
+    rerender(
+      <IssuesPanel
+        selectedRegionId={undefined}
+        issues={[baseIssue]}
+        canEdit={true}
+        // @ts-ignore
+        currentUserId={'u1'}
+        onUpdateIssue={jest.fn()}
+        onDeleteIssue={onDeleteIssue}
+      />
+    );
+    expect(screen.getByText('Issues (1)')).toBeInTheDocument();
 
     // Click the delete button (trash icon) in the row
     const trash = screen.getByTitle('Delete issue');
