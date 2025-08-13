@@ -31,8 +31,8 @@ import { rteService } from '../services/rteService';
 
 describe('DeleteIssueUseCase', () => {
   it('passes issue _version to service and updates store/highlighting', async () => {
-    const useCase = new DeleteIssueUseCase();
-    await useCase.execute({ issueId: 'i1' });
+    const useCase = new DeleteIssueUseCase({ issueId: 'i1' });
+    await useCase.execute();
 
     expect(deleteExistingIssue).toHaveBeenCalledWith('i1', 3);
     const store: any = (useEditorStore as any).getState();

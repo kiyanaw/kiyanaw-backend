@@ -18,9 +18,9 @@ describe('useDeleteIssue', () => {
     await act(async () => {
       await result.current({ issueId: 'i1' });
     });
-    expect(DeleteIssueUseCase).toHaveBeenCalled();
+    expect(DeleteIssueUseCase).toHaveBeenCalledWith({ issueId: 'i1' });
     const instance = (DeleteIssueUseCase as jest.Mock).mock.results[0].value;
-    expect(instance.execute).toHaveBeenCalledWith({ issueId: 'i1' });
+    expect(instance.execute).toHaveBeenCalledWith();
   });
 });
 
