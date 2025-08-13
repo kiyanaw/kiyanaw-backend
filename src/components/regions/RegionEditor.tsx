@@ -1,5 +1,5 @@
 import { useState, memo } from 'react';
-import { Play, Pause, Trash2 } from 'lucide-react';
+import { Play, Pause, Trash2, X } from 'lucide-react';
 import { type RegionData as Region } from '../../services/adt';
 import { useTextEditors } from '../../hooks/useTextEditors';
 import { useDeleteRegion } from '../../hooks/useDeleteRegion';
@@ -20,6 +20,7 @@ export const RegionEditor = memo(({
   const { deleteRegion } = useDeleteRegion();
   const playRegion = useSelectAndPlayRegion();
   const canEdit = useEditorStore((state) => state.canEdit);
+  const setSelectedRegion = useEditorStore((state) => state.setSelectedRegion);
   const regions = useEditorStore((state) => state.regions);
   
   // Get the region number (1-based index)
@@ -28,6 +29,9 @@ export const RegionEditor = memo(({
   // Toolbar actions - simplified for now
   const handlePlay = () => {
     playRegion(region.id);
+  };
+  const handleDeselect = () => {
+    setSelectedRegion(null);
   };
   const handleDeleteRegion = () => {
     deleteRegion(region.id);
@@ -72,6 +76,19 @@ export const RegionEditor = memo(({
             title="Play region"
           >
             {isPlaying ? <Pause size={16} /> : <Play size={16} />}
+          </button>
+
+          <button
+            className={`flex items-center justify-center w-9 h-9 border border-gray-300 rounded-md bg-white transition-all duration-200 text-base ${
+              canEdit 
+                ? 'cursor-pointer hover:bg-gray-50 hover:text-gray-700 hover:border-gray-400' 
+                : 'cursor-not-allowed opacity-50 text-gray-400'
+            }`}
+            onClick={canEdit ? handleDeselect : undefined}
+            disabled={!canEdit}
+            title="Deselect region"
+          >
+            <X size={16} />
           </button>
 
           <button
