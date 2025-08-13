@@ -1,4 +1,4 @@
-import { CreateIssueUseCase, CreateIssueInput } from './create-issue';
+import { CreateIssueUseCase, CreateIssueConfig } from './create-issue';
 import { createIssueForRegion } from '../services/issueService';
 import { useEditorStore } from '../stores/useEditorStore';
 import { rteService } from '../services/rteService';
@@ -12,7 +12,7 @@ jest.mock('../services/rteService');
 const mockCreateIssueForRegion = createIssueForRegion as jest.MockedFunction<typeof createIssueForRegion>;
 
 describe('CreateIssueUseCase', () => {
-  let useCase: CreateIssueUseCase;
+  // useCase instances are now created per test with specific config
   let mockEditorStore: any;
 
   const mockCreatedIssue: IssueData = {
@@ -34,7 +34,7 @@ describe('CreateIssueUseCase', () => {
     jest.clearAllMocks();
     jest.spyOn(console, 'error').mockImplementation(() => {});
 
-    useCase = new CreateIssueUseCase();
+    // useCase will be created per test with specific config
 
     // Mock editor store
     mockEditorStore = {
@@ -53,48 +53,55 @@ describe('CreateIssueUseCase', () => {
 
   describe('validate', () => {
     it('should throw error for missing text', () => {
-      const input = { text: '', type: 'new-word', owner: 'user-123', ownerFriendly: 'Test User', transcriptionId: 'trans-789' };
-      expect(() => useCase.validate(input)).toThrow('Issue text is required');
+      const config = { text: '', type: 'new-word', owner: 'user-123', ownerFriendly: 'Test User', transcriptionId: 'trans-789' };
+      const useCase = new CreateIssueUseCase(config);
+      expect(() => useCase.validate()).toThrow('Issue text is required');
     });
 
     it('should throw error for whitespace-only text', () => {
-      const input = { text: '   ', type: 'new-word', owner: 'user-123', ownerFriendly: 'Test User', transcriptionId: 'trans-789' };
-      expect(() => useCase.validate(input)).toThrow('Issue text is required');
+      const config = { text: '   ', type: 'new-word', owner: 'user-123', ownerFriendly: 'Test User', transcriptionId: 'trans-789' };
+      const useCase = new CreateIssueUseCase(config);
+      expect(() => useCase.validate()).toThrow('Issue text is required');
     });
 
     it('should throw error for missing type', () => {
-      const input = { text: 'Test issue', type: '', owner: 'user-123', ownerFriendly: 'Test User', transcriptionId: 'trans-789' };
-      expect(() => useCase.validate(input)).toThrow('Issue type is required');
+      const config = { text: 'Test issue', type: '', owner: 'user-123', ownerFriendly: 'Test User', transcriptionId: 'trans-789' };
+      const useCase = new CreateIssueUseCase(config);
+      expect(() => useCase.validate()).toThrow('Issue type is required');
     });
 
     it('should throw error for missing owner', () => {
-      const input = { text: 'Test issue', type: 'new-word', owner: '', ownerFriendly: 'Test User', transcriptionId: 'trans-789' };
-      expect(() => useCase.validate(input)).toThrow('Issue owner is required');
+      const config = { text: 'Test issue', type: 'new-word', owner: '', ownerFriendly: 'Test User', transcriptionId: 'trans-789' };
+      const useCase = new CreateIssueUseCase(config);
+      expect(() => useCase.validate()).toThrow('Issue owner is required');
     });
 
     it('should throw error for missing ownerFriendly', () => {
-      const input = { text: 'Test issue', type: 'new-word', owner: 'user-123', ownerFriendly: '', transcriptionId: 'trans-789' };
-      expect(() => useCase.validate(input)).toThrow('Issue owner friendly name is required');
+      const config = { text: 'Test issue', type: 'new-word', owner: 'user-123', ownerFriendly: '', transcriptionId: 'trans-789' };
+      const useCase = new CreateIssueUseCase(config);
+      expect(() => useCase.validate()).toThrow('Issue owner friendly name is required');
     });
 
     it('should throw error for missing transcriptionId', () => {
-      const input = { text: 'Test issue', type: 'new-word', owner: 'user-123', ownerFriendly: 'Test User', transcriptionId: '' };
-      expect(() => useCase.validate(input)).toThrow('Transcription ID is required');
+      const config = { text: 'Test issue', type: 'new-word', owner: 'user-123', ownerFriendly: 'Test User', transcriptionId: '' };
+      const useCase = new CreateIssueUseCase(config);
+      expect(() => useCase.validate()).toThrow('Transcription ID is required');
     });
 
     it('should pass validation for valid input', () => {
-      const input = { 
+      const config = { 
         text: 'Test issue', 
         type: 'new-word', 
         owner: 'user-123', 
         ownerFriendly: 'Test User',
         transcriptionId: 'trans-789' 
       };
-      expect(() => useCase.validate(input)).not.toThrow();
+      const useCase = new CreateIssueUseCase(config);
+      expect(() => useCase.validate()).not.toThrow();
     });
 
     it('should pass validation with optional regionId', () => {
-      const input = { 
+      const config = { 
         text: 'Test issue', 
         type: 'new-word', 
         owner: 'user-123', 
@@ -102,12 +109,13 @@ describe('CreateIssueUseCase', () => {
         regionId: 'region-456',
         transcriptionId: 'trans-789' 
       };
-      expect(() => useCase.validate(input)).not.toThrow();
+      const useCase = new CreateIssueUseCase(config);
+      expect(() => useCase.validate()).not.toThrow();
     });
   });
 
   describe('execute', () => {
-    const validInput: CreateIssueInput = {
+    const validConfig: CreateIssueConfig = {
       text: 'Test issue text',
       type: 'new-word',
       owner: 'user-123',
@@ -119,7 +127,8 @@ describe('CreateIssueUseCase', () => {
     it('should create an issue successfully', async () => {
       mockCreateIssueForRegion.mockResolvedValue(mockCreatedIssue);
 
-      const result = await useCase.execute(validInput);
+      const useCase = new CreateIssueUseCase(validConfig);
+      const result = await useCase.execute();
 
       // Verify service call
       expect(mockCreateIssueForRegion).toHaveBeenCalledWith({
@@ -142,11 +151,12 @@ describe('CreateIssueUseCase', () => {
     });
 
     it('should handle missing regionId by using empty string', async () => {
-      const inputWithoutRegion = { ...validInput, regionId: undefined };
+      const configWithoutRegion = { ...validConfig, regionId: undefined };
       const issueWithEmptyRegion = { ...mockCreatedIssue, regionId: '' };
       mockCreateIssueForRegion.mockResolvedValue(issueWithEmptyRegion);
 
-      const result = await useCase.execute(inputWithoutRegion);
+      const useCase = new CreateIssueUseCase(configWithoutRegion);
+      const result = await useCase.execute();
 
       expect(mockCreateIssueForRegion).toHaveBeenCalledWith({
         text: 'Test issue text',
@@ -162,10 +172,11 @@ describe('CreateIssueUseCase', () => {
     });
 
     it('should trim whitespace from issue text', async () => {
-      const inputWithWhitespace = { ...validInput, text: '  Test issue text  ' };
+      const configWithWhitespace = { ...validConfig, text: '  Test issue text  ' };
       mockCreateIssueForRegion.mockResolvedValue(mockCreatedIssue);
 
-      await useCase.execute(inputWithWhitespace);
+      const useCase = new CreateIssueUseCase(configWithWhitespace);
+      await useCase.execute();
 
       expect(mockCreateIssueForRegion).toHaveBeenCalledWith({
         text: 'Test issue text',
@@ -178,11 +189,12 @@ describe('CreateIssueUseCase', () => {
     });
 
     it('should handle unicode characters correctly', async () => {
-      const unicodeInput = { ...validInput, text: 'ē-mânokâkēcik issue' };
+      const unicodeConfig = { ...validConfig, text: 'ē-mânokâkēcik issue' };
       const unicodeIssue = { ...mockCreatedIssue, text: 'ē-mânokâkēcik issue' };
       mockCreateIssueForRegion.mockResolvedValue(unicodeIssue);
 
-      const result = await useCase.execute(unicodeInput);
+      const useCase = new CreateIssueUseCase(unicodeConfig);
+      const result = await useCase.execute();
 
       expect(mockCreateIssueForRegion).toHaveBeenCalledWith({
         text: 'ē-mânokâkēcik issue',
@@ -197,11 +209,12 @@ describe('CreateIssueUseCase', () => {
     });
 
     it('should handle different issue types', async () => {
-      const needsHelpInput = { ...validInput, type: 'needs-help' };
+      const needsHelpConfig = { ...validConfig, type: 'needs-help' };
       const needsHelpIssue = { ...mockCreatedIssue, type: 'needs-help' };
       mockCreateIssueForRegion.mockResolvedValue(needsHelpIssue);
 
-      const result = await useCase.execute(needsHelpInput);
+      const useCase = new CreateIssueUseCase(needsHelpConfig);
+      const result = await useCase.execute();
 
       expect(mockCreateIssueForRegion).toHaveBeenCalledWith({
         text: 'Test issue text',
@@ -219,7 +232,8 @@ describe('CreateIssueUseCase', () => {
       const serviceError = new Error('Service error');
       mockCreateIssueForRegion.mockRejectedValue(serviceError);
 
-      await expect(useCase.execute(validInput)).rejects.toThrow('Service error');
+      const useCase = new CreateIssueUseCase(validConfig);
+      await expect(useCase.execute()).rejects.toThrow('Service error');
 
       expect(console.error).toHaveBeenCalledWith('Failed to create issue:', serviceError);
       // Optimistic update happens before the error, but then gets cleaned up
@@ -229,9 +243,10 @@ describe('CreateIssueUseCase', () => {
     });
 
     it('should handle validation errors', async () => {
-      const invalidInput = { ...validInput, text: '' };
+      const invalidConfig = { ...validConfig, text: '' };
 
-      await expect(useCase.execute(invalidInput)).rejects.toThrow('Issue text is required');
+      const useCase = new CreateIssueUseCase(invalidConfig);
+      await expect(useCase.execute()).rejects.toThrow('Issue text is required');
 
       expect(mockCreateIssueForRegion).not.toHaveBeenCalled();
       expect(mockEditorStore.addNewIssue).not.toHaveBeenCalled();
@@ -240,11 +255,12 @@ describe('CreateIssueUseCase', () => {
 
     it('should handle very long text input', async () => {
       const longText = 'A'.repeat(10000);
-      const longTextInput = { ...validInput, text: longText };
+      const longTextConfig = { ...validConfig, text: longText };
       const longTextIssue = { ...mockCreatedIssue, text: longText };
       mockCreateIssueForRegion.mockResolvedValue(longTextIssue);
 
-      const result = await useCase.execute(longTextInput);
+      const useCase = new CreateIssueUseCase(longTextConfig);
+      const result = await useCase.execute();
 
       expect(mockCreateIssueForRegion).toHaveBeenCalledWith({
         text: longText,
@@ -259,11 +275,12 @@ describe('CreateIssueUseCase', () => {
     });
 
     it('should handle special characters in text', async () => {
-      const specialTextInput = { ...validInput, text: 'Text with \n newlines \t and tabs' };
+      const specialTextConfig = { ...validConfig, text: 'Text with \n newlines \t and tabs' };
       const specialTextIssue = { ...mockCreatedIssue, text: 'Text with \n newlines \t and tabs' };
       mockCreateIssueForRegion.mockResolvedValue(specialTextIssue);
 
-      const result = await useCase.execute(specialTextInput);
+      const useCase = new CreateIssueUseCase(specialTextConfig);
+      const result = await useCase.execute();
 
       expect(mockCreateIssueForRegion).toHaveBeenCalledWith({
         text: 'Text with \n newlines \t and tabs',
@@ -278,11 +295,12 @@ describe('CreateIssueUseCase', () => {
     });
 
     it('should handle empty regionId explicitly', async () => {
-      const inputWithEmptyRegion = { ...validInput, regionId: '' };
+      const configWithEmptyRegion = { ...validConfig, regionId: '' };
       const issueWithEmptyRegion = { ...mockCreatedIssue, regionId: '' };
       mockCreateIssueForRegion.mockResolvedValue(issueWithEmptyRegion);
 
-      await useCase.execute(inputWithEmptyRegion);
+      const useCase = new CreateIssueUseCase(configWithEmptyRegion);
+      await useCase.execute();
 
       expect(mockCreateIssueForRegion).toHaveBeenCalledWith({
         text: 'Test issue text',

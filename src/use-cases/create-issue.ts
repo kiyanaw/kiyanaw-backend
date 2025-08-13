@@ -3,7 +3,7 @@ import { useEditorStore } from '../stores/useEditorStore';
 import { rteService } from '../services/rteService';
 import type { IssueData } from '../services/adt';
 
-export interface CreateIssueInput {
+export interface CreateIssueConfig {
   text: string;
   type: string;
   owner: string;
@@ -13,38 +13,38 @@ export interface CreateIssueInput {
 }
 
 export class CreateIssueUseCase {
-  constructor() {}
+  constructor(private config: CreateIssueConfig) {}
 
-  validate(input: CreateIssueInput): void {
-    if (!input.text?.trim()) {
+  validate(): void {
+    if (!this.config.text?.trim()) {
       throw new Error('Issue text is required');
     }
-    if (!input.type) {
+    if (!this.config.type) {
       throw new Error('Issue type is required');
     }
-    if (!input.owner) {
+    if (!this.config.owner) {
       throw new Error('Issue owner is required');
     }
-    if (!input.ownerFriendly) {
+    if (!this.config.ownerFriendly) {
       throw new Error('Issue owner friendly name is required');
     }
-    if (!input.transcriptionId) {
+    if (!this.config.transcriptionId) {
       throw new Error('Transcription ID is required');
     }
   }
 
-  async execute(input: CreateIssueInput): Promise<IssueData> {
-    this.validate(input);
+  async execute(): Promise<IssueData> {
+    this.validate();
 
     // Create optimistic issue object for immediate UI update
     const optimisticIssue: IssueData = {
       id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // Temporary ID
-      text: input.text.trim(),
-      type: input.type,
-      owner: input.owner,
-      ownerFriendly: input.ownerFriendly,
-      regionId: input.regionId || '',
-      transcriptionId: input.transcriptionId,
+      text: this.config.text.trim(),
+      type: this.config.type,
+      owner: this.config.owner,
+      ownerFriendly: this.config.ownerFriendly,
+      regionId: this.config.regionId || '',
+      transcriptionId: this.config.transcriptionId,
       resolved: false,
       index: 0, // Will be updated from backend
       createdAt: new Date().toISOString(),
@@ -61,12 +61,12 @@ export class CreateIssueUseCase {
     try {
       // Save to backend
       const savedIssue = await createIssueForRegion({
-        text: input.text.trim(),
-        type: input.type,
-        owner: input.owner,
-        ownerFriendly: input.ownerFriendly,
-        regionId: input.regionId || '',
-        transcriptionId: input.transcriptionId,
+        text: this.config.text.trim(),
+        type: this.config.type,
+        owner: this.config.owner,
+        ownerFriendly: this.config.ownerFriendly,
+        regionId: this.config.regionId || '',
+        transcriptionId: this.config.transcriptionId,
       });
 
       // Replace optimistic issue with real one from backend

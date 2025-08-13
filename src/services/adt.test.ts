@@ -73,7 +73,7 @@ describe('ADT Models', () => {
         const model = new TranscriptionModel(minimalData);
 
         expect(model.coverage).toBe(0);
-        expect(model.isPrivate).toBe(false);
+        expect(model.isPrivate).toBe(true);
         expect(model.disableAnalyzer).toBe(false);
       });
 

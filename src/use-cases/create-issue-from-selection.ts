@@ -43,8 +43,7 @@ export class CreateIssueFromSelectionUseCase {
     }
 
     // Create the issue using the existing CreateIssueUseCase
-    const createIssueUseCase = new CreateIssueUseCase();
-    return await createIssueUseCase.execute({
+    const createIssueUseCase = new CreateIssueUseCase({
       text: selectedText,
       type: 'needs-help',
       owner: user.userId,
@@ -52,5 +51,6 @@ export class CreateIssueFromSelectionUseCase {
       regionId: selectedRegionId,
       transcriptionId: transcription.id
     });
+    return await createIssueUseCase.execute();
   }
 }

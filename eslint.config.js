@@ -23,6 +23,7 @@ export default tseslint.config(
       'amplify/backend/custom/regionChangeSQS/build/**',
       'amplify/backend/custom/inviteHandlerSES/cdk-stack.ts',
       'amplify-codegen-temp/models/models',
+      'tests/e2e/**',
     ] 
   },
   {
