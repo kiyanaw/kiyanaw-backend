@@ -23,6 +23,8 @@ export default {
             esModuleInterop: true,
             allowSyntheticDefaultImports: true,
             allowJs: true,
+            target: 'ES2020',
+            lib: ['ES2020', 'DOM', 'DOM.Iterable'],
             types: ['@testing-library/jest-dom'],
           },
         }],

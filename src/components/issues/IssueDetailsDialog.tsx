@@ -4,7 +4,7 @@ import { useEditorStore } from '../../stores/useEditorStore';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { useCreateComment } from '../../hooks/useCreateComment';
 import { useDeleteComment } from '../../hooks/useDeleteComment';
-import { canComment, canDeleteComment } from '../../lib/permissions';
+import { canComment, canDeleteComment, canDeleteIssue, canResolveIssue } from '../../lib/permissions';
 import type { CommentData } from '../../services/adt';
 
 interface IssueDetailsDialogProps {
@@ -142,12 +142,9 @@ export const IssueDetailsDialog = ({
   }
 
   const typeInfo = getIssueTypeInfo(issue.type);
-  const isIssueOwner = user?.userId === issue.owner;
   const userCanComment = canComment(transcription, user);
-  const userCanEdit = transcription && user ? 
-    (transcription.author === user.userId || (transcription.editors?.includes(user.userId) ?? false)) : false;
-  const canDelete = userCanEdit && isIssueOwner;
-  const canResolve = userCanEdit;
+  const canDelete = canDeleteIssue(issue.owner, transcription, user);
+  const canResolve = canResolveIssue(transcription, user);
 
   return (
     <div 

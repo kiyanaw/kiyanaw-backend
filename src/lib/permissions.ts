@@ -79,3 +79,22 @@ export const canDeleteComment = (
   // Transcription author can delete any comment
   return isAuthor(transcription, user);
 };
+
+export const canDeleteIssue = (
+  issueOwnerId: string,
+  transcription: TranscriptionData | null,
+  user: User | null
+): boolean => {
+  if (!user) return false;
+
+  // Must be able to edit the transcription AND be the issue owner
+  return canEdit(transcription, user) && user.userId === issueOwnerId;
+};
+
+export const canResolveIssue = (
+  transcription: TranscriptionData | null,
+  user: User | null
+): boolean => {
+  // Can resolve if user can edit the transcription
+  return canEdit(transcription, user);
+};

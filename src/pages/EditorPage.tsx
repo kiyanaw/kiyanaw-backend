@@ -10,6 +10,7 @@ import { useAuthStore } from '../stores/useAuthStore';
 
 import { useUpdateIssue } from '../hooks/useUpdateIssue';
 import { useDeleteIssue } from '../hooks/useDeleteIssue';
+import { canEdit, isAuthor } from '../lib/permissions';
 
 import { browserService } from '../services/browserService';
 import { wavesurferService } from '../services/wavesurferService';
@@ -61,9 +62,8 @@ export const EditorPage = () => {
   };
   
   // Determine user permissions for this transcription
-  const isOwner = transcription?.author === user?.userId;
-  const isEditor = transcription?.editors?.includes(user?.userId || '') || false;
-  const canEdit = isOwner || isEditor;
+  const userCanEdit = canEdit(transcription, user);
+  const isOwner = isAuthor(transcription, user);
   
   // Issue management handlers
   const handleUpdateIssue = async (issueId: string, updates: { resolved?: boolean; text?: string; type?: string }) => {
@@ -180,7 +180,7 @@ export const EditorPage = () => {
                       suggestions,
                     };
                   })}
-                  canEdit={canEdit}
+                  canEdit={userCanEdit}
                   onUpdateIssue={handleUpdateIssue}
                   onDeleteIssue={handleDeleteIssue}
                 />
