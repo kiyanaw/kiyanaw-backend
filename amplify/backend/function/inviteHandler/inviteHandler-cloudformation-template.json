@@ -19,6 +19,12 @@
     "apikiyanawGraphQLAPIIdOutput": {
       "Type": "String",
       "Default": "apikiyanawGraphQLAPIIdOutput"
+    },
+    "SESFromEmailAddress": {
+      "Type": "String"
+    },
+    "SESEmailIdentityArn": {
+      "Type": "String"
     }
   },
   "Conditions": {
@@ -130,14 +136,10 @@
               ]
             },
             "SES_FROM_EMAIL": {
-              "Fn::ImportValue": {
-                "Fn::Sub": "kiyanaw-${env}-SESFromEmailAddress"
-              }
+              "Ref": "SESFromEmailAddress"
             },
             "SES_EMAIL_IDENTITY_ARN": {
-              "Fn::ImportValue": {
-                "Fn::Sub": "kiyanaw-${env}-SESEmailIdentityArn"
-              }
+              "Ref": "SESEmailIdentityArn"
             }
           }
         },

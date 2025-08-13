@@ -219,6 +219,14 @@
           ],
           "category": "api",
           "resourceName": "kiyanaw"
+        },
+        {
+          "attributes": [
+            "SESFromEmailAddress",
+            "SESEmailIdentityArn"
+          ],
+          "category": "custom",
+          "resourceName": "inviteHandlerSES"
         }
       ],
       "providerPlugin": "awscloudformation",
