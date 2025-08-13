@@ -6,7 +6,6 @@ import { useEditorStore } from '../stores/useEditorStore';
 export const useNavigateIssueRegions = () => {
   return useCallback((direction: NavigateDirection) => {
     try {
-      // Get the store - this should work exactly like useSelectAndPlayRegion
       const store = useEditorStore.getState();
       return new NavigateIssueRegions({ direction, store }).execute();
     } catch (error) {
