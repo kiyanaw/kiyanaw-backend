@@ -76,6 +76,9 @@ export class SubscribeToCommentChangesUseCase {
         if (comment.entityType === 'issue') {
           const issue = store.issueById(comment.entityId);
           if (issue) {
+            // Flash the issue and its region
+            flashService.flashIssue(issue.id, issue.regionId, comment.authorFriendly);
+            
             // Refresh RTE highlighting for the region (debounced)
             await this.refreshRteHighlightingForRegion(issue.regionId);
           } else {

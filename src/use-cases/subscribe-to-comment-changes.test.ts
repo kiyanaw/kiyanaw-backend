@@ -217,7 +217,7 @@ describe('SubscribeToCommentChangesUseCase', () => {
     });
 
     describe('DELETE events', () => {
-      it('should delete comment from store and refresh RTE for issue comments', async () => {
+      it('should delete comment from store, flash issue, and refresh RTE for issue comments', async () => {
         mockServices.storeService.issueById.mockReturnValue(mockIssue);
         mockServices.storeService.regionById.mockReturnValue(mockRegion);
         mockServices.storeService.getIssuesForRegion.mockReturnValue([mockIssue]);
@@ -230,6 +230,11 @@ describe('SubscribeToCommentChangesUseCase', () => {
         await useCase.handleCommentSubscriptionEvent(event);
 
         expect(mockServices.storeService.deleteComment).toHaveBeenCalledWith('comment-123');
+        expect(mockServices.flashIndicatorService.flashIssue).toHaveBeenCalledWith(
+          mockIssue.id,
+          mockIssue.regionId,
+          mockComment.authorFriendly
+        );
       });
 
       it('should handle DELETE for unknown issue gracefully', async () => {
