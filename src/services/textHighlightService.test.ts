@@ -122,5 +122,17 @@ describe('TextHighlightService', () => {
       
       expect(result).toBe('hello <span class="issue-indexing">uncommented</span> word');
     });
+
+    it('should highlight longest token when issue text contains affix in parentheses', () => {
+      const text = 'nitawāpēnākēw awa (ē-)tipinikāsowiht âhpinohk ohtāwiya - ohtāwīpana ēkwa.';
+      const issues: IssueHighlight[] = [
+        { text: '(ē-)tipinikāsowiht', id: 'i1', type: 'new-word', commentCount: 0 },
+      ];
+      const options: HighlightOptions = { issues };
+
+      const result = textHighlightService.generateHTMLWithOptions(text, options);
+
+      expect(result).toContain('(ē-)<span class="issue-new-word">tipinikāsowiht</span>');
+    });
   });
 });

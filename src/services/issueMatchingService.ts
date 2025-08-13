@@ -82,8 +82,14 @@ export class IssueMatchingService {
    */
   private normalizeText(text: string): string {
     const tokenPattern = /([\p{L}\p{N}_-]+)/u;
-    const match = text.match(tokenPattern);
-    return match ? match[0].toLowerCase() : '';
+    // Extract all tokens and choose the longest to avoid matching short affixes like (ē-)
+    const re = new RegExp(tokenPattern, 'gu');
+    const tokens: string[] = [];
+    for (const m of text.toLowerCase().matchAll(re)) {
+      if (m[0]) tokens.push(m[0]);
+    }
+    if (tokens.length === 0) return '';
+    return tokens.sort((a, b) => b.length - a.length)[0];
   }
 
   /**

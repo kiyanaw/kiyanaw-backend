@@ -349,6 +349,17 @@ describe('IssueMatchingService', () => {
       expect(result.matched).toContain('issue3'); // Exact match after normalization
       expect(result.matched.size).toBe(3);
     });
+
+    it('should match longest token when issue text contains affix in parentheses', () => {
+      const regionText = 'nitawāpēnākēw awa (ē-)tipinikāsowiht âhpinohk ohtāwiya - ohtāwīpana ēkwa.';
+      const issues = [
+        createMockIssue('i1', '(ē-)tipinikāsowiht', false),
+      ];
+
+      const result = service.match(regionText, issues);
+
+      expect(result.matched).toContain('i1');
+    });
   });
 
   describe('singleton instance', () => {

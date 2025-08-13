@@ -9,6 +9,7 @@ import { useNavigateIssueRegions } from '../../hooks/useNavigateIssueRegions';
 import { useCreateIssueFromSelection } from '../../hooks/useCreateIssueFromSelection';
 import { useIssueFlashIndicator } from '../../hooks/useIssueFlashIndicator';
 import { FLASH_CONFIG } from '../../services/flashIndicatorService';
+import { useSelectAndPlayRegion } from '../../hooks/useSelectAndPlayRegion';
 
 // Suggestion Popover Component
 interface SuggestionPopoverProps {
@@ -366,7 +367,7 @@ export const IssuesPanel = ({
   onDeleteIssue,
 }: IssuesPanelProps) => {
   const user = useAuthStore((state) => state.user);
-  const setSelectedRegion = useEditorStore((s) => s.setSelectedRegion);
+  const selectAndPlayRegion = useSelectAndPlayRegion();
   const [showResolved, setShowResolved] = useState(false);
   const [expandedTypeIssueId, setExpandedTypeIssueId] = useState<string | null>(null);
   const [suggestionPopoverIssueId, setSuggestionPopoverIssueId] = useState<string | null>(null);
@@ -463,8 +464,8 @@ export const IssuesPanel = ({
   };
 
   const handleJumpToRegion = (regionId: string) => {
-    // Select the region in the store; rest of the UI (editor, player) will react
-    setSelectedRegion(regionId);
+    // Use existing use-case to update URL, select region, style, seek and play
+    selectAndPlayRegion(regionId);
   };
 
   const handleCloseDialog = () => {

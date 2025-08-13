@@ -64,11 +64,18 @@ class TextHighlightServiceImpl implements TextHighlightService {
     const tokenPattern = /([\p{L}\p{N}_-]+)/u;
     issues.forEach(issue => {
       const normalized = issue.text.trim().toLowerCase();
-      const match = normalized.match(tokenPattern);
-      const key = match ? match[0] : normalized;
-      issueTextMap.set(key, { 
-        type: issue.type, 
-        commentCount: issue.commentCount || 0 
+      // Prefer the longest word-like token from the issue text to avoid short affixes like (ē-)
+      const re = new RegExp(tokenPattern, 'gu');
+      const tokens: string[] = [];
+      for (const m of normalized.matchAll(re)) {
+        if (m[0]) tokens.push(m[0]);
+      }
+      const key = tokens.length > 0
+        ? tokens.sort((a, b) => b.length - a.length)[0]
+        : normalized;
+      issueTextMap.set(key, {
+        type: issue.type,
+        commentCount: issue.commentCount || 0,
       });
     });
     
