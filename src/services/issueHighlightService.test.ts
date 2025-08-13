@@ -11,7 +11,7 @@ describe('IssueHighlightService', () => {
           owner: 'user-1',
           ownerFriendly: 'user@example.com',
           index: 1,
-          type: 'spelling',
+          type: 'needs-help',
           regionId: 'region-1',
           transcriptionId: 'transcription-1',
           dateLastUpdated: '2023-01-01T00:00:00Z',
@@ -27,7 +27,7 @@ describe('IssueHighlightService', () => {
           owner: 'user-2',
           ownerFriendly: 'user2@example.com',
           index: 2,
-          type: 'grammar',
+          type: 'new-word',
           regionId: 'region-1',
           transcriptionId: 'transcription-1',
           dateLastUpdated: '2023-01-01T00:00:00Z',
@@ -43,7 +43,7 @@ describe('IssueHighlightService', () => {
 
       expect(result).toEqual([
         { text: 'problematic word', id: 'issue-1', type: 'needs-help', commentCount: 0 },
-        { text: 'another issue', id: 'issue-2', type: 'needs-help', commentCount: 0 }
+        { text: 'another issue', id: 'issue-2', type: 'new-word', commentCount: 0 }
       ]);
     });
 

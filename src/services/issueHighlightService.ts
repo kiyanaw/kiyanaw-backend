@@ -9,30 +9,6 @@ export interface IssueHighlightService {
 }
 
 class IssueHighlightServiceImpl implements IssueHighlightService {
-  /**
-   * Map issue type string to IssueType enum
-   */
-  private mapIssueType(typeString: string): IssueType {
-    // Map common issue type strings to our standardized types
-    switch (typeString.toLowerCase()) {
-      case 'needs-help':
-      case 'needs_help':
-      case 'help':
-        return 'needs-help';
-      case 'indexing':
-      case 'index':
-        return 'indexing';
-      case 'new-word':
-      case 'new_word':
-      case 'newword':
-        return 'new-word';
-      default:
-        // Default to needs-help for unknown types
-        console.warn(`Unknown issue type: ${typeString}, defaulting to 'needs-help'`);
-        return 'needs-help';
-    }
-  }
-
   convertIssuesToHighlights(issues: IssueData[]): IssueHighlight[] {
     if (!issues || issues.length === 0) {
       return [];
@@ -44,7 +20,7 @@ class IssueHighlightServiceImpl implements IssueHighlightService {
     return activeIssues.map(issue => ({
       text: issue.text,
       id: issue.id,
-      type: this.mapIssueType(issue.type),
+      type: issue.type as IssueType,
       commentCount: issue.commentCount || 0
     }));
   }
