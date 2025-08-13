@@ -13,7 +13,13 @@ describe('IssueHighlightService', () => {
           index: 1,
           type: 'spelling',
           regionId: 'region-1',
-          transcriptionId: 'transcription-1'
+          transcriptionId: 'transcription-1',
+          dateLastUpdated: '2023-01-01T00:00:00Z',
+          userLastUpdated: 'user-1',
+          resolved: false,
+          createdAt: '2023-01-01T00:00:00Z',
+          updatedAt: '2023-01-01T00:00:00Z',
+          _version: 1
         },
         {
           id: 'issue-2',
@@ -23,7 +29,13 @@ describe('IssueHighlightService', () => {
           index: 2,
           type: 'grammar',
           regionId: 'region-1',
-          transcriptionId: 'transcription-1'
+          transcriptionId: 'transcription-1',
+          dateLastUpdated: '2023-01-01T00:00:00Z',
+          userLastUpdated: 'user-2',
+          resolved: false,
+          createdAt: '2023-01-01T00:00:00Z',
+          updatedAt: '2023-01-01T00:00:00Z',
+          _version: 1
         }
       ];
 
@@ -63,7 +75,12 @@ describe('IssueHighlightService', () => {
           index: 1,
           regionId: 'region-1',
           transcriptionId: 'transcription-1',
-          commentCount: 3
+          commentCount: 3,
+          dateLastUpdated: '2023-01-01T00:00:00Z',
+          userLastUpdated: 'user1',
+          createdAt: '2023-01-01T00:00:00Z',
+          updatedAt: '2023-01-01T00:00:00Z',
+          _version: 1
         },
         {
           id: 'issue-no-comments',
@@ -74,7 +91,12 @@ describe('IssueHighlightService', () => {
           resolved: false,
           index: 2,
           regionId: 'region-1',
-          transcriptionId: 'transcription-1'
+          transcriptionId: 'transcription-1',
+          dateLastUpdated: '2023-01-01T00:00:00Z',
+          userLastUpdated: 'user1',
+          createdAt: '2023-01-01T00:00:00Z',
+          updatedAt: '2023-01-01T00:00:00Z',
+          _version: 1
           // No commentCount - should default to 0
         }
       ];

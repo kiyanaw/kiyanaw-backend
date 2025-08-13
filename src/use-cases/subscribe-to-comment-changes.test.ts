@@ -71,6 +71,10 @@ describe('SubscribeToCommentChangesUseCase', () => {
     type: 'needs-help',
     regionId: 'region-456',
     transcriptionId: 'transcription-789',
+    dateLastUpdated: '2023-01-01T00:00:00Z',
+    userLastUpdated: 'user-456',
+    createdAt: '2023-01-01T00:00:00Z',
+    updatedAt: '2023-01-01T00:00:00Z',
     _version: 1,
   };
 

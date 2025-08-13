@@ -2,12 +2,14 @@ import { DeleteCommentUseCase, DeleteCommentInput } from './delete-comment';
 import { deleteExistingComment } from '../services/commentService';
 import { updateExistingIssue } from '../services/issueService';
 import { useEditorStore } from '../stores/useEditorStore';
+import { currentUser } from '../services/userService';
 import type { CommentData, IssueData } from '../services/adt';
 
 // Mock the services
 jest.mock('../services/commentService');
 jest.mock('../services/issueService');
 jest.mock('../stores/useEditorStore');
+jest.mock('../services/userService');
 
 const mockDeleteExistingComment = deleteExistingComment as jest.MockedFunction<typeof deleteExistingComment>;
 const mockUpdateExistingIssue = updateExistingIssue as jest.MockedFunction<typeof updateExistingIssue>;
@@ -57,6 +59,8 @@ describe('DeleteCommentUseCase', () => {
     index: 1,
     resolved: false,
     commentCount: 3,
+    dateLastUpdated: '2023-01-01T00:00:00Z',
+    userLastUpdated: 'user-123',
     createdAt: '2023-01-01T00:00:00Z',
     updatedAt: '2023-01-01T00:00:00Z',
     _version: 5
@@ -69,6 +73,12 @@ describe('DeleteCommentUseCase', () => {
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
     useCase = new DeleteCommentUseCase();
+    
+    // Mock currentUser
+    (currentUser as jest.Mock).mockReturnValue({
+      userId: 'user-123',
+      username: 'testuser'
+    });
 
     // Mock editor store
     mockEditorStore = {
@@ -109,7 +119,7 @@ describe('DeleteCommentUseCase', () => {
       
       // Verify issue comment count update
       expect(mockEditorStore.commentsByIssue).toHaveBeenCalledWith('issue-789');
-      expect(mockUpdateExistingIssue).toHaveBeenCalledWith('issue-789', { commentCount: 2 }, 5);
+      expect(mockUpdateExistingIssue).toHaveBeenCalledWith('issue-789', { commentCount: 2 }, 5, 'testuser');
       expect(mockEditorStore.updateIssue).toHaveBeenCalledWith('issue-789', { ...mockIssue, commentCount: 2, _version: 6 });
 
       expect(console.log).toHaveBeenCalledWith('🗑️ Deleting comment comment-123 (version: 3)');
@@ -184,7 +194,7 @@ describe('DeleteCommentUseCase', () => {
       await useCase.execute(validInput);
 
       // Should count actual remaining comments (3) not decrement from existing count
-      expect(mockUpdateExistingIssue).toHaveBeenCalledWith('issue-789', { commentCount: 3 }, 5);
+      expect(mockUpdateExistingIssue).toHaveBeenCalledWith('issue-789', { commentCount: 3 }, 5, 'testuser');
     });
 
     it('should handle zero remaining comments', async () => {
@@ -196,7 +206,7 @@ describe('DeleteCommentUseCase', () => {
 
       await useCase.execute(validInput);
 
-      expect(mockUpdateExistingIssue).toHaveBeenCalledWith('issue-789', { commentCount: 0 }, 5);
+      expect(mockUpdateExistingIssue).toHaveBeenCalledWith('issue-789', { commentCount: 0 }, 5, 'testuser');
     });
 
     it('should handle backend comment count update failure gracefully', async () => {

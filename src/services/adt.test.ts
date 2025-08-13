@@ -68,6 +68,7 @@ describe('ADT Models', () => {
           type: 'audio/mp3',
           source: 'test.mp3',
           length: 60,
+          userLastUpdated: 'Test Author'
         };
 
         const model = new TranscriptionModel(minimalData);
@@ -187,13 +188,14 @@ describe('ADT Models', () => {
           type: 'audio/mp3',
           source: 'test.mp3',
           length: 60,
+          userLastUpdated: 'Test Author'
         };
 
         const model = new TranscriptionModel(minimalData);
 
         expect(model.comments).toBeUndefined();
         expect(model.dateLastUpdated).toBeUndefined();
-        expect(model.userLastUpdated).toBeUndefined();
+        expect(model.userLastUpdated).toBe('Test Author'); // This is now required
         expect(model.editors).toBeUndefined();
         expect(model.lang).toBeUndefined();
       });

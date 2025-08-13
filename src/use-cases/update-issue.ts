@@ -4,39 +4,39 @@ import { rteService } from '../services/rteService';
 import { currentUser } from '../services/userService';
 import type { IssueData } from '../services/adt';
 
-export interface UpdateIssueInput {
+export interface UpdateIssueConfig {
   issueId: string;
   updates: Partial<IssueData>;
 }
 
 export class UpdateIssueUseCase {
-  constructor() {}
+  constructor(private config: UpdateIssueConfig) {}
 
-  validate(input: UpdateIssueInput): void {
-    if (!input.issueId) {
+  validate(): void {
+    if (!this.config.issueId) {
       throw new Error('Issue ID is required');
     }
-    if (!input.updates || Object.keys(input.updates).length === 0) {
+    if (!this.config.updates || Object.keys(this.config.updates).length === 0) {
       throw new Error('Updates are required');
     }
   }
 
-  async execute(input: UpdateIssueInput): Promise<IssueData> {
-    this.validate(input);
+  async execute(): Promise<IssueData> {
+    this.validate();
 
     try {
       // Get the current issue and its version from the store
       const store = useEditorStore.getState();
-      const currentIssue = store.issueById(input.issueId);
+      const currentIssue = store.issueById(this.config.issueId);
       if (!currentIssue) {
-        throw new Error(`Issue ${input.issueId} not found`);
+        throw new Error(`Issue ${this.config.issueId} not found`);
       }
 
       // Create optimistic update for immediate UI feedback
-      const optimisticUpdate = { ...currentIssue, ...input.updates };
+      const optimisticUpdate = { ...currentIssue, ...this.config.updates };
 
       // 1. Update the store immediately (optimistic update)
-      store.updateIssue(input.issueId, optimisticUpdate);
+      store.updateIssue(this.config.issueId, optimisticUpdate);
 
       // 2. Update text editor highlighting immediately
       rteService.updateIssueHighlighting(optimisticUpdate.regionId);
@@ -47,10 +47,10 @@ export class UpdateIssueUseCase {
         throw new Error('User must be authenticated to update issues');
       }
       
-      const updatedIssue = await updateExistingIssue(input.issueId, input.updates, currentIssue._version || 0, user.username);
+      const updatedIssue = await updateExistingIssue(this.config.issueId, this.config.updates, currentIssue._version || 0, user.username);
 
       // 4. Update store with server response (in case server changed anything)
-      store.updateIssue(input.issueId, updatedIssue);
+      store.updateIssue(this.config.issueId, updatedIssue);
 
       return updatedIssue;
     } catch (error) {

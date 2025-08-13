@@ -2,6 +2,7 @@ import { createNewComment } from '../services/commentService';
 import { updateExistingIssue } from '../services/issueService';
 import { useEditorStore } from '../stores/useEditorStore';
 import { useAuthStore } from '../stores/useAuthStore';
+import { currentUser } from '../services/userService';
 
 export interface CreateCommentInput {
   entityType: 'issue' | 'region' | 'transcription';
@@ -52,7 +53,11 @@ export class CreateCommentUseCase {
           const actualComments = store.commentsByIssue(entityId);
           const actualCount = actualComments.length;
           try {
-            const updatedIssue = await updateExistingIssue(issue.id, { commentCount: actualCount }, issue._version || 0);
+            const user = currentUser();
+            if (!user) {
+              throw new Error('User must be authenticated to update issue');
+            }
+            const updatedIssue = await updateExistingIssue(issue.id, { commentCount: actualCount }, issue._version || 0, user.username);
             // Sync version and any server-calculated fields back into the store
             store.updateIssue(issue.id, updatedIssue);
           } catch (persistErr) {

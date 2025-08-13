@@ -72,3 +72,5 @@ Following our architecture, the code is strict. Do not use defensive programming
 NO FALLBACK CODE UNLESS EXPLICITLY ASKED. ASK FOR CLARIFICATION if you are running into a problem where you think you need fallback code.
 
 if (store.someFunction === 'function') << is an antipattern, NEVER do this, those methods should always exist. if they don't then you probably haven't created it yet.
+
+Before saying "all tests passing :tada:" you need to run ALL the tests

@@ -186,6 +186,8 @@ describe('IssueMatchingService', () => {
       regionId: 'region1',
       transcriptionId: 'trans1',
       index: 1,
+      dateLastUpdated: '2023-01-01T00:00:00Z',
+      userLastUpdated: 'user1',
       createdAt: '2023-01-01T00:00:00Z',
       updatedAt: '2023-01-01T00:00:00Z',
       _version: 1
@@ -381,6 +383,8 @@ describe('IssueMatchingService', () => {
           regionId: 'region1',
           transcriptionId: 'trans1',
           index: 1,
+          dateLastUpdated: '2023-01-01T00:00:00Z',
+          userLastUpdated: 'user1',
           createdAt: '2023-01-01T00:00:00Z',
           updatedAt: '2023-01-01T00:00:00Z',
           _version: 1

@@ -1,6 +1,7 @@
 import { deleteExistingComment } from '../services/commentService';
 import { updateExistingIssue } from '../services/issueService';
 import { useEditorStore } from '../stores/useEditorStore';
+import { currentUser } from '../services/userService';
 
 export interface DeleteCommentInput {
   commentId: string;
@@ -35,7 +36,11 @@ export class DeleteCommentUseCase {
           const remainingComments = store.commentsByIssue(currentComment.entityId);
           const actualCount = remainingComments.length;
           try {
-            const updatedIssue = await updateExistingIssue(issue.id, { commentCount: actualCount }, issue._version || 0);
+            const user = currentUser();
+            if (!user) {
+              throw new Error('User must be authenticated to update issue');
+            }
+            const updatedIssue = await updateExistingIssue(issue.id, { commentCount: actualCount }, issue._version || 0, user.username);
             // Sync version and any server-calculated fields back into the store
             store.updateIssue(issue.id, updatedIssue);
           } catch (persistErr) {

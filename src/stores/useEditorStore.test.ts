@@ -327,7 +327,8 @@ describe('useEditorStore known words functionality', () => {
           authorFriendly: 'Test Author',
           type: 'audio',
           source: 'test-source',
-          length: 120
+          length: 120,
+          userLastUpdated: 'test-author'
         },
         regions: [
           createTestRegion({ id: 'region-1', _version: 2 }),
@@ -646,7 +647,8 @@ describe('useEditorStore known words functionality', () => {
           authorFriendly: 'Test Author',
           type: 'audio',
           source: 'test-source',
-          length: 120
+          length: 120,
+          userLastUpdated: 'test-author'
         },
         regions: [
           createTestRegion({ id: 'region-1', _version: 2 }),

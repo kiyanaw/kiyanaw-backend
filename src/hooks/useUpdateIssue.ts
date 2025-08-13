@@ -1,11 +1,10 @@
 import { useCallback } from 'react';
-import { UpdateIssueUseCase, type UpdateIssueInput } from '../use-cases/update-issue';
+import { UpdateIssueUseCase, type UpdateIssueConfig } from '../use-cases/update-issue';
 import type { IssueData } from '../services/adt';
 
-const updateIssueUseCase = new UpdateIssueUseCase();
-
 export const useUpdateIssue = () => {
-  return useCallback(async (input: UpdateIssueInput): Promise<IssueData> => {
-    return await updateIssueUseCase.execute(input);
+  return useCallback(async (config: UpdateIssueConfig): Promise<IssueData> => {
+    const updateIssueUseCase = new UpdateIssueUseCase(config);
+    return await updateIssueUseCase.execute();
   }, []);
 };

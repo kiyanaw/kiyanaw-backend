@@ -3,6 +3,7 @@ import { createNewComment } from '../services/commentService';
 import { updateExistingIssue } from '../services/issueService';
 import { useEditorStore } from '../stores/useEditorStore';
 import { useAuthStore } from '../stores/useAuthStore';
+import { currentUser } from '../services/userService';
 import type { CommentData, IssueData } from '../services/adt';
 
 // Mock the services
@@ -10,6 +11,7 @@ jest.mock('../services/commentService');
 jest.mock('../services/issueService');
 jest.mock('../stores/useEditorStore');
 jest.mock('../stores/useAuthStore');
+jest.mock('../services/userService');
 
 const mockCreateNewComment = createNewComment as jest.MockedFunction<typeof createNewComment>;
 const mockUpdateExistingIssue = updateExistingIssue as jest.MockedFunction<typeof updateExistingIssue>;
@@ -42,6 +44,8 @@ describe('CreateCommentUseCase', () => {
     index: 1,
     resolved: false,
     commentCount: 2,
+    dateLastUpdated: '2023-01-01T00:00:00Z',
+    userLastUpdated: 'user-123',
     createdAt: '2023-01-01T00:00:00Z',
     updatedAt: '2023-01-01T00:00:00Z',
     _version: 5
@@ -68,6 +72,12 @@ describe('CreateCommentUseCase', () => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
 
     useCase = new CreateCommentUseCase();
+    
+    // Mock currentUser
+    (currentUser as jest.Mock).mockReturnValue({
+      userId: 'user-123',
+      username: 'testuser'
+    });
 
     // Mock auth store
     mockAuthStore = {
@@ -121,7 +131,7 @@ describe('CreateCommentUseCase', () => {
 
       // Verify issue commentCount was updated
       expect(mockEditorStore.commentsByIssue).toHaveBeenCalledWith('issue-789');
-      expect(mockUpdateExistingIssue).toHaveBeenCalledWith('issue-789', { commentCount: 2 }, 5);
+      expect(mockUpdateExistingIssue).toHaveBeenCalledWith('issue-789', { commentCount: 2 }, 5, 'testuser');
       expect(mockEditorStore.updateIssue).toHaveBeenCalledWith('issue-789', { ...mockIssue, commentCount: 2, _version: 6 });
 
       expect(console.log).toHaveBeenCalledWith('✅ Comment created for issue issue-789');
@@ -269,7 +279,7 @@ describe('CreateCommentUseCase', () => {
       await useCase.execute(validInput);
 
       // Should count actual comments (3) not increment from existing count
-      expect(mockUpdateExistingIssue).toHaveBeenCalledWith('issue-789', { commentCount: 3 }, 5);
+      expect(mockUpdateExistingIssue).toHaveBeenCalledWith('issue-789', { commentCount: 3 }, 5, 'testuser');
     });
 
     it('should handle service errors', async () => {
