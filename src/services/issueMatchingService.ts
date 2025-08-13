@@ -28,7 +28,12 @@ export class IssueMatchingService {
   private tokenizeText(text: string): Token[] {
     const tokens: Token[] = [];
     const tokenPattern = /([\p{L}\p{N}_-]+)/u; // Same pattern as RTEService
-    const matches = text.matchAll(new RegExp(tokenPattern, 'gu'));
+    const regex = new RegExp(tokenPattern, 'gu');
+    const matches = [];
+    let match;
+    while ((match = regex.exec(text)) !== null) {
+      matches.push(match);
+    }
     
     for (const match of matches) {
       if (match[0] && match.index !== undefined) {
@@ -83,10 +88,11 @@ export class IssueMatchingService {
   private normalizeText(text: string): string {
     const tokenPattern = /([\p{L}\p{N}_-]+)/u;
     // Extract all tokens and choose the longest to avoid matching short affixes like (ē-)
-    const re = new RegExp(tokenPattern, 'gu');
     const tokens: string[] = [];
-    for (const m of text.toLowerCase().matchAll(re)) {
-      if (m[0]) tokens.push(m[0]);
+    const regex = new RegExp(tokenPattern, 'gu');
+    let match;
+    while ((match = regex.exec(text.toLowerCase())) !== null) {
+      if (match[0]) tokens.push(match[0]);
     }
     if (tokens.length === 0) return '';
     return tokens.sort((a, b) => b.length - a.length)[0];
@@ -135,11 +141,9 @@ export class IssueMatchingService {
 
   /**
    * Match issues against text and return results
+   * Uses exact string matching first, then falls back to token-based suggestions
    */
   match(regionText: string, issues: IssueData[]): MatchResult {
-    const tokens = this.tokenizeText(regionText);
-    const tokenSet = new Set(tokens.map(t => t.token));
-    
     const matched = new Set<string>();
     const unmatched = new Set<string>();
     const suggestions: Record<string, TokenCandidate[]> = {};
@@ -151,14 +155,15 @@ export class IssueMatchingService {
         continue;
       }
 
-      const normalizedIssueText = this.normalizeText(issue.text);
+      const issueText = issue.text.trim();
       
-      // Check for exact match first
-      if (tokenSet.has(normalizedIssueText)) {
+      // Check for exact string match first (case sensitive, punctuation included)
+      if (regionText.includes(issueText)) {
         matched.add(issue.id);
       } else {
-        // No exact match - find suggestions
+        // No exact match - find suggestions using token-based approach
         unmatched.add(issue.id);
+        const tokens = this.tokenizeText(regionText);
         const candidates = this.findCandidates(issue.text, tokens);
         if (candidates.length > 0) {
           suggestions[issue.id] = candidates;
