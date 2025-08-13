@@ -62,6 +62,9 @@ describe('IssuesPanel deletion', () => {
     );
     expect(screen.getByText('Issues (1)')).toBeInTheDocument();
 
+    // Jump button appears when no region selected
+    expect(screen.getByTitle("Open this issue's region")).toBeInTheDocument();
+
     // Click the delete button (trash icon) in the row
     const trash = screen.getByTitle('Delete issue');
     fireEvent.click(trash);

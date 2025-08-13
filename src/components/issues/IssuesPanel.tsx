@@ -99,6 +99,8 @@ interface IssueListItemProps {
   issue: Issue;
   canEdit: boolean;
   currentUserId?: string | null;
+  showJumpButton: boolean;
+  onJumpToRegion: (regionId: string) => void;
   expandedTypeIssueId: string | null;
   setExpandedTypeIssueId: (id: string | null) => void;
   suggestionPopoverIssueId: string | null;
@@ -115,6 +117,8 @@ const IssueListItem: React.FC<IssueListItemProps> = ({
   issue,
   canEdit,
   currentUserId,
+  showJumpButton,
+  onJumpToRegion,
   expandedTypeIssueId,
   setExpandedTypeIssueId,
   suggestionPopoverIssueId,
@@ -275,6 +279,19 @@ const IssueListItem: React.FC<IssueListItemProps> = ({
           <span>by {currentUserId && currentUserId === issue.owner ? 'me' : issue.ownerFriendly}</span>
           <span>{formatDate(issue.createdAt)}</span>
 
+          {showJumpButton && issue.regionId && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onJumpToRegion(issue.regionId!);
+              }}
+              className="ml-1 p-1.5 rounded-md border bg-blue-50 border-blue-200 text-blue-600 hover:bg-blue-100 hover:border-blue-300 hover:text-blue-700 transition-all duration-200"
+              title="Open this issue's region"
+            >
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          )}
+
           {canResolve && (
             <button
               onClick={(e) => {
@@ -349,6 +366,7 @@ export const IssuesPanel = ({
   onDeleteIssue,
 }: IssuesPanelProps) => {
   const user = useAuthStore((state) => state.user);
+  const setSelectedRegion = useEditorStore((s) => s.setSelectedRegion);
   const [showResolved, setShowResolved] = useState(false);
   const [expandedTypeIssueId, setExpandedTypeIssueId] = useState<string | null>(null);
   const [suggestionPopoverIssueId, setSuggestionPopoverIssueId] = useState<string | null>(null);
@@ -442,6 +460,11 @@ export const IssuesPanel = ({
     setIsDialogOpen(true);
     setSelectedIssueId(issueId);
     browserService.setSelectedIssue(issueId);
+  };
+
+  const handleJumpToRegion = (regionId: string) => {
+    // Select the region in the store; rest of the UI (editor, player) will react
+    setSelectedRegion(regionId);
   };
 
   const handleCloseDialog = () => {
@@ -560,6 +583,8 @@ export const IssuesPanel = ({
               issue={issue}
               canEdit={canEdit}
               currentUserId={user?.userId ?? null}
+              showJumpButton={!selectedRegionId}
+              onJumpToRegion={handleJumpToRegion}
               expandedTypeIssueId={expandedTypeIssueId}
               setExpandedTypeIssueId={setExpandedTypeIssueId}
               suggestionPopoverIssueId={suggestionPopoverIssueId}
