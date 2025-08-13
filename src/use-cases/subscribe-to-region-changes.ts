@@ -1,5 +1,6 @@
 import { services } from '../services';
 import type { RegionSubscriptionEvent } from '../services/regionService';
+import { issueHighlightService } from '../services/issueHighlightService';
 
 export interface SubscribeToRegionChangesConfig {
   transcriptionId: string;
@@ -314,11 +315,18 @@ export class SubscribeToRegionChangesUseCase {
     if (rteService.hasEditor(editorKey)) {
       rteService.setContent(editorKey, content);
       
-      // Reapply known words formatting after content update
+      // Reapply known words and issue highlighting after content update
       const regionAnalysis = (updatedRegion.regionAnalysis as string[]) || store.regionById(updatedRegion.id as string)?.regionAnalysis;
-      if (regionAnalysis && regionAnalysis.length > 0) {
-        rteService.applyKnownWordsFormatting(editorKey, regionAnalysis);
-      }
+      // Get issues for the region
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const issues = (store as any).getIssuesForRegion(updatedRegion.id as string);
+      const issueHighlights = issueHighlightService.convertIssuesToHighlights(issues);
+      
+      // Apply highlighting with both known words and issues
+      rteService.applyHighlighting(editorKey, {
+        knownWords: regionAnalysis || [],
+        issues: issueHighlights
+      });
     }
   }
 

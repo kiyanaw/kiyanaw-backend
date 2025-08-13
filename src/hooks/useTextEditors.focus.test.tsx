@@ -11,7 +11,25 @@ import { rteService } from '../services/rteService';
 import { useEditorStore } from '../stores/useEditorStore';
 
 // Mock the dependencies
-jest.mock('../services/rteService');
+jest.mock('../services/rteService', () => ({
+  rteService: {
+    createOrGet: jest.fn(),
+    attach: jest.fn(),
+    detach: jest.fn(),
+    destroy: jest.fn(),
+    onTextChange: jest.fn(),
+    offTextChange: jest.fn(),
+    setContent: jest.fn(),
+    getInstance: jest.fn(),
+    hasEditor: jest.fn().mockReturnValue(true),
+    applyKnownWordsFormatting: jest.fn(),
+    updateIssueHighlighting: jest.fn(),
+    onSelectionChange: jest.fn(),
+    offSelectionChange: jest.fn(),
+    getSelectedText: jest.fn().mockReturnValue(''),
+    getSelectionRange: jest.fn().mockReturnValue(null)
+  }
+}));
 jest.mock('../stores/useEditorStore');
 jest.mock('../use-cases/update-region-text');
 jest.mock('../use-cases/analyze-region-text');

@@ -121,6 +121,17 @@ describe('WaveformPlayer', () => {
         pendingEdits: {},
         issues: [],
         issueMap: {},
+        issuesByRegionMap: {},
+    comments: [],
+    commentMap: {},
+    commentsByEntityMap: {},
+    commentsByTranscriptionMap: [],
+    commentById: jest.fn(() => null),
+    commentsByEntity: jest.fn(() => []),
+    commentsByRegion: jest.fn(() => []),
+    commentsByIssue: jest.fn(() => []),
+    commentsByTranscription: jest.fn(() => []),
+    getCommentsForEntity: jest.fn(() => []),
         _subscriptions: [],
         setFullTranscriptionData: jest.fn(),
         setAccessDenied: jest.fn(),
@@ -149,6 +160,15 @@ describe('WaveformPlayer', () => {
         createIssue: jest.fn(),
         updateIssue: jest.fn(),
         deleteIssue: jest.fn(),
+        addNewIssue: jest.fn(),
+        addNewComment: jest.fn(),
+        updateComment: jest.fn(),
+        deleteComment: jest.fn(),
+        issueLinkStatusesByRegion: {},
+        issueSuggestionsByRegion: {},
+        setIssueLinkStatuses: jest.fn(),
+        setIssueSuggestions: jest.fn(),
+        clearIssueSuggestionsForIssue: jest.fn(),
         addComment: jest.fn(),
         isVideo: false,
         isTranscriptionAuthor: jest.fn(() => false),
@@ -156,12 +176,15 @@ describe('WaveformPlayer', () => {
         regionById: jest.fn(() => null),
         issueById: jest.fn(() => null),
         issuesByRegion: jest.fn(() => []),
+      getIssuesForRegion: jest.fn(() => []),
         calculateTranscriptionMetadata: jest.fn(() => ({ regionCount: 0, coverage: 0 })),
 
         conflictQueue: [],
         addConflictToQueue: jest.fn(),
         removeConflictFromQueue: jest.fn(),
         processConflictQueue: jest.fn(),
+        regionSelections: {},
+        setRegionSelection: jest.fn(),
       };
       return selector(state);
     });
@@ -495,7 +518,8 @@ describe('WaveformPlayer', () => {
     it('shows edit controls when canEdit is true', () => {
       render(<WaveformPlayer {...defaultProps} />);
       
-      expect(screen.getByTestId('mark-region')).toBeInTheDocument();
+      // Edit controls are no longer rendered since we removed the mark-region button
+      expect(screen.getByTestId('play-button')).toBeInTheDocument();
     });
 
     it('hides edit controls when canEdit is false', () => {
@@ -528,6 +552,17 @@ describe('WaveformPlayer', () => {
         pendingEdits: {},
         issues: [],
         issueMap: {},
+        issuesByRegionMap: {},
+    comments: [],
+    commentMap: {},
+    commentsByEntityMap: {},
+    commentsByTranscriptionMap: [],
+    commentById: jest.fn(() => null),
+    commentsByEntity: jest.fn(() => []),
+    commentsByRegion: jest.fn(() => []),
+    commentsByIssue: jest.fn(() => []),
+    commentsByTranscription: jest.fn(() => []),
+    getCommentsForEntity: jest.fn(() => []),
         _subscriptions: [],
         setFullTranscriptionData: jest.fn(),
         setAccessDenied: jest.fn(),
@@ -556,6 +591,15 @@ describe('WaveformPlayer', () => {
         createIssue: jest.fn(),
         updateIssue: jest.fn(),
         deleteIssue: jest.fn(),
+        addNewIssue: jest.fn(),
+        addNewComment: jest.fn(),
+        updateComment: jest.fn(),
+        deleteComment: jest.fn(),
+        issueLinkStatusesByRegion: {},
+        issueSuggestionsByRegion: {},
+        setIssueLinkStatuses: jest.fn(),
+        setIssueSuggestions: jest.fn(),
+        clearIssueSuggestionsForIssue: jest.fn(),
         addComment: jest.fn(),
         isVideo: false,
         isTranscriptionAuthor: jest.fn(() => false),
@@ -563,18 +607,22 @@ describe('WaveformPlayer', () => {
         regionById: jest.fn(() => null),
         issueById: jest.fn(() => null),
         issuesByRegion: jest.fn(() => []),
+      getIssuesForRegion: jest.fn(() => []),
         calculateTranscriptionMetadata: jest.fn(() => ({ regionCount: 0, coverage: 0 })),
         conflictQueue: [],
         addConflictToQueue: jest.fn(),
         removeConflictFromQueue: jest.fn(),
         processConflictQueue: jest.fn(),
+        regionSelections: {},
+        setRegionSelection: jest.fn(),
       };
       
       mockUseEditorStore.mockImplementation((selector) => selector(mockStateWithNoEdit));
       
       const { rerender } = render(<WaveformPlayer {...defaultProps} />);
        
-      expect(screen.queryByTestId('mark-region')).not.toBeInTheDocument();
+      // Edit controls are no longer rendered since we removed the mark-region button
+      expect(screen.getByTestId('play-button')).toBeInTheDocument();
     });
 
     it('shows edit controls when canEdit is true', () => {
@@ -589,8 +637,8 @@ describe('WaveformPlayer', () => {
       
       render(<WaveformPlayer {...defaultProps} />);
       
-      // Should show edit controls when canEdit is true
-      expect(screen.getByTestId('mark-region')).toBeInTheDocument();
+      // Edit controls are no longer rendered since we removed the mark-region button
+      expect(screen.getByTestId('play-button')).toBeInTheDocument();
     });
 
     it('uses canEdit from store and passes it to wavesurfer service', () => {
@@ -624,6 +672,17 @@ describe('WaveformPlayer', () => {
           pendingEdits: {},
           issues: [],
           issueMap: {},
+          issuesByRegionMap: {},
+    comments: [],
+    commentMap: {},
+    commentsByEntityMap: {},
+    commentsByTranscriptionMap: [],
+    commentById: jest.fn(() => null),
+    commentsByEntity: jest.fn(() => []),
+    commentsByRegion: jest.fn(() => []),
+    commentsByIssue: jest.fn(() => []),
+    commentsByTranscription: jest.fn(() => []),
+    getCommentsForEntity: jest.fn(() => []),
           _subscriptions: [],
           setFullTranscriptionData: jest.fn(),
           setAccessDenied: jest.fn(),
@@ -652,6 +711,15 @@ describe('WaveformPlayer', () => {
           createIssue: jest.fn(),
           updateIssue: jest.fn(),
           deleteIssue: jest.fn(),
+          addNewIssue: jest.fn(),
+        addNewComment: jest.fn(),
+        updateComment: jest.fn(),
+        deleteComment: jest.fn(),
+          issueLinkStatusesByRegion: {},
+          issueSuggestionsByRegion: {},
+          setIssueLinkStatuses: jest.fn(),
+          setIssueSuggestions: jest.fn(),
+          clearIssueSuggestionsForIssue: jest.fn(),
           addComment: jest.fn(),
           isVideo: false,
           isTranscriptionAuthor: jest.fn(() => false),
@@ -659,11 +727,14 @@ describe('WaveformPlayer', () => {
           regionById: jest.fn(() => null),
           issueById: jest.fn(() => null),
           issuesByRegion: jest.fn(() => []),
+      getIssuesForRegion: jest.fn(() => []),
           calculateTranscriptionMetadata: jest.fn(() => ({ regionCount: 0, coverage: 0 })),
           conflictQueue: [],
           addConflictToQueue: jest.fn(),
           removeConflictFromQueue: jest.fn(),
           processConflictQueue: jest.fn(),
+        regionSelections: {},
+        setRegionSelection: jest.fn(),
         };
         return selector(state);
       });
@@ -679,7 +750,8 @@ describe('WaveformPlayer', () => {
       );
       
       // Should hide edit controls
-      expect(screen.queryByTestId('mark-region')).not.toBeInTheDocument();
+      // Edit controls are no longer rendered since we removed the mark-region button
+      expect(screen.getByTestId('play-button')).toBeInTheDocument();
     });
   });
 
@@ -817,11 +889,12 @@ describe('WaveformPlayer', () => {
       const videoElement = container.querySelector('video') as HTMLVideoElement;
       expect(videoElement).toBeInTheDocument();
       
-      // Check that the video element has the correct positioning classes (not hidden)
-      expect(videoElement.className).toContain('fixed');
-      expect(videoElement.className).toContain('bottom-4');
-      expect(videoElement.className).toContain('right-4');
-      expect(videoElement.className).not.toContain('hidden');
+      // Check that the video container has the correct positioning classes (not hidden)
+      const videoContainer = videoElement.parentElement as HTMLDivElement;
+      expect(videoContainer.className).toContain('fixed');
+      expect(videoContainer.className).toContain('bottom-4');
+      expect(videoContainer.className).toContain('right-4');
+      expect(videoContainer.className).not.toContain('hidden');
     });
   });
 
@@ -857,10 +930,8 @@ describe('WaveformPlayer', () => {
       render(<WaveformPlayer {...defaultProps} />);
       
       const playButton = screen.getByTestId('play-button');
-      const markRegionButton = screen.getByTestId('mark-region');
       
       expect(playButton).toBeDisabled();
-      expect(markRegionButton).toBeDisabled();
     });
 
     it('disables zoom and speed controls while loading', () => {
@@ -927,10 +998,8 @@ describe('WaveformPlayer', () => {
       rerender(<WaveformPlayer {...defaultProps} />);
       
       const playButton = screen.getByTestId('play-button');
-      const markRegionButton = screen.getByTestId('mark-region');
       
       expect(playButton).not.toBeDisabled();
-      expect(markRegionButton).not.toBeDisabled();
     });
 
     it('shows loading indicator when source changes', () => {

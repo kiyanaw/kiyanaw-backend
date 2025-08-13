@@ -18,16 +18,19 @@ type InviteMetaData = {
   readOnlyFields: 'updatedAt';
 }
 
+
+
 type EagerTranscription = {
   readonly id: string;
   readonly author: string;
   readonly authorFriendly: string;
   readonly coverage?: number | null;
   readonly dateLastUpdated: string;
-  readonly userLastUpdated?: string | null;
+  readonly userLastUpdated: string;
   readonly length?: number | null;
   readonly issues?: string | null;
   readonly comments?: string | null;
+  readonly commentCount?: number | null;
   readonly tags?: string | null;
   readonly source?: string | null;
   readonly index?: string | null;
@@ -43,6 +46,7 @@ type EagerTranscription = {
   readonly viewerGroups?: (string | null)[] | null;
   readonly regions?: (Region | null)[] | null;
   readonly issueList?: (Issue | null)[] | null;
+  readonly relatedComments?: (Comment | null)[] | null;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
 }
@@ -53,10 +57,11 @@ type LazyTranscription = {
   readonly authorFriendly: string;
   readonly coverage?: number | null;
   readonly dateLastUpdated: string;
-  readonly userLastUpdated?: string | null;
+  readonly userLastUpdated: string;
   readonly length?: number | null;
   readonly issues?: string | null;
   readonly comments?: string | null;
+  readonly commentCount?: number | null;
   readonly tags?: string | null;
   readonly source?: string | null;
   readonly index?: string | null;
@@ -72,6 +77,7 @@ type LazyTranscription = {
   readonly viewerGroups?: (string | null)[] | null;
   readonly regions: AsyncCollection<Region>;
   readonly issueList: AsyncCollection<Issue>;
+  readonly relatedComments: AsyncCollection<Comment>;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
 }
@@ -89,6 +95,7 @@ type EagerRegion = {
   readonly regionText?: string | null;
   readonly regionAnalysis?: (string | null)[] | null;
   readonly isNote?: boolean | null;
+  readonly commentCount?: number | null;
   readonly translation?: string | null;
   readonly dateLastUpdated: string;
   readonly userLastUpdated: string;
@@ -104,6 +111,7 @@ type LazyRegion = {
   readonly regionText?: string | null;
   readonly regionAnalysis?: (string | null)[] | null;
   readonly isNote?: boolean | null;
+  readonly commentCount?: number | null;
   readonly translation?: string | null;
   readonly dateLastUpdated: string;
   readonly userLastUpdated: string;
@@ -122,10 +130,14 @@ type EagerIssue = {
   readonly id: string;
   readonly text: string;
   readonly owner: string;
+  readonly ownerFriendly: string;
   readonly index: number;
   readonly resolved?: boolean | null;
   readonly type: string;
+  readonly dateLastUpdated: string;
+  readonly userLastUpdated: string;
   readonly comments?: string | null;
+  readonly commentCount?: number | null;
   readonly regionId: string;
   readonly transcription: Transcription;
   readonly createdAt?: string | null;
@@ -136,10 +148,14 @@ type LazyIssue = {
   readonly id: string;
   readonly text: string;
   readonly owner: string;
+  readonly ownerFriendly: string;
   readonly index: number;
   readonly resolved?: boolean | null;
   readonly type: string;
+  readonly dateLastUpdated: string;
+  readonly userLastUpdated: string;
   readonly comments?: string | null;
+  readonly commentCount?: number | null;
   readonly regionId: string;
   readonly transcription: AsyncItem<Transcription>;
   readonly createdAt?: string | null;
@@ -186,4 +202,40 @@ export declare type Invite = LazyLoading extends LazyLoadingDisabled ? EagerInvi
 
 export declare const Invite: (new (init: ModelInit<Invite, InviteMetaData>) => Invite) & {
   copyOf(source: Invite, mutator: (draft: MutableModel<Invite, InviteMetaData>) => MutableModel<Invite, InviteMetaData> | void): Invite;
+}
+
+type EagerComment = {
+  readonly id: string;
+  readonly text: string;
+  readonly author: string;
+  readonly authorFriendly: string;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+  readonly transcription: Transcription;
+  readonly entityType: string;
+  readonly entityId: string;
+  readonly parentComment?: Comment | null;
+  readonly replies?: (Comment | null)[] | null;
+  readonly metadata?: string | null;
+}
+
+type LazyComment = {
+  readonly id: string;
+  readonly text: string;
+  readonly author: string;
+  readonly authorFriendly: string;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+  readonly transcription: AsyncItem<Transcription>;
+  readonly entityType: string;
+  readonly entityId: string;
+  readonly parentComment: AsyncItem<Comment | undefined>;
+  readonly replies: AsyncCollection<Comment>;
+  readonly metadata?: string | null;
+}
+
+export declare type Comment = LazyLoading extends LazyLoadingDisabled ? EagerComment : LazyComment
+
+export declare const Comment: (new (init: ModelInit<Comment>) => Comment) & {
+  copyOf(source: Comment, mutator: (draft: MutableModel<Comment>) => MutableModel<Comment> | void): Comment;
 }

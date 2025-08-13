@@ -285,41 +285,43 @@ export const TranscriptionSettingsPage = ({
                     <option value="crgn">Northern Michif</option>
                   </select>
                   <p className="text-xs text-gray-500 mt-1">
-                    Select the spell checker to use for this transctiption. If "Is Private?" is disabled, will determine the index of the Language Database used.
+                    Select the spell checker to use for this transctiption. If "Is Discoverable?" is enabled, will determine the index of the Language Database used.
                   </p>
                 </div>
 
-                <div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <label htmlFor="isPrivate" className="block text-md font-medium text-gray-700">
-                        Is Private?
-                      </label>
-                      <p className="text-xs text-gray-500 mt-1 mr-1">
-                        Private transcriptions will not be indexed or discoverable in the Language Database (coming soon...)
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={isPrivate}
-                      onClick={() => setIsPrivate(!isPrivate)}
-                      disabled={!isOwner}
-                      className={`
-                        relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed
-                        ${isPrivate ? 'bg-blue-600' : 'bg-gray-200'}
-                      `}
-                    >
-                      <span
-                        aria-hidden="true"
+                {lang && (
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <label htmlFor="isPublic" className="block text-md font-medium text-gray-700">
+                          Is Discoverable?
+                        </label>
+                        <p className="text-xs text-gray-500 mt-1 mr-1">
+                          Analyzed text and issues will be discoverable by authenticated users within the Language Database (coming soon...)
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={!isPrivate}
+                        onClick={() => setIsPrivate(!isPrivate)}
+                        disabled={!isOwner}
                         className={`
-                          pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out
-                          ${isPrivate ? 'translate-x-5' : 'translate-x-0'}
+                          relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed
+                          ${!isPrivate ? 'bg-blue-600' : 'bg-gray-200'}
                         `}
-                      />
-                    </button>
+                      >
+                        <span
+                          aria-hidden="true"
+                          className={`
+                            pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out
+                            ${!isPrivate ? 'translate-x-5' : 'translate-x-0'}
+                          `}
+                        />
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )}
 
               </div>
 

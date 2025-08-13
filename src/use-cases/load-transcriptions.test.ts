@@ -35,6 +35,7 @@ describe('LoadTranscriptions', () => {
       coverage: 0.8,
       isPrivate: false,
       disableAnalyzer: false,
+      userLastUpdated: 'user1'
     }),
     new TranscriptionModel({
       id: 'transcription-2',
@@ -47,6 +48,7 @@ describe('LoadTranscriptions', () => {
       coverage: 0.6,
       isPrivate: true,
       disableAnalyzer: true,
+      userLastUpdated: 'user2'
     }),
   ];
 
@@ -183,6 +185,7 @@ describe('LoadTranscriptions', () => {
           type: 'audio',
           source: `https://example.com/audio${i}.mp3`,
           length: 120,
+          userLastUpdated: 'user'
         })
       );
       mockTranscriptionService.loadAll.mockResolvedValue(manyTranscriptions);

@@ -50,3 +50,4 @@ amplifytools.xcconfig
 #amplify-do-not-edit-end
 
 coverage/
+scripts/migrate-data

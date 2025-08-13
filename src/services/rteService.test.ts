@@ -91,7 +91,7 @@ describe('rteService', () => {
             toolbar: false,
             cursors: expect.any(Object)
           }),
-          formats: ['bold', 'italic', 'underline', 'color', 'background', 'known-word'],
+          formats: ['bold', 'italic', 'underline', 'color', 'background', 'known-word', 'issue-needs-help', 'issue-indexing', 'issue-new-word'],
           readonly: false,
           placeholder: 'Test'
         })
@@ -120,7 +120,7 @@ describe('rteService', () => {
       expect(mockQuillConstructor).toHaveBeenNthCalledWith(1, 
         expect.any(HTMLElement),
         expect.objectContaining({
-          formats: ['bold', 'italic', 'underline', 'color', 'background', 'known-word']
+          formats: ['bold', 'italic', 'underline', 'color', 'background', 'known-word', 'issue-needs-help', 'issue-indexing', 'issue-new-word']
         })
       );
       
@@ -636,4 +636,5 @@ describe('rteService', () => {
       expect(mockFormatText).toHaveBeenCalledTimes(3);
     });
   });
-}); 
+
+});

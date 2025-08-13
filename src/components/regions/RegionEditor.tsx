@@ -1,8 +1,9 @@
 import { useState, memo } from 'react';
-import { Play, Pause, AlertTriangle, EyeOff, RotateCcw, Trash2 } from 'lucide-react';
+import { Play, Pause, Trash2, X } from 'lucide-react';
 import { type RegionData as Region } from '../../services/adt';
 import { useTextEditors } from '../../hooks/useTextEditors';
 import { useDeleteRegion } from '../../hooks/useDeleteRegion';
+import { useSelectAndPlayRegion } from '../../hooks/useSelectAndPlayRegion';
 import { useEditorStore } from '../../stores/useEditorStore';
 
 interface RegionEditorProps {
@@ -17,13 +18,21 @@ export const RegionEditor = memo(({
 
   const { mainEditorRef, translationEditorRef } = useTextEditors(region.id, activeTab);
   const { deleteRegion } = useDeleteRegion();
+  const playRegion = useSelectAndPlayRegion();
   const canEdit = useEditorStore((state) => state.canEdit);
+  const setSelectedRegion = useEditorStore((state) => state.setSelectedRegion);
+  const regions = useEditorStore((state) => state.regions);
+  
+  // Get the region number (1-based index)
+  const regionNumber = regions.findIndex(r => r.id === region.id) + 1;
 
   // Toolbar actions - simplified for now
-  const handlePlay = () => {};
-  const handleCreateIssue = () => {};
-  const handleIgnoreWord = () => {};
-  const handleClearFormat = () => {};
+  const handlePlay = () => {
+    playRegion(region.id);
+  };
+  const handleDeselect = () => {
+    setSelectedRegion(null);
+  };
   const handleDeleteRegion = () => {
     deleteRegion(region.id);
   };
@@ -48,13 +57,13 @@ export const RegionEditor = memo(({
   return (
     <div className="flex flex-col h-full bg-white rounded-lg overflow-hidden">
       {/* Header with region info and toolbar */}
-      <div className="flex justify-between items-center p-4 bg-gray-50 border-b border-gray-200">
-        <div>
-          <h3 className="m-0 mb-1 text-lg font-semibold text-gray-800">Region {region.id}</h3>
-          <span className="text-sm text-gray-500 font-mono">
+      <div className="flex justify-between items-center p-2 bg-gray-50 border-b border-gray-200">
+        <div className="flex items-center gap-3">
+          <h3 className="m-0 text-base font-semibold text-gray-800">Region {regionNumber}</h3>
+          <span className="text-xs text-gray-500 font-mono">
             {formatTime(region.start)} - {formatTime(region.end)}
           </span>
-          {region.isNote && <span className="inline-block ml-2 py-0.5 px-2 bg-yellow-400 text-gray-800 rounded-xl text-xs font-medium">Note</span>}
+          {region.isNote && <span className="py-0.5 px-2 bg-yellow-400 text-gray-800 rounded-xl text-xs font-medium">Note</span>}
         </div>
 
         {/* Custom Toolbar */}
@@ -72,40 +81,14 @@ export const RegionEditor = memo(({
           <button
             className={`flex items-center justify-center w-9 h-9 border border-gray-300 rounded-md bg-white transition-all duration-200 text-base ${
               canEdit 
-                ? 'cursor-pointer hover:bg-yellow-50 hover:text-yellow-700 hover:border-yellow-300' 
+                ? 'cursor-pointer hover:bg-gray-50 hover:text-gray-700 hover:border-gray-400' 
                 : 'cursor-not-allowed opacity-50 text-gray-400'
             }`}
-            onClick={canEdit ? handleCreateIssue : undefined}
+            onClick={canEdit ? handleDeselect : undefined}
             disabled={!canEdit}
-            title="Create issue"
+            title="Deselect region"
           >
-            <AlertTriangle size={16} />
-          </button>
-
-          <button
-            className={`flex items-center justify-center w-9 h-9 border border-gray-300 rounded-md bg-white transition-all duration-200 text-base ${
-              canEdit 
-                ? 'cursor-pointer hover:bg-purple-50 hover:text-purple-700 hover:border-purple-300' 
-                : 'cursor-not-allowed opacity-50 text-gray-400'
-            }`}
-            onClick={canEdit ? handleIgnoreWord : undefined}
-            disabled={!canEdit}
-            title="Ignore word"
-          >
-            <EyeOff size={16} />
-          </button>
-
-          <button
-            className={`flex items-center justify-center w-9 h-9 border border-gray-300 rounded-md bg-white transition-all duration-200 text-base ${
-              canEdit 
-                ? 'cursor-pointer hover:bg-orange-50 hover:text-orange-700 hover:border-orange-300' 
-                : 'cursor-not-allowed opacity-50 text-gray-400'
-            }`}
-            onClick={canEdit ? handleClearFormat : undefined}
-            disabled={!canEdit}
-            title="Clear format"
-          >
-            <RotateCcw size={16} />
+            <X size={16} />
           </button>
 
           <button
@@ -126,7 +109,7 @@ export const RegionEditor = memo(({
       {/* Tab Navigation */}
       <div className="flex bg-gray-100 border-b border-gray-300">
         <button
-          className={`flex-1 py-3 px-4 text-sm font-medium transition-all duration-200 ${
+          className={`flex-1 py-2 px-3 text-sm font-medium transition-all duration-200 ${
             activeTab === 'main'
               ? 'bg-white text-blue-600 border-b-2 border-blue-600'
               : canEdit 
@@ -139,7 +122,7 @@ export const RegionEditor = memo(({
           Original Text
         </button>
         <button
-          className={`flex-1 py-3 px-4 text-sm font-medium transition-all duration-200 ${
+          className={`flex-1 py-2 px-3 text-sm font-medium transition-all duration-200 ${
             activeTab === 'translation'
               ? 'bg-white text-blue-600 border-b-2 border-blue-600'
               : canEdit 

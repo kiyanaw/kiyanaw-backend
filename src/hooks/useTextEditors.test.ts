@@ -10,15 +10,31 @@ jest.mock('../use-cases/update-region-text', () => ({
 }));
 
 // Mock the store
-jest.mock('../stores/useEditorStore', () => ({
-  useEditorStore: jest.fn().mockReturnValue({
+jest.mock('../stores/useEditorStore', () => {
+  const mockStoreState = {
     regionById: jest.fn().mockReturnValue({
       id: 'test-region',
       regionText: 'Test content',
       translation: 'Test translation'
-    })
-  })
-}));
+    }),
+    knownWords: new Set(['test', 'word']),
+    getIssuesForRegion: jest.fn().mockReturnValue([]),
+    canEdit: true
+  };
+
+  const mockUseEditorStore = jest.fn((selector) => {
+    if (typeof selector === 'function') {
+      return selector(mockStoreState);
+    }
+    return mockStoreState;
+  }) as any;
+
+  mockUseEditorStore.getState = jest.fn().mockReturnValue(mockStoreState);
+
+  return {
+    useEditorStore: mockUseEditorStore
+  };
+});
 
 // Mock the rteService
 jest.mock('../services/rteService', () => ({
@@ -34,7 +50,12 @@ jest.mock('../services/rteService', () => ({
       getText: jest.fn().mockReturnValue({ trim: jest.fn().mockReturnValue('') })
     }),
     hasEditor: jest.fn().mockReturnValue(true),
-    applyKnownWordsFormatting: jest.fn()
+    applyKnownWordsFormatting: jest.fn(),
+    updateIssueHighlighting: jest.fn(),
+    onSelectionChange: jest.fn(),
+    offSelectionChange: jest.fn(),
+    getSelectedText: jest.fn().mockReturnValue(''),
+    getSelectionRange: jest.fn().mockReturnValue(null)
   }
 }));
 

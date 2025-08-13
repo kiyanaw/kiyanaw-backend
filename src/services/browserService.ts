@@ -168,6 +168,51 @@ class BrowserService {
   }
 
   /**
+   * Extracts issueId from the current URL
+   * Supports query parameter (?issueId=xxx)
+   */
+  getIssueIdFromUrl(): string | null {
+    if (typeof window === 'undefined') return null;
+
+    try {
+      const url = new URL(window.location.href);
+      const issueIdFromQuery = url.searchParams.get('issueId');
+      return issueIdFromQuery && issueIdFromQuery.trim() !== '' ? issueIdFromQuery : null;
+    } catch (error) {
+      console.warn('Error parsing URL for issueId:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Adds or updates the selected issue in the URL as a query parameter without reloading
+   */
+  setSelectedIssue(issueId: string): void {
+    if (typeof window === 'undefined' || !issueId || issueId.trim() === '') return;
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('issueId', issueId);
+      this.replaceUrl(url.toString());
+    } catch {
+      // Be resilient in non-browser environments
+    }
+  }
+
+  /**
+   * Clears the selected issue from the URL if present
+   */
+  clearSelectedIssue(): void {
+    if (typeof window === 'undefined') return;
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('issueId');
+      this.replaceUrl(url.toString());
+    } catch {
+      // Be resilient in non-browser environments
+    }
+  }
+
+  /**
    * Gets the current URL pathname
    * @returns current pathname or empty string if window is undefined
    */

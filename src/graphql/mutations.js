@@ -16,6 +16,7 @@ export const createTranscription = /* GraphQL */ `
       length
       issues
       comments
+      commentCount
       tags
       source
       index
@@ -35,6 +36,11 @@ export const createTranscription = /* GraphQL */ `
         __typename
       }
       issueList {
+        nextToken
+        startedAt
+        __typename
+      }
+      relatedComments {
         nextToken
         startedAt
         __typename
@@ -63,6 +69,7 @@ export const updateTranscription = /* GraphQL */ `
       length
       issues
       comments
+      commentCount
       tags
       source
       index
@@ -82,6 +89,11 @@ export const updateTranscription = /* GraphQL */ `
         __typename
       }
       issueList {
+        nextToken
+        startedAt
+        __typename
+      }
+      relatedComments {
         nextToken
         startedAt
         __typename
@@ -110,6 +122,7 @@ export const deleteTranscription = /* GraphQL */ `
       length
       issues
       comments
+      commentCount
       tags
       source
       index
@@ -129,6 +142,11 @@ export const deleteTranscription = /* GraphQL */ `
         __typename
       }
       issueList {
+        nextToken
+        startedAt
+        __typename
+      }
+      relatedComments {
         nextToken
         startedAt
         __typename
@@ -154,6 +172,7 @@ export const createRegion = /* GraphQL */ `
       regionText
       regionAnalysis
       isNote
+      commentCount
       translation
       dateLastUpdated
       userLastUpdated
@@ -167,6 +186,7 @@ export const createRegion = /* GraphQL */ `
         length
         issues
         comments
+        commentCount
         tags
         source
         index
@@ -209,6 +229,7 @@ export const updateRegion = /* GraphQL */ `
       regionText
       regionAnalysis
       isNote
+      commentCount
       translation
       dateLastUpdated
       userLastUpdated
@@ -222,6 +243,7 @@ export const updateRegion = /* GraphQL */ `
         length
         issues
         comments
+        commentCount
         tags
         source
         index
@@ -264,6 +286,7 @@ export const deleteRegion = /* GraphQL */ `
       regionText
       regionAnalysis
       isNote
+      commentCount
       translation
       dateLastUpdated
       userLastUpdated
@@ -277,6 +300,7 @@ export const deleteRegion = /* GraphQL */ `
         length
         issues
         comments
+        commentCount
         tags
         source
         index
@@ -316,10 +340,14 @@ export const createIssue = /* GraphQL */ `
       id
       text
       owner
+      ownerFriendly
       index
       resolved
       type
+      dateLastUpdated
+      userLastUpdated
       comments
+      commentCount
       regionId
       transcription {
         id
@@ -331,6 +359,7 @@ export const createIssue = /* GraphQL */ `
         length
         issues
         comments
+        commentCount
         tags
         source
         index
@@ -370,10 +399,14 @@ export const updateIssue = /* GraphQL */ `
       id
       text
       owner
+      ownerFriendly
       index
       resolved
       type
+      dateLastUpdated
+      userLastUpdated
       comments
+      commentCount
       regionId
       transcription {
         id
@@ -385,6 +418,7 @@ export const updateIssue = /* GraphQL */ `
         length
         issues
         comments
+        commentCount
         tags
         source
         index
@@ -424,10 +458,14 @@ export const deleteIssue = /* GraphQL */ `
       id
       text
       owner
+      ownerFriendly
       index
       resolved
       type
+      dateLastUpdated
+      userLastUpdated
       comments
+      commentCount
       regionId
       transcription {
         id
@@ -439,6 +477,7 @@ export const deleteIssue = /* GraphQL */ `
         length
         issues
         comments
+        commentCount
         tags
         source
         index
@@ -537,6 +576,237 @@ export const deleteInvite = /* GraphQL */ `
       transcriptionId
       transcriptionTitle
       updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;
+export const createComment = /* GraphQL */ `
+  mutation CreateComment(
+    $input: CreateCommentInput!
+    $condition: ModelCommentConditionInput
+  ) {
+    createComment(input: $input, condition: $condition) {
+      id
+      text
+      author
+      authorFriendly
+      createdAt
+      updatedAt
+      transcriptionId
+      transcription {
+        id
+        author
+        authorFriendly
+        coverage
+        dateLastUpdated
+        userLastUpdated
+        length
+        issues
+        comments
+        commentCount
+        tags
+        source
+        index
+        lang
+        title
+        type
+        isPrivate
+        isPublished
+        disableAnalyzer
+        editors
+        viewers
+        editorGroups
+        viewerGroups
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      entityType
+      entityId
+      parentCommentId
+      parentComment {
+        id
+        text
+        author
+        authorFriendly
+        createdAt
+        updatedAt
+        transcriptionId
+        entityType
+        entityId
+        parentCommentId
+        metadata
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      replies {
+        nextToken
+        startedAt
+        __typename
+      }
+      metadata
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;
+export const updateComment = /* GraphQL */ `
+  mutation UpdateComment(
+    $input: UpdateCommentInput!
+    $condition: ModelCommentConditionInput
+  ) {
+    updateComment(input: $input, condition: $condition) {
+      id
+      text
+      author
+      authorFriendly
+      createdAt
+      updatedAt
+      transcriptionId
+      transcription {
+        id
+        author
+        authorFriendly
+        coverage
+        dateLastUpdated
+        userLastUpdated
+        length
+        issues
+        comments
+        commentCount
+        tags
+        source
+        index
+        lang
+        title
+        type
+        isPrivate
+        isPublished
+        disableAnalyzer
+        editors
+        viewers
+        editorGroups
+        viewerGroups
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      entityType
+      entityId
+      parentCommentId
+      parentComment {
+        id
+        text
+        author
+        authorFriendly
+        createdAt
+        updatedAt
+        transcriptionId
+        entityType
+        entityId
+        parentCommentId
+        metadata
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      replies {
+        nextToken
+        startedAt
+        __typename
+      }
+      metadata
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;
+export const deleteComment = /* GraphQL */ `
+  mutation DeleteComment(
+    $input: DeleteCommentInput!
+    $condition: ModelCommentConditionInput
+  ) {
+    deleteComment(input: $input, condition: $condition) {
+      id
+      text
+      author
+      authorFriendly
+      createdAt
+      updatedAt
+      transcriptionId
+      transcription {
+        id
+        author
+        authorFriendly
+        coverage
+        dateLastUpdated
+        userLastUpdated
+        length
+        issues
+        comments
+        commentCount
+        tags
+        source
+        index
+        lang
+        title
+        type
+        isPrivate
+        isPublished
+        disableAnalyzer
+        editors
+        viewers
+        editorGroups
+        viewerGroups
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      entityType
+      entityId
+      parentCommentId
+      parentComment {
+        id
+        text
+        author
+        authorFriendly
+        createdAt
+        updatedAt
+        transcriptionId
+        entityType
+        entityId
+        parentCommentId
+        metadata
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      replies {
+        nextToken
+        startedAt
+        __typename
+      }
+      metadata
       _version
       _deleted
       _lastChangedAt

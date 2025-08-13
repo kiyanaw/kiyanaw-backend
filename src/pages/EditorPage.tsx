@@ -8,6 +8,10 @@ import { useSubscriptions } from '../hooks/useSubscriptions';
 import { useUpdateTranscription } from '../hooks/useUpdateTranscription';
 import { useAuthStore } from '../stores/useAuthStore';
 
+import { useUpdateIssue } from '../hooks/useUpdateIssue';
+import { useDeleteIssue } from '../hooks/useDeleteIssue';
+import { canEdit, isAuthor } from '../lib/permissions';
+
 import { browserService } from '../services/browserService';
 import { wavesurferService } from '../services/wavesurferService';
 
@@ -15,6 +19,7 @@ import { WaveformPlayer } from '../components/player/WaveformPlayer';
 import { RegionList } from '../components/regions/RegionList';
 import { StationaryInspector } from '../components/inspector/StationaryInspector';
 import { TranscriptionSettingsPage } from '../components/forms/TranscriptionSettingsPage';
+import { IssuesPanel } from '../components/issues/IssuesPanel';
 
 export const EditorPage = () => {
   const { id: transcriptionId } = useParams<{
@@ -37,9 +42,17 @@ export const EditorPage = () => {
   // Hooks for settings functionality
   const updateTranscription = useUpdateTranscription(transcriptionId!);
   
+  // Issue management hooks
+  const updateIssue = useUpdateIssue();
+  const deleteIssue = useDeleteIssue();
+  
   useWavesurferEvents(transcriptionId!, transcription?.source);
   const regions = useEditorStore((state) => state.regions);
   const selectedRegion = useEditorStore((state) => state.selectedRegion);
+  const issues = useEditorStore((state) => state.issues);
+  // Subscribe to the full maps (stable references); index by selectedRegionId below to avoid infinite loops
+  const issueLinkStatusesByRegion = useEditorStore((state) => state.issueLinkStatusesByRegion);
+  const issueSuggestionsByRegion = useEditorStore((state) => state.issueSuggestionsByRegion);
 
   // Settings handlers
   const handleOpenSettings = () => setIsSettingsOpen(true);
@@ -48,8 +61,29 @@ export const EditorPage = () => {
     updateTranscription(updates);
   };
   
-  // Determine if current user is the owner
-  const isOwner = transcription?.author === user?.userId;
+  // Determine user permissions for this transcription
+  const userCanEdit = canEdit(transcription, user);
+  const isOwner = isAuthor(transcription, user);
+  
+  // Issue management handlers
+  const handleUpdateIssue = async (issueId: string, updates: { resolved?: boolean; text?: string; type?: string }) => {
+    try {
+      await updateIssue({
+        issueId,
+        updates,
+      });
+    } catch (error) {
+      console.error('Failed to update issue:', error);
+    }
+  };
+
+  const handleDeleteIssue = async (issueId: string) => {
+    try {
+      await deleteIssue({ issueId });
+    } catch (error) {
+      console.error('Failed to delete issue:', error);
+    }
+  };
 
   // Redirect to 404 if access is denied
   useEffect(() => {
@@ -107,15 +141,56 @@ export const EditorPage = () => {
 
       {/* Main Editor Layout */}
       <div className="flex flex-1 overflow-hidden min-h-0">
-        {/* Stationary Inspector */}
-        <div className="flex-1 bg-white border-r border-gray-300 overflow-hidden flex flex-col">
-          <StationaryInspector
-            selectedRegion={selectedRegion}
-          />
+        {/* Left Side Container */}
+        <div className="flex-1 bg-white border-r border-gray-300 flex flex-col">
+          {/* Stationary Inspector - 50% height */}
+          <div className="h-1/2 overflow-hidden flex flex-col border-b border-gray-300">
+            <StationaryInspector
+              selectedRegion={selectedRegion}
+            />
+          </div>
+          
+          {/* Issues Panel Area - 50% height */}
+          <div className="h-1/2 overflow-hidden flex flex-col">
+            {transcription && (
+              <>
+                <IssuesPanel
+                  selectedRegionId={selectedRegion?.id}
+                  // TODO: why is this mapping happenning here and not our ADT?
+                  issues={(issues || []).map(issue => {
+                    const linkStatus = selectedRegion?.id
+                      ? issueLinkStatusesByRegion[selectedRegion.id]?.[issue.id]
+                      : undefined;
+                    const suggestions = selectedRegion?.id
+                      ? issueSuggestionsByRegion[selectedRegion.id]?.[issue.id]
+                      : undefined;
+
+                    return {
+                      id: issue.id,
+                      text: issue.text,
+                      type: issue.type as 'needs-help' | 'indexing' | 'new-word',
+                      owner: issue.owner, // Use actual owner UUID for permission checking
+                      ownerFriendly: issue.ownerFriendly,
+                      regionId: issue.regionId,
+                      resolved: issue.resolved || false,
+                      createdAt: issue.createdAt || new Date().toISOString(),
+                      updatedAt: issue.updatedAt || new Date().toISOString(),
+                      commentCount: issue.commentCount || 0,
+                      linkStatus,
+                      suggestions,
+                    };
+                  })}
+                  canEdit={userCanEdit}
+                  onUpdateIssue={handleUpdateIssue}
+                  onDeleteIssue={handleDeleteIssue}
+                />
+              </>
+            )}
+          </div>
         </div>
 
         {/* Region List */}
-        <div className="w-96 flex-shrink-0 bg-gray-50 border-l border-gray-300 flex flex-col min-h-0">
+        <div className="w-[500px] flex-shrink-0 bg-gray-50 border-l border-gray-300 flex flex-col min-h-0">
           <RegionList
             regions={regions}
             disableAnalyzer={transcription?.disableAnalyzer}

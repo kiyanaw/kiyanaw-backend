@@ -3,7 +3,11 @@ import 'react-quill/dist/quill.snow.css';
 
 // Import quill-cursors for collaborative editing
 import QuillCursors from 'quill-cursors';
-import { textHighlightService } from './textHighlightService';
+import { textHighlightService, type IssueHighlight, type IssueType } from './textHighlightService';
+import { useEditorStore } from '../stores/useEditorStore';
+import { issueHighlightService } from './issueHighlightService';
+import { issueMatchingService } from './issueMatchingService';
+import { REGION_TEXT_MATCH_PATTERN } from '../constants/text-patterns';
 
 // Quill-related interfaces
 interface QuillModulesConfig extends Record<string, unknown> {
@@ -72,7 +76,115 @@ class KnownWordBlot extends Inline implements BlotInstance {
   }
 }
 
+class IssueNeedsHelpBlot extends Inline implements BlotInstance {
+  declare domNode: HTMLElement;
+  
+  static blotName = 'issue-needs-help';
+  static tagName = 'span';
+  static className = 'issue-needs-help';
+  
+  static create(value?: string) {
+    const node = super.create();
+    node.setAttribute('class', 'issue-needs-help');
+    if (value) {
+      node.setAttribute('data-issue-id', value);
+    }
+    return node;
+  }
+  
+  static formats(node: HTMLElement) {
+    if (node.getAttribute('class') === 'issue-needs-help') {
+      return node.getAttribute('data-issue-id') || true;
+    }
+    return false;
+  }
+  
+  format(name: string, value: boolean | string) {
+    if (name !== 'issue-needs-help' || !value) {
+      super.format(name, value);
+    } else {
+      this.domNode.setAttribute('class', 'issue-needs-help');
+      if (typeof value === 'string') {
+        this.domNode.setAttribute('data-issue-id', value);
+      }
+    }
+  }
+}
+
+class IssueIndexingBlot extends Inline implements BlotInstance {
+  declare domNode: HTMLElement;
+  
+  static blotName = 'issue-indexing';
+  static tagName = 'span';
+  static className = 'issue-indexing';
+  
+  static create(value?: string) {
+    const node = super.create();
+    node.setAttribute('class', 'issue-indexing');
+    if (value) {
+      node.setAttribute('data-issue-id', value);
+    }
+    return node;
+  }
+  
+  static formats(node: HTMLElement) {
+    if (node.getAttribute('class') === 'issue-indexing') {
+      return node.getAttribute('data-issue-id') || true;
+    }
+    return false;
+  }
+  
+  format(name: string, value: boolean | string) {
+    if (name !== 'issue-indexing' || !value) {
+      super.format(name, value);
+    } else {
+      this.domNode.setAttribute('class', 'issue-indexing');
+      if (typeof value === 'string') {
+        this.domNode.setAttribute('data-issue-id', value);
+      }
+    }
+  }
+}
+
+class IssueNewWordBlot extends Inline implements BlotInstance {
+  declare domNode: HTMLElement;
+  
+  static blotName = 'issue-new-word';
+  static tagName = 'span';
+  static className = 'issue-new-word';
+  
+  static create(value?: string) {
+    const node = super.create();
+    node.setAttribute('class', 'issue-new-word');
+    if (value) {
+      node.setAttribute('data-issue-id', value);
+    }
+    return node;
+  }
+  
+  static formats(node: HTMLElement) {
+    if (node.getAttribute('class') === 'issue-new-word') {
+      return node.getAttribute('data-issue-id') || true;
+    }
+    return false;
+  }
+  
+  format(name: string, value: boolean | string) {
+    if (name !== 'issue-new-word' || !value) {
+      super.format(name, value);
+    } else {
+      this.domNode.setAttribute('class', 'issue-new-word');
+      if (typeof value === 'string') {
+        this.domNode.setAttribute('data-issue-id', value);
+      }
+    }
+  }
+}
+
 Quill.register('formats/known-word', KnownWordBlot);
+Quill.register('formats/issue-needs-help', IssueNeedsHelpBlot);
+Quill.register('formats/issue-indexing', IssueIndexingBlot);
+Quill.register('formats/issue-new-word', IssueNewWordBlot);
 
 // Custom formats are now defined in src/index.css
 
@@ -134,7 +246,7 @@ class RTEServiceImpl {
           matchVisual: false,
         },
       },
-      formats: ['bold', 'italic', 'underline', 'color', 'background', 'known-word']
+      formats: ['bold', 'italic', 'underline', 'color', 'background', 'known-word', 'issue-needs-help', 'issue-indexing', 'issue-new-word']
     };
 
     const defaultTranslationConfig = {
@@ -288,6 +400,49 @@ class RTEServiceImpl {
     instance.quill.off('text-change');
   }
 
+  // Find issue matches in text (similar to findMatches but for issues)
+  private findIssueMatches(text: string, issues: IssueHighlight[]) {
+    if (!text || issues.length === 0) {
+      return [];
+    }
+
+    const matches: Array<{ index: number; length: number; id: string; type: IssueType }> = [];
+    const tokens = text.split(REGION_TEXT_MATCH_PATTERN);
+    let currentIndex = 0;
+    
+    // Create issue text lookup for efficient matching
+    // Normalize issue text the same way tokens are created: extract letters/numbers/_/- only
+    const issueTextMap = new Map<string, { id: string; type: IssueType }>();
+    for (const issue of issues) {
+      const normalized = issue.text.trim().toLowerCase();
+      const match = normalized.match(REGION_TEXT_MATCH_PATTERN);
+      const key = match ? match[0] : normalized;
+      issueTextMap.set(key, { id: issue.id, type: issue.type });
+    }
+    
+    for (const token of tokens) {
+      if (REGION_TEXT_MATCH_PATTERN.test(token)) {
+        const lowerToken = token.trim().toLowerCase();
+        const issueInfo = issueTextMap.get(lowerToken);
+        if (issueInfo) {
+          matches.push({
+            index: currentIndex,
+            length: token.length,
+            id: issueInfo.id,
+            type: issueInfo.type
+          });
+        }
+      }
+      currentIndex += token.length;
+    }
+    
+    // Sort by index for safe RTE formatting
+    return matches.sort((a, b) => {
+      if (a.index !== b.index) return a.index - b.index;
+      return b.length - a.length;
+    });
+  }
+
   // Apply known words formatting to editor
   applyKnownWordsFormatting(key: EditorKey, knownWords: string[]): void {
     const instance = this.registry.get(key);
@@ -311,6 +466,190 @@ class RTEServiceImpl {
     });
   }
 
+  // Apply issue formatting to editor
+  applyIssueFormatting(key: EditorKey, issues: IssueHighlight[]): void {
+    const instance = this.registry.get(key);
+    if (!instance || issues.length === 0) {
+      return;
+    }
+
+    const text = instance.quill.getText();
+    if (!text) return;
+
+    // Clear any existing issue formatting first
+    ['issue-needs-help', 'issue-indexing', 'issue-new-word'].forEach(format => {
+      instance.quill.formatText(0, text.length, format, false, 'api');
+    });
+
+    // Find issue matches
+    const matches = this.findIssueMatches(text, issues);
+    
+    // Apply specific issue formatting based on type
+    matches.forEach(({ index, length, type, id }) => {
+      const formatName = `issue-${type}`;
+      instance.quill.formatText(index, length, formatName, id, 'api');
+    });
+  }
+
+  // Apply both known words and issue formatting (issues take priority)
+  applyHighlighting(key: EditorKey, options: { knownWords?: string[]; issues?: IssueHighlight[] }): void {
+    const instance = this.registry.get(key);
+    if (!instance) {
+      return;
+    }
+
+    const text = instance.quill.getText();
+    if (!text) return;
+
+    const { knownWords = [], issues = [] } = options;
+
+    // Clear all existing formatting first
+    instance.quill.formatText(0, text.length, 'known-word', false, 'api');
+    ['issue-needs-help', 'issue-indexing', 'issue-new-word'].forEach(format => {
+      instance.quill.formatText(0, text.length, format, false, 'api');
+    });
+
+    // Apply known words first
+    if (knownWords.length > 0) {
+      const knownWordsSet = new Set(knownWords);
+      const knownWordMatches = textHighlightService.findMatches(text, knownWordsSet);
+      knownWordMatches.forEach(({ index, length }) => {
+        instance.quill.formatText(index, length, 'known-word', true, 'api');
+      });
+    }
+
+    // Apply issues second (they will override known words where they overlap)
+    if (issues.length > 0) {
+      const issueMatches = this.findIssueMatches(text, issues);
+      issueMatches.forEach(({ index, length, type, id }) => {
+        // Clear known-word formatting at this position first, then apply issue formatting
+        instance.quill.formatText(index, length, 'known-word', false, 'api');
+        const formatName = `issue-${type}`;
+        instance.quill.formatText(index, length, formatName, id, 'api');
+      });
+    }
+  }
+
+  // Get current selection index (caret position)
+  getSelection(key: EditorKey): number | null {
+    const instance = this.registry.get(key);
+    if (!instance) {
+      return null;
+    }
+
+    const selection = instance.quill.getSelection();
+    return selection ? selection.index : null;
+  }
+
+  // Get current selection range (index + length)
+  getSelectionRange(key: EditorKey): { index: number; length: number } | null {
+    const instance = this.registry.get(key);
+    if (!instance) {
+      return null;
+    }
+
+    const selection = instance.quill.getSelection();
+    return selection ? { index: selection.index, length: selection.length } : null;
+  }
+
+  // Get the currently selected text
+  getSelectedText(key: EditorKey): string | null {
+    const instance = this.registry.get(key);
+    if (!instance) {
+      return null;
+    }
+
+    const selection = instance.quill.getSelection();
+    if (!selection || selection.length === 0) {
+      return null;
+    }
+
+    return instance.quill.getText(selection.index, selection.length).trim();
+  }
+
+  // Subscribe to selection changes
+  onSelectionChange(key: EditorKey, callback: (range: { index: number; length: number } | null) => void): void {
+    const instance = this.registry.get(key);
+    if (!instance) {
+      throw new Error(`RTE instance not found for key: ${key}`);
+    }
+
+    // Set up Quill selection-change listener
+    instance.quill.on('selection-change', (range: { index: number; length: number } | null) => {
+      callback(range);
+    });
+  }
+
+  // Unsubscribe from selection changes
+  offSelectionChange(key: EditorKey): void {
+    const instance = this.registry.get(key);
+    if (!instance) {
+      return; // Already removed or never existed
+    }
+
+    // Remove Quill listeners
+    instance.quill.off('selection-change');
+  }
+
+  // Get issue context at a specific index
+  getIssueContext(key: EditorKey, index: number): { issueId: string | null; type: IssueType | null } {
+    const instance = this.registry.get(key);
+    if (!instance) {
+      return { issueId: null, type: null };
+    }
+
+    // Get formatting at the specified index
+    const formats = instance.quill.getFormat(index);
+    
+    // Check each issue format type
+    const issueFormats = ['issue-needs-help', 'issue-indexing', 'issue-new-word'] as const;
+    
+    for (const formatName of issueFormats) {
+      const formatValue = formats[formatName];
+      if (formatValue) {
+        // Extract type from format name
+        const type = formatName.replace('issue-', '') as IssueType;
+        const issueId = typeof formatValue === 'string' ? formatValue : null;
+        return { issueId, type };
+      }
+    }
+
+    return { issueId: null, type: null };
+  }
+
+  // Get the word/token at a specific index
+  getWordAt(key: EditorKey, index: number): string | null {
+    const instance = this.registry.get(key);
+    if (!instance) {
+      return null;
+    }
+
+    const text = instance.quill.getText();
+    if (index < 0 || index >= text.length) {
+      return null;
+    }
+
+    // Use the same tokenization pattern as our text highlighting
+    
+    // Find word boundaries around the index
+    let start = index;
+    let end = index;
+    
+    // Move start backwards to find word beginning
+    while (start > 0 && REGION_TEXT_MATCH_PATTERN.test(text[start - 1])) {
+      start--;
+    }
+    
+    // Move end forwards to find word end
+    while (end < text.length && REGION_TEXT_MATCH_PATTERN.test(text[end])) {
+      end++;
+    }
+    
+    // Extract the word
+    const word = text.slice(start, end).trim();
+    return word || null;
+  }
+
   // Clean up all editors (useful for testing or app shutdown)
   destroyAll(): void {
     for (const key of this.registry.keys()) {
@@ -322,6 +661,49 @@ class RTEServiceImpl {
       this.offScreenParent.parentNode.removeChild(this.offScreenParent);
       this.offScreenParent = null;
     }
+  }
+
+  /**
+   * Update issue highlighting for a specific region's editor
+   */
+  updateIssueHighlighting(regionId: string): void {
+    const editorKey = `${regionId}:main` as EditorKey;
+    const instance = this.registry.get(editorKey);
+    if (!instance) {
+      return;
+    }
+
+    // Get current state from store
+    const state = useEditorStore.getState();
+    const knownWords = Array.from(state.knownWords);
+    const issues = state.getIssuesForRegion(regionId);
+
+    // Get current text from editor
+    const regionText = instance.quill.getText();
+
+    const matchResult = issueMatchingService.match(regionText, issues);
+    
+    // Update store with link statuses and suggestions
+    const linkStatuses: Record<string, 'matched' | 'unmatched'> = {};
+    for (const issueId of matchResult.matched) {
+      linkStatuses[issueId] = 'matched';
+    }
+    for (const issueId of matchResult.unmatched) {
+      linkStatuses[issueId] = 'unmatched';
+    }
+
+    state.setIssueLinkStatuses(regionId, linkStatuses);
+    state.setIssueSuggestions(regionId, matchResult.suggestions);
+
+    // Only highlight matched issues
+    const matchedIssues = issues.filter(issue => matchResult.matched.has(issue.id));
+    const issueHighlights = issueHighlightService.convertIssuesToHighlights(matchedIssues);
+
+    // Re-apply highlighting
+    this.applyHighlighting(editorKey, {
+      knownWords,
+      issues: issueHighlights
+    });
   }
 }
 
