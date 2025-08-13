@@ -63,7 +63,7 @@ export class SubscribeToIssueChangesUseCase {
         await this.refreshRteHighlightingForRegion(issue.regionId);
         break;
 
-      case 'UPDATE':
+      case 'UPDATE': {
         // Only update mutable fields to prevent overwriting local state
         const updates = {
           text: issue.text,
@@ -77,6 +77,7 @@ export class SubscribeToIssueChangesUseCase {
         store.updateIssue(issue.id, updates);
         await this.refreshRteHighlightingForRegion(issue.regionId);
         break;
+      }
 
       case 'DELETE':
         store.deleteIssue(issue.id);

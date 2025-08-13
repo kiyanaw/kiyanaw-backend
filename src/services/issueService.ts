@@ -14,6 +14,8 @@ import {
 } from '../graphql/subscriptions.js';
 import type { IssueData } from './adt';
 
+
+
 // Create GraphQL client
 const client = generateClient();
 
@@ -172,7 +174,9 @@ export const subscribeToIssueChanges = (
           _deleted: { ne: true }
         }
       }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }) as any).subscribe({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       next: (result: any) => {
         const issue = result.data?.onCreateIssue;
         if (issue) {
@@ -180,7 +184,7 @@ export const subscribeToIssueChanges = (
           onEvent({ mutation: 'CREATE', issue });
         }
       },
-      error: (error: any) => console.error('Create issue subscription error:', error)
+      error: (error: Error) => console.error('Create issue subscription error:', error)
     });
 
     // Subscribe to issue updates
@@ -192,7 +196,9 @@ export const subscribeToIssueChanges = (
           _deleted: { ne: true }
         }
       }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }) as any).subscribe({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       next: (result: any) => {
         const issue = result.data?.onUpdateIssue;
         if (issue) {
@@ -200,7 +206,7 @@ export const subscribeToIssueChanges = (
           onEvent({ mutation: 'UPDATE', issue });
         }
       },
-      error: (error: any) => console.error('Update issue subscription error:', error)
+      error: (error: Error) => console.error('Update issue subscription error:', error)
     });
 
     // Subscribe to issue deletion
@@ -211,7 +217,9 @@ export const subscribeToIssueChanges = (
           transcriptionId: { eq: transcriptionId }
         }
       }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }) as any).subscribe({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       next: (result: any) => {
         const issue = result.data?.onDeleteIssue;
         if (issue) {
@@ -219,7 +227,7 @@ export const subscribeToIssueChanges = (
           onEvent({ mutation: 'DELETE', issue });
         }
       },
-      error: (error: any) => console.error('Delete issue subscription error:', error)
+      error: (error: Error) => console.error('Delete issue subscription error:', error)
     });
 
     subscriptions.push(createSub, updateSub, deleteSub);

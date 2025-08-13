@@ -9,6 +9,7 @@ export interface SubscribeToCommentChangesConfig {
 }
 
 // Module-level debounce registry for RTE refresh
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const rteRefreshTimeouts = new Map<string, any>();
 
 export class SubscribeToCommentChangesUseCase {

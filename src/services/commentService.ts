@@ -11,6 +11,8 @@ import { onCreateComment, onDeleteComment } from '../graphql/subscriptions.js';
 import type { CommentData } from './adt';
 import type { GraphQLClient } from '../types/shared';
 
+
+
 // Create GraphQL client lazily
 let client: GraphQLClient | null = null;
 const getClient = (): GraphQLClient => {
@@ -193,7 +195,9 @@ export const subscribeToCommentChanges = (
           _deleted: { ne: true }
         }
       }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }) as any).subscribe({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       next: (result: any) => {
         const comment = result.data?.onCreateComment;
         if (comment) {
@@ -201,7 +205,7 @@ export const subscribeToCommentChanges = (
           onEvent({ mutation: 'CREATE', comment });
         }
       },
-      error: (error: any) => console.error('Create comment subscription error:', error)
+      error: (error: Error) => console.error('Create comment subscription error:', error)
     });
 
     // Subscribe to comment deletion
@@ -212,7 +216,9 @@ export const subscribeToCommentChanges = (
           transcriptionId: { eq: transcriptionId }
         }
       }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }) as any).subscribe({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       next: (result: any) => {
         const comment = result.data?.onDeleteComment;
         if (comment) {
@@ -220,7 +226,7 @@ export const subscribeToCommentChanges = (
           onEvent({ mutation: 'DELETE', comment });
         }
       },
-      error: (error: any) => console.error('Delete comment subscription error:', error)
+      error: (error: Error) => console.error('Delete comment subscription error:', error)
     });
 
     subscriptions.push(createSub, deleteSub);
