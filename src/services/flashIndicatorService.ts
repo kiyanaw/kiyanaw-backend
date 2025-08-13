@@ -33,6 +33,12 @@ type FlashEventCallback = (username: string) => void;
 class FlashIndicatorServiceImpl {
   private listeners = new Map<string, Set<FlashEventCallback>>();
   private issueListeners = new Map<string, Set<FlashEventCallback>>();
+  
+  // Track active flash timeouts to prevent interference
+  private activeFlashTimeouts = new Map<string, {
+    restoreTimeout?: NodeJS.Timeout;
+    clearTimeout?: NodeJS.Timeout;
+  }>();
 
   /**
    * Trigger a flash for a specific region
@@ -143,6 +149,17 @@ class FlashIndicatorServiceImpl {
   clearAll(): void {
     this.listeners.clear();
     this.issueListeners.clear();
+    
+    // Clear all active flash timeouts
+    for (const timeouts of this.activeFlashTimeouts.values()) {
+      if (timeouts.restoreTimeout) {
+        clearTimeout(timeouts.restoreTimeout);
+      }
+      if (timeouts.clearTimeout) {
+        clearTimeout(timeouts.clearTimeout);
+      }
+    }
+    this.activeFlashTimeouts.clear();
   }
 
   /**
@@ -202,9 +219,21 @@ class FlashIndicatorServiceImpl {
     }
 
     try {
-      // Get current background
-      const computedStyle = window.getComputedStyle(issueElement);
-      const currentBackground = computedStyle.backgroundColor;
+      const flashKey = `issue-${issueId}`;
+      
+      // Clear any existing timeouts for this issue to prevent interference
+      const existingTimeouts = this.activeFlashTimeouts.get(flashKey);
+      if (existingTimeouts) {
+        if (existingTimeouts.restoreTimeout) {
+          clearTimeout(existingTimeouts.restoreTimeout);
+        }
+        if (existingTimeouts.clearTimeout) {
+          clearTimeout(existingTimeouts.clearTimeout);
+        }
+      }
+      
+      // Store the original inline style (if any) to restore later
+      const originalInlineBackground = issueElement.style.backgroundColor;
       
       // Flash green briefly
       const flashColor = FLASH_CONFIG.flashColor;
@@ -213,16 +242,32 @@ class FlashIndicatorServiceImpl {
       issueElement.style.transition = `background-color ${FLASH_CONFIG.backgroundFlashDuration}ms ${FLASH_CONFIG.backgroundEasing}`;
       issueElement.style.backgroundColor = flashColor;
       
-      // Restore background after flash duration
-      setTimeout(() => {
-        // Restore original background
-        issueElement.style.backgroundColor = currentBackground;
+      // Set up new timeouts
+      const restoreTimeout = setTimeout(() => {
+        // If there was an original inline background, restore it
+        // Otherwise, clear the inline style to let CSS classes take over
+        if (originalInlineBackground) {
+          issueElement.style.backgroundColor = originalInlineBackground;
+        } else {
+          issueElement.style.backgroundColor = '';
+        }
         
         // Remove transition after animation completes
-        setTimeout(() => {
+        const clearTimeout = setTimeout(() => {
           issueElement.style.transition = '';
+          // Clean up timeout tracking
+          this.activeFlashTimeouts.delete(flashKey);
         }, FLASH_CONFIG.backgroundFlashDuration);
+        
+        // Update timeout tracking
+        const timeouts = this.activeFlashTimeouts.get(flashKey);
+        if (timeouts) {
+          timeouts.clearTimeout = clearTimeout;
+        }
       }, FLASH_CONFIG.backgroundFlashDuration);
+      
+      // Track the timeouts
+      this.activeFlashTimeouts.set(flashKey, { restoreTimeout });
 
       console.log('⚡ Flashed issue card background:', issueId);
     } catch (error) {

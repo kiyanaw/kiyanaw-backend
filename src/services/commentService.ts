@@ -5,6 +5,9 @@ import { listComments } from '../graphql/queries.js';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - GraphQL mutations are generated as JS files
 import { createComment, updateComment, deleteComment } from '../graphql/mutations.js';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore - GraphQL subscriptions are generated as JS files
+import { onCreateComment, onDeleteComment } from '../graphql/subscriptions.js';
 import type { CommentData } from './adt';
 import type { GraphQLClient } from '../types/shared';
 
@@ -34,7 +37,10 @@ export const loadCommentsForTranscription = async (transcriptionId: string): Pro
     const result = await getClient().graphql({
       query: listComments,
       variables: { 
-        filter: { transcriptionId: { eq: transcriptionId } },
+        filter: { 
+          transcriptionId: { eq: transcriptionId },
+          _deleted: { ne: true }
+        },
         limit: 2000 // arbitrarily high
       },
     }) as { data: { listComments: { items: CommentData[] } } };
@@ -155,5 +161,83 @@ export const deleteExistingComment = async (
   } catch (error) {
     console.error('❌ Failed to delete comment:', error);
     throw error;
+  }
+};
+
+export type CommentSubscriptionEvent = {
+  mutation: 'CREATE' | 'DELETE';
+  comment: CommentData;
+};
+
+/**
+ * Subscribe to comment changes for a given transcription
+ * @param transcriptionId The ID of the transcription to subscribe to
+ * @param onEvent Callback function to handle subscription events
+ * @returns Function to unsubscribe from all comment subscriptions
+ */
+export const subscribeToCommentChanges = (
+  transcriptionId: string,
+  onEvent: (event: CommentSubscriptionEvent) => void
+): (() => void) => {
+  console.log('🔌 Setting up comment subscriptions for transcriptionId:', transcriptionId);
+
+  try {
+    const subscriptions: Array<{ unsubscribe: () => void }> = [];
+
+    // Subscribe to comment creation
+    const createSub = (getClient().graphql({
+      query: onCreateComment,
+      variables: {
+        filter: {
+          transcriptionId: { eq: transcriptionId },
+          _deleted: { ne: true }
+        }
+      }
+    }) as any).subscribe({
+      next: (result: any) => {
+        const comment = result.data?.onCreateComment;
+        if (comment) {
+          console.log('🔌 Comment CREATE subscription event:', comment.id);
+          onEvent({ mutation: 'CREATE', comment });
+        }
+      },
+      error: (error: any) => console.error('Create comment subscription error:', error)
+    });
+
+    // Subscribe to comment deletion
+    const deleteSub = (getClient().graphql({
+      query: onDeleteComment,
+      variables: {
+        filter: {
+          transcriptionId: { eq: transcriptionId }
+        }
+      }
+    }) as any).subscribe({
+      next: (result: any) => {
+        const comment = result.data?.onDeleteComment;
+        if (comment) {
+          console.log('🔌 Comment DELETE subscription event:', comment.id);
+          onEvent({ mutation: 'DELETE', comment });
+        }
+      },
+      error: (error: any) => console.error('Delete comment subscription error:', error)
+    });
+
+    subscriptions.push(createSub, deleteSub);
+
+    // Return unsubscribe function
+    return () => {
+      console.log('🔌 Unsubscribing from comment changes');
+      subscriptions.forEach(sub => {
+        try {
+          sub.unsubscribe();
+        } catch (error) {
+          console.warn('Error unsubscribing from comment subscription:', error);
+        }
+      });
+    };
+  } catch (error) {
+    console.error('🔌 Failed to establish comment subscriptions:', error);
+    return () => {}; // Return no-op function on error
   }
 };

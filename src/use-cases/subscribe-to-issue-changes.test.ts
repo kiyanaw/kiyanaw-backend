@@ -44,6 +44,7 @@ const mockServices = {
     updateIssue: jest.fn(),
     deleteIssue: jest.fn(),
     regionById: jest.fn(),
+    issueById: jest.fn(),
     getIssuesForRegion: jest.fn()
   },
   rteService: {
@@ -240,6 +241,72 @@ describe('SubscribeToIssueChangesUseCase', () => {
 
         expect(mockServices.storeService.updateIssue).not.toHaveBeenCalled();
         expect(mockServices.flashIndicatorService.flashIssue).not.toHaveBeenCalled();
+      });
+
+      it('should not trigger flash for commentCount-only updates', async () => {
+        const currentIssue = { ...mockIssue, commentCount: 5 };
+        const updatedIssue = { ...mockIssue, commentCount: 6 }; // Only commentCount changed
+        
+        mockServices.storeService.issueById.mockReturnValue(currentIssue);
+        mockServices.userService.currentUser.mockReturnValue({ userId: 'other-user' });
+
+        const event = {
+          mutation: 'UPDATE' as const,
+          issue: updatedIssue
+        };
+
+        await subscriptionCallback(event);
+
+        expect(mockServices.flashIndicatorService.flashIssue).not.toHaveBeenCalled();
+        expect(mockServices.storeService.updateIssue).toHaveBeenCalledWith(updatedIssue.id, {
+          text: updatedIssue.text,
+          type: updatedIssue.type,
+          resolved: updatedIssue.resolved,
+          commentCount: updatedIssue.commentCount,
+          ownerFriendly: updatedIssue.ownerFriendly,
+          _version: updatedIssue._version
+        });
+      });
+
+      it('should trigger flash for significant field updates', async () => {
+        const currentIssue = { ...mockIssue, text: 'old text' };
+        const updatedIssue = { ...mockIssue, text: 'new text' }; // Text changed
+        
+        mockServices.storeService.issueById.mockReturnValue(currentIssue);
+        mockServices.userService.currentUser.mockReturnValue({ userId: 'other-user' });
+
+        const event = {
+          mutation: 'UPDATE' as const,
+          issue: updatedIssue
+        };
+
+        await subscriptionCallback(event);
+
+        expect(mockServices.flashIndicatorService.flashIssue).toHaveBeenCalledWith(
+          updatedIssue.id,
+          updatedIssue.regionId,
+          updatedIssue.ownerFriendly
+        );
+      });
+
+      it('should trigger flash when current issue is not found', async () => {
+        const updatedIssue = { ...mockIssue, commentCount: 6 };
+        
+        mockServices.storeService.issueById.mockReturnValue(null); // Issue not found
+        mockServices.userService.currentUser.mockReturnValue({ userId: 'other-user' });
+
+        const event = {
+          mutation: 'UPDATE' as const,
+          issue: updatedIssue
+        };
+
+        await subscriptionCallback(event);
+
+        expect(mockServices.flashIndicatorService.flashIssue).toHaveBeenCalledWith(
+          updatedIssue.id,
+          updatedIssue.regionId,
+          updatedIssue.ownerFriendly
+        );
       });
     });
 

@@ -67,13 +67,10 @@ describe('TextHighlightService', () => {
       expect(result).toBe('<span class="issue-new-word">hello</span> world');
     });
 
-    it('should handle case sensitive matching for issues and case insensitive for known words', () => {
+    it('should handle case insensitive matching', () => {
       const text = 'Hello WORLD';
-      const knownWords = new Set(['hello']); // Known words are still case insensitive
-      const issues: IssueHighlight[] = [
-        { text: 'world', id: 'i1', type: 'indexing' }, // Won't match "WORLD"
-        { text: 'WORLD', id: 'i2', type: 'indexing' }  // Will match "WORLD"
-      ];
+      const knownWords = new Set(['hello']);
+      const issues: IssueHighlight[] = [{ text: 'world', id: 'issue-1', type: 'indexing' }];
       const options: HighlightOptions = { knownWords, issues };
       
       const result = textHighlightService.generateHTMLWithOptions(text, options);
@@ -126,7 +123,7 @@ describe('TextHighlightService', () => {
       expect(result).toBe('hello <span class="issue-indexing">uncommented</span> word');
     });
 
-    it('should highlight full issue text including parentheses and affixes', () => {
+    it('should highlight longest token when issue text contains affix in parentheses', () => {
       const text = 'nitawāpēnākēw awa (ē-)tipinikāsowiht âhpinohk ohtāwiya - ohtāwīpana ēkwa.';
       const issues: IssueHighlight[] = [
         { text: '(ē-)tipinikāsowiht', id: 'i1', type: 'new-word', commentCount: 0 },
@@ -135,37 +132,7 @@ describe('TextHighlightService', () => {
 
       const result = textHighlightService.generateHTMLWithOptions(text, options);
 
-      expect(result).toContain('<span class="issue-new-word">(ē-)tipinikāsowiht</span>');
-    });
-
-    it('should be case sensitive for issue matching', () => {
-      const text = 'Hello world Test';
-      const issues: IssueHighlight[] = [
-        { text: 'hello', id: 'i1', type: 'needs-help' }, // lowercase - should NOT match
-        { text: 'Hello', id: 'i2', type: 'indexing' },   // exact case - should match
-        { text: 'test', id: 'i3', type: 'new-word' },    // lowercase - should NOT match
-        { text: 'Test', id: 'i4', type: 'new-word' }     // exact case - should match
-      ];
-      const options: HighlightOptions = { issues };
-
-      const result = textHighlightService.generateHTMLWithOptions(text, options);
-
-      expect(result).toBe('<span class="issue-indexing">Hello</span> world <span class="issue-new-word">Test</span>');
-    });
-
-    it('should match exact punctuation in issue text', () => {
-      const text = 'paskwāw-okimāw, test word.';
-      const issues: IssueHighlight[] = [
-        { text: 'paskwāw-okimāw,', id: 'i1', type: 'needs-help' }, // with comma - should match
-        { text: 'paskwāw-okimāw', id: 'i2', type: 'indexing' },   // without comma - should NOT match
-        { text: 'word.', id: 'i3', type: 'new-word' },           // with period - should match
-        { text: 'word', id: 'i4', type: 'new-word' }             // without period - should NOT match
-      ];
-      const options: HighlightOptions = { issues };
-
-      const result = textHighlightService.generateHTMLWithOptions(text, options);
-
-      expect(result).toBe('<span class="issue-needs-help">paskwāw-okimāw,</span> test <span class="issue-new-word">word.</span>');
+      expect(result).toContain('(ē-)<span class="issue-new-word">tipinikāsowiht</span>');
     });
   });
 });

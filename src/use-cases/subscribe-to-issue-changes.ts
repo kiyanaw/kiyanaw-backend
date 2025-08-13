@@ -1,5 +1,6 @@
 import { services } from '../services';
 import type { IssueSubscriptionEvent } from '../services/issueService';
+import type { IssueData } from '../services/adt';
 import { issueHighlightService } from '../services/issueHighlightService';
 
 export interface SubscribeToIssueChangesConfig {
@@ -48,8 +49,10 @@ export class SubscribeToIssueChangesUseCase {
 
     console.log(`🔌 Processing remote issue ${mutation} event:`, issue.id);
 
-    // Trigger flash indicator for all remote changes
-    if (issue.owner && issue.regionId) {
+    // Trigger flash indicator for all remote changes, except for commentCount-only updates
+    // (comment changes are handled by comment subscriptions)
+    const shouldFlash = mutation !== 'UPDATE' || this.isSignificantIssueUpdate(issue);
+    if (shouldFlash && issue.owner && issue.regionId) {
       const displayUser = issue.ownerFriendly || issue.owner;
       flashService.flashIssue(issue.id, issue.regionId, displayUser);
     }
@@ -83,6 +86,28 @@ export class SubscribeToIssueChangesUseCase {
       default:
         console.warn('🔌 Unknown issue mutation type:', mutation);
     }
+  }
+
+  /**
+   * Determines if an issue update represents a significant change that should trigger a flash.
+   * Returns false for commentCount-only updates (handled by comment subscriptions).
+   */
+  private isSignificantIssueUpdate(issue: IssueData): boolean {
+    const store = this.config.services.storeService;
+    const currentIssue = store.issueById(issue.id);
+    
+    if (!currentIssue) {
+      // If we don't have the current issue, treat as significant
+      return true;
+    }
+    
+    // Check if only commentCount changed (and possibly _version)
+    const significantFields = ['text', 'type', 'resolved', 'owner', 'ownerFriendly', 'regionId'];
+    const hasSignificantChanges = significantFields.some(field => {
+      return currentIssue[field as keyof IssueData] !== issue[field as keyof IssueData];
+    });
+    
+    return hasSignificantChanges;
   }
 
   /**

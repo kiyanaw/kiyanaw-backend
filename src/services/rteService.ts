@@ -7,7 +7,6 @@ import { textHighlightService, type IssueHighlight, type IssueType } from './tex
 import { useEditorStore } from '../stores/useEditorStore';
 import { issueHighlightService } from './issueHighlightService';
 import { issueMatchingService } from './issueMatchingService';
-import { issueSpanMatcher } from './issueSpanMatcher';
 
 // Quill-related interfaces
 interface QuillModulesConfig extends Record<string, unknown> {
@@ -400,9 +399,48 @@ class RTEServiceImpl {
     instance.quill.off('text-change');
   }
 
-  // Find issue matches in text using exact string matching
+  // Find issue matches in text (similar to findMatches but for issues)
   private findIssueMatches(text: string, issues: IssueHighlight[]) {
-    return issueSpanMatcher.findIssueSpans(text, issues);
+    if (!text || issues.length === 0) {
+      return [];
+    }
+
+    const matches: Array<{ index: number; length: number; id: string; type: IssueType }> = [];
+    const tokenPattern = /([\p{L}\p{N}_-]+)/u;
+    const tokens = text.split(tokenPattern);
+    let currentIndex = 0;
+    
+    // Create issue text lookup for efficient matching
+    // Normalize issue text the same way tokens are created: extract letters/numbers/_/- only
+    const issueTextMap = new Map<string, { id: string; type: IssueType }>();
+    for (const issue of issues) {
+      const normalized = issue.text.trim().toLowerCase();
+      const match = normalized.match(tokenPattern);
+      const key = match ? match[0] : normalized;
+      issueTextMap.set(key, { id: issue.id, type: issue.type });
+    }
+    
+    for (const token of tokens) {
+      if (tokenPattern.test(token)) {
+        const lowerToken = token.trim().toLowerCase();
+        const issueInfo = issueTextMap.get(lowerToken);
+        if (issueInfo) {
+          matches.push({
+            index: currentIndex,
+            length: token.length,
+            id: issueInfo.id,
+            type: issueInfo.type
+          });
+        }
+      }
+      currentIndex += token.length;
+    }
+    
+    // Sort by index for safe RTE formatting
+    return matches.sort((a, b) => {
+      if (a.index !== b.index) return a.index - b.index;
+      return b.length - a.length;
+    });
   }
 
   // Apply known words formatting to editor
@@ -431,7 +469,7 @@ class RTEServiceImpl {
   // Apply issue formatting to editor
   applyIssueFormatting(key: EditorKey, issues: IssueHighlight[]): void {
     const instance = this.registry.get(key);
-    if (!instance) {
+    if (!instance || issues.length === 0) {
       return;
     }
 
@@ -442,11 +480,6 @@ class RTEServiceImpl {
     ['issue-needs-help', 'issue-indexing', 'issue-new-word'].forEach(format => {
       instance.quill.formatText(0, text.length, format, false, 'api');
     });
-
-    // If no issues, we're done (formatting cleared)
-    if (issues.length === 0) {
-      return;
-    }
 
     // Find issue matches
     const matches = this.findIssueMatches(text, issues);

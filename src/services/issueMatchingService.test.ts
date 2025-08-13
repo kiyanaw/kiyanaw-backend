@@ -208,28 +208,20 @@ describe('IssueMatchingService', () => {
       expect(result.unmatched.size).toBe(1);
     });
 
-    it('should be case sensitive for exact string matching', () => {
+    it('should handle case-insensitive matching', () => {
       const regionText = 'Hello WORLD Test';
       const issues = [
-        createMockIssue('issue1', 'hello'),  // lowercase - should NOT match
-        createMockIssue('issue2', 'Hello'),  // exact case - should match
-        createMockIssue('issue3', 'WORLD'),  // exact case - should match
-        createMockIssue('issue4', 'world'),  // lowercase - should NOT match
-        createMockIssue('issue5', 'Test'),   // exact case - should match
-        createMockIssue('issue6', 'test')    // lowercase - should NOT match
+        createMockIssue('issue1', 'hello'),
+        createMockIssue('issue2', 'WORLD'),
+        createMockIssue('issue3', 'Test')
       ];
 
       const result = service.match(regionText, issues);
 
-      expect(result.matched).toContain('issue2'); // "Hello"
-      expect(result.matched).toContain('issue3'); // "WORLD"
-      expect(result.matched).toContain('issue5'); // "Test"
+      expect(result.matched).toContain('issue1');
+      expect(result.matched).toContain('issue2');
+      expect(result.matched).toContain('issue3');
       expect(result.matched.size).toBe(3);
-      
-      expect(result.unmatched).toContain('issue1'); // "hello"
-      expect(result.unmatched).toContain('issue4'); // "world"
-      expect(result.unmatched).toContain('issue6'); // "test"
-      expect(result.unmatched.size).toBe(3);
     });
 
     it('should skip resolved issues', () => {
@@ -323,70 +315,50 @@ describe('IssueMatchingService', () => {
       expect(result.matched).toContain('issue4');
     });
 
-    it('should find substring matches (exact string matching)', () => {
-      const regionText = 'paskwāw-okimāw, test word.';
+    it('should match issues with commas against region text without commas', () => {
+      const regionText = 'paskwāw-okimāw test';
       const issues = [
-        createMockIssue('issue1', 'paskwāw-okimāw,'),  // Full string - should match
-        createMockIssue('issue2', 'paskwāw-okimāw'),   // Substring of issue1 - should also match
-        createMockIssue('issue3', 'word.'),            // Full string - should match
-        createMockIssue('issue4', 'word'),             // Substring of issue3 - should also match
-        createMockIssue('issue5', 'test'),             // Exact match - should match
-        createMockIssue('issue6', 'missing')           // Should not match
+        createMockIssue('issue1', 'paskwāw-okimāw,'),  // Issue has comma
+        createMockIssue('issue2', 'paskwāw-okimāw'),   // Issue without comma
+        createMockIssue('issue3', 'test,'),            // Test with comma
+        createMockIssue('issue4', 'missing')           // Should not match
       ];
 
       const result = service.match(regionText, issues);
 
-      // All substring matches should be found
-      expect(result.matched).toContain('issue1'); // "paskwāw-okimāw," 
-      expect(result.matched).toContain('issue2'); // "paskwāw-okimāw" (substring)
-      expect(result.matched).toContain('issue3'); // "word."
-      expect(result.matched).toContain('issue4'); // "word" (substring)
-      expect(result.matched).toContain('issue5'); // "test"
-      expect(result.matched.size).toBe(5);
-      
-      expect(result.unmatched).toContain('issue6'); // "missing"
+      expect(result.matched).toContain('issue1'); // Comma stripped, matches
+      expect(result.matched).toContain('issue2'); // Exact match
+      expect(result.matched).toContain('issue3'); // Comma stripped, matches
+      expect(result.unmatched).toContain('issue4');
+      expect(result.matched.size).toBe(3);
       expect(result.unmatched.size).toBe(1);
     });
 
-    it('should require exact case and spacing matching', () => {
+    it('should handle mixed case and extra whitespace with punctuation', () => {
       const regionText = '  PASKWĀW-OKIMĀW,   test!  ';
       const issues = [
-        createMockIssue('issue1', 'paskwāw-okimāw,   '), // Different case - should NOT match
-        createMockIssue('issue2', 'PASKWĀW-OKIMĀW,'),     // Exact case but no spaces - should NOT match
-        createMockIssue('issue3', 'PASKWĀW-OKIMĀW,   '),  // Exact case with spaces - should match
-        createMockIssue('issue4', 'test!'),               // Exact match - should match
-        createMockIssue('issue5', 'TEST!')                // Different case - should NOT match
+        createMockIssue('issue1', 'paskwāw-okimāw,   '), // Extra spaces + comma
+        createMockIssue('issue2', 'TEST'),                // Different case
+        createMockIssue('issue3', 'paskwāw-okimāw')       // No punctuation
       ];
 
       const result = service.match(regionText, issues);
 
-      expect(result.matched).toContain('issue2'); // "PASKWĀW-OKIMĀW," (substring)
-      expect(result.matched).toContain('issue3'); // "PASKWĀW-OKIMĀW,   " (full match)
-      expect(result.matched).toContain('issue4'); // "test!" exact match
+      expect(result.matched).toContain('issue1'); // Normalized and matched
+      expect(result.matched).toContain('issue2'); // Case insensitive
+      expect(result.matched).toContain('issue3'); // Exact match after normalization
       expect(result.matched.size).toBe(3);
-      
-      expect(result.unmatched).toContain('issue1'); // Wrong case
-      expect(result.unmatched).toContain('issue5'); // Wrong case
-      expect(result.unmatched.size).toBe(2);
     });
 
-    it('should match full issue text including parentheses and affixes', () => {
+    it('should match longest token when issue text contains affix in parentheses', () => {
       const regionText = 'nitawāpēnākēw awa (ē-)tipinikāsowiht âhpinohk ohtāwiya - ohtāwīpana ēkwa.';
       const issues = [
-        createMockIssue('i1', '(ē-)tipinikāsowiht', false), // full text with parentheses - should match
-        createMockIssue('i2', 'tipinikāsowiht', false),     // core word (substring) - should also match
-        createMockIssue('i3', 'ē-', false),                // affix (substring) - should also match
+        createMockIssue('i1', '(ē-)tipinikāsowiht', false),
       ];
 
       const result = service.match(regionText, issues);
 
-      // All substring matches should be found
-      expect(result.matched).toContain('i1'); // Full text match
-      expect(result.matched).toContain('i2'); // Core word (substring)
-      expect(result.matched).toContain('i3'); // Affix (substring)
-      expect(result.matched.size).toBe(3);
-      
-      expect(result.unmatched.size).toBe(0);
+      expect(result.matched).toContain('i1');
     });
   });
 

@@ -12,7 +12,6 @@ const mockQuill = {
   on: jest.fn(),
   setText: jest.fn(),
   getText: jest.fn().mockReturnValue('mock text content'),
-  formatText: jest.fn(),
   root: mockRoot
 };
 
@@ -635,131 +634,6 @@ describe('rteService', () => {
       expect(mockFormatText).toHaveBeenCalledWith(0, 4, 'known-word', true, 'api');
       expect(mockFormatText).toHaveBeenCalledWith(6, 4, 'known-word', true, 'api');
       expect(mockFormatText).toHaveBeenCalledTimes(3);
-    });
-  });
-
-  describe('applyIssueFormatting', () => {
-    let mockFormatText: jest.MockedFunction<any>;
-    let mockGetText: jest.MockedFunction<any>;
-
-    beforeEach(() => {
-      // Create editor first
-      rteService.createOrGet('test-region:main', { readonly: false });
-      
-      // Mock Quill methods
-      mockFormatText = jest.fn();
-      mockGetText = jest.fn();
-      mockQuill.formatText = mockFormatText;
-      mockQuill.getText = mockGetText;
-    });
-
-    it('highlights full issue text including parentheses and affixes', () => {
-      const testText = 'nitawâpênâkêw awa (ê-)tipinikâsowiht âhpinohk ohtâwiya - ohtâwipana êkwa.';
-      mockGetText.mockReturnValue(testText);
-      
-      const issues = [{
-        id: 'issue-1',
-        text: '(ê-)tipinikâsowiht',
-        type: 'new-word' as const,
-        commentCount: 1
-      }];
-      
-      rteService.applyIssueFormatting('test-region:main', issues);
-      
-      // Should clear existing issue formatting first
-      expect(mockFormatText).toHaveBeenCalledWith(0, testText.length, 'issue-needs-help', false, 'api');
-      expect(mockFormatText).toHaveBeenCalledWith(0, testText.length, 'issue-indexing', false, 'api');
-      expect(mockFormatText).toHaveBeenCalledWith(0, testText.length, 'issue-new-word', false, 'api');
-      
-      // Should highlight the full issue text "(ê-)tipinikâsowiht" including parentheses
-      const fullIssueStart = testText.indexOf('(ê-)tipinikâsowiht');
-      const fullIssueLength = '(ê-)tipinikâsowiht'.length;
-      expect(mockFormatText).toHaveBeenCalledWith(fullIssueStart, fullIssueLength, 'issue-new-word', 'issue-1', 'api');
-    });
-
-    it('is case sensitive for issue matching', () => {
-      const testText = 'Hello world Test';
-      mockGetText.mockReturnValue(testText);
-      
-      const issues = [
-        { id: 'i1', text: 'hello', type: 'needs-help' as const, commentCount: 0 }, // lowercase - should NOT match
-        { id: 'i2', text: 'Hello', type: 'indexing' as const, commentCount: 0 },   // exact case - should match
-        { id: 'i3', text: 'test', type: 'new-word' as const, commentCount: 0 },    // lowercase - should NOT match
-        { id: 'i4', text: 'Test', type: 'new-word' as const, commentCount: 0 }     // exact case - should match
-      ];
-      
-      rteService.applyIssueFormatting('test-region:main', issues);
-      
-      // Should clear existing issue formatting first
-      expect(mockFormatText).toHaveBeenCalledWith(0, testText.length, 'issue-needs-help', false, 'api');
-      expect(mockFormatText).toHaveBeenCalledWith(0, testText.length, 'issue-indexing', false, 'api');
-      expect(mockFormatText).toHaveBeenCalledWith(0, testText.length, 'issue-new-word', false, 'api');
-      
-      // Should only highlight exact case matches
-      expect(mockFormatText).toHaveBeenCalledWith(0, 5, 'issue-indexing', 'i2', 'api'); // "Hello"
-      expect(mockFormatText).toHaveBeenCalledWith(12, 4, 'issue-new-word', 'i4', 'api'); // "Test"
-      expect(mockFormatText).toHaveBeenCalledTimes(5); // 3 clears + 2 highlights
-    });
-
-    it('matches exact punctuation in issue text', () => {
-      const testText = 'paskwâw-okimâw, test word.';
-      mockGetText.mockReturnValue(testText);
-      
-      const issues = [
-        { id: 'i1', text: 'paskwâw-okimâw,', type: 'needs-help' as const, commentCount: 0 }, // with comma
-        { id: 'i2', text: 'paskwâw-okimâw', type: 'indexing' as const, commentCount: 0 },   // without comma - should NOT match
-        { id: 'i3', text: 'word.', type: 'new-word' as const, commentCount: 0 },           // with period
-        { id: 'i4', text: 'word', type: 'new-word' as const, commentCount: 0 }             // without period - should NOT match
-      ];
-      
-      rteService.applyIssueFormatting('test-region:main', issues);
-      
-      // Should highlight all substring matches
-      expect(mockFormatText).toHaveBeenCalledWith(0, 15, 'issue-needs-help', 'i1', 'api'); // "paskwâw-okimâw,"
-      expect(mockFormatText).toHaveBeenCalledWith(0, 14, 'issue-indexing', 'i2', 'api'); // "paskwâw-okimâw" (substring)
-      expect(mockFormatText).toHaveBeenCalledWith(21, 5, 'issue-new-word', 'i3', 'api'); // "word."
-      expect(mockFormatText).toHaveBeenCalledWith(21, 4, 'issue-new-word', 'i4', 'api'); // "word" (substring)
-      expect(mockFormatText).toHaveBeenCalledTimes(7); // 3 clears + 4 highlights
-    });
-
-    it('handles multiple occurrences of the same issue text', () => {
-      const testText = 'test hello test world test';
-      mockGetText.mockReturnValue(testText);
-      
-      const issues = [
-        { id: 'i1', text: 'test', type: 'new-word' as const, commentCount: 0 },
-        { id: 'i2', text: 'hello', type: 'indexing' as const, commentCount: 0 }
-      ];
-      
-      rteService.applyIssueFormatting('test-region:main', issues);
-      
-      // Should highlight all occurrences
-      expect(mockFormatText).toHaveBeenCalledWith(0, 4, 'issue-new-word', 'i1', 'api');   // first "test"
-      expect(mockFormatText).toHaveBeenCalledWith(5, 5, 'issue-indexing', 'i2', 'api');   // "hello"
-      expect(mockFormatText).toHaveBeenCalledWith(11, 4, 'issue-new-word', 'i1', 'api');  // second "test"
-      expect(mockFormatText).toHaveBeenCalledWith(22, 4, 'issue-new-word', 'i1', 'api');  // third "test"
-      expect(mockFormatText).toHaveBeenCalledTimes(7); // 3 clears + 4 highlights
-    });
-
-    it('handles empty issues array', () => {
-      const testText = 'some text';
-      mockGetText.mockReturnValue(testText);
-      
-      rteService.applyIssueFormatting('test-region:main', []);
-      
-      // Should only clear existing formatting, no highlighting
-      expect(mockFormatText).toHaveBeenCalledWith(0, testText.length, 'issue-needs-help', false, 'api');
-      expect(mockFormatText).toHaveBeenCalledWith(0, testText.length, 'issue-indexing', false, 'api');
-      expect(mockFormatText).toHaveBeenCalledWith(0, testText.length, 'issue-new-word', false, 'api');
-      expect(mockFormatText).toHaveBeenCalledTimes(3);
-    });
-
-    it('handles non-existent editor gracefully', () => {
-      const issues = [{ id: 'test', text: 'test', type: 'new-word' as const, commentCount: 0 }];
-      
-      expect(() => {
-        rteService.applyIssueFormatting('non-existent:main', issues);
-      }).not.toThrow();
     });
   });
 

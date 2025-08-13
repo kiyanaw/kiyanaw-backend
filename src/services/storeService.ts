@@ -1,5 +1,5 @@
 import { useEditorStore } from '../stores/useEditorStore';
-import type { RegionData, IssueData } from './adt';
+import type { RegionData, IssueData, CommentData } from './adt';
 import type { ConflictDetail } from './conflictDetectionService';
 import type { LazyRegion } from '../models';
 
@@ -59,6 +59,23 @@ export const storeService = {
 
   getIssuesForRegion: (regionId: string): IssueData[] => {
     return useEditorStore.getState().getIssuesForRegion(regionId);
+  },
+
+  issueById: (issueId: string): IssueData | null => {
+    return useEditorStore.getState().issueById(issueId);
+  },
+
+  // Comment operations for subscription updates
+  addNewComment: (comment: CommentData): void => {
+    useEditorStore.getState().addNewComment(comment);
+  },
+
+  updateComment: (commentId: string, updates: Partial<CommentData>): void => {
+    useEditorStore.getState().updateComment(commentId, updates);
+  },
+
+  deleteComment: (commentId: string): void => {
+    useEditorStore.getState().deleteComment(commentId);
   },
 
   // Version operations
