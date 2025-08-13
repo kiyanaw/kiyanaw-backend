@@ -21,7 +21,7 @@ export class DeleteIssueUseCase {
     try {
       // Get the issue and its version before deleting it
       const store = useEditorStore.getState();
-      const issue = store.issues.find(i => i.id === this.config.issueId);
+      const issue = store.issueById(this.config.issueId);
       if (!issue) {
         throw new Error(`Issue with ID ${this.config.issueId} not found`);
       }
