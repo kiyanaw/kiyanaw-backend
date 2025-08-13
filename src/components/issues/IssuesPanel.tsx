@@ -296,7 +296,11 @@ const IssueListItem: React.FC<IssueListItemProps> = ({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                onDeleteIssue(issue.id);
+                // Confirm before deleting
+                const confirmed = window.confirm('Are you sure you want to delete this issue? This action cannot be undone.');
+                if (confirmed) {
+                  onDeleteIssue(issue.id);
+                }
               }}
               className="ml-1 p-1.5 rounded-md border bg-red-50 border-red-200 text-red-600 hover:bg-red-100 hover:border-red-300 hover:text-red-700 transition-all duration-200"
               title="Delete issue"
