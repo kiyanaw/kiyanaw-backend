@@ -224,17 +224,16 @@ export const TranscriptionsList = () => {
                 style={{ width: `${(transcription.coverage || 0) * 100}%` }}
               />
 
-              <div className="p-4 sm:p-6">
-                <div className="flex gap-4">
-                  {/* Left rail: media type icon (audio/video) */}
-                  <div className="w-8 sm:w-10 flex items-start justify-center pt-1">
-                    {transcription.isVideo ? (
-                      <Video className="w-6 h-6 text-gray-500" />
-                    ) : (
-                      <FileAudio className="w-6 h-6 text-gray-500" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
+              <div className="flex">
+                {/* Left rail: media type icon (audio/video) - full height background */}
+                <div className="w-32 bg-gray-100 flex items-center justify-center rounded-l-lg">
+                  {transcription.isVideo ? (
+                    <Video className="w-6 h-6 text-gray-500" />
+                  ) : (
+                    <FileAudio className="w-6 h-6 text-gray-500" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0 p-3 sm:p-4">
                 {/* Top Row: Title + Issues */}
                     <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-2">
@@ -294,29 +293,30 @@ export const TranscriptionsList = () => {
                       by {transcription.getOwnerDisplay(user?.userId)}
                     </div>
 
-                    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-                      <span className="inline-flex items-center px-2 py-1 rounded bg-gray-100 text-gray-800">
-                        {transcription.lengthFriendly}
-                      </span>
-                      {/* Discoverable / Private lock icon */}
-                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-100 text-gray-800" title={!transcription.isPrivate ? 'Discoverable' : 'Private'}>
-                        {transcription.isPrivate ? (
-                          <Lock className="w-3 h-3 text-gray-500" />
-                        ) : (
-                          <LockOpen className="w-3 h-3 text-green-600" />
-                        )}
-                        {!transcription.isPrivate ? 'Discoverable' : 'Private'}
-                      </span>
-                    </div>
-
-                    {/* Last Edited */}
-                    <div className="mt-3 text-xs text-gray-500 text-right">
-                      <div>Coverage {Math.round((transcription.coverage || 0) * 100)}%</div>
-                      <div>{formatTimeAgo(transcription.dateLastUpdated)} • by {transcription.getLastEditorDisplay(user?.username)}</div>
+                    {/* Meta info row - more compact */}
+                    <div className="mt-5 flex items-center justify-between text-xs">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="inline-flex items-center px-2 py-1 rounded bg-gray-100 text-gray-800">
+                          {transcription.lengthFriendly}
+                        </span>
+                        {/* Discoverable / Private lock icon */}
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-100 text-gray-800" title={!transcription.isPrivate ? 'Discoverable' : 'Private'}>
+                          {transcription.isPrivate ? (
+                            <Lock className="w-3 h-3 text-gray-500" />
+                          ) : (
+                            <LockOpen className="w-3 h-3 text-green-600" />
+                          )}
+                          {!transcription.isPrivate ? 'Discoverable' : 'Private'}
+                        </span>
+                      </div>
+                      
+                      {/* Right side: Coverage and last edited on same line */}
+                      <div className="text-gray-500 text-right">
+                        <div>Coverage {Math.round((transcription.coverage || 0) * 100)}% • {formatTimeAgo(transcription.dateLastUpdated)} • by {transcription.getLastEditorDisplay(user?.username)}</div>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
             </div>
           ))}
         </div>
