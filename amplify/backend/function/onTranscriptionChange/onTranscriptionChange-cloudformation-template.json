@@ -23,10 +23,6 @@
     "apikiyanawGraphQLAPIEndpointOutput": {
       "Type": "String",
       "Default": "apikiyanawGraphQLAPIEndpointOutput"
-    },
-    "storagetranscriptionsBucketName": {
-      "Type": "String",
-      "Default": "storagetranscriptionsBucketName"
     }
   },
   "Conditions": {
@@ -111,8 +107,60 @@
             "OPENSEARCH_ENDPOINT": {
               "Fn::ImportValue": "kiyanaw-opensearch-domain-endpoint"
             },
-            "STORAGE_TRANSCRIPTIONS_BUCKETNAME": {
-              "Ref": "storagetranscriptionsBucketName"
+            "API_KIYANAW_GRAPHQLAPIIDOUTPUT": {
+              "Ref": "apikiyanawGraphQLAPIIdOutput"
+            },
+            "API_KIYANAW_REGIONTABLE_NAME": {
+              "Fn::ImportValue": {
+                "Fn::Sub": "${apikiyanawGraphQLAPIIdOutput}:GetAtt:RegionTable:Name"
+              }
+            },
+            "API_KIYANAW_REGIONTABLE_ARN": {
+              "Fn::Join": [
+                "",
+                [
+                  "arn:aws:dynamodb:",
+                  {
+                    "Ref": "AWS::Region"
+                  },
+                  ":",
+                  {
+                    "Ref": "AWS::AccountId"
+                  },
+                  ":table/",
+                  {
+                    "Fn::ImportValue": {
+                      "Fn::Sub": "${apikiyanawGraphQLAPIIdOutput}:GetAtt:RegionTable:Name"
+                    }
+                  }
+                ]
+              ]
+            },
+            "API_KIYANAW_ISSUETABLE_NAME": {
+              "Fn::ImportValue": {
+                "Fn::Sub": "${apikiyanawGraphQLAPIIdOutput}:GetAtt:IssueTable:Name"
+              }
+            },
+            "API_KIYANAW_ISSUETABLE_ARN": {
+              "Fn::Join": [
+                "",
+                [
+                  "arn:aws:dynamodb:",
+                  {
+                    "Ref": "AWS::Region"
+                  },
+                  ":",
+                  {
+                    "Ref": "AWS::AccountId"
+                  },
+                  ":table/",
+                  {
+                    "Fn::ImportValue": {
+                      "Fn::Sub": "${apikiyanawGraphQLAPIIdOutput}:GetAtt:IssueTable:Name"
+                    }
+                  }
+                ]
+              ]
             }
           }
         },
@@ -338,16 +386,56 @@
           "Statement": [
             {
               "Effect": "Allow",
-              "Action": "s3:ListBucket",
+              "Action": [
+                "dynamodb:Get*",
+                "dynamodb:BatchGetItem",
+                "dynamodb:List*",
+                "dynamodb:Describe*",
+                "dynamodb:Scan",
+                "dynamodb:Query",
+                "dynamodb:PartiQLSelect"
+              ],
               "Resource": [
                 {
                   "Fn::Join": [
                     "",
                     [
-                      "arn:aws:s3:::",
+                      "arn:aws:dynamodb:",
                       {
-                        "Ref": "storagetranscriptionsBucketName"
+                        "Ref": "AWS::Region"
+                      },
+                      ":",
+                      {
+                        "Ref": "AWS::AccountId"
+                      },
+                      ":table/",
+                      {
+                        "Fn::ImportValue": {
+                          "Fn::Sub": "${apikiyanawGraphQLAPIIdOutput}:GetAtt:TranscriptionTable:Name"
+                        }
                       }
+                    ]
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:aws:dynamodb:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":",
+                      {
+                        "Ref": "AWS::AccountId"
+                      },
+                      ":table/",
+                      {
+                        "Fn::ImportValue": {
+                          "Fn::Sub": "${apikiyanawGraphQLAPIIdOutput}:GetAtt:TranscriptionTable:Name"
+                        }
+                      },
+                      "/index/*"
                     ]
                   ]
                 }
@@ -356,20 +444,112 @@
             {
               "Effect": "Allow",
               "Action": [
-                "s3:GetObject",
-                "s3:PutObject",
-                "s3:DeleteObject"
+                "dynamodb:Get*",
+                "dynamodb:BatchGetItem",
+                "dynamodb:List*",
+                "dynamodb:Describe*",
+                "dynamodb:Scan",
+                "dynamodb:Query",
+                "dynamodb:PartiQLSelect"
               ],
               "Resource": [
                 {
                   "Fn::Join": [
                     "",
                     [
-                      "arn:aws:s3:::",
+                      "arn:aws:dynamodb:",
                       {
-                        "Ref": "storagetranscriptionsBucketName"
+                        "Ref": "AWS::Region"
                       },
-                      "/*"
+                      ":",
+                      {
+                        "Ref": "AWS::AccountId"
+                      },
+                      ":table/",
+                      {
+                        "Fn::ImportValue": {
+                          "Fn::Sub": "${apikiyanawGraphQLAPIIdOutput}:GetAtt:RegionTable:Name"
+                        }
+                      }
+                    ]
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:aws:dynamodb:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":",
+                      {
+                        "Ref": "AWS::AccountId"
+                      },
+                      ":table/",
+                      {
+                        "Fn::ImportValue": {
+                          "Fn::Sub": "${apikiyanawGraphQLAPIIdOutput}:GetAtt:RegionTable:Name"
+                        }
+                      },
+                      "/index/*"
+                    ]
+                  ]
+                }
+              ]
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "dynamodb:Get*",
+                "dynamodb:BatchGetItem",
+                "dynamodb:List*",
+                "dynamodb:Describe*",
+                "dynamodb:Scan",
+                "dynamodb:Query",
+                "dynamodb:PartiQLSelect"
+              ],
+              "Resource": [
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:aws:dynamodb:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":",
+                      {
+                        "Ref": "AWS::AccountId"
+                      },
+                      ":table/",
+                      {
+                        "Fn::ImportValue": {
+                          "Fn::Sub": "${apikiyanawGraphQLAPIIdOutput}:GetAtt:IssueTable:Name"
+                        }
+                      }
+                    ]
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:aws:dynamodb:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":",
+                      {
+                        "Ref": "AWS::AccountId"
+                      },
+                      ":table/",
+                      {
+                        "Fn::ImportValue": {
+                          "Fn::Sub": "${apikiyanawGraphQLAPIIdOutput}:GetAtt:IssueTable:Name"
+                        }
+                      },
+                      "/index/*"
                     ]
                   ]
                 }

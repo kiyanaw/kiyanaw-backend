@@ -149,7 +149,7 @@ describe('onTranscriptionChange handler()', function () {
     assert.equal(searchStub.args[0][0], 'transcription-123')
   })
 
-  it('should handle lang change to valid value by re-enqueueing regions', async function () {
+  it('should handle lang change to valid value when public by re-enqueueing regions', async function () {
     const queryStub = sinon.stub(dynamo, 'query').resolves({
       Items: [
         { id: 'region-1' },
@@ -192,6 +192,35 @@ describe('onTranscriptionChange handler()', function () {
     })
     
     assert.ok(mockSendMessageBatch.called)
+  })
+
+  it('should not enqueue regions when lang changes to valid value but transcription is private', async function () {
+    const queryStub = sinon.stub(dynamo, 'query')
+    
+    const event = {
+      Records: [{
+        eventID: 'test-event-id',
+        eventName: 'MODIFY',
+        dynamodb: {
+          OldImage: AWS.DynamoDB.Converter.marshall({
+            id: 'transcription-123',
+            isPrivate: true,
+            lang: null
+          }),
+          NewImage: AWS.DynamoDB.Converter.marshall({
+            id: 'transcription-123',
+            isPrivate: true,
+            lang: 'crk'
+          })
+        }
+      }]
+    }
+
+    const result = await handler(event)
+
+    assert.equal(result.body, '{"message": "ok"}')
+    assert.ok(!queryStub.called)
+    assert.ok(!mockSendMessageBatch.called)
   })
 
   it('should handle isPrivate changing to false by re-enqueueing regions', async function () {

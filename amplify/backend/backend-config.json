@@ -262,10 +262,10 @@
       "dependsOn": [
         {
           "attributes": [
-            "BucketName"
+            "GraphQLAPIIdOutput"
           ],
-          "category": "storage",
-          "resourceName": "transcriptions"
+          "category": "api",
+          "resourceName": "kiyanaw"
         }
       ],
       "providerPlugin": "awscloudformation",
@@ -436,6 +436,22 @@
         {
           "category": "function",
           "resourceName": "notifyRegionChanges"
+        }
+      ]
+    },
+    "AMPLIFY_function_onTranscriptionChange_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "onTranscriptionChange"
+        }
+      ]
+    },
+    "AMPLIFY_function_onTranscriptionChange_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "onTranscriptionChange"
         }
       ]
     }

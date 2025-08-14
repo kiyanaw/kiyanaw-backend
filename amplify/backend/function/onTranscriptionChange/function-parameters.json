@@ -1,12 +1,13 @@
 {
   "permissions": {
     "storage": {
-      "transcriptions": [
-        "read",
-        "update",
-        "delete"
+      "Transcription:@model(appsync)": [
+        "read"
       ],
       "Region:@model(appsync)": [
+        "read"
+      ],
+      "Issue:@model(appsync)": [
         "read"
       ]
     }

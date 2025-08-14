@@ -1,15 +1,17 @@
 /* Amplify Params - DO NOT EDIT
+	API_KIYANAW_GRAPHQLAPIIDOUTPUT
+	API_KIYANAW_ISSUETABLE_ARN
+	API_KIYANAW_ISSUETABLE_NAME
+	API_KIYANAW_REGIONTABLE_ARN
+	API_KIYANAW_REGIONTABLE_NAME
+	API_KIYANAW_TRANSCRIPTIONTABLE_ARN
+	API_KIYANAW_TRANSCRIPTIONTABLE_NAME
 	ENV
 	REGION
-	STORAGE_TRANSCRIPTIONS_BUCKETNAME
 Amplify Params - DO NOT EDIT */
 
 /* Also (added manually): 
   OPENSEARCH_ENDPOINT
-  API_KIYANAW_TRANSCRIPTIONTABLE_NAME
-  API_KIYANAW_TRANSCRIPTIONTABLE_ARN
-  API_KIYANAW_REGIONTABLE_NAME
-  API_KIYANAW_REGIONTABLE_ARN
 */
 
 const AWS = require('aws-sdk')
@@ -169,9 +171,9 @@ exports.handler = async (event) => {
         continue
       }
       
-      // Case 4: lang changed to valid value - re-enqueue all regions
-      if (oldLang !== newLang && isValidLang(newLang)) {
-        console.log('Language changed to valid value - re-enqueueing all regions')
+      // Case 4: lang changed to valid value AND transcription is public - re-enqueue all regions
+      if (oldLang !== newLang && isValidLang(newLang) && !newIsPrivate) {
+        console.log('Language changed to valid value and transcription is public - re-enqueueing all regions')
         const regionIds = await getRegionIdsForTranscription(transcriptionId)
         await bulkEnqueueRegions(regionIds)
         continue
