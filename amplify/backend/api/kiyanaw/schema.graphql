@@ -32,6 +32,7 @@ type Transcription
   type: String!
   isPrivate: Boolean
   isPublished: Boolean
+  publicIssues: Boolean
   disableAnalyzer: Boolean # deprecated field, use `lang`
   # ACL fields (no field-level auth, handled in custom resolvers)
   editors: [String]

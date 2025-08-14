@@ -17,4 +17,26 @@ async function getDoc(params) {
   })
 }
 
-module.exports = { getDoc }
+async function query(params) {
+  return new Promise((resolve, reject) => {
+    docClient.query(params, (err, data) => {
+      if (err) {
+        reject(err)
+      }
+      resolve(data)
+    })
+  })
+}
+
+async function scan(params) {
+  return new Promise((resolve, reject) => {
+    docClient.scan(params, (err, data) => {
+      if (err) {
+        reject(err)
+      }
+      resolve(data)
+    })
+  })
+}
+
+module.exports = { getDoc, query, scan }
