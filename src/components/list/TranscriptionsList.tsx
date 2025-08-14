@@ -21,7 +21,6 @@ const sortOptions: SortOption[] = [
   { key: 'title', label: 'Title' },
   { key: 'author', label: 'Owner' },
   { key: 'coverage', label: 'Coverage' },
-  { key: 'length', label: 'Length' },
   { key: 'issues', label: 'Issues' },
 ];
 
@@ -158,16 +157,43 @@ export const TranscriptionsList = () => {
                 }}
                 className="appearance-none bg-white border border-gray-300 rounded-md px-4 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-ki-blue focus:border-transparent"
               >
-                {sortOptions.map((option) => (
-                  <optgroup key={option.key} label={option.label}>
-                    <option value={`${option.key}-desc`}>
-                      {option.label} (newest first)
-                    </option>
-                    <option value={`${option.key}-asc`}>
-                      {option.label} (oldest first)
-                    </option>
-                  </optgroup>
-                ))}
+                {sortOptions.map((option) => {
+                  // Define appropriate labels for each sort type
+                  let descLabel, ascLabel;
+                  switch (option.key) {
+                    case 'dateLastUpdated':
+                      descLabel = 'Latest';
+                      ascLabel = 'Oldest';
+                      break;
+                    case 'title':
+                    case 'author':
+                      descLabel = 'Z→A';
+                      ascLabel = 'A→Z';
+                      break;
+                    case 'coverage':
+                      descLabel = 'Highest';
+                      ascLabel = 'Lowest';
+                      break;
+                    case 'issues':
+                      descLabel = 'Most';
+                      ascLabel = 'Fewest';
+                      break;
+                    default:
+                      descLabel = `${option.label} (high to low)`;
+                      ascLabel = `${option.label} (low to high)`;
+                  }
+                  
+                  return (
+                    <optgroup key={option.key} label={option.label}>
+                      <option value={`${option.key}-desc`}>
+                        {descLabel}
+                      </option>
+                      <option value={`${option.key}-asc`}>
+                        {ascLabel}
+                      </option>
+                    </optgroup>
+                  );
+                })}
               </select>
               <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
             </div>
@@ -292,7 +318,7 @@ export const TranscriptionsList = () => {
 
                     {/* Last Edited */}
                     <div className="mt-3 text-xs text-gray-500 text-right">
-                      <div>{Math.round((transcription.coverage || 0) * 100)}%</div>
+                      <div>Coverage {Math.round((transcription.coverage || 0) * 100)}%</div>
                       <div>{formatTimeAgo(transcription.dateLastUpdated)} • by {transcription.getLastEditorDisplay(user?.username)}</div>
                     </div>
                   </div>
