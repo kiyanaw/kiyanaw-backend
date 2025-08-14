@@ -113,13 +113,20 @@ export const InvitationsPage = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">My Invitations</h1>
-        <p className="text-gray-600">
-          Manage your invitations.
-        </p>
+    <div className="fixed inset-0 flex flex-col bg-gray-50">
+      {/* Fixed Header */}
+      <div className="flex-shrink-0 bg-white border-b border-gray-200 px-4 py-6">
+        <div className="container mx-auto">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">My Invitations</h1>
+          <p className="text-gray-600">
+            Manage your invitations.
+          </p>
+        </div>
       </div>
+
+      {/* Scrollable Content Area */}
+      <div className="flex-1 min-h-0 overflow-auto">
+        <div className="container mx-auto px-4 py-8">
 
       {invites.length === 0 ? (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
@@ -210,6 +217,9 @@ export const InvitationsPage = () => {
           </div>
         </div>
       )}
+
+        </div>
+      </div>
 
       {/* Invite Dialog */}
       {inviteId && (
