@@ -2,7 +2,7 @@
 import { generateClient } from 'aws-amplify/api';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - generated JS GraphQL
-import { listRegions } from '../graphql/queries.js';
+import { regionsByTranscription } from '../graphql/queries.js';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - generated JS GraphQL
 import { createRegion as createRegionMutation, updateRegion as updateRegionMutation, deleteRegion as deleteRegionMutation } from '../graphql/mutations.js';
@@ -24,6 +24,7 @@ import { type RegionData } from './adt';
 import { 
   type GraphQLClient,
   type ListRegionsResponse,
+  type RegionsByTranscriptionResponse,
   type GetRegionResponse,
   type CreateRegionResponse,
   type RegionUpdateInput
@@ -49,20 +50,21 @@ export const __resetClient = () => {
  * @returns Processed and sorted regions
  */
 export const loadRegionsForTranscription = async (transcriptionId: string) => {
-  // GraphQL filter: transcriptionId eq
+  // Use regionsByTranscription query which is more efficient for this use case
   const { data } = await getClient().graphql({
-    query: listRegions,
+    query: regionsByTranscription,
     variables: {
+      transcriptionId,
       filter: { 
-        transcriptionId: { eq: transcriptionId },
         _deleted: { ne: true }
-
       },
       limit: 2000 // arbitrarily high
     }
-  }) as ListRegionsResponse;
+  }) as RegionsByTranscriptionResponse;
 
-  const items = data?.listRegions?.items ?? [];
+  console.log('region data', data)
+
+  const items = data?.regionsByTranscription?.items ?? [];
 
   // Sort and map to RegionModel
   const regions = items
