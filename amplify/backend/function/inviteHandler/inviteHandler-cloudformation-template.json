@@ -20,10 +20,10 @@
       "Type": "String",
       "Default": "apikiyanawGraphQLAPIIdOutput"
     },
-    "SESFromEmailAddress": {
+    "custominviteHandlerSESSESFromEmailAddress": {
       "Type": "String"
     },
-    "SESEmailIdentityArn": {
+    "custominviteHandlerSESSESEmailIdentityArn": {
       "Type": "String"
     }
   },
@@ -136,10 +136,10 @@
               ]
             },
             "SES_FROM_EMAIL": {
-              "Ref": "SESFromEmailAddress"
+              "Ref": "custominviteHandlerSESSESFromEmailAddress"
             },
             "SES_EMAIL_IDENTITY_ARN": {
-              "Ref": "SESEmailIdentityArn"
+              "Ref": "custominviteHandlerSESSESEmailIdentityArn"
             }
           }
         },
