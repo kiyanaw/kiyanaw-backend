@@ -5,9 +5,9 @@ import { listIssues } from '../graphql/queries.js';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - GraphQL mutations are generated as JS files
 import { createIssue, updateIssue, deleteIssue } from '../graphql/mutations.js';
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // DO NOT MODIFY THIS NEXT IMPORT
-// @ts-ignore - GraphQL subscriptions are generated as JS files
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-expect-error - GraphQL subscriptions are generated as JS files
 import { onCreateIssue, onUpdateIssue, onDeleteIssue } from '../graphql/subscriptions.js';
 import type { IssueData } from './adt';
 
