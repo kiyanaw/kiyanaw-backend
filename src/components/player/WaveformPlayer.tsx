@@ -1,5 +1,5 @@
 import { useRef, useCallback, useState } from 'react';
-import { Play, Pause, ZoomIn, Gauge, Loader2, Settings, ArrowLeft, Circle, ArrowRight, Minimize2, Maximize2 } from 'lucide-react';
+import { Play, Pause, ZoomIn, Gauge, Loader2, Settings, ArrowLeft, Circle, ArrowRight, Minimize2, Maximize2, ChevronDown } from 'lucide-react';
 import { wavesurferService } from '../../services/wavesurferService';
 import { usePlayerStore } from '../../stores/usePlayerStore';
 import { usePlay } from '../../hooks/usePlay';
@@ -41,6 +41,7 @@ export const WaveformPlayer = ({
   const [isVideoHovered, setIsVideoHovered] = useState(false);
   const [videoPosition, setVideoPosition] = useState<'left' | 'center' | 'right'>('right');
   const [videoSize, setVideoSize] = useState<'small' | 'big'>('small');
+  const [isMinimized, setIsMinimized] = useState(false);
   const [videoNaturalSize, setVideoNaturalSize] = useState<{ width: number; height: number } | null>(null);
   
   const isPlaying = usePlayerStore((state) => state.playing)
@@ -148,11 +149,15 @@ export const WaveformPlayer = ({
         break;
     }
 
-    return `fixed ${positionClasses} ${sizeClasses} z-40 rounded group`;
+    const minimizedClasses = isMinimized ? 'left-1/2 -translate-x-1/2 bottom-2 w-auto max-w-none' : '';
+    return `fixed ${positionClasses} ${sizeClasses} ${minimizedClasses} z-40 rounded group`;
   };
 
   // Compute container sizing style based on aspect ratio and selected size
   const getVideoContainerStyle = (): React.CSSProperties => {
+    if (isMinimized) {
+      return { width: 'auto', height: 'auto' } as React.CSSProperties;
+    }
     const vw = typeof window !== 'undefined' ? window.innerWidth : 1280;
     const isPortrait = videoNaturalSize ? videoNaturalSize.height >= videoNaturalSize.width : false;
 
@@ -270,7 +275,7 @@ export const WaveformPlayer = ({
         {/* Video Element with Hover Controls */}
         {isVideo && (
           <div 
-            className={getVideoContainerClasses()}
+            className={`${getVideoContainerClasses()} ${isMinimized ? 'hidden' : ''}`}
             style={getVideoContainerStyle()}
             onMouseEnter={() => setIsVideoHovered(true)}
             onMouseLeave={() => setIsVideoHovered(false)}
@@ -328,7 +333,7 @@ export const WaveformPlayer = ({
               </button>
             </div>
 
-            {/* Size Controls - Upper Right */}
+            {/* Size & Minimize Controls - Upper Right */}
             <div 
               className={`absolute top-2 right-2 flex bg-black bg-opacity-50 rounded transition-opacity duration-200 ${
                 isVideoHovered ? 'opacity-100' : 'opacity-0'
@@ -347,7 +352,7 @@ export const WaveformPlayer = ({
               </button>
               <button 
                 onClick={() => handleVideoSize('big')}
-                className={`p-1.5 transition-all border-l border-white border-opacity-30 rounded-r ${
+                className={`p-1.5 transition-all border-l border-white border-opacity-30 ${
                   videoSize === 'big' 
                     ? 'text-gray-900 bg-white bg-opacity-80' 
                     : 'text-white hover:text-gray-900 hover:bg-white hover:bg-opacity-80'
@@ -356,7 +361,26 @@ export const WaveformPlayer = ({
               >
                 <Maximize2 size={14} />
               </button>
+              <button 
+                onClick={() => setIsMinimized(true)}
+                className="p-1.5 transition-all border-l border-white border-opacity-30 rounded-r text-white hover:text-gray-900 hover:bg-white hover:bg-opacity-80"
+                title="Minimize"
+              >
+                <ChevronDown size={14} />
+              </button>
             </div>
+          </div>
+        )}
+        {/* Minimized tab */}
+        {isVideo && isMinimized && (
+          <div className="fixed bottom-4 right-4 z-40">
+            <button
+              onClick={() => setIsMinimized(false)}
+              className="px-2 py-1 text-xs rounded shadow-lg bg-gray-800 text-white hover:bg-gray-700 transition-colors"
+              title="Restore video"
+            >
+              Video
+            </button>
           </div>
         )}
       </div>
