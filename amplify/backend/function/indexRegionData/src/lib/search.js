@@ -8,15 +8,26 @@ const { client } = require('./es')
 const clearKnownWordsForRegion = async (regionId) => {
   const indexName = `knownwords-${process.env.ENV}`
   console.log('Clearing out region items for ', regionId, 'in index', indexName)
-  const deleted = await client.deleteByQuery({
-    index: indexName,
-    body: {
-      query: {
-        match: { regionId: regionId },
+  
+  try {
+    const deleted = await client.deleteByQuery({
+      index: indexName,
+      body: {
+        query: {
+          match: { regionId: regionId },
+        },
       },
-    },
-  })
-  return deleted
+    })
+    return deleted
+  } catch (error) {
+    // Handle index not found error gracefully - this happens on first run
+    if (error.meta?.statusCode === 404 && error.meta?.body?.error?.type === 'index_not_found_exception') {
+      console.log(`ℹ️ Index ${indexName} doesn't exist yet - will be created on first indexing operation`)
+      return { deleted: 0 }
+    }
+    // Re-throw other errors
+    throw error
+  }
 }
 
 const indexRegionAnalysis = async (region, transcription) => {
@@ -147,15 +158,26 @@ const indexRegionAnalysis = async (region, transcription) => {
 const clearIssuesForRegion = async (regionId) => {
   const indexName = `issues-${process.env.ENV}`
   console.log('Clearing out issue items for region', regionId, 'in index', indexName)
-  const deleted = await client.deleteByQuery({
-    index: indexName,
-    body: {
-      query: {
-        match: { regionId: regionId },
+  
+  try {
+    const deleted = await client.deleteByQuery({
+      index: indexName,
+      body: {
+        query: {
+          match: { regionId: regionId },
+        },
       },
-    },
-  })
-  return deleted
+    })
+    return deleted
+  } catch (error) {
+    // Handle index not found error gracefully - this happens on first run
+    if (error.meta?.statusCode === 404 && error.meta?.body?.error?.type === 'index_not_found_exception') {
+      console.log(`ℹ️ Index ${indexName} doesn't exist yet - will be created on first indexing operation`)
+      return { deleted: 0 }
+    }
+    // Re-throw other errors
+    throw error
+  }
 }
 
 const indexIssuesForRegion = async (issues, region, transcription) => {

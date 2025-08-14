@@ -15,6 +15,7 @@ describe('search.clearKnownWordsForRegion()', function () {
   })
   
   afterEach(function () {
+    sinon.restore()
     delete process.env.ENV
   })
   
@@ -35,6 +36,84 @@ describe('search.clearKnownWordsForRegion()', function () {
     })
 
     assert.equal(response, 'whatever')
+  })
+
+  it('should handle index not found error gracefully', async function () {
+    const error = new Error('Index not found')
+    error.meta = {
+      statusCode: 404,
+      body: {
+        error: {
+          type: 'index_not_found_exception'
+        }
+      }
+    }
+    const deleteStub = sinon.stub(client, 'deleteByQuery').rejects(error)
+
+    const response = await search.clearKnownWordsForRegion('some-region-id')
+
+    assert.ok(deleteStub.called)
+    assert.equal(response.deleted, 0)
+  })
+
+  it('should re-throw non-404 errors', async function () {
+    const error = new Error('Some other error')
+    error.meta = { statusCode: 500 }
+    const deleteStub = sinon.stub(client, 'deleteByQuery').rejects(error)
+
+    try {
+      await search.clearKnownWordsForRegion('some-region-id')
+      assert.fail('Should have thrown error')
+    } catch (err) {
+      assert.equal(err.message, 'Some other error')
+    }
+  })
+})
+
+describe('search.clearIssuesForRegion()', function () {
+  beforeEach(function () {
+    // Set up environment variable for tests
+    process.env.ENV = 'test'
+  })
+  
+  afterEach(function () {
+    sinon.restore()
+    delete process.env.ENV
+  })
+  
+  it('should run a delete query for region issues', async function () {
+    const deleteStub = sinon.stub(client, 'deleteByQuery').resolves({ deleted: 3 })
+
+    const response = await search.clearIssuesForRegion('some-region-id')
+
+    assert.ok(deleteStub.called)
+    assert.deepEqual(deleteStub.args[0][0], {
+      index: 'issues-test',
+      body: {
+        query: {
+          match: { regionId: 'some-region-id' },
+        },
+      },
+    })
+    assert.equal(response.deleted, 3)
+  })
+
+  it('should handle index not found error gracefully for issues', async function () {
+    const error = new Error('Index not found')
+    error.meta = {
+      statusCode: 404,
+      body: {
+        error: {
+          type: 'index_not_found_exception'
+        }
+      }
+    }
+    const deleteStub = sinon.stub(client, 'deleteByQuery').rejects(error)
+
+    const response = await search.clearIssuesForRegion('some-region-id')
+
+    assert.ok(deleteStub.called)
+    assert.equal(response.deleted, 0)
   })
 })
 
