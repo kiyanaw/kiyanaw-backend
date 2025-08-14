@@ -7,7 +7,7 @@ import { listIssues } from '../graphql/queries.js';
 import { createIssue, updateIssue, deleteIssue } from '../graphql/mutations.js';
 // DO NOT MODIFY THIS NEXT IMPORT
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-expect-error - GraphQL subscriptions are generated as JS files
+// @ts-ignore - GraphQL subscriptions are generated as JS files
 import { onCreateIssue, onUpdateIssue, onDeleteIssue } from '../graphql/subscriptions.js';
 import type { IssueData } from './adt';
 
