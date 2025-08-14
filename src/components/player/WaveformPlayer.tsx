@@ -41,6 +41,7 @@ export const WaveformPlayer = ({
   const [isVideoHovered, setIsVideoHovered] = useState(false);
   const [videoPosition, setVideoPosition] = useState<'left' | 'center' | 'right'>('right');
   const [videoSize, setVideoSize] = useState<'small' | 'big'>('small');
+  const [videoNaturalSize, setVideoNaturalSize] = useState<{ width: number; height: number } | null>(null);
   
   const isPlaying = usePlayerStore((state) => state.playing)
   const loadedAndReady = usePlayerStore((state) => state.loadedAndReady)
@@ -73,6 +74,18 @@ export const WaveformPlayer = ({
   const setVideoElement = useCallback((node: HTMLVideoElement | null) => {
     videoRef.current = node;
     if (node) {
+      const setDims = () => {
+        try {
+          setVideoNaturalSize({ width: node.videoWidth || 0, height: node.videoHeight || 0 });
+        } catch {
+          /* noop */
+        }
+      };
+      if (node.readyState >= 1) {
+        setDims();
+      } else {
+        node.addEventListener('loadedmetadata', setDims, { once: true });
+      }
       // Reinitialize WaveSurfer now that we have the video element
       initializeWaveSurfer();
     }
@@ -106,7 +119,7 @@ export const WaveformPlayer = ({
     setVideoSize(size);
   };
 
-  // Calculate video container classes based on position and size
+  // Calculate video container classes based on position
   const getVideoContainerClasses = () => {
     let positionClasses = '';
     let sizeClasses = '';
@@ -125,17 +138,33 @@ export const WaveformPlayer = ({
         break;
     }
 
-    // Size classes - default (small) is 25% bigger, big is more reasonable
+    // Keep minimal size constraints via classes; actual precise sizing handled via inline style
     switch (videoSize) {
       case 'small':
-        sizeClasses = 'max-w-[440px] max-h-[440px] md:max-w-[440px] md:max-h-[440px] max-w-[315px] max-h-[250px]';
+        sizeClasses = 'max-h-[27vh]';
         break;
       case 'big':
-        sizeClasses = 'max-w-[700px] max-h-[700px] md:max-w-[700px] md:max-h-[700px] max-w-[480px] max-h-[360px]';
+        sizeClasses = 'max-h-[65vh]';
         break;
     }
 
     return `fixed ${positionClasses} ${sizeClasses} z-40 rounded group`;
+  };
+
+  // Compute container sizing style based on aspect ratio and selected size
+  const getVideoContainerStyle = (): React.CSSProperties => {
+    const vw = typeof window !== 'undefined' ? window.innerWidth : 1280;
+    const isPortrait = videoNaturalSize ? videoNaturalSize.height >= videoNaturalSize.width : false;
+
+    if (isPortrait) {
+      const maxW = videoSize === 'big' ? Math.min(320, Math.round(vw * 0.28)) : Math.min(192, Math.round(vw * 0.22));
+      const maxH = videoSize === 'big' ? '45vh' : '27vh';
+      return { maxWidth: maxW, maxHeight: maxH as unknown as number } as React.CSSProperties;
+    }
+    // Landscape: allow wider videos
+    const maxW = videoSize === 'big' ? Math.min(640, Math.round(vw * 0.7)) : Math.min(360, Math.round(vw * 0.5));
+    const maxH = videoSize === 'big' ? '65vh' : '40vh';
+    return { maxWidth: maxW, maxHeight: maxH as unknown as number } as React.CSSProperties;
   };
 
   const formatTime = (seconds: number) => {
@@ -242,12 +271,13 @@ export const WaveformPlayer = ({
         {isVideo && (
           <div 
             className={getVideoContainerClasses()}
+            style={getVideoContainerStyle()}
             onMouseEnter={() => setIsVideoHovered(true)}
             onMouseLeave={() => setIsVideoHovered(false)}
           >
             <video
               ref={setVideoElement}
-              className="w-full h-full shadow-lg cursor-pointer rounded"
+              className="shadow-lg cursor-pointer rounded block max-w-full max-h-full"
               preload="auto"
               title="Video playback"
               controls={false}
