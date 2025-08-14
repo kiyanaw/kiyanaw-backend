@@ -40,6 +40,14 @@ export interface ListRegionsResponse {
   };
 }
 
+export interface RegionsByTranscriptionResponse {
+  data: {
+    regionsByTranscription: {
+      items: RegionData[];
+    };
+  };
+}
+
 export interface GetRegionResponse {
   data: {
     getRegion: RegionData & { _version: number };

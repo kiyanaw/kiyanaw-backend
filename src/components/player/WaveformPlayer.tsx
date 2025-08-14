@@ -1,5 +1,5 @@
 import { useRef, useCallback, useState } from 'react';
-import { Play, Pause, ZoomIn, Gauge, Loader2, Settings, ArrowLeft, Circle, ArrowRight, Minimize2, Maximize2 } from 'lucide-react';
+import { Play, Pause, ZoomIn, Gauge, Loader2, Settings, ArrowLeft, Circle, ArrowRight, Minimize2, Maximize2, ChevronDown } from 'lucide-react';
 import { wavesurferService } from '../../services/wavesurferService';
 import { usePlayerStore } from '../../stores/usePlayerStore';
 import { usePlay } from '../../hooks/usePlay';
@@ -41,6 +41,8 @@ export const WaveformPlayer = ({
   const [isVideoHovered, setIsVideoHovered] = useState(false);
   const [videoPosition, setVideoPosition] = useState<'left' | 'center' | 'right'>('right');
   const [videoSize, setVideoSize] = useState<'small' | 'big'>('small');
+  const [isMinimized, setIsMinimized] = useState(false);
+  const [videoNaturalSize, setVideoNaturalSize] = useState<{ width: number; height: number } | null>(null);
   
   const isPlaying = usePlayerStore((state) => state.playing)
   const loadedAndReady = usePlayerStore((state) => state.loadedAndReady)
@@ -73,6 +75,18 @@ export const WaveformPlayer = ({
   const setVideoElement = useCallback((node: HTMLVideoElement | null) => {
     videoRef.current = node;
     if (node) {
+      const setDims = () => {
+        try {
+          setVideoNaturalSize({ width: node.videoWidth || 0, height: node.videoHeight || 0 });
+        } catch {
+          /* noop */
+        }
+      };
+      if (node.readyState >= 1) {
+        setDims();
+      } else {
+        node.addEventListener('loadedmetadata', setDims, { once: true });
+      }
       // Reinitialize WaveSurfer now that we have the video element
       initializeWaveSurfer();
     }
@@ -106,7 +120,7 @@ export const WaveformPlayer = ({
     setVideoSize(size);
   };
 
-  // Calculate video container classes based on position and size
+  // Calculate video container classes based on position
   const getVideoContainerClasses = () => {
     let positionClasses = '';
     let sizeClasses = '';
@@ -125,17 +139,37 @@ export const WaveformPlayer = ({
         break;
     }
 
-    // Size classes - default (small) is 25% bigger, big is more reasonable
+    // Keep minimal size constraints via classes; actual precise sizing handled via inline style
     switch (videoSize) {
       case 'small':
-        sizeClasses = 'max-w-[440px] max-h-[440px] md:max-w-[440px] md:max-h-[440px] max-w-[315px] max-h-[250px]';
+        sizeClasses = 'max-h-[27vh]';
         break;
       case 'big':
-        sizeClasses = 'max-w-[700px] max-h-[700px] md:max-w-[700px] md:max-h-[700px] max-w-[480px] max-h-[360px]';
+        sizeClasses = 'max-h-[65vh]';
         break;
     }
 
-    return `fixed ${positionClasses} ${sizeClasses} z-40 rounded group`;
+    const minimizedClasses = isMinimized ? 'left-1/2 -translate-x-1/2 bottom-2 w-auto max-w-none' : '';
+    return `fixed ${positionClasses} ${sizeClasses} ${minimizedClasses} z-40 rounded group`;
+  };
+
+  // Compute container sizing style based on aspect ratio and selected size
+  const getVideoContainerStyle = (): React.CSSProperties => {
+    if (isMinimized) {
+      return { width: 'auto', height: 'auto' } as React.CSSProperties;
+    }
+    const vw = typeof window !== 'undefined' ? window.innerWidth : 1280;
+    const isPortrait = videoNaturalSize ? videoNaturalSize.height >= videoNaturalSize.width : false;
+
+    if (isPortrait) {
+      const maxW = videoSize === 'big' ? Math.min(320, Math.round(vw * 0.28)) : Math.min(192, Math.round(vw * 0.22));
+      const maxH = videoSize === 'big' ? '45vh' : '27vh';
+      return { maxWidth: maxW, maxHeight: maxH as unknown as number } as React.CSSProperties;
+    }
+    // Landscape: allow wider videos
+    const maxW = videoSize === 'big' ? Math.min(640, Math.round(vw * 0.7)) : Math.min(360, Math.round(vw * 0.5));
+    const maxH = videoSize === 'big' ? '65vh' : '40vh';
+    return { maxWidth: maxW, maxHeight: maxH as unknown as number } as React.CSSProperties;
   };
 
   const formatTime = (seconds: number) => {
@@ -241,13 +275,14 @@ export const WaveformPlayer = ({
         {/* Video Element with Hover Controls */}
         {isVideo && (
           <div 
-            className={getVideoContainerClasses()}
+            className={`${getVideoContainerClasses()} ${isMinimized ? 'hidden' : ''}`}
+            style={getVideoContainerStyle()}
             onMouseEnter={() => setIsVideoHovered(true)}
             onMouseLeave={() => setIsVideoHovered(false)}
           >
             <video
               ref={setVideoElement}
-              className="w-full h-full shadow-lg cursor-pointer rounded"
+              className="shadow-lg cursor-pointer rounded block max-w-full max-h-full"
               preload="auto"
               title="Video playback"
               controls={false}
@@ -298,7 +333,7 @@ export const WaveformPlayer = ({
               </button>
             </div>
 
-            {/* Size Controls - Upper Right */}
+            {/* Size & Minimize Controls - Upper Right */}
             <div 
               className={`absolute top-2 right-2 flex bg-black bg-opacity-50 rounded transition-opacity duration-200 ${
                 isVideoHovered ? 'opacity-100' : 'opacity-0'
@@ -317,7 +352,7 @@ export const WaveformPlayer = ({
               </button>
               <button 
                 onClick={() => handleVideoSize('big')}
-                className={`p-1.5 transition-all border-l border-white border-opacity-30 rounded-r ${
+                className={`p-1.5 transition-all border-l border-white border-opacity-30 ${
                   videoSize === 'big' 
                     ? 'text-gray-900 bg-white bg-opacity-80' 
                     : 'text-white hover:text-gray-900 hover:bg-white hover:bg-opacity-80'
@@ -326,7 +361,26 @@ export const WaveformPlayer = ({
               >
                 <Maximize2 size={14} />
               </button>
+              <button 
+                onClick={() => setIsMinimized(true)}
+                className="p-1.5 transition-all border-l border-white border-opacity-30 rounded-r text-white hover:text-gray-900 hover:bg-white hover:bg-opacity-80"
+                title="Minimize"
+              >
+                <ChevronDown size={14} />
+              </button>
             </div>
+          </div>
+        )}
+        {/* Minimized tab */}
+        {isVideo && isMinimized && (
+          <div className="fixed bottom-4 right-4 z-40">
+            <button
+              onClick={() => setIsMinimized(false)}
+              className="px-2 py-1 text-xs rounded shadow-lg bg-gray-800 text-white hover:bg-gray-700 transition-colors"
+              title="Restore video"
+            >
+              Video
+            </button>
           </div>
         )}
       </div>

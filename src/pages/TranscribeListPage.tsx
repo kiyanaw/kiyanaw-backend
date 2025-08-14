@@ -1,5 +1,5 @@
-import { TranscriptionsTable } from '../components/list/TranscriptionsTable';
+import { TranscriptionsList } from '../components/list/TranscriptionsList';
 
 export const TranscribeListPage = () => {
-  return <TranscriptionsTable />;
+  return <TranscriptionsList />;
 };
