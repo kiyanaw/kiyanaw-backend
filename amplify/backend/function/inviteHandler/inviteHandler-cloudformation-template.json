@@ -19,6 +19,12 @@
     "apikiyanawGraphQLAPIIdOutput": {
       "Type": "String",
       "Default": "apikiyanawGraphQLAPIIdOutput"
+    },
+    "custominviteHandlerSESSESFromEmailAddress": {
+      "Type": "String"
+    },
+    "custominviteHandlerSESSESEmailIdentityArn": {
+      "Type": "String"
     }
   },
   "Conditions": {
@@ -130,14 +136,10 @@
               ]
             },
             "SES_FROM_EMAIL": {
-              "Fn::ImportValue": {
-                "Fn::Sub": "kiyanaw-${env}-SESFromEmailAddress"
-              }
+              "Ref": "custominviteHandlerSESSESFromEmailAddress"
             },
             "SES_EMAIL_IDENTITY_ARN": {
-              "Fn::ImportValue": {
-                "Fn::Sub": "kiyanaw-${env}-SESEmailIdentityArn"
-              }
+              "Ref": "custominviteHandlerSESSESEmailIdentityArn"
             }
           }
         },
