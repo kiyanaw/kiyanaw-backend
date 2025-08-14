@@ -44,6 +44,7 @@ export interface CreateTranscriptionData {
   author: string;
   userLastUpdated: string;
   isPrivate?: boolean;
+  publicIssues?: boolean;
 }
 
 /**
@@ -303,6 +304,7 @@ export const create = async (data: CreateTranscriptionData): Promise<SharedTrans
       dateLastUpdated: new Date().toISOString(),
       length: 0, // Will be updated when audio is processed
       isPrivate: data.isPrivate ?? true, // Default to private if not specified
+      publicIssues: data.publicIssues ?? false, // Default to private issues if not specified
       disableAnalyzer: false,
     };
 
@@ -336,6 +338,7 @@ export const updateTranscription = async (
     title?: string;
     comments?: string;
     isPrivate?: boolean;
+    publicIssues?: boolean;
     lang?: string;
     userLastUpdated: string;
   }

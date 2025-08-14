@@ -9,6 +9,7 @@ export interface TranscriptionData {
   source: string;
   coverage?: number;
   isPrivate?: boolean;
+  publicIssues?: boolean;
   disableAnalyzer?: boolean;
   dateLastUpdated?: string;
   userLastUpdated: string;
@@ -127,6 +128,7 @@ export class TranscriptionModel {
   public source: string;
   public coverage: number;
   public isPrivate: boolean;
+  public publicIssues: boolean;
   public disableAnalyzer: boolean;
   public dateLastUpdated?: string;
   public userLastUpdated: string;
@@ -156,6 +158,7 @@ export class TranscriptionModel {
     this.source = data.source;
     this.coverage = data.coverage || 0;
     this.isPrivate = data.isPrivate ?? true;
+    this.publicIssues = data.publicIssues ?? false;
     this.disableAnalyzer = !!data.disableAnalyzer;
     this.dateLastUpdated = data.dateLastUpdated;
     this.userLastUpdated = data.userLastUpdated;

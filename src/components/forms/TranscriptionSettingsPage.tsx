@@ -13,8 +13,9 @@ interface TranscriptionSettingsPageProps {
   regionCount: number;
   transcriptionId: string;
   isPrivate?: boolean;
+  publicIssues?: boolean;
   lang?: string;
-  onSave: (updates: { title?: string; comments?: string; isPrivate?: boolean; lang?: string }) => void;
+  onSave: (updates: { title?: string; comments?: string; isPrivate?: boolean; publicIssues?: boolean; lang?: string }) => void;
   onBack: () => void;
   isOwner: boolean;
 }
@@ -27,6 +28,7 @@ export const TranscriptionSettingsPage = ({
   regionCount,
   transcriptionId,
   isPrivate: initialIsPrivate,
+  publicIssues: initialPublicIssues,
   lang: initialLang,
   onSave,
   onBack,
@@ -35,6 +37,7 @@ export const TranscriptionSettingsPage = ({
   const [title, setTitle] = useState(initialTitle);
   const [comments, setComments] = useState(initialComments || '');
   const [isPrivate, setIsPrivate] = useState(initialIsPrivate ?? true);
+  const [publicIssues, setPublicIssues] = useState(initialPublicIssues ?? false);
   const [lang, setLang] = useState(initialLang || '');
   
   // Invite management state
@@ -76,7 +79,7 @@ export const TranscriptionSettingsPage = ({
   }, [transcriptionId, loadInvites]);
 
   const handleSave = () => {
-    const updates: { title?: string; comments?: string; isPrivate?: boolean; lang?: string } = {};
+    const updates: { title?: string; comments?: string; isPrivate?: boolean; publicIssues?: boolean; lang?: string } = {};
     
     if (title !== initialTitle) {
       updates.title = title;
@@ -88,6 +91,10 @@ export const TranscriptionSettingsPage = ({
 
     if (isPrivate !== (initialIsPrivate ?? true)) {
       updates.isPrivate = isPrivate;
+    }
+
+    if (publicIssues !== (initialPublicIssues ?? false)) {
+      updates.publicIssues = publicIssues;
     }
 
     if (lang !== (initialLang || '')) {
@@ -105,11 +112,12 @@ export const TranscriptionSettingsPage = ({
     setTitle(initialTitle);
     setComments(initialComments || '');
     setIsPrivate(initialIsPrivate ?? true);
+    setPublicIssues(initialPublicIssues ?? false);
     setLang(initialLang || '');
     onBack();
   };
 
-  const hasChanges = title !== initialTitle || comments !== (initialComments || '') || isPrivate !== (initialIsPrivate ?? true) || lang !== (initialLang || '');
+  const hasChanges = title !== initialTitle || comments !== (initialComments || '') || isPrivate !== (initialIsPrivate ?? true) || publicIssues !== (initialPublicIssues ?? false) || lang !== (initialLang || '');
 
   const formatDate = (dateString: string) => {
     try {
@@ -206,6 +214,7 @@ export const TranscriptionSettingsPage = ({
                         setTitle(initialTitle);
     setComments(initialComments || '');
     setIsPrivate(initialIsPrivate ?? true);
+    setPublicIssues(initialPublicIssues ?? false);
     setLang(initialLang || '');
                   }}
                   className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
@@ -291,35 +300,79 @@ export const TranscriptionSettingsPage = ({
                 </div>
 
                 {lang && (
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <label htmlFor="isPublic" className="block text-md font-medium text-gray-700">
-                          Is Discoverable?
-                        </label>
-                        <p className="text-xs text-gray-500 mt-1 mr-1">
-                          Analyzed text and issues will be discoverable by authenticated users within the Language Database (coming soon...)
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        role="switch"
-                        aria-checked={!isPrivate}
-                        onClick={() => setIsPrivate(!isPrivate)}
-                        disabled={!isOwner}
-                        className={`
-                          relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed
-                          ${!isPrivate ? 'bg-blue-600' : 'bg-gray-200'}
-                        `}
-                      >
-                        <span
-                          aria-hidden="true"
+                  <div className="space-y-4">
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <label htmlFor="isPublic" className="block text-md font-medium text-gray-700">
+                            Is Discoverable?
+                          </label>
+                          <p className="text-xs text-gray-500 mt-1 mr-1">
+                            Analyzed text will be discoverable by authenticated users within the Language Database (coming soon...)
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={!isPrivate}
+                          onClick={() => {
+                            const newIsPrivate = !isPrivate;
+                            setIsPrivate(newIsPrivate);
+                            
+                            // If toggles are "in sync", toggle publicIssues with isPrivate
+                            const isDiscoverable = !isPrivate;
+                            const areInSync = isDiscoverable === publicIssues;
+                            if (areInSync) {
+                              setPublicIssues(!newIsPrivate);
+                            }
+                          }}
+                          disabled={!isOwner}
                           className={`
-                            pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out
-                            ${!isPrivate ? 'translate-x-5' : 'translate-x-0'}
+                            relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed
+                            ${!isPrivate ? 'bg-blue-600' : 'bg-gray-200'}
                           `}
-                        />
-                      </button>
+                        >
+                          <span
+                            aria-hidden="true"
+                            className={`
+                              pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out
+                              ${!isPrivate ? 'translate-x-5' : 'translate-x-0'}
+                            `}
+                          />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <label htmlFor="publicIssues" className="block text-md font-medium text-gray-700">
+                            Publish Issues?
+                          </label>
+                          <p className="text-xs text-gray-500 mt-1 mr-1">
+                            Issues created on this transcription will be visible to authenticated users in the Issue Browser (coming soon...)
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={publicIssues}
+                          onClick={() => setPublicIssues(!publicIssues)}
+                          disabled={!isOwner}
+                          className={`
+                            relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed
+                            ${publicIssues ? 'bg-blue-600' : 'bg-gray-200'}
+                          `}
+                        >
+                          <span
+                            aria-hidden="true"
+                            className={`
+                              pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out
+                              ${publicIssues ? 'translate-x-5' : 'translate-x-0'}
+                            `}
+                          />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}

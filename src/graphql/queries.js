@@ -22,6 +22,7 @@ export const getTranscription = /* GraphQL */ `
       type
       isPrivate
       isPublished
+      publicIssues
       disableAnalyzer
       editors
       viewers
@@ -85,6 +86,7 @@ export const listTranscriptions = /* GraphQL */ `
         type
         isPrivate
         isPublished
+        publicIssues
         disableAnalyzer
         editors
         viewers
@@ -135,6 +137,7 @@ export const syncTranscriptions = /* GraphQL */ `
         type
         isPrivate
         isPublished
+        publicIssues
         disableAnalyzer
         editors
         viewers
@@ -187,6 +190,7 @@ export const byTitle = /* GraphQL */ `
         type
         isPrivate
         isPublished
+        publicIssues
         disableAnalyzer
         editors
         viewers
@@ -237,6 +241,7 @@ export const getRegion = /* GraphQL */ `
         type
         isPrivate
         isPublished
+        publicIssues
         disableAnalyzer
         editors
         viewers
@@ -411,6 +416,7 @@ export const getIssue = /* GraphQL */ `
         type
         isPrivate
         isPublished
+        publicIssues
         disableAnalyzer
         editors
         viewers
@@ -762,6 +768,7 @@ export const getComment = /* GraphQL */ `
         type
         isPrivate
         isPublished
+        publicIssues
         disableAnalyzer
         editors
         viewers

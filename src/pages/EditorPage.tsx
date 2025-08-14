@@ -209,7 +209,8 @@ export const EditorPage = () => {
             regionCount={regions.length}
             transcriptionId={transcription.id || ''}
             isPrivate={transcription.isPrivate}
-                            lang={transcription.lang}
+            publicIssues={transcription.publicIssues}
+            lang={transcription.lang}
             onSave={handleSaveChanges}
             onBack={handleCloseSettings}
             isOwner={isOwner}

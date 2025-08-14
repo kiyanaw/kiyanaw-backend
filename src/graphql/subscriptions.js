@@ -25,6 +25,7 @@ export const onCreateTranscription = /* GraphQL */ `
       type
       isPrivate
       isPublished
+      publicIssues
       disableAnalyzer
       editors
       viewers
@@ -78,6 +79,7 @@ export const onUpdateTranscription = /* GraphQL */ `
       type
       isPrivate
       isPublished
+      publicIssues
       disableAnalyzer
       editors
       viewers
@@ -131,6 +133,7 @@ export const onDeleteTranscription = /* GraphQL */ `
       type
       isPrivate
       isPublished
+      publicIssues
       disableAnalyzer
       editors
       viewers
@@ -192,6 +195,7 @@ export const onCreateRegion = /* GraphQL */ `
         type
         isPrivate
         isPublished
+        publicIssues
         disableAnalyzer
         editors
         viewers
@@ -246,6 +250,7 @@ export const onUpdateRegion = /* GraphQL */ `
         type
         isPrivate
         isPublished
+        publicIssues
         disableAnalyzer
         editors
         viewers
@@ -300,6 +305,7 @@ export const onDeleteRegion = /* GraphQL */ `
         type
         isPrivate
         isPublished
+        publicIssues
         disableAnalyzer
         editors
         viewers
@@ -359,6 +365,7 @@ export const onCreateIssue = /* GraphQL */ `
         type
         isPrivate
         isPublished
+        publicIssues
         disableAnalyzer
         editors
         viewers
@@ -418,6 +425,7 @@ export const onUpdateIssue = /* GraphQL */ `
         type
         isPrivate
         isPublished
+        publicIssues
         disableAnalyzer
         editors
         viewers
@@ -477,6 +485,7 @@ export const onDeleteIssue = /* GraphQL */ `
         type
         isPrivate
         isPublished
+        publicIssues
         disableAnalyzer
         editors
         viewers
@@ -609,6 +618,7 @@ export const onCreateComment = /* GraphQL */ `
         type
         isPrivate
         isPublished
+        publicIssues
         disableAnalyzer
         editors
         viewers
@@ -686,6 +696,7 @@ export const onUpdateComment = /* GraphQL */ `
         type
         isPrivate
         isPublished
+        publicIssues
         disableAnalyzer
         editors
         viewers
@@ -763,6 +774,7 @@ export const onDeleteComment = /* GraphQL */ `
         type
         isPrivate
         isPublished
+        publicIssues
         disableAnalyzer
         editors
         viewers
