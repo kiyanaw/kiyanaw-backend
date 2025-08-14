@@ -23,7 +23,6 @@ import { RegionModel } from './adt';
 import { type RegionData } from './adt';
 import { 
   type GraphQLClient,
-  type ListRegionsResponse,
   type RegionsByTranscriptionResponse,
   type GetRegionResponse,
   type CreateRegionResponse,
@@ -61,8 +60,6 @@ export const loadRegionsForTranscription = async (transcriptionId: string) => {
       limit: 2000 // arbitrarily high
     }
   }) as RegionsByTranscriptionResponse;
-
-  console.log('region data', data)
 
   const items = data?.regionsByTranscription?.items ?? [];
 
