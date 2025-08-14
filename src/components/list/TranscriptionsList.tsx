@@ -73,14 +73,7 @@ export const TranscriptionsList = () => {
   // Show all transcriptions (no pagination)
   const displayedTranscriptions = filteredAndSortedTranscriptions;
 
-  const handleSort = (columnKey: string) => {
-    if (sortBy === columnKey) {
-      setSortDesc(!sortDesc);
-    } else {
-      setSortBy(columnKey);
-      setSortDesc(true);
-    }
-  };
+
 
   const formatTimeAgo = (dateString: string | null | undefined) => {
     // Handle null, undefined, or empty date strings
