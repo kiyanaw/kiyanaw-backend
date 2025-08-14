@@ -182,9 +182,9 @@ export const TranscriptionSettingsPage = ({
   };
 
   return (
-    <div className="fixed inset-0 flex flex-col bg-gray-50">
-      {/* Fixed Header */}
-      <div className="flex-shrink-0 bg-white border-b border-gray-200 shadow-sm">
+    <div className="fixed inset-x-0 top-[72px] bottom-0 flex flex-col bg-gray-50">
+      {/* Page Header (sticky within page container) */}
+      <div className="sticky top-0 z-10 bg-white border-b border-gray-200 shadow-sm" style={{ height: '65px' }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
@@ -229,7 +229,7 @@ export const TranscriptionSettingsPage = ({
 
       {/* Scrollable Content Area */}
       <div className="flex-1 min-h-0 overflow-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-16">
         {/* Content Area */}
         <div className="space-y-8">
           {/* Settings Section */}

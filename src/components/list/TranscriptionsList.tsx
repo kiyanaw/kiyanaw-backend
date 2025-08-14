@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, Eye, Edit, Search, Plus, ChevronDown } from 'lucide-react';
+import { Users, Eye, Edit, Search, Plus, ChevronDown, Lock, LockOpen, Video, FileAudio } from 'lucide-react';
 import { useTranscriptionsStore } from '../../stores/useTranscriptionsStore';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { useLoadTranscriptions } from '../../hooks/useLoadTranscriptions';
@@ -211,27 +211,41 @@ export const TranscriptionsList = () => {
           {paginatedTranscriptions.map((transcription) => (
             <div
               key={transcription.id}
-              className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
+              className="relative bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
             >
+              {/* Bottom progress border */}
+              <div
+                className="absolute left-0 bottom-0 h-1 bg-green-500 rounded-b-lg"
+                style={{ width: `${(transcription.coverage || 0) * 100}%` }}
+              />
+
               <div className="p-4 sm:p-6">
-                {/* Header Row */}
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
+                <div className="flex gap-4">
+                  {/* Left rail: media type icon (audio/video) */}
+                  <div className="w-8 sm:w-10 flex items-start justify-center pt-1">
+                    {transcription.isVideo ? (
+                      <Video className="w-6 h-6 text-gray-500" />
+                    ) : (
+                      <FileAudio className="w-6 h-6 text-gray-500" />
+                    )}
+                  </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center space-x-2 mb-1">
+                {/* Top Row: Title + Issues */}
+                    <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-2">
                       <Link
                         to={`/transcribe-edit/${transcription.id}`}
                         className="text-lg font-medium text-ki-blue hover:text-blue-800 hover:underline truncate"
                       >
                         {transcription.title}
                       </Link>
-                      
+
                       {/* Sharing Status Icons */}
                       {(() => {
                         const isOwner = transcription.isMine(user?.userId);
                         const isShared = transcription.isShared();
                         const accessLevel = transcription.accessLevel;
-                        
-                        // If owner and shared, show share icon
+
                         if (isOwner && isShared) {
                           return (
                             <div className="flex items-center" title="Shared with others">
@@ -239,15 +253,11 @@ export const TranscriptionsList = () => {
                             </div>
                           );
                         }
-                        
-                        // If not owner but has access (viewer or editor)
+
                         if (!isOwner && (accessLevel === 'viewer' || accessLevel === 'editor')) {
                           return (
-                            <div className="flex items-center space-x-1" title={`Shared with you as ${accessLevel}`}>
-                              {/* Share icon */}
+                            <div className="flex items-center gap-1" title={`Shared with you as ${accessLevel}`}>
                               <Users className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                              
-                              {/* Access level icon */}
                               {accessLevel === 'viewer' ? (
                                 <Eye className="w-3 h-3 text-gray-500 flex-shrink-0" />
                               ) : (
@@ -256,59 +266,48 @@ export const TranscriptionsList = () => {
                             </div>
                           );
                         }
-                        
+
                         return null;
                       })()}
                     </div>
-                    
-                    <div className="text-sm text-gray-600">
+
+                      <div className="flex-shrink-0">
+                        <span
+                          className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                            transcription.data.issues === 0 || !transcription.data.issues
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-red-100 text-red-800'
+                          }`}
+                        >
+                          {transcription.data.issues || 0} issues
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Meta Row */}
+                    <div className="mt-1 text-sm text-gray-600">
                       by {transcription.getOwnerDisplay(user?.userId)}
                     </div>
-                  </div>
 
-                  {/* Issues Badge */}
-                  <div className="flex-shrink-0">
-                    <span
-                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        transcription.data.issues === 0 || !transcription.data.issues
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-red-100 text-red-800'
-                      }`}
-                    >
-                      {transcription.data.issues || 0} issue{transcription.data.issues !== 1 ? 's' : ''}
-                    </span>
-                  </div>
-                </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                      <span className="inline-flex items-center px-2 py-1 rounded bg-gray-100 text-gray-800">
+                        {transcription.lengthFriendly}
+                      </span>
+                      {/* Discoverable / Private lock icon */}
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-100 text-gray-800" title={!transcription.isPrivate ? 'Discoverable' : 'Private'}>
+                        {transcription.isPrivate ? (
+                          <Lock className="w-3 h-3 text-gray-500" />
+                        ) : (
+                          <LockOpen className="w-3 h-3 text-green-600" />
+                        )}
+                        {!transcription.isPrivate ? 'Discoverable' : 'Private'}
+                      </span>
+                    </div>
 
-                {/* Progress Bar */}
-                <div className="mb-3">
-                  <div className="flex items-center justify-between text-sm text-gray-600 mb-1">
-                    <span>Progress</span>
-                    <span>{Math.round((transcription.coverage || 0) * 100)}%</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className="bg-green-500 h-2 rounded-full transition-all duration-300"
-                      style={{
-                        width: `${(transcription.coverage || 0) * 100}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {/* Footer Row */}
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm text-gray-500">
-                  <div className="flex items-center space-x-4">
-                    <span>{transcription.lengthFriendly}</span>
-                    <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                      {transcription.type?.split('/')[1]?.toUpperCase() || 'Unknown'}
-                    </span>
-                  </div>
-                  
-                  <div className="text-right">
-                    <div>{formatTimeAgo(transcription.dateLastUpdated)}</div>
-                    <div className="text-xs">
-                      by {transcription.getLastEditorDisplay(user?.username)}
+                    {/* Last Edited */}
+                    <div className="mt-3 text-xs text-gray-500 text-right">
+                      <div>{Math.round((transcription.coverage || 0) * 100)}%</div>
+                      <div>{formatTimeAgo(transcription.dateLastUpdated)} • by {transcription.getLastEditorDisplay(user?.username)}</div>
                     </div>
                   </div>
                 </div>
