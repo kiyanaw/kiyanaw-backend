@@ -28,4 +28,26 @@ async function query(params) {
   })
 }
 
-module.exports = { getDoc, query }
+async function scan(params) {
+  return new Promise((resolve, reject) => {
+    docClient.scan(params, (err, data) => {
+      if (err) {
+        reject(err)
+      }
+      resolve(data)
+    })
+  })
+}
+
+async function batchWrite(params) {
+  return new Promise((resolve, reject) => {
+    docClient.batchWrite(params, (err, data) => {
+      if (err) {
+        reject(err)
+      }
+      resolve(data)
+    })
+  })
+}
+
+module.exports = { getDoc, query, scan, batchWrite }

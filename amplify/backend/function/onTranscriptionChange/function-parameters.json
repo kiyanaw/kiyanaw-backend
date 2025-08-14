@@ -1,14 +1,29 @@
 {
   "permissions": {
     "storage": {
+      "transcriptions": [
+        "read",
+        "delete"
+      ],
       "Transcription:@model(appsync)": [
-        "read"
+        "read",
+        "delete"
       ],
       "Region:@model(appsync)": [
-        "read"
+        "read",
+        "delete"
       ],
       "Issue:@model(appsync)": [
-        "read"
+        "read",
+        "delete"
+      ],
+      "Invite:@model(appsync)": [
+        "read",
+        "delete"
+      ],
+      "Comment:@model(appsync)": [
+        "read",
+        "delete"
       ]
     }
   },

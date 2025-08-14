@@ -262,6 +262,13 @@
       "dependsOn": [
         {
           "attributes": [
+            "BucketName"
+          ],
+          "category": "storage",
+          "resourceName": "transcriptions"
+        },
+        {
+          "attributes": [
             "GraphQLAPIIdOutput"
           ],
           "category": "api",

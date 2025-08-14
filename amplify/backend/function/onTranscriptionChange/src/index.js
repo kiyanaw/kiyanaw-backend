@@ -1,5 +1,9 @@
 /* Amplify Params - DO NOT EDIT
+	API_KIYANAW_COMMENTTABLE_ARN
+	API_KIYANAW_COMMENTTABLE_NAME
 	API_KIYANAW_GRAPHQLAPIIDOUTPUT
+	API_KIYANAW_INVITETABLE_ARN
+	API_KIYANAW_INVITETABLE_NAME
 	API_KIYANAW_ISSUETABLE_ARN
 	API_KIYANAW_ISSUETABLE_NAME
 	API_KIYANAW_REGIONTABLE_ARN
@@ -8,6 +12,7 @@
 	API_KIYANAW_TRANSCRIPTIONTABLE_NAME
 	ENV
 	REGION
+	STORAGE_TRANSCRIPTIONS_BUCKETNAME
 Amplify Params - DO NOT EDIT */
 
 /* Also (added manually): 
@@ -18,6 +23,7 @@ const AWS = require('aws-sdk')
 const dynamo = require('./lib/dynamo')
 const search = require('./lib/search')
 const s3 = require('./lib/s3')
+const cleanup = require('./lib/cleanup')
 const { okResponse } = require('./utils')
 
 const sqs = new AWS.SQS({ region: process.env.REGION })
@@ -119,22 +125,17 @@ exports.handler = async (event) => {
     
     // Case 1: Transcription deleted (no new record)
     if (record.eventName === 'REMOVE' && !newImage) {
-      console.log(`Transcription ${transcriptionId} deleted - clearing OpenSearch index and S3 files`)
+      console.log(`Transcription ${transcriptionId} deleted - performing comprehensive cleanup`)
       
-      // Clear OpenSearch index
-      await search.clearKnownWordsForTranscription(transcriptionId)
+      const sourceUrl = oldImage?.source || null
+      const cleanupResult = await cleanup.cleanupDeletedTranscription(transcriptionId, sourceUrl)
       
-      // Delete S3 files (media file and JSON)
-      if (oldImage && oldImage.source) {
-        console.log(`Deleting S3 files for source: ${oldImage.source}`)
-        try {
-          await s3.deleteTranscriptionFiles(oldImage.source)
-        } catch (error) {
-          console.error('Failed to delete S3 files:', error.message)
-          // Continue processing even if S3 deletion fails
-        }
+      if (cleanupResult.hasErrors) {
+        console.warn(`⚠️ Cleanup completed with errors for transcription ${transcriptionId}`)
+        console.warn('Cleanup summary:', JSON.stringify(cleanupResult.summary, null, 2))
       } else {
-        console.warn('No source URL found in deleted transcription, skipping S3 deletion')
+        console.log(`✅ Cleanup completed successfully for transcription ${transcriptionId}`)
+        console.log(`Total items deleted: ${cleanupResult.totalDeleted}`)
       }
       
       continue
@@ -152,15 +153,26 @@ exports.handler = async (event) => {
       const newIsPrivate = newImage.isPrivate
       const oldLang = oldImage.lang
       const newLang = newImage.lang
+      const oldPublicIssues = oldImage.publicIssues
+      const newPublicIssues = newImage.publicIssues
       
       console.log(`Transcription ${transcriptionId} modified:`)
       console.log(`  isPrivate: ${oldIsPrivate} -> ${newIsPrivate}`)
       console.log(`  lang: ${oldLang} -> ${newLang}`)
+      console.log(`  publicIssues: ${oldPublicIssues} -> ${newPublicIssues}`)
       
       // Case 2: isPrivate changed to true - delete from OpenSearch
       if (!oldIsPrivate && newIsPrivate) {
-        console.log('Transcription became private - clearing OpenSearch index')
+        console.log('Transcription became private - clearing OpenSearch indexes')
         await search.clearKnownWordsForTranscription(transcriptionId)
+        await search.clearIssuesForTranscription(transcriptionId)
+        continue
+      }
+      
+      // Case 2b: publicIssues changed to false - delete issues from OpenSearch
+      if (oldPublicIssues && !newPublicIssues) {
+        console.log('Issues became private - clearing OpenSearch issues index')
+        await search.clearIssuesForTranscription(transcriptionId)
         continue
       }
       
