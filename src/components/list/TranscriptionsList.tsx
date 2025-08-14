@@ -34,8 +34,6 @@ export const TranscriptionsList = () => {
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState('dateLastUpdated');
   const [sortDesc, setSortDesc] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 20; // Show more items per page since cards are more compact
 
   // Load transcriptions when component mounts
   useLoadTranscriptions();
@@ -73,18 +71,8 @@ export const TranscriptionsList = () => {
     return filtered;
   }, [transcriptions, search, sortBy, sortDesc]);
 
-  // Paginate
-  const paginatedTranscriptions = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredAndSortedTranscriptions.slice(
-      startIndex,
-      startIndex + itemsPerPage
-    );
-  }, [filteredAndSortedTranscriptions, currentPage]);
-
-  const totalPages = Math.ceil(
-    filteredAndSortedTranscriptions.length / itemsPerPage
-  );
+  // Show all transcriptions (no pagination)
+  const displayedTranscriptions = filteredAndSortedTranscriptions;
 
   const handleSort = (columnKey: string) => {
     if (sortBy === columnKey) {
@@ -93,7 +81,6 @@ export const TranscriptionsList = () => {
       setSortBy(columnKey);
       setSortDesc(true);
     }
-    setCurrentPage(1); // Reset to first page when sorting
   };
 
   const formatTimeAgo = (dateString: string | null | undefined) => {
@@ -137,9 +124,9 @@ export const TranscriptionsList = () => {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50">
-      {/* Fixed Header */}
-      <div className="flex-shrink-0 bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
+    <div className="fixed inset-x-0 top-[72px] bottom-0 flex flex-col bg-gray-50">
+      {/* Page Header */}
+      <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-semibold text-gray-900">My transcriptions</h1>
@@ -168,7 +155,6 @@ export const TranscriptionsList = () => {
                   const [key, direction] = e.target.value.split('-');
                   setSortBy(key);
                   setSortDesc(direction === 'desc');
-                  setCurrentPage(1);
                 }}
                 className="appearance-none bg-white border border-gray-300 rounded-md px-4 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-ki-blue focus:border-transparent"
               >
@@ -208,7 +194,7 @@ export const TranscriptionsList = () => {
 
         {/* Cards Grid */}
         <div className="space-y-4">
-          {paginatedTranscriptions.map((transcription) => (
+          {displayedTranscriptions.map((transcription) => (
             <div
               key={transcription.id}
               className="relative bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
@@ -317,42 +303,12 @@ export const TranscriptionsList = () => {
         </div>
 
         {/* Empty State */}
-        {paginatedTranscriptions.length === 0 && (
+        {displayedTranscriptions.length === 0 && (
           <div className="text-center py-12">
             <div className="text-gray-500">
               {search
                 ? 'No transcriptions match your search.'
                 : 'No transcriptions found.'}
-            </div>
-          </div>
-        )}
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mt-8">
-            <div className="text-sm text-gray-700 text-center sm:text-left">
-              Showing {(currentPage - 1) * itemsPerPage + 1} to{' '}
-              {Math.min(currentPage * itemsPerPage, filteredAndSortedTranscriptions.length)} of{' '}
-              {filteredAndSortedTranscriptions.length} results
-            </div>
-            <div className="flex items-center justify-center space-x-2">
-              <button
-                onClick={() => setCurrentPage(currentPage - 1)}
-                disabled={currentPage === 1}
-                className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Previous
-              </button>
-              <span className="text-sm text-gray-700">
-                {currentPage} of {totalPages}
-              </span>
-              <button
-                onClick={() => setCurrentPage(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Next
-              </button>
             </div>
           </div>
         )}
