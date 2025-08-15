@@ -351,6 +351,8 @@ interface IssuesPanelProps {
   canEdit: boolean;
   onUpdateIssue: (issueId: string, updates: Partial<Issue>) => void;
   onDeleteIssue: (issueId: string) => void;
+  variant?: 'modal' | 'bottom-sheet';
+  onJumpToRegion?: (regionId: string) => void;
 }
 
 const issueTypes = [
@@ -365,6 +367,8 @@ export const IssuesPanel = ({
   canEdit,
   onUpdateIssue,
   onDeleteIssue,
+  variant = 'modal',
+  onJumpToRegion,
 }: IssuesPanelProps) => {
   const user = useAuthStore((state) => state.user);
   const selectAndPlayRegion = useSelectAndPlayRegion();
@@ -466,6 +470,11 @@ export const IssuesPanel = ({
   const handleJumpToRegion = (regionId: string) => {
     // Use existing use-case to update URL, select region, style, seek and play
     selectAndPlayRegion(regionId);
+    
+    // If a custom jump handler is provided (for mobile tab switching), use it
+    if (onJumpToRegion) {
+      onJumpToRegion(regionId);
+    }
   };
 
   const handleCloseDialog = () => {
@@ -622,6 +631,7 @@ export const IssuesPanel = ({
           onClose={handleCloseDialog}
           onUpdateIssue={onUpdateIssue}
           onDeleteIssue={onDeleteIssue}
+          variant={variant}
         />
       )}
     </div>

@@ -1,5 +1,5 @@
 import { useRef, useCallback, useState } from 'react';
-import { Play, Pause, ZoomIn, Gauge, Loader2, Settings, ArrowLeft, Circle, ArrowRight, Minimize2, Maximize2, ChevronDown } from 'lucide-react';
+import { Play, Pause, ZoomIn, Gauge, Settings, ArrowLeft, Circle, ArrowRight, Minimize2, Maximize2, ChevronDown, Video as VideoIcon } from 'lucide-react';
 import { wavesurferService } from '../../services/wavesurferService';
 import { usePlayerStore } from '../../stores/usePlayerStore';
 import { usePlay } from '../../hooks/usePlay';
@@ -43,6 +43,7 @@ export const WaveformPlayer = ({
   const [videoSize, setVideoSize] = useState<'small' | 'big'>('small');
   const [isMinimized, setIsMinimized] = useState(false);
   const [videoNaturalSize, setVideoNaturalSize] = useState<{ width: number; height: number } | null>(null);
+  const [showVideoMobile, setShowVideoMobile] = useState(false);
   
   const isPlaying = usePlayerStore((state) => state.playing)
   const loadedAndReady = usePlayerStore((state) => state.loadedAndReady)
@@ -120,38 +121,7 @@ export const WaveformPlayer = ({
     setVideoSize(size);
   };
 
-  // Calculate video container classes based on position
-  const getVideoContainerClasses = () => {
-    let positionClasses = '';
-    let sizeClasses = '';
-
-    // Position classes
-    switch (videoPosition) {
-      case 'left':
-        positionClasses = 'bottom-4 left-4';
-        break;
-      case 'center':
-        positionClasses = 'bottom-4 left-1/2 transform -translate-x-1/2';
-        break;
-      case 'right':
-      default:
-        positionClasses = 'bottom-4 right-4';
-        break;
-    }
-
-    // Keep minimal size constraints via classes; actual precise sizing handled via inline style
-    switch (videoSize) {
-      case 'small':
-        sizeClasses = 'max-h-[27vh]';
-        break;
-      case 'big':
-        sizeClasses = 'max-h-[65vh]';
-        break;
-    }
-
-    const minimizedClasses = isMinimized ? 'left-1/2 -translate-x-1/2 bottom-2 w-auto max-w-none' : '';
-    return `fixed ${positionClasses} ${sizeClasses} ${minimizedClasses} z-40 rounded group`;
-  };
+  // (Prev helper removed; positioning handled directly in className)
 
   // Compute container sizing style based on aspect ratio and selected size
   const getVideoContainerStyle = (): React.CSSProperties => {
@@ -201,20 +171,122 @@ export const WaveformPlayer = ({
           </div>
         </div>
 
-        {/* Waveform */}
-        <div ref={setWaveformContainer} className="w-full h-32 bg-white relative">
-          {!loadedAndReady && (
-            <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-90">
-              <div className="flex items-center gap-2 text-gray-600">
-                <Loader2 size={20} className="animate-spin" data-testid="loading-spinner" />
-                <span className="text-sm">Loading audio...</span>
+        {/* Media Area: video overlays waveform on mobile via CSS toggle */}
+        <div className="relative w-full h-32">
+          {/* Waveform sits underneath; never unmounted */}
+          <div ref={setWaveformContainer} className="w-full h-32 bg-white relative" />
+
+          {/* Video element: absolute overlay on mobile; fixed floating on desktop */}
+          {isVideo && (
+            <div 
+              className={`
+                ${isMinimized ? 'hidden' : ''}
+                absolute inset-0 ${showVideoMobile ? 'block' : 'hidden'} bg-black
+                lg:fixed lg:z-40 lg:rounded lg:group lg:bg-transparent lg:block
+                ${videoPosition === 'left' ? 'lg:bottom-4 lg:left-4' : videoPosition === 'center' ? 'lg:bottom-4 lg:left-1/2 lg:-translate-x-1/2' : 'lg:bottom-4 lg:right-4'}
+              `}
+              style={getVideoContainerStyle()}
+              onMouseEnter={() => setIsVideoHovered(true)}
+              onMouseLeave={() => setIsVideoHovered(false)}
+            >
+              <video
+                ref={setVideoElement}
+                className="w-full h-full object-contain shadow-lg lg:rounded"
+                preload="auto"
+                title="Video playback"
+                controls={false}
+                playsInline
+                webkit-playsinline=""
+              >
+                <source src={source} />
+              </video>
+
+              {/* Desktop-only controls */}
+              <div className="hidden lg:block">
+                {/* Position Controls */}
+                <div 
+                  className={`absolute top-2 left-2 flex bg-black bg-opacity-50 rounded transition-opacity duration-200 ${
+                    isVideoHovered ? 'opacity-100' : 'opacity-0'
+                  }`}
+                >
+                  <button 
+                    onClick={() => handleVideoPosition('left')}
+                    className={`p-1.5 transition-all rounded-l ${
+                      videoPosition === 'left' 
+                        ? 'text-gray-900 bg-white bg-opacity-80' 
+                        : 'text-white hover:text-gray-900 hover:bg-white hover:bg-opacity-80'
+                    }`}
+                    title="Move left"
+                  >
+                    <ArrowLeft size={14} />
+                  </button>
+                  <button 
+                    onClick={() => handleVideoPosition('center')}
+                    className={`p-1.5 transition-all border-l border-white border-opacity-30 ${
+                      videoPosition === 'center' 
+                        ? 'text-gray-900 bg-white bg-opacity-80' 
+                        : 'text-white hover:text-gray-900 hover:bg-white hover:bg-opacity-80'
+                    }`}
+                    title="Center"
+                  >
+                    <Circle size={14} />
+                  </button>
+                  <button 
+                    onClick={() => handleVideoPosition('right')}
+                    className={`p-1.5 transition-all border-l border-white border-opacity-30 rounded-r ${
+                      videoPosition === 'right' 
+                        ? 'text-gray-900 bg-white bg-opacity-80' 
+                        : 'text-white hover:text-gray-900 hover:bg-white hover:bg-opacity-80'
+                    }`}
+                    title="Move right"
+                  >
+                    <ArrowRight size={14} />
+                  </button>
+                </div>
+
+                {/* Size & Minimize Controls */}
+                <div 
+                  className={`absolute top-2 right-2 flex bg-black bg-opacity-50 rounded transition-opacity duration-200 ${
+                    isVideoHovered ? 'opacity-100' : 'opacity-0'
+                  }`}
+                >
+                  <button 
+                    onClick={() => handleVideoSize('small')}
+                    className={`p-1.5 transition-all rounded-l ${
+                      videoSize === 'small' 
+                        ? 'text-gray-900 bg-white bg-opacity-80' 
+                        : 'text-white hover:text-gray-900 hover:bg-white hover:bg-opacity-80'
+                    }`}
+                    title="Small size"
+                  >
+                    <Minimize2 size={14} />
+                  </button>
+                  <button 
+                    onClick={() => handleVideoSize('big')}
+                    className={`p-1.5 transition-all border-l border-white border-opacity-30 ${
+                      videoSize === 'big' 
+                        ? 'text-gray-900 bg-white bg-opacity-80' 
+                        : 'text-white hover:text-gray-900 hover:bg-white hover:bg-opacity-80'
+                    }`}
+                    title="Large size"
+                  >
+                    <Maximize2 size={14} />
+                  </button>
+                  <button 
+                    onClick={() => setIsMinimized(true)}
+                    className="p-1.5 transition-all border-l border-white border-opacity-30 rounded-r text-white hover:text-gray-900 hover:bg-white hover:bg-opacity-80"
+                    title="Minimize"
+                  >
+                    <ChevronDown size={14} />
+                  </button>
+                </div>
               </div>
             </div>
           )}
         </div>
 
         {/* Controls */}
-        <div className="flex items-center justify-between mt-[20px] h-10 bg-gray-100 px-5 border-t border-gray-300 md:flex-row md:h-10 md:px-5 flex-col h-auto px-2.5 py-2.5 gap-2.5">
+        <div className="flex items-center justify-between mt-[20px] h-10 bg-gray-100 px-3 border-t border-gray-300 gap-2">
           <div className="flex items-center gap-2">
             <button
               className="bg-none border-none text-base cursor-pointer px-2 py-1 rounded transition-colors hover:bg-gray-200 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -224,11 +296,18 @@ export const WaveformPlayer = ({
             >
               {isPlaying ? <Pause size={16} /> : <Play size={16} />}
             </button>
-
-
+            {isVideo && (
+              <button
+                className={`px-2 py-1 rounded transition-colors ${showVideoMobile ? 'bg-blue-600 text-white' : 'hover:bg-gray-200 hover:text-gray-700'} md:hidden`}
+                onClick={() => setShowVideoMobile(v => !v)}
+                title="Toggle video overlay"
+              >
+                <VideoIcon size={16} />
+              </button>
+            )}
           </div>
 
-          <div className="flex items-center gap-4 md:gap-4 gap-2 flex-col md:flex-row">
+          <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
               <button
                 onClick={() => handleZoomChange(50)}
@@ -244,7 +323,7 @@ export const WaveformPlayer = ({
                 max="75"
                 value={zoom}
                 onChange={(e) => handleZoomChange(parseInt(e.target.value))}
-                className="w-20 md:w-24 accent-blue-600"
+                className="hidden md:block w-24 accent-blue-600"
                 disabled={!loadedAndReady}
               />
             </div>
@@ -264,116 +343,18 @@ export const WaveformPlayer = ({
                 max="150"
                 value={speed}
                 onChange={(e) => handleSpeedChange(parseInt(e.target.value))}
-                className="w-20 md:w-24 accent-blue-600"
+                className="hidden md:block w-24 accent-blue-600"
                 disabled={!loadedAndReady}
               />
-              <span className="text-xs text-gray-600 min-w-[35px]">{speed}%</span>
+              <span className="hidden md:inline text-xs text-gray-600 min-w-[35px]">{speed}%</span>
             </div>
           </div>
         </div>
 
-        {/* Video Element with Hover Controls */}
-        {isVideo && (
-          <div 
-            className={`${getVideoContainerClasses()} ${isMinimized ? 'hidden' : ''}`}
-            style={getVideoContainerStyle()}
-            onMouseEnter={() => setIsVideoHovered(true)}
-            onMouseLeave={() => setIsVideoHovered(false)}
-          >
-            <video
-              ref={setVideoElement}
-              className="shadow-lg cursor-pointer rounded block max-w-full max-h-full"
-              preload="auto"
-              title="Video playback"
-              controls={false}
-              playsInline
-              webkit-playsinline=""
-            >
-              <source src={source} />
-            </video>
-
-            {/* Position Controls - Upper Left */}
-            <div 
-              className={`absolute top-2 left-2 flex bg-black bg-opacity-50 rounded transition-opacity duration-200 ${
-                isVideoHovered ? 'opacity-100' : 'opacity-0'
-              }`}
-            >
-              <button 
-                onClick={() => handleVideoPosition('left')}
-                className={`p-1.5 transition-all rounded-l ${
-                  videoPosition === 'left' 
-                    ? 'text-gray-900 bg-white bg-opacity-80' 
-                    : 'text-white hover:text-gray-900 hover:bg-white hover:bg-opacity-80'
-                }`}
-                title="Move left"
-              >
-                <ArrowLeft size={14} />
-              </button>
-              <button 
-                onClick={() => handleVideoPosition('center')}
-                className={`p-1.5 transition-all border-l border-white border-opacity-30 ${
-                  videoPosition === 'center' 
-                    ? 'text-gray-900 bg-white bg-opacity-80' 
-                    : 'text-white hover:text-gray-900 hover:bg-white hover:bg-opacity-80'
-                }`}
-                title="Center"
-              >
-                <Circle size={14} />
-              </button>
-              <button 
-                onClick={() => handleVideoPosition('right')}
-                className={`p-1.5 transition-all border-l border-white border-opacity-30 rounded-r ${
-                  videoPosition === 'right' 
-                    ? 'text-gray-900 bg-white bg-opacity-80' 
-                    : 'text-white hover:text-gray-900 hover:bg-white hover:bg-opacity-80'
-                }`}
-                title="Move right"
-              >
-                <ArrowRight size={14} />
-              </button>
-            </div>
-
-            {/* Size & Minimize Controls - Upper Right */}
-            <div 
-              className={`absolute top-2 right-2 flex bg-black bg-opacity-50 rounded transition-opacity duration-200 ${
-                isVideoHovered ? 'opacity-100' : 'opacity-0'
-              }`}
-            >
-              <button 
-                onClick={() => handleVideoSize('small')}
-                className={`p-1.5 transition-all rounded-l ${
-                  videoSize === 'small' 
-                    ? 'text-gray-900 bg-white bg-opacity-80' 
-                    : 'text-white hover:text-gray-900 hover:bg-white hover:bg-opacity-80'
-                }`}
-                title="Small size"
-              >
-                <Minimize2 size={14} />
-              </button>
-              <button 
-                onClick={() => handleVideoSize('big')}
-                className={`p-1.5 transition-all border-l border-white border-opacity-30 ${
-                  videoSize === 'big' 
-                    ? 'text-gray-900 bg-white bg-opacity-80' 
-                    : 'text-white hover:text-gray-900 hover:bg-white hover:bg-opacity-80'
-                }`}
-                title="Large size"
-              >
-                <Maximize2 size={14} />
-              </button>
-              <button 
-                onClick={() => setIsMinimized(true)}
-                className="p-1.5 transition-all border-l border-white border-opacity-30 rounded-r text-white hover:text-gray-900 hover:bg-white hover:bg-opacity-80"
-                title="Minimize"
-              >
-                <ChevronDown size={14} />
-              </button>
-            </div>
-          </div>
-        )}
-        {/* Minimized tab */}
+        
+        {/* Minimized tab - Desktop Only */}
         {isVideo && isMinimized && (
-          <div className="fixed bottom-4 right-4 z-40">
+          <div className="hidden lg:block fixed bottom-4 right-4 z-40">
             <button
               onClick={() => setIsMinimized(false)}
               className="px-2 py-1 text-xs rounded shadow-lg bg-gray-800 text-white hover:bg-gray-700 transition-colors"

@@ -13,6 +13,7 @@ interface IssueDetailsDialogProps {
   onClose: () => void;
   onUpdateIssue?: (issueId: string, updates: Record<string, unknown>) => void;
   onDeleteIssue?: (issueId: string) => void;
+  variant?: 'modal' | 'bottom-sheet';
 }
 
 const issueTypes = [
@@ -27,6 +28,7 @@ export const IssueDetailsDialog = ({
   onClose,
   onUpdateIssue,
   onDeleteIssue,
+  variant = 'modal',
 }: IssueDetailsDialogProps) => {
   const user = useAuthStore((state) => state.user);
   const transcription = useEditorStore((state) => state.transcription);
@@ -148,13 +150,21 @@ export const IssueDetailsDialog = ({
 
   return (
     <div 
-      className="fixed inset-0 flex items-center justify-center z-50 p-4"
+      className={`fixed z-50 ${
+        variant === 'bottom-sheet' 
+          ? 'inset-0 flex items-end justify-center' 
+          : 'inset-0 flex items-center justify-center p-4'
+      }`}
       style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
       onClick={handleBackdropClick}
     >
       <div 
         ref={dialogRef}
-        className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col"
+        className={`bg-white shadow-xl flex flex-col ${
+          variant === 'bottom-sheet'
+            ? 'w-full max-h-[70vh] rounded-t-lg'
+            : 'rounded-lg max-w-2xl w-full max-h-[90vh]'
+        }`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
