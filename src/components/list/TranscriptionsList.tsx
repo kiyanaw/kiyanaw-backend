@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, Eye, Edit, Search, Plus, ChevronDown, Lock, LockOpen, Video, FileAudio } from 'lucide-react';
+import { Users, Eye, Edit, Search, Plus, ChevronDown, Lock, LockOpen, Video, FileAudio, Filter, X } from 'lucide-react';
 import { useTranscriptionsStore } from '../../stores/useTranscriptionsStore';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { useLoadTranscriptions } from '../../hooks/useLoadTranscriptions';
@@ -33,6 +33,8 @@ export const TranscriptionsList = () => {
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState('dateLastUpdated');
   const [sortDesc, setSortDesc] = useState(true);
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
+  const [showMobileFilter, setShowMobileFilter] = useState(false);
 
   // Load transcriptions when component mounts
   useLoadTranscriptions();
@@ -118,93 +120,229 @@ export const TranscriptionsList = () => {
   return (
     <div className="fixed inset-x-0 top-[72px] bottom-0 flex flex-col bg-gray-50">
       {/* Page Header */}
-      <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold text-gray-900">My transcriptions</h1>
+      <div className="sticky top-0 z-10 bg-white border-b border-gray-200">
+        {/* Mobile Header */}
+        <div className="md:hidden">
+          {/* Compact Header Row */}
+          <div className="px-4 py-4 flex items-center justify-between">
+            <h1 className="text-xl font-semibold text-gray-900">My transcriptions</h1>
+            
+            {/* Action Icons */}
+            <div className="flex items-center gap-2">
+              {/* Search Toggle */}
+              <button
+                onClick={() => {
+                  if (showMobileSearch) {
+                    // If closing search, clear the search text
+                    setSearch('');
+                    setShowMobileSearch(false);
+                  } else {
+                    // If opening search, close filter
+                    setShowMobileSearch(true);
+                    setShowMobileFilter(false);
+                  }
+                }}
+                className={`p-2 rounded-lg transition-colors ${
+                  showMobileSearch || search 
+                    ? 'bg-ki-blue text-white' 
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {showMobileSearch ? (
+                  <X className="w-5 h-5" />
+                ) : (
+                  <Search className="w-5 h-5" />
+                )}
+              </button>
+
+              {/* Filter Toggle */}
+              <button
+                onClick={() => {
+                  setShowMobileFilter(!showMobileFilter);
+                  setShowMobileSearch(false);
+                }}
+                className={`p-2 rounded-lg transition-colors ${
+                  showMobileFilter || (sortBy !== 'dateLastUpdated' || !sortDesc)
+                    ? 'bg-ki-blue text-white' 
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                <Filter className="w-5 h-5" />
+              </button>
+
+              {/* Add Button - Just Plus Icon */}
+              <Link 
+                to="/transcribe-add" 
+                className="p-2 bg-ki-blue text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <Plus className="w-5 h-5" />
+              </Link>
+            </div>
           </div>
-          
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-            {/* Search */}
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search by title..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full sm:w-80 pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ki-blue focus:border-transparent"
-              />
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-4 w-4 text-gray-400" />
+
+          {/* Collapsible Search */}
+          {showMobileSearch && (
+            <div className="px-4 pb-4 border-t border-gray-100">
+              <div className="relative mt-3">
+                <input
+                  type="text"
+                  placeholder="Search by title..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-ki-blue focus:border-transparent"
+                  autoFocus
+                />
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-5 w-5 text-gray-400" />
+                </div>
               </div>
             </div>
+          )}
 
-            {/* Sort Dropdown */}
-            <div className="relative">
-              <select
-                value={`${sortBy}-${sortDesc ? 'desc' : 'asc'}`}
-                onChange={(e) => {
-                  const [key, direction] = e.target.value.split('-');
-                  setSortBy(key);
-                  setSortDesc(direction === 'desc');
-                }}
-                className="appearance-none bg-white border border-gray-300 rounded-md px-4 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-ki-blue focus:border-transparent"
-              >
-                {sortOptions.map((option) => {
-                  // Define appropriate labels for each sort type
-                  let descLabel, ascLabel;
-                  switch (option.key) {
-                    case 'dateLastUpdated':
-                      descLabel = 'Latest';
-                      ascLabel = 'Oldest';
-                      break;
-                    case 'title':
-                    case 'author':
-                      descLabel = 'Z→A';
-                      ascLabel = 'A→Z';
-                      break;
-                    case 'coverage':
-                      descLabel = 'Highest';
-                      ascLabel = 'Lowest';
-                      break;
-                    case 'issues':
-                      descLabel = 'Most';
-                      ascLabel = 'Fewest';
-                      break;
-                    default:
-                      descLabel = `${option.label} (high to low)`;
-                      ascLabel = `${option.label} (low to high)`;
-                  }
-                  
-                  return (
-                    <optgroup key={option.key} label={option.label}>
-                      <option value={`${option.key}-desc`}>
-                        {descLabel}
-                      </option>
-                      <option value={`${option.key}-asc`}>
-                        {ascLabel}
-                      </option>
-                    </optgroup>
-                  );
-                })}
-              </select>
-              <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+          {/* Collapsible Filter */}
+          {showMobileFilter && (
+            <div className="px-4 pb-4 border-t border-gray-100">
+              <div className="relative mt-3">
+                <select
+                  value={`${sortBy}-${sortDesc ? 'desc' : 'asc'}`}
+                  onChange={(e) => {
+                    const [key, direction] = e.target.value.split('-');
+                    setSortBy(key);
+                    setSortDesc(direction === 'desc');
+                  }}
+                  className="appearance-none w-full bg-white border border-gray-300 rounded-lg px-3 py-3 pr-8 text-base focus:outline-none focus:ring-2 focus:ring-ki-blue focus:border-transparent"
+                >
+                  {sortOptions.map((option) => {
+                    let descLabel, ascLabel;
+                    switch (option.key) {
+                      case 'dateLastUpdated':
+                        descLabel = 'Latest';
+                        ascLabel = 'Oldest';
+                        break;
+                      case 'title':
+                      case 'author':
+                        descLabel = 'Z→A';
+                        ascLabel = 'A→Z';
+                        break;
+                      case 'coverage':
+                        descLabel = 'Highest';
+                        ascLabel = 'Lowest';
+                        break;
+                      case 'issues':
+                        descLabel = 'Most';
+                        ascLabel = 'Fewest';
+                        break;
+                      default:
+                        descLabel = `${option.label} (high to low)`;
+                        ascLabel = `${option.label} (low to high)`;
+                    }
+                    
+                    return (
+                      <optgroup key={option.key} label={option.label}>
+                        <option value={`${option.key}-desc`}>
+                          {descLabel}
+                        </option>
+                        <option value={`${option.key}-asc`}>
+                          {ascLabel}
+                        </option>
+                      </optgroup>
+                    );
+                  })}
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Desktop Header */}
+        <div className="hidden md:block px-6 py-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-semibold text-gray-900">My transcriptions</h1>
             </div>
             
-            <Link 
-              to="/transcribe-add" 
-              className="inline-flex items-center justify-center px-4 py-2 bg-ki-blue text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add New
-            </Link>
+            <div className="flex items-center gap-3">
+              {/* Search */}
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search by title..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-80 pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ki-blue focus:border-transparent"
+                />
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-4 w-4 text-gray-400" />
+                </div>
+              </div>
+
+              {/* Sort Dropdown */}
+              <div className="relative">
+                <select
+                  value={`${sortBy}-${sortDesc ? 'desc' : 'asc'}`}
+                  onChange={(e) => {
+                    const [key, direction] = e.target.value.split('-');
+                    setSortBy(key);
+                    setSortDesc(direction === 'desc');
+                  }}
+                  className="appearance-none bg-white border border-gray-300 rounded-md px-4 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-ki-blue focus:border-transparent"
+                >
+                  {sortOptions.map((option) => {
+                    let descLabel, ascLabel;
+                    switch (option.key) {
+                      case 'dateLastUpdated':
+                        descLabel = 'Latest';
+                        ascLabel = 'Oldest';
+                        break;
+                      case 'title':
+                      case 'author':
+                        descLabel = 'Z→A';
+                        ascLabel = 'A→Z';
+                        break;
+                      case 'coverage':
+                        descLabel = 'Highest';
+                        ascLabel = 'Lowest';
+                        break;
+                      case 'issues':
+                        descLabel = 'Most';
+                        ascLabel = 'Fewest';
+                        break;
+                      default:
+                        descLabel = `${option.label} (high to low)`;
+                        ascLabel = `${option.label} (low to high)`;
+                    }
+                    
+                    return (
+                      <optgroup key={option.key} label={option.label}>
+                        <option value={`${option.key}-desc`}>
+                          {descLabel}
+                        </option>
+                        <option value={`${option.key}-asc`}>
+                          {ascLabel}
+                        </option>
+                      </optgroup>
+                    );
+                  })}
+                </select>
+                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+              </div>
+              
+              <Link 
+                to="/transcribe-add" 
+                className="inline-flex items-center justify-center px-4 py-2 bg-ki-blue text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add New
+              </Link>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Scrollable Content Area */}
       <div className="flex-1 overflow-auto">
-        <div className="px-4 sm:px-6 py-6">
+        <div className="px-4 md:px-6 py-4 md:py-6">
         {/* Results count */}
         <div className="mb-4 text-sm text-gray-600">
           {filteredAndSortedTranscriptions.length} transcription{filteredAndSortedTranscriptions.length !== 1 ? 's' : ''}
@@ -212,7 +350,7 @@ export const TranscriptionsList = () => {
         </div>
 
         {/* Cards Grid */}
-        <div className="space-y-4">
+        <div className="space-y-3 md:space-y-4">
           {displayedTranscriptions.map((transcription) => (
             <div
               key={transcription.id}
@@ -224,7 +362,108 @@ export const TranscriptionsList = () => {
                 style={{ width: `${(transcription.coverage || 0) * 100}%` }}
               />
 
-              <div className="flex">
+              <>
+                {/* Mobile Layout */}
+                <div className="md:hidden">
+                  <div className="p-4">
+                    {/* Top Row: Title + Issues */}
+                    <div className="flex items-start justify-between gap-3 mb-2">
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <Link
+                          to={`/transcribe-edit/${transcription.id}`}
+                          className="text-base font-semibold text-ki-blue hover:text-blue-800 hover:underline truncate"
+                        >
+                          {transcription.title}
+                        </Link>
+
+                        {/* Media Type Icon */}
+                        {transcription.isVideo ? (
+                          <Video className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                        ) : (
+                          <FileAudio className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                        )}
+
+                        {/* Sharing Status Icons */}
+                        {(() => {
+                          const isOwner = transcription.isMine(user?.userId);
+                          const isShared = transcription.isShared();
+                          const accessLevel = transcription.accessLevel;
+
+                          if (isOwner && isShared) {
+                            return <Users className="w-4 h-4 text-gray-500 flex-shrink-0" title="Shared with others" />;
+                          }
+
+                          if (!isOwner && (accessLevel === 'viewer' || accessLevel === 'editor')) {
+                            return (
+                              <div className="flex items-center gap-1" title={`Shared with you as ${accessLevel}`}>
+                                <Users className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                                {accessLevel === 'viewer' ? (
+                                  <Eye className="w-3 h-3 text-gray-500 flex-shrink-0" />
+                                ) : (
+                                  <Edit className="w-3 h-3 text-gray-500 flex-shrink-0" />
+                                )}
+                              </div>
+                            );
+                          }
+
+                          return null;
+                        })()}
+                      </div>
+
+                      <div className="flex-shrink-0">
+                        <span
+                          className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                            transcription.data.issues === 0 || !transcription.data.issues
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-red-100 text-red-800'
+                          }`}
+                        >
+                          {transcription.data.issues || 0}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Author */}
+                    <div className="text-sm text-gray-600 mb-3">
+                      by {transcription.getOwnerDisplay(user?.userId)}
+                    </div>
+
+                    {/* Mobile Meta Info - Stacked */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-500">Duration</span>
+                        <span className="font-medium">{transcription.lengthFriendly}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-500">Coverage</span>
+                        <span className="font-medium">{Math.round((transcription.coverage || 0) * 100)}%</span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-500">Privacy</span>
+                        <div className="flex items-center gap-1">
+                          {transcription.isPrivate ? (
+                            <>
+                              <Lock className="w-3 h-3 text-gray-500" />
+                              <span className="text-gray-700">Private</span>
+                            </>
+                          ) : (
+                            <>
+                              <LockOpen className="w-3 h-3 text-green-600" />
+                              <span className="text-gray-700">Discoverable</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-500">Updated</span>
+                        <span className="text-gray-700">{formatTimeAgo(transcription.dateLastUpdated)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Desktop Layout */}
+                <div className="hidden md:flex">
                 {/* Left rail: media type icon (audio/video) - full height background */}
                 <div className="w-32 bg-gray-100 flex items-center justify-center rounded-l-lg">
                   {transcription.isVideo ? (
@@ -233,7 +472,7 @@ export const TranscriptionsList = () => {
                     <FileAudio className="w-6 h-6 text-gray-500" />
                   )}
                 </div>
-                <div className="flex-1 min-w-0 p-3 sm:p-4">
+                <div className="flex-1 min-w-0 p-4">
                 {/* Top Row: Title + Issues */}
                     <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-2">
@@ -317,6 +556,7 @@ export const TranscriptionsList = () => {
                     </div>
                   </div>
                 </div>
+              </>
             </div>
           ))}
         </div>
