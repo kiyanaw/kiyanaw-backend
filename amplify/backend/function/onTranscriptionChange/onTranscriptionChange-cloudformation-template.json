@@ -495,6 +495,7 @@
                 "dynamodb:Query",
                 "dynamodb:PartiQLSelect",
                 "dynamodb:Delete*",
+                "dynamodb:BatchWriteItem",
                 "dynamodb:PartiQLDelete"
               ],
               "Resource": [
@@ -554,6 +555,7 @@
                 "dynamodb:Query",
                 "dynamodb:PartiQLSelect",
                 "dynamodb:Delete*",
+                "dynamodb:BatchWriteItem",
                 "dynamodb:PartiQLDelete"
               ],
               "Resource": [
@@ -613,6 +615,7 @@
                 "dynamodb:Query",
                 "dynamodb:PartiQLSelect",
                 "dynamodb:Delete*",
+                "dynamodb:BatchWriteItem",
                 "dynamodb:PartiQLDelete"
               ],
               "Resource": [
@@ -672,6 +675,7 @@
                 "dynamodb:Query",
                 "dynamodb:PartiQLSelect",
                 "dynamodb:Delete*",
+                "dynamodb:BatchWriteItem",
                 "dynamodb:PartiQLDelete"
               ],
               "Resource": [
@@ -731,6 +735,7 @@
                 "dynamodb:Query",
                 "dynamodb:PartiQLSelect",
                 "dynamodb:Delete*",
+                "dynamodb:BatchWriteItem",
                 "dynamodb:PartiQLDelete"
               ],
               "Resource": [

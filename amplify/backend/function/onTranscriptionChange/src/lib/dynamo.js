@@ -50,4 +50,15 @@ async function batchWrite(params) {
   })
 }
 
-module.exports = { getDoc, query, scan, batchWrite }
+async function deleteItem(params) {
+  return new Promise((resolve, reject) => {
+    docClient.delete(params, (err, data) => {
+      if (err) {
+        reject(err)
+      }
+      resolve(data)
+    })
+  })
+}
+
+module.exports = { getDoc, query, scan, batchWrite, deleteItem }

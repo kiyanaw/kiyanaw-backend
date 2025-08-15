@@ -13,6 +13,7 @@ describe('cleanup module', function () {
     process.env.API_KIYANAW_REGIONTABLE_NAME = 'Region-test'
     process.env.API_KIYANAW_ISSUETABLE_NAME = 'Issue-test'
     process.env.API_KIYANAW_INVITETABLE_NAME = 'Invite-test'
+    process.env.API_KIYANAW_TRANSCRIPTIONTABLE_NAME = 'Transcription-test'
   })
   
   afterEach(function () {
@@ -20,6 +21,7 @@ describe('cleanup module', function () {
     dynamo.query?.restore?.()
     dynamo.scan?.restore?.()
     dynamo.batchWrite?.restore?.()
+    dynamo.deleteItem?.restore?.()
     search.clearKnownWordsForTranscription?.restore?.()
     search.clearIssuesForTranscription?.restore?.()
     s3.deleteTranscriptionFiles?.restore?.()
@@ -28,6 +30,7 @@ describe('cleanup module', function () {
     delete process.env.API_KIYANAW_REGIONTABLE_NAME
     delete process.env.API_KIYANAW_ISSUETABLE_NAME
     delete process.env.API_KIYANAW_INVITETABLE_NAME
+    delete process.env.API_KIYANAW_TRANSCRIPTIONTABLE_NAME
   })
 
   describe('deleteRegionsForTranscription', function () {
@@ -203,11 +206,12 @@ describe('cleanup module', function () {
         .onFirstCall().resolves({ Items: [{ id: 'issue-1' }] })  // Issues scan
         .onSecondCall().resolves({ Items: [{ id: 'invite-1' }] }) // Invites scan
       const batchWriteStub = sinon.stub(dynamo, 'batchWrite').resolves({})
+      const deleteItemStub = sinon.stub(dynamo, 'deleteItem').resolves({})
       
       const result = await cleanup.cleanupDeletedTranscription('transcription-123', 'https://example.com/video.mp4')
       
       assert.equal(result.hasErrors, false)
-      assert.equal(result.totalDeleted, 14) // 5 words + 3 issues (OpenSearch) + 2 regions + 1 issue + 1 invite (DynamoDB) + 2 S3 files = 14
+      assert.equal(result.totalDeleted, 15) // 5 words + 3 issues (OpenSearch) + 2 regions + 1 issue + 1 invite (DynamoDB) + 2 S3 files + 1 transcription record = 15
       
       // Verify all cleanup operations were called
       assert.ok(searchWordsStub.called)
@@ -216,6 +220,7 @@ describe('cleanup module', function () {
       assert.ok(queryStub.called)
       assert.equal(scanStub.callCount, 2) // Called for issues and invites
       assert.equal(batchWriteStub.callCount, 3) // Called for regions, issues, and invites
+      assert.ok(deleteItemStub.called) // Called for transcription record hard delete
     })
 
     it('should handle cleanup without S3 source URL', async function () {
@@ -227,11 +232,12 @@ describe('cleanup module', function () {
       // Mock DynamoDB operations with no data
       const queryStub = sinon.stub(dynamo, 'query').resolves({ Items: [] })
       const scanStub = sinon.stub(dynamo, 'scan').resolves({ Items: [] })
+      const deleteItemStub = sinon.stub(dynamo, 'deleteItem').resolves({})
       
       const result = await cleanup.cleanupDeletedTranscription('transcription-123', null)
       
       assert.equal(result.hasErrors, false)
-      assert.equal(result.totalDeleted, 3) // 2 words + 1 issue + 0 others
+      assert.equal(result.totalDeleted, 4) // 2 words + 1 issue + 0 others + 1 transcription record = 4
       
       // Verify S3 deletion was not called
       assert.ok(!s3Stub.called)

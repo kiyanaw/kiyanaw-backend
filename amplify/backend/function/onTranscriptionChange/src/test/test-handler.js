@@ -31,6 +31,7 @@ describe('onTranscriptionChange handler()', function () {
     dynamo.query?.restore?.()
     dynamo.scan?.restore?.()
     dynamo.batchWrite?.restore?.()
+    dynamo.deleteItem?.restore?.()
     s3.deleteTranscriptionFiles?.restore?.()
     
     delete process.env.ENV
@@ -55,18 +56,25 @@ describe('onTranscriptionChange handler()', function () {
       .onFirstCall().resolves({ Items: [{ id: 'issue-1' }] })
       .onSecondCall().resolves({ Items: [{ id: 'invite-1' }] })
     const batchWriteStub = sinon.stub(dynamo, 'batchWrite').resolves({})
+    const deleteItemStub = sinon.stub(dynamo, 'deleteItem').resolves({})
     
     const event = {
       Records: [{
         eventID: 'test-event-id',
-        eventName: 'REMOVE',
+        eventName: 'MODIFY',
         dynamodb: {
           OldImage: AWS.DynamoDB.Converter.marshall({
             id: 'transcription-123',
             title: 'Test Transcription',
             source: 'https://test-bucket.s3.amazonaws.com/public/video.mp4'
+          }),
+          NewImage: AWS.DynamoDB.Converter.marshall({
+            id: 'transcription-123',
+            title: 'Test Transcription',
+            source: 'https://test-bucket.s3.amazonaws.com/public/video.mp4',
+            _deleted: true,
+            _ttl: 1757814480
           })
-          // No NewImage for REMOVE events
         }
       }]
     }
@@ -87,6 +95,11 @@ describe('onTranscriptionChange handler()', function () {
     assert.ok(queryStub.called) // For regions
     assert.equal(scanStub.callCount, 2) // For issues and invites
     assert.equal(batchWriteStub.callCount, 3) // For regions, issues, and invites
+    
+    // Verify hard delete was performed (called by cleanup function)
+    assert.ok(deleteItemStub.called)
+    assert.equal(deleteItemStub.args[0][0].TableName, process.env.API_KIYANAW_TRANSCRIPTIONTABLE_NAME)
+    assert.equal(deleteItemStub.args[0][0].Key.id, 'transcription-123')
   })
 
   it('should handle transcription deletion without source URL', async function () {
@@ -98,15 +111,23 @@ describe('onTranscriptionChange handler()', function () {
     const queryStub = sinon.stub(dynamo, 'query').resolves({ Items: [] })
     const scanStub = sinon.stub(dynamo, 'scan').resolves({ Items: [] })
     const batchWriteStub = sinon.stub(dynamo, 'batchWrite')
+    const deleteItemStub = sinon.stub(dynamo, 'deleteItem').resolves({})
     
     const event = {
       Records: [{
         eventID: 'test-event-id',
-        eventName: 'REMOVE',
+        eventName: 'MODIFY',
         dynamodb: {
           OldImage: AWS.DynamoDB.Converter.marshall({
             id: 'transcription-123',
             title: 'Test Transcription'
+            // No source field
+          }),
+          NewImage: AWS.DynamoDB.Converter.marshall({
+            id: 'transcription-123',
+            title: 'Test Transcription',
+            _deleted: true,
+            _ttl: 1757814480
             // No source field
           })
         }

@@ -199,7 +199,8 @@ const cleanupDeletedTranscription = async (transcriptionId, sourceUrl = null) =>
     dynamoRegions: { success: false, deleted: 0 },
     dynamoIssues: { success: false, deleted: 0 },
     dynamoInvites: { success: false, deleted: 0 },
-    s3Files: { success: false, deleted: 0 }
+    s3Files: { success: false, deleted: 0 },
+    transcriptionRecord: { success: false, deleted: 0 }
   }
   
   // 1. Clear OpenSearch indexes (words and issues)
@@ -271,6 +272,25 @@ const cleanupDeletedTranscription = async (transcriptionId, sourceUrl = null) =>
   } else {
     console.log('⚠️ No source URL provided, skipping S3 deletion')
     results.s3Files = { success: true, deleted: 0 } // Not an error, just no files to delete
+  }
+  
+  // 4. Hard delete the transcription record from DynamoDB (cleanup Amplify soft delete)
+  try {
+    console.log('🗑️ Hard deleting transcription record from DynamoDB...')
+    const transcriptionTable = process.env.API_KIYANAW_TRANSCRIPTIONTABLE_NAME
+    
+    await dynamo.deleteItem({
+      TableName: transcriptionTable,
+      Key: {
+        id: transcriptionId
+      }
+    })
+    
+    results.transcriptionRecord = { success: true, deleted: 1 }
+    console.log('✅ Successfully hard deleted transcription record from DynamoDB')
+  } catch (error) {
+    console.error('❌ Failed to hard delete transcription record:', error)
+    results.transcriptionRecord = { success: false, deleted: 0, error }
   }
   
   // Calculate summary

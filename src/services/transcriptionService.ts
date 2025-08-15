@@ -5,7 +5,7 @@ import { getUrl } from 'aws-amplify/storage';
 import { getTranscription, listTranscriptions } from '../graphql/queries.js';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - GraphQL mutations are generated as JS files
-import { createTranscription as createTranscriptionMutation, updateTranscription as updateTranscriptionMutation } from '../graphql/mutations.js';
+import { createTranscription as createTranscriptionMutation, updateTranscription as updateTranscriptionMutation, deleteTranscription as deleteTranscriptionMutation } from '../graphql/mutations.js';
 
 import { loadRegionsForTranscription } from './regionService';
 import { loadIssuesForTranscription } from './issueService';
@@ -18,6 +18,7 @@ import {
   type GetTranscriptionResponse, 
   type CreateTranscriptionResponse,
   type UpdateTranscriptionResponse,
+  type DeleteTranscriptionResponse,
   type TranscriptionData as SharedTranscriptionData, 
   type LoadTranscriptionResult,
   type GraphQLListResponse
@@ -378,4 +379,50 @@ export const updateTranscription = async (
     console.error('❌ Failed to update transcription via API:', error);
     throw error;
   }
-}; 
+};
+
+/**
+ * Deletes a transcription using GraphQL API
+ * @param transcriptionId The ID of the transcription to delete
+ * @returns The deleted transcription data
+ */
+export const deleteTranscription = async (transcriptionId: string): Promise<SharedTranscriptionData> => {
+  try {
+    // First, get the current transcription to get the _version for conflict detection
+    const { data: getData } = await getClient().graphql({
+      query: getTranscription,
+      variables: { 
+        id: transcriptionId,
+        filter: { 
+          _deleted: { ne: true }
+        }
+      }
+    }) as GraphQLResponse<GetTranscriptionResponse>;
+
+    const existing = getData?.getTranscription;
+    if (!existing) {
+      throw new Error(`Transcription with ID ${transcriptionId} not found`);
+    }
+
+    const input = {
+      id: transcriptionId,
+      _version: existing._version,
+    };
+
+    const { data: result } = await getClient().graphql({
+      query: deleteTranscriptionMutation,
+      variables: { input },
+      authMode: 'iam',
+    }) as DeleteTranscriptionResponse;
+
+    const deleted = result?.deleteTranscription;
+    if (!deleted) {
+      throw new Error('Failed to delete transcription - no data returned');
+    }
+
+    return deleted;
+  } catch (error) {
+    console.error('❌ Failed to delete transcription via API:', error);
+    throw error;
+  }
+};

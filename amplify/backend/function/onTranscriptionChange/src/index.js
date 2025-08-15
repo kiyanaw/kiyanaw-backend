@@ -124,11 +124,12 @@ exports.handler = async (event) => {
       continue
     }
     
-    // Case 1: Transcription deleted (no new record)
-    if (record.eventName === 'REMOVE' && !newImage) {
+    // Case 1: Transcription deleted (Amplify soft delete with _deleted: true)
+    // Can't use "REMOVE" event because the record isn't removed
+    if (newImage?._deleted === true) {
       console.log(`Transcription ${transcriptionId} deleted - performing comprehensive cleanup`)
       
-      const sourceUrl = oldImage?.source || null
+      const sourceUrl = oldImage?.source || newImage?.source || null
       const cleanupResult = await cleanup.cleanupDeletedTranscription(transcriptionId, sourceUrl)
       
       if (cleanupResult.hasErrors) {

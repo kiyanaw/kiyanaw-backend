@@ -1,39 +1,38 @@
 import { useState, useEffect, useCallback } from 'react';
-import { FileText, Users, Settings, Mail, Send, UserPlus, Trash2, Save, RotateCcw, Loader2 } from 'lucide-react';
+import { FileText, Users, Settings, Mail, Send, UserPlus, Trash2, Save, RotateCcw, Loader2, AlertTriangle, Download } from 'lucide-react';
 import { useCreateInvite } from '../../hooks/useCreateInvite';
 import { useRevokeInvite } from '../../hooks/useRevokeInvite';
+import { useDeleteTranscription } from '../../hooks/useDeleteTranscription';
 import * as inviteService from '../../services/inviteService';
-import type { InviteModel } from '../../services/adt';
+import { generateSignedUrl } from '../../services/transcriptionService';
+import type { InviteModel, TranscriptionModel } from '../../services/adt';
 
 interface TranscriptionSettingsPageProps {
-  title: string;
-  comments?: string;
-  author: string;
-  dateLastUpdated: string;
+  transcription: TranscriptionModel;
   regionCount: number;
-  transcriptionId: string;
-  isPrivate?: boolean;
-  publicIssues?: boolean;
-  lang?: string;
   onSave: (updates: { title?: string; comments?: string; isPrivate?: boolean; publicIssues?: boolean; lang?: string }) => void;
   onBack: () => void;
+  onDelete?: () => void;
   isOwner: boolean;
 }
 
 export const TranscriptionSettingsPage = ({
-  title: initialTitle,
-  comments: initialComments,
-  author,
-  dateLastUpdated,
+  transcription,
   regionCount,
-  transcriptionId,
-  isPrivate: initialIsPrivate,
-  publicIssues: initialPublicIssues,
-  lang: initialLang,
   onSave,
   onBack,
+  onDelete,
   isOwner,
 }: TranscriptionSettingsPageProps) => {
+  // Extract values from transcription object
+  const initialTitle = transcription.title;
+  const initialComments = transcription.comments;
+  const author = transcription.authorFriendly || 'Unknown';
+  const dateLastUpdated = transcription.dateLastUpdated || '0';
+  const transcriptionId = transcription.id;
+  const initialIsPrivate = transcription.isPrivate;
+  const initialPublicIssues = transcription.publicIssues;
+  const initialLang = transcription.lang;
   const [title, setTitle] = useState(initialTitle);
   const [comments, setComments] = useState(initialComments || '');
   const [isPrivate, setIsPrivate] = useState(initialIsPrivate ?? true);
@@ -50,9 +49,28 @@ export const TranscriptionSettingsPage = ({
   const [inviteSuccess, setInviteSuccess] = useState<string | null>(null);
   const [deletingInviteId, setDeletingInviteId] = useState<string | null>(null);
   
+  // Delete transcription state
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  
+  // Download state
+  const [isDownloading, setIsDownloading] = useState(false);
+  
   // Hooks
   const createInvite = useCreateInvite();
   const revokeInvite = useRevokeInvite();
+  const deleteTranscription = useDeleteTranscription({
+    onSuccess: () => {
+      console.log('Transcription deleted successfully');
+      onDelete?.();
+    },
+    onError: (error) => {
+      setDeleteError(error.message);
+      setIsDeleting(false);
+    }
+  });
 
   const loadInvites = useCallback(async () => {
     setInvitesLoading(true);
@@ -128,6 +146,8 @@ export const TranscriptionSettingsPage = ({
     }
   };
 
+
+
   const handleSendInvite = async () => {
     const cleanEmail = newInviteEmail.trim();
     
@@ -186,6 +206,60 @@ export const TranscriptionSettingsPage = ({
         return 'bg-gray-100 text-gray-800';
       default:
         return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const handleDeleteClick = () => {
+    setShowDeleteDialog(true);
+    setDeleteError(null);
+    setDeleteConfirmText('');
+  };
+
+  const handleDeleteCancel = () => {
+    setShowDeleteDialog(false);
+    setDeleteConfirmText('');
+    setDeleteError(null);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (deleteConfirmText.toLowerCase() !== 'delete forever') {
+      setDeleteError('Please type "delete forever" to confirm');
+      return;
+    }
+
+    setIsDeleting(true);
+    setDeleteError(null);
+
+    try {
+      await deleteTranscription({ transcriptionId });
+      // Success handling is done in the hook's onSuccess callback
+    } catch (error) {
+      // Error handling is done in the hook's onError callback
+      console.error('Delete failed:', error);
+    }
+  };
+
+  const handleDownload = async () => {
+    if (!transcription.source) return;
+
+    setIsDownloading(true);
+    try {
+      // Generate a fresh signed URL
+      const signedUrl = await generateSignedUrl(transcription.source);
+      
+      // Create a temporary link and trigger download
+      const link = document.createElement('a');
+      link.href = signedUrl;
+      link.download = transcription.getSourceFilename();
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Download failed:', error);
+      // Could add error state/toast here if needed
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -409,6 +483,34 @@ export const TranscriptionSettingsPage = ({
                     <label className="block text-sm font-medium text-gray-600">Total Regions</label>
                     <p className="text-base text-gray-900 mt-1">{regionCount}</p>
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600">Source File</label>
+                    {transcription.source ? (
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-base text-gray-900 break-all flex-1">{transcription.getSourceFilename()}</span>
+                        <button
+                          onClick={handleDownload}
+                          disabled={isDownloading}
+                          className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          title="Download original file"
+                        >
+                          {isDownloading ? (
+                            <>
+                              <Loader2 size={12} className="animate-spin" />
+                              Downloading...
+                            </>
+                          ) : (
+                            <>
+                              <Download size={12} />
+                              Download
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="text-base text-gray-900 mt-1 break-all">Unknown</p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -548,9 +650,119 @@ export const TranscriptionSettingsPage = ({
               </div>
             </div>
           )}
+
+          {/* Danger Zone Section - Full Width (Owners Only) */}
+          {isOwner && (
+            <div className="space-y-6">
+              <div className="flex items-center gap-3 pb-3 border-b border-red-200">
+                <AlertTriangle className="text-red-600" size={20} />
+                <h2 className="text-lg font-semibold text-red-900">Danger Zone</h2>
+              </div>
+
+              <div className="bg-red-50 p-6 rounded-lg border border-red-200">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <h3 className="text-sm font-semibold text-red-900 mb-2">Delete Transcription</h3>
+                    <p className="text-sm text-red-700 mb-4">
+                      Permanently delete this transcription and all associated data including regions, issues, comments, and invitations. 
+                      This action cannot be undone.
+                    </p>
+                    <ul className="text-xs text-red-600 space-y-1 mb-4">
+                      <li>• All regions and their text will be deleted</li>
+                      <li>• All issues and comments will be deleted</li>
+                      <li>• All pending invitations will be revoked</li>
+                      <li>• The audio file and analysis data will be removed</li>
+                    </ul>
+                  </div>
+                  <button
+                    onClick={handleDeleteClick}
+                    className="ml-4 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors"
+                  >
+                    <Trash2 size={16} />
+                    Delete Transcription
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      {showDeleteDialog && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+            <div className="fixed inset-0 bg-gray-800/60 backdrop-saturate-0 transition-opacity" onClick={handleDeleteCancel}></div>
+            
+            <div className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
+              <div className="sm:flex sm:items-start">
+                <div className="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                  <AlertTriangle className="h-6 w-6 text-red-600" />
+                </div>
+                <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left flex-1">
+                  <h3 className="text-base font-semibold leading-6 text-gray-900">
+                    Delete Transcription
+                  </h3>
+                  <div className="mt-2">
+                    <p className="text-sm text-gray-500 mb-4">
+                      This action will permanently delete <strong>"{title}"</strong> and all associated data. 
+                      This cannot be undone.
+                    </p>
+                    
+                    <div className="mb-4">
+                      <label htmlFor="deleteConfirm" className="block text-sm font-medium text-gray-700 mb-2">
+                        Type <strong>"delete forever"</strong> to confirm:
+                      </label>
+                      <input
+                        id="deleteConfirm"
+                        type="text"
+                        value={deleteConfirmText}
+                        onChange={(e) => setDeleteConfirmText(e.target.value)}
+                        placeholder="delete forever"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm"
+                        disabled={isDeleting}
+                      />
+                    </div>
+
+                    {deleteError && (
+                      <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800">
+                        {deleteError}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+                <button
+                  type="button"
+                  onClick={handleDeleteConfirm}
+                  disabled={isDeleting || deleteConfirmText.toLowerCase() !== 'delete forever'}
+                  className="inline-flex w-full justify-center rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:ml-3 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isDeleting ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin mr-2" />
+                      Deleting...
+                    </>
+                  ) : (
+                    'Delete Forever'
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeleteCancel}
+                  disabled={isDeleting}
+                  className="mt-3 inline-flex w-full justify-center rounded-lg bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

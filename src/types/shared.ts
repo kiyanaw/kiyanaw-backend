@@ -72,6 +72,12 @@ export interface UpdateTranscriptionResponse {
   };
 }
 
+export interface DeleteTranscriptionResponse {
+  data: {
+    deleteTranscription: TranscriptionData;
+  };
+}
+
 // Issue-related interfaces (shared from issueService)
 export interface IssueComment {
   id: string;

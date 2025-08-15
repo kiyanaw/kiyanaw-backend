@@ -11,6 +11,7 @@ import { useAuthStore } from '../stores/useAuthStore';
 import { useUpdateIssue } from '../hooks/useUpdateIssue';
 import { useDeleteIssue } from '../hooks/useDeleteIssue';
 import { canEdit, isAuthor } from '../lib/permissions';
+import { TranscriptionModel } from '../services/adt';
 
 import { browserService } from '../services/browserService';
 import { wavesurferService } from '../services/wavesurferService';
@@ -57,8 +58,16 @@ export const EditorPage = () => {
   // Settings handlers
   const handleOpenSettings = () => setIsSettingsOpen(true);
   const handleCloseSettings = () => setIsSettingsOpen(false);
-  const handleSaveChanges = (updates: { title?: string; comments?: string; isPrivate?: boolean; lang?: string }) => {
+  const handleSaveChanges = (updates: { title?: string; comments?: string; isPrivate?: boolean; publicIssues?: boolean; lang?: string }) => {
     updateTranscription(updates);
+  };
+
+  const handleDeleteTranscription = () => {
+    // Add a 2 second pause before navigating
+    setTimeout(() => {
+      // Navigate back to the transcription list after deletion
+      navigate('/transcribe-list/');
+    }, 4000);
   };
   
   // Determine user permissions for this transcription
@@ -202,17 +211,11 @@ export const EditorPage = () => {
       {isSettingsOpen && transcription && (
         <div className="absolute inset-0 z-50">
           <TranscriptionSettingsPage
-            title={transcription.title || ''}
-            comments={transcription.comments}
-            author={transcription.authorFriendly || 'Unknown'}
-            dateLastUpdated={transcription.dateLastUpdated || '0'}
+            transcription={new TranscriptionModel(transcription)}
             regionCount={regions.length}
-            transcriptionId={transcription.id || ''}
-            isPrivate={transcription.isPrivate}
-            publicIssues={transcription.publicIssues}
-            lang={transcription.lang}
             onSave={handleSaveChanges}
             onBack={handleCloseSettings}
+            onDelete={handleDeleteTranscription}
             isOwner={isOwner}
           />
         </div>
