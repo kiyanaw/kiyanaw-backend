@@ -176,27 +176,34 @@ export const WaveformPlayer = ({
           {/* Waveform sits underneath; never unmounted */}
           <div ref={setWaveformContainer} className="w-full h-32 bg-white relative" />
 
-          {/* Video element: absolute overlay on mobile; fixed floating on desktop */}
+          {/* Video element: modal overlay on mobile; fixed floating on desktop */}
           {isVideo && (
             <div 
               className={`
                 ${isMinimized ? 'hidden' : ''}
-                absolute inset-0 ${showVideoMobile ? 'block' : 'hidden'} bg-black
-                lg:fixed lg:z-40 lg:rounded lg:group lg:bg-transparent lg:block
+                ${showVideoMobile ? 'fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40' : 'hidden'}
+                lg:fixed lg:z-40 lg:rounded lg:group lg:bg-transparent lg:block lg:inset-auto
                 ${videoPosition === 'left' ? 'lg:bottom-4 lg:left-4' : videoPosition === 'center' ? 'lg:bottom-4 lg:left-1/2 lg:-translate-x-1/2' : 'lg:bottom-4 lg:right-4'}
               `}
-              style={getVideoContainerStyle()}
+              style={showVideoMobile ? undefined : getVideoContainerStyle()}
               onMouseEnter={() => setIsVideoHovered(true)}
               onMouseLeave={() => setIsVideoHovered(false)}
+              onClick={(e) => {
+                // Close modal when clicking backdrop on mobile
+                if (e.target === e.currentTarget && showVideoMobile) {
+                  setShowVideoMobile(false);
+                }
+              }}
             >
               <video
                 ref={setVideoElement}
-                className="w-full h-full object-contain shadow-lg lg:rounded"
+                className={`object-contain shadow-lg rounded ${showVideoMobile ? 'w-full max-h-[80vh]' : 'w-full h-full'}`}
                 preload="auto"
                 title="Video playback"
                 controls={false}
                 playsInline
                 webkit-playsinline=""
+                onClick={(e) => e.stopPropagation()} // Prevent modal close when clicking video
               >
                 <source src={source} />
               </video>
