@@ -29,6 +29,28 @@
 }
 
 @layer components {
+  /* Custom Amplify Authenticator styling - force white background */
+  .amplify-authenticator {
+    --amplify-components-authenticator-router-background-color: white !important;
+    --amplify-components-authenticator-router-border: none;
+  }
+  
+  .amplify-authenticator [data-amplify-router] {
+    background: white !important;
+    border-radius: 12px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    overflow: hidden;
+  }
+  
+  .amplify-authenticator [data-amplify-router] > * {
+    background: white !important;
+  }
+  
+  .amplify-authenticator .amplify-tabs,
+  .amplify-authenticator .amplify-authenticator__form {
+    background: white !important;
+  }
+  
   /* Quill editor styling */
   .ql-editor {
     font-size: 1.4em;
