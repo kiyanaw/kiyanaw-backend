@@ -6,9 +6,11 @@ import { signOut } from 'aws-amplify/auth';
 
 export const AppLayout = () => {
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const user = useAuthStore((state) => state.user);
   const signedIn = useAuthStore((state) => state.signedIn);
   const profileDropdownRef = useRef<HTMLDivElement>(null);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
   const { pendingCount, loadMyInvites } = useLoadMyInvites();
 
   // Load invites for navigation badge when user becomes available
@@ -31,7 +33,11 @@ export const AppLayout = () => {
     setProfileDropdownOpen(!profileDropdownOpen);
   };
 
-  // Close profile dropdown when clicking outside
+  const toggleMobileMenu = () => {
+    setMobileMenuOpen(!mobileMenuOpen);
+  };
+
+  // Close profile dropdown when clicking outside (mobile menu handles its own backdrop)
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target as Node)) {
@@ -89,36 +95,52 @@ export const AppLayout = () => {
         </div>
         <div className="flex items-center gap-4">
           {signedIn ? (
-            <div className="relative" ref={profileDropdownRef}>
-              <button
-                onClick={toggleProfileDropdown}
-                className="w-10 h-10 bg-white/20 hover:bg-white/30 border border-white/30 rounded-full flex items-center justify-center text-white font-medium text-sm transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-white/50"
-                aria-label="Profile menu"
-              >
-                {user?.username ? getUserInitials(user.username) : 'U'}
-              </button>
+            <>
+              {/* Mobile Hamburger Menu */}
+              <div className="md:hidden">
+                <button
+                  onClick={toggleMobileMenu}
+                  className="w-10 h-10 bg-white/20 hover:bg-white/30 border border-white/30 rounded flex items-center justify-center text-white transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-white/50"
+                  aria-label="Menu"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                </button>
+              </div>
 
-              {profileDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-[1001]">
-                  <div className="px-4 py-3 border-b border-gray-100">
-                    <div className="text-sm text-gray-500">Signed in as</div>
-                    <div className="text-sm font-medium text-gray-900 truncate">
-                      {user?.username}
+              {/* Desktop Profile Menu */}
+              <div className="hidden md:block relative" ref={profileDropdownRef}>
+                <button
+                  onClick={toggleProfileDropdown}
+                  className="w-10 h-10 bg-white/20 hover:bg-white/30 border border-white/30 rounded-full flex items-center justify-center text-white font-medium text-sm transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-white/50"
+                  aria-label="Profile menu"
+                >
+                  {user?.username ? getUserInitials(user.username) : 'U'}
+                </button>
+
+                {profileDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-[1001]">
+                    <div className="px-4 py-3 border-b border-gray-100">
+                      <div className="text-sm text-gray-500">Signed in as</div>
+                      <div className="text-sm font-medium text-gray-900 truncate">
+                        {user?.username}
+                      </div>
+                    </div>
+                    
+                    <div className="py-1">
+                      <button
+                        onClick={handleSignOut}
+                        className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-150 flex items-center gap-2"
+                      >
+                        <span>🚪</span>
+                        Sign out
+                      </button>
                     </div>
                   </div>
-                  
-                  <div className="py-1">
-                    <button
-                      onClick={handleSignOut}
-                      className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-150 flex items-center gap-2"
-                    >
-                      <span>🚪</span>
-                      Sign out
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            </>
           ) : (
             <span className="text-sm">Please sign in</span>
           )}
@@ -131,6 +153,85 @@ export const AppLayout = () => {
       <main className="flex-1 overflow-hidden p-0 bg-gray-50 mt-[72px]">
         <Outlet />
       </main>
+
+      {/* Mobile Side Drawer */}
+      <>
+        {/* Backdrop */}
+        <div 
+          className={`fixed inset-0 bg-black/50 z-[1000] md:hidden transition-opacity duration-300 ${
+            mobileMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
+          onClick={() => setMobileMenuOpen(false)}
+        />
+        
+        {/* Drawer */}
+        <div 
+          ref={mobileMenuRef}
+          className={`fixed top-0 right-0 h-full w-80 max-w-[85vw] bg-white shadow-xl z-[1001] md:hidden transform transition-transform duration-300 ease-out ${
+            mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
+          }`}
+        >
+            {/* User Info Header */}
+            <div className="p-6 border-b border-gray-100 bg-white relative">
+              <button
+                onClick={() => setMobileMenuOpen(false)}
+                className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                aria-label="Close menu"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+              <div className="text-xs text-gray-500 uppercase tracking-wide font-medium">Signed in as</div>
+              <div className="text-lg font-semibold text-gray-900 truncate mt-1 pr-10">
+                {user?.username}
+              </div>
+            </div>
+
+            {/* Navigation Links */}
+            <div className="flex-1 py-4">
+              <Link
+                to="/transcribe-list"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center px-6 py-3 text-gray-900 hover:bg-gray-50 active:bg-gray-100 transition-colors duration-150"
+              >
+                <svg className="w-5 h-5 text-gray-600 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <span className="font-medium">My transcriptions</span>
+              </Link>
+              
+              <Link
+                to="/invitations"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center px-6 py-3 text-gray-900 hover:bg-gray-50 active:bg-gray-100 transition-colors duration-150 relative"
+              >
+                <svg className="w-5 h-5 text-gray-600 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                <span className="font-medium">Invitations</span>
+                {pendingCount > 0 && (
+                  <span className="ml-auto bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                    {pendingCount}
+                  </span>
+                )}
+              </Link>
+            </div>
+
+            {/* Footer */}
+            <div className="border-t border-gray-200 p-4 bg-gray-50">
+              <button
+                onClick={handleSignOut}
+                className="w-full flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 active:bg-gray-200 rounded-lg transition-colors duration-150"
+              >
+                <svg className="w-5 h-5 text-gray-600 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                <span className="font-medium">Sign out</span>
+              </button>
+            </div>
+          </div>
+      </>
     </div>
   );
 };
