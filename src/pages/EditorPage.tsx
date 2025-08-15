@@ -264,7 +264,7 @@ export const EditorPage = () => {
         </div>
 
         {/* Region List */}
-        <div className="w-[500px] flex-shrink-0 bg-gray-50 border-l border-gray-300 flex flex-col min-h-0">
+        <div className="w-[500px] flex-shrink-0 bg-gray-50 border-l border-gray-300 flex flex-col min-h-0" id="desktop-regions-container">
           <RegionList
             regions={regions}
             disableAnalyzer={transcription?.disableAnalyzer}
@@ -290,7 +290,7 @@ export const EditorPage = () => {
           )}
           
           {mobileTab === 'regions' && (
-            <div className="h-full overflow-hidden">
+            <div className="h-full min-h-0" id="mobile-regions-container">
               <RegionList
                 regions={regions}
                 disableAnalyzer={transcription?.disableAnalyzer}

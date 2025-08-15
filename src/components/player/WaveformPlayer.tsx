@@ -4,6 +4,7 @@ import { wavesurferService } from '../../services/wavesurferService';
 import { usePlayerStore } from '../../stores/usePlayerStore';
 import { usePlay } from '../../hooks/usePlay';
 import { usePause } from '../../hooks/usePause';
+import { useSelectAndPlayRegion } from '../../hooks/useSelectAndPlayRegion';
 import { useEditorStore } from '../../stores/useEditorStore';
 
 interface Region {
@@ -53,6 +54,8 @@ export const WaveformPlayer = ({
   
   const play = usePlay()
   const pause = usePause()
+  const selectAndPlayRegion = useSelectAndPlayRegion()
+  const selectedRegion = useEditorStore((state) => state.selectedRegion)
 
   // Initialize WaveSurfer when container is ready
   const initializeWaveSurfer = useCallback(() => {
@@ -119,6 +122,20 @@ export const WaveformPlayer = ({
 
   const handleVideoSize = (size: 'small' | 'big') => {
     setVideoSize(size);
+  };
+
+  // Mobile video click handler
+  const handleMobileVideoClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent modal close
+    
+    // Only handle clicks on mobile when video is in modal
+    if (!showVideoMobile) return;
+    
+    if (selectedRegion) {
+      selectAndPlayRegion(selectedRegion.id);
+    } else {
+      play({ playInFull: true });
+    }
   };
 
   // (Prev helper removed; positioning handled directly in className)
@@ -203,7 +220,7 @@ export const WaveformPlayer = ({
                 controls={false}
                 playsInline
                 webkit-playsinline=""
-                onClick={(e) => e.stopPropagation()} // Prevent modal close when clicking video
+                onClick={handleMobileVideoClick}
               >
                 <source src={source} />
               </video>

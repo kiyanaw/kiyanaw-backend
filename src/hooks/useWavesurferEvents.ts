@@ -95,6 +95,7 @@ export const useWavesurferEvents = (transcriptionId: string, source?: string): v
 
     const handleRegionIn = (data: unknown) => {
       const { regionId } = data as RegionEvent;
+
       if (highlightedInboundRegionRef.current) {
         const previousStyleId = styleIdRef.current.get(highlightedInboundRegionRef.current);
         if (previousStyleId) {
@@ -110,6 +111,7 @@ export const useWavesurferEvents = (transcriptionId: string, source?: string): v
       highlightedInboundRegionRef.current = regionId;
 
       // Scroll the region item into view
+
       browserService.scrollElementIntoView(targetRegionSelector);
     };
 
