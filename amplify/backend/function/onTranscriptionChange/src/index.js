@@ -62,6 +62,7 @@ const bulkEnqueueRegions = async (regionIds) => {
   }
   
   console.log(`Enqueuing ${regionIds.length} regions for reprocessing`)
+  console.log(`Enqueue URL ${queueUrl}`)
   
   // Send in batches of 10 (SQS batch limit)
   const batchSize = 10
@@ -173,6 +174,14 @@ exports.handler = async (event) => {
       if (oldPublicIssues && !newPublicIssues) {
         console.log('Issues became private - clearing OpenSearch issues index')
         await search.clearIssuesForTranscription(transcriptionId)
+        continue
+      }
+      
+      // Case 2c: publicIssues changed to true - re-enqueue all regions to index issues
+      if (!oldPublicIssues && newPublicIssues) {
+        console.log('Issues became public - re-enqueueing all regions to index issues')
+        const regionIds = await getRegionIdsForTranscription(transcriptionId)
+        await bulkEnqueueRegions(regionIds)
         continue
       }
       

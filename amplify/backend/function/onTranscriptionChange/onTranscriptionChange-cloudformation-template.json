@@ -82,6 +82,9 @@
             "REGION": {
               "Ref": "AWS::Region"
             },
+            "ACCOUNT_ID": {
+              "Ref": "AWS::AccountId"
+            },
             "API_KIYANAW_TRANSCRIPTIONTABLE_NAME": {
               "Fn::ImportValue": {
                 "Fn::Sub": "${apikiyanawGraphQLAPIIdOutput}:GetAtt:TranscriptionTable:Name"

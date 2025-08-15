@@ -431,10 +431,15 @@ describe('onTranscriptionChange handler()', function () {
     assert.ok(!queryStub.called) // No region enqueueing should happen
   })
 
-  it('should not clear issues when publicIssues changes to true', async function () {
+  it('should re-enqueue regions when publicIssues changes to true', async function () {
     const searchWordsStub = sinon.stub(search, 'clearKnownWordsForTranscription')
     const searchIssuesStub = sinon.stub(search, 'clearIssuesForTranscription')
-    const queryStub = sinon.stub(dynamo, 'query')
+    const queryStub = sinon.stub(dynamo, 'query').resolves({
+      Items: [
+        { id: 'region-1' },
+        { id: 'region-2' }
+      ]
+    })
     
     const event = {
       Records: [{
@@ -462,6 +467,7 @@ describe('onTranscriptionChange handler()', function () {
     assert.equal(result.body, '{"message": "ok"}')
     assert.ok(!searchIssuesStub.called) // Issues should not be cleared when becoming public
     assert.ok(!searchWordsStub.called) // Words should not be affected
-    assert.ok(!queryStub.called) // No region enqueueing should happen
+    assert.ok(queryStub.called) // Should query for regions to re-enqueue
+    assert.ok(mockSendMessageBatch.called) // Should enqueue regions for processing
   })
 })
