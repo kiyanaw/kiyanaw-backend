@@ -35,7 +35,8 @@ const AuthenticatedApp = ({ children }: { children: ReactNode }) => {
     }
   }
 
-  return <div>{children}</div>;
+  // Once authenticated, render without the auth background/styling
+  return <div className="w-full h-full">{children}</div>;
 };
 
 // Custom theme with just brand colors for highlights
@@ -92,31 +93,25 @@ const kiyanawTheme = createTheme({
 export const AuthenticatorShell = ({ children }: AuthenticatorShellProps) => {
   return (
     <ThemeProvider theme={kiyanawTheme}>
-      <div className="min-h-screen" style={{ backgroundColor: '#f0f4f8' }}>
-        <div className="min-h-screen flex items-center justify-center p-4">
-          <div className="w-full max-w-md">
-            {/* Logo and branding outside the form */}
-            <div className="flex flex-col items-center mb-8">
-              <img 
-                src="/logo.png" 
-                alt="kiyânaw Transcribe" 
-                className="w-16 h-16 rounded-md border border-gray-200 mb-4"
-              />
-              <h1 className="text-2xl font-semibold text-ki-blue">
-                kiyânaw Transcribe
-              </h1>
-              <p className="text-ki-blue/70 text-sm mt-1">
-                Indigenous Language Transcription Platform
-              </p>
-            </div>
-            
-            {/* Clean white form */}
-            <Authenticator>
-              {() => <AuthenticatedApp>{children}</AuthenticatedApp>}
-            </Authenticator>
-          </div>
-        </div>
-      </div>
+      <Authenticator
+        components={{
+          Header() {
+            return (
+              <div className="flex flex-col items-center mt-20 mb-8">
+                <img 
+                  src="/logo.png" 
+                  alt="kiyânaw Transcribe" 
+                  className="w-16 h-16 rounded-md border border-gray-200 mb-4"
+                />
+                <h1 className="text-2xl font-semibold text-ki-blue">kiyânaw Transcribe</h1>
+                <p className="text-ki-blue/70 text-sm mt-1">Indigenous Language Transcription Platform</p>
+              </div>
+            );
+          },
+        }}
+      >
+        {() => <AuthenticatedApp>{children}</AuthenticatedApp>}
+      </Authenticator>
     </ThemeProvider>
   );
 };
