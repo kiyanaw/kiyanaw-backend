@@ -379,6 +379,7 @@ export const EditorPage = () => {
           <TranscriptionSettingsPage
             transcription={new TranscriptionModel(transcription)}
             regionCount={regions.length}
+            issueCount={issues.length}
             onSave={handleSaveChanges}
             onBack={handleCloseSettings}
             onDelete={handleDeleteTranscription}

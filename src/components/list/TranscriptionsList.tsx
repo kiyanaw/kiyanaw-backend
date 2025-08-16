@@ -382,7 +382,7 @@ export const TranscriptionsList = () => {
 
                       <div className="flex-shrink-0 flex items-center gap-1">
                         {(() => {
-                          const issues = transcription.data.issueCount ?? Number(transcription.data.issues) ?? 0;
+                          const issues = transcription.data.issueCount ?? Number(transcription.data.issues || 0);
                           const regions = transcription.data.regionCount ?? 0;
                           
                           return (
@@ -501,7 +501,7 @@ export const TranscriptionsList = () => {
 
                       <div className="flex-shrink-0 flex items-center gap-2">
                         {(() => {
-                          const issues = transcription.data.issueCount ?? Number(transcription.data.issues) ?? 0;
+                          const issues = transcription.data.issueCount ?? Number(transcription.data.issues || 0);
                           const regions = transcription.data.regionCount ?? 0;
                           
                           return (
