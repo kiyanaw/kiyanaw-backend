@@ -36,6 +36,46 @@ export const TranscriptionsList = () => {
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const [showMobileFilter, setShowMobileFilter] = useState(false);
 
+  // Generate sort options for select dropdown
+  const generateSortOptions = () => {
+    return sortOptions.map((option) => {
+      let descLabel, ascLabel;
+      switch (option.key) {
+        case 'dateLastUpdated':
+          descLabel = 'Latest';
+          ascLabel = 'Oldest';
+          break;
+        case 'title':
+        case 'author':
+          descLabel = 'Z→A';
+          ascLabel = 'A→Z';
+          break;
+        case 'coverage':
+          descLabel = 'Highest';
+          ascLabel = 'Lowest';
+          break;
+        case 'issues':
+          descLabel = 'Most';
+          ascLabel = 'Fewest';
+          break;
+        default:
+          descLabel = `${option.label} (high to low)`;
+          ascLabel = `${option.label} (low to high)`;
+      }
+      
+      return (
+        <optgroup key={option.key} label={option.label}>
+          <option value={`${option.key}-desc`}>
+            {descLabel}
+          </option>
+          <option value={`${option.key}-asc`}>
+            {ascLabel}
+          </option>
+        </optgroup>
+      );
+    });
+  };
+
   // Load transcriptions when component mounts
   useLoadTranscriptions();
 
@@ -212,42 +252,7 @@ export const TranscriptionsList = () => {
                   }}
                   className="appearance-none w-full bg-white border border-gray-300 rounded-lg px-3 py-3 pr-8 text-base focus:outline-none focus:ring-2 focus:ring-ki-blue focus:border-transparent"
                 >
-                  {sortOptions.map((option) => {
-                    let descLabel, ascLabel;
-                    switch (option.key) {
-                      case 'dateLastUpdated':
-                        descLabel = 'Latest';
-                        ascLabel = 'Oldest';
-                        break;
-                      case 'title':
-                      case 'author':
-                        descLabel = 'Z→A';
-                        ascLabel = 'A→Z';
-                        break;
-                      case 'coverage':
-                        descLabel = 'Highest';
-                        ascLabel = 'Lowest';
-                        break;
-                      case 'issues':
-                        descLabel = 'Most';
-                        ascLabel = 'Fewest';
-                        break;
-                      default:
-                        descLabel = `${option.label} (high to low)`;
-                        ascLabel = `${option.label} (low to high)`;
-                    }
-                    
-                    return (
-                      <optgroup key={option.key} label={option.label}>
-                        <option value={`${option.key}-desc`}>
-                          {descLabel}
-                        </option>
-                        <option value={`${option.key}-asc`}>
-                          {ascLabel}
-                        </option>
-                      </optgroup>
-                    );
-                  })}
+                  {generateSortOptions()}
                 </select>
                 <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
               </div>
@@ -288,42 +293,7 @@ export const TranscriptionsList = () => {
                   }}
                   className="appearance-none bg-white border border-gray-300 rounded-md px-4 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-ki-blue focus:border-transparent"
                 >
-                  {sortOptions.map((option) => {
-                    let descLabel, ascLabel;
-                    switch (option.key) {
-                      case 'dateLastUpdated':
-                        descLabel = 'Latest';
-                        ascLabel = 'Oldest';
-                        break;
-                      case 'title':
-                      case 'author':
-                        descLabel = 'Z→A';
-                        ascLabel = 'A→Z';
-                        break;
-                      case 'coverage':
-                        descLabel = 'Highest';
-                        ascLabel = 'Lowest';
-                        break;
-                      case 'issues':
-                        descLabel = 'Most';
-                        ascLabel = 'Fewest';
-                        break;
-                      default:
-                        descLabel = `${option.label} (high to low)`;
-                        ascLabel = `${option.label} (low to high)`;
-                    }
-                    
-                    return (
-                      <optgroup key={option.key} label={option.label}>
-                        <option value={`${option.key}-desc`}>
-                          {descLabel}
-                        </option>
-                        <option value={`${option.key}-asc`}>
-                          {ascLabel}
-                        </option>
-                      </optgroup>
-                    );
-                  })}
+                  {generateSortOptions()}
                 </select>
                 <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
               </div>
@@ -390,7 +360,7 @@ export const TranscriptionsList = () => {
                           const accessLevel = transcription.accessLevel;
 
                           if (isOwner && isShared) {
-                            return <Users className="w-4 h-4 text-gray-500 flex-shrink-0" title="Shared with others" />;
+                            return <span title="Shared with others"><Users className="w-4 h-4 text-gray-500 flex-shrink-0" /></span>;
                           }
 
                           if (!isOwner && (accessLevel === 'viewer' || accessLevel === 'editor')) {
