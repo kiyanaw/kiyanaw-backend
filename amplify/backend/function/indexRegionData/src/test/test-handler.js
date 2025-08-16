@@ -128,7 +128,7 @@ describe('handler()', function () {
     const searchStub = sinon.stub(search, 'clearKnownWordsForRegion')
     const searchIssuesStub = sinon.stub(search, 'clearIssuesForRegion')
     const indexIssuesStub = sinon.stub(search, 'indexIssuesForRegion')
-    const scanStub = sinon.stub(dynamo, 'scan').resolves({ Items: [] })
+    const getIssuesStub = sinon.stub(dynamo, 'getIssuesForRegion').resolves([])
     const transcriptionWithoutLang = {
       Item: {
         ...transcription.Item,
@@ -151,7 +151,7 @@ describe('handler()', function () {
     
     // Issue processing should still happen (publicIssues = true, lang not required)
     assert.ok(searchIssuesStub.called)
-    assert.ok(scanStub.called)
+    assert.ok(getIssuesStub.called)
   })
 
   it('should delete all entries for a region then index', async function () {
@@ -159,7 +159,7 @@ describe('handler()', function () {
     const deleteIssuesStub = sinon.stub(search, 'clearIssuesForRegion')
     const indexStub = sinon.stub(search, 'indexRegionAnalysis')
     const indexIssuesStub = sinon.stub(search, 'indexIssuesForRegion')
-    const scanStub = sinon.stub(dynamo, 'scan').resolves({ Items: [] })
+    const getIssuesStub = sinon.stub(dynamo, 'getIssuesForRegion').resolves([])
     const dbStub = sinon
       .stub(dynamo, 'getDoc')
       .onFirstCall()
@@ -186,8 +186,8 @@ describe('handler()', function () {
       .onSecondCall()
       .resolves(transcription)
     
-    const scanStub = sinon.stub(dynamo, 'scan')
-      .resolves(mockIssues)
+    const getIssuesStub = sinon.stub(dynamo, 'getIssuesForRegion')
+      .resolves(mockIssues.Items)
     
     // Mock search functions
     const clearWordsStub = sinon.stub(search, 'clearKnownWordsForRegion').resolves({ deleted: 0 })
@@ -200,7 +200,7 @@ describe('handler()', function () {
     assert.equal(result.body, '{"message": "ok"}')
     
     // Verify that issue indexing was called
-    sinon.assert.calledOnce(scanStub)
+    sinon.assert.calledOnce(getIssuesStub)
     sinon.assert.calledOnce(clearIssuesStub)
     sinon.assert.calledOnce(indexIssuesStub)
     sinon.assert.calledWith(indexIssuesStub, mockIssues.Items, region.Item, transcription.Item)
@@ -216,7 +216,7 @@ describe('handler()', function () {
       .onSecondCall()
       .resolves(transcriptionPrivateIssues)
     
-    const scanStub = sinon.stub(dynamo, 'scan')
+    const getIssuesStub = sinon.stub(dynamo, 'getIssuesForRegion')
       .resolves(mockIssues)
     
     // Mock search functions
@@ -230,7 +230,7 @@ describe('handler()', function () {
     assert.equal(result.body, '{"message": "ok"}')
     
     // Verify that issue indexing was NOT called
-    sinon.assert.notCalled(scanStub)
+    sinon.assert.notCalled(getIssuesStub)
     sinon.assert.notCalled(clearIssuesStub)
     sinon.assert.notCalled(indexIssuesStub)
   })
@@ -245,8 +245,8 @@ describe('handler()', function () {
       .onSecondCall()
       .resolves(transcription)
     
-    const scanStub = sinon.stub(dynamo, 'scan')
-      .resolves(mockIssuesAllResolved)
+    const getIssuesStub = sinon.stub(dynamo, 'getIssuesForRegion')
+      .resolves(mockIssuesAllResolved.Items)
     
     // Mock search functions
     const clearWordsStub = sinon.stub(search, 'clearKnownWordsForRegion').resolves({ deleted: 0 })
@@ -259,7 +259,7 @@ describe('handler()', function () {
     assert.equal(result.body, '{"message": "ok"}')
     
     // Verify that issues were fetched but indexing function was called with empty result
-    sinon.assert.calledOnce(scanStub)
+    sinon.assert.calledOnce(getIssuesStub)
     sinon.assert.calledOnce(clearIssuesStub)
     sinon.assert.calledOnce(indexIssuesStub)
     
