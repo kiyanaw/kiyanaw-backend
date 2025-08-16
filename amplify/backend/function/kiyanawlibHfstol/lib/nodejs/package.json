@@ -1,11 +1,6 @@
 {
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "",
   "main": "index.js",
-  "scripts": {
-    "preinstall": "npm install --target_arch=x64 --target_platform=linux hfstol"
-  },
-  "dependencies": {
-    "hfstol": "^0.0.3"
-  }
+  "dependencies": {}
 }
