@@ -39,4 +39,30 @@ async function scan(params) {
   })
 }
 
-module.exports = { getDoc, query, scan }
+/**
+ * Get all issues for a specific region
+ * @param {string} regionId 
+ * @param {string} issueTable 
+ * @returns {Promise<Array>} Array of issues
+ */
+async function getIssuesForRegion(regionId, issueTable) {
+  try {
+    // Query issues by regionId using the ByRegion GSI
+    const params = {
+      TableName: issueTable,
+      IndexName: 'ByRegion',
+      KeyConditionExpression: 'regionId = :regionId',
+      ExpressionAttributeValues: {
+        ':regionId': regionId
+      }
+    }
+    
+    const result = await query(params)
+    return result.Items || []
+  } catch (error) {
+    console.error('Error getting issues for region:', error)
+    return []
+  }
+}
+
+module.exports = { getDoc, query, scan, getIssuesForRegion }
