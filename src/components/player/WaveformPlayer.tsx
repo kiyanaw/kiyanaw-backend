@@ -38,7 +38,7 @@ export const WaveformPlayer = ({
 
   /** RARE PERMITTED LOCAL STATE */
   const [speed, setSpeed] = useState(100);
-  const [zoom, setZoom] = useState(20);
+  const [zoom, setZoom] = useState(40);
   const [isVideoHovered, setIsVideoHovered] = useState(false);
   const [videoPosition, setVideoPosition] = useState<'left' | 'center' | 'right'>('right');
   const [videoSize, setVideoSize] = useState<'small' | 'big'>('small');
@@ -46,6 +46,8 @@ export const WaveformPlayer = ({
   const [videoNaturalSize, setVideoNaturalSize] = useState<{ width: number; height: number } | null>(null);
   const [showVideoMobile, setShowVideoMobile] = useState(false);
   const [isRegionsLocked, setIsRegionsLocked] = useState(true); // Locked by default on mobile
+  const [showZoomDialog, setShowZoomDialog] = useState(false);
+  const [showSpeedDialog, setShowSpeedDialog] = useState(false);
   
   const isPlaying = usePlayerStore((state) => state.playing)
   const loadedAndReady = usePlayerStore((state) => state.loadedAndReady)
@@ -347,6 +349,9 @@ export const WaveformPlayer = ({
                 <VideoIcon size={16} />
               </button>
             )}
+          </div>
+
+          <div className="flex items-center gap-3">
             <button
               className={`px-2 py-1 rounded transition-all md:hidden ${
                 isRegionsLocked 
@@ -358,15 +363,13 @@ export const WaveformPlayer = ({
             >
               {isRegionsLocked ? <Lock size={16} /> : <Unlock size={16} />}
             </button>
-          </div>
-
-          <div className="flex items-center gap-3">
+            
             <div className="flex items-center gap-2">
               <button
-                onClick={() => handleZoomChange(50)}
+                onClick={() => window.innerWidth < 768 ? setShowZoomDialog(true) : handleZoomChange(40)}
                 disabled={!loadedAndReady}
                 className="p-1 rounded transition-colors hover:bg-gray-200 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Reset zoom to default"
+                title={window.innerWidth < 768 ? "Adjust zoom" : "Reset zoom to default"}
               >
                 <ZoomIn size={16} className="text-gray-600" />
               </button>
@@ -383,17 +386,17 @@ export const WaveformPlayer = ({
 
             <div className="flex items-center gap-2">
               <button
-                onClick={() => handleSpeedChange(100)}
+                onClick={() => window.innerWidth < 768 ? setShowSpeedDialog(true) : handleSpeedChange(100)}
                 disabled={!loadedAndReady}
                 className="p-1 rounded transition-colors hover:bg-gray-200 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Reset speed to default"
+                title={window.innerWidth < 768 ? "Adjust speed" : "Reset speed to default"}
               >
                 <Gauge size={16} className="text-gray-600" />
               </button>
               <input
                 type="range"
                 min="50"
-                max="150"
+                max="100"
                 value={speed}
                 onChange={(e) => handleSpeedChange(parseInt(e.target.value))}
                 className="hidden md:block w-24 accent-blue-600"
@@ -418,6 +421,80 @@ export const WaveformPlayer = ({
           </div>
         )}
       </div>
+
+      {/* Mobile Zoom Dialog */}
+      {showZoomDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 md:hidden">
+          <div className="bg-white rounded-lg p-6 w-full max-w-sm">
+            <h3 className="text-lg font-semibold mb-4 text-center">Zoom Level</h3>
+            <div className="space-y-4">
+              <input
+                type="range"
+                min="5"
+                max="75"
+                value={zoom}
+                onChange={(e) => handleZoomChange(parseInt(e.target.value))}
+                className="w-full accent-blue-600"
+                disabled={!loadedAndReady}
+              />
+              <div className="text-center text-sm text-gray-600">
+                {zoom}x zoom
+              </div>
+              <div className="flex gap-2 justify-center">
+                <button
+                  onClick={() => handleZoomChange(40)}
+                  className="px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200"
+                >
+                  Default
+                </button>
+                <button
+                  onClick={() => setShowZoomDialog(false)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile Speed Dialog */}
+      {showSpeedDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 md:hidden">
+          <div className="bg-white rounded-lg p-6 w-full max-w-sm">
+            <h3 className="text-lg font-semibold mb-4 text-center">Playback Speed</h3>
+            <div className="space-y-4">
+              <input
+                type="range"
+                min="50"
+                max="100"
+                value={speed}
+                onChange={(e) => handleSpeedChange(parseInt(e.target.value))}
+                className="w-full accent-blue-600"
+                disabled={!loadedAndReady}
+              />
+              <div className="text-center text-sm text-gray-600">
+                {speed}% speed
+              </div>
+              <div className="flex gap-2 justify-center">
+                <button
+                  onClick={() => handleSpeedChange(100)}
+                  className="px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200"
+                >
+                  Normal
+                </button>
+                <button
+                  onClick={() => setShowSpeedDialog(false)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
     </>
   );
