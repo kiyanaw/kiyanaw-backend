@@ -51,6 +51,7 @@ amplifytools.xcconfig
 
 # Exception for lambda layer node_modules
 !amplify/backend/function/kiyanawlibHfstol/lib/nodejs/node_modules
+!amplify/backend/function/kiyanawlibHfstol/lib/nodejs/node_modules/hfstol/build
 
 coverage/
 scripts/migrate-data
