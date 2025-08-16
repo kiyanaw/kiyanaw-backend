@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 import { useEditorStore } from '../stores/useEditorStore';
 import { useLoadTranscription } from '../hooks/useLoadTranscription';
@@ -31,6 +31,71 @@ export const EditorPage = () => {
   
   // Settings page state
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  
+  // Mobile tab state
+  const [mobileTab, setMobileTab] = useState<'editor' | 'regions' | 'issues'>('regions');
+  
+  // Mobile swipe handling
+  const handleTouchStart = useRef<{ x: number; y: number } | null>(null);
+  const handleTouchMove = useRef<{ x: number; y: number } | null>(null);
+  
+  const onTouchStart = (e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    handleTouchStart.current = { x: touch.clientX, y: touch.clientY };
+    handleTouchMove.current = null;
+  };
+  
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (!handleTouchStart.current) return;
+    const touch = e.touches[0];
+    handleTouchMove.current = { x: touch.clientX, y: touch.clientY };
+  };
+  
+  const onTouchEnd = () => {
+    if (!handleTouchStart.current || !handleTouchMove.current) {
+      handleTouchStart.current = null;
+      handleTouchMove.current = null;
+      return;
+    }
+    
+    const deltaX = handleTouchMove.current.x - handleTouchStart.current.x;
+    const deltaY = handleTouchMove.current.y - handleTouchStart.current.y;
+    
+    // Only process horizontal swipes (ignore if more vertical than horizontal)
+    if (Math.abs(deltaY) > Math.abs(deltaX)) {
+      handleTouchStart.current = null;
+      handleTouchMove.current = null;
+      return;
+    }
+    
+    // Require minimum swipe distance
+    const minSwipeDistance = 50;
+    if (Math.abs(deltaX) < minSwipeDistance) {
+      handleTouchStart.current = null;
+      handleTouchMove.current = null;
+      return;
+    }
+    
+    // Handle swipe based on current tab and direction
+    if (deltaX > 0) {
+      // Swipe right
+      if (mobileTab === 'issues') {
+        setMobileTab('regions');
+      } else if (mobileTab === 'regions') {
+        setMobileTab('editor');
+      }
+    } else {
+      // Swipe left
+      if (mobileTab === 'editor') {
+        setMobileTab('regions');
+      } else if (mobileTab === 'regions') {
+        setMobileTab('issues');
+      }
+    }
+    
+    handleTouchStart.current = null;
+    handleTouchMove.current = null;
+  };
   
   useLoadTranscription(transcriptionId!);
   useSubscriptions(transcriptionId!);
@@ -148,8 +213,8 @@ export const EditorPage = () => {
         </>
       )}
 
-      {/* Main Editor Layout */}
-      <div className="flex flex-1 overflow-hidden min-h-0">
+      {/* Desktop Layout - Hidden on Mobile */}
+      <div className="hidden lg:flex flex-1 overflow-hidden min-h-0">
         {/* Left Side Container */}
         <div className="flex-1 bg-white border-r border-gray-300 flex flex-col">
           {/* Stationary Inspector - 50% height */}
@@ -199,11 +264,112 @@ export const EditorPage = () => {
         </div>
 
         {/* Region List */}
-        <div className="w-[500px] flex-shrink-0 bg-gray-50 border-l border-gray-300 flex flex-col min-h-0">
+        <div className="w-[500px] flex-shrink-0 bg-gray-50 border-l border-gray-300 flex flex-col min-h-0" id="desktop-regions-container">
           <RegionList
             regions={regions}
             disableAnalyzer={transcription?.disableAnalyzer}
           />
+        </div>
+      </div>
+
+      {/* Mobile Layout - Visible on Mobile Only */}
+      <div className="lg:hidden flex flex-col flex-1 min-h-0">
+        {/* Mobile Tab Content */}
+        <div 
+          className="flex-1 min-h-0 overflow-hidden"
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+        >
+          {mobileTab === 'editor' && (
+            <div className="h-full overflow-hidden">
+              <StationaryInspector
+                selectedRegion={selectedRegion}
+              />
+            </div>
+          )}
+          
+          {mobileTab === 'regions' && (
+            <div className="h-full min-h-0" id="mobile-regions-container">
+              <RegionList
+                regions={regions}
+                disableAnalyzer={transcription?.disableAnalyzer}
+              />
+            </div>
+          )}
+          
+          {mobileTab === 'issues' && transcription && (
+            <div className="h-full overflow-hidden">
+              <IssuesPanel
+                selectedRegionId={selectedRegion?.id}
+                // TODO: why is this mapping happenning here and not our ADT?
+                issues={(issues || []).map(issue => {
+                  const linkStatus = selectedRegion?.id
+                    ? issueLinkStatusesByRegion[selectedRegion.id]?.[issue.id]
+                    : undefined;
+                  const suggestions = selectedRegion?.id
+                    ? issueSuggestionsByRegion[selectedRegion.id]?.[issue.id]
+                    : undefined;
+
+                  return {
+                    id: issue.id,
+                    text: issue.text,
+                    type: issue.type as 'needs-help' | 'indexing' | 'new-word',
+                    owner: issue.owner, // Use actual owner UUID for permission checking
+                    ownerFriendly: issue.ownerFriendly,
+                    regionId: issue.regionId,
+                    resolved: issue.resolved || false,
+                    createdAt: issue.createdAt || new Date().toISOString(),
+                    updatedAt: issue.updatedAt || new Date().toISOString(),
+                    commentCount: issue.commentCount || 0,
+                    linkStatus,
+                    suggestions,
+                  };
+                })}
+                canEdit={userCanEdit}
+                onUpdateIssue={handleUpdateIssue}
+                onDeleteIssue={handleDeleteIssue}
+                variant="bottom-sheet"
+                onJumpToRegion={() => setMobileTab('regions')}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Bottom Tab Bar */}
+        <div className="flex-shrink-0 bg-white border-t border-gray-200 px-4 py-2">
+          <div className="flex justify-center gap-1">
+            <button
+              onClick={() => setMobileTab('editor')}
+              className={`flex-1 py-3 px-4 text-sm font-medium rounded-lg transition-colors ${
+                mobileTab === 'editor'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
+              }`}
+            >
+              Editor
+            </button>
+            <button
+              onClick={() => setMobileTab('regions')}
+              className={`flex-1 py-3 px-4 text-sm font-medium rounded-lg transition-colors ${
+                mobileTab === 'regions'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
+              }`}
+            >
+              Regions
+            </button>
+            <button
+              onClick={() => setMobileTab('issues')}
+              className={`flex-1 py-3 px-4 text-sm font-medium rounded-lg transition-colors ${
+                mobileTab === 'issues'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
+              }`}
+            >
+              Issues
+            </button>
+          </div>
         </div>
       </div>
 

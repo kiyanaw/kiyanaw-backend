@@ -267,20 +267,21 @@ export const TranscriptionSettingsPage = ({
     <div className="fixed inset-x-0 top-[72px] bottom-0 flex flex-col bg-gray-50">
       {/* Page Header (sticky within page container) */}
       <div className="sticky top-0 z-10 bg-white border-b border-gray-200 shadow-sm" style={{ height: '65px' }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-3 md:px-4 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-3">
-              <Settings className="text-gray-600" size={24} />
-              <h1 className="text-xl font-semibold text-gray-900">Transcription Settings</h1>
+            <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
+              <Settings className="text-gray-600 flex-shrink-0" size={20} />
+              <h1 className="text-lg md:text-xl font-semibold text-gray-900 truncate">Transcription Settings</h1>
             </div>
             
             {/* Action buttons */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
               <button
                 onClick={handleCancel}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors"
+                className="inline-flex items-center gap-1 md:gap-2 px-3 md:px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors"
               >
-                Cancel
+                <span className="hidden md:inline">Cancel</span>
+                <span className="md:hidden">✕</span>
               </button>
               {hasChanges && (
                 <button
@@ -291,7 +292,7 @@ export const TranscriptionSettingsPage = ({
     setPublicIssues(initialPublicIssues ?? false);
     setLang(initialLang || '');
                   }}
-                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                  className="hidden md:inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
                 >
                   <RotateCcw size={16} />
                   Reset
@@ -300,10 +301,11 @@ export const TranscriptionSettingsPage = ({
               <button
                 onClick={handleSave}
                 disabled={!hasChanges || !isOwner}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="inline-flex items-center gap-1 md:gap-2 px-3 md:px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 <Save size={16} />
-                Save Changes
+                <span className="hidden md:inline">Save Changes</span>
+                <span className="md:hidden">Save</span>
               </button>
             </div>
           </div>
@@ -312,15 +314,15 @@ export const TranscriptionSettingsPage = ({
 
       {/* Scrollable Content Area */}
       <div className="flex-1 min-h-0 overflow-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-16">
+        <div className="max-w-7xl mx-auto px-3 md:px-4 lg:px-8 py-4 md:py-6 pb-16">
         {/* Content Area */}
-        <div className="space-y-8">
+        <div className="space-y-6 md:space-y-8">
           {/* Settings Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className="space-y-6">
-              <div className="flex items-center gap-3 pb-3 border-b border-gray-200">
-                <FileText className="text-blue-600" size={20} />
-                <h2 className="text-lg font-semibold text-gray-900">General</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
+            <div className="space-y-4 md:space-y-6">
+              <div className="flex items-center gap-2 md:gap-3 pb-2 md:pb-3 border-b border-gray-200">
+                <FileText className="text-blue-600" size={18} />
+                <h2 className="text-base md:text-lg font-semibold text-gray-900">General</h2>
               </div>
 
               <div className="space-y-4">
@@ -463,13 +465,13 @@ export const TranscriptionSettingsPage = ({
             </div>
 
             {/* Information Section */}
-            <div className="space-y-6">
-              <div className="flex items-center gap-3 pb-3 border-b border-gray-200">
-                <FileText className="text-green-600" size={20} />
-                <h2 className="text-lg font-semibold text-gray-900">Information</h2>
+            <div className="space-y-4 md:space-y-6">
+              <div className="flex items-center gap-2 md:gap-3 pb-2 md:pb-3 border-b border-gray-200">
+                <FileText className="text-green-600" size={18} />
+                <h2 className="text-base md:text-lg font-semibold text-gray-900">Information</h2>
               </div>
 
-              <div className="bg-gray-50 p-4 rounded-lg">
+              <div className="bg-gray-50 p-3 md:p-4 rounded-lg">
                 <div className="grid grid-cols-1 gap-3">
                   <div>
                     <label className="block text-sm font-medium text-gray-600">Author</label>
@@ -518,21 +520,21 @@ export const TranscriptionSettingsPage = ({
 
           {/* Sharing & Collaboration Section - Full Width (Owners Only) */}
           {isOwner && (
-            <div className="space-y-6">
-              <div className="flex items-center gap-3 pb-3 border-b border-gray-200">
-                <Users className="text-purple-600" size={20} />
-                <h2 className="text-lg font-semibold text-gray-900">Sharing & Collaboration</h2>
+            <div className="space-y-4 md:space-y-6">
+              <div className="flex items-center gap-2 md:gap-3 pb-2 md:pb-3 border-b border-gray-200">
+                <Users className="text-purple-600" size={18} />
+                <h2 className="text-base md:text-lg font-semibold text-gray-900">Sharing & Collaboration</h2>
               </div>
 
               {/* Send New Invite */}
-              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                <div className="flex items-center gap-3 mb-4">
-                  <UserPlus className="text-blue-600" size={20} />
+              <div className="bg-blue-50 p-3 md:p-4 rounded-lg border border-blue-200">
+                <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
+                  <UserPlus className="text-blue-600" size={18} />
                   <h3 className="text-sm font-semibold text-blue-900">Send Invitation</h3>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <div className="md:col-span-1">
+                <div className="space-y-3 md:grid md:grid-cols-3 md:gap-3 md:space-y-0">
+                  <div>
                     <input
                       type="email"
                       placeholder="Email address"
@@ -653,14 +655,14 @@ export const TranscriptionSettingsPage = ({
 
           {/* Danger Zone Section - Full Width (Owners Only) */}
           {isOwner && (
-            <div className="space-y-6">
-              <div className="flex items-center gap-3 pb-3 border-b border-red-200">
-                <AlertTriangle className="text-red-600" size={20} />
-                <h2 className="text-lg font-semibold text-red-900">Danger Zone</h2>
+            <div className="space-y-4 md:space-y-6">
+              <div className="flex items-center gap-2 md:gap-3 pb-2 md:pb-3 border-b border-red-200">
+                <AlertTriangle className="text-red-600" size={18} />
+                <h2 className="text-base md:text-lg font-semibold text-red-900">Danger Zone</h2>
               </div>
 
-              <div className="bg-red-50 p-6 rounded-lg border border-red-200">
-                <div className="flex items-start justify-between">
+              <div className="bg-red-50 p-4 md:p-6 rounded-lg border border-red-200">
+                <div className="space-y-4 md:space-y-0 md:flex md:items-start md:justify-between">
                   <div className="flex-1">
                     <h3 className="text-sm font-semibold text-red-900 mb-2">Delete Transcription</h3>
                     <p className="text-sm text-red-700 mb-4">
@@ -676,7 +678,7 @@ export const TranscriptionSettingsPage = ({
                   </div>
                   <button
                     onClick={handleDeleteClick}
-                    className="ml-4 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors"
+                    className="w-full md:w-auto md:ml-4 inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors"
                   >
                     <Trash2 size={16} />
                     Delete Transcription

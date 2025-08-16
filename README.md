@@ -78,11 +78,11 @@ This project uses Docker to build lambda functions with C bindings in an Amazon 
 # Build the Docker image
 docker compose build
 
-# Start the container interactively
+# Build the C bindings (this will install hfstol with correct target architecture)
 docker compose run --rm lambda-builder
 ```
 
-Once inside the container, you can run `amplify push`.
+The container will automatically install the `hfstol` package with the correct target architecture and platform for AWS Lambda. After the build completes, you can deploy normally with `amplify push`.
 
 
 # Infrastructure

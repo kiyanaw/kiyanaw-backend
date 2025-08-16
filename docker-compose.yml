@@ -3,10 +3,4 @@ services:
     build: .
     volumes:
       - .:/var/task
-      - ~/.aws:/root/.aws:ro
-    environment:
-      - AWS_PROFILE=${AWS_PROFILE:-default}
-      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
-    working_dir: /var/task
-    stdin_open: true
-    tty: true 
+    working_dir: /var/task 

@@ -258,12 +258,57 @@ class BrowserService {
     if (typeof window === 'undefined' || typeof document === 'undefined') return;
 
     const element = document.querySelector(selector);
-    if (element && typeof element.scrollIntoView === 'function') {
-      const defaultOptions: ScrollIntoViewOptions = {
-        behavior: 'smooth',
-        block: 'nearest'
-      };
-      element.scrollIntoView({ ...defaultOptions, ...options });
+    if (!element || typeof element.scrollIntoView !== 'function') return;
+
+    const defaultOptions: ScrollIntoViewOptions = {
+      behavior: 'smooth',
+      block: 'nearest'
+    };
+    
+    // Try standard scrollIntoView first
+    element.scrollIntoView({ ...defaultOptions, ...options });
+    
+    // For mobile: also try manual scroll on the correct container
+    const isMobile = window.innerWidth < 1024;
+    let scrollContainer;
+    
+    if (isMobile) {
+      const mobileContainer = document.getElementById('mobile-regions-container');
+      scrollContainer = mobileContainer?.querySelector('.overflow-y-auto');
+    } else {
+      const desktopContainer = document.getElementById('desktop-regions-container');
+      scrollContainer = desktopContainer?.querySelector('.overflow-y-auto');
+    }
+    
+    if (scrollContainer && scrollContainer.offsetParent !== null && scrollContainer.clientHeight > 0) {
+      const targetElement = scrollContainer.querySelector(`#${element.id}`);
+      
+      if (targetElement) {
+        const containerRect = scrollContainer.getBoundingClientRect();
+        const elementRect = targetElement.getBoundingClientRect();
+        const elementTopRelativeToContainer = elementRect.top - containerRect.top + scrollContainer.scrollTop;
+        
+        // Scroll to nearest (like desktop) instead of center
+        let targetScrollTop = elementTopRelativeToContainer;
+        
+        // If element is above viewport, scroll to show it at top
+        if (elementRect.top < containerRect.top) {
+          targetScrollTop = elementTopRelativeToContainer;
+        }
+        // If element is below viewport, scroll to show it at bottom
+        else if (elementRect.bottom > containerRect.bottom) {
+          targetScrollTop = elementTopRelativeToContainer - scrollContainer.clientHeight + elementRect.height;
+        }
+        // If element is already visible, don't scroll
+        else {
+          return;
+        }
+        
+        scrollContainer.scrollTo({
+          top: Math.max(0, targetScrollTop),
+          behavior: 'smooth'
+        });
+      }
     }
   }
 }

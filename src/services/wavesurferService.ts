@@ -53,6 +53,7 @@ class WaveSurferService {
   // Flag to prevent subscription-created regions from triggering creation flow
   private _isAddingSubscriptionRegion: boolean = false
   private _canEdit: boolean = false
+  private _disableDragSelection: (() => void) | null = null
 
   private REGION_BACKGROUND_COLOR = 'rgba(0, 0, 0, 0.1)'
   private REGION_HIGHLIGHTED_COLOR = 'rgba(0, 213, 255, 0.1)'
@@ -142,7 +143,7 @@ class WaveSurferService {
 
     // Enable drag selection based on canEdit permissions
     if (this._canEdit) {
-      this.regionsPlugin.enableDragSelection({}, 5);
+      this._disableDragSelection = this.regionsPlugin.enableDragSelection({}, 5);
     }
 
     this.registerEvents();
@@ -544,6 +545,41 @@ class WaveSurferService {
   }
 
   /**
+   * Toggle region editing capabilities (drag selection, resize, drag)
+   */
+  setRegionEditingEnabled(enabled: boolean): void {
+    this._canEdit = enabled;
+    
+    if (!this.regionsPlugin) {
+      console.warn('🎵 Cannot toggle region editing: regions plugin not available');
+      return;
+    }
+
+    // Update existing regions
+    const allRegions = this.regionsPlugin.getRegions();
+    allRegions.forEach((region: unknown) => {
+      const regionWithOptions = region as { setOptions: (options: { resize: boolean; drag: boolean }) => void };
+      try {
+        regionWithOptions.setOptions({
+          resize: enabled,
+          drag: enabled
+        });
+      } catch (error) {
+        console.warn('🎵 Failed to update region options:', error);
+      }
+    });
+
+    // Update drag selection
+    if (enabled && !this._disableDragSelection) {
+      this._disableDragSelection = this.regionsPlugin.enableDragSelection({}, 5);
+    } else if (!enabled && this._disableDragSelection) {
+      // Call the disable function returned by enableDragSelection
+      this._disableDragSelection();
+      this._disableDragSelection = null;
+    }
+  }
+
+  /**
    * Flash the background color of a region briefly (for realtime updates)
    */
   flashRegionBackground(regionId: string, username?: string): void {
@@ -655,6 +691,7 @@ class WaveSurferService {
     this._inboundRegionIgnoreNextOut = false;
     this._inboundRegionCurrentHighlighted = null;
     this._playbackBoundRegion = null;
+    this._disableDragSelection = null;
     this.muteEvents = false;
     this.clearAllListeners();
   }
