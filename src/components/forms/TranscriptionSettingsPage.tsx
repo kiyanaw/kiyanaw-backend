@@ -10,6 +10,7 @@ import type { InviteModel, TranscriptionModel } from '../../services/adt';
 interface TranscriptionSettingsPageProps {
   transcription: TranscriptionModel;
   regionCount: number;
+  issueCount: number;
   onSave: (updates: { title?: string; comments?: string; isPrivate?: boolean; publicIssues?: boolean; lang?: string }) => void;
   onBack: () => void;
   onDelete?: () => void;
@@ -19,6 +20,7 @@ interface TranscriptionSettingsPageProps {
 export const TranscriptionSettingsPage = ({
   transcription,
   regionCount,
+  issueCount,
   onSave,
   onBack,
   onDelete,
@@ -484,6 +486,10 @@ export const TranscriptionSettingsPage = ({
                   <div>
                     <label className="block text-sm font-medium text-gray-600">Total Regions</label>
                     <p className="text-base text-gray-900 mt-1">{regionCount}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600">Total Issues</label>
+                    <p className="text-base text-gray-900 mt-1">{issueCount}</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-600">Source File</label>

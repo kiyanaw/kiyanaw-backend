@@ -14,6 +14,8 @@ export const getTranscription = /* GraphQL */ `
       issues
       comments
       commentCount
+      regionCount
+      issueCount
       tags
       source
       index
@@ -78,6 +80,8 @@ export const listTranscriptions = /* GraphQL */ `
         issues
         comments
         commentCount
+        regionCount
+        issueCount
         tags
         source
         index
@@ -129,6 +133,8 @@ export const syncTranscriptions = /* GraphQL */ `
         issues
         comments
         commentCount
+        regionCount
+        issueCount
         tags
         source
         index
@@ -182,6 +188,8 @@ export const byTitle = /* GraphQL */ `
         issues
         comments
         commentCount
+        regionCount
+        issueCount
         tags
         source
         index
@@ -233,6 +241,8 @@ export const getRegion = /* GraphQL */ `
         issues
         comments
         commentCount
+        regionCount
+        issueCount
         tags
         source
         index
@@ -408,6 +418,8 @@ export const getIssue = /* GraphQL */ `
         issues
         comments
         commentCount
+        regionCount
+        issueCount
         tags
         source
         index
@@ -886,6 +898,8 @@ export const getComment = /* GraphQL */ `
         issues
         comments
         commentCount
+        regionCount
+        issueCount
         tags
         source
         index

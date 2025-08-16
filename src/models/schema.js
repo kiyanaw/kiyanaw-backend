@@ -73,6 +73,20 @@ export const schema = {
                     "isRequired": false,
                     "attributes": []
                 },
+                "regionCount": {
+                    "name": "regionCount",
+                    "isArray": false,
+                    "type": "Int",
+                    "isRequired": false,
+                    "attributes": []
+                },
+                "issueCount": {
+                    "name": "issueCount",
+                    "isArray": false,
+                    "type": "Int",
+                    "isRequired": false,
+                    "attributes": []
+                },
                 "tags": {
                     "name": "tags",
                     "isArray": false,
@@ -1088,5 +1102,5 @@ export const schema = {
     "enums": {},
     "nonModels": {},
     "codegenVersion": "3.4.4",
-    "version": "126d4fe9695d918c315396b9c9f0c0eb"
+    "version": "309391442a3b817a2b2c869d4601abc0"
 };

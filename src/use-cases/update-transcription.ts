@@ -59,11 +59,13 @@ export class UpdateTranscriptionUseCase {
       throw new Error('No transcription found in store');
     }
 
-        const { coverage } = store.calculateTranscriptionMetadata();
+        const { regionCount, issueCount, coverage } = store.calculateTranscriptionMetadata();
     
     // Only send updatable fields to API
     const apiUpdate = {
       ...updates,
+      regionCount,
+      issueCount,
       coverage,
       userLastUpdated: user.username.split('@')[0], // Extract username part from email
       dateLastUpdated: new Date().toISOString(),

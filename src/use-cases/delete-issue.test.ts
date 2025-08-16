@@ -2,12 +2,14 @@ import { DeleteIssueUseCase, type DeleteIssueConfig } from './delete-issue';
 import { deleteExistingIssue } from '../services/issueService';
 import { useEditorStore } from '../stores/useEditorStore';
 import { rteService } from '../services/rteService';
+import { services } from '../services';
 import type { IssueData } from '../services/adt';
 
 // Mock the services
 jest.mock('../services/issueService');
 jest.mock('../stores/useEditorStore');
 jest.mock('../services/rteService');
+jest.mock('../services');
 
 const mockDeleteExistingIssue = deleteExistingIssue as jest.MockedFunction<typeof deleteExistingIssue>;
 
@@ -39,7 +41,23 @@ describe('DeleteIssueUseCase', () => {
     // Mock editor store
     mockEditorStore = {
       issueById: jest.fn(),
-      deleteIssue: jest.fn()
+      deleteIssue: jest.fn(),
+      setTranscription: jest.fn(),
+      transcription: {
+        id: 'trans-789',
+        title: 'Test Transcription',
+        author: 'test-user',
+        authorFriendly: 'Test User',
+        type: 'audio',
+        source: 'test.mp3',
+        userLastUpdated: 'test-user',
+        length: 100
+      },
+      calculateTranscriptionMetadata: jest.fn().mockReturnValue({
+        regionCount: 5,
+        issueCount: 3,
+        coverage: 0.8
+      })
     };
     (useEditorStore.getState as jest.Mock).mockReturnValue(mockEditorStore);
 
@@ -48,6 +66,17 @@ describe('DeleteIssueUseCase', () => {
 
     // Mock deleteExistingIssue
     mockDeleteExistingIssue.mockResolvedValue(undefined);
+
+    // Mock services
+    (services as any).authService = {
+      currentUser: jest.fn().mockReturnValue({
+        username: 'user-123',
+        userId: 'user-123'
+      })
+    };
+    (services as any).transcriptionService = {
+      updateTranscription: jest.fn().mockResolvedValue({})
+    };
   });
 
   afterEach(() => {

@@ -2,6 +2,8 @@ import { updateExistingIssue } from '../services/issueService';
 import { useEditorStore } from '../stores/useEditorStore';
 import { rteService } from '../services/rteService';
 import { currentUser } from '../services/userService';
+import { services } from '../services';
+import { UpdateTranscriptionUseCase } from './update-transcription';
 import Timeout from 'smart-timeout';
 
 export interface UpdateIssueTextInput {
@@ -74,8 +76,17 @@ export class UpdateIssueTextUseCase {
           }
 
           console.log(`💾 Saving issue text for ${issueId}: "${newText.trim()}" (version: ${originalVersion})`);
-          await updateExistingIssue(issueId, { text: newText.trim() }, originalVersion, user.username);
+          const updatedIssue = await updateExistingIssue(issueId, { text: newText.trim() }, originalVersion, user.username);
           console.log(`✅ Issue text saved successfully for ${issueId}`);
+
+          // Update transcription (this will show "Transcription saved" toast)
+          const updateTranscriptionUseCase = new UpdateTranscriptionUseCase({
+            transcriptionId: updatedIssue.transcriptionId,
+            services,
+            store,
+          });
+          
+          await updateTranscriptionUseCase.execute();
         } catch (error) {
           console.error(`❌ Failed to save issue text for ${issueId}:`, error);
           // TODO: Consider reverting optimistic update on error or showing user notification

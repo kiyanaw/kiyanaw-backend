@@ -1,6 +1,8 @@
 import { deleteExistingIssue } from '../services/issueService';
 import { useEditorStore } from '../stores/useEditorStore';
 import { rteService } from '../services/rteService';
+import { services } from '../services';
+import { UpdateTranscriptionUseCase } from './update-transcription';
 
 export interface DeleteIssueConfig {
   issueId: string;
@@ -39,6 +41,15 @@ export class DeleteIssueUseCase {
       if (regionId) {
         rteService.updateIssueHighlighting(regionId);
       }
+
+      // Update transcription with new issue count
+      const updateTranscriptionUseCase = new UpdateTranscriptionUseCase({
+        transcriptionId: issue.transcriptionId,
+        services,
+        store,
+      });
+      
+      await updateTranscriptionUseCase.execute();
     } catch (error) {
       console.error('Failed to delete issue:', error);
       throw error;

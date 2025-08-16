@@ -24,6 +24,8 @@ type Transcription
   issues: String
   comments: String # going to call this "Notes" in the app, comments moving to Comments
   commentCount: Int
+  regionCount: Int
+  issueCount: Int
   tags: String
   source: String
   index: String # deprecated field, use `lang`
