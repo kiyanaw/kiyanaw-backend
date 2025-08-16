@@ -1,5 +1,5 @@
-import { useRef, useCallback, useState } from 'react';
-import { Play, Pause, ZoomIn, Gauge, Settings, ArrowLeft, Circle, ArrowRight, Minimize2, Maximize2, ChevronDown, Video as VideoIcon } from 'lucide-react';
+import { useRef, useCallback, useState, useEffect } from 'react';
+import { Play, Pause, ZoomIn, Gauge, Settings, ArrowLeft, Circle, ArrowRight, Minimize2, Maximize2, ChevronDown, Video as VideoIcon, Lock, Unlock } from 'lucide-react';
 import { wavesurferService } from '../../services/wavesurferService';
 import { usePlayerStore } from '../../stores/usePlayerStore';
 import { usePlay } from '../../hooks/usePlay';
@@ -45,6 +45,7 @@ export const WaveformPlayer = ({
   const [isMinimized, setIsMinimized] = useState(false);
   const [videoNaturalSize, setVideoNaturalSize] = useState<{ width: number; height: number } | null>(null);
   const [showVideoMobile, setShowVideoMobile] = useState(false);
+  const [isRegionsLocked, setIsRegionsLocked] = useState(true); // Locked by default on mobile
   
   const isPlaying = usePlayerStore((state) => state.playing)
   const loadedAndReady = usePlayerStore((state) => state.loadedAndReady)
@@ -56,6 +57,14 @@ export const WaveformPlayer = ({
   const pause = usePause()
   const selectAndPlayRegion = useSelectAndPlayRegion()
   const selectedRegion = useEditorStore((state) => state.selectedRegion)
+
+  // Set initial locked state on mobile when wavesurfer is ready
+  useEffect(() => {
+    if (loadedAndReady && window.innerWidth < 768) {
+      // On mobile, start locked (regions editing disabled)
+      wavesurferService.setRegionEditingEnabled(false);
+    }
+  }, [loadedAndReady]);
 
   // Initialize WaveSurfer when container is ready
   const initializeWaveSurfer = useCallback(() => {
@@ -136,6 +145,15 @@ export const WaveformPlayer = ({
     } else {
       play({ playInFull: true });
     }
+  };
+
+  // Handle region lock toggle
+  const handleRegionLockToggle = () => {
+    const newLockedState = !isRegionsLocked;
+    setIsRegionsLocked(newLockedState);
+    
+    // Update wavesurfer service with new editing state
+    wavesurferService.setRegionEditingEnabled(!newLockedState);
   };
 
   // (Prev helper removed; positioning handled directly in className)
@@ -329,6 +347,17 @@ export const WaveformPlayer = ({
                 <VideoIcon size={16} />
               </button>
             )}
+            <button
+              className={`px-2 py-1 rounded transition-all md:hidden ${
+                isRegionsLocked 
+                  ? 'bg-gray-300 border-2 border-gray-400 shadow-inner text-gray-700' 
+                  : 'bg-gray-100 border-2 border-gray-300 shadow-sm text-gray-600 hover:bg-gray-200'
+              }`}
+              onClick={handleRegionLockToggle}
+              title={isRegionsLocked ? "Regions locked - tap to unlock editing" : "Regions unlocked - tap to lock for scrolling"}
+            >
+              {isRegionsLocked ? <Lock size={16} /> : <Unlock size={16} />}
+            </button>
           </div>
 
           <div className="flex items-center gap-3">
