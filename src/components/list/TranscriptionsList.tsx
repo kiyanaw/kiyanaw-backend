@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, Eye, Edit, Search, Plus, ChevronDown, Lock, LockOpen, Video, FileAudio, Filter, X } from 'lucide-react';
+import { Users, Eye, Edit, Search, Plus, ChevronDown, Lock, LockOpen, Video, FileAudio, Filter, X, AlertTriangle, List } from 'lucide-react';
 import { useTranscriptionsStore } from '../../stores/useTranscriptionsStore';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { useLoadTranscriptions } from '../../hooks/useLoadTranscriptions';
@@ -388,16 +388,18 @@ export const TranscriptionsList = () => {
                           return (
                             <>
                               <span
-                                className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
                                   issues === 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                                 }`}
                               >
+                                <AlertTriangle className="w-3 h-3" />
                                 {issues}
                               </span>
                               <span 
-                                className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium text-cyan-800"
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium text-cyan-800"
                                 style={{ backgroundColor: 'rgba(0, 213, 255, 0.15)' }}
                               >
+                                <List className="w-3 h-3" />
                                 {regions}
                               </span>
                             </>
@@ -458,7 +460,7 @@ export const TranscriptionsList = () => {
                 <div className="flex-1 min-w-0 p-4">
                 {/* Top Row: Title + Issues */}
                     <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
                       <Link
                         to={`/transcribe-edit/${transcription.id}`}
                         className="text-lg font-medium text-ki-blue hover:text-blue-800 hover:underline truncate"
