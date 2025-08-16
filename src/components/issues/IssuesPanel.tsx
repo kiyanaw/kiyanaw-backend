@@ -6,7 +6,7 @@ import { browserService } from '../../services/browserService';
 import { UpdateIssueTextUseCase } from '../../use-cases/update-issue-text';
 import { IssueDetailsDialog } from './IssueDetailsDialog';
 import { useNavigateIssueRegions } from '../../hooks/useNavigateIssueRegions';
-import { useCreateIssueFromSelection } from '../../hooks/useCreateIssueFromSelection';
+
 import { useIssueFlashIndicator } from '../../hooks/useIssueFlashIndicator';
 import { FLASH_CONFIG } from '../../services/flashIndicatorService';
 import { useSelectAndPlayRegion } from '../../hooks/useSelectAndPlayRegion';
@@ -236,11 +236,11 @@ const IssueListItem: React.FC<IssueListItemProps> = ({
         )}
 
         <div 
-          className="flex-1 flex items-center gap-2 relative cursor-pointer hover:bg-gray-50 rounded p-2 -m-2 transition-colors"
+          className="flex-1 min-w-0 flex items-center gap-2 relative cursor-pointer hover:bg-gray-50 rounded p-2 -m-2 transition-colors"
           onClick={() => onOpenDialog(issue.id)}
           title="Click to view issue details and comments"
         >
-          <span className={`text-sm ${issue.resolved ? 'text-gray-500 line-through' : 'text-gray-800'}`}>
+          <span className={`text-sm truncate ${issue.resolved ? 'text-gray-500 line-through' : 'text-gray-800'}`}>
             {issue.text}
           </span>
 
@@ -276,8 +276,9 @@ const IssueListItem: React.FC<IssueListItemProps> = ({
           )}
         </div>
 
-        <div className="flex items-center gap-2 text-xs text-gray-500 flex-shrink-0">
+        <div className="hidden md:flex items-center gap-2 text-xs text-gray-500 flex-shrink-0">
           <span>by {currentUserId && currentUserId === issue.owner ? 'me' : issue.ownerFriendly}</span>
+          <span>•</span>
           <span>{formatDate(issue.createdAt)}</span>
 
           {showJumpButton && issue.regionId && (
@@ -321,6 +322,56 @@ const IssueListItem: React.FC<IssueListItemProps> = ({
                 }
               }}
               className="ml-1 p-1.5 rounded-md border bg-red-50 border-red-200 text-red-600 hover:bg-red-100 hover:border-red-300 hover:text-red-700 transition-all duration-200"
+              title="Delete issue"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
+        {/* Mobile-only action buttons */}
+        <div className="md:hidden flex items-center gap-2 flex-shrink-0">
+          {showJumpButton && issue.regionId && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onJumpToRegion(issue.regionId!);
+              }}
+              className="p-1.5 rounded-md border bg-blue-50 border-blue-200 text-blue-600 hover:bg-blue-100 hover:border-blue-300 hover:text-blue-700 transition-all duration-200"
+              title="Open this issue's region"
+            >
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          )}
+
+          {canResolve && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleToggleResolved();
+              }}
+              className={`p-1.5 rounded-md border transition-all duration-200 ${
+                issue.resolved 
+                  ? 'bg-green-100 border-green-300 text-green-700 hover:bg-green-200 hover:border-green-400' 
+                  : 'bg-gray-50 border-gray-300 text-gray-500 hover:bg-gray-100 hover:border-gray-400 hover:text-gray-700'
+              }`}
+              title={issue.resolved ? 'Click to reopen issue' : 'Click to resolve issue'}
+            >
+              <Check className="w-3.5 h-3.5" />
+            </button>
+          )}
+
+          {canDelete && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                // Confirm before deleting
+                const confirmed = window.confirm('Are you sure you want to delete this issue? This action cannot be undone.');
+                if (confirmed) {
+                  onDeleteIssue(issue.id);
+                }
+              }}
+              className="p-1.5 rounded-md border bg-red-50 border-red-200 text-red-600 hover:bg-red-100 hover:border-red-300 hover:text-red-700 transition-all duration-200"
               title="Delete issue"
             >
               <Trash2 className="w-3.5 h-3.5" />
@@ -432,22 +483,7 @@ export const IssuesPanel = ({
     navigateIssueRegions(direction);
   };
 
-  // Create issue from current text selection
-  const createIssueFromSelection = useCreateIssueFromSelection();
-  const handleCreateFromSelection = async () => {
-    try {
-      await createIssueFromSelection();
-    } catch (error) {
-      console.error('Failed to create issue from selection:', error);
-      // Could show a toast notification here in the future
-    }
-  };
 
-  // Check if there's a text selection in the current region
-  const regionSelection = useEditorStore(state => 
-    selectedRegionId ? state.regionSelections[selectedRegionId] : null
-  );
-  const hasSelection = regionSelection && regionSelection.length > 0 && regionSelection.text.trim().length > 0;
 
   // handlers moved into IssueListItem to avoid dynamic hook ordering in the parent
 
@@ -560,19 +596,6 @@ export const IssuesPanel = ({
               <ChevronRight className="w-4 h-4 text-gray-700" />
             </button>
           </div>
-          {canEdit && (
-            <button
-              disabled={!hasSelection}
-              className={`py-1.5 px-3 border-none rounded text-sm font-medium transition-colors duration-200 ${
-                hasSelection 
-                  ? 'bg-blue-600 text-white cursor-pointer hover:bg-blue-700' 
-                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              }`}
-              onClick={hasSelection ? handleCreateFromSelection : undefined}
-            >
-              Create +
-            </button>
-          )}
         </div>
       </div>
 

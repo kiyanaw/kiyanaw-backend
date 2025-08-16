@@ -1,9 +1,10 @@
 import { useState, memo } from 'react';
-import { Play, Pause, Trash2, X } from 'lucide-react';
+import { Play, Pause, Trash2, X, AlertTriangle } from 'lucide-react';
 import { type RegionData as Region } from '../../services/adt';
 import { useTextEditors } from '../../hooks/useTextEditors';
 import { useDeleteRegion } from '../../hooks/useDeleteRegion';
 import { useSelectAndPlayRegion } from '../../hooks/useSelectAndPlayRegion';
+import { useCreateIssueFromSelection } from '../../hooks/useCreateIssueFromSelection';
 import { useEditorStore } from '../../stores/useEditorStore';
 
 interface RegionEditorProps {
@@ -19,9 +20,14 @@ export const RegionEditor = memo(({
   const { mainEditorRef, translationEditorRef } = useTextEditors(region.id, activeTab);
   const { deleteRegion } = useDeleteRegion();
   const playRegion = useSelectAndPlayRegion();
+  const createIssueFromSelection = useCreateIssueFromSelection();
   const canEdit = useEditorStore((state) => state.canEdit);
   const setSelectedRegion = useEditorStore((state) => state.setSelectedRegion);
   const regions = useEditorStore((state) => state.regions);
+  const regionSelection = useEditorStore((state) => state.regionSelections[region.id]);
+  
+  // Check if there's a text selection in the current region
+  const hasSelection = regionSelection && regionSelection.length > 0 && regionSelection.text.trim().length > 0;
   
   // Get the region number (1-based index)
   const regionNumber = regions.findIndex(r => r.id === region.id) + 1;
@@ -35,6 +41,18 @@ export const RegionEditor = memo(({
   };
   const handleDeleteRegion = () => {
     deleteRegion(region.id);
+  };
+  
+  const handleCreateIssue = async () => {
+    try {
+      await createIssueFromSelection();
+      
+      // Clear the text selection after creating the issue
+      const setRegionSelection = useEditorStore.getState().setRegionSelection;
+      setRegionSelection(region.id, null);
+    } catch (error) {
+      console.error('Failed to create issue from selection:', error);
+    }
   };
 
   const formatTime = (seconds: number) => {
@@ -76,6 +94,20 @@ export const RegionEditor = memo(({
             title="Play region"
           >
             {isPlaying ? <Pause size={16} /> : <Play size={16} />}
+          </button>
+
+          {/* Create Issue Button - Second position, always visible but disabled when no selection */}
+          <button
+            className={`flex items-center justify-center w-9 h-9 border rounded-md transition-all duration-200 text-base ${
+              canEdit && hasSelection
+                ? 'border-orange-300 bg-orange-50 text-orange-600 cursor-pointer hover:bg-orange-100 hover:border-orange-400'
+                : 'border-gray-300 bg-gray-50 text-gray-400 cursor-not-allowed opacity-50'
+            }`}
+            onClick={canEdit && hasSelection ? handleCreateIssue : undefined}
+            disabled={!canEdit || !hasSelection}
+            title={hasSelection ? "Create issue from selected text" : "Select text to create an issue"}
+          >
+            <AlertTriangle size={16} />
           </button>
 
           <button
