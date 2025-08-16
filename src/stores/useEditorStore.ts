@@ -100,7 +100,7 @@ interface EditorState {
   clearIssueSuggestionsForIssue: (issueId: string) => void;
 
   // Transcription metadata helpers
-  calculateTranscriptionMetadata: () => { regionCount: number; coverage: number };
+  calculateTranscriptionMetadata: () => { regionCount: number; issueCount: number; coverage: number };
 
   // Spell checking actions
   addKnownWords: (words: string[]) => void;
@@ -978,9 +978,10 @@ export const useEditorStore = create<EditorState>()(
 
       // Transcription metadata helpers
       calculateTranscriptionMetadata: () => {
-        const { regions, transcription } = get();
+        const { regions, issues, transcription } = get();
         
         const regionCount = regions.length;
+        const issueCount = issues.length;
         
         // Calculate coverage: last region end / total transcription length
         let coverage = 0;
@@ -990,7 +991,7 @@ export const useEditorStore = create<EditorState>()(
           coverage = Math.min(lastRegionEnd / transcription.length, 1.0); // Cap at 1.0
         }
         
-        return { regionCount, coverage };
+        return { regionCount, issueCount, coverage };
       },
     }),
     { name: 'EditorStore' }

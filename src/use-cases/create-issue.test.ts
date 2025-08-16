@@ -3,6 +3,7 @@ import { createIssueForRegion } from '../services/issueService';
 import { useEditorStore } from '../stores/useEditorStore';
 import { rteService } from '../services/rteService';
 import { currentUser } from '../services/userService';
+import { services } from '../services';
 import type { IssueData } from '../services/adt';
 
 // Mock the dependencies
@@ -10,6 +11,7 @@ jest.mock('../services/issueService');
 jest.mock('../stores/useEditorStore');
 jest.mock('../services/rteService');
 jest.mock('../services/userService');
+jest.mock('../services');
 
 const mockCreateIssueForRegion = createIssueForRegion as jest.MockedFunction<typeof createIssueForRegion>;
 
@@ -43,7 +45,23 @@ describe('CreateIssueUseCase', () => {
     // Mock editor store
     mockEditorStore = {
       addNewIssue: jest.fn(),
-      deleteIssue: jest.fn()
+      deleteIssue: jest.fn(),
+      setTranscription: jest.fn(),
+      transcription: {
+        id: 'trans-789',
+        title: 'Test Transcription',
+        author: 'test-user',
+        authorFriendly: 'Test User',
+        type: 'audio',
+        source: 'test.mp3',
+        userLastUpdated: 'test-user',
+        length: 100
+      },
+      calculateTranscriptionMetadata: jest.fn().mockReturnValue({
+        regionCount: 5,
+        issueCount: 3,
+        coverage: 0.8
+      })
     };
     (useEditorStore.getState as jest.Mock).mockReturnValue(mockEditorStore);
 
@@ -55,6 +73,17 @@ describe('CreateIssueUseCase', () => {
       userId: 'user-123',
       username: 'test-user'
     });
+
+    // Mock services
+    (services as any).authService = {
+      currentUser: jest.fn().mockReturnValue({
+        username: 'user-123',
+        userId: 'user-123'
+      })
+    };
+    (services as any).transcriptionService = {
+      updateTranscription: jest.fn().mockResolvedValue({})
+    };
   });
 
   afterEach(() => {

@@ -2,6 +2,8 @@ import { createIssueForRegion } from '../services/issueService';
 import { useEditorStore } from '../stores/useEditorStore';
 import { rteService } from '../services/rteService';
 import { currentUser } from '../services/userService';
+import { services } from '../services';
+import { UpdateTranscriptionUseCase } from './update-transcription';
 import type { IssueData } from '../services/adt';
 
 export interface CreateIssueConfig {
@@ -83,6 +85,15 @@ export class CreateIssueUseCase {
       store.deleteIssue(optimisticIssue.id);
       store.addNewIssue(savedIssue);
       rteService.updateIssueHighlighting(savedIssue.regionId);
+
+      // Update transcription with new issue count
+      const updateTranscriptionUseCase = new UpdateTranscriptionUseCase({
+        transcriptionId: this.config.transcriptionId,
+        services,
+        store,
+      });
+      
+      await updateTranscriptionUseCase.execute();
 
       return savedIssue;
     } catch (error) {

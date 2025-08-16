@@ -31,6 +31,8 @@ type EagerTranscription = {
   readonly issues?: string | null;
   readonly comments?: string | null;
   readonly commentCount?: number | null;
+  readonly regionCount?: number | null;
+  readonly issueCount?: number | null;
   readonly tags?: string | null;
   readonly source?: string | null;
   readonly index?: string | null;
@@ -63,6 +65,8 @@ type LazyTranscription = {
   readonly issues?: string | null;
   readonly comments?: string | null;
   readonly commentCount?: number | null;
+  readonly regionCount?: number | null;
+  readonly issueCount?: number | null;
   readonly tags?: string | null;
   readonly source?: string | null;
   readonly index?: string | null;

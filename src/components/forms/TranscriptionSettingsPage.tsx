@@ -486,6 +486,10 @@ export const TranscriptionSettingsPage = ({
                     <p className="text-base text-gray-900 mt-1">{regionCount}</p>
                   </div>
                   <div>
+                    <label className="block text-sm font-medium text-gray-600">Total Issues</label>
+                    <p className="text-base text-gray-900 mt-1">{transcription.data.issueCount ?? Number(transcription.data.issues) ?? 0}</p>
+                  </div>
+                  <div>
                     <label className="block text-sm font-medium text-gray-600">Source File</label>
                     {transcription.source ? (
                       <div className="flex items-center gap-2 mt-1">

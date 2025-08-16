@@ -17,6 +17,8 @@ export const createTranscription = /* GraphQL */ `
       issues
       comments
       commentCount
+      regionCount
+      issueCount
       tags
       source
       index
@@ -71,6 +73,8 @@ export const updateTranscription = /* GraphQL */ `
       issues
       comments
       commentCount
+      regionCount
+      issueCount
       tags
       source
       index
@@ -125,6 +129,8 @@ export const deleteTranscription = /* GraphQL */ `
       issues
       comments
       commentCount
+      regionCount
+      issueCount
       tags
       source
       index
@@ -190,6 +196,8 @@ export const createRegion = /* GraphQL */ `
         issues
         comments
         commentCount
+        regionCount
+        issueCount
         tags
         source
         index
@@ -248,6 +256,8 @@ export const updateRegion = /* GraphQL */ `
         issues
         comments
         commentCount
+        regionCount
+        issueCount
         tags
         source
         index
@@ -306,6 +316,8 @@ export const deleteRegion = /* GraphQL */ `
         issues
         comments
         commentCount
+        regionCount
+        issueCount
         tags
         source
         index
@@ -366,6 +378,8 @@ export const createIssue = /* GraphQL */ `
         issues
         comments
         commentCount
+        regionCount
+        issueCount
         tags
         source
         index
@@ -426,6 +440,8 @@ export const updateIssue = /* GraphQL */ `
         issues
         comments
         commentCount
+        regionCount
+        issueCount
         tags
         source
         index
@@ -486,6 +502,8 @@ export const deleteIssue = /* GraphQL */ `
         issues
         comments
         commentCount
+        regionCount
+        issueCount
         tags
         source
         index
@@ -616,6 +634,8 @@ export const createComment = /* GraphQL */ `
         issues
         comments
         commentCount
+        regionCount
+        issueCount
         tags
         source
         index
@@ -694,6 +714,8 @@ export const updateComment = /* GraphQL */ `
         issues
         comments
         commentCount
+        regionCount
+        issueCount
         tags
         source
         index
@@ -772,6 +794,8 @@ export const deleteComment = /* GraphQL */ `
         issues
         comments
         commentCount
+        regionCount
+        issueCount
         tags
         source
         index

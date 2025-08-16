@@ -6,6 +6,8 @@ export interface TranscriptionData {
   authorFriendly: string;
   type: string;
   issues?: number;
+  regionCount?: number;
+  issueCount?: number;
   source: string;
   coverage?: number;
   isPrivate?: boolean;
@@ -148,7 +150,11 @@ export class TranscriptionModel {
     }
     
     this.id = data.id;
-    this.data = data;
+    this.data = {
+      ...data,
+      regionCount: data.regionCount ?? 0,
+      issueCount: data.issueCount ?? (Number(data.issues) || 0)
+    };
     this.title = data.title;
     this.comments = data.comments;
     this.author = data.author;

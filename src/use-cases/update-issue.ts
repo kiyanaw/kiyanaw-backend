@@ -2,6 +2,8 @@ import { updateExistingIssue } from '../services/issueService';
 import { useEditorStore } from '../stores/useEditorStore';
 import { rteService } from '../services/rteService';
 import { currentUser } from '../services/userService';
+import { services } from '../services';
+import { UpdateTranscriptionUseCase } from './update-transcription';
 import type { IssueData } from '../services/adt';
 
 export interface UpdateIssueConfig {
@@ -51,6 +53,15 @@ export class UpdateIssueUseCase {
 
       // 4. Update store with server response (in case server changed anything)
       store.updateIssue(this.config.issueId, updatedIssue);
+
+      // 5. Update transcription with new counts (this will show "Transcription saved" toast)
+      const updateTranscriptionUseCase = new UpdateTranscriptionUseCase({
+        transcriptionId: updatedIssue.transcriptionId,
+        services,
+        store,
+      });
+      
+      await updateTranscriptionUseCase.execute();
 
       return updatedIssue;
     } catch (error) {

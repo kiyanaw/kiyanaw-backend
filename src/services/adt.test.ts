@@ -54,9 +54,13 @@ describe('ADT Models', () => {
         expect(model.lang).toBe(mockTranscriptionData.lang);
       });
 
-      it('should store original data reference', () => {
+      it('should store data with computed fields', () => {
         const model = new TranscriptionModel(mockTranscriptionData);
-        expect(model.data).toBe(mockTranscriptionData);
+        expect(model.data).toEqual({
+          ...mockTranscriptionData,
+          regionCount: 0,
+          issueCount: 5
+        });
       });
 
       it('should set default values for optional properties', () => {

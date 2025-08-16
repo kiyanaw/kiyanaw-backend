@@ -17,6 +17,8 @@ export const onCreateTranscription = /* GraphQL */ `
       issues
       comments
       commentCount
+      regionCount
+      issueCount
       tags
       source
       index
@@ -71,6 +73,8 @@ export const onUpdateTranscription = /* GraphQL */ `
       issues
       comments
       commentCount
+      regionCount
+      issueCount
       tags
       source
       index
@@ -125,6 +129,8 @@ export const onDeleteTranscription = /* GraphQL */ `
       issues
       comments
       commentCount
+      regionCount
+      issueCount
       tags
       source
       index
@@ -187,6 +193,8 @@ export const onCreateRegion = /* GraphQL */ `
         issues
         comments
         commentCount
+        regionCount
+        issueCount
         tags
         source
         index
@@ -242,6 +250,8 @@ export const onUpdateRegion = /* GraphQL */ `
         issues
         comments
         commentCount
+        regionCount
+        issueCount
         tags
         source
         index
@@ -297,6 +307,8 @@ export const onDeleteRegion = /* GraphQL */ `
         issues
         comments
         commentCount
+        regionCount
+        issueCount
         tags
         source
         index
@@ -357,6 +369,8 @@ export const onCreateIssue = /* GraphQL */ `
         issues
         comments
         commentCount
+        regionCount
+        issueCount
         tags
         source
         index
@@ -417,6 +431,8 @@ export const onUpdateIssue = /* GraphQL */ `
         issues
         comments
         commentCount
+        regionCount
+        issueCount
         tags
         source
         index
@@ -477,6 +493,8 @@ export const onDeleteIssue = /* GraphQL */ `
         issues
         comments
         commentCount
+        regionCount
+        issueCount
         tags
         source
         index
@@ -610,6 +628,8 @@ export const onCreateComment = /* GraphQL */ `
         issues
         comments
         commentCount
+        regionCount
+        issueCount
         tags
         source
         index
@@ -688,6 +708,8 @@ export const onUpdateComment = /* GraphQL */ `
         issues
         comments
         commentCount
+        regionCount
+        issueCount
         tags
         source
         index
@@ -766,6 +788,8 @@ export const onDeleteComment = /* GraphQL */ `
         issues
         comments
         commentCount
+        regionCount
+        issueCount
         tags
         source
         index
