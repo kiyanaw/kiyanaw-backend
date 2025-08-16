@@ -63,7 +63,7 @@ export const EditorPage = () => {
   };
 
   const handleDeleteTranscription = () => {
-    // Add a 2 second pause before navigating
+    // Add a 4 second pause before navigating
     setTimeout(() => {
       // Navigate back to the transcription list after deletion
       navigate('/transcribe-list/');
