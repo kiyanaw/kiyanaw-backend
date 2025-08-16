@@ -165,7 +165,7 @@ export const TranscriptionsList = () => {
         <div className="md:hidden">
           {/* Compact Header Row */}
           <div className="px-4 py-4 flex items-center justify-between">
-            <h1 className="text-xl font-semibold text-gray-900">My transcriptions</h1>
+            <h1 className="text-xl font-semibold text-gray-900">Transcriptions</h1>
             
             {/* Action Icons */}
             <div className="flex items-center gap-2">
@@ -264,7 +264,7 @@ export const TranscriptionsList = () => {
         <div className="hidden md:block px-6 py-4">
           <div className="flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900">My transcriptions</h1>
+            <h1 className="text-2xl font-semibold text-gray-900">Transcriptions</h1>
           </div>
           
             <div className="flex items-center gap-3">
