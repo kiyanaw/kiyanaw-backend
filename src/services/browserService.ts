@@ -280,7 +280,7 @@ class BrowserService {
       scrollContainer = desktopContainer?.querySelector('.overflow-y-auto');
     }
     
-    if (scrollContainer && scrollContainer.offsetParent !== null && scrollContainer.clientHeight > 0) {
+    if (scrollContainer && (scrollContainer as HTMLElement).offsetParent !== null && scrollContainer.clientHeight > 0) {
       const targetElement = scrollContainer.querySelector(`#${element.id}`);
       
       if (targetElement) {
