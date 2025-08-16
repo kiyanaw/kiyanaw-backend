@@ -85,16 +85,16 @@ type Issue
   ]) {
   id: ID! @primaryKey
   text: String!
-  owner: String! @index(name: "ByOwner")
+  owner: String! @index(name: "ByOwner", queryField: "issuesByOwner")
   ownerFriendly: String!
   index: Int!
   resolved: Boolean
-  type: String! @index(name: "ByType")
+  type: String! @index(name: "ByType", queryField: "issuesByType")
   dateLastUpdated: String!
   userLastUpdated: String!
   comments: AWSJSON # deprecated field, comments moving to Comment field
   commentCount: Int
-  regionId: String!
+  regionId: String! @index(name: "ByRegion", queryField: "issuesByRegion")
   transcription: Transcription! @belongsTo(fields: ["transcriptionId"])
   transcriptionId: ID! @index(name: "ByTranscription", queryField: "issuesByTranscription")
 }

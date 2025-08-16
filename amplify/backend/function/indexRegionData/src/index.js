@@ -51,31 +51,7 @@ const search = require('./lib/search')
 
 const { okResponse } = require('./utils')
 
-/**
- * Get all issues for a specific region
- * @param {string} regionId 
- * @param {string} issueTable 
- * @returns {Promise<Array>} Array of issues
- */
-const getIssuesForRegion = async (regionId, issueTable) => {
-  try {
-    // Query issues by regionId - we need to scan since regionId is not the primary key
-    // In a production system, you might want to add a GSI for regionId
-    const params = {
-      TableName: issueTable,
-      FilterExpression: 'regionId = :regionId',
-      ExpressionAttributeValues: {
-        ':regionId': regionId
-      }
-    }
-    
-    const result = await dynamo.scan(params)
-    return result.Items || []
-  } catch (error) {
-    console.error('Error getting issues for region:', error)
-    return []
-  }
-}
+
 
 /**
  * Process A: Region Word Indexing (atomic operation)
@@ -116,7 +92,7 @@ const processRegionIssues = async (region, transcription, issueTable) => {
     
     // Step 2: Fetch and index new issues (back-to-back with clearing)
     console.log('📥 Fetching issues for region:', region.id)
-    const issues = await getIssuesForRegion(region.id, issueTable)
+    const issues = await dynamo.getIssuesForRegion(region.id, issueTable)
     console.log(`📊 Found ${issues.length} issues for region`)
     
     if (issues.length > 0) {

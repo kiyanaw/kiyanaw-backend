@@ -613,6 +613,7 @@ export const schema = {
                     "type": "key",
                     "properties": {
                         "name": "ByOwner",
+                        "queryField": "issuesByOwner",
                         "fields": [
                             "owner"
                         ]
@@ -622,8 +623,19 @@ export const schema = {
                     "type": "key",
                     "properties": {
                         "name": "ByType",
+                        "queryField": "issuesByType",
                         "fields": [
                             "type"
+                        ]
+                    }
+                },
+                {
+                    "type": "key",
+                    "properties": {
+                        "name": "ByRegion",
+                        "queryField": "issuesByRegion",
+                        "fields": [
+                            "regionId"
                         ]
                     }
                 },

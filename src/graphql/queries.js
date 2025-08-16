@@ -521,6 +521,132 @@ export const syncIssues = /* GraphQL */ `
     }
   }
 `;
+export const issuesByOwner = /* GraphQL */ `
+  query IssuesByOwner(
+    $owner: String!
+    $sortDirection: ModelSortDirection
+    $filter: ModelIssueFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    issuesByOwner(
+      owner: $owner
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        text
+        owner
+        ownerFriendly
+        index
+        resolved
+        type
+        dateLastUpdated
+        userLastUpdated
+        comments
+        commentCount
+        regionId
+        transcriptionId
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      nextToken
+      startedAt
+      __typename
+    }
+  }
+`;
+export const issuesByType = /* GraphQL */ `
+  query IssuesByType(
+    $type: String!
+    $sortDirection: ModelSortDirection
+    $filter: ModelIssueFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    issuesByType(
+      type: $type
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        text
+        owner
+        ownerFriendly
+        index
+        resolved
+        type
+        dateLastUpdated
+        userLastUpdated
+        comments
+        commentCount
+        regionId
+        transcriptionId
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      nextToken
+      startedAt
+      __typename
+    }
+  }
+`;
+export const issuesByRegion = /* GraphQL */ `
+  query IssuesByRegion(
+    $regionId: String!
+    $sortDirection: ModelSortDirection
+    $filter: ModelIssueFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    issuesByRegion(
+      regionId: $regionId
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        text
+        owner
+        ownerFriendly
+        index
+        resolved
+        type
+        dateLastUpdated
+        userLastUpdated
+        comments
+        commentCount
+        regionId
+        transcriptionId
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      nextToken
+      startedAt
+      __typename
+    }
+  }
+`;
 export const issuesByTranscription = /* GraphQL */ `
   query IssuesByTranscription(
     $transcriptionId: ID!
