@@ -1,0 +1,8 @@
+{
+  "version": "1.0.4",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "hfstol": "^0.0.3"
+  }
+}
