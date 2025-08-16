@@ -12,19 +12,8 @@ const deleteRegionsForTranscription = async (transcriptionId) => {
     const regionTable = process.env.API_KIYANAW_REGIONTABLE_NAME
     console.log(`Deleting regions for transcription ${transcriptionId}`)
     
-    // First, get all regions for this transcription
-    const params = {
-      TableName: regionTable,
-      IndexName: 'ByTranscription',
-      KeyConditionExpression: 'transcriptionId = :transcriptionId',
-      ExpressionAttributeValues: {
-        ':transcriptionId': transcriptionId
-      },
-      ProjectionExpression: 'id'
-    }
-    
-    const result = await dynamo.query(params)
-    const regions = result.Items || []
+    // Get all regions for this transcription using the ByTranscription index
+    const regions = await dynamo.getRegionsForTranscription(transcriptionId, regionTable)
     
     if (regions.length === 0) {
       console.log(`No regions found for transcription ${transcriptionId}`)
@@ -73,18 +62,8 @@ const deleteIssuesForTranscription = async (transcriptionId) => {
     const issueTable = process.env.API_KIYANAW_ISSUETABLE_NAME
     console.log(`Deleting issues for transcription ${transcriptionId}`)
     
-    // Scan for all issues with this transcriptionId
-    const params = {
-      TableName: issueTable,
-      FilterExpression: 'transcriptionId = :transcriptionId',
-      ExpressionAttributeValues: {
-        ':transcriptionId': transcriptionId
-      },
-      ProjectionExpression: 'id'
-    }
-    
-    const result = await dynamo.scan(params)
-    const issues = result.Items || []
+    // Get all issues for this transcription using the ByTranscription index
+    const issues = await dynamo.getIssuesForTranscription(transcriptionId, issueTable)
     
     if (issues.length === 0) {
       console.log(`No issues found for transcription ${transcriptionId}`)
@@ -133,18 +112,8 @@ const deleteInvitesForTranscription = async (transcriptionId) => {
     const inviteTable = process.env.API_KIYANAW_INVITETABLE_NAME
     console.log(`Deleting invites for transcription ${transcriptionId}`)
     
-    // Scan for all invites with this transcriptionId
-    const params = {
-      TableName: inviteTable,
-      FilterExpression: 'transcriptionId = :transcriptionId',
-      ExpressionAttributeValues: {
-        ':transcriptionId': transcriptionId
-      },
-      ProjectionExpression: 'id'
-    }
-    
-    const result = await dynamo.scan(params)
-    const invites = result.Items || []
+    // Get all invites for this transcription using the ByTranscription index
+    const invites = await dynamo.getInvitesForTranscription(transcriptionId, inviteTable)
     
     if (invites.length === 0) {
       console.log(`No invites found for transcription ${transcriptionId}`)

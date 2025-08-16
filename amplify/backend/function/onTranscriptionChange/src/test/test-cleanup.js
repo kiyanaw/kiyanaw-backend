@@ -18,8 +18,9 @@ describe('cleanup module', function () {
   
   afterEach(function () {
     // Restore all stubs
-    dynamo.query?.restore?.()
-    dynamo.scan?.restore?.()
+    dynamo.getRegionsForTranscription?.restore?.()
+    dynamo.getIssuesForTranscription?.restore?.()
+    dynamo.getInvitesForTranscription?.restore?.()
     dynamo.batchWrite?.restore?.()
     dynamo.deleteItem?.restore?.()
     search.clearKnownWordsForTranscription?.restore?.()
@@ -35,13 +36,11 @@ describe('cleanup module', function () {
 
   describe('deleteRegionsForTranscription', function () {
     it('should delete all regions for a transcription', async function () {
-      const queryStub = sinon.stub(dynamo, 'query').resolves({
-        Items: [
-          { id: 'region-1' },
-          { id: 'region-2' },
-          { id: 'region-3' }
-        ]
-      })
+      const getRegionsStub = sinon.stub(dynamo, 'getRegionsForTranscription').resolves([
+        { id: 'region-1' },
+        { id: 'region-2' },
+        { id: 'region-3' }
+      ])
       
       const batchWriteStub = sinon.stub(dynamo, 'batchWrite').resolves({})
       
@@ -49,14 +48,12 @@ describe('cleanup module', function () {
       
       assert.equal(result.success, true)
       assert.equal(result.deleted, 3)
-      assert.ok(queryStub.called)
+      assert.ok(getRegionsStub.called)
       assert.ok(batchWriteStub.called)
       
-      // Verify query parameters
-      const queryParams = queryStub.args[0][0]
-      assert.equal(queryParams.TableName, 'Region-test')
-      assert.equal(queryParams.IndexName, 'ByTranscription')
-      assert.equal(queryParams.ExpressionAttributeValues[':transcriptionId'], 'transcription-123')
+      // Verify function was called with correct parameters
+      assert.equal(getRegionsStub.args[0][0], 'transcription-123')
+      assert.equal(getRegionsStub.args[0][1], 'Region-test')
       
       // Verify batch write parameters
       const batchParams = batchWriteStub.args[0][0]
@@ -65,14 +62,14 @@ describe('cleanup module', function () {
     })
 
     it('should handle no regions found', async function () {
-      const queryStub = sinon.stub(dynamo, 'query').resolves({ Items: [] })
+      const getRegionsStub = sinon.stub(dynamo, 'getRegionsForTranscription').resolves([])
       const batchWriteStub = sinon.stub(dynamo, 'batchWrite')
       
       const result = await cleanup.deleteRegionsForTranscription('transcription-123')
       
       assert.equal(result.success, true)
       assert.equal(result.deleted, 0)
-      assert.ok(queryStub.called)
+      assert.ok(getRegionsStub.called)
       assert.ok(!batchWriteStub.called)
     })
 
@@ -83,7 +80,7 @@ describe('cleanup module', function () {
         regions.push({ id: `region-${i}` })
       }
       
-      const queryStub = sinon.stub(dynamo, 'query').resolves({ Items: regions })
+      const getRegionsStub = sinon.stub(dynamo, 'getRegionsForTranscription').resolves(regions)
       const batchWriteStub = sinon.stub(dynamo, 'batchWrite').resolves({})
       
       const result = await cleanup.deleteRegionsForTranscription('transcription-123')
@@ -94,7 +91,7 @@ describe('cleanup module', function () {
     })
 
     it('should handle errors gracefully', async function () {
-      const queryStub = sinon.stub(dynamo, 'query').rejects(new Error('DynamoDB error'))
+      const getRegionsStub = sinon.stub(dynamo, 'getRegionsForTranscription').rejects(new Error('DynamoDB error'))
       
       const result = await cleanup.deleteRegionsForTranscription('transcription-123')
       
@@ -107,12 +104,10 @@ describe('cleanup module', function () {
 
   describe('deleteIssuesForTranscription', function () {
     it('should delete all issues for a transcription', async function () {
-      const scanStub = sinon.stub(dynamo, 'scan').resolves({
-        Items: [
-          { id: 'issue-1' },
-          { id: 'issue-2' }
-        ]
-      })
+      const getIssuesStub = sinon.stub(dynamo, 'getIssuesForTranscription').resolves([
+        { id: 'issue-1' },
+        { id: 'issue-2' }
+      ])
       
       const batchWriteStub = sinon.stub(dynamo, 'batchWrite').resolves({})
       
@@ -120,17 +115,16 @@ describe('cleanup module', function () {
       
       assert.equal(result.success, true)
       assert.equal(result.deleted, 2)
-      assert.ok(scanStub.called)
+      assert.ok(getIssuesStub.called)
       assert.ok(batchWriteStub.called)
       
-      // Verify scan parameters
-      const scanParams = scanStub.args[0][0]
-      assert.equal(scanParams.TableName, 'Issue-test')
-      assert.equal(scanParams.ExpressionAttributeValues[':transcriptionId'], 'transcription-123')
+      // Verify function was called with correct parameters
+      assert.equal(getIssuesStub.args[0][0], 'transcription-123')
+      assert.equal(getIssuesStub.args[0][1], 'Issue-test')
     })
 
     it('should handle no issues found', async function () {
-      const scanStub = sinon.stub(dynamo, 'scan').resolves({ Items: [] })
+      const getIssuesStub = sinon.stub(dynamo, 'getIssuesForTranscription').resolves([])
       const batchWriteStub = sinon.stub(dynamo, 'batchWrite')
       
       const result = await cleanup.deleteIssuesForTranscription('transcription-123')
@@ -141,7 +135,7 @@ describe('cleanup module', function () {
     })
 
     it('should handle errors gracefully', async function () {
-      const scanStub = sinon.stub(dynamo, 'scan').rejects(new Error('Scan failed'))
+      const getIssuesStub = sinon.stub(dynamo, 'getIssuesForTranscription').rejects(new Error('Query failed'))
       
       const result = await cleanup.deleteIssuesForTranscription('transcription-123')
       
@@ -153,13 +147,11 @@ describe('cleanup module', function () {
 
   describe('deleteInvitesForTranscription', function () {
     it('should delete all invites for a transcription', async function () {
-      const scanStub = sinon.stub(dynamo, 'scan').resolves({
-        Items: [
-          { id: 'invite-1' },
-          { id: 'invite-2' },
-          { id: 'invite-3' }
-        ]
-      })
+      const getInvitesStub = sinon.stub(dynamo, 'getInvitesForTranscription').resolves([
+        { id: 'invite-1' },
+        { id: 'invite-2' },
+        { id: 'invite-3' }
+      ])
       
       const batchWriteStub = sinon.stub(dynamo, 'batchWrite').resolves({})
       
@@ -167,17 +159,16 @@ describe('cleanup module', function () {
       
       assert.equal(result.success, true)
       assert.equal(result.deleted, 3)
-      assert.ok(scanStub.called)
+      assert.ok(getInvitesStub.called)
       assert.ok(batchWriteStub.called)
       
-      // Verify scan parameters
-      const scanParams = scanStub.args[0][0]
-      assert.equal(scanParams.TableName, 'Invite-test')
-      assert.equal(scanParams.ExpressionAttributeValues[':transcriptionId'], 'transcription-123')
+      // Verify function was called with correct parameters
+      assert.equal(getInvitesStub.args[0][0], 'transcription-123')
+      assert.equal(getInvitesStub.args[0][1], 'Invite-test')
     })
 
     it('should handle no invites found', async function () {
-      const scanStub = sinon.stub(dynamo, 'scan').resolves({ Items: [] })
+      const getInvitesStub = sinon.stub(dynamo, 'getInvitesForTranscription').resolves([])
       const batchWriteStub = sinon.stub(dynamo, 'batchWrite')
       
       const result = await cleanup.deleteInvitesForTranscription('transcription-123')
@@ -198,13 +189,16 @@ describe('cleanup module', function () {
         { status: 'fulfilled', value: { VersionId: 'v2' } }
       ])
       
-      // Mock DynamoDB operations
-      const queryStub = sinon.stub(dynamo, 'query').resolves({
-        Items: [{ id: 'region-1' }, { id: 'region-2' }]
-      })
-      const scanStub = sinon.stub(dynamo, 'scan')
-        .onFirstCall().resolves({ Items: [{ id: 'issue-1' }] })  // Issues scan
-        .onSecondCall().resolves({ Items: [{ id: 'invite-1' }] }) // Invites scan
+      // Mock DynamoDB operations using new functions
+      const getRegionsStub = sinon.stub(dynamo, 'getRegionsForTranscription').resolves([
+        { id: 'region-1' }, { id: 'region-2' }
+      ])
+      const getIssuesStub = sinon.stub(dynamo, 'getIssuesForTranscription').resolves([
+        { id: 'issue-1' }
+      ])
+      const getInvitesStub = sinon.stub(dynamo, 'getInvitesForTranscription').resolves([
+        { id: 'invite-1' }
+      ])
       const batchWriteStub = sinon.stub(dynamo, 'batchWrite').resolves({})
       const deleteItemStub = sinon.stub(dynamo, 'deleteItem').resolves({})
       
@@ -217,8 +211,9 @@ describe('cleanup module', function () {
       assert.ok(searchWordsStub.called)
       assert.ok(searchIssuesStub.called)
       assert.ok(s3Stub.called)
-      assert.ok(queryStub.called)
-      assert.equal(scanStub.callCount, 2) // Called for issues and invites
+      assert.ok(getRegionsStub.called)
+      assert.ok(getIssuesStub.called)
+      assert.ok(getInvitesStub.called)
       assert.equal(batchWriteStub.callCount, 3) // Called for regions, issues, and invites
       assert.ok(deleteItemStub.called) // Called for transcription record hard delete
     })
@@ -229,9 +224,10 @@ describe('cleanup module', function () {
       const searchIssuesStub = sinon.stub(search, 'clearIssuesForTranscription').resolves({ deleted: 1 })
       const s3Stub = sinon.stub(s3, 'deleteTranscriptionFiles')
       
-      // Mock DynamoDB operations with no data
-      const queryStub = sinon.stub(dynamo, 'query').resolves({ Items: [] })
-      const scanStub = sinon.stub(dynamo, 'scan').resolves({ Items: [] })
+      // Mock DynamoDB operations with no data using new functions
+      const getRegionsStub = sinon.stub(dynamo, 'getRegionsForTranscription').resolves([])
+      const getIssuesStub = sinon.stub(dynamo, 'getIssuesForTranscription').resolves([])
+      const getInvitesStub = sinon.stub(dynamo, 'getInvitesForTranscription').resolves([])
       const deleteItemStub = sinon.stub(dynamo, 'deleteItem').resolves({})
       
       const result = await cleanup.cleanupDeletedTranscription('transcription-123', null)
@@ -253,11 +249,10 @@ describe('cleanup module', function () {
       const searchIssuesStub = sinon.stub(search, 'clearIssuesForTranscription').resolves({ deleted: 2 })
       const s3Stub = sinon.stub(s3, 'deleteTranscriptionFiles').rejects(new Error('S3 error'))
       
-      // Mock DynamoDB operations to succeed
-      const queryStub = sinon.stub(dynamo, 'query').resolves({ Items: [{ id: 'region-1' }] })
-      const scanStub = sinon.stub(dynamo, 'scan')
-        .onFirstCall().resolves({ Items: [{ id: 'issue-1' }] })
-        .onSecondCall().resolves({ Items: [] }) // No invites
+      // Mock DynamoDB operations to succeed using new functions
+      const getRegionsStub = sinon.stub(dynamo, 'getRegionsForTranscription').resolves([{ id: 'region-1' }])
+      const getIssuesStub = sinon.stub(dynamo, 'getIssuesForTranscription').resolves([{ id: 'issue-1' }])
+      const getInvitesStub = sinon.stub(dynamo, 'getInvitesForTranscription').resolves([]) // No invites
       const batchWriteStub = sinon.stub(dynamo, 'batchWrite').resolves({})
       
       const result = await cleanup.cleanupDeletedTranscription('transcription-123', 'https://example.com/video.mp4')
@@ -267,8 +262,9 @@ describe('cleanup module', function () {
       
       // Verify that successful operations still completed
       assert.ok(searchIssuesStub.called)
-      assert.ok(queryStub.called)
-      assert.equal(scanStub.callCount, 2)
+      assert.ok(getRegionsStub.called)
+      assert.ok(getIssuesStub.called)
+      assert.ok(getInvitesStub.called)
       
       // Verify error details are captured
       assert.ok(result.summary.openSearchWords.error)
@@ -282,9 +278,10 @@ describe('cleanup module', function () {
       const searchIssuesStub = sinon.stub(search, 'clearIssuesForTranscription').rejects(new Error('Search error'))
       const s3Stub = sinon.stub(s3, 'deleteTranscriptionFiles').rejects(new Error('S3 error'))
       
-      // Mock DynamoDB operations to fail
-      const queryStub = sinon.stub(dynamo, 'query').rejects(new Error('DynamoDB error'))
-      const scanStub = sinon.stub(dynamo, 'scan').rejects(new Error('DynamoDB error'))
+      // Mock DynamoDB operations to fail using new functions
+      const getRegionsStub = sinon.stub(dynamo, 'getRegionsForTranscription').rejects(new Error('DynamoDB error'))
+      const getIssuesStub = sinon.stub(dynamo, 'getIssuesForTranscription').rejects(new Error('DynamoDB error'))
+      const getInvitesStub = sinon.stub(dynamo, 'getInvitesForTranscription').rejects(new Error('DynamoDB error'))
       
       const result = await cleanup.cleanupDeletedTranscription('transcription-123', 'https://example.com/video.mp4')
       
@@ -295,8 +292,9 @@ describe('cleanup module', function () {
       assert.ok(searchWordsStub.called)
       assert.ok(searchIssuesStub.called)
       assert.ok(s3Stub.called)
-      assert.ok(queryStub.called)
-      assert.equal(scanStub.callCount, 2)
+      assert.ok(getRegionsStub.called)
+      assert.ok(getIssuesStub.called)
+      assert.ok(getInvitesStub.called)
       
       // Verify all errors are captured
       assert.ok(result.summary.openSearchWords.error)

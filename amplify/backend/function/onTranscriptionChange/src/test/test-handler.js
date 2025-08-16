@@ -29,7 +29,9 @@ describe('onTranscriptionChange handler()', function () {
     search.clearKnownWordsForTranscription?.restore?.()
     search.clearIssuesForTranscription?.restore?.()
     dynamo.query?.restore?.()
-    dynamo.scan?.restore?.()
+    dynamo.getRegionsForTranscription?.restore?.()
+    dynamo.getIssuesForTranscription?.restore?.()
+    dynamo.getInvitesForTranscription?.restore?.()
     dynamo.batchWrite?.restore?.()
     dynamo.deleteItem?.restore?.()
     s3.deleteTranscriptionFiles?.restore?.()
@@ -50,11 +52,10 @@ describe('onTranscriptionChange handler()', function () {
       { status: 'fulfilled', value: { VersionId: 'v2' } }
     ])
     
-    // Mock DynamoDB operations for cleanup
-    const queryStub = sinon.stub(dynamo, 'query').resolves({ Items: [{ id: 'region-1' }] })
-    const scanStub = sinon.stub(dynamo, 'scan')
-      .onFirstCall().resolves({ Items: [{ id: 'issue-1' }] })
-      .onSecondCall().resolves({ Items: [{ id: 'invite-1' }] })
+    // Mock DynamoDB operations for cleanup using new functions
+    const getRegionsStub = sinon.stub(dynamo, 'getRegionsForTranscription').resolves([{ id: 'region-1' }])
+    const getIssuesStub = sinon.stub(dynamo, 'getIssuesForTranscription').resolves([{ id: 'issue-1' }])
+    const getInvitesStub = sinon.stub(dynamo, 'getInvitesForTranscription').resolves([{ id: 'invite-1' }])
     const batchWriteStub = sinon.stub(dynamo, 'batchWrite').resolves({})
     const deleteItemStub = sinon.stub(dynamo, 'deleteItem').resolves({})
     
@@ -92,8 +93,9 @@ describe('onTranscriptionChange handler()', function () {
     assert.equal(s3Stub.args[0][0], 'https://test-bucket.s3.amazonaws.com/public/video.mp4')
     
     // Verify DynamoDB cleanup was performed
-    assert.ok(queryStub.called) // For regions
-    assert.equal(scanStub.callCount, 2) // For issues and invites
+    assert.ok(getRegionsStub.called) // For regions
+    assert.ok(getIssuesStub.called) // For issues
+    assert.ok(getInvitesStub.called) // For invites
     assert.equal(batchWriteStub.callCount, 3) // For regions, issues, and invites
     
     // Verify hard delete was performed (called by cleanup function)
@@ -107,9 +109,10 @@ describe('onTranscriptionChange handler()', function () {
     const searchIssuesStub = sinon.stub(search, 'clearIssuesForTranscription').resolves({ deleted: 2 })
     const s3Stub = sinon.stub(s3, 'deleteTranscriptionFiles')
     
-    // Mock DynamoDB operations for cleanup (no data to delete)
-    const queryStub = sinon.stub(dynamo, 'query').resolves({ Items: [] })
-    const scanStub = sinon.stub(dynamo, 'scan').resolves({ Items: [] })
+    // Mock DynamoDB operations for cleanup (no data to delete) using new functions
+    const getRegionsStub = sinon.stub(dynamo, 'getRegionsForTranscription').resolves([])
+    const getIssuesStub = sinon.stub(dynamo, 'getIssuesForTranscription').resolves([])
+    const getInvitesStub = sinon.stub(dynamo, 'getInvitesForTranscription').resolves([])
     const batchWriteStub = sinon.stub(dynamo, 'batchWrite')
     const deleteItemStub = sinon.stub(dynamo, 'deleteItem').resolves({})
     
@@ -148,8 +151,9 @@ describe('onTranscriptionChange handler()', function () {
     assert.ok(!s3Stub.called)
     
     // Verify DynamoDB cleanup was attempted (even with no data)
-    assert.ok(queryStub.called) // For regions
-    assert.equal(scanStub.callCount, 2) // For issues and invites
+    assert.ok(getRegionsStub.called) // For regions
+    assert.ok(getIssuesStub.called) // For issues
+    assert.ok(getInvitesStub.called) // For invites
     assert.ok(!batchWriteStub.called) // No batch writes since no data to delete
   })
 
