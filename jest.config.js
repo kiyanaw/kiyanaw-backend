@@ -76,5 +76,22 @@ export default {
         '/node_modules/',
       ],
     },
+    // Lambda function tests - onTranscriptionChange
+    {
+      displayName: 'Lambda Functions - OnTranscriptionChange',
+      testEnvironment: 'node',
+      rootDir: 'amplify/backend/function/onTranscriptionChange/src',
+      testMatch: [
+        '<rootDir>/test/test-*.(js|ts)',
+      ],
+      collectCoverageFrom: [
+        'lib/**/*.(js|ts)',
+        'index.js',
+        '!test/**/*.(js|ts)',
+      ],
+      testPathIgnorePatterns: [
+        '/node_modules/',
+      ],
+    },
   ],
 }; 

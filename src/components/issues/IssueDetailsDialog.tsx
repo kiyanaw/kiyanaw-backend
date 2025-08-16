@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Check, Trash2, X, MessageSquare } from 'lucide-react';
+import { Check, Trash2, X, MessageSquare, Send } from 'lucide-react';
 import { useEditorStore } from '../../stores/useEditorStore';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { useCreateComment } from '../../hooks/useCreateComment';
@@ -13,6 +13,7 @@ interface IssueDetailsDialogProps {
   onClose: () => void;
   onUpdateIssue?: (issueId: string, updates: Record<string, unknown>) => void;
   onDeleteIssue?: (issueId: string) => void;
+  variant?: 'modal' | 'bottom-sheet';
 }
 
 const issueTypes = [
@@ -27,6 +28,7 @@ export const IssueDetailsDialog = ({
   onClose,
   onUpdateIssue,
   onDeleteIssue,
+  variant = 'modal',
 }: IssueDetailsDialogProps) => {
   const user = useAuthStore((state) => state.user);
   const transcription = useEditorStore((state) => state.transcription);
@@ -119,14 +121,32 @@ export const IssueDetailsDialog = ({
   const formatDate = (dateString: string) => {
     try {
       const date = new Date(dateString);
-      return (
-        date.toLocaleDateString() +
-        ' ' +
-        date.toLocaleTimeString([], {
-          hour: '2-digit',
-          minute: '2-digit',
-        })
-      );
+      const now = new Date();
+      const diffInMs = now.getTime() - date.getTime();
+      const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+      const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+      const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+      
+      if (diffInMinutes < 1) {
+        return 'Just now';
+      } else if (diffInMinutes < 60) {
+        return `${diffInMinutes}m ago`;
+      } else if (diffInHours < 24) {
+        return `${diffInHours}h ago`;
+      } else if (diffInDays === 1) {
+        return 'Yesterday';
+      } else if (diffInDays < 7) {
+        return `${diffInDays}d ago`;
+      } else if (diffInDays < 30) {
+        const weeks = Math.floor(diffInDays / 7);
+        return `${weeks}w ago`;
+      } else if (diffInDays < 365) {
+        const months = Math.floor(diffInDays / 30);
+        return `${months}mo ago`;
+      } else {
+        const years = Math.floor(diffInDays / 365);
+        return `${years}y ago`;
+      }
     } catch {
       return 'Unknown';
     }
@@ -148,17 +168,25 @@ export const IssueDetailsDialog = ({
 
   return (
     <div 
-      className="fixed inset-0 flex items-center justify-center z-50 p-4"
+      className={`fixed z-50 ${
+        variant === 'bottom-sheet' 
+          ? 'inset-0 flex items-end justify-center' 
+          : 'inset-0 flex items-center justify-center p-4'
+      }`}
       style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
       onClick={handleBackdropClick}
     >
       <div 
         ref={dialogRef}
-        className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col"
+        className={`bg-white shadow-xl flex flex-col ${
+          variant === 'bottom-sheet'
+            ? 'w-full max-h-[85vh] rounded-t-lg'
+            : 'rounded-lg max-w-2xl w-full max-h-[90vh]'
+        }`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+        <div className="flex items-center justify-between p-4 md:p-6 border-b border-gray-200">
           <div className="flex items-center gap-3">
             <h2 className="text-xl font-semibold text-gray-900">Issue Details</h2>
             {/* Note: linkStatus is not available on IssueData from store, only passed from EditorPage */}
@@ -197,68 +225,57 @@ export const IssueDetailsDialog = ({
         </div>
 
         {/* Issue Info */}
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-start gap-4">
+        <div className="p-4 md:p-6 border-b border-gray-200">
+          <div className="space-y-3">
             {/* Type badge */}
-            <span
-              className="inline-block py-0.5 px-2 rounded-xl text-xs font-medium uppercase flex-shrink-0"
-              style={{ 
-                backgroundColor: issue.resolved ? '#f3f4f6' : typeInfo.bgColor, 
-                color: issue.resolved ? '#6b7280' : typeInfo.color,
-                border: `1px solid ${issue.resolved ? '#6b7280' : typeInfo.color}`
-              }}
-            >
-              {issue.resolved ? 'RESOLVED' : typeInfo.label}
-            </span>
+            <div>
+              <span
+                className="inline-block py-0.5 px-2 rounded-xl text-xs font-medium uppercase"
+                style={{ 
+                  backgroundColor: issue.resolved ? '#f3f4f6' : typeInfo.bgColor, 
+                  color: issue.resolved ? '#6b7280' : typeInfo.color,
+                  border: `1px solid ${issue.resolved ? '#6b7280' : typeInfo.color}`
+                }}
+              >
+                {issue.resolved ? 'RESOLVED' : typeInfo.label}
+              </span>
+            </div>
 
-            {/* Issue text and metadata */}
-            <div className="flex-1">
-              <p className={`text-lg mb-2 ${issue.resolved ? 'text-gray-500 line-through' : 'text-gray-900'}`}>
-                {issue.text}
-              </p>
-              <div className="text-sm text-gray-500">
-                <span>Created by {user?.userId === issue.owner ? 'me' : issue.ownerFriendly}</span>
-                <span className="mx-2">•</span>
-                <span>{formatDate(issue.createdAt || new Date().toISOString())}</span>
-                {(issue.commentCount || 0) > 0 && (
-                  <>
-                    <span className="mx-2">•</span>
-                    <span className="flex items-center gap-1 inline-flex">
-                      <MessageSquare className="w-3 h-3" />
-                      {issue.commentCount} comment{issue.commentCount !== 1 ? 's' : ''}
-                    </span>
-                  </>
-                )}
-              </div>
+            {/* Issue text */}
+            <p className={`text-lg ${issue.resolved ? 'text-gray-500 line-through' : 'text-gray-900'}`}>
+              {issue.text}
+            </p>
+
+            {/* Metadata using full width */}
+            <div className="text-sm text-gray-500">
+              Created by {user?.userId === issue.owner ? 'me' : issue.ownerFriendly} • {formatDate(issue.createdAt || new Date().toISOString())}
             </div>
           </div>
-
-          {/* Former action buttons moved to header as compact icon buttons */}
         </div>
 
         {/* Comments Section */}
         <div className="flex-1 flex flex-col min-h-0">
           {/* Comments Header */}
-          <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-            <h3 className="text-lg font-medium text-gray-900">
+          <div className="px-4 md:px-6 py-2 md:py-4 border-b border-gray-200 bg-gray-50">
+            <h3 className="text-base md:text-lg font-medium text-gray-900">
               Comments {comments.length > 0 && `(${comments.length})`}
             </h3>
           </div>
 
           {/* Comments List */}
-          <div className="flex-1 overflow-y-auto px-6 py-4">
+          <div className="flex-1 overflow-y-auto px-4 md:px-6 py-3 md:py-4">
             {comments.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 <MessageSquare className="w-8 h-8 mx-auto mb-2 text-gray-300" />
                 <p>No comments yet.</p>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3 md:space-y-4">
                 {comments.map((comment: CommentData) => {
                   const canDeleteThisComment = canDeleteComment(comment.author, transcription, user);
                   
                   return (
-                    <div key={comment.id} className="flex gap-3 p-4 bg-gray-50 rounded-lg">
+                    <div key={comment.id} className="flex gap-3 p-3 md:p-4 bg-gray-50 rounded-lg">
                       {/* Comment content */}
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
@@ -291,25 +308,34 @@ export const IssueDetailsDialog = ({
 
           {/* Comment Composer */}
           {userCanComment && (
-            <div className="p-6 border-t border-gray-200 bg-gray-50">
-              <div className="flex gap-3">
-                <div className="flex-1">
-                  <textarea
-                    ref={textareaRef}
-                    value={newCommentText}
-                    onChange={(e) => setNewCommentText(e.target.value)}
-                    placeholder="Add a comment..."
-                    className="w-full p-3 border border-gray-300 rounded-md resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    rows={3}
-                    disabled={isSubmittingComment}
-                  />
-                </div>
+            <div className="p-4 md:p-6 border-t border-gray-200 bg-gray-50">
+              <div className="relative">
+                <textarea
+                  ref={textareaRef}
+                  value={newCommentText}
+                  onChange={(e) => setNewCommentText(e.target.value)}
+                  placeholder="Add a comment..."
+                  className="w-full p-3 pr-16 border border-gray-300 rounded-lg resize-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400 transition-all min-h-[44px] max-h-32 overflow-hidden"
+                  rows={1}
+                  disabled={isSubmittingComment}
+                  style={{
+                    height: 'auto',
+                    minHeight: '44px'
+                  }}
+                  onInput={(e) => {
+                    const target = e.target as HTMLTextAreaElement;
+                    target.style.height = 'auto';
+                    target.style.height = Math.min(target.scrollHeight, 128) + 'px';
+                  }}
+                />
                 <button
                   onClick={handleAddComment}
                   disabled={!newCommentText.trim() || isSubmittingComment}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors self-start"
+                  className="absolute right-3 top-1/2 w-8 h-8 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+                  style={{ transform: 'translate(2px, calc(-50% - 4px))' }}
+                  title="Send comment"
                 >
-                  {isSubmittingComment ? 'Posting...' : 'Post'}
+                  <Send className="w-4 h-4" />
                 </button>
               </div>
             </div>

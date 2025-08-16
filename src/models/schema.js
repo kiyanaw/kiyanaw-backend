@@ -129,6 +129,13 @@ export const schema = {
                     "isRequired": false,
                     "attributes": []
                 },
+                "publicIssues": {
+                    "name": "publicIssues",
+                    "isArray": false,
+                    "type": "Boolean",
+                    "isRequired": false,
+                    "attributes": []
+                },
                 "disableAnalyzer": {
                     "name": "disableAnalyzer",
                     "isArray": false,
@@ -606,6 +613,7 @@ export const schema = {
                     "type": "key",
                     "properties": {
                         "name": "ByOwner",
+                        "queryField": "issuesByOwner",
                         "fields": [
                             "owner"
                         ]
@@ -615,8 +623,19 @@ export const schema = {
                     "type": "key",
                     "properties": {
                         "name": "ByType",
+                        "queryField": "issuesByType",
                         "fields": [
                             "type"
+                        ]
+                    }
+                },
+                {
+                    "type": "key",
+                    "properties": {
+                        "name": "ByRegion",
+                        "queryField": "issuesByRegion",
+                        "fields": [
+                            "regionId"
                         ]
                     }
                 },
@@ -1069,5 +1088,5 @@ export const schema = {
     "enums": {},
     "nonModels": {},
     "codegenVersion": "3.4.4",
-    "version": "49ef55354cf5626ba37857549cb75acc"
+    "version": "126d4fe9695d918c315396b9c9f0c0eb"
 };

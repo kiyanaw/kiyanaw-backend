@@ -453,7 +453,7 @@ describe('WaveformPlayer', () => {
       
       render(<WaveformPlayer {...defaultProps} />);
       
-      const zoomSlider = screen.getByDisplayValue('20'); // default zoom value
+      const zoomSlider = screen.getByDisplayValue('40'); // default zoom value
       fireEvent.change(zoomSlider, { target: { value: '30' } });
       
       expect(mockWaveSurferService.setZoom).toHaveBeenCalledWith(30);
@@ -471,7 +471,7 @@ describe('WaveformPlayer', () => {
       
       render(<WaveformPlayer {...defaultProps} />);
       
-      const zoomSlider = screen.getByDisplayValue('20');
+      const zoomSlider = screen.getByDisplayValue('40');
       fireEvent.change(zoomSlider, { target: { value: '50' } });
       
       expect(mockWaveSurferService.setZoom).toHaveBeenCalledWith(50);
@@ -492,9 +492,9 @@ describe('WaveformPlayer', () => {
       render(<WaveformPlayer {...defaultProps} />);
       
       const speedSlider = screen.getByDisplayValue('100'); // default speed value
-      fireEvent.change(speedSlider, { target: { value: '150' } });
+      fireEvent.change(speedSlider, { target: { value: '90' } });
       
-      expect(mockWaveSurferService.setPlaybackRate).toHaveBeenCalledWith(150);
+      expect(mockWaveSurferService.setPlaybackRate).toHaveBeenCalledWith(90);
     });
 
     it('displays current speed percentage', () => {
@@ -878,7 +878,7 @@ describe('WaveformPlayer', () => {
       expect(container.querySelector('video')).not.toBeInTheDocument();
     });
 
-    it('should render visible video element when isVideo is true', () => {
+    it('should render video element when isVideo is true', () => {
       const { container } = render(
         <WaveformPlayer
           {...defaultProps}
@@ -889,12 +889,14 @@ describe('WaveformPlayer', () => {
       const videoElement = container.querySelector('video') as HTMLVideoElement;
       expect(videoElement).toBeInTheDocument();
       
-      // Check that the video container has the correct positioning classes (not hidden)
+      // Check that the video container has the correct positioning classes
+      // Video is hidden by default on mobile (showVideoMobile is false)
       const videoContainer = videoElement.parentElement as HTMLDivElement;
       expect(videoContainer.className).toContain('fixed');
       expect(videoContainer.className).toContain('bottom-4');
       expect(videoContainer.className).toContain('right-4');
-      expect(videoContainer.className).not.toContain('hidden');
+      // Video is hidden by default on mobile
+      expect(videoContainer.className).toContain('hidden');
     });
   });
 
@@ -919,13 +921,6 @@ describe('WaveformPlayer', () => {
   });
 
   describe('Loading State', () => {
-    it('shows loading indicator initially', () => {
-      render(<WaveformPlayer {...defaultProps} />);
-      
-      expect(screen.getByText('Loading audio...')).toBeInTheDocument();
-      expect(screen.getByTestId('loading-spinner')).toBeInTheDocument();
-    });
-
     it('disables controls while loading', () => {
       render(<WaveformPlayer {...defaultProps} />);
       
@@ -937,41 +932,11 @@ describe('WaveformPlayer', () => {
     it('disables zoom and speed controls while loading', () => {
       render(<WaveformPlayer {...defaultProps} />);
       
-      const zoomSlider = screen.getByDisplayValue('20');
+      const zoomSlider = screen.getByDisplayValue('40'); // Updated default zoom value
       const speedSlider = screen.getByDisplayValue('100');
       
       expect(zoomSlider).toBeDisabled();
       expect(speedSlider).toBeDisabled();
-    });
-
-    it('hides loading indicator when store indicates ready', () => {
-      // Mock store to initially show loading
-      mockUsePlayerStore.mockImplementation((selector) => {
-        const state = createMockPlayerState({
-          playing: false,
-          loadedAndReady: false,
-        });
-        return selector(state);
-      });
-      
-      const { rerender } = render(<WaveformPlayer {...defaultProps} />);
-      
-      // Initially shows loading
-      expect(screen.getByText('Loading audio...')).toBeInTheDocument();
-      
-      // Update store to indicate ready
-      mockUsePlayerStore.mockImplementation((selector) => {
-        const state = createMockPlayerState({
-          playing: false,
-          loadedAndReady: true,
-        });
-        return selector(state);
-      });
-      
-      rerender(<WaveformPlayer {...defaultProps} />);
-      
-      // Loading indicator should be gone
-      expect(screen.queryByText('Loading audio...')).not.toBeInTheDocument();
     });
 
     it('enables controls when store indicates ready', () => {
@@ -986,6 +951,10 @@ describe('WaveformPlayer', () => {
       
       const { rerender } = render(<WaveformPlayer {...defaultProps} />);
       
+      // Initially controls are disabled
+      const playButton = screen.getByTestId('play-button');
+      expect(playButton).toBeDisabled();
+      
       // Update store to indicate ready
       mockUsePlayerStore.mockImplementation((selector) => {
         const state = createMockPlayerState({
@@ -997,27 +966,12 @@ describe('WaveformPlayer', () => {
       
       rerender(<WaveformPlayer {...defaultProps} />);
       
-      const playButton = screen.getByTestId('play-button');
-      
+      // Controls should be enabled
       expect(playButton).not.toBeDisabled();
     });
 
-    it('shows loading indicator when source changes', () => {
-      // Mock store to return ready state initially
-      mockUsePlayerStore.mockImplementation((selector) => {
-        const state = createMockPlayerState({
-          playing: false,
-          loadedAndReady: true,
-        });
-        return selector(state);
-      });
-
-      const { rerender } = render(<WaveformPlayer {...defaultProps} />);
-
-      // Should not show loading initially (already loaded)
-      expect(screen.queryByTestId('loading-spinner')).not.toBeInTheDocument();
-
-      // Mock store to return not ready when source changes
+    it('controls respond to ready state changes', () => {
+      // Mock store to initially show loading
       mockUsePlayerStore.mockImplementation((selector) => {
         const state = createMockPlayerState({
           playing: false,
@@ -1025,12 +979,26 @@ describe('WaveformPlayer', () => {
         });
         return selector(state);
       });
-
-      // Change source (simulate rerender with new source)
-      rerender(<WaveformPlayer {...defaultProps} source="new-audio.mp3" />);
-
-      // Should show loading indicator for new source
-      expect(screen.getByTestId('loading-spinner')).toBeInTheDocument();
+      
+      const { rerender } = render(<WaveformPlayer {...defaultProps} />);
+      
+      // Initially controls are disabled
+      const playButton = screen.getByTestId('play-button');
+      expect(playButton).toBeDisabled();
+      
+      // Update store to indicate ready
+      mockUsePlayerStore.mockImplementation((selector) => {
+        const state = createMockPlayerState({
+          playing: false,
+          loadedAndReady: true,
+        });
+        return selector(state);
+      });
+      
+      rerender(<WaveformPlayer {...defaultProps} />);
+      
+      // Controls should be enabled
+      expect(playButton).not.toBeDisabled();
     });
 
     it('displays correct timer with current time and duration', () => {

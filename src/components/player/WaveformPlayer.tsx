@@ -1,9 +1,10 @@
-import { useRef, useCallback, useState } from 'react';
-import { Play, Pause, ZoomIn, Gauge, Loader2, Settings, ArrowLeft, Circle, ArrowRight, Minimize2, Maximize2, ChevronDown } from 'lucide-react';
+import { useRef, useCallback, useState, useEffect } from 'react';
+import { Play, Pause, ZoomIn, Gauge, Settings, ArrowLeft, Circle, ArrowRight, Minimize2, Maximize2, ChevronDown, Video as VideoIcon, Lock, Unlock } from 'lucide-react';
 import { wavesurferService } from '../../services/wavesurferService';
 import { usePlayerStore } from '../../stores/usePlayerStore';
 import { usePlay } from '../../hooks/usePlay';
 import { usePause } from '../../hooks/usePause';
+import { useSelectAndPlayRegion } from '../../hooks/useSelectAndPlayRegion';
 import { useEditorStore } from '../../stores/useEditorStore';
 
 interface Region {
@@ -37,12 +38,16 @@ export const WaveformPlayer = ({
 
   /** RARE PERMITTED LOCAL STATE */
   const [speed, setSpeed] = useState(100);
-  const [zoom, setZoom] = useState(20);
+  const [zoom, setZoom] = useState(40);
   const [isVideoHovered, setIsVideoHovered] = useState(false);
   const [videoPosition, setVideoPosition] = useState<'left' | 'center' | 'right'>('right');
   const [videoSize, setVideoSize] = useState<'small' | 'big'>('small');
   const [isMinimized, setIsMinimized] = useState(false);
   const [videoNaturalSize, setVideoNaturalSize] = useState<{ width: number; height: number } | null>(null);
+  const [showVideoMobile, setShowVideoMobile] = useState(false);
+  const [isRegionsLocked, setIsRegionsLocked] = useState(true); // Locked by default on mobile
+  const [showZoomDialog, setShowZoomDialog] = useState(false);
+  const [showSpeedDialog, setShowSpeedDialog] = useState(false);
   
   const isPlaying = usePlayerStore((state) => state.playing)
   const loadedAndReady = usePlayerStore((state) => state.loadedAndReady)
@@ -52,6 +57,16 @@ export const WaveformPlayer = ({
   
   const play = usePlay()
   const pause = usePause()
+  const selectAndPlayRegion = useSelectAndPlayRegion()
+  const selectedRegion = useEditorStore((state) => state.selectedRegion)
+
+  // Set initial locked state on mobile when wavesurfer is ready
+  useEffect(() => {
+    if (loadedAndReady && window.innerWidth < 768) {
+      // On mobile, start locked (regions editing disabled)
+      wavesurferService.setRegionEditingEnabled(false);
+    }
+  }, [loadedAndReady]);
 
   // Initialize WaveSurfer when container is ready
   const initializeWaveSurfer = useCallback(() => {
@@ -120,38 +135,30 @@ export const WaveformPlayer = ({
     setVideoSize(size);
   };
 
-  // Calculate video container classes based on position
-  const getVideoContainerClasses = () => {
-    let positionClasses = '';
-    let sizeClasses = '';
-
-    // Position classes
-    switch (videoPosition) {
-      case 'left':
-        positionClasses = 'bottom-4 left-4';
-        break;
-      case 'center':
-        positionClasses = 'bottom-4 left-1/2 transform -translate-x-1/2';
-        break;
-      case 'right':
-      default:
-        positionClasses = 'bottom-4 right-4';
-        break;
+  // Mobile video click handler
+  const handleMobileVideoClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent modal close
+    
+    // Only handle clicks on mobile when video is in modal
+    if (!showVideoMobile) return;
+    
+    if (selectedRegion) {
+      selectAndPlayRegion(selectedRegion.id);
+    } else {
+      play({ playInFull: true });
     }
-
-    // Keep minimal size constraints via classes; actual precise sizing handled via inline style
-    switch (videoSize) {
-      case 'small':
-        sizeClasses = 'max-h-[27vh]';
-        break;
-      case 'big':
-        sizeClasses = 'max-h-[65vh]';
-        break;
-    }
-
-    const minimizedClasses = isMinimized ? 'left-1/2 -translate-x-1/2 bottom-2 w-auto max-w-none' : '';
-    return `fixed ${positionClasses} ${sizeClasses} ${minimizedClasses} z-40 rounded group`;
   };
+
+  // Handle region lock toggle
+  const handleRegionLockToggle = () => {
+    const newLockedState = !isRegionsLocked;
+    setIsRegionsLocked(newLockedState);
+    
+    // Update wavesurfer service with new editing state
+    wavesurferService.setRegionEditingEnabled(!newLockedState);
+  };
+
+  // (Prev helper removed; positioning handled directly in className)
 
   // Compute container sizing style based on aspect ratio and selected size
   const getVideoContainerStyle = (): React.CSSProperties => {
@@ -201,20 +208,129 @@ export const WaveformPlayer = ({
           </div>
         </div>
 
-        {/* Waveform */}
-        <div ref={setWaveformContainer} className="w-full h-32 bg-white relative">
-          {!loadedAndReady && (
-            <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-90">
-              <div className="flex items-center gap-2 text-gray-600">
-                <Loader2 size={20} className="animate-spin" data-testid="loading-spinner" />
-                <span className="text-sm">Loading audio...</span>
+        {/* Media Area: video overlays waveform on mobile via CSS toggle */}
+        <div className="relative w-full h-32">
+          {/* Waveform sits underneath; never unmounted */}
+          <div ref={setWaveformContainer} className="w-full h-32 bg-white relative" />
+
+          {/* Video element: modal overlay on mobile; fixed floating on desktop */}
+          {isVideo && (
+            <div 
+              className={`
+                ${isMinimized ? 'hidden' : ''}
+                ${showVideoMobile ? 'fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40' : 'hidden'}
+                lg:fixed lg:z-40 lg:rounded lg:group lg:bg-transparent lg:block lg:inset-auto
+                ${videoPosition === 'left' ? 'lg:bottom-4 lg:left-4' : videoPosition === 'center' ? 'lg:bottom-4 lg:left-1/2 lg:-translate-x-1/2' : 'lg:bottom-4 lg:right-4'}
+              `}
+              style={showVideoMobile ? undefined : getVideoContainerStyle()}
+              onMouseEnter={() => setIsVideoHovered(true)}
+              onMouseLeave={() => setIsVideoHovered(false)}
+              onClick={(e) => {
+                // Close modal when clicking backdrop on mobile
+                if (e.target === e.currentTarget && showVideoMobile) {
+                  setShowVideoMobile(false);
+                }
+              }}
+            >
+              <video
+                ref={setVideoElement}
+                className={`object-contain shadow-lg rounded ${showVideoMobile ? 'w-full max-h-[80vh]' : 'w-full h-full'}`}
+                preload="auto"
+                title="Video playback"
+                controls={false}
+                playsInline
+                webkit-playsinline=""
+                onClick={handleMobileVideoClick}
+              >
+                <source src={source} />
+              </video>
+
+              {/* Desktop-only controls */}
+              <div className="hidden lg:block">
+                {/* Position Controls */}
+                <div 
+                  className={`absolute top-2 left-2 flex bg-black bg-opacity-50 rounded transition-opacity duration-200 ${
+                    isVideoHovered ? 'opacity-100' : 'opacity-0'
+                  }`}
+                >
+                  <button 
+                    onClick={() => handleVideoPosition('left')}
+                    className={`p-1.5 transition-all rounded-l ${
+                      videoPosition === 'left' 
+                        ? 'text-gray-900 bg-white bg-opacity-80' 
+                        : 'text-white hover:text-gray-900 hover:bg-white hover:bg-opacity-80'
+                    }`}
+                    title="Move left"
+                  >
+                    <ArrowLeft size={14} />
+                  </button>
+                  <button 
+                    onClick={() => handleVideoPosition('center')}
+                    className={`p-1.5 transition-all border-l border-white border-opacity-30 ${
+                      videoPosition === 'center' 
+                        ? 'text-gray-900 bg-white bg-opacity-80' 
+                        : 'text-white hover:text-gray-900 hover:bg-white hover:bg-opacity-80'
+                    }`}
+                    title="Center"
+                  >
+                    <Circle size={14} />
+                  </button>
+                  <button 
+                    onClick={() => handleVideoPosition('right')}
+                    className={`p-1.5 transition-all border-l border-white border-opacity-30 rounded-r ${
+                      videoPosition === 'right' 
+                        ? 'text-gray-900 bg-white bg-opacity-80' 
+                        : 'text-white hover:text-gray-900 hover:bg-white hover:bg-opacity-80'
+                    }`}
+                    title="Move right"
+                  >
+                    <ArrowRight size={14} />
+                  </button>
+                </div>
+
+                {/* Size & Minimize Controls */}
+                <div 
+                  className={`absolute top-2 right-2 flex bg-black bg-opacity-50 rounded transition-opacity duration-200 ${
+                    isVideoHovered ? 'opacity-100' : 'opacity-0'
+                  }`}
+                >
+                  <button 
+                    onClick={() => handleVideoSize('small')}
+                    className={`p-1.5 transition-all rounded-l ${
+                      videoSize === 'small' 
+                        ? 'text-gray-900 bg-white bg-opacity-80' 
+                        : 'text-white hover:text-gray-900 hover:bg-white hover:bg-opacity-80'
+                    }`}
+                    title="Small size"
+                  >
+                    <Minimize2 size={14} />
+                  </button>
+                  <button 
+                    onClick={() => handleVideoSize('big')}
+                    className={`p-1.5 transition-all border-l border-white border-opacity-30 ${
+                      videoSize === 'big' 
+                        ? 'text-gray-900 bg-white bg-opacity-80' 
+                        : 'text-white hover:text-gray-900 hover:bg-white hover:bg-opacity-80'
+                    }`}
+                    title="Large size"
+                  >
+                    <Maximize2 size={14} />
+                  </button>
+                  <button 
+                    onClick={() => setIsMinimized(true)}
+                    className="p-1.5 transition-all border-l border-white border-opacity-30 rounded-r text-white hover:text-gray-900 hover:bg-white hover:bg-opacity-80"
+                    title="Minimize"
+                  >
+                    <ChevronDown size={14} />
+                  </button>
+                </div>
               </div>
             </div>
           )}
         </div>
 
         {/* Controls */}
-        <div className="flex items-center justify-between mt-[20px] h-10 bg-gray-100 px-5 border-t border-gray-300 md:flex-row md:h-10 md:px-5 flex-col h-auto px-2.5 py-2.5 gap-2.5">
+        <div className="flex items-center justify-between mt-[20px] h-10 bg-gray-100 px-3 border-t border-gray-300 gap-2">
           <div className="flex items-center gap-2">
             <button
               className="bg-none border-none text-base cursor-pointer px-2 py-1 rounded transition-colors hover:bg-gray-200 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -224,17 +340,36 @@ export const WaveformPlayer = ({
             >
               {isPlaying ? <Pause size={16} /> : <Play size={16} />}
             </button>
-
-
+            {isVideo && (
+              <button
+                className={`px-2 py-1 rounded transition-colors ${showVideoMobile ? 'bg-blue-600 text-white' : 'hover:bg-gray-200 hover:text-gray-700'} md:hidden`}
+                onClick={() => setShowVideoMobile(v => !v)}
+                title="Toggle video overlay"
+              >
+                <VideoIcon size={16} />
+              </button>
+            )}
           </div>
 
-          <div className="flex items-center gap-4 md:gap-4 gap-2 flex-col md:flex-row">
+          <div className="flex items-center gap-3">
+            <button
+              className={`px-2 py-1 rounded transition-all md:hidden ${
+                isRegionsLocked 
+                  ? 'bg-gray-300 border-2 border-gray-400 shadow-inner text-gray-700' 
+                  : 'bg-gray-100 border-2 border-gray-300 shadow-sm text-gray-600 hover:bg-gray-200'
+              }`}
+              onClick={handleRegionLockToggle}
+              title={isRegionsLocked ? "Regions locked - tap to unlock editing" : "Regions unlocked - tap to lock for scrolling"}
+            >
+              {isRegionsLocked ? <Lock size={16} /> : <Unlock size={16} />}
+            </button>
+            
             <div className="flex items-center gap-2">
               <button
-                onClick={() => handleZoomChange(50)}
+                onClick={() => window.innerWidth < 768 ? setShowZoomDialog(true) : handleZoomChange(40)}
                 disabled={!loadedAndReady}
                 className="p-1 rounded transition-colors hover:bg-gray-200 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Reset zoom to default"
+                title={window.innerWidth < 768 ? "Adjust zoom" : "Reset zoom to default"}
               >
                 <ZoomIn size={16} className="text-gray-600" />
               </button>
@@ -244,136 +379,38 @@ export const WaveformPlayer = ({
                 max="75"
                 value={zoom}
                 onChange={(e) => handleZoomChange(parseInt(e.target.value))}
-                className="w-20 md:w-24 accent-blue-600"
+                className="hidden md:block w-24 accent-blue-600"
                 disabled={!loadedAndReady}
               />
             </div>
 
             <div className="flex items-center gap-2">
               <button
-                onClick={() => handleSpeedChange(100)}
+                onClick={() => window.innerWidth < 768 ? setShowSpeedDialog(true) : handleSpeedChange(100)}
                 disabled={!loadedAndReady}
                 className="p-1 rounded transition-colors hover:bg-gray-200 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Reset speed to default"
+                title={window.innerWidth < 768 ? "Adjust speed" : "Reset speed to default"}
               >
                 <Gauge size={16} className="text-gray-600" />
               </button>
               <input
                 type="range"
                 min="50"
-                max="150"
+                max="100"
                 value={speed}
                 onChange={(e) => handleSpeedChange(parseInt(e.target.value))}
-                className="w-20 md:w-24 accent-blue-600"
+                className="hidden md:block w-24 accent-blue-600"
                 disabled={!loadedAndReady}
               />
-              <span className="text-xs text-gray-600 min-w-[35px]">{speed}%</span>
+              <span className="hidden md:inline text-xs text-gray-600 min-w-[35px]">{speed}%</span>
             </div>
           </div>
         </div>
 
-        {/* Video Element with Hover Controls */}
-        {isVideo && (
-          <div 
-            className={`${getVideoContainerClasses()} ${isMinimized ? 'hidden' : ''}`}
-            style={getVideoContainerStyle()}
-            onMouseEnter={() => setIsVideoHovered(true)}
-            onMouseLeave={() => setIsVideoHovered(false)}
-          >
-            <video
-              ref={setVideoElement}
-              className="shadow-lg cursor-pointer rounded block max-w-full max-h-full"
-              preload="auto"
-              title="Video playback"
-              controls={false}
-              playsInline
-              webkit-playsinline=""
-            >
-              <source src={source} />
-            </video>
-
-            {/* Position Controls - Upper Left */}
-            <div 
-              className={`absolute top-2 left-2 flex bg-black bg-opacity-50 rounded transition-opacity duration-200 ${
-                isVideoHovered ? 'opacity-100' : 'opacity-0'
-              }`}
-            >
-              <button 
-                onClick={() => handleVideoPosition('left')}
-                className={`p-1.5 transition-all rounded-l ${
-                  videoPosition === 'left' 
-                    ? 'text-gray-900 bg-white bg-opacity-80' 
-                    : 'text-white hover:text-gray-900 hover:bg-white hover:bg-opacity-80'
-                }`}
-                title="Move left"
-              >
-                <ArrowLeft size={14} />
-              </button>
-              <button 
-                onClick={() => handleVideoPosition('center')}
-                className={`p-1.5 transition-all border-l border-white border-opacity-30 ${
-                  videoPosition === 'center' 
-                    ? 'text-gray-900 bg-white bg-opacity-80' 
-                    : 'text-white hover:text-gray-900 hover:bg-white hover:bg-opacity-80'
-                }`}
-                title="Center"
-              >
-                <Circle size={14} />
-              </button>
-              <button 
-                onClick={() => handleVideoPosition('right')}
-                className={`p-1.5 transition-all border-l border-white border-opacity-30 rounded-r ${
-                  videoPosition === 'right' 
-                    ? 'text-gray-900 bg-white bg-opacity-80' 
-                    : 'text-white hover:text-gray-900 hover:bg-white hover:bg-opacity-80'
-                }`}
-                title="Move right"
-              >
-                <ArrowRight size={14} />
-              </button>
-            </div>
-
-            {/* Size & Minimize Controls - Upper Right */}
-            <div 
-              className={`absolute top-2 right-2 flex bg-black bg-opacity-50 rounded transition-opacity duration-200 ${
-                isVideoHovered ? 'opacity-100' : 'opacity-0'
-              }`}
-            >
-              <button 
-                onClick={() => handleVideoSize('small')}
-                className={`p-1.5 transition-all rounded-l ${
-                  videoSize === 'small' 
-                    ? 'text-gray-900 bg-white bg-opacity-80' 
-                    : 'text-white hover:text-gray-900 hover:bg-white hover:bg-opacity-80'
-                }`}
-                title="Small size"
-              >
-                <Minimize2 size={14} />
-              </button>
-              <button 
-                onClick={() => handleVideoSize('big')}
-                className={`p-1.5 transition-all border-l border-white border-opacity-30 ${
-                  videoSize === 'big' 
-                    ? 'text-gray-900 bg-white bg-opacity-80' 
-                    : 'text-white hover:text-gray-900 hover:bg-white hover:bg-opacity-80'
-                }`}
-                title="Large size"
-              >
-                <Maximize2 size={14} />
-              </button>
-              <button 
-                onClick={() => setIsMinimized(true)}
-                className="p-1.5 transition-all border-l border-white border-opacity-30 rounded-r text-white hover:text-gray-900 hover:bg-white hover:bg-opacity-80"
-                title="Minimize"
-              >
-                <ChevronDown size={14} />
-              </button>
-            </div>
-          </div>
-        )}
-        {/* Minimized tab */}
+        
+        {/* Minimized tab - Desktop Only */}
         {isVideo && isMinimized && (
-          <div className="fixed bottom-4 right-4 z-40">
+          <div className="hidden lg:block fixed bottom-4 right-4 z-40">
             <button
               onClick={() => setIsMinimized(false)}
               className="px-2 py-1 text-xs rounded shadow-lg bg-gray-800 text-white hover:bg-gray-700 transition-colors"
@@ -384,6 +421,80 @@ export const WaveformPlayer = ({
           </div>
         )}
       </div>
+
+      {/* Mobile Zoom Dialog */}
+      {showZoomDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 md:hidden">
+          <div className="bg-white rounded-lg p-6 w-full max-w-sm">
+            <h3 className="text-lg font-semibold mb-4 text-center">Zoom Level</h3>
+            <div className="space-y-4">
+              <input
+                type="range"
+                min="5"
+                max="75"
+                value={zoom}
+                onChange={(e) => handleZoomChange(parseInt(e.target.value))}
+                className="w-full accent-blue-600"
+                disabled={!loadedAndReady}
+              />
+              <div className="text-center text-sm text-gray-600">
+                {zoom}x zoom
+              </div>
+              <div className="flex gap-2 justify-center">
+                <button
+                  onClick={() => handleZoomChange(40)}
+                  className="px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200"
+                >
+                  Default
+                </button>
+                <button
+                  onClick={() => setShowZoomDialog(false)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile Speed Dialog */}
+      {showSpeedDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 md:hidden">
+          <div className="bg-white rounded-lg p-6 w-full max-w-sm">
+            <h3 className="text-lg font-semibold mb-4 text-center">Playback Speed</h3>
+            <div className="space-y-4">
+              <input
+                type="range"
+                min="50"
+                max="100"
+                value={speed}
+                onChange={(e) => handleSpeedChange(parseInt(e.target.value))}
+                className="w-full accent-blue-600"
+                disabled={!loadedAndReady}
+              />
+              <div className="text-center text-sm text-gray-600">
+                {speed}% speed
+              </div>
+              <div className="flex gap-2 justify-center">
+                <button
+                  onClick={() => handleSpeedChange(100)}
+                  className="px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200"
+                >
+                  Normal
+                </button>
+                <button
+                  onClick={() => setShowSpeedDialog(false)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
     </>
   );

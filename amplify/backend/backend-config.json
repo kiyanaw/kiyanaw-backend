@@ -256,6 +256,27 @@
       "build": true,
       "providerPlugin": "awscloudformation",
       "service": "Lambda"
+    },
+    "onTranscriptionChange": {
+      "build": true,
+      "dependsOn": [
+        {
+          "attributes": [
+            "BucketName"
+          ],
+          "category": "storage",
+          "resourceName": "transcriptions"
+        },
+        {
+          "attributes": [
+            "GraphQLAPIIdOutput"
+          ],
+          "category": "api",
+          "resourceName": "kiyanaw"
+        }
+      ],
+      "providerPlugin": "awscloudformation",
+      "service": "Lambda"
     }
   },
   "hosting": {
@@ -422,6 +443,22 @@
         {
           "category": "function",
           "resourceName": "notifyRegionChanges"
+        }
+      ]
+    },
+    "AMPLIFY_function_onTranscriptionChange_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "onTranscriptionChange"
+        }
+      ]
+    },
+    "AMPLIFY_function_onTranscriptionChange_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "onTranscriptionChange"
         }
       ]
     }

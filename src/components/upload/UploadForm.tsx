@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { X } from 'lucide-react';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { CreateTranscriptionUseCase } from '../../use-cases/create-transcription';
 import { services } from '../../services';
@@ -55,10 +56,23 @@ export const UploadForm = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto my-8 md:my-8 my-4 p-8 md:p-8 p-6 bg-white rounded-lg shadow-md">
-      <h2 className="m-0 mb-8 text-gray-800 text-2xl md:text-2xl text-xl font-semibold">Upload Media</h2>
+    <div className="max-w-2xl mx-auto md:my-8 md:p-8 md:bg-white md:rounded-lg md:shadow-md">
+      {/* Mobile Header */}
+      <div className="md:hidden sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-4 flex items-center justify-between">
+        <h2 className="text-xl font-semibold text-gray-900">Upload Media</h2>
+        <button
+          onClick={() => navigate('/transcribe-list')}
+          className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+          aria-label="Close and return to transcriptions"
+        >
+          <X className="w-6 h-6" />
+        </button>
+      </div>
 
-      <div className="space-y-6">
+      {/* Desktop Header */}
+      <h2 className="hidden md:block m-0 mb-8 text-gray-800 text-2xl font-semibold">Upload Media</h2>
+
+      <div className="space-y-6 p-4 md:p-0">
         <div className="mb-6">
           <label htmlFor="title" className="block mb-2 text-gray-700 font-medium">
             Title

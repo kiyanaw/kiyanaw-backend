@@ -48,4 +48,9 @@ jobs:
       run: |
         cd amplify/backend/function/indexRegionData/src
         npm install
+
+    - name: Install onTranscriptionChange Lambda dependencies
+      run: |
+        cd amplify/backend/function/onTranscriptionChange/src
+        npm install
     - run: npm run test

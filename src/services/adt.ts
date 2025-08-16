@@ -9,6 +9,7 @@ export interface TranscriptionData {
   source: string;
   coverage?: number;
   isPrivate?: boolean;
+  publicIssues?: boolean;
   disableAnalyzer?: boolean;
   dateLastUpdated?: string;
   userLastUpdated: string;
@@ -127,6 +128,7 @@ export class TranscriptionModel {
   public source: string;
   public coverage: number;
   public isPrivate: boolean;
+  public publicIssues: boolean;
   public disableAnalyzer: boolean;
   public dateLastUpdated?: string;
   public userLastUpdated: string;
@@ -156,6 +158,7 @@ export class TranscriptionModel {
     this.source = data.source;
     this.coverage = data.coverage || 0;
     this.isPrivate = data.isPrivate ?? true;
+    this.publicIssues = data.publicIssues ?? false;
     this.disableAnalyzer = !!data.disableAnalyzer;
     this.dateLastUpdated = data.dateLastUpdated;
     this.userLastUpdated = data.userLastUpdated;
@@ -287,6 +290,34 @@ export class TranscriptionModel {
     const hasViewers = this.viewers && Array.isArray(this.viewers) && this.viewers.length > 0;
     const hasEditors = this.editors && Array.isArray(this.editors) && this.editors.length > 0;
     return Boolean(hasViewers || hasEditors);
+  }
+
+  /**
+   * Extract the filename from the source URL, removing timestamp prefix
+   * e.g., "https://bucket.s3.amazonaws.com/public/1753823638851-4A-Irene-Fineday-restored.mp3" returns "4A-Irene-Fineday-restored.mp3"
+   */
+  getSourceFilename(): string {
+    if (!this.source) return 'Unknown';
+    
+    try {
+      // Split by '/' and get the last part
+      const parts = this.source.split('/');
+      const filename = parts[parts.length - 1];
+      
+      // Decode URL encoding if present
+      const decodedFilename = decodeURIComponent(filename);
+      
+      // Remove timestamp prefix (e.g., "1753823638851-" from "1753823638851-4A-Irene-Fineday-restored.mp3")
+      const timestampMatch = decodedFilename.match(/^\d+-(.+)$/);
+      if (timestampMatch) {
+        return timestampMatch[1]; // Return everything after the first timestamp-
+      }
+      
+      return decodedFilename;
+    } catch (error) {
+      console.warn('Error extracting filename from source:', this.source, error);
+      return 'Unknown';
+    }
   }
 
 }

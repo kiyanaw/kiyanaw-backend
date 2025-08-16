@@ -14,6 +14,7 @@ import { UploadForm } from './components/upload/UploadForm';
 import { EditorPage } from './pages/EditorPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { InvitationsPage } from './pages/InvitationsPage';
+import IssueBrowserPage from './pages/IssueBrowserPage';
 import { useConflictDialog } from './hooks/useConflictDialog';
 import { conflictDialogManager } from './services/conflictDialogManager';
 import './App.css';
@@ -44,6 +45,7 @@ function App() {
             <Route path="invitations/:inviteId" element={<InvitationsPage />} />
             <Route path="stats" element={<StatsPage />} />
             <Route path="about" element={<AboutPage />} />
+            <Route path="issue-browser" element={<IssueBrowserPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Routes>

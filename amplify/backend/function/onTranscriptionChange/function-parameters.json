@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "storage": {
+      "transcriptions": [
+        "read",
+        "delete"
+      ],
+      "Transcription:@model(appsync)": [
+        "read",
+        "delete"
+      ],
+      "Region:@model(appsync)": [
+        "read",
+        "delete"
+      ],
+      "Issue:@model(appsync)": [
+        "read",
+        "delete"
+      ],
+      "Invite:@model(appsync)": [
+        "read",
+        "delete"
+      ],
+      "Comment:@model(appsync)": [
+        "read",
+        "delete"
+      ]
+    }
+  },
+  "lambdaLayers": []
+}

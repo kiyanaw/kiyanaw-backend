@@ -63,10 +63,10 @@ describe('IssuesPanel deletion', () => {
     expect(screen.getByText('Issues (1)')).toBeInTheDocument();
 
     // Jump button appears when no region selected
-    expect(screen.getByTitle("Open this issue's region")).toBeInTheDocument();
+    expect(screen.getAllByTitle("Open this issue's region")[0]).toBeInTheDocument();
 
-    // Click the delete button (trash icon) in the row
-    const trash = screen.getByTitle('Delete issue');
+    // Click the delete button (trash icon) in the row (use first one - desktop version)
+    const trash = screen.getAllByTitle('Delete issue')[0];
     fireEvent.click(trash);
 
     expect(window.confirm).toHaveBeenCalled();
@@ -88,7 +88,7 @@ describe('IssuesPanel deletion', () => {
       />
     );
 
-    const trash = screen.getByTitle('Delete issue');
+    const trash = screen.getAllByTitle('Delete issue')[0];
     fireEvent.click(trash);
 
     expect(window.confirm).toHaveBeenCalled();

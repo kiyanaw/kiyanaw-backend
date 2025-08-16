@@ -39,6 +39,7 @@ type EagerTranscription = {
   readonly type: string;
   readonly isPrivate?: boolean | null;
   readonly isPublished?: boolean | null;
+  readonly publicIssues?: boolean | null;
   readonly disableAnalyzer?: boolean | null;
   readonly editors?: (string | null)[] | null;
   readonly viewers?: (string | null)[] | null;
@@ -70,6 +71,7 @@ type LazyTranscription = {
   readonly type: string;
   readonly isPrivate?: boolean | null;
   readonly isPublished?: boolean | null;
+  readonly publicIssues?: boolean | null;
   readonly disableAnalyzer?: boolean | null;
   readonly editors?: (string | null)[] | null;
   readonly viewers?: (string | null)[] | null;

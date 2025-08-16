@@ -21,6 +21,7 @@ jest.mock('../../stores/useEditorStore', () => ({
     selector({
       canEdit: true,
       regions: [{ id: 'r1' }],
+      regionSelections: { r1: { text: '', length: 0 } },
       setSelectedRegion: mockSetSelectedRegion,
     }),
 }));
