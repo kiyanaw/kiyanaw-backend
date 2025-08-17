@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Outlet, Link } from 'react-router-dom';
+import { Download, LogOut } from 'lucide-react';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { useLoadMyInvites } from '../../hooks/useLoadMyInvites';
 import { signOut } from 'aws-amplify/auth';
@@ -92,21 +93,6 @@ export const AppLayout = () => {
                 </span>
               )}
             </Link>
-            {shouldShowInstall() && (
-              <button
-                onClick={async () => {
-                  if (isIosDevice() || !canPromptInstall()) {
-                    alert('To install: open the browser menu and choose "Add to Home screen". On iOS: Share → Add to Home Screen.');
-                    return;
-                  }
-                  await promptInstall();
-                }}
-                className="px-3 py-1.5 bg-white/20 hover:bg-white/30 border border-white/30 rounded text-sm"
-                title="Install app"
-              >
-                Install
-              </button>
-            )}
           </nav>
         </div>
 
@@ -151,11 +137,27 @@ export const AppLayout = () => {
                     </div>
                     
                     <div className="py-1">
+                      {shouldShowInstall() && (
+                        <button
+                          onClick={async () => {
+                            setProfileDropdownOpen(false);
+                            if (isIosDevice() || !canPromptInstall()) {
+                              alert('To install: open the browser menu and choose "Add to Home screen". On iOS: Share → Add to Home Screen.');
+                              return;
+                            }
+                            await promptInstall();
+                          }}
+                          className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-150 flex items-center gap-2"
+                        >
+                          <Download className="w-4 h-4" />
+                          Install App
+                        </button>
+                      )}
                       <button
                         onClick={handleSignOut}
                         className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-150 flex items-center gap-2"
                       >
-                        <span>🚪</span>
+                        <LogOut className="w-4 h-4" />
                         Sign out
                       </button>
                     </div>

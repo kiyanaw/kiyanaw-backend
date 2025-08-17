@@ -9,18 +9,7 @@ import awsExports from './aws-exports';
 import './index.css';
 import App from './App.tsx';
 
-// Register service worker for PWA functionality
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js', { scope: '/' })
-      .then((registration) => {
-        console.log('🔧 SW registered: ', registration);
-      })
-      .catch((registrationError) => {
-        console.log('🔧 SW registration failed: ', registrationError);
-      });
-  });
-}
+// PWA service worker is handled by vite-plugin-pwa in production builds
 
 // Simple domain detection and redirect
 const currentDomain = window.location.hostname;
