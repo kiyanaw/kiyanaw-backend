@@ -79,6 +79,7 @@ describe('WaveformPlayer', () => {
     regions: [],
     isVideo: false,
     title: 'Test Title',
+    transcriptionId: 'test-transcription-id',
     onOpenSettings: jest.fn(),
   };
 

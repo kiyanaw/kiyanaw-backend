@@ -177,6 +177,35 @@ export const WaveformPlayer = ({
     }
   };
 
+  // Create a new region using the mobile sparkle functionality
+  const createMobileRegion = useCallback(async (start: number, end: number) => {
+    try {
+      const regionId = `region-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Add region to wavesurfer immediately for visual feedback
+      wavesurferService.addRegionWithId({
+        id: regionId,
+        start,
+        end,
+      });
+      
+      const createRegionUseCase = new CreateRegion({
+        transcriptionId,
+        newRegion: {
+          id: regionId,
+          start,
+          end,
+        },
+        services,
+        store: useEditorStore.getState(),
+      });
+
+      await createRegionUseCase.execute();
+    } catch (error) {
+      console.error('Failed to create mobile region:', error);
+    }
+  }, [transcriptionId]);
+
   // Handle play/pause events for mobile region creation
   useEffect(() => {
     if (!isSparkleActive) return;
@@ -208,36 +237,7 @@ export const WaveformPlayer = ({
       wavesurferService.off('play', handlePlayEvent);
       wavesurferService.off('pause', handlePauseEvent);
     };
-  }, [isSparkleActive, regionStartTime, currentTime]);
-
-  // Create a new region using the mobile sparkle functionality
-  const createMobileRegion = async (start: number, end: number) => {
-    try {
-      const regionId = `region-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      
-      // Add region to wavesurfer immediately for visual feedback
-      wavesurferService.addRegionWithId({
-        id: regionId,
-        start,
-        end,
-      });
-      
-      const createRegionUseCase = new CreateRegion({
-        transcriptionId,
-        newRegion: {
-          id: regionId,
-          start,
-          end,
-        },
-        services,
-        store: useEditorStore.getState(),
-      });
-
-      await createRegionUseCase.execute();
-    } catch (error) {
-      console.error('Failed to create mobile region:', error);
-    }
-  };
+  }, [isSparkleActive, regionStartTime, currentTime, createMobileRegion]);
 
   // (Prev helper removed; positioning handled directly in className)
 
