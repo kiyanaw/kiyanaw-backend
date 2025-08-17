@@ -206,6 +206,7 @@ export const EditorPage = () => {
               regions={regions}
               isVideo={isVideo}
               title={transcription.title || ''}
+              transcriptionId={transcriptionId!}
               onOpenSettings={handleOpenSettings}
             />
           </div>
