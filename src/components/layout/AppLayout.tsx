@@ -3,6 +3,7 @@ import { Outlet, Link } from 'react-router-dom';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { useLoadMyInvites } from '../../hooks/useLoadMyInvites';
 import { signOut } from 'aws-amplify/auth';
+import { canPromptInstall, promptInstall, shouldShowInstall, isIosDevice } from '../../services/pwaInstallService';
 
 export const AppLayout = () => {
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
@@ -91,8 +92,29 @@ export const AppLayout = () => {
                 </span>
               )}
             </Link>
+            {shouldShowInstall() && (
+              <button
+                onClick={async () => {
+                  if (isIosDevice() || !canPromptInstall()) {
+                    alert('To install: open the browser menu and choose "Add to Home screen". On iOS: Share → Add to Home Screen.');
+                    return;
+                  }
+                  await promptInstall();
+                }}
+                className="px-3 py-1.5 bg-white/20 hover:bg-white/30 border border-white/30 rounded text-sm"
+                title="Install app"
+              >
+                Install
+              </button>
+            )}
           </nav>
         </div>
+
+        {/* Centered brand text on mobile */}
+        <div className="absolute inset-0 flex items-center justify-center md:hidden pointer-events-none">
+          <span className="text-white font-semibold text-lg">kiyânaw</span>
+        </div>
+
         <div className="flex items-center gap-4">
           {signedIn ? (
             <>
@@ -100,7 +122,7 @@ export const AppLayout = () => {
               <div className="md:hidden">
                 <button
                   onClick={toggleMobileMenu}
-                  className="w-10 h-10 bg-white/20 hover:bg-white/30 border border-white/30 rounded flex items-center justify-center text-white transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-white/50"
+                  className="w-10 h-10 rounded flex items-center justify-center text-white transition-colors duration-200 focus:outline-none hover:text-white/90"
                   aria-label="Menu"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -216,6 +238,21 @@ export const AppLayout = () => {
                   </span>
                 )}
               </Link>
+
+              {shouldShowInstall() && (
+                <button
+                  onClick={async () => {
+                    if (isIosDevice() || !canPromptInstall()) {
+                      alert('To install: open the browser menu and choose "Add to Home screen". On iOS: Share → Add to Home Screen.');
+                      return;
+                    }
+                    await promptInstall();
+                  }}
+                  className="mx-6 mt-2 px-4 py-2 bg-ki-blue text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Install App
+                </button>
+              )}
             </div>
 
             {/* Footer */}
