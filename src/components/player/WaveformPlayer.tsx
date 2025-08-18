@@ -1,11 +1,13 @@
 import { useRef, useCallback, useState, useEffect } from 'react';
-import { Play, Pause, ZoomIn, Gauge, Settings, ArrowLeft, Circle, ArrowRight, Minimize2, Maximize2, ChevronDown, Video as VideoIcon, Lock, Unlock } from 'lucide-react';
+import { Play, Pause, ZoomIn, Gauge, Settings, ArrowLeft, Circle, ArrowRight, Minimize2, Maximize2, ChevronDown, Video as VideoIcon, Sparkles } from 'lucide-react';
 import { wavesurferService } from '../../services/wavesurferService';
 import { usePlayerStore } from '../../stores/usePlayerStore';
 import { usePlay } from '../../hooks/usePlay';
 import { usePause } from '../../hooks/usePause';
 import { useSelectAndPlayRegion } from '../../hooks/useSelectAndPlayRegion';
 import { useEditorStore } from '../../stores/useEditorStore';
+import { CreateRegion } from '../../use-cases/create-region';
+import { services } from '../../services';
 
 interface Region {
   id: string;
@@ -22,6 +24,7 @@ interface WaveformPlayerProps {
   regions: Region[]; // Now using this for region count
   isVideo: boolean;
   title: string;
+  transcriptionId: string;
   onOpenSettings: () => void;
 }
 
@@ -29,6 +32,7 @@ export const WaveformPlayer = ({
   source,
   isVideo,
   title,
+  transcriptionId,
   onOpenSettings,
 }: WaveformPlayerProps) => {
 
@@ -45,9 +49,12 @@ export const WaveformPlayer = ({
   const [isMinimized, setIsMinimized] = useState(false);
   const [videoNaturalSize, setVideoNaturalSize] = useState<{ width: number; height: number } | null>(null);
   const [showVideoMobile, setShowVideoMobile] = useState(false);
-  const [isRegionsLocked, setIsRegionsLocked] = useState(true); // Locked by default on mobile
+
   const [showZoomDialog, setShowZoomDialog] = useState(false);
   const [showSpeedDialog, setShowSpeedDialog] = useState(false);
+  // Mobile region creation state
+  const [isSparkleActive, setIsSparkleActive] = useState(false);
+  const [regionStartTime, setRegionStartTime] = useState<number | null>(null);
   
   const isPlaying = usePlayerStore((state) => state.playing)
   const loadedAndReady = usePlayerStore((state) => state.loadedAndReady)
@@ -63,7 +70,7 @@ export const WaveformPlayer = ({
   // Set initial locked state on mobile when wavesurfer is ready
   useEffect(() => {
     if (loadedAndReady && window.innerWidth < 768) {
-      // On mobile, start locked (regions editing disabled)
+      // On mobile, regions are always locked (editing disabled)
       wavesurferService.setRegionEditingEnabled(false);
     }
   }, [loadedAndReady]);
@@ -149,22 +156,86 @@ export const WaveformPlayer = ({
     }
   };
 
-  // Handle region lock toggle
-  const handleRegionLockToggle = () => {
-    const newLockedState = !isRegionsLocked;
-    setIsRegionsLocked(newLockedState);
-    
-    // Update wavesurfer service with new editing state
-    wavesurferService.setRegionEditingEnabled(!newLockedState);
+
+
+  // Handle sparkle button toggle for mobile region creation
+  const handleSparkleToggle = () => {
+    if (isSparkleActive) {
+      // Cancel current region creation
+      setIsSparkleActive(false);
+      setRegionStartTime(null);
+    } else {
+      // Activate sparkle mode
+      setIsSparkleActive(true);
+    }
   };
+
+  // Create a new region using the mobile sparkle functionality
+  const createMobileRegion = useCallback(async (start: number, end: number) => {
+    try {
+      const regionId = `region-${Math.random().toString(36).substr(2, 13)}`;
+      
+      // Add region to wavesurfer immediately for visual feedback
+      wavesurferService.addRegionWithId({
+        id: regionId,
+        start,
+        end,
+      });
+      
+      const createRegionUseCase = new CreateRegion({
+        transcriptionId,
+        newRegion: {
+          id: regionId,
+          start,
+          end,
+        },
+        services,
+        store: useEditorStore.getState(),
+      });
+
+      await createRegionUseCase.execute();
+    } catch (error) {
+      console.error('Failed to create mobile region:', error);
+    }
+  }, [transcriptionId]);
+
+  // Handle play/pause events for mobile region creation
+  useEffect(() => {
+    if (!isSparkleActive) return;
+
+    const handlePlayEvent = () => {
+      if (regionStartTime === null) {
+        // Start a new region
+        setRegionStartTime(currentTime);
+      }
+    };
+
+    const handlePauseEvent = () => {
+      if (regionStartTime !== null) {
+        // Create region from start to current time
+        const endTime = currentTime;
+        if (endTime > regionStartTime) {
+          createMobileRegion(regionStartTime, endTime);
+        }
+        // Reset for next region
+        setRegionStartTime(null);
+      }
+    };
+
+    // Listen to play/pause events
+    wavesurferService.on('play', handlePlayEvent);
+    wavesurferService.on('pause', handlePauseEvent);
+
+    return () => {
+      wavesurferService.off('play', handlePlayEvent);
+      wavesurferService.off('pause', handlePauseEvent);
+    };
+  }, [isSparkleActive, regionStartTime, currentTime, createMobileRegion]);
 
   // (Prev helper removed; positioning handled directly in className)
 
   // Compute container sizing style based on aspect ratio and selected size
   const getVideoContainerStyle = (): React.CSSProperties => {
-    if (isMinimized) {
-      return { width: 'auto', height: 'auto' } as React.CSSProperties;
-    }
     const vw = typeof window !== 'undefined' ? window.innerWidth : 1280;
     const isPortrait = videoNaturalSize ? videoNaturalSize.height >= videoNaturalSize.width : false;
 
@@ -217,9 +288,9 @@ export const WaveformPlayer = ({
           {isVideo && (
             <div 
               className={`
-                ${isMinimized ? 'hidden' : ''}
                 ${showVideoMobile ? 'fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40' : 'hidden'}
-                lg:fixed lg:z-40 lg:rounded lg:group lg:bg-transparent lg:block lg:inset-auto
+                lg:fixed lg:z-40 lg:rounded lg:group lg:bg-transparent lg:inset-auto
+                ${isMinimized ? 'lg:hidden' : 'lg:block'}
                 ${videoPosition === 'left' ? 'lg:bottom-4 lg:left-4' : videoPosition === 'center' ? 'lg:bottom-4 lg:left-1/2 lg:-translate-x-1/2' : 'lg:bottom-4 lg:right-4'}
               `}
               style={showVideoMobile ? undefined : getVideoContainerStyle()}
@@ -352,17 +423,21 @@ export const WaveformPlayer = ({
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Sparkle button for mobile region creation */}
             <button
-              className={`px-2 py-1 rounded transition-all md:hidden ${
-                isRegionsLocked 
-                  ? 'bg-gray-300 border-2 border-gray-400 shadow-inner text-gray-700' 
-                  : 'bg-gray-100 border-2 border-gray-300 shadow-sm text-gray-600 hover:bg-gray-200'
-              }`}
-              onClick={handleRegionLockToggle}
-              title={isRegionsLocked ? "Regions locked - tap to unlock editing" : "Regions unlocked - tap to lock for scrolling"}
+              className={`p-1 rounded transition-colors md:hidden ${
+                isSparkleActive 
+                  ? 'bg-gray-300 text-gray-700 shadow-inner' 
+                  : 'text-gray-600 hover:bg-gray-200 hover:text-gray-700'
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
+              onClick={handleSparkleToggle}
+              disabled={!canEdit || !loadedAndReady}
+              title={isSparkleActive ? "Cancel region creation mode" : "Enable region creation mode - play/pause to create regions"}
             >
-              {isRegionsLocked ? <Lock size={16} /> : <Unlock size={16} />}
+              <Sparkles size={16} />
             </button>
+            
+
             
             <div className="flex items-center gap-2">
               <button

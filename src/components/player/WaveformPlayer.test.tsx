@@ -79,6 +79,7 @@ describe('WaveformPlayer', () => {
     regions: [],
     isVideo: false,
     title: 'Test Title',
+    transcriptionId: 'test-transcription-id',
     onOpenSettings: jest.fn(),
   };
 
@@ -897,6 +898,47 @@ describe('WaveformPlayer', () => {
       expect(videoContainer.className).toContain('right-4');
       // Video is hidden by default on mobile
       expect(videoContainer.className).toContain('hidden');
+    });
+
+    it('should minimize and restore video when minimize button is clicked', () => {
+      const { container } = render(
+        <WaveformPlayer
+          {...defaultProps}
+          isVideo={true}
+        />
+      );
+
+      const videoContainer = container.querySelector('video')?.parentElement as HTMLDivElement;
+      expect(videoContainer).toBeInTheDocument();
+      
+      // Initially video should be visible on desktop (lg:block)
+      expect(videoContainer.className).toContain('lg:block');
+      expect(videoContainer.className).not.toContain('lg:hidden');
+
+      // Find and click the minimize button (ChevronDown icon)
+      const minimizeButton = screen.getByTitle('Minimize');
+      expect(minimizeButton).toBeInTheDocument();
+      
+      fireEvent.click(minimizeButton);
+
+      // After minimize, video container should be hidden on desktop
+      expect(videoContainer.className).toContain('lg:hidden');
+      expect(videoContainer.className).not.toContain('lg:block');
+
+      // The "Video" restore tab should appear
+      const restoreTab = screen.getByTitle('Restore video');
+      expect(restoreTab).toBeInTheDocument();
+      expect(restoreTab).toHaveTextContent('Video');
+
+      // Click the restore tab
+      fireEvent.click(restoreTab);
+
+      // Video should be visible again
+      expect(videoContainer.className).toContain('lg:block');
+      expect(videoContainer.className).not.toContain('lg:hidden');
+
+      // Restore tab should be hidden
+      expect(screen.queryByTitle('Restore video')).not.toBeInTheDocument();
     });
   });
 

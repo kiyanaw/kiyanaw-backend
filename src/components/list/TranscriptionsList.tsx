@@ -36,6 +36,8 @@ export const TranscriptionsList = () => {
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const [showMobileFilter, setShowMobileFilter] = useState(false);
 
+  const showUploadButton = false;
+
   // Generate sort options for select dropdown
   const generateSortOptions = () => {
     return sortOptions.map((option) => {
@@ -210,13 +212,15 @@ export const TranscriptionsList = () => {
                 <Filter className="w-5 h-5" />
               </button>
 
-              {/* Add Button - Just Plus Icon */}
-              <Link 
-                to="/transcribe-add" 
-                className="p-2 bg-ki-blue text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                <Plus className="w-5 h-5" />
-              </Link>
+              {/* Upload disabled for now */}
+              {showUploadButton && (
+                <Link 
+                  to="/transcribe-add" 
+                  className="p-2 bg-ki-blue text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <Plus className="w-5 h-5" />
+                </Link>
+              )}
             </div>
           </div>
 
@@ -298,13 +302,15 @@ export const TranscriptionsList = () => {
               <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
             </div>
             
-            <Link 
-              to="/transcribe-add" 
-              className="inline-flex items-center justify-center px-4 py-2 bg-ki-blue text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add New
-            </Link>
+            {showUploadButton && (
+              <Link 
+                to="/transcribe-add" 
+                className="inline-flex items-center justify-center px-4 py-2 bg-ki-blue text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add New
+              </Link>
+            )}
             </div>
           </div>
         </div>

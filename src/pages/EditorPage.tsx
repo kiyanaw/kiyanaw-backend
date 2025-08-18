@@ -206,6 +206,7 @@ export const EditorPage = () => {
               regions={regions}
               isVideo={isVideo}
               title={transcription.title || ''}
+              transcriptionId={transcriptionId!}
               onOpenSettings={handleOpenSettings}
             />
           </div>
@@ -343,7 +344,7 @@ export const EditorPage = () => {
               onClick={() => setMobileTab('editor')}
               className={`flex-1 py-3 px-4 text-sm font-medium rounded-lg transition-colors ${
                 mobileTab === 'editor'
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-ki-blue text-white'
                   : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
               }`}
             >
@@ -353,7 +354,7 @@ export const EditorPage = () => {
               onClick={() => setMobileTab('regions')}
               className={`flex-1 py-3 px-4 text-sm font-medium rounded-lg transition-colors ${
                 mobileTab === 'regions'
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-ki-blue text-white'
                   : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
               }`}
             >
@@ -363,7 +364,7 @@ export const EditorPage = () => {
               onClick={() => setMobileTab('issues')}
               className={`flex-1 py-3 px-4 text-sm font-medium rounded-lg transition-colors ${
                 mobileTab === 'issues'
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-ki-blue text-white'
                   : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
               }`}
             >

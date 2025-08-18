@@ -558,9 +558,12 @@ export const IssuesPanel = ({
       <div className="flex justify-between items-center p-4 bg-gray-50 border-b border-gray-200">
         <div className="flex items-center gap-2">
           {(() => {
-            const count = selectedRegionId
-              ? issues.filter(i => i.regionId === selectedRegionId).length
-              : issues.length;
+            // Count only unresolved issues (unless showResolved is true)
+            const count = issues.filter(issue => {
+              const matchesResolvedFilter = showResolved || !issue.resolved;
+              const matchesRegion = !selectedRegionId || issue.regionId === selectedRegionId;
+              return matchesResolvedFilter && matchesRegion;
+            }).length;
             return (
               <h3 className="m-0 text-lg font-semibold text-gray-800">{`Issues (${count})`}</h3>
             );

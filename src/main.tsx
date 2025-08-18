@@ -9,6 +9,8 @@ import awsExports from './aws-exports';
 import './index.css';
 import App from './App.tsx';
 
+// PWA service worker is handled by vite-plugin-pwa in production builds
+
 // Simple domain detection and redirect
 const currentDomain = window.location.hostname;
 const currentPath = window.location.pathname;
