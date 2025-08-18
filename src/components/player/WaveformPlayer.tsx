@@ -1,5 +1,5 @@
 import { useRef, useCallback, useState, useEffect } from 'react';
-import { Play, Pause, ZoomIn, Gauge, Settings, ArrowLeft, Circle, ArrowRight, Minimize2, Maximize2, ChevronDown, Video as VideoIcon, Lock, Unlock, Sparkles } from 'lucide-react';
+import { Play, Pause, ZoomIn, Gauge, Settings, ArrowLeft, Circle, ArrowRight, Minimize2, Maximize2, ChevronDown, Video as VideoIcon, Sparkles } from 'lucide-react';
 import { wavesurferService } from '../../services/wavesurferService';
 import { usePlayerStore } from '../../stores/usePlayerStore';
 import { usePlay } from '../../hooks/usePlay';
@@ -49,7 +49,7 @@ export const WaveformPlayer = ({
   const [isMinimized, setIsMinimized] = useState(false);
   const [videoNaturalSize, setVideoNaturalSize] = useState<{ width: number; height: number } | null>(null);
   const [showVideoMobile, setShowVideoMobile] = useState(false);
-  const [isRegionsLocked, setIsRegionsLocked] = useState(true); // Locked by default on mobile
+
   const [showZoomDialog, setShowZoomDialog] = useState(false);
   const [showSpeedDialog, setShowSpeedDialog] = useState(false);
   // Mobile region creation state
@@ -70,7 +70,7 @@ export const WaveformPlayer = ({
   // Set initial locked state on mobile when wavesurfer is ready
   useEffect(() => {
     if (loadedAndReady && window.innerWidth < 768) {
-      // On mobile, start locked (regions editing disabled)
+      // On mobile, regions are always locked (editing disabled)
       wavesurferService.setRegionEditingEnabled(false);
     }
   }, [loadedAndReady]);
@@ -156,14 +156,7 @@ export const WaveformPlayer = ({
     }
   };
 
-  // Handle region lock toggle
-  const handleRegionLockToggle = () => {
-    const newLockedState = !isRegionsLocked;
-    setIsRegionsLocked(newLockedState);
-    
-    // Update wavesurfer service with new editing state
-    wavesurferService.setRegionEditingEnabled(!newLockedState);
-  };
+
 
   // Handle sparkle button toggle for mobile region creation
   const handleSparkleToggle = () => {
@@ -243,9 +236,6 @@ export const WaveformPlayer = ({
 
   // Compute container sizing style based on aspect ratio and selected size
   const getVideoContainerStyle = (): React.CSSProperties => {
-    if (isMinimized) {
-      return { width: 'auto', height: 'auto' } as React.CSSProperties;
-    }
     const vw = typeof window !== 'undefined' ? window.innerWidth : 1280;
     const isPortrait = videoNaturalSize ? videoNaturalSize.height >= videoNaturalSize.width : false;
 
@@ -298,9 +288,9 @@ export const WaveformPlayer = ({
           {isVideo && (
             <div 
               className={`
-                ${isMinimized ? 'hidden' : ''}
                 ${showVideoMobile ? 'fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40' : 'hidden'}
-                lg:fixed lg:z-40 lg:rounded lg:group lg:bg-transparent lg:block lg:inset-auto
+                lg:fixed lg:z-40 lg:rounded lg:group lg:bg-transparent lg:inset-auto
+                ${isMinimized ? 'lg:hidden' : 'lg:block'}
                 ${videoPosition === 'left' ? 'lg:bottom-4 lg:left-4' : videoPosition === 'center' ? 'lg:bottom-4 lg:left-1/2 lg:-translate-x-1/2' : 'lg:bottom-4 lg:right-4'}
               `}
               style={showVideoMobile ? undefined : getVideoContainerStyle()}
@@ -447,18 +437,7 @@ export const WaveformPlayer = ({
               <Sparkles size={16} />
             </button>
             
-            {/* Lock button for desktop only */}
-            <button
-              className={`px-2 py-1 rounded transition-all hidden md:block ${
-                isRegionsLocked 
-                  ? 'bg-gray-300 border-2 border-gray-400 shadow-inner text-gray-700' 
-                  : 'bg-gray-100 border-2 border-gray-300 shadow-sm text-gray-600 hover:bg-gray-200'
-              }`}
-              onClick={handleRegionLockToggle}
-              title={isRegionsLocked ? "Regions locked - click to unlock editing" : "Regions unlocked - click to lock for scrolling"}
-            >
-              {isRegionsLocked ? <Lock size={16} /> : <Unlock size={16} />}
-            </button>
+
             
             <div className="flex items-center gap-2">
               <button
