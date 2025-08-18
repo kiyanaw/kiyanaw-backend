@@ -173,7 +173,7 @@ export const WaveformPlayer = ({
   // Create a new region using the mobile sparkle functionality
   const createMobileRegion = useCallback(async (start: number, end: number) => {
     try {
-      const regionId = `region-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const regionId = `region-${Math.random().toString(36).substr(2, 13)}`;
       
       // Add region to wavesurfer immediately for visual feedback
       wavesurferService.addRegionWithId({
