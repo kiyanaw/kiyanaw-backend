@@ -302,15 +302,13 @@ export const TranscriptionsList = () => {
               <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
             </div>
             
-            {showUploadButton && (
-              <Link 
-                to="/transcribe-add" 
-                className="inline-flex items-center justify-center px-4 py-2 bg-ki-blue text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Add New
-              </Link>
-            )}
+            <Link 
+              to="/transcribe-add" 
+              className="inline-flex items-center justify-center px-4 py-2 bg-ki-blue text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add New
+            </Link>
             </div>
           </div>
         </div>
