@@ -39,18 +39,4 @@ jobs:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
     - run: npm ci
-    - name: Install Lambda function dependencies
-      run: |
-        cd amplify/backend/function/inviteHandler/src
-        npm install
-
-    - name: Install indexRegionData Lambda dependencies
-      run: |
-        cd amplify/backend/function/indexRegionData/src
-        npm install
-
-    - name: Install onTranscriptionChange Lambda dependencies
-      run: |
-        cd amplify/backend/function/onTranscriptionChange/src
-        npm install
     - run: npm run test

@@ -7,14 +7,15 @@
     "node": ">=22.0.0"
   },
   "scripts": {
-    "dev": "vite",
     "build": "tsc -b && vite build",
-    "lint": "eslint .",
+    "dev": "vite",
     "format": "prettier --write src/",
+    "install:lambda-deps": "node scripts/install-lambda-deps.js",
+    "lint": "eslint .",
+    "postinstall": "npm run install:lambda-deps",
     "preview": "vite preview",
     "test": "jest --silent",
-    "test:watch": "jest --watch",
-    "test:lambda": "cd amplify/backend/function/inviteHandler/src && npm install && npm test"
+    "test:watch": "jest --watch"
   },
   "dependencies": {
     "@aws-amplify/auth": "^6.12.4",
