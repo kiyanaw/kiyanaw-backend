@@ -90,7 +90,7 @@ describe('useWavesurferEvents', () => {
       renderHook(() => useWavesurferEvents(transcriptionId));
 
       // useEffect runs once
-      expect(mockOn).toHaveBeenCalledTimes(8);
+      expect(mockOn).toHaveBeenCalledTimes(9);
       expect(mockOn).toHaveBeenCalledWith('play', expect.any(Function));
       expect(mockOn).toHaveBeenCalledWith('pause', expect.any(Function));
       expect(mockOn).toHaveBeenCalledWith('ready', expect.any(Function));
@@ -107,12 +107,12 @@ describe('useWavesurferEvents', () => {
         initialProps: { id: 'id-1' },
       });
 
-      expect(mockOn).toHaveBeenCalledTimes(8); // Initial call
+      expect(mockOn).toHaveBeenCalledTimes(9); // Initial call
 
       rerender({ id: 'id-2' });
 
       expect(wavesurferService.clearAllListeners).toHaveBeenCalledTimes(1);
-      expect(mockOn).toHaveBeenCalledTimes(16); // Called 8 more times
+      expect(mockOn).toHaveBeenCalledTimes(18); // Called 9 more times
     });
 
     it('should not re-register listeners on re-render if dependencies do not change', () => {
@@ -120,19 +120,19 @@ describe('useWavesurferEvents', () => {
         initialProps: { id: 'id-1' },
       });
 
-      expect(mockOn).toHaveBeenCalledTimes(8);
+      expect(mockOn).toHaveBeenCalledTimes(9);
 
       rerender({ id: 'id-1' }); // Re-render with same props
 
       // Should not be called again
       expect(wavesurferService.clearAllListeners).not.toHaveBeenCalled();
-      expect(mockOn).toHaveBeenCalledTimes(8);
+      expect(mockOn).toHaveBeenCalledTimes(9);
     });
 
     it('should re-register listeners when regions change', () => {
       const { rerender } = renderHook(() => useWavesurferEvents('id-1'));
 
-      expect(mockOn).toHaveBeenCalledTimes(8);
+      expect(mockOn).toHaveBeenCalledTimes(9);
 
       // Simulate regions changing in the store
       (useEditorStore as any).mockImplementation((selector: any) =>
@@ -142,7 +142,7 @@ describe('useWavesurferEvents', () => {
       rerender();
 
       expect(wavesurferService.clearAllListeners).toHaveBeenCalledTimes(1);
-      expect(mockOn).toHaveBeenCalledTimes(16);
+      expect(mockOn).toHaveBeenCalledTimes(18);
     });
 
     it('should clean up listeners on unmount', () => {
@@ -159,7 +159,7 @@ describe('useWavesurferEvents', () => {
       const { unmount } = renderHook(() => useWavesurferEvents('id-1'));
 
       // Listener registration happens on mount
-      expect(mockOn).toHaveBeenCalledTimes(8);
+      expect(mockOn).toHaveBeenCalledTimes(9);
 
       unmount();
 
@@ -273,7 +273,7 @@ describe('useWavesurferEvents', () => {
       rerender({ id: 'defined-id' });
 
       // Should initialize now
-      expect(mockOn).toHaveBeenCalledTimes(8);
+      expect(mockOn).toHaveBeenCalledTimes(9);
     });
 
     it('should work correctly when transcriptionId changes from defined to undefined', () => {
@@ -282,21 +282,21 @@ describe('useWavesurferEvents', () => {
       });
 
       // Should initialize on first defined value
-      expect(mockOn).toHaveBeenCalledTimes(8);
+      expect(mockOn).toHaveBeenCalledTimes(9);
 
       rerender({ id: undefined as any });
 
       // Cleanup should have been called
       expect(wavesurferService.clearAllListeners).toHaveBeenCalledTimes(1);
       // No new listeners should be added
-      expect(mockOn).toHaveBeenCalledTimes(8);
+      expect(mockOn).toHaveBeenCalledTimes(9);
     });
 
     it('should handle empty string transcriptionId', () => {
       renderHook(() => useWavesurferEvents(''));
 
       // Should initialize with empty string
-      expect(mockOn).toHaveBeenCalledTimes(8);
+      expect(mockOn).toHaveBeenCalledTimes(9);
     });
   });
 
@@ -693,7 +693,7 @@ describe('useWavesurferEvents', () => {
 
       // 1. Initial render
       const { unmount, rerender } = renderHook(() => useWavesurferEvents(transcriptionId));
-      expect(mockOn).toHaveBeenCalledTimes(8);
+      expect(mockOn).toHaveBeenCalledTimes(9);
 
       // 2. Unmount (simulates navigating away)
       unmount();
@@ -708,7 +708,7 @@ describe('useWavesurferEvents', () => {
       renderHook(() => useWavesurferEvents(transcriptionId));
       
       // 4. Assert that listeners are re-registered
-      expect(mockOn).toHaveBeenCalledTimes(8);
+      expect(mockOn).toHaveBeenCalledTimes(9);
       expect(wavesurferService.clearAllListeners).not.toHaveBeenCalled();
     });
   });
