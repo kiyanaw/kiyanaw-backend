@@ -22,6 +22,7 @@ export class CreateRegion {
     this.config = config;
   }
 
+
   validate(): void {
     if (!this.config.transcriptionId || this.config.transcriptionId.trim() === '') {
       throw new Error('transcriptionId is required and cannot be empty');
