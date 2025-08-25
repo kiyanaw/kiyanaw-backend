@@ -114,6 +114,21 @@ describe('peaks utilities', function () {
       assert.deepEqual(result, { success: true, result: { ETag: 'etag123' } })
     })
 
+    it('should process m4a video file successfully', async function () {
+      const url = 'https://test-bucket.s3.amazonaws.com/public/video.m4a'
+      mockAudio.isVideoFormat.mockReturnValue(true)
+      
+      const result = await peaks.processPeaksFile(url)
+      
+      assert.ok(mockAudio.isVideoFormat.mock.calls.some(call => call[0] === 'm4a'))
+      assert.ok(mockAudio.extractAudioFromVideo.mock.calls.length > 0)
+      assert.ok(mockAudio.generateWaveform.mock.calls.length > 0)
+      assert.ok(mockAudio.processPeaksData.mock.calls.length > 0)
+      assert.ok(mockS3.putS3File.mock.calls.length > 0)
+      
+      assert.deepEqual(result, { success: true, result: { ETag: 'etag123' } })
+    })
+
     it('should skip processing if peaks file already exists', async function () {
       const url = 'https://test-bucket.s3.amazonaws.com/public/audio.mp3'
       mockS3.fileExists.mockResolvedValue(true)

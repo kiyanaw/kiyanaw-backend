@@ -139,8 +139,10 @@ describe('audio utilities', function () {
     it('should identify video formats', function () {
       assert.equal(audio.isVideoFormat('mp4'), true)
       assert.equal(audio.isVideoFormat('m4v'), true)
+      assert.equal(audio.isVideoFormat('m4a'), true)
       assert.equal(audio.isVideoFormat('MP4'), true)
       assert.equal(audio.isVideoFormat('M4V'), true)
+      assert.equal(audio.isVideoFormat('M4A'), true)
     })
 
     it('should identify non-video formats', function () {

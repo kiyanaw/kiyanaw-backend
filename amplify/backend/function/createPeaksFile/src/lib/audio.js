@@ -99,7 +99,7 @@ const cleanupFiles = async (filePaths) => {
  * @returns {boolean} - True if video format
  */
 const isVideoFormat = (extension) => {
-  const videoExtensions = ['mp4', 'm4v']
+  const videoExtensions = ['mp4', 'm4v', 'm4a']
   return videoExtensions.includes(extension.toLowerCase())
 }
 
