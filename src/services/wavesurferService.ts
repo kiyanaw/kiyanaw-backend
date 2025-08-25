@@ -194,6 +194,8 @@ class WaveSurferService {
 
     this.wavesurfer?.on('error', (_event) => {
       console.error('Wavesurfer error event', _event)
+      // Emit error event so UI can handle it
+      this.emitEvent('error', _event)
     })
 
     // Listen for timeupdate to enforce region-bounded playback AND emit time updates

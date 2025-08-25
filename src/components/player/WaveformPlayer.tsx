@@ -61,6 +61,7 @@ export const WaveformPlayer = ({
   const currentTime = usePlayerStore((state) => state.currentTime)
   const duration = usePlayerStore((state) => state.duration)
   const canEdit = useEditorStore((state) => state.canEdit);
+  const wavesurferError = useEditorStore((state) => state.wavesurferError);
   
   const play = usePlay()
   const pause = usePause()
@@ -283,6 +284,18 @@ export const WaveformPlayer = ({
         <div className="relative w-full h-32">
           {/* Waveform sits underneath; never unmounted */}
           <div ref={setWaveformContainer} className="w-full h-32 bg-white relative" />
+          
+          {/* Error Display */}
+          {wavesurferError && (
+            <div className="absolute inset-0 flex items-center justify-center bg-red-50 border-2 border-red-200 rounded">
+              <div className="text-center p-4">
+                <div className="text-red-600 font-semibold mb-2">Waveform Error</div>
+                <div className="text-red-500 text-sm mb-3">{wavesurferError}</div>
+                <div className="text-gray-600 text-xs">
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Video element: modal overlay on mobile; fixed floating on desktop */}
           {isVideo && (

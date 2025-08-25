@@ -132,6 +132,13 @@ export const useWavesurferEvents = (transcriptionId: string, source?: string): v
       usePlayerStore.getState().setCurrentTime(event.currentTime);
     };
 
+    const handleError = (data: unknown) => {
+      const event = data as MediaError;
+      console.error('Wavesurfer error:', event);
+      // Set error in store for UI to display
+      useEditorStore.getState().setWavesurferError('Failed to load media. Please contact support if this issue persists.');
+    };
+
     const handleReadyWithDuration = (data: unknown) => {
       const event = data as ReadyEvent;
       usePlayerStore.getState().setLoadedAndReady(true);
@@ -161,6 +168,7 @@ export const useWavesurferEvents = (transcriptionId: string, source?: string): v
     wavesurferService.on('region-out', handleRegionOut);
     wavesurferService.on('ready', handleReadyWithDuration);
     wavesurferService.on('timeupdate', handleTimeUpdate);
+    wavesurferService.on('error', handleError);
 
     return () => {
       wavesurferService.clearAllListeners();

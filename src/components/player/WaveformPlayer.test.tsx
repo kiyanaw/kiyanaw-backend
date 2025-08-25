@@ -92,37 +92,38 @@ describe('WaveformPlayer', () => {
       return selector(state);
     });
     
-    // Setup default mock returns for useEditorStore
-    mockUseEditorStore.mockImplementation((selector) => {
-      const state = {
-        transcription: {
-          id: 'test-transcription-id',
-          title: 'Test Transcription',
-          source: 'test-source',
-          type: 'test-type',
-          author: 'test-author',
-          authorFriendly: 'Test Author',
-          userLastUpdated: 'test-user',
-          dateLastUpdated: '2023-01-01T00:00:00.000Z',
-          createdAt: '2023-01-01T00:00:00.000Z',
-          updatedAt: '2023-01-01T00:00:00.000Z',
-          length: 120, // Duration in seconds
-        },
-        saved: false,
-        peaks: null,
-        accessDenied: false,
-        canEdit: true,
-        regions: [],
-        regionMap: {},
-        regionVersions: {},
-        selectedRegionId: null,
-        selectedRegion: null,
-        playbackWithinRegion: null,
-        knownWords: new Set<string>(),
-        pendingEdits: {},
-        issues: [],
-        issueMap: {},
-        issuesByRegionMap: {},
+          // Setup default mock returns for useEditorStore
+      mockUseEditorStore.mockImplementation((selector) => {
+        const state = {
+          transcription: {
+            id: 'test-transcription-id',
+            title: 'Test Transcription',
+            source: 'test-source',
+            type: 'test-type',
+            author: 'test-author',
+            authorFriendly: 'Test Author',
+            userLastUpdated: 'test-user',
+            dateLastUpdated: '2023-01-01T00:00:00.000Z',
+            createdAt: '2023-01-01T00:00:00.000Z',
+            updatedAt: '2023-01-01T00:00:00.000Z',
+            length: 120, // Duration in seconds
+          },
+          saved: false,
+          peaks: null,
+          wavesurferError: null,
+          accessDenied: false,
+          canEdit: true,
+          regions: [],
+          regionMap: {},
+          regionVersions: {},
+          selectedRegionId: null,
+          selectedRegion: null,
+          playbackWithinRegion: null,
+          knownWords: new Set<string>(),
+          pendingEdits: {},
+          issues: [],
+          issueMap: {},
+          issuesByRegionMap: {},
     comments: [],
     commentMap: {},
     commentsByEntityMap: {},
@@ -133,11 +134,12 @@ describe('WaveformPlayer', () => {
     commentsByIssue: jest.fn(() => []),
     commentsByTranscription: jest.fn(() => []),
     getCommentsForEntity: jest.fn(() => []),
-        _subscriptions: [],
-        setFullTranscriptionData: jest.fn(),
-        setAccessDenied: jest.fn(),
-        setCanEdit: jest.fn(),
-        cleanup: jest.fn(),
+          _subscriptions: [],
+          setFullTranscriptionData: jest.fn(),
+          setAccessDenied: jest.fn(),
+          setWavesurferError: jest.fn(),
+          setCanEdit: jest.fn(),
+          cleanup: jest.fn(),
         updateTranscription: jest.fn(),
         setTranscription: jest.fn(),
         setSaved: jest.fn(),
@@ -541,6 +543,7 @@ describe('WaveformPlayer', () => {
         },
         saved: false,
         peaks: null,
+        wavesurferError: null,
         accessDenied: false,
         canEdit: false,
         regions: [],
@@ -567,6 +570,7 @@ describe('WaveformPlayer', () => {
         _subscriptions: [],
         setFullTranscriptionData: jest.fn(),
         setAccessDenied: jest.fn(),
+        setWavesurferError: jest.fn(),
         setCanEdit: jest.fn(),
         cleanup: jest.fn(),
         updateTranscription: jest.fn(),
@@ -661,6 +665,7 @@ describe('WaveformPlayer', () => {
           },
           saved: false,
           peaks: null,
+          wavesurferError: null,
           accessDenied: false,
           canEdit: false,
           regions: [],
@@ -687,6 +692,7 @@ describe('WaveformPlayer', () => {
           _subscriptions: [],
           setFullTranscriptionData: jest.fn(),
           setAccessDenied: jest.fn(),
+          setWavesurferError: jest.fn(),
           setCanEdit: jest.fn(),
           cleanup: jest.fn(),
           updateTranscription: jest.fn(),
@@ -1091,5 +1097,7 @@ describe('WaveformPlayer', () => {
       // Updated time
       expect(screen.getByText('1:15/2:00')).toBeInTheDocument();
     });
+
+
   });
 }); 

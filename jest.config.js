@@ -93,5 +93,23 @@ export default {
         '/node_modules/',
       ],
     },
+    // Lambda function tests - createPeaksFile
+    {
+      displayName: 'Lambda Functions - CreatePeaksFile',
+      testEnvironment: 'node',
+      rootDir: 'amplify/backend/function/createPeaksFile/src',
+      testMatch: [
+        '<rootDir>/test/test-*.(js|ts)',
+      ],
+      collectCoverageFrom: [
+        'lib/**/*.(js|ts)',
+        'index.js',
+        'utils.js',
+        '!test/**/*.(js|ts)',
+      ],
+      testPathIgnorePatterns: [
+        '/node_modules/',
+      ],
+    },
   ],
 }; 

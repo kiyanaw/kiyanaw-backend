@@ -21,6 +21,7 @@ interface EditorState {
   transcription: TranscriptionData | null;
   saved: boolean;
   peaks: number[] | null;
+  wavesurferError: string | null;
   accessDenied: boolean;
   canEdit: boolean;
 
@@ -67,6 +68,7 @@ interface EditorState {
   // Actions
   setFullTranscriptionData: (data: EditorDataPayload, selectedRegionId?: string | null) => void;
   setAccessDenied: (denied: boolean) => void;
+  setWavesurferError: (error: string | null) => void;
   cleanup: () => void;
   
   // Transcription actions
@@ -152,6 +154,7 @@ export const useEditorStore = create<EditorState>()(
       transcription: null,
       saved: false,
       peaks: null,
+      wavesurferError: null,
       accessDenied: false,
       canEdit: false,
       regions: [],
@@ -269,6 +272,10 @@ export const useEditorStore = create<EditorState>()(
 
       setAccessDenied: (denied) => {
         set({ accessDenied: denied });
+      },
+
+      setWavesurferError: (error: string | null) => {
+        set({ wavesurferError: error });
       },
 
       setCanEdit: (canEdit: boolean) => {
