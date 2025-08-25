@@ -90,6 +90,32 @@ describe('utils', function () {
       assert.throws(() => parseS3Url('https://bucket.s3.amazonaws.com/file'), /Invalid S3 URL format/)
     })
 
+    it('should handle filenames with multiple periods', function () {
+      const url = 'https://test-bucket.s3.amazonaws.com/public/1756133236849-1755630195186-Voice 250819_130253.M4A.M4A'
+      const result = parseS3Url(url)
+      
+      assert.deepEqual(result, {
+        bucket: 'test-bucket',
+        key: 'public/1756133236849-1755630195186-Voice 250819_130253.M4A.M4A',
+        filename: '1756133236849-1755630195186-Voice 250819_130253.M4A.M4A',
+        filebits: ['1756133236849-1755630195186-Voice 250819_130253.M4A', 'M4A'],
+        folder: 'public'
+      })
+    })
+
+    it('should handle filenames with multiple periods in complex paths', function () {
+      const url = 'https://my-bucket.s3.amazonaws.com/folder/subfolder/file.name.with.multiple.periods.mp3'
+      const result = parseS3Url(url)
+      
+      assert.deepEqual(result, {
+        bucket: 'my-bucket',
+        key: 'folder/subfolder/file.name.with.multiple.periods.mp3',
+        filename: 'file.name.with.multiple.periods.mp3',
+        filebits: ['file.name.with.multiple.periods', 'mp3'],
+        folder: 'folder/subfolder'
+      })
+    })
+
     it('should throw error for invalid URL format', function () {
       assert.throws(() => parseS3Url('https://bucket.s3.amazonaws.com'), /Invalid S3 URL format/)
     })

@@ -59,15 +59,19 @@ const parseS3Url = (url) => {
   const filebits = filename.split('.')
   const bucket = domain.split('.')[0]
   
-  if (filebits.length !== 2) {
+  if (filebits.length < 2) {
     throw new Error(`Filename must have extension: ${filename}`)
   }
+  
+  // For filenames with multiple periods, treat everything after the last period as the extension
+  const extension = filebits[filebits.length - 1]
+  const name = filebits.slice(0, -1).join('.')
   
   return {
     bucket,
     key,
     filename,
-    filebits,
+    filebits: [name, extension],
     folder
   }
 }
