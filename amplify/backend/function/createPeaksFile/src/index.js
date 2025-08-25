@@ -4,256 +4,44 @@
 	STORAGE_TRANSCRIPTIONS_BUCKETNAME
 Amplify Params - DO NOT EDIT */
 
-process.env.PATH = process.env.PATH + ':' + '/opt/nodejs/bin';
-const efsPath = '/mnt/temp'
+process.env.PATH = process.env.PATH + ':' + '/opt/nodejs/bin'
 
-const assert = require('assert')
-const { exec } = require("child_process")
-const fs = require("fs")
+const peaks = require('./lib/peaks')
+const { okResponse } = require('./utils')
 
-const { S3Client, GetObjectCommand, PutObjectCommand, HeadObjectCommand } = require('@aws-sdk/client-s3')
-const s3Client = new S3Client({ region: process.env.REGION })
-console.log('S3 client', s3Client)
-
-function escapeShellArg(arg) {
-  return `'${arg.replace(/'/g, "'\"'\"'")}'`
-}
-
-function getMax(arr) {
-    var max = arr[0];
-    for(var i = 1;i< arr.length; i++){
-        (max < arr[i]) && (max = arr[i])
-    }
-    return max;
-}
-
-async function getS3File(bucket, key, filename) {
-  return new Promise(async (resolve, reject) => {
-    const params = {
-      Bucket: bucket,
-      Key: key
-    };
-    try {
-      var file = fs.createWriteStream(`${efsPath}/${filename}`);
-    } catch (error) {
-      console.log('Error creating write stream', error)
-      reject(error);
-    }
-    
-    file.on("close", function() {
-      resolve(file)
-    });
-    file.on("error", function(error) {
-      reject(error)
-    });
-    
-    try {
-      var data = await s3Client.send(new GetObjectCommand(params));
-    } catch (error) {
-      console.log('Error getting object from S3', error)
-      reject(error);
-    }
-
-    try {
-      data.Body.pipe(file);
-    } catch (error) {
-      console.log('Error piping file', error)
-      reject(error);
-    }
-  })
-}
-
-async function putS3File(bucket, key, body) {
-  console.log(`Putting object to S3, bucket: ${bucket}, key: ${key}`)
-  const params = {
-    Bucket: bucket,
-    Key: key,
-    Body: body,
-    CacheControl: 'max-age=0',
-    ContentType: 'application/json'
-  }
-  return await s3Client.send(new PutObjectCommand(params));
-}
-
-async function runCommand(command) {
-  console.log(`Running command '${command}'`)
-  return new Promise((resolve, reject) => {
-    exec(command, {maxBuffer: 1024 * 500}, (error, stdout, stderr) => {
-        if (error) {
-            console.log(`error: ${error.message}`);
-            reject(error)
-        }
-        if (stderr) {
-            console.log(`stderr: ${stderr}`);
-        }
-        console.log(`stdout: ${stdout}`);
-        resolve()
-    });
-  })
-}
-
+/**
+ * @type {import('@types/aws-lambda').DynamoDBStreamHandler | import('@types/aws-lambda').SQSEventHandler}
+ */
 exports.handler = async (event, context) => {
+  console.log(`EVENT: ${JSON.stringify(event)}`)
   
-  const record = event.Records[0]
-  
-  console.log('Record', record)
-  if (record.eventName === 'REMOVE') {
-    // TODO: what to do with deleted stuff
-    return true
-  }
-
-  let url
-  let originalPath
-  let pathToAudio
-  if (record.dynamodb) {
-    if (record.dynamodb.NewImage) {
-      url = record.dynamodb.NewImage.source.S
-    } else {
-      url = record.dynamodb.OldImage.source.S
+  for (const record of event.Records) {
+    console.log('Processing record:', record.eventID || record.messageId)
+    console.log('Event name:', record.eventName)
+    
+    // Handle REMOVE events (deletions)
+    if (record.eventName === 'REMOVE') {
+      console.log('Record deleted, skipping processing')
+      continue
     }
     
-  } else {
-    // SQS
-    url = record.body
-  }
-
-  console.log(`Incoming url: ${url}`)
-  
-  let scheme
-  let domain
-  let folder
-  let key
-  let filename
-  let filebits
-  let bucket
-  let _
-  let __
-  
-  try {
-    [scheme, _, domain, folder, filename] = url.split('/')
-    console.log(`URL broken down as follows:`)
-    console.log(` -> domain: ${domain}`)
-    console.log(` -> folder: ${folder}`)
-    console.log(` -> filename: ${filename}`)
-    console.log(` -> efsPath: ${efsPath}`)
-    key = `${folder}/${filename}`
-    
-    filebits = filename.split('.')
-    bucket = domain.split('.')[0]
-  
-    console.log(` -> bucket: ${bucket}`)
-    console.log(` -> key: ${key}`)
-  } catch (error) {
-    console.log(`Could not process ${url}`, error)
-    return 'done'
-  }
-
-
-  // check for existing JSON file
-  let jsonFile
-  try {
-    jsonFile = await s3Client.send(new HeadObjectCommand({ Key: `${key}.json`, Bucket: bucket }))
-    console.log('Peaks file found, we are done.')
-    return true
-  } catch (error) {
-    if (error.name === 'NoSuchKey' || error.name === 'NotFound' || error.$metadata?.httpStatusCode === 404) {
-      console.log('JSON file does not exist, proceeding with processing')
-    } else {
-      console.log('Could not check for JSON file', error)
+    // Extract URL from the record
+    const url = peaks.extractUrlFromRecord(record)
+    if (!url) {
+      console.warn('No URL found in record, skipping')
+      continue
     }
-  }
-  
-  // let headers
-  // console.log('Checking file size...')
-  // try {
-  //   headers = await new Promise((resolve, reject) => {
-  //     s3Client.headObject({ Key: key, Bucket: bucket }, (error, data) => {
-  //       if (error) {
-  //         reject(error)
-  //       }
-  //       resolve(data)
-  //     })
-  //   })
-  // } catch (error) {
-  //   console.log('Could not check file size, does not exist? Exiting...', error)
-  //   return true
-  // }
-
-  
-  // // we're going to bail out if the file is too big, 300Mb ish
-  // if (headers.ContentLength > 300000000) {
-  //   console.warn(`File to large to process (${headers.ContentLength}), exiting...`)
-  //   return true 
-  // }
-
-  try {
-    assert.ok(url.indexOf('s3.amazonaws.com') > -1, `URL unexpected, should be coming from AWS: ${url}`)
-    assert.ok(filebits.length === 2, `Filename must have extension: ${filename}`)
     
-    let file
+    console.log(`Processing URL: ${url}`)
+    
     try {
-      file = await getS3File(bucket, key, filename)
+      const result = await peaks.processPeaksFile(url)
+      console.log('Peaks processing completed:', result)
     } catch (error) {
-      console.log('Could not get file from S3, is it there? Exiting...')
-      console.log('Error', error)
-      return true
+      console.error('Error processing peaks:', error)
+      // Continue processing other records even if one fails
     }
-    
-    
-    // this will change as we work through the processing
-    pathToAudio = file.path
-    originalPath = file.path
-    console.log(`Path to downloaded file: ${pathToAudio}`)
-    
-    // pull audio from the video file
-    const isVideo = ['mp4', 'm4v'].indexOf(filebits[1]) > -1
-    if (isVideo) {
-        const newFileName = `${efsPath}/audio-${+ new Date()}.mp3`
-        await runCommand(`ffmpeg -i ${escapeShellArg(pathToAudio)} ${escapeShellArg(newFileName)}`)
-        pathToAudio = newFileName
-    }
-    
-    // extract peaks
-    await runCommand(`audiowaveform -i ${escapeShellArg(pathToAudio)} -o ${escapeShellArg(pathToAudio + '.dat')} --pixels-per-second 20`)
-    await runCommand(`audiowaveform -i ${escapeShellArg(pathToAudio + '.dat')} -o ${escapeShellArg(pathToAudio + '.json')}`)
-    
-    console.log(`Path to mp3 file: ${pathToAudio}`)
-    const rawPeaks = fs.readFileSync(`${pathToAudio}.json`).toString()
-    
-    console.log('Processing peaks file')
-    const parsed = JSON.parse(rawPeaks);
-    
-    // this blows up on large arrays
-    // const max = Math.max(...parsed.data);
-    const max = getMax(parsed.data)
-    
-    console.log(`Max peak value: ${max}`);
-    
-    parsed.data = parsed.data.map(value => {
-      return Number(Number(value / max).toFixed(2));
-    });
-
-
-    const result = await putS3File(bucket, `${key}.json`, JSON.stringify(parsed))
-    console.log('Put file result', result)
-
-    runCommand(`rm -rf ${escapeShellArg(originalPath)}`)
-    runCommand(`rm -rf ${escapeShellArg(pathToAudio)}`)
-    runCommand(`rm -rf ${escapeShellArg(pathToAudio + '.dat')}`)
-    runCommand(`rm -rf ${escapeShellArg(pathToAudio + '.json')}`)
-
-    return true
-  } catch (error) {
-    runCommand(`rm -rf ${escapeShellArg(originalPath)}`)
-    runCommand(`rm -rf ${escapeShellArg(pathToAudio)}`)
-    runCommand(`rm -rf ${escapeShellArg(pathToAudio + '.dat')}`)
-    runCommand(`rm -rf ${escapeShellArg(pathToAudio + '.json')}`)
-
-    console.error('Error processing', error)
-    const payload = {
-      error: error.message
-    }
-    await putS3File(bucket, `${key}.json`, JSON.stringify(error))
   }
-  return true
-};
+  
+  return okResponse()
+}
