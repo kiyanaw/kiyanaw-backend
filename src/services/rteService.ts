@@ -444,6 +444,7 @@ class RTEServiceImpl {
   }
 
   // Apply known words formatting to editor
+  // @deprecated - Use applyHighlighting instead for better performance
   applyKnownWordsFormatting(key: EditorKey, knownWords: string[]): void {
     const instance = this.registry.get(key);
     if (!instance || knownWords.length === 0) {
@@ -492,6 +493,7 @@ class RTEServiceImpl {
   }
 
   // Apply both known words and issue formatting (issues take priority)
+  // Uses selective formatting removal to avoid cursor jumping
   applyHighlighting(key: EditorKey, options: { knownWords?: string[]; issues?: IssueHighlight[] }): void {
     const instance = this.registry.get(key);
     if (!instance) {
@@ -503,30 +505,90 @@ class RTEServiceImpl {
 
     const { knownWords = [], issues = [] } = options;
 
-    // Clear all existing formatting first
-    instance.quill.formatText(0, text.length, 'known-word', false, 'api');
-    ['issue-needs-help', 'issue-indexing', 'issue-new-word'].forEach(format => {
-      instance.quill.formatText(0, text.length, format, false, 'api');
+    // Capture current selection to restore after formatting (Safari fix)
+    const currentSelection = instance.quill.getSelection();
+
+    // Get what should be formatted
+    const knownWordsSet = new Set(knownWords);
+    const desiredKnownWordMatches = knownWords.length > 0 ? 
+      textHighlightService.findMatches(text, knownWordsSet) : [];
+    const desiredIssueMatches = issues.length > 0 ? 
+      this.findIssueMatches(text, issues) : [];
+
+    // Create sets for quick lookup of what should be formatted
+    const shouldBeKnownWord = new Set<string>();
+    const shouldBeIssue = new Map<string, { type: IssueType; id: string }>();
+
+    desiredKnownWordMatches.forEach(match => {
+      for (let i = match.index; i < match.index + match.length; i++) {
+        shouldBeKnownWord.add(`${i}`);
+      }
     });
 
-    // Apply known words first
-    if (knownWords.length > 0) {
-      const knownWordsSet = new Set(knownWords);
-      const knownWordMatches = textHighlightService.findMatches(text, knownWordsSet);
-      knownWordMatches.forEach(({ index, length }) => {
-        instance.quill.formatText(index, length, 'known-word', true, 'api');
-      });
+    desiredIssueMatches.forEach(match => {
+      for (let i = match.index; i < match.index + match.length; i++) {
+        shouldBeKnownWord.delete(`${i}`); // Issues override known words
+        shouldBeIssue.set(`${i}`, { type: match.type, id: match.id });
+      }
+    });
+
+    // Scan through the text and selectively remove/add formatting
+    const formatUpdates: Array<{ index: number; length: number; format: string; value: boolean | string }> = [];
+    let i = 0;
+
+    while (i < text.length) {
+      const currentFormat = instance.quill.getFormat(i, 1);
+      const posKey = `${i}`;
+
+      // Check known-word formatting
+      const hasKnownWord = currentFormat['known-word'];
+      const shouldHaveKnownWord = shouldBeKnownWord.has(posKey);
+
+      if (hasKnownWord && !shouldHaveKnownWord) {
+        // Remove known-word formatting
+        formatUpdates.push({ index: i, length: 1, format: 'known-word', value: false });
+      } else if (!hasKnownWord && shouldHaveKnownWord) {
+        // Add known-word formatting
+        formatUpdates.push({ index: i, length: 1, format: 'known-word', value: true });
+      }
+
+      // Check issue formatting
+      const issueFormats = ['issue-needs-help', 'issue-indexing', 'issue-new-word'] as const;
+      const shouldHaveIssue = shouldBeIssue.get(posKey);
+
+      for (const formatName of issueFormats) {
+        const hasIssueFormat = currentFormat[formatName];
+        const shouldHaveThisIssueFormat = shouldHaveIssue && `issue-${shouldHaveIssue.type}` === formatName;
+
+        if (hasIssueFormat && !shouldHaveThisIssueFormat) {
+          // Remove this issue formatting
+          formatUpdates.push({ index: i, length: 1, format: formatName, value: false });
+        } else if (!hasIssueFormat && shouldHaveThisIssueFormat) {
+          // Add this issue formatting
+          formatUpdates.push({ index: i, length: 1, format: formatName, value: shouldHaveIssue.id });
+        }
+      }
+
+      i++;
     }
 
-    // Apply issues second (they will override known words where they overlap)
-    if (issues.length > 0) {
-      const issueMatches = this.findIssueMatches(text, issues);
-      issueMatches.forEach(({ index, length, type, id }) => {
-        // Clear known-word formatting at this position first, then apply issue formatting
-        instance.quill.formatText(index, length, 'known-word', false, 'api');
-        const formatName = `issue-${type}`;
-        instance.quill.formatText(index, length, formatName, id, 'api');
-      });
+    // Apply all formatting updates
+    formatUpdates.forEach(update => {
+      instance.quill.formatText(update.index, update.length, update.format, update.value, 'api');
+    });
+
+    // Restore selection after formatting (Safari fix)
+    if (currentSelection) {
+      instance.quill.setSelection(currentSelection, 'api');
+      
+      // Safari-specific visual cursor refresh
+      if (typeof window !== 'undefined' && /^((?!chrome|android).)*safari/i.test(navigator.userAgent)) {
+        setTimeout(() => {
+          instance.quill.blur();
+          instance.quill.focus();
+          instance.quill.setSelection(currentSelection, 'api');
+        }, 10);
+      }
     }
   }
 
