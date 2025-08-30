@@ -66,16 +66,59 @@ const processPeaksData = async (jsonPath) => {
     throw new Error('Array is empty or undefined')
   }
   
-  // Find maximum value for normalization
-  const max = Math.max(...parsed.data)
+  console.log(`Processing peaks data with ${parsed.data.length} elements`)
+  
+  // Find maximum value for normalization (avoid spread operator for large arrays)
+  const max = getMaxValue(parsed.data)
   console.log(`Max peak value: ${max}`)
   
-  // Normalize data to 0-1 range with 2 decimal places
-  parsed.data = parsed.data.map(value => {
-    return Number(Number(value / max).toFixed(2))
-  })
+  // Normalize data using chunked processing to avoid stack overflow
+  parsed.data = processArrayInChunks(parsed.data, max)
   
   return parsed
+}
+
+/**
+ * Find maximum value in array without using spread operator
+ * @param {number[]} arr - Array of numbers
+ * @returns {number} - Maximum value
+ */
+const getMaxValue = (arr) => {
+  let max = arr[0]
+  for (let i = 1; i < arr.length; i++) {
+    if (max < arr[i]) {
+      max = arr[i]
+    }
+  }
+  return max
+}
+
+/**
+ * Process large array in chunks to avoid stack overflow
+ * @param {number[]} data - Array to process
+ * @param {number} max - Maximum value for normalization
+ * @returns {number[]} - Processed array
+ */
+const processArrayInChunks = (data, max) => {
+  const chunkSize = 10000
+  const result = []
+  
+  for (let i = 0; i < data.length; i += chunkSize) {
+    const endIndex = Math.min(i + chunkSize, data.length)
+    
+    // Process chunk without using .map() to avoid stack issues
+    for (let j = i; j < endIndex; j++) {
+      result[j] = Number(Number(data[j] / max).toFixed(2))
+    }
+    
+    // Log progress for large arrays (every 50k elements)
+    if (i % 50000 === 0 && i > 0) {
+      console.log(`Processed ${endIndex} / ${data.length} elements`)
+    }
+  }
+  
+  console.log(`Completed processing ${result.length} elements`)
+  return result
 }
 
 /**
