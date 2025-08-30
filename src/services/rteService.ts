@@ -533,7 +533,7 @@ class RTEServiceImpl {
     });
 
     // Scan through the text and selectively remove/add formatting
-    const formatUpdates: Array<{ index: number; length: number; format: string; value: any }> = [];
+    const formatUpdates: Array<{ index: number; length: number; format: string; value: boolean | string }> = [];
     let i = 0;
 
     while (i < text.length) {
