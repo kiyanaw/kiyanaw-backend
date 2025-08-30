@@ -73,7 +73,7 @@ const processPeaksData = async (jsonPath) => {
   console.log(`Max peak value: ${max}`)
   
   // Normalize data using chunked processing to avoid stack overflow
-  parsed.data = processLargeArray(parsed.data, max)
+  parsed.data = processArrayInChunks(parsed.data, max)
   
   return parsed
 }
@@ -99,7 +99,7 @@ const getMaxValue = (arr) => {
  * @param {number} max - Maximum value for normalization
  * @returns {number[]} - Processed array
  */
-const processLargeArray = (data, max) => {
+const processArrayInChunks = (data, max) => {
   const chunkSize = 10000
   const result = []
   
