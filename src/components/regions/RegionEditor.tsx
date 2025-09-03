@@ -1,5 +1,5 @@
 import { useState, memo } from 'react';
-import { Play, Pause, Trash2, X, AlertTriangle, Repeat1 } from 'lucide-react';
+import { Pause, Trash2, X, AlertTriangle, Repeat1 } from 'lucide-react';
 import { type RegionData as Region } from '../../services/adt';
 import { useTextEditors } from '../../hooks/useTextEditors';
 import { useDeleteRegion } from '../../hooks/useDeleteRegion';
