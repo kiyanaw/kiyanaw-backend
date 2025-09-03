@@ -2,8 +2,27 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
+// Generate a short build hash (7 characters, like git commit)
+const generateBuildHash = () => {
+  const timestamp = Date.now().toString();
+  let hash = 0;
+  for (let i = 0; i < timestamp.length; i++) {
+    const char = timestamp.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  return Math.abs(hash).toString(36).substring(0, 7);
+};
+
+const buildHash = generateBuildHash();
+const buildTime = new Date().toISOString();
+
 // https://vite.dev/config/
 export default defineConfig({
+  define: {
+    __BUILD_HASH__: JSON.stringify(buildHash),
+    __BUILD_TIME__: JSON.stringify(buildTime),
+  },
   plugins: [
     react(),
     VitePWA({
@@ -69,7 +88,9 @@ export default defineConfig({
         navigateFallbackDenylist: [/^\/_/, /\/[^/?]+\.[^/]+$/],
         offlineGoogleAnalytics: false,
         skipWaiting: true,
-        clientsClaim: true
+        clientsClaim: true,
+        cacheId: `kiyanaw-${buildHash}`,
+        cleanupOutdatedCaches: true
       },
       devOptions: {
         enabled: false  // Disable service worker in dev to avoid conflicts
