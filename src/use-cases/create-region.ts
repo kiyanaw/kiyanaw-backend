@@ -55,6 +55,10 @@ export class CreateRegion {
       // async save to DB
       await regionService.createRegion(transcriptionId, newRegion, userLastUpdated)
       
+      // Update the store's version tracking after successful creation
+      // New regions start with version 1 in the database
+      store.setRegionVersion(newRegion.id, 1);
+      
       // Update the transcription with metadata
       const updateTranscriptionUseCase = new UpdateTranscriptionUseCase({
         transcriptionId: this.config.transcriptionId,

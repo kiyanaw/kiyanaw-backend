@@ -84,11 +84,8 @@ export class UpdateTranscriptionUseCase {
     store.setTranscription(transcriptionModel);
 
     try {
-      // Save to API
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await services.transcriptionService.updateTranscription(transcriptionId, apiUpdate as any);
-
-      // TODO: how to handle roll-back or conflict if this fails
+      // Save to API with retry logic for version conflicts
+      const result = await this.saveWithRetry(transcriptionId, apiUpdate, services, 3);
 
       // Set saved status
       store.setSaveStatus('saved');
@@ -99,5 +96,57 @@ export class UpdateTranscriptionUseCase {
       store.setSaveStatus('error');
       throw error;
     }
+  }
+
+  /**
+   * Save transcription with automatic retry on version conflicts
+   */
+  private async saveWithRetry(
+    transcriptionId: string, 
+    apiUpdate: any, 
+    services: any, 
+    maxRetries: number
+  ): Promise<any> {
+    let lastError: any;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`📝 Attempting to save transcription (attempt ${attempt}/${maxRetries})`);
+        
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const result = await services.transcriptionService.updateTranscription(transcriptionId, apiUpdate as any);
+        
+        if (attempt > 1) {
+          console.log(`✅ Transcription saved successfully on attempt ${attempt}`);
+        }
+        
+        return result;
+      } catch (error) {
+        lastError = error;
+        
+        // Check if this is a version conflict
+        const isConflict = error && 
+          typeof error === 'object' && 
+          'errors' in error &&
+          Array.isArray(error.errors) &&
+          error.errors.some((err: any) => 
+            err?.errorType === 'ConflictUnhandled' || 
+            err?.message?.includes('Conflict resolver rejects mutation')
+          );
+        
+        if (isConflict && attempt < maxRetries) {
+          const waitTime = attempt * 100; // 100ms, 200ms, 300ms
+          console.log(`⚠️ Transcription version conflict on attempt ${attempt}, retrying in ${waitTime}ms...`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+          continue;
+        }
+        
+        // If not a conflict or we've exhausted retries, throw the error
+        console.error(`❌ Failed to save transcription after ${attempt} attempts:`, error);
+        throw error;
+      }
+    }
+    
+    throw lastError;
   }
 } 

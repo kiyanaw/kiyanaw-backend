@@ -500,6 +500,17 @@ class RTEServiceImpl {
       return;
     }
 
+    // Validate that the Quill editor is still mounted and functional
+    try {
+      if (!instance.quill || !instance.quill.container || !instance.quill.container.isConnected) {
+        console.warn(`🚫 Skipping highlighting for ${key} - editor no longer mounted`);
+        return;
+      }
+    } catch (error) {
+      console.warn(`🚫 Skipping highlighting for ${key} - editor validation failed:`, error);
+      return;
+    }
+
     const text = instance.quill.getText();
     if (!text) return;
 
@@ -732,6 +743,17 @@ class RTEServiceImpl {
     const editorKey = `${regionId}:main` as EditorKey;
     const instance = this.registry.get(editorKey);
     if (!instance) {
+      return;
+    }
+
+    // Validate that the Quill editor is still mounted and functional
+    try {
+      if (!instance.quill || !instance.quill.container || !instance.quill.container.isConnected) {
+        console.warn(`🚫 Skipping issue highlighting for ${regionId} - editor no longer mounted`);
+        return;
+      }
+    } catch (error) {
+      console.warn(`🚫 Skipping issue highlighting for ${regionId} - editor validation failed:`, error);
       return;
     }
 

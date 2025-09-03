@@ -18,7 +18,8 @@ const mockQuill = {
   getFormat: jest.fn().mockReturnValue({}),
   blur: jest.fn(),
   focus: jest.fn(),
-  root: mockRoot
+  root: mockRoot,
+  container: { isConnected: true }
 };
 
 const mockQuillConstructor = jest.fn(() => mockQuill) as jest.MockedFunction<any> & { 

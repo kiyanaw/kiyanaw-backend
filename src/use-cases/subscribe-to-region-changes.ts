@@ -41,7 +41,8 @@ export class SubscribeToRegionChangesUseCase {
     const isSelfTriggered = currentUser && region.userLastUpdated === currentUser.username;
     
     if (isSelfTriggered) {
-      store.setRegionVersion(region.id, region._version!);
+      // Skip version update for self-triggered events - we already incremented it correctly
+      console.log('🔌 Self-triggered region event, skipping version update:', region.id);
       return;
     }
 
