@@ -134,6 +134,9 @@ export const AppLayout = () => {
                       <div className="text-sm font-medium text-gray-900 truncate">
                         {user?.username}
                       </div>
+                      <div className="text-xs text-gray-400 mt-1">
+                        Build: {import.meta.env.MODE === 'production' ? __BUILD_HASH__ : 'dev'}
+                      </div>
                     </div>
                     
                     <div className="py-1">
