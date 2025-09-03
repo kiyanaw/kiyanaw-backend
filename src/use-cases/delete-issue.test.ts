@@ -43,6 +43,7 @@ describe('DeleteIssueUseCase', () => {
       issueById: jest.fn(),
       deleteIssue: jest.fn(),
       setTranscription: jest.fn(),
+      setSaveStatus: jest.fn(),
       transcription: {
         id: 'trans-789',
         title: 'Test Transcription',

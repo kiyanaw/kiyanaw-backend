@@ -23,6 +23,7 @@ describe('CreateRegion', () => {
 
   const mockStore = {
     addNewRegion: mockAddNewRegion,
+    setRegionVersion: jest.fn(),
     transcription: {
       id: 'test-transcription-id',
       title: 'Test Transcription',
@@ -31,6 +32,7 @@ describe('CreateRegion', () => {
     regions: [],
     calculateTranscriptionMetadata: jest.fn(() => ({ regionCount: 0, coverage: 0 })),
     setTranscription: jest.fn(),
+    setSaveStatus: jest.fn(),
   };
 
   const validConfig = {
@@ -151,6 +153,14 @@ describe('CreateRegion', () => {
       
       expect(validateCallOrder).toBeLessThan(storeCallOrder);
       expect(storeCallOrder).toBeLessThan(serviceCallOrder);
+    });
+
+    it('should update version tracking after successful creation', async () => {
+      const useCase = new CreateRegion(validConfig);
+      
+      await useCase.execute();
+      
+      expect(mockStore.setRegionVersion).toHaveBeenCalledWith('region-123', 1);
     });
   });
 

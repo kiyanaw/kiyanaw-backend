@@ -170,6 +170,10 @@ export class UpdateRegionUseCase {
         currentVersion
       );
 
+      // Update the store's version tracking after successful save
+      // The database will have incremented the version, so we increment locally too
+      store.setRegionVersion(regionId, currentVersion + 1);
+
       // Update the transcription with metadata
       const updateTranscriptionUseCase = new UpdateTranscriptionUseCase({
         transcriptionId: existingRegion.transcriptionId,

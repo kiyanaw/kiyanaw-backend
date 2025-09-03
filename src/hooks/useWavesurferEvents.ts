@@ -9,6 +9,7 @@ import { services } from '../services';
 import { CreateRegion } from '../use-cases/create-region';
 import { UpdateRegionBounds } from '../use-cases/update-region-bounds';
 import { UpdateTranscriptionUseCase } from '../use-cases/update-transcription';
+import { SelectAndPlayRegion } from '../use-cases/select-and-play-region';
 
 // Wavesurfer event interfaces
 interface RegionCreatedEvent {
@@ -53,16 +54,30 @@ export const useWavesurferEvents = (transcriptionId: string, source?: string): v
     // Copy ref values to variables for cleanup function
     const currentStyleIdMap = styleIdRef.current;
 
-    const handleRegionCreated = (data: unknown) => {
+    const handleRegionCreated = async (data: unknown) => {
       const event = data as RegionCreatedEvent;
       console.log('Region Created', event);
-      const usecase = new CreateRegion({
+      
+      // First create the region
+      const createUseCase = new CreateRegion({
         transcriptionId,
         newRegion: { id: event.id, start: event.start, end: event.end },
         services,
         store: useEditorStore.getState(),
       });
-      usecase.execute();
+      createUseCase.execute();
+      
+      // Then select the region without playing
+      const selectUseCase = new SelectAndPlayRegion({
+        regionId: event.id,
+        doPlay: false,
+        services: {
+          wavesurferService: services.wavesurferService,
+          browserService: services.browserService,
+        },
+        store: useEditorStore.getState(),
+      });
+      await selectUseCase.execute();
     };
 
     const handleRegionUpdateEnd = (data: unknown) => {

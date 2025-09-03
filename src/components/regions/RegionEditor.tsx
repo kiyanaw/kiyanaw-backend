@@ -1,5 +1,5 @@
 import { useState, memo } from 'react';
-import { Play, Pause, Trash2, X, AlertTriangle } from 'lucide-react';
+import { Pause, Trash2, X, AlertTriangle, Repeat1 } from 'lucide-react';
 import { type RegionData as Region } from '../../services/adt';
 import { useTextEditors } from '../../hooks/useTextEditors';
 import { useDeleteRegion } from '../../hooks/useDeleteRegion';
@@ -75,30 +75,22 @@ export const RegionEditor = memo(({
   return (
     <div className="flex flex-col h-full bg-white rounded-lg overflow-hidden">
       {/* Header with region info and toolbar */}
-      <div className="flex justify-between items-center p-2 bg-gray-50 border-b border-gray-200">
-        <div className="flex items-center gap-3">
-          <h3 className="m-0 text-base font-semibold text-gray-800">Region {regionNumber}</h3>
-          <span className="text-xs text-gray-500 font-mono">
-            {formatTime(region.start)} - {formatTime(region.end)}
-          </span>
-          {region.isNote && <span className="py-0.5 px-2 bg-yellow-400 text-gray-800 rounded-xl text-xs font-medium">Note</span>}
-        </div>
-
+      <div className="flex justify-between items-center p-1.5 bg-gray-50 border-b border-gray-200">
         {/* Custom Toolbar */}
-        <div className="flex gap-2">
+        <div className="flex gap-1.5">
           <button
-            className={`flex items-center justify-center w-9 h-9 border border-gray-300 rounded-md bg-white cursor-pointer transition-all duration-200 text-base hover:bg-gray-100 hover:border-gray-400 ${
+            className={`flex items-center justify-center w-7 h-7 border border-gray-300 rounded-md bg-white cursor-pointer transition-all duration-200 text-sm hover:bg-gray-100 hover:border-gray-400 ${
               isPlaying ? 'bg-green-600 text-white border-green-600 hover:bg-green-700' : ''
             }`}
             onClick={handlePlay}
             title="Play region"
           >
-            {isPlaying ? <Pause size={16} /> : <Play size={16} />}
+            {isPlaying ? <Pause size={14} /> : <Repeat1 size={14} />}
           </button>
 
           {/* Create Issue Button - Second position, always visible but disabled when no selection */}
           <button
-            className={`flex items-center justify-center w-9 h-9 border rounded-md transition-all duration-200 text-base ${
+            className={`flex items-center justify-center w-7 h-7 border rounded-md transition-all duration-200 text-sm ${
               canEdit && hasSelection
                 ? 'border-orange-300 bg-orange-50 text-orange-600 cursor-pointer hover:bg-orange-100 hover:border-orange-400'
                 : 'border-gray-300 bg-gray-50 text-gray-400 cursor-not-allowed opacity-50'
@@ -107,11 +99,11 @@ export const RegionEditor = memo(({
             disabled={!canEdit || !hasSelection}
             title={hasSelection ? "Create issue from selected text" : "Select text to create an issue"}
           >
-            <AlertTriangle size={16} />
+            <AlertTriangle size={14} />
           </button>
 
           <button
-            className={`flex items-center justify-center w-9 h-9 border border-gray-300 rounded-md bg-white transition-all duration-200 text-base ${
+            className={`flex items-center justify-center w-7 h-7 border border-gray-300 rounded-md bg-white transition-all duration-200 text-sm ${
               canEdit 
                 ? 'cursor-pointer hover:bg-gray-50 hover:text-gray-700 hover:border-gray-400' 
                 : 'cursor-not-allowed opacity-50 text-gray-400'
@@ -120,11 +112,11 @@ export const RegionEditor = memo(({
             disabled={!canEdit}
             title="Deselect region"
           >
-            <X size={16} />
+            <X size={14} />
           </button>
 
           <button
-            className={`flex items-center justify-center w-9 h-9 border border-gray-300 rounded-md bg-white transition-all duration-200 text-base ${
+            className={`flex items-center justify-center w-7 h-7 border border-gray-300 rounded-md bg-white transition-all duration-200 text-sm ${
               canEdit 
                 ? 'cursor-pointer hover:bg-red-50 hover:text-red-700 hover:border-red-300' 
                 : 'cursor-not-allowed opacity-50 text-gray-400'
@@ -133,8 +125,16 @@ export const RegionEditor = memo(({
             disabled={!canEdit}
             title="Delete region"
           >
-            <Trash2 size={16} />
+            <Trash2 size={14} />
           </button>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <h3 className="m-0 text-sm font-semibold text-gray-800">Region {regionNumber}</h3>
+          <span className="text-xs text-gray-500 font-mono">
+            {formatTime(region.start)} - {formatTime(region.end)}
+          </span>
+          {region.isNote && <span className="py-0.5 px-1.5 bg-yellow-400 text-gray-800 rounded-lg text-xs font-medium">Note</span>}
         </div>
       </div>
 

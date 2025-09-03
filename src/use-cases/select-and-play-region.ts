@@ -1,5 +1,6 @@
 interface SelectAndPlayRegionConfig {
   regionId: string;
+  doPlay?: boolean; // Optional parameter, defaults to true
   services: {
     wavesurferService: {
       seekToRegion: (region: { id: string; start: number; end: number }) => void;
@@ -29,6 +30,8 @@ export class SelectAndPlayRegion {
   async execute() {
     this.validate();
 
+    const { doPlay = true } = this.config; // Default to true if not specified
+
     // Get the region from the store's regionMap
     const region = this.config.store.regionById(this.config.regionId);
     if (!region) {
@@ -53,7 +56,9 @@ export class SelectAndPlayRegion {
     // Seek to the region's start time using the service
     this.config.services.wavesurferService.seekToRegion(region);
     
-    // Play audio
-    await this.config.services.wavesurferService.play();
+    // Conditionally play audio based on doPlay parameter
+    if (doPlay) {
+      await this.config.services.wavesurferService.play();
+    }
   }
 } 

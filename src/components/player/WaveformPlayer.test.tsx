@@ -27,6 +27,20 @@ jest.mock('../../services/wavesurferService', () => {
 // Get the mocked service for test assertions
 const mockWaveSurferService = jest.mocked(wavesurferService);
 
+// Mock the browserService
+jest.mock('../../services/browserService', () => ({
+  browserService: {
+    getVideoPreferences: jest.fn(() => ({
+      position: 'right',
+      size: 'small', 
+      isMinimized: false,
+      zoom: 40,
+      speed: 100,
+    })),
+    saveVideoPreferences: jest.fn(),
+  },
+}));
+
 // Mock the stores
 jest.mock('../../stores/usePlayerStore', () => ({
   usePlayerStore: jest.fn(),
@@ -109,6 +123,7 @@ describe('WaveformPlayer', () => {
             length: 120, // Duration in seconds
           },
           saved: false,
+          saveStatus: 'saved' as const,
           peaks: null,
           wavesurferError: null,
           accessDenied: false,
@@ -143,6 +158,7 @@ describe('WaveformPlayer', () => {
         updateTranscription: jest.fn(),
         setTranscription: jest.fn(),
         setSaved: jest.fn(),
+        setSaveStatus: jest.fn(),
         setSelectedRegion: jest.fn(),
         setPlaybackWithinRegion: jest.fn(),
         updateRegion: jest.fn(),
@@ -542,6 +558,7 @@ describe('WaveformPlayer', () => {
           length: 120, // Duration in seconds
         },
         saved: false,
+        saveStatus: 'saved' as const,
         peaks: null,
         wavesurferError: null,
         accessDenied: false,
@@ -576,6 +593,7 @@ describe('WaveformPlayer', () => {
         updateTranscription: jest.fn(),
         setTranscription: jest.fn(),
         setSaved: jest.fn(),
+        setSaveStatus: jest.fn(),
         setSelectedRegion: jest.fn(),
         setPlaybackWithinRegion: jest.fn(),
         updateRegion: jest.fn(),
@@ -664,6 +682,7 @@ describe('WaveformPlayer', () => {
             length: 120, // Duration in seconds
           },
           saved: false,
+          saveStatus: 'saved' as const,
           peaks: null,
           wavesurferError: null,
           accessDenied: false,
@@ -698,6 +717,7 @@ describe('WaveformPlayer', () => {
           updateTranscription: jest.fn(),
           setTranscription: jest.fn(),
           setSaved: jest.fn(),
+        setSaveStatus: jest.fn(),
           setSelectedRegion: jest.fn(),
           setPlaybackWithinRegion: jest.fn(),
           updateRegion: jest.fn(),

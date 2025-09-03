@@ -337,6 +337,14 @@ class RTEServiceImpl {
 
     // Clean up event listeners - Quill will handle cleanup when DOM element is removed
 
+    // Clear any pending highlighting timeouts for this region
+    const regionId = key.split(':')[0];
+    const existingTimeout = this.highlightingTimeouts.get(regionId);
+    if (existingTimeout) {
+      clearTimeout(existingTimeout);
+      this.highlightingTimeouts.delete(regionId);
+    }
+
     // Remove from DOM
     if (instance.container.parentNode) {
       instance.container.parentNode.removeChild(instance.container);
@@ -477,18 +485,38 @@ class RTEServiceImpl {
     const text = instance.quill.getText();
     if (!text) return;
 
-    // Clear any existing issue formatting first
+    // Clear any existing issue formatting first with safety checks
     ['issue-needs-help', 'issue-indexing', 'issue-new-word'].forEach(format => {
-      instance.quill.formatText(0, text.length, format, false, 'api');
+      try {
+        // Validate editor is still connected
+        if (!instance.quill || !instance.quill.container || !instance.quill.container.isConnected) {
+          console.warn(`🚫 Skipping format clear for ${key} - editor disconnected`);
+          return;
+        }
+        
+        instance.quill.formatText(0, text.length, format, false, 'api');
+      } catch (error) {
+        console.warn(`🚫 Failed to clear format ${format} for ${key}:`, error);
+      }
     });
 
     // Find issue matches
     const matches = this.findIssueMatches(text, issues);
     
-    // Apply specific issue formatting based on type
+    // Apply specific issue formatting based on type with safety checks
     matches.forEach(({ index, length, type, id }) => {
-      const formatName = `issue-${type}`;
-      instance.quill.formatText(index, length, formatName, id, 'api');
+      try {
+        // Validate editor is still connected
+        if (!instance.quill || !instance.quill.container || !instance.quill.container.isConnected) {
+          console.warn(`🚫 Skipping issue format for ${key} - editor disconnected`);
+          return;
+        }
+        
+        const formatName = `issue-${type}`;
+        instance.quill.formatText(index, length, formatName, id, 'api');
+      } catch (error) {
+        console.warn(`🚫 Failed to apply issue format for ${key}:`, error, { index, length, type, id });
+      }
     });
   }
 
@@ -497,6 +525,17 @@ class RTEServiceImpl {
   applyHighlighting(key: EditorKey, options: { knownWords?: string[]; issues?: IssueHighlight[] }): void {
     const instance = this.registry.get(key);
     if (!instance) {
+      return;
+    }
+
+    // Validate that the Quill editor is still mounted and functional
+    try {
+      if (!instance.quill || !instance.quill.container || !instance.quill.container.isConnected) {
+        console.warn(`🚫 Skipping highlighting for ${key} - editor no longer mounted`);
+        return;
+      }
+    } catch (error) {
+      console.warn(`🚫 Skipping highlighting for ${key} - editor validation failed:`, error);
       return;
     }
 
@@ -533,61 +572,83 @@ class RTEServiceImpl {
     });
 
     // Scan through the text and selectively remove/add formatting
+    // Use batch updates to prevent React-Quill corruption with overlapping formats
     const formatUpdates: Array<{ index: number; length: number; format: string; value: boolean | string }> = [];
     let i = 0;
 
     while (i < text.length) {
-      const currentFormat = instance.quill.getFormat(i, 1);
-      const posKey = `${i}`;
+      try {
+        const currentFormat = instance.quill.getFormat(i, 1);
+        const posKey = `${i}`;
 
-      // Check known-word formatting
-      const hasKnownWord = currentFormat['known-word'];
-      const shouldHaveKnownWord = shouldBeKnownWord.has(posKey);
+        // Check known-word formatting
+        const hasKnownWord = currentFormat['known-word'];
+        const shouldHaveKnownWord = shouldBeKnownWord.has(posKey);
 
-      if (hasKnownWord && !shouldHaveKnownWord) {
-        // Remove known-word formatting
-        formatUpdates.push({ index: i, length: 1, format: 'known-word', value: false });
-      } else if (!hasKnownWord && shouldHaveKnownWord) {
-        // Add known-word formatting
-        formatUpdates.push({ index: i, length: 1, format: 'known-word', value: true });
-      }
-
-      // Check issue formatting
-      const issueFormats = ['issue-needs-help', 'issue-indexing', 'issue-new-word'] as const;
-      const shouldHaveIssue = shouldBeIssue.get(posKey);
-
-      for (const formatName of issueFormats) {
-        const hasIssueFormat = currentFormat[formatName];
-        const shouldHaveThisIssueFormat = shouldHaveIssue && `issue-${shouldHaveIssue.type}` === formatName;
-
-        if (hasIssueFormat && !shouldHaveThisIssueFormat) {
-          // Remove this issue formatting
-          formatUpdates.push({ index: i, length: 1, format: formatName, value: false });
-        } else if (!hasIssueFormat && shouldHaveThisIssueFormat) {
-          // Add this issue formatting
-          formatUpdates.push({ index: i, length: 1, format: formatName, value: shouldHaveIssue.id });
+        if (hasKnownWord && !shouldHaveKnownWord) {
+          // Remove known-word formatting
+          formatUpdates.push({ index: i, length: 1, format: 'known-word', value: false });
+        } else if (!hasKnownWord && shouldHaveKnownWord) {
+          // Add known-word formatting
+          formatUpdates.push({ index: i, length: 1, format: 'known-word', value: true });
         }
+
+        // Check issue formatting
+        const issueFormats = ['issue-needs-help', 'issue-indexing', 'issue-new-word'] as const;
+        const shouldHaveIssue = shouldBeIssue.get(posKey);
+
+        for (const formatName of issueFormats) {
+          const hasIssueFormat = currentFormat[formatName];
+          const shouldHaveThisIssueFormat = shouldHaveIssue && `issue-${shouldHaveIssue.type}` === formatName;
+
+          if (hasIssueFormat && !shouldHaveThisIssueFormat) {
+            // Remove this issue formatting
+            formatUpdates.push({ index: i, length: 1, format: formatName, value: false });
+          } else if (!hasIssueFormat && shouldHaveThisIssueFormat) {
+            // Add this issue formatting
+            formatUpdates.push({ index: i, length: 1, format: formatName, value: shouldHaveIssue.id });
+          }
+        }
+      } catch (error) {
+        console.warn(`🚫 Failed to check format at position ${i} for ${key}:`, error);
+        // Skip this position and continue
       }
 
       i++;
     }
 
-    // Apply all formatting updates
-    formatUpdates.forEach(update => {
-      instance.quill.formatText(update.index, update.length, update.format, update.value, 'api');
-    });
+    // Apply formatting updates in batches to prevent React-Quill corruption
+    // Group updates by type to minimize conflicts
+    const knownWordUpdates = formatUpdates.filter(u => u.format === 'known-word');
+    const issueUpdates = formatUpdates.filter(u => u.format.startsWith('issue-'));
+    
+    // Apply known-word formatting first (lower priority)
+    this.applyFormatBatch(instance, key, knownWordUpdates);
+    
+    // Then apply issue formatting (higher priority, may override known words)
+    this.applyFormatBatch(instance, key, issueUpdates);
 
     // Restore selection after formatting (Safari fix)
     if (currentSelection) {
-      instance.quill.setSelection(currentSelection, 'api');
-      
-      // Safari-specific visual cursor refresh
-      if (typeof window !== 'undefined' && /^((?!chrome|android).)*safari/i.test(navigator.userAgent)) {
-        setTimeout(() => {
-          instance.quill.blur();
-          instance.quill.focus();
+      try {
+        // Validate editor is still connected before restoring selection
+        if (instance.quill && instance.quill.container && instance.quill.container.isConnected) {
           instance.quill.setSelection(currentSelection, 'api');
-        }, 10);
+          
+          // Safari-specific visual cursor refresh
+          if (typeof window !== 'undefined' && /^((?!chrome|android).)*safari/i.test(navigator.userAgent)) {
+            setTimeout(() => {
+              // Double-check editor is still valid in the timeout
+              if (instance.quill && instance.quill.container && instance.quill.container.isConnected) {
+                instance.quill.blur();
+                instance.quill.focus();
+                instance.quill.setSelection(currentSelection, 'api');
+              }
+            }, 10);
+          }
+        }
+      } catch (error) {
+        console.warn(`🚫 Failed to restore selection for ${key}:`, error);
       }
     }
   }
@@ -726,12 +787,97 @@ class RTEServiceImpl {
   }
 
   /**
-   * Update issue highlighting for a specific region's editor
+   * Apply a batch of format updates safely with error handling
+   */
+  private applyFormatBatch(
+    instance: RTEInstance, 
+    key: EditorKey, 
+    updates: Array<{ index: number; length: number; format: string; value: boolean | string }>
+  ): void {
+    if (updates.length === 0) return;
+
+    // Final validation before applying batch
+    if (!instance.quill || !instance.quill.container || !instance.quill.container.isConnected) {
+      console.warn(`🚫 Skipping format batch for ${key} - editor disconnected`);
+      return;
+    }
+
+    // Get current text length for bounds checking
+    const currentTextLength = instance.quill.getText().length;
+    let corruptionDetected = false;
+
+    // Apply updates one by one with individual error handling
+    for (const update of updates) {
+      try {
+        // Validate bounds for this specific update
+        if (update.index < 0 || update.index >= currentTextLength || 
+            update.index + update.length > currentTextLength) {
+          console.warn(`🚫 Skipping format update - invalid bounds:`, update);
+          continue;
+        }
+
+        instance.quill.formatText(update.index, update.length, update.format, update.value, 'api');
+      } catch (error) {
+        // Check if this is the React-Quill corruption error
+        const isCorruption = error instanceof Error && 
+          error.message.includes("Cannot read properties of undefined (reading 'mutations')");
+        
+        if (isCorruption) {
+          corruptionDetected = true;
+          console.warn(`🔄 React-Quill corruption detected in batch for ${key}:`, error, update);
+          break; // Stop processing this batch
+        } else {
+          console.warn(`🚫 Failed to apply single format update:`, error, update);
+          // Continue with other updates for non-corruption errors
+        }
+      }
+    }
+
+    // If corruption was detected, throw an error to trigger the reset
+    if (corruptionDetected) {
+      throw new Error('React-Quill corruption detected - needs reset');
+    }
+  }
+
+  private highlightingTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
+
+  /**
+   * Update issue highlighting for a specific region's editor with debouncing
    */
   updateIssueHighlighting(regionId: string): void {
+    // Clear any existing timeout for this region
+    const existingTimeout = this.highlightingTimeouts.get(regionId);
+    if (existingTimeout) {
+      clearTimeout(existingTimeout);
+    }
+
+    // Debounce highlighting updates to prevent React-Quill corruption
+    const timeout = setTimeout(() => {
+      this.performIssueHighlighting(regionId);
+      this.highlightingTimeouts.delete(regionId);
+    }, 50); // 50ms debounce
+
+    this.highlightingTimeouts.set(regionId, timeout);
+  }
+
+  /**
+   * Perform the actual issue highlighting (called after debounce)
+   */
+  private performIssueHighlighting(regionId: string): void {
     const editorKey = `${regionId}:main` as EditorKey;
     const instance = this.registry.get(editorKey);
     if (!instance) {
+      return;
+    }
+
+    // Validate that the Quill editor is still mounted and functional
+    try {
+      if (!instance.quill || !instance.quill.container || !instance.quill.container.isConnected) {
+        console.warn(`🚫 Skipping issue highlighting for ${regionId} - editor no longer mounted`);
+        return;
+      }
+    } catch (error) {
+      console.warn(`🚫 Skipping issue highlighting for ${regionId} - editor validation failed:`, error);
       return;
     }
 
@@ -761,11 +907,58 @@ class RTEServiceImpl {
     const matchedIssues = issues.filter(issue => matchResult.matched.has(issue.id));
     const issueHighlights = issueHighlightService.convertIssuesToHighlights(matchedIssues);
 
-    // Re-apply highlighting
-    this.applyHighlighting(editorKey, {
-      knownWords,
-      issues: issueHighlights
-    });
+    // Try to apply highlighting, but if React-Quill is corrupted, reset the editor
+    try {
+      this.applyHighlighting(editorKey, {
+        knownWords,
+        issues: issueHighlights
+      });
+    } catch (error) {
+      console.warn(`🔄 React-Quill corrupted for ${regionId}, resetting editor:`, error);
+      this.resetCorruptedEditor(editorKey, regionText, knownWords, issueHighlights);
+    }
+  }
+
+  /**
+   * Reset a corrupted React-Quill editor by recreating it with fresh content and formatting
+   */
+  private resetCorruptedEditor(
+    key: EditorKey, 
+    text: string, 
+    knownWords: string[], 
+    issueHighlights: IssueHighlight[]
+  ): void {
+    try {
+      const instance = this.registry.get(key);
+      if (!instance) return;
+
+      console.log(`🔄 Resetting corrupted editor: ${key}`);
+
+      // Clear all formatting and reset content
+      instance.quill.setText('', 'api');
+      
+      // Wait a tick for React-Quill to stabilize
+      setTimeout(() => {
+        try {
+          // Set the text content
+          instance.quill.setText(text, 'api');
+          
+          // Reapply highlighting after another tick
+          setTimeout(() => {
+            try {
+              this.applyHighlighting(key, { knownWords, issues: issueHighlights });
+            } catch (error) {
+              console.warn(`🚫 Failed to reapply highlighting after reset for ${key}:`, error);
+              // If it still fails, just leave it as plain text
+            }
+          }, 10);
+        } catch (error) {
+          console.warn(`🚫 Failed to reset editor content for ${key}:`, error);
+        }
+      }, 10);
+    } catch (error) {
+      console.warn(`🚫 Failed to reset corrupted editor ${key}:`, error);
+    }
   }
 }
 

@@ -417,7 +417,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
         mockServices.userService.currentUser.mockReturnValue({ username: 'current@user.com' });
       });
 
-      it('should update version tracking for self-triggered events', async () => {
+      it('should skip version tracking for self-triggered events', async () => {
         const region = createMockRegion({
           userLastUpdated: 'current@user.com',
           _version: 42
@@ -433,8 +433,8 @@ describe('SubscribeToRegionChangesUseCase', () => {
 
         await subscriptionCallback(event);
 
-        // Should only update version tracking, not content
-        expect(mockServices.storeService.setRegionVersion).toHaveBeenCalledWith('region-1', 42);
+        // Should NOT update version tracking for self-triggered events (already handled by UpdateRegionUseCase)
+        expect(mockServices.storeService.setRegionVersion).not.toHaveBeenCalled();
         
         // Should NOT update content for self-triggered events
         expect(mockServices.storeService.setRegionText).not.toHaveBeenCalled();
@@ -472,9 +472,9 @@ describe('SubscribeToRegionChangesUseCase', () => {
         expect(mockServices.flashIndicatorService.flashRegion).toHaveBeenCalledWith('region-1', 'other@user.com');
       });
 
-      it('should prevent stale version usage that causes array concatenation', async () => {
-        // This test ensures that self-triggered events update version tracking
-        // which prevents the issue where multiple saves use the same stale version
+      it('should skip version updates for self-triggered events to prevent conflicts', async () => {
+        // This test ensures that self-triggered events do NOT update version tracking
+        // because UpdateRegionUseCase already handles version increments correctly
         
         const firstSaveRegion = createMockRegion({
           userLastUpdated: 'current@user.com',
@@ -490,22 +490,20 @@ describe('SubscribeToRegionChangesUseCase', () => {
 
         mockServices.storeService.setRegionVersion = jest.fn();
 
-        // First save subscription (should update version)
+        // First save subscription (should skip version update)
         await subscriptionCallback({
           mutation: 'UPDATE',
           region: firstSaveRegion
         });
 
-        // Second save subscription (should update version again)
+        // Second save subscription (should skip version update)
         await subscriptionCallback({
           mutation: 'UPDATE', 
           region: secondSaveRegion
         });
 
-        // Verify version tracking was updated for both
-        expect(mockServices.storeService.setRegionVersion).toHaveBeenCalledWith('region-1', 71);
-        expect(mockServices.storeService.setRegionVersion).toHaveBeenCalledWith('region-1', 72);
-        expect(mockServices.storeService.setRegionVersion).toHaveBeenCalledTimes(2);
+        // Verify version tracking was NOT updated for self-triggered events
+        expect(mockServices.storeService.setRegionVersion).not.toHaveBeenCalled();
       });
     });
 

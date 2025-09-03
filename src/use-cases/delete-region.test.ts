@@ -30,6 +30,7 @@ describe('DeleteRegion', () => {
     regions: [],
     calculateTranscriptionMetadata: jest.fn(() => ({ regionCount: 1, coverage: 0.5 })),
     setTranscription: jest.fn(),
+    setSaveStatus: jest.fn(),
     getState: jest.fn(() => ({
       regionById: jest.fn(() => ({ transcriptionId: 'transcription123' })),
     })),

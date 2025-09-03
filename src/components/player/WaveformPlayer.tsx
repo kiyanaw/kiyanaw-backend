@@ -8,6 +8,8 @@ import { useSelectAndPlayRegion } from '../../hooks/useSelectAndPlayRegion';
 import { useEditorStore } from '../../stores/useEditorStore';
 import { CreateRegion } from '../../use-cases/create-region';
 import { services } from '../../services';
+import { SaveIndicator } from './SaveIndicator';
+import { browserService } from '../../services/browserService';
 
 interface Region {
   id: string;
@@ -49,6 +51,8 @@ export const WaveformPlayer = ({
   const [isMinimized, setIsMinimized] = useState(false);
   const [videoNaturalSize, setVideoNaturalSize] = useState<{ width: number; height: number } | null>(null);
   const [showVideoMobile, setShowVideoMobile] = useState(false);
+  const [showVideoFullscreen, setShowVideoFullscreen] = useState(false);
+  const [previousVideoPosition, setPreviousVideoPosition] = useState<'left' | 'center' | 'right'>('right');
 
   const [showZoomDialog, setShowZoomDialog] = useState(false);
   const [showSpeedDialog, setShowSpeedDialog] = useState(false);
@@ -62,11 +66,31 @@ export const WaveformPlayer = ({
   const duration = usePlayerStore((state) => state.duration)
   const canEdit = useEditorStore((state) => state.canEdit);
   const wavesurferError = useEditorStore((state) => state.wavesurferError);
+  const saveStatus = useEditorStore((state) => state.saveStatus);
   
   const play = usePlay()
   const pause = usePause()
   const selectAndPlayRegion = useSelectAndPlayRegion()
   const selectedRegion = useEditorStore((state) => state.selectedRegion)
+
+  // Load video preferences from localStorage on mount
+  useEffect(() => {
+    const preferences = browserService.getVideoPreferences();
+    setVideoPosition(preferences.position);
+    setVideoSize(preferences.size);
+    setIsMinimized(preferences.isMinimized);
+    setPreviousVideoPosition(preferences.position);
+    setZoom(preferences.zoom);
+    setSpeed(preferences.speed);
+  }, []);
+
+  // Apply zoom and speed settings to wavesurfer when loaded
+  useEffect(() => {
+    if (loadedAndReady) {
+      wavesurferService.setZoom(zoom);
+      wavesurferService.setPlaybackRate(speed);
+    }
+  }, [loadedAndReady, zoom, speed]);
 
   // Set initial locked state on mobile when wavesurfer is ready
   useEffect(() => {
@@ -126,21 +150,26 @@ export const WaveformPlayer = ({
 
   const handleZoomChange = (value: number) => {
     setZoom(value);
-    wavesurferService.setZoom(value)
+    wavesurferService.setZoom(value);
+    browserService.saveVideoPreferences({ zoom: value });
   };
 
   const handleSpeedChange = (value: number) => {
     setSpeed(value);
     wavesurferService.setPlaybackRate(value);
+    browserService.saveVideoPreferences({ speed: value });
   };
 
   // Video control handlers
   const handleVideoPosition = (position: 'left' | 'center' | 'right') => {
+    setPreviousVideoPosition(videoPosition); // Save current position as previous
     setVideoPosition(position);
+    browserService.saveVideoPreferences({ position });
   };
 
   const handleVideoSize = (size: 'small' | 'big') => {
     setVideoSize(size);
+    browserService.saveVideoPreferences({ size });
   };
 
   // Mobile video click handler
@@ -149,6 +178,20 @@ export const WaveformPlayer = ({
     
     // Only handle clicks on mobile when video is in modal
     if (!showVideoMobile) return;
+    
+    if (selectedRegion) {
+      selectAndPlayRegion(selectedRegion.id);
+    } else {
+      play({ playInFull: true });
+    }
+  };
+
+  // Fullscreen video click handler (desktop)
+  const handleFullscreenVideoClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent modal close
+    
+    // Only handle clicks when video is in fullscreen modal
+    if (!showVideoFullscreen) return;
     
     if (selectedRegion) {
       selectAndPlayRegion(selectedRegion.id);
@@ -275,8 +318,9 @@ export const WaveformPlayer = ({
               <Settings size={14} className="flex-shrink-0" />
             </button>
           </div>
-          <div className="font-bold text-sm">
-            {formatTime(currentTime)}/{formatTime(duration)}
+          <div className="flex items-center gap-2 font-bold text-sm">
+            <span>{formatTime(currentTime)}/{formatTime(duration)}</span>
+            <SaveIndicator status={saveStatus} />
           </div>
         </div>
 
@@ -302,35 +346,42 @@ export const WaveformPlayer = ({
             <div 
               className={`
                 ${showVideoMobile ? 'fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40' : 'hidden'}
-                lg:fixed lg:z-40 lg:rounded lg:group lg:bg-transparent lg:inset-auto
+                ${showVideoFullscreen ? 'lg:fixed lg:inset-0 lg:z-50 lg:flex lg:items-center lg:justify-center lg:p-4 lg:bg-black/40' : ''}
+                ${!showVideoFullscreen ? 'lg:fixed lg:z-40 lg:rounded lg:group lg:bg-transparent lg:inset-auto' : ''}
                 ${isMinimized ? 'lg:hidden' : 'lg:block'}
-                ${videoPosition === 'left' ? 'lg:bottom-4 lg:left-4' : videoPosition === 'center' ? 'lg:bottom-4 lg:left-1/2 lg:-translate-x-1/2' : 'lg:bottom-4 lg:right-4'}
+                ${!showVideoFullscreen && videoPosition === 'left' ? 'lg:bottom-4 lg:left-4' : !showVideoFullscreen && videoPosition === 'right' ? 'lg:bottom-4 lg:right-4' : ''}
               `}
-              style={showVideoMobile ? undefined : getVideoContainerStyle()}
+              style={showVideoMobile || showVideoFullscreen ? undefined : getVideoContainerStyle()}
               onMouseEnter={() => setIsVideoHovered(true)}
               onMouseLeave={() => setIsVideoHovered(false)}
               onClick={(e) => {
-                // Close modal when clicking backdrop on mobile
-                if (e.target === e.currentTarget && showVideoMobile) {
-                  setShowVideoMobile(false);
+                // Close modal when clicking backdrop
+                if (e.target === e.currentTarget) {
+                  if (showVideoMobile) {
+                    setShowVideoMobile(false);
+                  } else if (showVideoFullscreen) {
+                    setShowVideoFullscreen(false);
+                    setVideoPosition(previousVideoPosition); // Restore previous position
+                    browserService.saveVideoPreferences({ position: previousVideoPosition });
+                  }
                 }
               }}
             >
               <video
                 ref={setVideoElement}
-                className={`object-contain shadow-lg rounded ${showVideoMobile ? 'w-full max-h-[80vh]' : 'w-full h-full'}`}
+                className={`object-contain shadow-lg rounded ${showVideoMobile || showVideoFullscreen ? 'w-full max-h-[80vh]' : 'w-full h-full'}`}
                 preload="auto"
                 title="Video playback"
                 controls={false}
                 playsInline
                 webkit-playsinline=""
-                onClick={handleMobileVideoClick}
+                onClick={showVideoMobile ? handleMobileVideoClick : showVideoFullscreen ? handleFullscreenVideoClick : undefined}
               >
                 <source src={source} />
               </video>
 
-              {/* Desktop-only controls */}
-              <div className="hidden lg:block">
+              {/* Desktop-only controls - hide in fullscreen */}
+              <div className={`hidden lg:block ${showVideoFullscreen ? 'lg:hidden' : ''}`}>
                 {/* Position Controls */}
                 <div 
                   className={`absolute top-2 left-2 flex bg-black bg-opacity-50 rounded transition-opacity duration-200 ${
@@ -349,13 +400,12 @@ export const WaveformPlayer = ({
                     <ArrowLeft size={14} />
                   </button>
                   <button 
-                    onClick={() => handleVideoPosition('center')}
-                    className={`p-1.5 transition-all border-l border-white border-opacity-30 ${
-                      videoPosition === 'center' 
-                        ? 'text-gray-900 bg-white bg-opacity-80' 
-                        : 'text-white hover:text-gray-900 hover:bg-white hover:bg-opacity-80'
-                    }`}
-                    title="Center"
+                    onClick={() => {
+                      setPreviousVideoPosition(videoPosition); // Save current position
+                      setShowVideoFullscreen(true);
+                    }}
+                    className="p-1.5 transition-all border-l border-white border-opacity-30 text-white hover:text-gray-900 hover:bg-white hover:bg-opacity-80"
+                    title="Fullscreen"
                   >
                     <Circle size={14} />
                   </button>
@@ -401,7 +451,10 @@ export const WaveformPlayer = ({
                     <Maximize2 size={14} />
                   </button>
                   <button 
-                    onClick={() => setIsMinimized(true)}
+                    onClick={() => {
+                      setIsMinimized(true);
+                      browserService.saveVideoPreferences({ isMinimized: true });
+                    }}
                     className="p-1.5 transition-all border-l border-white border-opacity-30 rounded-r text-white hover:text-gray-900 hover:bg-white hover:bg-opacity-80"
                     title="Minimize"
                   >
@@ -500,7 +553,10 @@ export const WaveformPlayer = ({
         {isVideo && isMinimized && (
           <div className="hidden lg:block fixed bottom-4 right-4 z-40">
             <button
-              onClick={() => setIsMinimized(false)}
+              onClick={() => {
+                setIsMinimized(false);
+                browserService.saveVideoPreferences({ isMinimized: false });
+              }}
               className="px-2 py-1 text-xs rounded shadow-lg bg-gray-800 text-white hover:bg-gray-700 transition-colors"
               title="Restore video"
             >
