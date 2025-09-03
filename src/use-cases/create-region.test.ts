@@ -31,6 +31,7 @@ describe('CreateRegion', () => {
     regions: [],
     calculateTranscriptionMetadata: jest.fn(() => ({ regionCount: 0, coverage: 0 })),
     setTranscription: jest.fn(),
+    setSaveStatus: jest.fn(),
   };
 
   const validConfig = {

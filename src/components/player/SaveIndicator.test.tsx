@@ -7,7 +7,7 @@ describe('SaveIndicator', () => {
     
     const indicator = screen.getByTitle('All changes saved');
     expect(indicator).toBeInTheDocument();
-    expect(indicator).toHaveClass('bg-green-500');
+    expect(indicator.querySelector('svg')).toHaveClass('text-green-500');
   });
 
   it('should render spinning loader for saving status', () => {
