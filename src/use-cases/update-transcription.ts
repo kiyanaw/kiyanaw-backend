@@ -103,18 +103,27 @@ export class UpdateTranscriptionUseCase {
    */
   private async saveWithRetry(
     transcriptionId: string, 
-    apiUpdate: any, 
-    services: any, 
+    apiUpdate: {
+      title?: string;
+      comments?: string;
+      isPrivate?: boolean;
+      publicIssues?: boolean;
+      lang?: string;
+      userLastUpdated: string;
+      regionCount?: number;
+      issueCount?: number;
+      coverage?: number;
+    }, 
+    services: typeof import('../services').services, 
     maxRetries: number
-  ): Promise<any> {
-    let lastError: any;
+  ): Promise<TranscriptionData> {
+    let lastError: Error;
     
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         console.log(`📝 Attempting to save transcription (attempt ${attempt}/${maxRetries})`);
         
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const result = await services.transcriptionService.updateTranscription(transcriptionId, apiUpdate as any);
+        const result = await services.transcriptionService.updateTranscription(transcriptionId, apiUpdate);
         
         if (attempt > 1) {
           console.log(`✅ Transcription saved successfully on attempt ${attempt}`);
@@ -122,14 +131,14 @@ export class UpdateTranscriptionUseCase {
         
         return result;
       } catch (error) {
-        lastError = error;
+        lastError = error as Error;
         
         // Check if this is a version conflict
         const isConflict = error && 
           typeof error === 'object' && 
           'errors' in error &&
-          Array.isArray(error.errors) &&
-          error.errors.some((err: any) => 
+          Array.isArray((error as { errors: unknown[] }).errors) &&
+          (error as { errors: Array<{ errorType?: string; message?: string }> }).errors.some((err) => 
             err?.errorType === 'ConflictUnhandled' || 
             err?.message?.includes('Conflict resolver rejects mutation')
           );
