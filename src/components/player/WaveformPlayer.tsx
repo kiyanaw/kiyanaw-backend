@@ -8,6 +8,7 @@ import { useSelectAndPlayRegion } from '../../hooks/useSelectAndPlayRegion';
 import { useEditorStore } from '../../stores/useEditorStore';
 import { CreateRegion } from '../../use-cases/create-region';
 import { services } from '../../services';
+import { SaveIndicator } from './SaveIndicator';
 
 interface Region {
   id: string;
@@ -62,6 +63,7 @@ export const WaveformPlayer = ({
   const duration = usePlayerStore((state) => state.duration)
   const canEdit = useEditorStore((state) => state.canEdit);
   const wavesurferError = useEditorStore((state) => state.wavesurferError);
+  const saveStatus = useEditorStore((state) => state.saveStatus);
   
   const play = usePlay()
   const pause = usePause()
@@ -275,8 +277,9 @@ export const WaveformPlayer = ({
               <Settings size={14} className="flex-shrink-0" />
             </button>
           </div>
-          <div className="font-bold text-sm">
-            {formatTime(currentTime)}/{formatTime(duration)}
+          <div className="flex items-center gap-2 font-bold text-sm">
+            <span>{formatTime(currentTime)}/{formatTime(duration)}</span>
+            <SaveIndicator status={saveStatus} />
           </div>
         </div>
 

@@ -1,5 +1,4 @@
 import { services } from '../services';
-import { showToast } from '../services/toastService';
 import { TranscriptionModel } from '../services/adt';
 import type { TranscriptionData } from '../types/shared';
 
@@ -47,6 +46,9 @@ export class UpdateTranscriptionUseCase {
 
     const { transcriptionId, updates, store, services } = this.config;
 
+    // Set saving status
+    store.setSaveStatus('saving');
+
     // Get current user from auth service
     const user = services.authService.currentUser();
     if (!user) {
@@ -88,13 +90,13 @@ export class UpdateTranscriptionUseCase {
 
       // TODO: how to handle roll-back or conflict if this fails
 
-      // Show success toast
-      showToast('Transcription saved', 'success');
+      // Set saved status
+      store.setSaveStatus('saved');
 
       return result;
     } catch (error) {
       console.error('Failed to update transcription:', error);
-      showToast('Failed to save transcription', 'error');
+      store.setSaveStatus('error');
       throw error;
     }
   }

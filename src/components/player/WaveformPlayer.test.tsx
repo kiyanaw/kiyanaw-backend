@@ -109,6 +109,7 @@ describe('WaveformPlayer', () => {
             length: 120, // Duration in seconds
           },
           saved: false,
+          saveStatus: 'saved' as const,
           peaks: null,
           wavesurferError: null,
           accessDenied: false,
@@ -143,6 +144,7 @@ describe('WaveformPlayer', () => {
         updateTranscription: jest.fn(),
         setTranscription: jest.fn(),
         setSaved: jest.fn(),
+        setSaveStatus: jest.fn(),
         setSelectedRegion: jest.fn(),
         setPlaybackWithinRegion: jest.fn(),
         updateRegion: jest.fn(),
@@ -542,6 +544,7 @@ describe('WaveformPlayer', () => {
           length: 120, // Duration in seconds
         },
         saved: false,
+        saveStatus: 'saved' as const,
         peaks: null,
         wavesurferError: null,
         accessDenied: false,
@@ -576,6 +579,7 @@ describe('WaveformPlayer', () => {
         updateTranscription: jest.fn(),
         setTranscription: jest.fn(),
         setSaved: jest.fn(),
+        setSaveStatus: jest.fn(),
         setSelectedRegion: jest.fn(),
         setPlaybackWithinRegion: jest.fn(),
         updateRegion: jest.fn(),
@@ -664,6 +668,7 @@ describe('WaveformPlayer', () => {
             length: 120, // Duration in seconds
           },
           saved: false,
+          saveStatus: 'saved' as const,
           peaks: null,
           wavesurferError: null,
           accessDenied: false,
@@ -698,6 +703,7 @@ describe('WaveformPlayer', () => {
           updateTranscription: jest.fn(),
           setTranscription: jest.fn(),
           setSaved: jest.fn(),
+        setSaveStatus: jest.fn(),
           setSelectedRegion: jest.fn(),
           setPlaybackWithinRegion: jest.fn(),
           updateRegion: jest.fn(),

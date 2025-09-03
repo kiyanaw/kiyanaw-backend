@@ -20,6 +20,7 @@ interface EditorState {
   // Transcription state
   transcription: TranscriptionData | null;
   saved: boolean;
+  saveStatus: 'saved' | 'saving' | 'error';
   peaks: number[] | null;
   wavesurferError: string | null;
   accessDenied: boolean;
@@ -74,6 +75,7 @@ interface EditorState {
   // Transcription actions
   setTranscription: (transcription: TranscriptionData) => void;
   setSaved: (saved: boolean) => void;
+  setSaveStatus: (status: 'saved' | 'saving' | 'error') => void;
 
   // Region actions
   setSelectedRegion: (regionId: string | null) => void;
@@ -153,6 +155,7 @@ export const useEditorStore = create<EditorState>()(
       // Initial state
       transcription: null,
       saved: false,
+      saveStatus: 'saved',
       peaks: null,
       wavesurferError: null,
       accessDenied: false,
@@ -318,6 +321,10 @@ export const useEditorStore = create<EditorState>()(
         if (saved) {
           Timeout.set('editor-saved-reset', () => set({ saved: false }), 2000);
         }
+      },
+
+      setSaveStatus: (status) => {
+        set({ saveStatus: status });
       },
 
 
