@@ -6,6 +6,7 @@ import { wavesurferService } from '../services/wavesurferService';
 import { browserService } from '../services/browserService';
 import { services } from '../services';
 import { CreateRegion } from '../use-cases/create-region';
+import { SelectAndPlayRegion } from '../use-cases/select-and-play-region';
 
 // Mock the dependencies
 jest.mock('../stores/useEditorStore');
@@ -27,6 +28,7 @@ jest.mock('../services', () => ({
   },
 }));
 jest.mock('../use-cases/create-region');
+jest.mock('../use-cases/select-and-play-region');
 
 describe('useWavesurferEvents', () => {
   // Mock implementations
@@ -36,6 +38,12 @@ describe('useWavesurferEvents', () => {
   const mockStore = {
     setFullTranscriptionData: jest.fn(),
     cleanup: jest.fn(),
+    regionById: jest.fn(),
+    setSelectedRegion: jest.fn(),
+    transcription: {
+      id: 'test-transcription-id',
+      title: 'Test Transcription',
+    },
   };
   const mockPlayerStore = {
     setPlaying: jest.fn(),
@@ -59,9 +67,20 @@ describe('useWavesurferEvents', () => {
     (browserService.removeCustomStyle as jest.Mock).mockClear();
     (browserService.scrollElementIntoView as jest.Mock).mockClear();
     
+    // Set up regionById mock to return regions from mockRegions
+    mockStore.regionById.mockImplementation((regionId: string) => {
+      return mockRegions.find(region => region.id === regionId);
+    });
+    
     // Mock CreateRegion constructor and methods
     (CreateRegion as jest.MockedClass<typeof CreateRegion>).mockImplementation(() => ({
       execute: mockExecute,
+      validate: jest.fn(),
+    } as any));
+    
+    // Mock SelectAndPlayRegion constructor and methods
+    (SelectAndPlayRegion as jest.MockedClass<typeof SelectAndPlayRegion>).mockImplementation(() => ({
+      execute: jest.fn().mockResolvedValue(undefined),
       validate: jest.fn(),
     } as any));
 

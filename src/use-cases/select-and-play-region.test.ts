@@ -244,4 +244,53 @@ describe('SelectAndPlayRegion', () => {
       expect(mockWavesurferService.seekToRegion).toHaveBeenCalledWith({ id: 'different-region-id', start: 42.7, end: 50.3 });
     });
   });
+
+  describe('doPlay parameter', () => {
+    it('should play audio by default when doPlay is not specified', async () => {
+      const useCase = new SelectAndPlayRegion(validConfig);
+
+      await useCase.execute();
+
+      expect(mockWavesurferService.play).toHaveBeenCalledTimes(1);
+    });
+
+    it('should play audio when doPlay is explicitly set to true', async () => {
+      const useCase = new SelectAndPlayRegion({
+        ...validConfig,
+        doPlay: true,
+      });
+
+      await useCase.execute();
+
+      expect(mockWavesurferService.play).toHaveBeenCalledTimes(1);
+    });
+
+    it('should not play audio when doPlay is set to false', async () => {
+      const useCase = new SelectAndPlayRegion({
+        ...validConfig,
+        doPlay: false,
+      });
+
+      await useCase.execute();
+
+      // Should still perform all other operations
+      expect(mockStore.setSelectedRegion).toHaveBeenCalledWith('test-region-id');
+      expect(mockBrowserService.setSelectedRegion).toHaveBeenCalledWith('test-region-id');
+      expect(mockWavesurferService.seekToRegion).toHaveBeenCalledWith({ id: 'test-region-id', start: 10.5, end: 20.5 });
+      
+      // But should not play audio
+      expect(mockWavesurferService.play).not.toHaveBeenCalled();
+    });
+
+    it('should still update URL when doPlay is false', async () => {
+      const useCase = new SelectAndPlayRegion({
+        ...validConfig,
+        doPlay: false,
+      });
+
+      await useCase.execute();
+
+      expect(mockBrowserService.updateUrl).toHaveBeenCalledWith('/transcribe-edit/test-transcription-id/test-region-id');
+    });
+  });
 }); 
