@@ -27,6 +27,20 @@ jest.mock('../../services/wavesurferService', () => {
 // Get the mocked service for test assertions
 const mockWaveSurferService = jest.mocked(wavesurferService);
 
+// Mock the browserService
+jest.mock('../../services/browserService', () => ({
+  browserService: {
+    getVideoPreferences: jest.fn(() => ({
+      position: 'right',
+      size: 'small', 
+      isMinimized: false,
+      zoom: 40,
+      speed: 100,
+    })),
+    saveVideoPreferences: jest.fn(),
+  },
+}));
+
 // Mock the stores
 jest.mock('../../stores/usePlayerStore', () => ({
   usePlayerStore: jest.fn(),

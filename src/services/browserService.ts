@@ -1,3 +1,11 @@
+interface VideoPreferences {
+  position: 'left' | 'center' | 'right';
+  size: 'small' | 'big';
+  isMinimized: boolean;
+  zoom: number;
+  speed: number;
+}
+
 class BrowserService {
   private static instance: BrowserService;
   private readonly DYNAMIC_STYLES_STYLESHEET_ID = 'dynamic-styles';
@@ -246,6 +254,53 @@ class BrowserService {
     if (this.selectedRegionStyleId) {
       this.removeCustomStyle(this.selectedRegionStyleId);
       this.selectedRegionStyleId = null;
+    }
+  }
+
+  /**
+   * Video preferences management
+   */
+  private readonly VIDEO_PREFERENCES_KEY = 'kiyanaw-video-preferences';
+
+  /**
+   * Gets video preferences from localStorage
+   */
+  getVideoPreferences(): VideoPreferences {
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+      return { position: 'right', size: 'small', isMinimized: false, zoom: 40, speed: 100 };
+    }
+
+    try {
+      const stored = localStorage.getItem(this.VIDEO_PREFERENCES_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        return {
+          position: parsed.position || 'right',
+          size: parsed.size || 'small',
+          isMinimized: parsed.isMinimized || false,
+          zoom: parsed.zoom || 40,
+          speed: parsed.speed || 100,
+        };
+      }
+    } catch (error) {
+      console.warn('Error loading video preferences:', error);
+    }
+
+    return { position: 'right', size: 'small', isMinimized: false, zoom: 40, speed: 100 };
+  }
+
+  /**
+   * Saves video preferences to localStorage
+   */
+  saveVideoPreferences(preferences: Partial<VideoPreferences>): void {
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') return;
+
+    try {
+      const current = this.getVideoPreferences();
+      const updated = { ...current, ...preferences };
+      localStorage.setItem(this.VIDEO_PREFERENCES_KEY, JSON.stringify(updated));
+    } catch (error) {
+      console.warn('Error saving video preferences:', error);
     }
   }
 
