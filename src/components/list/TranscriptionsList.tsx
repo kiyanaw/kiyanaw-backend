@@ -36,7 +36,7 @@ export const TranscriptionsList = () => {
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const [showMobileFilter, setShowMobileFilter] = useState(false);
 
-  const showUploadButton = false;
+  const showUploadButton = true;
 
   // Generate sort options for select dropdown
   const generateSortOptions = () => {

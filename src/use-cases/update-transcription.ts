@@ -117,7 +117,7 @@ export class UpdateTranscriptionUseCase {
     services: typeof import('../services').services, 
     maxRetries: number
   ): Promise<TranscriptionData> {
-    let lastError: Error;
+    let lastError: Error = new Error('Unknown error occurred');
     
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
