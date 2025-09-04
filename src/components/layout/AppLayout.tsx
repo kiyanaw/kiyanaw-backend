@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Outlet, Link } from 'react-router-dom';
-import { Download, LogOut } from 'lucide-react';
+import { Download, LogOut, HelpCircle } from 'lucide-react';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { useLoadMyInvites } from '../../hooks/useLoadMyInvites';
 import { signOut } from 'aws-amplify/auth';
@@ -140,6 +140,14 @@ export const AppLayout = () => {
                     </div>
                     
                     <div className="py-1">
+                      <Link
+                        to="/support"
+                        onClick={() => setProfileDropdownOpen(false)}
+                        className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-150 flex items-center gap-2"
+                      >
+                        <HelpCircle className="w-4 h-4" />
+                        Support
+                      </Link>
                       {shouldShowInstall() && (
                         <button
                           onClick={async () => {
@@ -245,6 +253,15 @@ export const AppLayout = () => {
                     {pendingCount}
                   </span>
                 )}
+              </Link>
+
+              <Link
+                to="/support"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center px-6 py-3 text-gray-900 hover:bg-gray-50 active:bg-gray-100 transition-colors duration-150"
+              >
+                <HelpCircle className="w-5 h-5 text-gray-600 mr-4" />
+                <span className="font-medium">Support</span>
               </Link>
 
               {shouldShowInstall() && (

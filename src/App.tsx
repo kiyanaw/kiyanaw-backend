@@ -10,6 +10,7 @@ import { AppLayout } from './components/layout/AppLayout';
 import { TranscribeListPage } from './pages/TranscribeListPage';
 import { StatsPage } from './pages/StatsPage';
 import { AboutPage } from './pages/AboutPage';
+import { SupportPage } from './pages/SupportPage';
 import { UploadForm } from './components/upload/UploadForm';
 import { EditorPage } from './pages/EditorPage';
 import { NotFoundPage } from './pages/NotFoundPage';
@@ -45,6 +46,7 @@ function App() {
             <Route path="invitations/:inviteId" element={<InvitationsPage />} />
             <Route path="stats" element={<StatsPage />} />
             <Route path="about" element={<AboutPage />} />
+            <Route path="support" element={<SupportPage />} />
             <Route path="issue-browser" element={<IssueBrowserPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
