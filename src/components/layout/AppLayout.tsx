@@ -213,6 +213,9 @@ export const AppLayout = () => {
               <div className="text-lg font-semibold text-gray-900 truncate mt-1 pr-10">
                 {user?.username}
               </div>
+              <div className="text-xs text-gray-400 mt-1">
+                Build: {import.meta.env.MODE === 'production' ? __BUILD_HASH__ : 'dev'}
+              </div>
             </div>
 
             {/* Navigation Links */}
