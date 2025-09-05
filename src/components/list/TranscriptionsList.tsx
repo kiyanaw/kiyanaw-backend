@@ -24,6 +24,8 @@ const sortOptions: SortOption[] = [
   { key: 'issues', label: 'Issues' },
 ];
 
+type TabType = 'owned' | 'shared';
+
 export const TranscriptionsList = () => {
   const transcriptions = useTranscriptionsStore((state) => state.transcriptions);
   const loading = useTranscriptionsStore((state) => state.loading);
@@ -35,6 +37,7 @@ export const TranscriptionsList = () => {
   const [sortDesc, setSortDesc] = useState(true);
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const [showMobileFilter, setShowMobileFilter] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabType>('owned');
 
   const showUploadButton = true;
 
@@ -83,7 +86,17 @@ export const TranscriptionsList = () => {
 
   // Filter and sort transcriptions
   const filteredAndSortedTranscriptions = useMemo(() => {
-    const filtered = transcriptions.filter((transcription) =>
+    let filtered = transcriptions;
+
+    // Apply tab filter first
+    if (activeTab === 'owned') {
+      filtered = filtered.filter((t) => t.isMine(user?.userId));
+    } else if (activeTab === 'shared') {
+      filtered = filtered.filter((t) => !t.isMine(user?.userId));
+    }
+
+    // Apply search filter
+    filtered = filtered.filter((transcription) =>
       transcription.title.toLowerCase().includes(search.toLowerCase())
     );
 
@@ -112,7 +125,7 @@ export const TranscriptionsList = () => {
     });
 
     return filtered;
-  }, [transcriptions, search, sortBy, sortDesc]);
+  }, [transcriptions, search, sortBy, sortDesc, activeTab, user?.userId]);
 
   // Show all transcriptions (no pagination)
   const displayedTranscriptions = filteredAndSortedTranscriptions;
@@ -311,6 +324,44 @@ export const TranscriptionsList = () => {
             </Link>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Tab Navigation */}
+      <div className="border-b border-gray-200 bg-white">
+        <div className="px-4 md:px-6">
+          <nav className="-mb-px flex space-x-8" aria-label="Tabs">
+            <button
+              onClick={() => setActiveTab('owned')}
+              className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'owned'
+                  ? 'border-ki-blue text-ki-blue'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              My Transcriptions
+              <span className={`ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                activeTab === 'owned' ? 'bg-ki-blue text-white' : 'bg-gray-100 text-gray-900'
+              }`}>
+                {transcriptions.filter(t => t.isMine(user?.userId)).length}
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveTab('shared')}
+              className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'shared'
+                  ? 'border-ki-blue text-ki-blue'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Shared with Me
+              <span className={`ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                activeTab === 'shared' ? 'bg-ki-blue text-white' : 'bg-gray-100 text-gray-900'
+              }`}>
+                {transcriptions.filter(t => !t.isMine(user?.userId)).length}
+              </span>
+            </button>
+          </nav>
         </div>
       </div>
 
@@ -567,9 +618,13 @@ export const TranscriptionsList = () => {
         {displayedTranscriptions.length === 0 && (
           <div className="text-center py-12">
             <div className="text-gray-500">
-              {search
-                ? 'No transcriptions match your search.'
-                : 'No transcriptions found.'}
+              {search ? (
+                'No transcriptions match your search.'
+              ) : activeTab === 'owned' ? (
+                'You haven\'t created any transcriptions yet.'
+              ) : (
+                'No transcriptions have been shared with you yet.'
+              )}
             </div>
           </div>
         )}

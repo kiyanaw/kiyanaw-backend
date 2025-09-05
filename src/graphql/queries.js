@@ -162,6 +162,116 @@ export const syncTranscriptions = /* GraphQL */ `
     }
   }
 `;
+export const transcriptionsByAuthor = /* GraphQL */ `
+  query TranscriptionsByAuthor(
+    $author: String!
+    $sortDirection: ModelSortDirection
+    $filter: ModelTranscriptionFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    transcriptionsByAuthor(
+      author: $author
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        author
+        authorFriendly
+        coverage
+        dateLastUpdated
+        userLastUpdated
+        length
+        issues
+        comments
+        commentCount
+        regionCount
+        issueCount
+        tags
+        source
+        index
+        lang
+        title
+        type
+        isPrivate
+        isPublished
+        publicIssues
+        disableAnalyzer
+        editors
+        viewers
+        editorGroups
+        viewerGroups
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      nextToken
+      startedAt
+      __typename
+    }
+  }
+`;
+export const transcriptionsByDate = /* GraphQL */ `
+  query TranscriptionsByDate(
+    $dateLastUpdated: String!
+    $sortDirection: ModelSortDirection
+    $filter: ModelTranscriptionFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    transcriptionsByDate(
+      dateLastUpdated: $dateLastUpdated
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        author
+        authorFriendly
+        coverage
+        dateLastUpdated
+        userLastUpdated
+        length
+        issues
+        comments
+        commentCount
+        regionCount
+        issueCount
+        tags
+        source
+        index
+        lang
+        title
+        type
+        isPrivate
+        isPublished
+        publicIssues
+        disableAnalyzer
+        editors
+        viewers
+        editorGroups
+        viewerGroups
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      nextToken
+      startedAt
+      __typename
+    }
+  }
+`;
 export const byTitle = /* GraphQL */ `
   query ByTitle(
     $title: String!

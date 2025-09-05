@@ -266,6 +266,26 @@ export const schema = {
                 {
                     "type": "key",
                     "properties": {
+                        "name": "ByAuthor",
+                        "queryField": "transcriptionsByAuthor",
+                        "fields": [
+                            "author"
+                        ]
+                    }
+                },
+                {
+                    "type": "key",
+                    "properties": {
+                        "name": "ByDateLastUpdated",
+                        "queryField": "transcriptionsByDate",
+                        "fields": [
+                            "dateLastUpdated"
+                        ]
+                    }
+                },
+                {
+                    "type": "key",
+                    "properties": {
                         "name": "ByTitle",
                         "queryField": "byTitle",
                         "fields": [

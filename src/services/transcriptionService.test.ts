@@ -4,6 +4,7 @@ import { loadRegionsForTranscription } from './regionService';
 import { loadIssuesForTranscription } from './issueService';
 import { TranscriptionModel } from './adt';
 import { currentUser } from './userService';
+import { transcriptionStorage } from './transcriptionStorageService';
 import { Transcription as DSTranscription } from '../models';
 
 // Mock the dependencies
@@ -14,6 +15,8 @@ jest.mock('./regionService');
 jest.mock('./issueService');
 jest.mock('./adt');
 jest.mock('./userService');
+jest.mock('./transcriptionStorageService');
+jest.mock('./inviteService');
 
 // Mock Amplify Storage
 jest.mock('aws-amplify/storage', () => ({
@@ -667,14 +670,16 @@ describe('TranscriptionService', () => {
         const graphqlError = new Error('GraphQL network error');
         mockGraphqlClient.graphql.mockRejectedValue(graphqlError);
         
-        await expect(loadAll()).rejects.toThrow('Failed to load transcriptions: Error: GraphQL network error');
+        // New sync logic has fallback, so it throws the original error
+        await expect(loadAll()).rejects.toThrow('GraphQL network error');
       });
 
       it('should throw error when GraphQL returns error response', async () => {
         const graphqlError = new Error('Authorization failed');
         mockGraphqlClient.graphql.mockRejectedValue(graphqlError);
         
-        await expect(loadAll()).rejects.toThrow('Failed to load transcriptions');
+        // New sync logic has fallback, so it throws the original error
+        await expect(loadAll()).rejects.toThrow('Authorization failed');
       });
 
       it('should handle TranscriptionModel constructor errors', async () => {

@@ -2,7 +2,7 @@ import { generateClient } from 'aws-amplify/api';
 import { getUrl } from 'aws-amplify/storage';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - GraphQL queries are generated as JS files
-import { getTranscription, listTranscriptions } from '../graphql/queries.js';
+import { getTranscription, transcriptionsByDate, transcriptionsByAuthor } from '../graphql/queries.js';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - GraphQL mutations are generated as JS files
 import { createTranscription as createTranscriptionMutation, updateTranscription as updateTranscriptionMutation, deleteTranscription as deleteTranscriptionMutation } from '../graphql/mutations.js';
@@ -12,6 +12,9 @@ import { loadIssuesForTranscription } from './issueService';
 import { loadCommentsForTranscription } from './commentService';
 import { TranscriptionModel, type TranscriptionData as ADTTranscriptionData } from './adt';
 import { currentUser } from './userService';
+import { transcriptionStorage } from './transcriptionStorageService';
+import { getMyInvites } from './inviteService';
+
 import { 
   type GraphQLClient, 
   type GraphQLResponse, 
@@ -21,7 +24,6 @@ import {
   type DeleteTranscriptionResponse,
   type TranscriptionData as SharedTranscriptionData, 
   type LoadTranscriptionResult,
-  type GraphQLListResponse
 } from '../types/shared';
 
 // Create GraphQL client lazily
@@ -255,37 +257,418 @@ export const loadInFull = async (transcriptionId: string): Promise<false | LoadT
 };
 
 /**
- * Loads all transcriptions using GraphQL API and wraps them in TranscriptionModel instances
+ * Loads transcriptions owned by a specific user using GSI
+ * @param userId The user ID to query for
+ * @returns Array of TranscriptionModel instances owned by the user
+ */
+const loadOwnedTranscriptions = async (userId: string): Promise<TranscriptionModel[]> => {
+  const allTranscriptions: TranscriptionModel[] = [];
+  let nextToken: string | undefined;
+
+  try {
+    console.log(`🔍 Loading owned transcriptions for user ${userId} via GSI...`);
+    
+    do {
+      const graphqlResult = await getClient().graphql({
+        query: transcriptionsByAuthor,
+        variables: {
+          author: userId,
+          limit: 50,
+          nextToken
+        }
+      });
+
+      const response = graphqlResult as { 
+        data: { 
+          transcriptionsByAuthor: {
+            items: SharedTranscriptionData[];
+            nextToken?: string;
+          }
+        } 
+      };
+      const page = response.data?.transcriptionsByAuthor;
+      
+      if (page?.items) {
+        const user = currentUser();
+        const pageModels = page.items.map(item => {
+          const model = new TranscriptionModel(item as unknown as ADTTranscriptionData);
+          model.setAccessLevel(user?.userId);
+          return model;
+        });
+        
+        allTranscriptions.push(...pageModels);
+        console.log(`📄 Loaded owned page: ${pageModels.length} transcriptions`);
+      }
+      
+      nextToken = page?.nextToken;
+    } while (nextToken);
+
+    console.log(`✅ Owned transcriptions query completed: ${allTranscriptions.length} transcriptions`);
+    return allTranscriptions;
+  } catch (error) {
+    console.error('❌ Failed to load owned transcriptions via GSI:', error);
+    // Log the full error details for debugging
+    if (error && typeof error === 'object' && 'errors' in error) {
+      console.error('GraphQL errors:', error.errors);
+      const errors = error.errors as any[];
+      errors.forEach((gqlError: any, index: number) => {
+        console.error(`GraphQL Error ${index + 1}:`, {
+          message: gqlError.message,
+          errorType: gqlError.errorType,
+          path: gqlError.path,
+          locations: gqlError.locations
+        });
+      });
+    }
+    throw new Error(`Failed to load owned transcriptions for user ${userId}: ${error}`);
+  }
+};
+
+/**
+ * Loads transcriptions shared with a user via accepted invites
+ * @param userEmail The user's email to query invites for
+ * @returns Array of TranscriptionModel instances shared with the user
+ */
+const loadSharedTranscriptions = async (userEmail: string): Promise<TranscriptionModel[]> => {
+  try {
+    console.log(`🔍 Loading shared transcriptions for user ${userEmail} via invites...`);
+    
+    // Get user's invites (we'll filter for accepted ones)
+    const invitesResponse = await getMyInvites({
+      userEmail
+    });
+    
+    const allInvites = invitesResponse.invites || [];
+    // Filter for accepted invites only
+    const acceptedInvites = allInvites.filter(inviteWithValidation => 
+      inviteWithValidation.invite.status === 'accepted'
+    );
+    
+    console.log(`📧 Found ${acceptedInvites.length} accepted invites out of ${allInvites.length} total`);
+    
+    if (acceptedInvites.length === 0) {
+      console.log('✅ No shared transcriptions found');
+      return [];
+    }
+    
+    // Extract unique transcription IDs from invites
+    const transcriptionIds = [...new Set(acceptedInvites.map(inviteWithValidation => 
+      inviteWithValidation.invite.transcriptionId
+    ))];
+    console.log(`🔍 Loading ${transcriptionIds.length} shared transcriptions...`);
+    
+    // Batch load the shared transcriptions
+    const sharedTranscriptions: TranscriptionModel[] = [];
+    const user = currentUser();
+    
+    for (const transcriptionId of transcriptionIds) {
+      try {
+        const graphqlResult = await getClient().graphql({
+          query: getTranscription,
+          variables: { id: transcriptionId }
+        });
+        
+        const response = graphqlResult as GraphQLResponse<GetTranscriptionResponse>;
+        const transcriptionData = response.data.getTranscription;
+        
+        if (transcriptionData) {
+          const model = new TranscriptionModel(transcriptionData as unknown as ADTTranscriptionData);
+          model.setAccessLevel(user?.userId);
+          sharedTranscriptions.push(model);
+        }
+      } catch (error) {
+        // If we can't access a transcription (deleted, permissions revoked), skip it
+        console.warn(`⚠️ Skipping inaccessible shared transcription ${transcriptionId}:`, error);
+      }
+    }
+    
+    console.log(`✅ Shared transcriptions loaded: ${sharedTranscriptions.length} accessible`);
+    return sharedTranscriptions;
+    
+  } catch (error) {
+    console.error('❌ Failed to load shared transcriptions via invites:', error);
+    throw new Error(`Failed to load shared transcriptions for user ${userEmail}: ${error}`);
+  }
+};
+
+/**
+ * Loads transcriptions updated since a specific date using GSI
+ * @param sinceDate ISO date string to query from
+ * @returns Array of TranscriptionModel instances updated since the date
+ */
+const loadTranscriptionsSince = async (sinceDate: string): Promise<TranscriptionModel[]> => {
+  const allTranscriptions: TranscriptionModel[] = [];
+  let nextToken: string | undefined;
+
+  try {
+    console.log(`🔍 Loading transcriptions since ${sinceDate} via GSI...`);
+    
+    do {
+      const graphqlResult = await getClient().graphql({
+        query: transcriptionsByDate,
+        variables: {
+          dateLastUpdated: sinceDate,
+          limit: 50,
+          nextToken
+        }
+      });
+
+      const response = graphqlResult as { 
+        data: { 
+          transcriptionsByDate: {
+            items: SharedTranscriptionData[];
+            nextToken?: string;
+          }
+        } 
+      };
+      const page = response.data?.transcriptionsByDate;
+      
+      if (page?.items) {
+        const user = currentUser();
+        const pageModels = page.items.map(item => {
+          const model = new TranscriptionModel(item as unknown as ADTTranscriptionData);
+          model.setAccessLevel(user?.userId);
+          return model;
+        });
+        
+        allTranscriptions.push(...pageModels);
+        console.log(`📄 Loaded page: ${pageModels.length} transcriptions`);
+      }
+      
+      nextToken = page?.nextToken;
+    } while (nextToken);
+
+    console.log(`✅ GSI query completed: ${allTranscriptions.length} transcriptions since ${sinceDate}`);
+    return allTranscriptions;
+  } catch (error) {
+    console.error('❌ Failed to load transcriptions via GSI:', error);
+    // Log the full error details for debugging
+    if (error && typeof error === 'object' && 'errors' in error) {
+      console.error('GraphQL errors:', error.errors);
+      const errors = error.errors as any[];
+      errors.forEach((gqlError: any, index: number) => {
+        console.error(`GraphQL Error ${index + 1}:`, {
+          message: gqlError.message,
+          errorType: gqlError.errorType,
+          path: gqlError.path,
+          locations: gqlError.locations
+        });
+      });
+    }
+    throw new Error(`Failed to load transcriptions since ${sinceDate}: ${error}`);
+  }
+};
+
+/**
+ * Loads all transcriptions with intelligent caching and sync
+ * First sync is a full sync, subsequent syncs are incremental using GSI
  * @returns Array of TranscriptionModel instances
  */
 export const loadAll = async (): Promise<TranscriptionModel[]> => {
-  try {
-    console.log('🔍 Loading all transcriptions via GraphQL API...');
-    const graphqlResult = await getClient().graphql({ query: listTranscriptions });
-    
-    // Cast the result to access the data property
-    const response = graphqlResult as { data: GraphQLListResponse<SharedTranscriptionData> };
-    
-    // The GraphQL result is of shape { listTranscriptions: { items: [...] } }
-    const items = response.data?.listTranscriptions?.items ?? [];
-
-    // Get current user for access level determination
-    const user = currentUser();
-    
-    // Wrap each transcription in TranscriptionModel before returning
-    const transcriptionModels = items.map(item => {
-      const model = new TranscriptionModel(item as unknown as ADTTranscriptionData);
-      // Set access level for the current user
-      model.setAccessLevel(user?.userId);
-      return model;
-    });
-
-    console.log(`✅ Loaded ${transcriptionModels.length} transcriptions`);
-    return transcriptionModels;
-  } catch (error) {
-    console.error('❌ Failed to load transcriptions via GraphQL API:', error);
-    throw new Error(`Failed to load transcriptions: ${error}`);
+  const user = currentUser();
+  if (!user?.userId) {
+    throw new Error('User must be authenticated to load transcriptions');
   }
+
+
+  try {
+    console.log('🔍 LoadAll: Checking cache and sync status...');
+    
+    // Check if we need to validate cache (remove orphaned transcriptions)
+    const needsValidation = await transcriptionStorage.shouldValidateCache(user.userId);
+    if (needsValidation) {
+      console.log('🔍 Cache validation needed, checking for orphaned transcriptions...');
+      await validateCachedTranscriptions(user.userId);
+      await transcriptionStorage.markCacheValidated(user.userId);
+    }
+    
+    // Check if we need to sync
+    const needsSync = await transcriptionStorage.shouldSync(user.userId, 5); // 5 minute cache
+    
+    if (needsSync) {
+      console.log('🔄 Cache is stale or missing, performing sync...');
+      
+      // Get last sync timestamp
+      const lastSyncedAt = await transcriptionStorage.getLastSyncedAt(user.userId);
+      
+      if (!lastSyncedAt) {
+        // First sync - do full sync using hybrid approach
+        console.log('🆕 First sync - loading all transcriptions...');
+        const fullSyncResult = await performFullSync();
+        
+        // Store in cache
+        await transcriptionStorage.storeTranscriptions(fullSyncResult);
+        await transcriptionStorage.setLastSyncedAt(user.userId, new Date().toISOString());
+        
+        console.log(`✅ Full sync completed: ${fullSyncResult.length} transcriptions cached`);
+        return fullSyncResult;
+      } else {
+        // Incremental sync using GSI
+        console.log(`🔄 Incremental sync since ${lastSyncedAt}...`);
+        const incrementalResults = await loadTranscriptionsSince(lastSyncedAt);
+        
+        if (incrementalResults.length > 0) {
+          // Merge with existing cache
+          await transcriptionStorage.storeTranscriptions(incrementalResults);
+          console.log(`✅ Incremental sync: ${incrementalResults.length} new/updated transcriptions`);
+        } else {
+          console.log('✅ Incremental sync: No new transcriptions');
+        }
+        
+        // Update sync timestamp
+        await transcriptionStorage.setLastSyncedAt(user.userId, new Date().toISOString());
+      }
+    } else {
+      console.log('✅ Cache is fresh, using cached data');
+    }
+    
+    // Return all cached transcriptions
+    const allCached = await transcriptionStorage.getAll();
+    console.log(`📦 Returning ${allCached.length} transcriptions from cache`);
+    return allCached;
+    
+  } catch (error) {
+    console.error('❌ LoadAll failed:', error);
+    
+    // Fallback to direct API call if sync fails
+    console.log('🔄 Falling back to direct API call...');
+    return await performFullSync();
+  }
+};
+
+/**
+ * Validates cached transcriptions against current access permissions
+ * Removes transcriptions that are no longer accessible (deleted by owner, invite revoked, etc.)
+ */
+const validateCachedTranscriptions = async (_userId: string): Promise<void> => {
+  try {
+    console.log('🔍 Validating cached transcriptions against current permissions...');
+    
+    // Get current accessible transcriptions from API (this respects ACL)
+    const currentAccessible = await performFullSync();
+    const currentIds = new Set(currentAccessible.map(t => t.id));
+    
+    // Get cached transcriptions
+    const cached = await transcriptionStorage.getAll();
+    
+    // Find transcriptions that are cached but no longer accessible
+    const orphanedIds = cached
+      .filter(t => !currentIds.has(t.id))
+      .map(t => t.id);
+    
+    if (orphanedIds.length > 0) {
+      console.log(`🧹 Removing ${orphanedIds.length} orphaned transcriptions from cache:`, orphanedIds);
+      
+      // Remove orphaned transcriptions from cache
+      for (const id of orphanedIds) {
+        await transcriptionStorage.removeTranscription(id);
+      }
+      
+      console.log('✅ Cache cleanup completed');
+    } else {
+      console.log('✅ Cache validation passed - no orphaned transcriptions');
+    }
+    
+  } catch (error) {
+    console.warn('⚠️ Cache validation failed, continuing with existing cache:', error);
+  }
+};
+
+/**
+ * Performs a hybrid full sync using efficient GSI queries + invite discovery
+ * Falls back to expensive scan only for admin users
+ */
+const performFullSync = async (): Promise<TranscriptionModel[]> => {
+  const user = currentUser();
+  if (!user?.userId) {
+    throw new Error('User must be authenticated to perform sync');
+  }
+
+  console.log('🔍 Performing hybrid full sync...');
+  
+  try {
+    // Load owned transcriptions via efficient GSI
+    const ownedTranscriptions = await loadOwnedTranscriptions(user.userId);
+    console.log(`📝 Loaded ${ownedTranscriptions.length} owned transcriptions`);
+    
+    // Load shared transcriptions via invites (need email for invite lookup)
+    let sharedTranscriptions: TranscriptionModel[] = [];
+    if (user.username) { // username is typically the email in Cognito
+      sharedTranscriptions = await loadSharedTranscriptions(user.username);
+      console.log(`🤝 Loaded ${sharedTranscriptions.length} shared transcriptions`);
+    }
+    
+    // Combine and deduplicate (in case user has both ownership and invite access)
+    const allTranscriptions = new Map<string, TranscriptionModel>();
+    
+    // Add owned transcriptions
+    ownedTranscriptions.forEach(t => allTranscriptions.set(t.id, t));
+    
+    // Add shared transcriptions (won't overwrite owned ones due to Map)
+    sharedTranscriptions.forEach(t => allTranscriptions.set(t.id, t));
+    
+    const combinedTranscriptions = Array.from(allTranscriptions.values());
+    
+    console.log(`✅ Hybrid sync completed: ${combinedTranscriptions.length} total transcriptions (${ownedTranscriptions.length} owned + ${sharedTranscriptions.length} shared)`);
+    return combinedTranscriptions;
+    
+  } catch (error) {
+    console.error('❌ Hybrid sync failed:', error);
+    throw error;
+  }
+};
+
+
+/**
+ * Loads only transcriptions owned by the current user
+ * @returns Array of TranscriptionModel instances owned by the user
+ */
+export const loadOwnedTranscriptionsOnly = async (): Promise<TranscriptionModel[]> => {
+  const user = currentUser();
+  if (!user?.userId) {
+    throw new Error('User must be authenticated to load owned transcriptions');
+  }
+  
+  
+  return await loadOwnedTranscriptions(user.userId);
+};
+
+/**
+ * Loads only transcriptions shared with the current user
+ * @returns Array of TranscriptionModel instances shared with the user
+ */
+export const loadSharedTranscriptionsOnly = async (): Promise<TranscriptionModel[]> => {
+  const user = currentUser();
+  if (!user?.username) {
+    throw new Error('User must be authenticated with email to load shared transcriptions');
+  }
+  
+  
+  return await loadSharedTranscriptions(user.username);
+};
+
+/**
+ * Categorizes a list of transcriptions as owned vs shared
+ * @param transcriptions Array of transcriptions to categorize
+ * @param userId Current user's ID
+ * @returns Object with owned and shared arrays
+ */
+export const categorizeTranscriptions = (
+  transcriptions: TranscriptionModel[], 
+  userId: string
+): { owned: TranscriptionModel[]; shared: TranscriptionModel[] } => {
+  const owned: TranscriptionModel[] = [];
+  const shared: TranscriptionModel[] = [];
+  
+  transcriptions.forEach(transcription => {
+    if (transcription.author === userId) {
+      owned.push(transcription);
+    } else {
+      shared.push(transcription);
+    }
+  });
+  
+  return { owned, shared };
 };
 
 /**
@@ -318,6 +701,23 @@ export const create = async (data: CreateTranscriptionData): Promise<SharedTrans
     const created = result?.createTranscription;
     if (!created) {
       throw new Error('Failed to create transcription - no data returned');
+    }
+
+    // Invalidate cache after successful creation
+    const user = currentUser();
+    if (user?.userId) {
+      console.log('🔄 Invalidating cache after transcription creation');
+      await transcriptionStorage.setLastSyncedAt(user.userId, new Date().toISOString());
+      
+      // Optimistically add to cache if it exists
+      try {
+        const model = new TranscriptionModel(created as unknown as ADTTranscriptionData);
+        model.setAccessLevel(user.userId);
+        await transcriptionStorage.storeTranscriptions([model]);
+        console.log('✅ Optimistically added new transcription to cache');
+      } catch (cacheError) {
+        console.warn('⚠️ Failed to add to cache optimistically:', cacheError);
+      }
     }
 
     return created;
@@ -374,6 +774,23 @@ export const updateTranscription = async (
       throw new Error('Failed to update transcription - no data returned');
     }
 
+    // Invalidate cache and update optimistically
+    const user = currentUser();
+    if (user?.userId) {
+      console.log('🔄 Invalidating cache after transcription update');
+      await transcriptionStorage.setLastSyncedAt(user.userId, new Date().toISOString());
+      
+      // Optimistically update cache if it exists
+      try {
+        const model = new TranscriptionModel(updated as unknown as ADTTranscriptionData);
+        model.setAccessLevel(user.userId);
+        await transcriptionStorage.storeTranscriptions([model]);
+        console.log('✅ Optimistically updated transcription in cache');
+      } catch (cacheError) {
+        console.warn('⚠️ Failed to update cache optimistically:', cacheError);
+      }
+    }
+
     return updated;
   } catch (error) {
     console.error('❌ Failed to update transcription via API:', error);
@@ -418,6 +835,15 @@ export const deleteTranscription = async (transcriptionId: string): Promise<Shar
     const deleted = result?.deleteTranscription;
     if (!deleted) {
       throw new Error('Failed to delete transcription - no data returned');
+    }
+
+    // Remove from cache and invalidate
+    const user = currentUser();
+    if (user?.userId) {
+      console.log('🔄 Removing deleted transcription from cache');
+      await transcriptionStorage.removeTranscription(transcriptionId);
+      await transcriptionStorage.setLastSyncedAt(user.userId, new Date().toISOString());
+      console.log('✅ Removed transcription from cache after deletion');
     }
 
     return deleted;
