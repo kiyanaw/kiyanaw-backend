@@ -15,10 +15,10 @@ type Transcription
     { allow: groups, groups: ["Admins"], operations: [create, read, update, delete] }
   ]) {
   id: ID! @primaryKey
-  author: String! @index(name: "ByAuthor", queryField: "transcriptionsByAuthor") # UUID of the Cognito user
+  author: String! @index(name: "ByAuthor", queryField: "transcriptionsByAuthor") @index(name: "ByAuthorDate", queryField: "transcriptionsByAuthorDate", sortKeyFields: ["dateLastUpdated"]) # UUID of the Cognito user
   authorFriendly: String! # Friendly identifier
   coverage: Float
-  dateLastUpdated: String! @index(name: "ByDateLastUpdated", queryField: "transcriptionsByDate")
+  dateLastUpdated: String!
   userLastUpdated: String!
   length: Float
   issues: String

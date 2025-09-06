@@ -276,9 +276,10 @@ export const schema = {
                 {
                     "type": "key",
                     "properties": {
-                        "name": "ByDateLastUpdated",
-                        "queryField": "transcriptionsByDate",
+                        "name": "ByAuthorDate",
+                        "queryField": "transcriptionsByAuthorDate",
                         "fields": [
+                            "author",
                             "dateLastUpdated"
                         ]
                     }

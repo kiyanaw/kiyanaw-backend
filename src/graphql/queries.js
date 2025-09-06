@@ -217,15 +217,17 @@ export const transcriptionsByAuthor = /* GraphQL */ `
     }
   }
 `;
-export const transcriptionsByDate = /* GraphQL */ `
-  query TranscriptionsByDate(
-    $dateLastUpdated: String!
+export const transcriptionsByAuthorDate = /* GraphQL */ `
+  query TranscriptionsByAuthorDate(
+    $author: String!
+    $dateLastUpdated: ModelStringKeyConditionInput
     $sortDirection: ModelSortDirection
     $filter: ModelTranscriptionFilterInput
     $limit: Int
     $nextToken: String
   ) {
-    transcriptionsByDate(
+    transcriptionsByAuthorDate(
+      author: $author
       dateLastUpdated: $dateLastUpdated
       sortDirection: $sortDirection
       filter: $filter

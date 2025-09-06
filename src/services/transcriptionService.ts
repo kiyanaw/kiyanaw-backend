@@ -2,7 +2,66 @@ import { generateClient } from 'aws-amplify/api';
 import { getUrl } from 'aws-amplify/storage';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - GraphQL queries are generated as JS files
-import { getTranscription, transcriptionsByDate, transcriptionsByAuthor } from '../graphql/queries.js';
+import { getTranscription, transcriptionsByAuthor } from '../graphql/queries.js';
+
+// Custom query for compound GSI (author + dateLastUpdated)
+const transcriptionsByAuthorDate = /* GraphQL */ `
+  query TranscriptionsByAuthorDate(
+    $author: String!
+    $dateLastUpdated: ModelStringKeyConditionInput
+    $sortDirection: ModelSortDirection
+    $filter: ModelTranscriptionFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    transcriptionsByAuthorDate(
+      author: $author
+      dateLastUpdated: $dateLastUpdated
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        author
+        authorFriendly
+        coverage
+        dateLastUpdated
+        userLastUpdated
+        length
+        issues
+        comments
+        commentCount
+        regionCount
+        issueCount
+        tags
+        source
+        index
+        lang
+        title
+        type
+        isPrivate
+        isPublished
+        publicIssues
+        disableAnalyzer
+        editors
+        viewers
+        editorGroups
+        viewerGroups
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      nextToken
+      startedAt
+      __typename
+    }
+  }
+`;
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - GraphQL mutations are generated as JS files
 import { createTranscription as createTranscriptionMutation, updateTranscription as updateTranscriptionMutation, deleteTranscription as deleteTranscriptionMutation } from '../graphql/mutations.js';
@@ -421,22 +480,27 @@ const loadSharedTranscriptions = async (userEmail: string, sinceTimestamp?: stri
 };
 
 /**
- * Loads transcriptions updated since a specific date using GSI
+ * Loads owned transcriptions updated since a specific date using compound GSI (author + dateLastUpdated)
+ * This ensures we only pay for reads of transcriptions the user actually owns
+ * @param userId The user ID to filter by
  * @param sinceDate ISO date string to query from
- * @returns Array of TranscriptionModel instances updated since the date
+ * @returns Array of TranscriptionModel instances owned by the user and updated since the date
  */
-const loadTranscriptionsSince = async (sinceDate: string): Promise<TranscriptionModel[]> => {
+const loadOwnedTranscriptionsSince = async (userId: string, sinceDate: string): Promise<TranscriptionModel[]> => {
   const allTranscriptions: TranscriptionModel[] = [];
   let nextToken: string | undefined;
 
   try {
-    console.log(`🔍 Loading transcriptions since ${sinceDate} via GSI...`);
+    console.log(`🔍 Loading owned transcriptions for user ${userId} since ${sinceDate} via compound GSI...`);
     
     do {
       const graphqlResult = await getClient().graphql({
-        query: transcriptionsByDate,
+        query: transcriptionsByAuthorDate,
         variables: {
-          dateLastUpdated: sinceDate,
+          author: userId,
+          dateLastUpdated: {
+            ge: sinceDate // Greater than or equal to the since date
+          },
           limit: 50,
           nextToken
         }
@@ -444,13 +508,13 @@ const loadTranscriptionsSince = async (sinceDate: string): Promise<Transcription
 
       const response = graphqlResult as { 
         data: { 
-          transcriptionsByDate: {
+          transcriptionsByAuthorDate: {
             items: SharedTranscriptionData[];
             nextToken?: string;
           }
         } 
       };
-      const page = response.data?.transcriptionsByDate;
+      const page = response.data?.transcriptionsByAuthorDate;
       
       if (page?.items) {
         const user = currentUser();
@@ -461,16 +525,16 @@ const loadTranscriptionsSince = async (sinceDate: string): Promise<Transcription
         });
         
         allTranscriptions.push(...pageModels);
-        console.log(`📄 Loaded page: ${pageModels.length} transcriptions`);
+        console.log(`📄 Loaded page: ${pageModels.length} owned transcriptions`);
       }
       
       nextToken = page?.nextToken;
     } while (nextToken);
 
-    console.log(`✅ GSI query completed: ${allTranscriptions.length} transcriptions since ${sinceDate}`);
+    console.log(`✅ Compound GSI query completed: ${allTranscriptions.length} owned transcriptions since ${sinceDate}`);
     return allTranscriptions;
   } catch (error) {
-    console.error('❌ Failed to load transcriptions via GSI:', error);
+    console.error('❌ Failed to load owned transcriptions via compound GSI:', error);
     // Log the full error details for debugging
     if (error && typeof error === 'object' && 'errors' in error) {
       console.error('GraphQL errors:', error.errors);
@@ -489,7 +553,7 @@ const loadTranscriptionsSince = async (sinceDate: string): Promise<Transcription
         });
       });
     }
-    throw new Error(`Failed to load transcriptions since ${sinceDate}: ${error}`);
+    throw new Error(`Failed to load owned transcriptions since ${sinceDate}: ${error}`);
   }
 };
 
@@ -621,7 +685,7 @@ const performFullSync = async (sinceTimestamp?: string): Promise<TranscriptionMo
     let ownedTranscriptions: TranscriptionModel[] = [];
     if (sinceTimestamp) {
       // Incremental sync for owned transcriptions
-      ownedTranscriptions = await loadTranscriptionsSince(sinceTimestamp);
+      ownedTranscriptions = await loadOwnedTranscriptionsSince(user.userId, sinceTimestamp);
     } else {
       // Full sync for owned transcriptions
       ownedTranscriptions = await loadOwnedTranscriptions(user.userId);
