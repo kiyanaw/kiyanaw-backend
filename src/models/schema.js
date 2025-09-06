@@ -852,6 +852,17 @@ export const schema = {
                 {
                     "type": "key",
                     "properties": {
+                        "name": "ByEmailCreatedAt",
+                        "queryField": "invitesByEmailCreatedAt",
+                        "fields": [
+                            "email",
+                            "createdAt"
+                        ]
+                    }
+                },
+                {
+                    "type": "key",
+                    "properties": {
                         "name": "ByTranscription",
                         "queryField": "invitesByTranscription",
                         "fields": [

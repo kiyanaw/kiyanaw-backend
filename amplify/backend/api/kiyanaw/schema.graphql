@@ -117,7 +117,7 @@ type Invite
     { allow: groups, groups: ["Admins"], operations: [create, read, update, delete] }
   ]) {
   id: ID! @primaryKey
-  email: String! @index(name: "ByEmail", queryField: "invitesByEmail")
+  email: String! @index(name: "ByEmail", queryField: "invitesByEmail") @index(name: "ByEmailCreatedAt", queryField: "invitesByEmailCreatedAt", sortKeyFields: ["createdAt"])
   status: String!
   permissionLevel: String! # "viewer", "editor"
   expiresAt: String!

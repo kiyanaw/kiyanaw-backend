@@ -18,7 +18,7 @@ import { getMyInvites } from './inviteService';
 import { 
   type GraphQLClient, 
   type GraphQLResponse, 
-  type GetTranscriptionResponse, 
+  type GetTranscriptionResponse,
   type CreateTranscriptionResponse,
   type UpdateTranscriptionResponse,
   type DeleteTranscriptionResponse,
@@ -310,8 +310,13 @@ const loadOwnedTranscriptions = async (userId: string): Promise<TranscriptionMod
     // Log the full error details for debugging
     if (error && typeof error === 'object' && 'errors' in error) {
       console.error('GraphQL errors:', error.errors);
-      const errors = error.errors as any[];
-      errors.forEach((gqlError: any, index: number) => {
+      const errors = error.errors as Array<{
+        message?: string;
+        errorType?: string;
+        path?: string[];
+        locations?: Array<{ line: number; column: number }>;
+      }>;
+      errors.forEach((gqlError, index: number) => {
         console.error(`GraphQL Error ${index + 1}:`, {
           message: gqlError.message,
           errorType: gqlError.errorType,
@@ -325,60 +330,84 @@ const loadOwnedTranscriptions = async (userId: string): Promise<TranscriptionMod
 };
 
 /**
- * Loads transcriptions shared with a user via accepted invites
+ * Loads transcriptions shared with a user via accepted invites using enhanced Lambda
  * @param userEmail The user's email to query invites for
+ * @param sinceTimestamp Optional timestamp for incremental sync
  * @returns Array of TranscriptionModel instances shared with the user
  */
-const loadSharedTranscriptions = async (userEmail: string): Promise<TranscriptionModel[]> => {
+const loadSharedTranscriptions = async (userEmail: string, sinceTimestamp?: string): Promise<TranscriptionModel[]> => {
   try {
-    console.log(`🔍 Loading shared transcriptions for user ${userEmail} via invites...`);
+    const syncType = sinceTimestamp ? 'incremental' : 'full';
+    console.log(`🔍 Loading shared transcriptions for user ${userEmail} via enhanced Lambda (${syncType} sync)...`);
     
-    // Get user's invites (we'll filter for accepted ones)
+    // Single call to enhanced Lambda with transcription data included
     const invitesResponse = await getMyInvites({
-      userEmail
+      userEmail,
+      includeTranscriptionData: true, // Request full transcription data for card rendering
+      sinceTimestamp // For incremental sync if provided
     });
     
     const allInvites = invitesResponse.invites || [];
-    // Filter for accepted invites only
-    const acceptedInvites = allInvites.filter(inviteWithValidation => 
-      inviteWithValidation.invite.status === 'accepted'
+    // Filter for accepted invites that have transcription data
+    const acceptedInvitesWithData = allInvites.filter(inviteWithValidation => 
+      inviteWithValidation.invite.status === 'accepted' && 
+      inviteWithValidation.transcription // Only include if transcription data exists
     );
     
-    console.log(`📧 Found ${acceptedInvites.length} accepted invites out of ${allInvites.length} total`);
+    console.log(`📧 Found ${acceptedInvitesWithData.length} accepted invites with transcription data out of ${allInvites.length} total`);
     
-    if (acceptedInvites.length === 0) {
+    if (acceptedInvitesWithData.length === 0) {
       console.log('✅ No shared transcriptions found');
       return [];
     }
     
-    // Extract unique transcription IDs from invites
-    const transcriptionIds = [...new Set(acceptedInvites.map(inviteWithValidation => 
-      inviteWithValidation.invite.transcriptionId
-    ))];
-    console.log(`🔍 Loading ${transcriptionIds.length} shared transcriptions...`);
-    
-    // Batch load the shared transcriptions
+    // Convert to TranscriptionModel instances using the joined data from Lambda
     const sharedTranscriptions: TranscriptionModel[] = [];
     const user = currentUser();
     
-    for (const transcriptionId of transcriptionIds) {
+    for (const inviteWithValidation of acceptedInvitesWithData) {
       try {
-        const graphqlResult = await getClient().graphql({
-          query: getTranscription,
-          variables: { id: transcriptionId }
-        });
+        const { transcription } = inviteWithValidation;
         
-        const response = graphqlResult as GraphQLResponse<GetTranscriptionResponse>;
-        const transcriptionData = response.data.getTranscription;
-        
-        if (transcriptionData) {
-          const model = new TranscriptionModel(transcriptionData as unknown as ADTTranscriptionData);
-          model.setAccessLevel(user?.userId);
-          sharedTranscriptions.push(model);
+        // Type guard to ensure transcription exists
+        if (!transcription) {
+          console.warn(`⚠️ No transcription data for invite ${inviteWithValidation.invite.id}`);
+          continue;
         }
+        
+        // Create TranscriptionModel from the joined data
+        const transcriptionData: ADTTranscriptionData = {
+          id: transcription.id,
+          title: transcription.title,
+          author: transcription.author,
+          authorFriendly: transcription.authorFriendly,
+          type: transcription.type,
+          length: transcription.length,
+          coverage: transcription.coverage,
+          issueCount: transcription.issueCount,
+          regionCount: transcription.regionCount,
+          isPrivate: transcription.isPrivate,
+          dateLastUpdated: transcription.dateLastUpdated,
+          userLastUpdated: transcription.userLastUpdated,
+          createdAt: transcription.createdAt,
+          updatedAt: transcription.updatedAt,
+          // Set default values for fields not included in Lambda response
+          issues: 0,
+          comments: '',
+          source: '',
+          lang: '',
+          publicIssues: false,
+          disableAnalyzer: false,
+          editors: [],
+          viewers: []
+        };
+        
+        const model = new TranscriptionModel(transcriptionData);
+        model.setAccessLevel(user?.userId);
+        sharedTranscriptions.push(model);
+        
       } catch (error) {
-        // If we can't access a transcription (deleted, permissions revoked), skip it
-        console.warn(`⚠️ Skipping inaccessible shared transcription ${transcriptionId}:`, error);
+        console.warn(`⚠️ Skipping transcription ${inviteWithValidation.invite.transcriptionId} due to processing error:`, error);
       }
     }
     
@@ -386,7 +415,7 @@ const loadSharedTranscriptions = async (userEmail: string): Promise<Transcriptio
     return sharedTranscriptions;
     
   } catch (error) {
-    console.error('❌ Failed to load shared transcriptions via invites:', error);
+    console.error('❌ Failed to load shared transcriptions via enhanced Lambda:', error);
     throw new Error(`Failed to load shared transcriptions for user ${userEmail}: ${error}`);
   }
 };
@@ -445,8 +474,13 @@ const loadTranscriptionsSince = async (sinceDate: string): Promise<Transcription
     // Log the full error details for debugging
     if (error && typeof error === 'object' && 'errors' in error) {
       console.error('GraphQL errors:', error.errors);
-      const errors = error.errors as any[];
-      errors.forEach((gqlError: any, index: number) => {
+      const errors = error.errors as Array<{
+        message?: string;
+        errorType?: string;
+        path?: string[];
+        locations?: Array<{ line: number; column: number }>;
+      }>;
+      errors.forEach((gqlError, index: number) => {
         console.error(`GraphQL Error ${index + 1}:`, {
           message: gqlError.message,
           errorType: gqlError.errorType,
@@ -478,61 +512,56 @@ export const loadAll = async (): Promise<TranscriptionModel[]> => {
     const needsValidation = await transcriptionStorage.shouldValidateCache(user.userId);
     if (needsValidation) {
       console.log('🔍 Cache validation needed, checking for orphaned transcriptions...');
-      await validateCachedTranscriptions(user.userId);
+      await validateCachedTranscriptions();
       await transcriptionStorage.markCacheValidated(user.userId);
     }
     
-    // Check if we need to sync
-    const needsSync = await transcriptionStorage.shouldSync(user.userId, 5); // 5 minute cache
+    // Always check for latest data, but only sync what's new since last sync
+    console.log('🔄 Checking for latest data...');
     
-    if (needsSync) {
-      console.log('🔄 Cache is stale or missing, performing sync...');
+    // Get last sync timestamp
+    const lastSyncedAt = await transcriptionStorage.getLastSyncedAt(user.userId);
+    
+    if (!lastSyncedAt) {
+      // First sync - do full sync using hybrid approach (both owned + shared)
+      console.log('🆕 First sync - loading all transcriptions and invites...');
+      const fullSyncResult = await performFullSync(); // No timestamp = full sync
       
-      // Get last sync timestamp
-      const lastSyncedAt = await transcriptionStorage.getLastSyncedAt(user.userId);
+      // Store in cache
+      await transcriptionStorage.storeTranscriptions(fullSyncResult);
+      await transcriptionStorage.setLastSyncedAt(user.userId, new Date().toISOString());
       
-      if (!lastSyncedAt) {
-        // First sync - do full sync using hybrid approach
-        console.log('🆕 First sync - loading all transcriptions...');
-        const fullSyncResult = await performFullSync();
-        
-        // Store in cache
-        await transcriptionStorage.storeTranscriptions(fullSyncResult);
-        await transcriptionStorage.setLastSyncedAt(user.userId, new Date().toISOString());
-        
-        console.log(`✅ Full sync completed: ${fullSyncResult.length} transcriptions cached`);
-        return fullSyncResult;
-      } else {
-        // Incremental sync using GSI
-        console.log(`🔄 Incremental sync since ${lastSyncedAt}...`);
-        const incrementalResults = await loadTranscriptionsSince(lastSyncedAt);
-        
-        if (incrementalResults.length > 0) {
-          // Merge with existing cache
-          await transcriptionStorage.storeTranscriptions(incrementalResults);
-          console.log(`✅ Incremental sync: ${incrementalResults.length} new/updated transcriptions`);
-        } else {
-          console.log('✅ Incremental sync: No new transcriptions');
-        }
-        
-        // Update sync timestamp
-        await transcriptionStorage.setLastSyncedAt(user.userId, new Date().toISOString());
-      }
+      console.log(`✅ Full sync completed: ${fullSyncResult.length} transcriptions cached`);
+      return fullSyncResult;
     } else {
-      console.log('✅ Cache is fresh, using cached data');
+      // Always sync latest changes since last sync timestamp
+      console.log(`🔄 Syncing latest changes since ${lastSyncedAt}...`);
+      const newSyncTimestamp = new Date().toISOString();
+      const latestResults = await performFullSync(lastSyncedAt); // Get only what's new
+      
+      if (latestResults.length > 0) {
+        // Merge with existing cache
+        await transcriptionStorage.storeTranscriptions(latestResults);
+        console.log(`✅ Latest sync: ${latestResults.length} new/updated transcriptions and invites`);
+      } else {
+        console.log('✅ Latest sync: No new transcriptions or invites');
+      }
+      
+      // Update sync timestamp to now
+      await transcriptionStorage.setLastSyncedAt(user.userId, newSyncTimestamp);
+      
+      // Return all cached transcriptions (old + new)
+      const allCached = await transcriptionStorage.getAll();
+      console.log(`📦 Returning ${allCached.length} transcriptions (cached + latest)`);
+      return allCached;
     }
-    
-    // Return all cached transcriptions
-    const allCached = await transcriptionStorage.getAll();
-    console.log(`📦 Returning ${allCached.length} transcriptions from cache`);
-    return allCached;
     
   } catch (error) {
     console.error('❌ LoadAll failed:', error);
     
     // Fallback to direct API call if sync fails
     console.log('🔄 Falling back to direct API call...');
-    return await performFullSync();
+    return await performFullSync(); // Full sync fallback
   }
 };
 
@@ -540,7 +569,7 @@ export const loadAll = async (): Promise<TranscriptionModel[]> => {
  * Validates cached transcriptions against current access permissions
  * Removes transcriptions that are no longer accessible (deleted by owner, invite revoked, etc.)
  */
-const validateCachedTranscriptions = async (_userId: string): Promise<void> => {
+const validateCachedTranscriptions = async (): Promise<void> => {
   try {
     console.log('🔍 Validating cached transcriptions against current permissions...');
     
@@ -576,25 +605,33 @@ const validateCachedTranscriptions = async (_userId: string): Promise<void> => {
 
 /**
  * Performs a hybrid full sync using efficient GSI queries + invite discovery
- * Falls back to expensive scan only for admin users
+ * @param sinceTimestamp Optional timestamp for incremental sync
  */
-const performFullSync = async (): Promise<TranscriptionModel[]> => {
+const performFullSync = async (sinceTimestamp?: string): Promise<TranscriptionModel[]> => {
   const user = currentUser();
   if (!user?.userId) {
     throw new Error('User must be authenticated to perform sync');
   }
 
-  console.log('🔍 Performing hybrid full sync...');
+  const syncType = sinceTimestamp ? 'incremental' : 'full';
+  console.log(`🔍 Performing hybrid ${syncType} sync...`);
   
   try {
     // Load owned transcriptions via efficient GSI
-    const ownedTranscriptions = await loadOwnedTranscriptions(user.userId);
+    let ownedTranscriptions: TranscriptionModel[] = [];
+    if (sinceTimestamp) {
+      // Incremental sync for owned transcriptions
+      ownedTranscriptions = await loadTranscriptionsSince(sinceTimestamp);
+    } else {
+      // Full sync for owned transcriptions
+      ownedTranscriptions = await loadOwnedTranscriptions(user.userId);
+    }
     console.log(`📝 Loaded ${ownedTranscriptions.length} owned transcriptions`);
     
     // Load shared transcriptions via invites (need email for invite lookup)
     let sharedTranscriptions: TranscriptionModel[] = [];
     if (user.username) { // username is typically the email in Cognito
-      sharedTranscriptions = await loadSharedTranscriptions(user.username);
+      sharedTranscriptions = await loadSharedTranscriptions(user.username, sinceTimestamp);
       console.log(`🤝 Loaded ${sharedTranscriptions.length} shared transcriptions`);
     }
     
@@ -635,16 +672,17 @@ export const loadOwnedTranscriptionsOnly = async (): Promise<TranscriptionModel[
 
 /**
  * Loads only transcriptions shared with the current user
+ * @param sinceTimestamp Optional timestamp for incremental sync
  * @returns Array of TranscriptionModel instances shared with the user
  */
-export const loadSharedTranscriptionsOnly = async (): Promise<TranscriptionModel[]> => {
+export const loadSharedTranscriptionsOnly = async (sinceTimestamp?: string): Promise<TranscriptionModel[]> => {
   const user = currentUser();
   if (!user?.username) {
     throw new Error('User must be authenticated with email to load shared transcriptions');
   }
   
   
-  return await loadSharedTranscriptions(user.username);
+  return await loadSharedTranscriptions(user.username, sinceTimestamp);
 };
 
 /**

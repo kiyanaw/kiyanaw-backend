@@ -1,10 +1,10 @@
 // Mock for transcriptionStorageService
 export const transcriptionStorage = {
-  shouldSync: jest.fn().mockResolvedValue(true),
-  getLastSyncedAt: jest.fn().mockResolvedValue(null),
+  shouldSync: jest.fn().mockResolvedValue(false), // Don't sync in tests by default
+  getLastSyncedAt: jest.fn().mockResolvedValue(null), // No last sync by default (first sync)
   storeTranscriptions: jest.fn().mockResolvedValue(undefined),
   setLastSyncedAt: jest.fn().mockResolvedValue(undefined),
-  getAll: jest.fn().mockResolvedValue([]),
+  getAll: jest.fn().mockResolvedValue([]), // Will be overridden in individual tests
   getById: jest.fn().mockResolvedValue(null),
   clearCache: jest.fn().mockResolvedValue(undefined),
   removeTranscription: jest.fn().mockResolvedValue(undefined),

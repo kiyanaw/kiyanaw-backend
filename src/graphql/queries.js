@@ -948,6 +948,47 @@ export const invitesByEmail = /* GraphQL */ `
     }
   }
 `;
+export const invitesByEmailCreatedAt = /* GraphQL */ `
+  query InvitesByEmailCreatedAt(
+    $email: String!
+    $createdAt: ModelStringKeyConditionInput
+    $sortDirection: ModelSortDirection
+    $filter: ModelInviteFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    invitesByEmailCreatedAt(
+      email: $email
+      createdAt: $createdAt
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        email
+        status
+        permissionLevel
+        expiresAt
+        invitedBy
+        invitedByFriendly
+        createdAt
+        acceptedAt
+        transcriptionId
+        transcriptionTitle
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      nextToken
+      startedAt
+      __typename
+    }
+  }
+`;
 export const invitesByTranscription = /* GraphQL */ `
   query InvitesByTranscription(
     $transcriptionId: ID!
