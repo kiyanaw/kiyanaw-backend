@@ -557,6 +557,105 @@ const loadOwnedTranscriptionsSince = async (userId: string, sinceDate: string): 
   }
 };
 
+// Sync state management
+let currentSyncOperation: Promise<TranscriptionModel[]> | null = null;
+
+/**
+ * Check if a sync operation is currently in progress
+ */
+export const isSyncing = (): boolean => currentSyncOperation !== null;
+
+/**
+ * Get the current sync promise if one is running
+ */
+export const getCurrentSyncPromise = (): Promise<TranscriptionModel[]> | null => currentSyncOperation;
+
+/**
+ * Load transcriptions from cache only (fast operation)
+ * @returns Array of cached TranscriptionModel instances
+ */
+export const loadFromCache = async (): Promise<TranscriptionModel[]> => {
+  const user = currentUser();
+  if (!user?.userId) {
+    throw new Error('User must be authenticated to load from cache');
+  }
+
+  try {
+    console.log('⚡ Loading transcriptions from cache...');
+    const cached = await transcriptionStorage.getAll();
+    console.log(`📦 Loaded ${cached.length} transcriptions from cache`);
+    return cached;
+  } catch (error) {
+    console.error('❌ Failed to load from cache:', error);
+    return []; // Return empty array if cache fails
+  }
+};
+
+/**
+ * Get cache statistics and sync status
+ * @returns Cache stats including count and last sync timestamp
+ */
+export const getCacheStats = async (): Promise<{ count: number; lastSyncedAt: string | null }> => {
+  const user = currentUser();
+  if (!user?.userId) {
+    return { count: 0, lastSyncedAt: null };
+  }
+
+  try {
+    const cached = await transcriptionStorage.getAll();
+    const lastSyncedAt = await transcriptionStorage.getLastSyncedAt(user.userId);
+    
+    return {
+      count: cached.length,
+      lastSyncedAt
+    };
+  } catch (error) {
+    console.error('❌ Failed to get cache stats:', error);
+    return { count: 0, lastSyncedAt: null };
+  }
+};
+
+/**
+ * Sync latest changes since a timestamp (or full sync if no timestamp)
+ * @param sinceTimestamp Optional timestamp for incremental sync
+ * @returns Array of new/updated TranscriptionModel instances
+ */
+export const syncLatestChanges = async (sinceTimestamp?: string): Promise<TranscriptionModel[]> => {
+  const user = currentUser();
+  if (!user?.userId) {
+    throw new Error('User must be authenticated to sync');
+  }
+
+  // Prevent concurrent sync operations
+  if (currentSyncOperation) {
+    console.log('🔄 Sync already in progress, waiting for completion...');
+    return await currentSyncOperation;
+  }
+
+  const syncPromise = (async () => {
+    try {
+      console.log(`🔄 Syncing ${sinceTimestamp ? 'incremental' : 'full'} changes...`);
+      
+      const syncResult = await performFullSync(sinceTimestamp);
+      
+      // Store in cache and update sync timestamp
+      if (syncResult.length > 0) {
+        await transcriptionStorage.storeTranscriptions(syncResult);
+      }
+      await transcriptionStorage.setLastSyncedAt(user.userId, new Date().toISOString());
+      
+      console.log(`✅ Sync completed: ${syncResult.length} transcriptions`);
+      return syncResult;
+      
+    } finally {
+      currentSyncOperation = null;
+    }
+  })();
+
+  currentSyncOperation = syncPromise;
+  return await syncPromise;
+};
+
 /**
  * Loads all transcriptions with intelligent caching and sync
  * First sync is a full sync, subsequent syncs are incremental using GSI

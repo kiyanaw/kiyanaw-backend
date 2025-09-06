@@ -1,9 +1,13 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Users, Eye, Edit, Search, Plus, ChevronDown, Lock, LockOpen, Video, FileAudio, Filter, X, AlertTriangle, List } from 'lucide-react';
 import { useTranscriptionsStore } from '../../stores/useTranscriptionsStore';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { useLoadTranscriptions } from '../../hooks/useLoadTranscriptions';
+import { SyncIndicator } from '../sync/SyncIndicator';
+import { SyncOwnedTranscriptions } from '../../use-cases/sync-owned-transcriptions';
+import { SyncSharedTranscriptions } from '../../use-cases/sync-shared-transcriptions';
+import { services } from '../../services';
 import TimeAgo from 'javascript-time-ago';
 import en from 'javascript-time-ago/locale/en';
 
@@ -31,6 +35,8 @@ export const TranscriptionsList = () => {
   const loading = useTranscriptionsStore((state) => state.loading);
   const error = useTranscriptionsStore((state) => state.error);
   const reload = useTranscriptionsStore((state) => state.reload);
+  const ownedSyncStatus = useTranscriptionsStore((state) => state.ownedSyncStatus);
+  const sharedSyncStatus = useTranscriptionsStore((state) => state.sharedSyncStatus);
   const user = useAuthStore((state) => state.user);
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState('dateLastUpdated');
@@ -82,7 +88,31 @@ export const TranscriptionsList = () => {
   };
 
   // Load transcriptions when component mounts
-  useLoadTranscriptions();
+  const loadTranscriptions = useLoadTranscriptions();
+  
+  useEffect(() => {
+    loadTranscriptions();
+  }, [loadTranscriptions]);
+
+  // Handle tab switching with sync
+  const handleTabSwitch = (tab: TabType) => {
+    setActiveTab(tab);
+    
+    // Trigger sync for the selected tab
+    const store = useTranscriptionsStore.getState();
+    
+    if (tab === 'owned') {
+      const syncUseCase = new SyncOwnedTranscriptions({ services, store });
+      syncUseCase.execute().catch((error) => {
+        console.error('❌ Failed to sync owned transcriptions:', error);
+      });
+    } else if (tab === 'shared') {
+      const syncUseCase = new SyncSharedTranscriptions({ services, store });
+      syncUseCase.execute().catch((error) => {
+        console.error('❌ Failed to sync shared transcriptions:', error);
+      });
+    }
+  };
 
   // Filter and sort transcriptions
   const filteredAndSortedTranscriptions = useMemo(() => {
@@ -332,7 +362,7 @@ export const TranscriptionsList = () => {
         <div className="px-4 md:px-6">
           <nav className="-mb-px flex space-x-8" aria-label="Tabs">
             <button
-              onClick={() => setActiveTab('owned')}
+              onClick={() => handleTabSwitch('owned')}
               className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
                 activeTab === 'owned'
                   ? 'border-ki-blue text-ki-blue'
@@ -347,7 +377,7 @@ export const TranscriptionsList = () => {
               </span>
             </button>
             <button
-              onClick={() => setActiveTab('shared')}
+              onClick={() => handleTabSwitch('shared')}
               className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
                 activeTab === 'shared'
                   ? 'border-ki-blue text-ki-blue'
@@ -365,13 +395,17 @@ export const TranscriptionsList = () => {
         </div>
       </div>
 
+
       {/* Scrollable Content Area */}
       <div className="flex-1 overflow-auto">
         <div className="px-4 md:px-6 py-4 md:py-6">
         {/* Results count */}
-        <div className="mb-4 text-sm text-gray-600">
-          {filteredAndSortedTranscriptions.length} transcription{filteredAndSortedTranscriptions.length !== 1 ? 's' : ''}
-          {search && ` matching "${search}"`}
+        <div className="mb-4 text-sm text-gray-600 flex items-center gap-2">
+          <span>
+            {filteredAndSortedTranscriptions.length} transcription{filteredAndSortedTranscriptions.length !== 1 ? 's' : ''}
+            {search && ` matching "${search}"`}
+          </span>
+          <SyncIndicator status={activeTab === 'owned' ? ownedSyncStatus : sharedSyncStatus} />
         </div>
 
         {/* Cards Grid */}
