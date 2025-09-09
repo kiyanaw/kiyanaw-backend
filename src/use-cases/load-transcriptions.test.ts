@@ -1,6 +1,9 @@
 import { LoadTranscriptions } from './load-transcriptions';
+import { LoadTranscriptionsFromCache } from './load-transcriptions-from-cache';
+import { SyncLatestTranscriptions } from './sync-latest-transcriptions';
 import { services } from '../services';
 import { TranscriptionModel } from '../services/adt';
+import { useTranscriptionsStore } from '../stores/useTranscriptionsStore';
 
 // Mock the services
 jest.mock('../services', () => ({
@@ -14,6 +17,17 @@ jest.mock('../services', () => ({
 // Mock the ADT
 jest.mock('../services/adt', () => ({
   TranscriptionModel: jest.fn(),
+}));
+
+// Mock the use-cases
+jest.mock('./load-transcriptions-from-cache');
+jest.mock('./sync-latest-transcriptions');
+
+// Mock the store
+jest.mock('../stores/useTranscriptionsStore', () => ({
+  useTranscriptionsStore: {
+    getState: jest.fn(),
+  },
 }));
 
 describe('LoadTranscriptions', () => {
@@ -53,12 +67,38 @@ describe('LoadTranscriptions', () => {
   ];
 
   const mockTranscriptionService = services.transcriptionService as jest.Mocked<typeof services.transcriptionService>;
+  const MockLoadTranscriptionsFromCache = LoadTranscriptionsFromCache as jest.MockedClass<typeof LoadTranscriptionsFromCache>;
+  const MockSyncLatestTranscriptions = SyncLatestTranscriptions as jest.MockedClass<typeof SyncLatestTranscriptions>;
+  const mockUseTranscriptionsStore = useTranscriptionsStore as jest.Mocked<typeof useTranscriptionsStore>;
+
+  const mockCacheResult = {
+    transcriptions: mockTranscriptionModels,
+    cacheStats: { count: 2, lastSyncedAt: '2023-01-01T00:00:00.000Z' }
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
     
-    // Setup default successful response
+    // Setup default successful response for legacy fallback
     mockTranscriptionService.loadAll.mockResolvedValue(mockTranscriptionModels);
+    
+    // Setup mock store state
+    mockUseTranscriptionsStore.getState.mockReturnValue({
+      transcriptions: mockTranscriptionModels,
+      loading: false,
+      error: null,
+    } as any);
+    
+    // Setup mock use-case instances
+    const mockCacheUseCase = {
+      execute: jest.fn().mockResolvedValue(mockCacheResult),
+    };
+    const mockSyncUseCase = {
+      execute: jest.fn().mockResolvedValue([]),
+    };
+    
+    MockLoadTranscriptionsFromCache.mockImplementation(() => mockCacheUseCase as any);
+    MockSyncLatestTranscriptions.mockImplementation(() => mockSyncUseCase as any);
   });
 
   describe('constructor', () => {
@@ -132,39 +172,34 @@ describe('LoadTranscriptions', () => {
       expect(validateSpy).toHaveBeenCalledTimes(1);
     });
 
-    it('should call transcriptionService.loadAll', async () => {
+    it('should execute two-stage loading by default', async () => {
       const config = { services, store: mockStore };
       const useCase = new LoadTranscriptions(config);
       
       await useCase.execute();
       
-      expect(mockTranscriptionService.loadAll).toHaveBeenCalledTimes(1);
-      expect(mockTranscriptionService.loadAll).toHaveBeenCalledWith();
+      expect(MockLoadTranscriptionsFromCache).toHaveBeenCalledWith(config);
+      expect(MockSyncLatestTranscriptions).toHaveBeenCalled();
     });
 
-    it('should update store with loaded transcriptions', async () => {
-      const config = { services, store: mockStore };
-      const useCase = new LoadTranscriptions(config);
-      
-      await useCase.execute();
-      
-      expect(mockStore.setTranscriptions).toHaveBeenCalledTimes(1);
-      expect(mockStore.setTranscriptions).toHaveBeenCalledWith(mockTranscriptionModels);
-    });
-
-    it('should return loaded transcriptions', async () => {
+    it('should return transcriptions from store state', async () => {
       const config = { services, store: mockStore };
       const useCase = new LoadTranscriptions(config);
       
       const result = await useCase.execute();
       
+      expect(mockUseTranscriptionsStore.getState).toHaveBeenCalled();
       expect(result).toBe(mockTranscriptionModels);
       expect(result).toHaveLength(2);
     });
 
-    it('should handle empty transcriptions list', async () => {
+    it('should handle empty cache gracefully', async () => {
       const emptyTranscriptions: TranscriptionModel[] = [];
-      mockTranscriptionService.loadAll.mockResolvedValue(emptyTranscriptions);
+      mockUseTranscriptionsStore.getState.mockReturnValue({
+        transcriptions: emptyTranscriptions,
+        loading: false,
+        error: null,
+      } as any);
       
       const config = { services, store: mockStore };
       const useCase = new LoadTranscriptions(config);
@@ -172,10 +207,9 @@ describe('LoadTranscriptions', () => {
       const result = await useCase.execute();
       
       expect(result).toEqual([]);
-      expect(mockStore.setTranscriptions).toHaveBeenCalledWith([]);
     });
 
-    it('should handle large numbers of transcriptions', async () => {
+    it('should handle large cache efficiently', async () => {
       const manyTranscriptions = Array.from({ length: 100 }, (_, i) => 
         new TranscriptionModel({
           id: `transcription-${i}`,
@@ -188,7 +222,11 @@ describe('LoadTranscriptions', () => {
           userLastUpdated: 'user'
         })
       );
-      mockTranscriptionService.loadAll.mockResolvedValue(manyTranscriptions);
+      mockUseTranscriptionsStore.getState.mockReturnValue({
+        transcriptions: manyTranscriptions,
+        loading: false,
+        error: null,
+      } as any);
       
       const config = { services, store: mockStore };
       const useCase = new LoadTranscriptions(config);
@@ -196,7 +234,6 @@ describe('LoadTranscriptions', () => {
       const result = await useCase.execute();
       
       expect(result).toHaveLength(100);
-      expect(mockStore.setTranscriptions).toHaveBeenCalledWith(manyTranscriptions);
     });
   });
 
@@ -206,80 +243,46 @@ describe('LoadTranscriptions', () => {
       const useCase = new LoadTranscriptions(config);
       
       await expect(useCase.execute()).rejects.toThrow('services are required');
-      
-      expect(mockTranscriptionService.loadAll).not.toHaveBeenCalled();
-      expect(mockStore.setTranscriptions).not.toHaveBeenCalled();
     });
 
-    it('should handle transcriptionService.loadAll errors', async () => {
-      const serviceError = new Error('GraphQL connection failed');
-      mockTranscriptionService.loadAll.mockRejectedValue(serviceError);
+    it('should handle cache loading errors with fallback', async () => {
+      const cacheError = new Error('Cache failed');
+      const mockCacheUseCase = {
+        execute: jest.fn().mockRejectedValue(cacheError),
+      };
+      MockLoadTranscriptionsFromCache.mockImplementation(() => mockCacheUseCase as any);
       
       const config = { services, store: mockStore };
       const useCase = new LoadTranscriptions(config);
       
-      await expect(useCase.execute()).rejects.toThrow('GraphQL connection failed');
+      const result = await useCase.execute();
       
-      expect(mockStore.setError).toHaveBeenCalledWith('GraphQL connection failed');
-      expect(mockStore.setTranscriptions).not.toHaveBeenCalled();
+      // Should fall back to legacy loading
+      expect(mockTranscriptionService.loadAll).toHaveBeenCalled();
+      expect(result).toBe(mockTranscriptionModels);
     });
 
-    it('should handle network timeout errors', async () => {
-      const timeoutError = new Error('Network timeout');
-      mockTranscriptionService.loadAll.mockRejectedValue(timeoutError);
+    it('should handle complete failure gracefully', async () => {
+      const cacheError = new Error('Cache failed');
+      const fallbackError = new Error('Fallback failed');
+      
+      const mockCacheUseCase = {
+        execute: jest.fn().mockRejectedValue(cacheError),
+      };
+      MockLoadTranscriptionsFromCache.mockImplementation(() => mockCacheUseCase as any);
+      mockTranscriptionService.loadAll.mockRejectedValue(fallbackError);
       
       const config = { services, store: mockStore };
       const useCase = new LoadTranscriptions(config);
       
-      await expect(useCase.execute()).rejects.toThrow('Network timeout');
+      await expect(useCase.execute()).rejects.toThrow('Fallback failed');
       
-      expect(mockStore.setError).toHaveBeenCalledWith('Network timeout');
-    });
-
-    it('should handle authorization errors', async () => {
-      const authError = new Error('Access denied');
-      mockTranscriptionService.loadAll.mockRejectedValue(authError);
-      
-      const config = { services, store: mockStore };
-      const useCase = new LoadTranscriptions(config);
-      
-      await expect(useCase.execute()).rejects.toThrow('Access denied');
-      
-      expect(mockStore.setError).toHaveBeenCalledWith('Access denied');
-    });
-
-    it('should handle unknown errors gracefully', async () => {
-      const unknownError = 'Something went wrong';
-      mockTranscriptionService.loadAll.mockRejectedValue(unknownError);
-      
-      const config = { services, store: mockStore };
-      const useCase = new LoadTranscriptions(config);
-      
-      await expect(useCase.execute()).rejects.toBe(unknownError);
-      
-      expect(mockStore.setError).toHaveBeenCalledWith('Failed to load transcriptions');
-    });
-
-    it('should not update store with transcriptions on error', async () => {
-      const serviceError = new Error('Service failed');
-      mockTranscriptionService.loadAll.mockRejectedValue(serviceError);
-      
-      const config = { services, store: mockStore };
-      const useCase = new LoadTranscriptions(config);
-      
-      try {
-        await useCase.execute();
-      } catch {
-        // Expected to throw
-      }
-      
-      expect(mockStore.setTranscriptions).not.toHaveBeenCalled();
-      expect(mockStore.setError).toHaveBeenCalledWith('Service failed');
+      expect(mockStore.setError).toHaveBeenCalledWith('Fallback failed');
     });
   });
 
   describe('integration scenarios', () => {
-    it('should complete successful flow with console logging', async () => {
+    it('should complete successful two-stage flow with console logging', async () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
       
       const config = { services, store: mockStore };
@@ -287,49 +290,15 @@ describe('LoadTranscriptions', () => {
       
       const result = await useCase.execute();
       
-      expect(consoleSpy).toHaveBeenCalledWith('🔍 LoadTranscriptions use-case executing...');
-      expect(consoleSpy).toHaveBeenCalledWith('✅ LoadTranscriptions use-case completed: 2 transcriptions loaded');
+      expect(consoleSpy).toHaveBeenCalledWith('🔍 LoadTranscriptions use-case executing (two-stage loading)...');
+      expect(consoleSpy).toHaveBeenCalledWith('⚡ Stage 1: Loading from cache...');
+      expect(consoleSpy).toHaveBeenCalledWith('🔄 Stage 2: Syncing latest changes...');
       expect(result).toBe(mockTranscriptionModels);
       
       consoleSpy.mockRestore();
     });
 
-    it('should handle error flow with console logging', async () => {
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
-      const serviceError = new Error('Test error');
-      mockTranscriptionService.loadAll.mockRejectedValue(serviceError);
-      
-      const config = { services, store: mockStore };
-      const useCase = new LoadTranscriptions(config);
-      
-      try {
-        await useCase.execute();
-      } catch {
-        // Expected to throw
-      }
-      
-      expect(consoleSpy).toHaveBeenCalledWith('❌ LoadTranscriptions use-case failed:', serviceError);
-      
-      consoleSpy.mockRestore();
-    });
-
-    it('should work with different store implementations', async () => {
-      const customStore = {
-        setTranscriptions: jest.fn(),
-        setError: jest.fn(),
-        customMethod: jest.fn(),
-      };
-      
-      const config = { services, store: customStore };
-      const useCase = new LoadTranscriptions(config);
-      
-      await useCase.execute();
-      
-      expect(customStore.setTranscriptions).toHaveBeenCalledWith(mockTranscriptionModels);
-      expect(customStore.setError).not.toHaveBeenCalled();
-    });
-
-    it('should handle concurrent executions', async () => {
+    it('should handle concurrent executions with two-stage loading', async () => {
       const config = { services, store: mockStore };
       const useCase1 = new LoadTranscriptions(config);
       const useCase2 = new LoadTranscriptions(config);
@@ -341,50 +310,156 @@ describe('LoadTranscriptions', () => {
       
       expect(result1).toBe(mockTranscriptionModels);
       expect(result2).toBe(mockTranscriptionModels);
-      expect(mockTranscriptionService.loadAll).toHaveBeenCalledTimes(2);
-      expect(mockStore.setTranscriptions).toHaveBeenCalledTimes(2);
+      expect(MockLoadTranscriptionsFromCache).toHaveBeenCalledTimes(2);
+      expect(MockSyncLatestTranscriptions).toHaveBeenCalledTimes(2);
     });
   });
 
   describe('store interaction', () => {
-    it('should call store methods in correct order on success', async () => {
+    it('should use store state for final result', async () => {
       const config = { services, store: mockStore };
       const useCase = new LoadTranscriptions(config);
       
-      await useCase.execute();
+      const result = await useCase.execute();
       
-      expect(mockStore.setTranscriptions).toHaveBeenCalledWith(mockTranscriptionModels);
-      expect(mockStore.setError).not.toHaveBeenCalled();
+      expect(mockUseTranscriptionsStore.getState).toHaveBeenCalled();
+      expect(result).toBe(mockTranscriptionModels);
     });
 
-    it('should call store error method on failure', async () => {
-      const serviceError = new Error('Service error');
-      mockTranscriptionService.loadAll.mockRejectedValue(serviceError);
-      
-      const config = { services, store: mockStore };
-      const useCase = new LoadTranscriptions(config);
-      
-      try {
-        await useCase.execute();
-      } catch {
-        // Expected to throw
-      }
-      
-      expect(mockStore.setError).toHaveBeenCalledWith('Service error');
-      expect(mockStore.setTranscriptions).not.toHaveBeenCalled();
-    });
-
-    it('should handle store method failures gracefully', async () => {
-      mockStore.setTranscriptions.mockImplementation(() => {
-        throw new Error('Store update failed');
+    it('should handle store access errors gracefully', async () => {
+      const storeError = new Error('Store access failed');
+      mockUseTranscriptionsStore.getState.mockImplementation(() => {
+        throw storeError;
       });
       
       const config = { services, store: mockStore };
       const useCase = new LoadTranscriptions(config);
       
-      await expect(useCase.execute()).rejects.toThrow('Store update failed');
+      // Should fall back to legacy loading when store access fails
+      const result = await useCase.execute();
+      expect(result).toBe(mockTranscriptionModels);
+    });
+  });
+
+  describe('two-stage loading', () => {
+    it('should execute cache loading first, then background sync', async () => {
+      const config = { services, store: mockStore };
+      const useCase = new LoadTranscriptions(config);
+      
+      const result = await useCase.execute();
+      
+      expect(MockLoadTranscriptionsFromCache).toHaveBeenCalledWith(config);
+      expect(MockSyncLatestTranscriptions).toHaveBeenCalledWith(config);
+      expect(result).toBe(mockTranscriptionModels);
+    });
+
+    it('should handle sync regardless of cache state', async () => {
+      const emptyCacheResult = {
+        transcriptions: [],
+        cacheStats: { count: 0, lastSyncedAt: null }
+      };
+      
+      const mockCacheUseCase = {
+        execute: jest.fn().mockResolvedValue(emptyCacheResult),
+      };
+      MockLoadTranscriptionsFromCache.mockImplementation(() => mockCacheUseCase as any);
+      
+      const config = { services, store: mockStore };
+      const useCase = new LoadTranscriptions(config);
+      
+      await useCase.execute();
+      
+      // Sync use-case determines its own parameters from cache stats
+      expect(MockSyncLatestTranscriptions).toHaveBeenCalledWith(config);
+    });
+
+    it('should return cached transcriptions immediately', async () => {
+      const config = { services, store: mockStore };
+      const useCase = new LoadTranscriptions(config);
+      
+      const result = await useCase.execute();
+      
+      expect(mockUseTranscriptionsStore.getState).toHaveBeenCalled();
+      expect(result).toBe(mockTranscriptionModels);
+    });
+
+    it('should handle background sync errors gracefully', async () => {
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      const mockSyncUseCase = {
+        execute: jest.fn().mockRejectedValue(new Error('Sync failed')),
+      };
+      MockSyncLatestTranscriptions.mockImplementation(() => mockSyncUseCase as any);
+      
+      const config = { services, store: mockStore };
+      const useCase = new LoadTranscriptions(config);
+      
+      // Should not throw despite background sync error
+      const result = await useCase.execute();
+      
+      expect(result).toBe(mockTranscriptionModels);
+      expect(consoleSpy).toHaveBeenCalledWith('❌ Background sync failed:', expect.any(Error));
+      
+      consoleSpy.mockRestore();
+    });
+
+    it('should fall back to legacy loading if two-stage fails', async () => {
+      const mockCacheUseCase = {
+        execute: jest.fn().mockRejectedValue(new Error('Cache failed')),
+      };
+      MockLoadTranscriptionsFromCache.mockImplementation(() => mockCacheUseCase as any);
+      
+      const config = { services, store: mockStore };
+      const useCase = new LoadTranscriptions(config);
+      
+      const result = await useCase.execute();
       
       expect(mockTranscriptionService.loadAll).toHaveBeenCalled();
+      expect(mockStore.setTranscriptions).toHaveBeenCalledWith(mockTranscriptionModels);
+      expect(result).toBe(mockTranscriptionModels);
+    });
+
+    it('should log appropriate messages for two-stage loading', async () => {
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      
+      const config = { services, store: mockStore };
+      const useCase = new LoadTranscriptions(config);
+      
+      await useCase.execute();
+      
+      expect(consoleSpy).toHaveBeenCalledWith('🔍 LoadTranscriptions use-case executing (two-stage loading)...');
+      expect(consoleSpy).toHaveBeenCalledWith('⚡ Stage 1: Loading from cache...');
+      expect(consoleSpy).toHaveBeenCalledWith('🔄 Stage 2: Syncing latest changes...');
+      expect(consoleSpy).toHaveBeenCalledWith(
+        '✅ LoadTranscriptions use-case completed: 2 transcriptions loaded (2 from cache, sync running in background)'
+      );
+      
+      consoleSpy.mockRestore();
+    });
+
+    it('should handle fallback errors properly', async () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+      const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
+      const cacheError = new Error('Cache failed');
+      const fallbackError = new Error('Fallback failed');
+      
+      const mockCacheUseCase = {
+        execute: jest.fn().mockRejectedValue(cacheError),
+      };
+      MockLoadTranscriptionsFromCache.mockImplementation(() => mockCacheUseCase as any);
+      mockTranscriptionService.loadAll.mockRejectedValue(fallbackError);
+      
+      const config = { services, store: mockStore };
+      const useCase = new LoadTranscriptions(config);
+      
+      await expect(useCase.execute()).rejects.toThrow('Fallback failed');
+      
+      expect(consoleErrorSpy).toHaveBeenCalledWith('❌ LoadTranscriptions use-case failed:', cacheError);
+      expect(consoleLogSpy).toHaveBeenCalledWith('🔄 Falling back to legacy single-stage loading...');
+      expect(consoleErrorSpy).toHaveBeenCalledWith('❌ Fallback loading also failed:', fallbackError);
+      expect(mockStore.setError).toHaveBeenCalledWith('Fallback failed');
+      
+      consoleErrorSpy.mockRestore();
+      consoleLogSpy.mockRestore();
     });
   });
 }); 

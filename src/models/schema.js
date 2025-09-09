@@ -266,6 +266,27 @@ export const schema = {
                 {
                     "type": "key",
                     "properties": {
+                        "name": "ByAuthor",
+                        "queryField": "transcriptionsByAuthor",
+                        "fields": [
+                            "author"
+                        ]
+                    }
+                },
+                {
+                    "type": "key",
+                    "properties": {
+                        "name": "ByAuthorDate",
+                        "queryField": "transcriptionsByAuthorDate",
+                        "fields": [
+                            "author",
+                            "dateLastUpdated"
+                        ]
+                    }
+                },
+                {
+                    "type": "key",
+                    "properties": {
                         "name": "ByTitle",
                         "queryField": "byTitle",
                         "fields": [
@@ -826,6 +847,17 @@ export const schema = {
                         "queryField": "invitesByEmail",
                         "fields": [
                             "email"
+                        ]
+                    }
+                },
+                {
+                    "type": "key",
+                    "properties": {
+                        "name": "ByEmailCreatedAt",
+                        "queryField": "invitesByEmailCreatedAt",
+                        "fields": [
+                            "email",
+                            "createdAt"
                         ]
                     }
                 },

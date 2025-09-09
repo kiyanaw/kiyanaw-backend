@@ -24,6 +24,7 @@
     "@aws-amplify/ui-react": "^6.11.2",
     "@tanstack/react-query": "^5.80.6",
     "aws-amplify": "^6.14.4",
+    "dexie": "^4.2.0",
     "diff": "^8.0.2",
     "javascript-time-ago": "^2.5.11",
     "lodash.debounce": "^4.0.8",

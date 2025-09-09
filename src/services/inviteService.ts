@@ -399,6 +399,8 @@ export interface GetMyInvitesRequest {
   userEmail: string;
   transcriptionId?: string;
   inviteId?: string;
+  includeTranscriptionData?: boolean;
+  sinceTimestamp?: string; // For incremental sync
 }
 
 export interface InviteWithValidation {
@@ -422,6 +424,23 @@ export interface InviteWithValidation {
     isPending: boolean;
     isAccepted: boolean;
     canAccept: boolean;
+  };
+  transcription?: {
+    id: string;
+    title: string;
+    author: string;
+    authorFriendly: string;
+    type: string;
+    length: number;
+    coverage: number;
+    issueCount: number;
+    regionCount: number;
+    commentCount: number;
+    isPrivate: boolean;
+    dateLastUpdated: string;
+    userLastUpdated: string;
+    createdAt: string;
+    updatedAt: string;
   };
 }
 

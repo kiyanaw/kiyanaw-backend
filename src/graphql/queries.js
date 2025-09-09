@@ -162,6 +162,118 @@ export const syncTranscriptions = /* GraphQL */ `
     }
   }
 `;
+export const transcriptionsByAuthor = /* GraphQL */ `
+  query TranscriptionsByAuthor(
+    $author: String!
+    $sortDirection: ModelSortDirection
+    $filter: ModelTranscriptionFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    transcriptionsByAuthor(
+      author: $author
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        author
+        authorFriendly
+        coverage
+        dateLastUpdated
+        userLastUpdated
+        length
+        issues
+        comments
+        commentCount
+        regionCount
+        issueCount
+        tags
+        source
+        index
+        lang
+        title
+        type
+        isPrivate
+        isPublished
+        publicIssues
+        disableAnalyzer
+        editors
+        viewers
+        editorGroups
+        viewerGroups
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      nextToken
+      startedAt
+      __typename
+    }
+  }
+`;
+export const transcriptionsByAuthorDate = /* GraphQL */ `
+  query TranscriptionsByAuthorDate(
+    $author: String!
+    $dateLastUpdated: ModelStringKeyConditionInput
+    $sortDirection: ModelSortDirection
+    $filter: ModelTranscriptionFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    transcriptionsByAuthorDate(
+      author: $author
+      dateLastUpdated: $dateLastUpdated
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        author
+        authorFriendly
+        coverage
+        dateLastUpdated
+        userLastUpdated
+        length
+        issues
+        comments
+        commentCount
+        regionCount
+        issueCount
+        tags
+        source
+        index
+        lang
+        title
+        type
+        isPrivate
+        isPublished
+        publicIssues
+        disableAnalyzer
+        editors
+        viewers
+        editorGroups
+        viewerGroups
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      nextToken
+      startedAt
+      __typename
+    }
+  }
+`;
 export const byTitle = /* GraphQL */ `
   query ByTitle(
     $title: String!
@@ -809,6 +921,47 @@ export const invitesByEmail = /* GraphQL */ `
   ) {
     invitesByEmail(
       email: $email
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        email
+        status
+        permissionLevel
+        expiresAt
+        invitedBy
+        invitedByFriendly
+        createdAt
+        acceptedAt
+        transcriptionId
+        transcriptionTitle
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      nextToken
+      startedAt
+      __typename
+    }
+  }
+`;
+export const invitesByEmailCreatedAt = /* GraphQL */ `
+  query InvitesByEmailCreatedAt(
+    $email: String!
+    $createdAt: ModelStringKeyConditionInput
+    $sortDirection: ModelSortDirection
+    $filter: ModelInviteFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    invitesByEmailCreatedAt(
+      email: $email
+      createdAt: $createdAt
       sortDirection: $sortDirection
       filter: $filter
       limit: $limit

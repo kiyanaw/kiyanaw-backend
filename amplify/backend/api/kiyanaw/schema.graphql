@@ -15,7 +15,7 @@ type Transcription
     { allow: groups, groups: ["Admins"], operations: [create, read, update, delete] }
   ]) {
   id: ID! @primaryKey
-  author: String! # UUID of the Cognito user
+  author: String! @index(name: "ByAuthor", queryField: "transcriptionsByAuthor") @index(name: "ByAuthorDate", queryField: "transcriptionsByAuthorDate", sortKeyFields: ["dateLastUpdated"]) # UUID of the Cognito user
   authorFriendly: String! # Friendly identifier
   coverage: Float
   dateLastUpdated: String!
@@ -117,7 +117,7 @@ type Invite
     { allow: groups, groups: ["Admins"], operations: [create, read, update, delete] }
   ]) {
   id: ID! @primaryKey
-  email: String! @index(name: "ByEmail", queryField: "invitesByEmail")
+  email: String! @index(name: "ByEmail", queryField: "invitesByEmail") @index(name: "ByEmailCreatedAt", queryField: "invitesByEmailCreatedAt", sortKeyFields: ["createdAt"])
   status: String!
   permissionLevel: String! # "viewer", "editor"
   expiresAt: String!

@@ -102,6 +102,43 @@ class InviteService {
   }
 
   /**
+   * Get invites by email since a specific timestamp using GSI with sort key
+   * @param {string} email - Email address to search for
+   * @param {string} sinceTimestamp - ISO timestamp to query from (inclusive)
+   * @returns {Array} Array of active invite records created since the timestamp
+   */
+  async getInvitesByEmailSince(email, sinceTimestamp) {
+    if (!this.tableName) {
+      throw new InternalError('API_KIYANAW_INVITETABLE_NAME environment variable not configured');
+    }
+
+    console.log(`Querying invites for ${email} since ${sinceTimestamp} using ByEmailCreatedAt GSI...`);
+
+    const command = new QueryCommand({
+      TableName: this.tableName,
+      IndexName: 'ByEmailCreatedAt',
+      KeyConditionExpression: 'email = :email AND createdAt >= :sinceTimestamp',
+      FilterExpression: 'attribute_not_exists(#deleted) OR #deleted = :false',
+      ExpressionAttributeNames: {
+        '#deleted': '_deleted'
+      },
+      ExpressionAttributeValues: {
+        ':email': email,
+        ':sinceTimestamp': sinceTimestamp,
+        ':false': false
+      },
+      ScanIndexForward: false // Most recent first
+    });
+
+    const result = await this.docClient.send(command);
+    
+    const items = result.Items || [];
+    console.log(`Found ${items.length} invites for email: ${email} since ${sinceTimestamp}`);
+    
+    return items;
+  }
+
+  /**
    * Get invite by ID
    * @param {string} inviteId - The invite ID to look up
    * @returns {Object|null} The invite record or null if not found

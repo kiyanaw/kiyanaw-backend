@@ -1,9 +1,13 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Users, Eye, Edit, Search, Plus, ChevronDown, Lock, LockOpen, Video, FileAudio, Filter, X, AlertTriangle, List } from 'lucide-react';
 import { useTranscriptionsStore } from '../../stores/useTranscriptionsStore';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { useLoadTranscriptions } from '../../hooks/useLoadTranscriptions';
+import { SyncIndicator } from '../sync/SyncIndicator';
+import { SyncOwnedTranscriptions } from '../../use-cases/sync-owned-transcriptions';
+import { SyncSharedTranscriptions } from '../../use-cases/sync-shared-transcriptions';
+import { services } from '../../services';
 import TimeAgo from 'javascript-time-ago';
 import en from 'javascript-time-ago/locale/en';
 
@@ -24,17 +28,22 @@ const sortOptions: SortOption[] = [
   { key: 'issues', label: 'Issues' },
 ];
 
+type TabType = 'owned' | 'shared';
+
 export const TranscriptionsList = () => {
   const transcriptions = useTranscriptionsStore((state) => state.transcriptions);
   const loading = useTranscriptionsStore((state) => state.loading);
   const error = useTranscriptionsStore((state) => state.error);
   const reload = useTranscriptionsStore((state) => state.reload);
+  const ownedSyncStatus = useTranscriptionsStore((state) => state.ownedSyncStatus);
+  const sharedSyncStatus = useTranscriptionsStore((state) => state.sharedSyncStatus);
   const user = useAuthStore((state) => state.user);
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState('dateLastUpdated');
   const [sortDesc, setSortDesc] = useState(true);
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const [showMobileFilter, setShowMobileFilter] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabType>('owned');
 
   const showUploadButton = true;
 
@@ -79,11 +88,45 @@ export const TranscriptionsList = () => {
   };
 
   // Load transcriptions when component mounts
-  useLoadTranscriptions();
+  const loadTranscriptions = useLoadTranscriptions();
+  
+  useEffect(() => {
+    loadTranscriptions();
+  }, [loadTranscriptions]);
+
+  // Handle tab switching with sync
+  const handleTabSwitch = (tab: TabType) => {
+    setActiveTab(tab);
+    
+    // Trigger sync for the selected tab
+    const store = useTranscriptionsStore.getState();
+    
+    if (tab === 'owned') {
+      const syncUseCase = new SyncOwnedTranscriptions({ services, store });
+      syncUseCase.execute().catch((error) => {
+        console.error('❌ Failed to sync owned transcriptions:', error);
+      });
+    } else if (tab === 'shared') {
+      const syncUseCase = new SyncSharedTranscriptions({ services, store });
+      syncUseCase.execute().catch((error) => {
+        console.error('❌ Failed to sync shared transcriptions:', error);
+      });
+    }
+  };
 
   // Filter and sort transcriptions
   const filteredAndSortedTranscriptions = useMemo(() => {
-    const filtered = transcriptions.filter((transcription) =>
+    let filtered = transcriptions;
+
+    // Apply tab filter first
+    if (activeTab === 'owned') {
+      filtered = filtered.filter((t) => t.isMine(user?.userId));
+    } else if (activeTab === 'shared') {
+      filtered = filtered.filter((t) => !t.isMine(user?.userId));
+    }
+
+    // Apply search filter
+    filtered = filtered.filter((transcription) =>
       transcription.title.toLowerCase().includes(search.toLowerCase())
     );
 
@@ -112,7 +155,7 @@ export const TranscriptionsList = () => {
     });
 
     return filtered;
-  }, [transcriptions, search, sortBy, sortDesc]);
+  }, [transcriptions, search, sortBy, sortDesc, activeTab, user?.userId]);
 
   // Show all transcriptions (no pagination)
   const displayedTranscriptions = filteredAndSortedTranscriptions;
@@ -314,13 +357,55 @@ export const TranscriptionsList = () => {
         </div>
       </div>
 
+      {/* Tab Navigation */}
+      <div className="border-b border-gray-200 bg-white">
+        <div className="px-4 md:px-6">
+          <nav className="-mb-px flex space-x-8" aria-label="Tabs">
+            <button
+              onClick={() => handleTabSwitch('owned')}
+              className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'owned'
+                  ? 'border-ki-blue text-ki-blue'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              My Transcriptions
+              <span className={`ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                activeTab === 'owned' ? 'bg-ki-blue text-white' : 'bg-gray-100 text-gray-900'
+              }`}>
+                {transcriptions.filter(t => t.isMine(user?.userId)).length}
+              </span>
+            </button>
+            <button
+              onClick={() => handleTabSwitch('shared')}
+              className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'shared'
+                  ? 'border-ki-blue text-ki-blue'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Shared with Me
+              <span className={`ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                activeTab === 'shared' ? 'bg-ki-blue text-white' : 'bg-gray-100 text-gray-900'
+              }`}>
+                {transcriptions.filter(t => !t.isMine(user?.userId)).length}
+              </span>
+            </button>
+          </nav>
+        </div>
+      </div>
+
+
       {/* Scrollable Content Area */}
       <div className="flex-1 overflow-auto">
         <div className="px-4 md:px-6 py-4 md:py-6">
         {/* Results count */}
-        <div className="mb-4 text-sm text-gray-600">
-          {filteredAndSortedTranscriptions.length} transcription{filteredAndSortedTranscriptions.length !== 1 ? 's' : ''}
-          {search && ` matching "${search}"`}
+        <div className="mb-4 text-sm text-gray-600 flex items-center gap-2">
+          <span>
+            {filteredAndSortedTranscriptions.length} transcription{filteredAndSortedTranscriptions.length !== 1 ? 's' : ''}
+            {search && ` matching "${search}"`}
+          </span>
+          <SyncIndicator status={activeTab === 'owned' ? ownedSyncStatus : sharedSyncStatus} />
         </div>
 
         {/* Cards Grid */}
@@ -567,9 +652,13 @@ export const TranscriptionsList = () => {
         {displayedTranscriptions.length === 0 && (
           <div className="text-center py-12">
             <div className="text-gray-500">
-              {search
-                ? 'No transcriptions match your search.'
-                : 'No transcriptions found.'}
+              {search ? (
+                'No transcriptions match your search.'
+              ) : activeTab === 'owned' ? (
+                'You haven\'t created any transcriptions yet.'
+              ) : (
+                'No transcriptions have been shared with you yet.'
+              )}
             </div>
           </div>
         )}
