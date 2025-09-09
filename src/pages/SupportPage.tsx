@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Copy, Check, MessageCircle } from 'lucide-react';
+import { Copy, Check, MessageCircle, Users } from 'lucide-react';
 
 export const SupportPage = () => {
   const [emailCopied, setEmailCopied] = useState(false);
   const supportEmail = 'support@kiyanaw.net';
   const facebookMessengerUrl = 'https://m.me/115148727058478';
+  const discordInviteUrl = 'https://discord.gg/ucekEKjvWz';
 
   const handleCopyEmail = async () => {
     try {
@@ -27,6 +28,10 @@ export const SupportPage = () => {
 
   const handleFacebookClick = () => {
     window.open(facebookMessengerUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleDiscordClick = () => {
+    window.open(discordInviteUrl, '_blank', 'noopener,noreferrer');
   };
 
   return (
@@ -79,6 +84,21 @@ export const SupportPage = () => {
             >
               <MessageCircle className="w-5 h-5 mr-2" />
               <span className="font-medium">Contact us on Messenger</span>
+            </button>
+          </div>
+
+          {/* Discord */}
+          <div>
+            <h2 className="text-lg font-medium text-gray-900 mb-3">Discord Community</h2>
+            <p className="text-sm text-gray-600 mb-3">
+              Join our Discord server to connect with the community and get support from other users.
+            </p>
+            <button
+              onClick={handleDiscordClick}
+              className="w-full flex items-center justify-center p-3 bg-[#5865F2] hover:bg-[#4752C4] text-white rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#5865F2] focus:ring-opacity-50"
+            >
+              <Users className="w-5 h-5 mr-2" />
+              <span className="font-medium">Join our Discord</span>
             </button>
           </div>
 
