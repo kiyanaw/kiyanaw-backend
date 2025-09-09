@@ -90,7 +90,11 @@ export const useTranscriptionsStore = create<TranscriptionsState>()(
         
         // Convert back to array and sort by dateLastUpdated (newest first)
         const mergedTranscriptions = Array.from(existingMap.values())
-          .sort((a, b) => new Date(b.dateLastUpdated).getTime() - new Date(a.dateLastUpdated).getTime());
+          .sort((a, b) => {
+            const aDate = a.dateLastUpdated ? new Date(a.dateLastUpdated).getTime() : 0;
+            const bDate = b.dateLastUpdated ? new Date(b.dateLastUpdated).getTime() : 0;
+            return bDate - aDate;
+          });
         
         console.log(`📦 Merged transcriptions: ${transcriptions.length} existing + ${newTranscriptions.length} new = ${mergedTranscriptions.length} total`);
         set({ transcriptions: mergedTranscriptions });
