@@ -4,64 +4,7 @@ import { getUrl } from 'aws-amplify/storage';
 // @ts-ignore - GraphQL queries are generated as JS files
 import { getTranscription, transcriptionsByAuthor } from '../graphql/queries.js';
 
-// Custom query for compound GSI (author + dateLastUpdated)
-const transcriptionsByAuthorDate = /* GraphQL */ `
-  query TranscriptionsByAuthorDate(
-    $author: String!
-    $dateLastUpdated: ModelStringKeyConditionInput
-    $sortDirection: ModelSortDirection
-    $filter: ModelTranscriptionFilterInput
-    $limit: Int
-    $nextToken: String
-  ) {
-    transcriptionsByAuthorDate(
-      author: $author
-      dateLastUpdated: $dateLastUpdated
-      sortDirection: $sortDirection
-      filter: $filter
-      limit: $limit
-      nextToken: $nextToken
-    ) {
-      items {
-        id
-        author
-        authorFriendly
-        coverage
-        dateLastUpdated
-        userLastUpdated
-        length
-        issues
-        comments
-        commentCount
-        regionCount
-        issueCount
-        tags
-        source
-        index
-        lang
-        title
-        type
-        isPrivate
-        isPublished
-        publicIssues
-        disableAnalyzer
-        editors
-        viewers
-        editorGroups
-        viewerGroups
-        createdAt
-        updatedAt
-        _version
-        _deleted
-        _lastChangedAt
-        __typename
-      }
-      nextToken
-      startedAt
-      __typename
-    }
-  }
-`;
+import { transcriptionsByAuthorDate } from './custom-queries';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - GraphQL mutations are generated as JS files
 import { createTranscription as createTranscriptionMutation, updateTranscription as updateTranscriptionMutation, deleteTranscription as deleteTranscriptionMutation } from '../graphql/mutations.js';

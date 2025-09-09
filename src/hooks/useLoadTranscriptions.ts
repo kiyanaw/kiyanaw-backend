@@ -28,7 +28,6 @@ export const useLoadTranscriptions = () => {
       // Fire and forget - let use-case handle the orchestration
       useCase.execute().catch((error) => {
         console.error('❌ useLoadTranscriptions failed:', error);
-        // Error is already handled in the use-case
       });
     }
   }, []);
