@@ -5,8 +5,6 @@ interface SyncLatestTranscriptionsConfig {
   services: typeof services;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   store: any; // ZustandStore with transcriptions management capabilities
-  sinceTimestamp?: string;
-  isFullSync?: boolean;
 }
 
 export class SyncLatestTranscriptions {
@@ -29,15 +27,19 @@ export class SyncLatestTranscriptions {
     this.validate();
 
     const transcriptionService = this.config.services.transcriptionService;
-    const { sinceTimestamp, isFullSync } = this.config;
     
     try {
+      // Get cache stats to determine sync type and timestamp
+      const cacheStats = await transcriptionService.getCacheStats();
+      const sinceTimestamp = cacheStats.lastSyncedAt || undefined;
+      const isFullSync = cacheStats.count === 0;
+      
       console.log(`🔄 SyncLatestTranscriptions use-case executing (${isFullSync ? 'full' : 'incremental'} sync)...`);
       
       // Set syncing status (both global and tab-specific)
       this.config.store.setSyncStatus(true);
       
-      // Set both tab sync statuses to syncing since this is a full sync
+      // Set both tab sync statuses to syncing since this syncs both owned and shared
       this.config.store.setOwnedSyncStatus('syncing');
       this.config.store.setSharedSyncStatus('syncing');
       

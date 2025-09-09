@@ -110,21 +110,21 @@ describe('SyncLatestTranscriptions', () => {
       expect(mockStore.setSharedSyncStatus).toHaveBeenCalledWith('syncing');
     });
 
-    it('should call syncLatestChanges with timestamp', async () => {
-      const config = { 
-        services, 
-        store: mockStore, 
-        sinceTimestamp: '2023-01-01T00:00:00.000Z' 
-      };
+    it('should call syncLatestChanges with timestamp from cache stats', async () => {
+      const config = { services, store: mockStore };
       const useCase = new SyncLatestTranscriptions(config);
       
       await useCase.execute();
       
+      expect(mockTranscriptionService.getCacheStats).toHaveBeenCalled();
       expect(mockTranscriptionService.syncLatestChanges).toHaveBeenCalledWith('2023-01-01T00:00:00.000Z');
     });
 
-    it('should call syncLatestChanges without timestamp for full sync', async () => {
-      const config = { services, store: mockStore, isFullSync: true };
+    it('should call syncLatestChanges without timestamp for full sync when cache is empty', async () => {
+      const emptyCacheStats = { count: 0, lastSyncedAt: null };
+      mockTranscriptionService.getCacheStats.mockResolvedValue(emptyCacheStats);
+      
+      const config = { services, store: mockStore };
       const useCase = new SyncLatestTranscriptions(config);
       
       await useCase.execute();
@@ -217,10 +217,12 @@ describe('SyncLatestTranscriptions', () => {
       expect(mockStore.setError).toHaveBeenCalledWith('Failed to sync transcriptions');
     });
 
-    it('should log appropriate messages for successful sync with data', async () => {
+    it('should log appropriate messages for full sync with data', async () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      const emptyCacheStats = { count: 0, lastSyncedAt: null };
+      mockTranscriptionService.getCacheStats.mockResolvedValue(emptyCacheStats);
       
-      const config = { services, store: mockStore, isFullSync: true };
+      const config = { services, store: mockStore };
       const useCase = new SyncLatestTranscriptions(config);
       
       await useCase.execute();
@@ -231,7 +233,7 @@ describe('SyncLatestTranscriptions', () => {
       consoleSpy.mockRestore();
     });
 
-    it('should log appropriate messages for successful sync without data', async () => {
+    it('should log appropriate messages for incremental sync without data', async () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
       mockTranscriptionService.syncLatestChanges.mockResolvedValue([]);
       

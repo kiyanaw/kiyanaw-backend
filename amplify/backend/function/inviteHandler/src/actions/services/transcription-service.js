@@ -65,7 +65,6 @@ class TranscriptionService {
 
         totalRetrieved += transcriptions.length;
         
-        // Handle any unprocessed keys (due to throttling)
         if (result.UnprocessedKeys && Object.keys(result.UnprocessedKeys).length > 0) {
           console.warn(`⚠️ Some keys were unprocessed in batch get, may need retry logic`);
         }

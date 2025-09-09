@@ -39,11 +39,7 @@ export class LoadTranscriptions {
       
       // Stage 2: Sync latest changes in background
       console.log('🔄 Stage 2: Syncing latest changes...');
-      const syncUseCase = new SyncLatestTranscriptions({
-        ...this.config,
-        sinceTimestamp: cacheResult.cacheStats.lastSyncedAt || undefined,
-        isFullSync: cacheResult.cacheStats.count === 0
-      });
+      const syncUseCase = new SyncLatestTranscriptions(this.config);
       
       // Fire sync in background - don't await to keep UI responsive
       syncUseCase.execute().catch((error) => {

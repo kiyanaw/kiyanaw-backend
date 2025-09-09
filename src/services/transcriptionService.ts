@@ -462,7 +462,7 @@ const loadOwnedTranscriptionsSince = async (userId: string, sinceDate: string): 
       if (page?.items) {
         const user = currentUser();
         const pageModels = page.items.map(item => {
-          const model = new TranscriptionModel(item as unknown as ADTTranscriptionData);
+          const model = new TranscriptionModel(item as ADTTranscriptionData);
           model.setAccessLevel(user?.userId);
           return model;
         });
@@ -725,22 +725,17 @@ const performFullSync = async (sinceTimestamp?: string): Promise<TranscriptionMo
   try {
     // Load owned transcriptions via efficient GSI
     let ownedTranscriptions: TranscriptionModel[] = [];
-    if (sinceTimestamp) {
-      // Incremental sync for owned transcriptions
-      ownedTranscriptions = await loadOwnedTranscriptionsSince(user.userId, sinceTimestamp);
+    if (syncType === 'incremental') {
+      ownedTranscriptions = await loadOwnedTranscriptionsSince(user.userId, sinceTimestamp!);
     } else {
-      // Full sync for owned transcriptions
       ownedTranscriptions = await loadOwnedTranscriptions(user.userId);
     }
     console.log(`📝 Loaded ${ownedTranscriptions.length} owned transcriptions`);
     
     // Load shared transcriptions via invites (need email for invite lookup)
-    let sharedTranscriptions: TranscriptionModel[] = [];
-    if (user.username) { // username is typically the email in Cognito
-      sharedTranscriptions = await loadSharedTranscriptions(user.username, sinceTimestamp);
-      console.log(`🤝 Loaded ${sharedTranscriptions.length} shared transcriptions`);
-    }
-    
+    const sharedTranscriptions: TranscriptionModel[] = await loadSharedTranscriptions(user.username, sinceTimestamp);
+    console.log(`🤝 Loaded ${sharedTranscriptions.length} shared transcriptions`);
+
     // Combine and deduplicate (in case user has both ownership and invite access)
     const allTranscriptions = new Map<string, TranscriptionModel>();
     

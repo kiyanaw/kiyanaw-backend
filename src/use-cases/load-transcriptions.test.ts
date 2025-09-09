@@ -349,15 +349,11 @@ describe('LoadTranscriptions', () => {
       const result = await useCase.execute();
       
       expect(MockLoadTranscriptionsFromCache).toHaveBeenCalledWith(config);
-      expect(MockSyncLatestTranscriptions).toHaveBeenCalledWith({
-        ...config,
-        sinceTimestamp: '2023-01-01T00:00:00.000Z',
-        isFullSync: false
-      });
+      expect(MockSyncLatestTranscriptions).toHaveBeenCalledWith(config);
       expect(result).toBe(mockTranscriptionModels);
     });
 
-    it('should handle full sync when cache is empty', async () => {
+    it('should handle sync regardless of cache state', async () => {
       const emptyCacheResult = {
         transcriptions: [],
         cacheStats: { count: 0, lastSyncedAt: null }
@@ -373,11 +369,8 @@ describe('LoadTranscriptions', () => {
       
       await useCase.execute();
       
-      expect(MockSyncLatestTranscriptions).toHaveBeenCalledWith({
-        ...config,
-        sinceTimestamp: undefined,
-        isFullSync: true
-      });
+      // Sync use-case determines its own parameters from cache stats
+      expect(MockSyncLatestTranscriptions).toHaveBeenCalledWith(config);
     });
 
     it('should return cached transcriptions immediately', async () => {
