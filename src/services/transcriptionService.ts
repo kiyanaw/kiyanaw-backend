@@ -28,6 +28,9 @@ import {
   type LoadTranscriptionResult,
 } from '../types/shared';
 
+// Sync state management
+let currentSyncOperation: Promise<TranscriptionModel[]> | null = null;
+
 // Create GraphQL client lazily
 let client: GraphQLClient | null = null;
 const getClient = (): GraphQLClient => {
@@ -500,9 +503,6 @@ const loadOwnedTranscriptionsSince = async (userId: string, sinceDate: string): 
   }
 };
 
-// Sync state management
-let currentSyncOperation: Promise<TranscriptionModel[]> | null = null;
-
 /**
  * Check if a sync operation is currently in progress
  */
@@ -579,7 +579,7 @@ export const syncLatestChanges = async (sinceTimestamp?: string): Promise<Transc
     try {
       console.log(`🔄 Syncing ${sinceTimestamp ? 'incremental' : 'full'} changes...`);
       
-      const syncResult = await performFullSync(sinceTimestamp);
+      const syncResult = await performSync(sinceTimestamp);
       
       // Store in cache and update sync timestamp
       if (syncResult.length > 0) {
@@ -631,7 +631,7 @@ export const loadAll = async (): Promise<TranscriptionModel[]> => {
     if (!lastSyncedAt) {
       // First sync - do full sync using hybrid approach (both owned + shared)
       console.log('🆕 First sync - loading all transcriptions and invites...');
-      const fullSyncResult = await performFullSync(); // No timestamp = full sync
+      const fullSyncResult = await performSync(); // No timestamp = full sync
       
       // Store in cache
       await transcriptionStorage.storeTranscriptions(fullSyncResult);
@@ -643,7 +643,7 @@ export const loadAll = async (): Promise<TranscriptionModel[]> => {
       // Always sync latest changes since last sync timestamp
       console.log(`🔄 Syncing latest changes since ${lastSyncedAt}...`);
       const newSyncTimestamp = new Date().toISOString();
-      const latestResults = await performFullSync(lastSyncedAt); // Get only what's new
+      const latestResults = await performSync(lastSyncedAt); // Get only what's new
       
       if (latestResults.length > 0) {
         // Merge with existing cache
@@ -667,7 +667,7 @@ export const loadAll = async (): Promise<TranscriptionModel[]> => {
     
     // Fallback to direct API call if sync fails
     console.log('🔄 Falling back to direct API call...');
-    return await performFullSync(); // Full sync fallback
+    return await performSync(); // Full sync fallback
   }
 };
 
@@ -680,7 +680,7 @@ const validateCachedTranscriptions = async (): Promise<void> => {
     console.log('🔍 Validating cached transcriptions against current permissions...');
     
     // Get current accessible transcriptions from API (this respects ACL)
-    const currentAccessible = await performFullSync();
+    const currentAccessible = await performSync();
     const currentIds = new Set(currentAccessible.map(t => t.id));
     
     // Get cached transcriptions
@@ -713,7 +713,7 @@ const validateCachedTranscriptions = async (): Promise<void> => {
  * Performs a hybrid full sync using efficient GSI queries + invite discovery
  * @param sinceTimestamp Optional timestamp for incremental sync
  */
-const performFullSync = async (sinceTimestamp?: string): Promise<TranscriptionModel[]> => {
+const performSync = async (sinceTimestamp?: string): Promise<TranscriptionModel[]> => {
   const user = currentUser();
   if (!user?.userId) {
     throw new Error('User must be authenticated to perform sync');
