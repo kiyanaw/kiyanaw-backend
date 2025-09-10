@@ -15,14 +15,17 @@ type Transcription
     { allow: groups, groups: ["Admins"], operations: [create, read, update, delete] }
   ]) {
   id: ID! @primaryKey
-  author: String! # UUID of the Cognito user
+  author: String! @index(name: "ByAuthor", queryField: "transcriptionsByAuthor") @index(name: "ByAuthorDate", queryField: "transcriptionsByAuthorDate", sortKeyFields: ["dateLastUpdated"]) # UUID of the Cognito user
   authorFriendly: String! # Friendly identifier
   coverage: Float
   dateLastUpdated: String!
-  userLastUpdated: String
+  userLastUpdated: String!
   length: Float
   issues: String
-  comments: String
+  comments: String # going to call this "Notes" in the app, comments moving to Comments
+  commentCount: Int
+  regionCount: Int
+  issueCount: Int
   tags: String
   source: String
   index: String # deprecated field, use `lang`
@@ -31,6 +34,7 @@ type Transcription
   type: String!
   isPrivate: Boolean
   isPublished: Boolean
+  publicIssues: Boolean
   disableAnalyzer: Boolean # deprecated field, use `lang`
   # ACL fields (no field-level auth, handled in custom resolvers)
   editors: [String]
@@ -39,6 +43,7 @@ type Transcription
   viewerGroups: [String]
   regions: [Region] @hasMany(indexName: "ByTranscription", fields: ["id"])
   issueList: [Issue] @hasMany(indexName: "ByTranscription", fields: ["id"])
+  relatedComments: [Comment] @hasMany(indexName: "ByTranscription", fields: ["id"])
 }
 
 type Region
@@ -56,7 +61,8 @@ type Region
   end: Float!
   regionText: String
   regionAnalysis: [String]
-  isNote: Boolean
+  isNote: Boolean # deprecated field, notes moving into Comments
+  commentCount: Int
   translation: String
   dateLastUpdated: String!
   userLastUpdated: String!
@@ -67,17 +73,30 @@ type Region
 type Issue
   @model
   @auth(rules: [
-    { allow: private, provider: identityPool, operations: [create, read, update, delete] },
+    # 1) Allow IAM callers full CRUD (e.g. DataStore sync, Lambda functions)
+    { allow: private, provider: identityPool, operations: [create, read, update, delete] }
+    
+    # 2) Owners (issue creators) can manage their own issues
+    { allow: owner, ownerField: "owner", operations: [create, read, update, delete] }
+    
+    # 3) Inherit access from parent transcription - users with transcription access can read/update issues
     { allow: private, operations: [read, update] }
+    
+    # 4) Admins can manage all issues
+    { allow: groups, groups: ["Admins"], operations: [create, read, update, delete] }
   ]) {
   id: ID! @primaryKey
   text: String!
-  owner: String! @index(name: "ByOwner")
+  owner: String! @index(name: "ByOwner", queryField: "issuesByOwner")
+  ownerFriendly: String!
   index: Int!
   resolved: Boolean
-  type: String! @index(name: "ByType")
-  comments: AWSJSON
-  regionId: String!
+  type: String! @index(name: "ByType", queryField: "issuesByType")
+  dateLastUpdated: String!
+  userLastUpdated: String!
+  comments: AWSJSON # deprecated field, comments moving to Comment field
+  commentCount: Int
+  regionId: String! @index(name: "ByRegion", queryField: "issuesByRegion")
   transcription: Transcription! @belongsTo(fields: ["transcriptionId"])
   transcriptionId: ID! @index(name: "ByTranscription", queryField: "issuesByTranscription")
 }
@@ -98,7 +117,7 @@ type Invite
     { allow: groups, groups: ["Admins"], operations: [create, read, update, delete] }
   ]) {
   id: ID! @primaryKey
-  email: String! @index(name: "ByEmail", queryField: "invitesByEmail")
+  email: String! @index(name: "ByEmail", queryField: "invitesByEmail") @index(name: "ByEmailCreatedAt", queryField: "invitesByEmailCreatedAt", sortKeyFields: ["createdAt"])
   status: String!
   permissionLevel: String! # "viewer", "editor"
   expiresAt: String!
@@ -110,3 +129,46 @@ type Invite
   transcriptionTitle: String! # Title of the transcription being shared
 }
 
+type Comment
+  @model
+  @auth(rules: [
+    # 1) Allow IAM callers full CRUD (e.g. DataStore sync, Lambda functions)
+    { allow: private, provider: identityPool, operations: [create, read, update, delete] }
+    
+    # 2) Owners (comment authors) can manage their comments
+    { allow: owner, ownerField: "author", operations: [create, read, update, delete] }
+    
+    # 3) Inherit access from parent transcription - users with access can read comments
+    { allow: private, operations: [read] }
+    
+    # 4) Admins can manage all comments
+    { allow: groups, groups: ["Admins"], operations: [create, read, update, delete] }
+  ]) {
+  id: ID! @primaryKey
+  
+  # Content fields
+  text: String!
+  # User-based indexing for "my comments" across transcriptions
+  author: String! @index(name: "ByAuthor", queryField: "commentsByAuthor", sortKeyFields: ["createdAt"])
+  authorFriendly: String! # Friendly identifier (email/username)
+  
+  # Timestamp fields
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+  
+  # Parent references - transcriptionId is ALWAYS present for efficient querying
+  transcriptionId: ID! @index(name: "ByTranscription", queryField: "commentsByTranscription")
+  transcription: Transcription! @belongsTo(fields: ["transcriptionId"])
+  
+  # Entity reference within the transcription
+  entityType: String! # "region", "issue", "transcription" (for transcription-level comments)
+  entityId: String! # ID of the specific entity (regionId, issueId, or transcriptionId)
+  
+  # Threading support for nested replies
+  parentCommentId: ID @index(name: "ByParentComment", queryField: "commentsByParentComment")
+  parentComment: Comment @belongsTo(fields: ["parentCommentId"])
+  replies: [Comment] @hasMany(indexName: "ByParentComment", fields: ["id"])
+
+  # Optional extensible metadata
+  metadata: AWSJSON
+}

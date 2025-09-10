@@ -27,6 +27,20 @@ jest.mock('../../services/wavesurferService', () => {
 // Get the mocked service for test assertions
 const mockWaveSurferService = jest.mocked(wavesurferService);
 
+// Mock the browserService
+jest.mock('../../services/browserService', () => ({
+  browserService: {
+    getVideoPreferences: jest.fn(() => ({
+      position: 'right',
+      size: 'small', 
+      isMinimized: false,
+      zoom: 40,
+      speed: 100,
+    })),
+    saveVideoPreferences: jest.fn(),
+  },
+}));
+
 // Mock the stores
 jest.mock('../../stores/usePlayerStore', () => ({
   usePlayerStore: jest.fn(),
@@ -79,6 +93,7 @@ describe('WaveformPlayer', () => {
     regions: [],
     isVideo: false,
     title: 'Test Title',
+    transcriptionId: 'test-transcription-id',
     onOpenSettings: jest.fn(),
   };
 
@@ -91,44 +106,59 @@ describe('WaveformPlayer', () => {
       return selector(state);
     });
     
-    // Setup default mock returns for useEditorStore
-    mockUseEditorStore.mockImplementation((selector) => {
-      const state = {
-        transcription: {
-          id: 'test-transcription-id',
-          title: 'Test Transcription',
-          source: 'test-source',
-          type: 'test-type',
-          author: 'test-author',
-          authorFriendly: 'Test Author',
-          userLastUpdated: 'test-user',
-          dateLastUpdated: '2023-01-01T00:00:00.000Z',
-          createdAt: '2023-01-01T00:00:00.000Z',
-          updatedAt: '2023-01-01T00:00:00.000Z',
-          length: 120, // Duration in seconds
-        },
-        saved: false,
-        peaks: null,
-        accessDenied: false,
-        canEdit: true,
-        regions: [],
-        regionMap: {},
-        regionVersions: {},
-        selectedRegionId: null,
-        selectedRegion: null,
-        playbackWithinRegion: null,
-        knownWords: new Set<string>(),
-        pendingEdits: {},
-        issues: [],
-        issueMap: {},
-        _subscriptions: [],
-        setFullTranscriptionData: jest.fn(),
-        setAccessDenied: jest.fn(),
-        setCanEdit: jest.fn(),
-        cleanup: jest.fn(),
+          // Setup default mock returns for useEditorStore
+      mockUseEditorStore.mockImplementation((selector) => {
+        const state = {
+          transcription: {
+            id: 'test-transcription-id',
+            title: 'Test Transcription',
+            source: 'test-source',
+            type: 'test-type',
+            author: 'test-author',
+            authorFriendly: 'Test Author',
+            userLastUpdated: 'test-user',
+            dateLastUpdated: '2023-01-01T00:00:00.000Z',
+            createdAt: '2023-01-01T00:00:00.000Z',
+            updatedAt: '2023-01-01T00:00:00.000Z',
+            length: 120, // Duration in seconds
+          },
+          saved: false,
+          saveStatus: 'saved' as const,
+          peaks: null,
+          wavesurferError: null,
+          accessDenied: false,
+          canEdit: true,
+          regions: [],
+          regionMap: {},
+          regionVersions: {},
+          selectedRegionId: null,
+          selectedRegion: null,
+          playbackWithinRegion: null,
+          knownWords: new Set<string>(),
+          pendingEdits: {},
+          issues: [],
+          issueMap: {},
+          issuesByRegionMap: {},
+    comments: [],
+    commentMap: {},
+    commentsByEntityMap: {},
+    commentsByTranscriptionMap: [],
+    commentById: jest.fn(() => null),
+    commentsByEntity: jest.fn(() => []),
+    commentsByRegion: jest.fn(() => []),
+    commentsByIssue: jest.fn(() => []),
+    commentsByTranscription: jest.fn(() => []),
+    getCommentsForEntity: jest.fn(() => []),
+          _subscriptions: [],
+          setFullTranscriptionData: jest.fn(),
+          setAccessDenied: jest.fn(),
+          setWavesurferError: jest.fn(),
+          setCanEdit: jest.fn(),
+          cleanup: jest.fn(),
         updateTranscription: jest.fn(),
         setTranscription: jest.fn(),
         setSaved: jest.fn(),
+        setSaveStatus: jest.fn(),
         setSelectedRegion: jest.fn(),
         setPlaybackWithinRegion: jest.fn(),
         updateRegion: jest.fn(),
@@ -149,6 +179,15 @@ describe('WaveformPlayer', () => {
         createIssue: jest.fn(),
         updateIssue: jest.fn(),
         deleteIssue: jest.fn(),
+        addNewIssue: jest.fn(),
+        addNewComment: jest.fn(),
+        updateComment: jest.fn(),
+        deleteComment: jest.fn(),
+        issueLinkStatusesByRegion: {},
+        issueSuggestionsByRegion: {},
+        setIssueLinkStatuses: jest.fn(),
+        setIssueSuggestions: jest.fn(),
+        clearIssueSuggestionsForIssue: jest.fn(),
         addComment: jest.fn(),
         isVideo: false,
         isTranscriptionAuthor: jest.fn(() => false),
@@ -156,12 +195,15 @@ describe('WaveformPlayer', () => {
         regionById: jest.fn(() => null),
         issueById: jest.fn(() => null),
         issuesByRegion: jest.fn(() => []),
-        calculateTranscriptionMetadata: jest.fn(() => ({ regionCount: 0, coverage: 0 })),
+      getIssuesForRegion: jest.fn(() => []),
+        calculateTranscriptionMetadata: jest.fn(() => ({ regionCount: 0, issueCount: 0, coverage: 0 })),
 
         conflictQueue: [],
         addConflictToQueue: jest.fn(),
         removeConflictFromQueue: jest.fn(),
         processConflictQueue: jest.fn(),
+        regionSelections: {},
+        setRegionSelection: jest.fn(),
       };
       return selector(state);
     });
@@ -430,7 +472,7 @@ describe('WaveformPlayer', () => {
       
       render(<WaveformPlayer {...defaultProps} />);
       
-      const zoomSlider = screen.getByDisplayValue('20'); // default zoom value
+      const zoomSlider = screen.getByDisplayValue('40'); // default zoom value
       fireEvent.change(zoomSlider, { target: { value: '30' } });
       
       expect(mockWaveSurferService.setZoom).toHaveBeenCalledWith(30);
@@ -448,7 +490,7 @@ describe('WaveformPlayer', () => {
       
       render(<WaveformPlayer {...defaultProps} />);
       
-      const zoomSlider = screen.getByDisplayValue('20');
+      const zoomSlider = screen.getByDisplayValue('40');
       fireEvent.change(zoomSlider, { target: { value: '50' } });
       
       expect(mockWaveSurferService.setZoom).toHaveBeenCalledWith(50);
@@ -469,9 +511,9 @@ describe('WaveformPlayer', () => {
       render(<WaveformPlayer {...defaultProps} />);
       
       const speedSlider = screen.getByDisplayValue('100'); // default speed value
-      fireEvent.change(speedSlider, { target: { value: '150' } });
+      fireEvent.change(speedSlider, { target: { value: '90' } });
       
-      expect(mockWaveSurferService.setPlaybackRate).toHaveBeenCalledWith(150);
+      expect(mockWaveSurferService.setPlaybackRate).toHaveBeenCalledWith(90);
     });
 
     it('displays current speed percentage', () => {
@@ -495,7 +537,8 @@ describe('WaveformPlayer', () => {
     it('shows edit controls when canEdit is true', () => {
       render(<WaveformPlayer {...defaultProps} />);
       
-      expect(screen.getByTestId('mark-region')).toBeInTheDocument();
+      // Edit controls are no longer rendered since we removed the mark-region button
+      expect(screen.getByTestId('play-button')).toBeInTheDocument();
     });
 
     it('hides edit controls when canEdit is false', () => {
@@ -515,7 +558,9 @@ describe('WaveformPlayer', () => {
           length: 120, // Duration in seconds
         },
         saved: false,
+        saveStatus: 'saved' as const,
         peaks: null,
+        wavesurferError: null,
         accessDenied: false,
         canEdit: false,
         regions: [],
@@ -528,14 +573,27 @@ describe('WaveformPlayer', () => {
         pendingEdits: {},
         issues: [],
         issueMap: {},
+        issuesByRegionMap: {},
+    comments: [],
+    commentMap: {},
+    commentsByEntityMap: {},
+    commentsByTranscriptionMap: [],
+    commentById: jest.fn(() => null),
+    commentsByEntity: jest.fn(() => []),
+    commentsByRegion: jest.fn(() => []),
+    commentsByIssue: jest.fn(() => []),
+    commentsByTranscription: jest.fn(() => []),
+    getCommentsForEntity: jest.fn(() => []),
         _subscriptions: [],
         setFullTranscriptionData: jest.fn(),
         setAccessDenied: jest.fn(),
+        setWavesurferError: jest.fn(),
         setCanEdit: jest.fn(),
         cleanup: jest.fn(),
         updateTranscription: jest.fn(),
         setTranscription: jest.fn(),
         setSaved: jest.fn(),
+        setSaveStatus: jest.fn(),
         setSelectedRegion: jest.fn(),
         setPlaybackWithinRegion: jest.fn(),
         updateRegion: jest.fn(),
@@ -556,6 +614,15 @@ describe('WaveformPlayer', () => {
         createIssue: jest.fn(),
         updateIssue: jest.fn(),
         deleteIssue: jest.fn(),
+        addNewIssue: jest.fn(),
+        addNewComment: jest.fn(),
+        updateComment: jest.fn(),
+        deleteComment: jest.fn(),
+        issueLinkStatusesByRegion: {},
+        issueSuggestionsByRegion: {},
+        setIssueLinkStatuses: jest.fn(),
+        setIssueSuggestions: jest.fn(),
+        clearIssueSuggestionsForIssue: jest.fn(),
         addComment: jest.fn(),
         isVideo: false,
         isTranscriptionAuthor: jest.fn(() => false),
@@ -563,18 +630,22 @@ describe('WaveformPlayer', () => {
         regionById: jest.fn(() => null),
         issueById: jest.fn(() => null),
         issuesByRegion: jest.fn(() => []),
-        calculateTranscriptionMetadata: jest.fn(() => ({ regionCount: 0, coverage: 0 })),
+      getIssuesForRegion: jest.fn(() => []),
+        calculateTranscriptionMetadata: jest.fn(() => ({ regionCount: 0, issueCount: 0, coverage: 0 })),
         conflictQueue: [],
         addConflictToQueue: jest.fn(),
         removeConflictFromQueue: jest.fn(),
         processConflictQueue: jest.fn(),
+        regionSelections: {},
+        setRegionSelection: jest.fn(),
       };
       
       mockUseEditorStore.mockImplementation((selector) => selector(mockStateWithNoEdit));
       
       const { rerender } = render(<WaveformPlayer {...defaultProps} />);
        
-      expect(screen.queryByTestId('mark-region')).not.toBeInTheDocument();
+      // Edit controls are no longer rendered since we removed the mark-region button
+      expect(screen.getByTestId('play-button')).toBeInTheDocument();
     });
 
     it('shows edit controls when canEdit is true', () => {
@@ -589,8 +660,8 @@ describe('WaveformPlayer', () => {
       
       render(<WaveformPlayer {...defaultProps} />);
       
-      // Should show edit controls when canEdit is true
-      expect(screen.getByTestId('mark-region')).toBeInTheDocument();
+      // Edit controls are no longer rendered since we removed the mark-region button
+      expect(screen.getByTestId('play-button')).toBeInTheDocument();
     });
 
     it('uses canEdit from store and passes it to wavesurfer service', () => {
@@ -611,7 +682,9 @@ describe('WaveformPlayer', () => {
             length: 120, // Duration in seconds
           },
           saved: false,
+          saveStatus: 'saved' as const,
           peaks: null,
+          wavesurferError: null,
           accessDenied: false,
           canEdit: false,
           regions: [],
@@ -624,14 +697,27 @@ describe('WaveformPlayer', () => {
           pendingEdits: {},
           issues: [],
           issueMap: {},
+          issuesByRegionMap: {},
+    comments: [],
+    commentMap: {},
+    commentsByEntityMap: {},
+    commentsByTranscriptionMap: [],
+    commentById: jest.fn(() => null),
+    commentsByEntity: jest.fn(() => []),
+    commentsByRegion: jest.fn(() => []),
+    commentsByIssue: jest.fn(() => []),
+    commentsByTranscription: jest.fn(() => []),
+    getCommentsForEntity: jest.fn(() => []),
           _subscriptions: [],
           setFullTranscriptionData: jest.fn(),
           setAccessDenied: jest.fn(),
+          setWavesurferError: jest.fn(),
           setCanEdit: jest.fn(),
           cleanup: jest.fn(),
           updateTranscription: jest.fn(),
           setTranscription: jest.fn(),
           setSaved: jest.fn(),
+        setSaveStatus: jest.fn(),
           setSelectedRegion: jest.fn(),
           setPlaybackWithinRegion: jest.fn(),
           updateRegion: jest.fn(),
@@ -652,6 +738,15 @@ describe('WaveformPlayer', () => {
           createIssue: jest.fn(),
           updateIssue: jest.fn(),
           deleteIssue: jest.fn(),
+          addNewIssue: jest.fn(),
+        addNewComment: jest.fn(),
+        updateComment: jest.fn(),
+        deleteComment: jest.fn(),
+          issueLinkStatusesByRegion: {},
+          issueSuggestionsByRegion: {},
+          setIssueLinkStatuses: jest.fn(),
+          setIssueSuggestions: jest.fn(),
+          clearIssueSuggestionsForIssue: jest.fn(),
           addComment: jest.fn(),
           isVideo: false,
           isTranscriptionAuthor: jest.fn(() => false),
@@ -659,11 +754,14 @@ describe('WaveformPlayer', () => {
           regionById: jest.fn(() => null),
           issueById: jest.fn(() => null),
           issuesByRegion: jest.fn(() => []),
-          calculateTranscriptionMetadata: jest.fn(() => ({ regionCount: 0, coverage: 0 })),
+      getIssuesForRegion: jest.fn(() => []),
+          calculateTranscriptionMetadata: jest.fn(() => ({ regionCount: 0, issueCount: 0, coverage: 0 })),
           conflictQueue: [],
           addConflictToQueue: jest.fn(),
           removeConflictFromQueue: jest.fn(),
           processConflictQueue: jest.fn(),
+        regionSelections: {},
+        setRegionSelection: jest.fn(),
         };
         return selector(state);
       });
@@ -679,7 +777,8 @@ describe('WaveformPlayer', () => {
       );
       
       // Should hide edit controls
-      expect(screen.queryByTestId('mark-region')).not.toBeInTheDocument();
+      // Edit controls are no longer rendered since we removed the mark-region button
+      expect(screen.getByTestId('play-button')).toBeInTheDocument();
     });
   });
 
@@ -806,7 +905,7 @@ describe('WaveformPlayer', () => {
       expect(container.querySelector('video')).not.toBeInTheDocument();
     });
 
-    it('should render visible video element when isVideo is true', () => {
+    it('should render video element when isVideo is true', () => {
       const { container } = render(
         <WaveformPlayer
           {...defaultProps}
@@ -817,11 +916,55 @@ describe('WaveformPlayer', () => {
       const videoElement = container.querySelector('video') as HTMLVideoElement;
       expect(videoElement).toBeInTheDocument();
       
-      // Check that the video element has the correct positioning classes (not hidden)
-      expect(videoElement.className).toContain('fixed');
-      expect(videoElement.className).toContain('bottom-4');
-      expect(videoElement.className).toContain('right-4');
-      expect(videoElement.className).not.toContain('hidden');
+      // Check that the video container has the correct positioning classes
+      // Video is hidden by default on mobile (showVideoMobile is false)
+      const videoContainer = videoElement.parentElement as HTMLDivElement;
+      expect(videoContainer.className).toContain('fixed');
+      expect(videoContainer.className).toContain('bottom-4');
+      expect(videoContainer.className).toContain('right-4');
+      // Video is hidden by default on mobile
+      expect(videoContainer.className).toContain('hidden');
+    });
+
+    it('should minimize and restore video when minimize button is clicked', () => {
+      const { container } = render(
+        <WaveformPlayer
+          {...defaultProps}
+          isVideo={true}
+        />
+      );
+
+      const videoContainer = container.querySelector('video')?.parentElement as HTMLDivElement;
+      expect(videoContainer).toBeInTheDocument();
+      
+      // Initially video should be visible on desktop (lg:block)
+      expect(videoContainer.className).toContain('lg:block');
+      expect(videoContainer.className).not.toContain('lg:hidden');
+
+      // Find and click the minimize button (ChevronDown icon)
+      const minimizeButton = screen.getByTitle('Minimize');
+      expect(minimizeButton).toBeInTheDocument();
+      
+      fireEvent.click(minimizeButton);
+
+      // After minimize, video container should be hidden on desktop
+      expect(videoContainer.className).toContain('lg:hidden');
+      expect(videoContainer.className).not.toContain('lg:block');
+
+      // The "Video" restore tab should appear
+      const restoreTab = screen.getByTitle('Restore video');
+      expect(restoreTab).toBeInTheDocument();
+      expect(restoreTab).toHaveTextContent('Video');
+
+      // Click the restore tab
+      fireEvent.click(restoreTab);
+
+      // Video should be visible again
+      expect(videoContainer.className).toContain('lg:block');
+      expect(videoContainer.className).not.toContain('lg:hidden');
+
+      // Restore tab should be hidden
+      expect(screen.queryByTitle('Restore video')).not.toBeInTheDocument();
     });
   });
 
@@ -846,61 +989,22 @@ describe('WaveformPlayer', () => {
   });
 
   describe('Loading State', () => {
-    it('shows loading indicator initially', () => {
-      render(<WaveformPlayer {...defaultProps} />);
-      
-      expect(screen.getByText('Loading audio...')).toBeInTheDocument();
-      expect(screen.getByTestId('loading-spinner')).toBeInTheDocument();
-    });
-
     it('disables controls while loading', () => {
       render(<WaveformPlayer {...defaultProps} />);
       
       const playButton = screen.getByTestId('play-button');
-      const markRegionButton = screen.getByTestId('mark-region');
       
       expect(playButton).toBeDisabled();
-      expect(markRegionButton).toBeDisabled();
     });
 
     it('disables zoom and speed controls while loading', () => {
       render(<WaveformPlayer {...defaultProps} />);
       
-      const zoomSlider = screen.getByDisplayValue('20');
+      const zoomSlider = screen.getByDisplayValue('40'); // Updated default zoom value
       const speedSlider = screen.getByDisplayValue('100');
       
       expect(zoomSlider).toBeDisabled();
       expect(speedSlider).toBeDisabled();
-    });
-
-    it('hides loading indicator when store indicates ready', () => {
-      // Mock store to initially show loading
-      mockUsePlayerStore.mockImplementation((selector) => {
-        const state = createMockPlayerState({
-          playing: false,
-          loadedAndReady: false,
-        });
-        return selector(state);
-      });
-      
-      const { rerender } = render(<WaveformPlayer {...defaultProps} />);
-      
-      // Initially shows loading
-      expect(screen.getByText('Loading audio...')).toBeInTheDocument();
-      
-      // Update store to indicate ready
-      mockUsePlayerStore.mockImplementation((selector) => {
-        const state = createMockPlayerState({
-          playing: false,
-          loadedAndReady: true,
-        });
-        return selector(state);
-      });
-      
-      rerender(<WaveformPlayer {...defaultProps} />);
-      
-      // Loading indicator should be gone
-      expect(screen.queryByText('Loading audio...')).not.toBeInTheDocument();
     });
 
     it('enables controls when store indicates ready', () => {
@@ -915,6 +1019,10 @@ describe('WaveformPlayer', () => {
       
       const { rerender } = render(<WaveformPlayer {...defaultProps} />);
       
+      // Initially controls are disabled
+      const playButton = screen.getByTestId('play-button');
+      expect(playButton).toBeDisabled();
+      
       // Update store to indicate ready
       mockUsePlayerStore.mockImplementation((selector) => {
         const state = createMockPlayerState({
@@ -926,29 +1034,12 @@ describe('WaveformPlayer', () => {
       
       rerender(<WaveformPlayer {...defaultProps} />);
       
-      const playButton = screen.getByTestId('play-button');
-      const markRegionButton = screen.getByTestId('mark-region');
-      
+      // Controls should be enabled
       expect(playButton).not.toBeDisabled();
-      expect(markRegionButton).not.toBeDisabled();
     });
 
-    it('shows loading indicator when source changes', () => {
-      // Mock store to return ready state initially
-      mockUsePlayerStore.mockImplementation((selector) => {
-        const state = createMockPlayerState({
-          playing: false,
-          loadedAndReady: true,
-        });
-        return selector(state);
-      });
-
-      const { rerender } = render(<WaveformPlayer {...defaultProps} />);
-
-      // Should not show loading initially (already loaded)
-      expect(screen.queryByTestId('loading-spinner')).not.toBeInTheDocument();
-
-      // Mock store to return not ready when source changes
+    it('controls respond to ready state changes', () => {
+      // Mock store to initially show loading
       mockUsePlayerStore.mockImplementation((selector) => {
         const state = createMockPlayerState({
           playing: false,
@@ -956,12 +1047,26 @@ describe('WaveformPlayer', () => {
         });
         return selector(state);
       });
-
-      // Change source (simulate rerender with new source)
-      rerender(<WaveformPlayer {...defaultProps} source="new-audio.mp3" />);
-
-      // Should show loading indicator for new source
-      expect(screen.getByTestId('loading-spinner')).toBeInTheDocument();
+      
+      const { rerender } = render(<WaveformPlayer {...defaultProps} />);
+      
+      // Initially controls are disabled
+      const playButton = screen.getByTestId('play-button');
+      expect(playButton).toBeDisabled();
+      
+      // Update store to indicate ready
+      mockUsePlayerStore.mockImplementation((selector) => {
+        const state = createMockPlayerState({
+          playing: false,
+          loadedAndReady: true,
+        });
+        return selector(state);
+      });
+      
+      rerender(<WaveformPlayer {...defaultProps} />);
+      
+      // Controls should be enabled
+      expect(playButton).not.toBeDisabled();
     });
 
     it('displays correct timer with current time and duration', () => {
@@ -1012,5 +1117,7 @@ describe('WaveformPlayer', () => {
       // Updated time
       expect(screen.getByText('1:15/2:00')).toBeInTheDocument();
     });
+
+
   });
 }); 

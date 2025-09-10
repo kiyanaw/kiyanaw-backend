@@ -9,6 +9,7 @@ import { services } from '../services';
 import { CreateRegion } from '../use-cases/create-region';
 import { UpdateRegionBounds } from '../use-cases/update-region-bounds';
 import { UpdateTranscriptionUseCase } from '../use-cases/update-transcription';
+import { SelectAndPlayRegion } from '../use-cases/select-and-play-region';
 
 // Wavesurfer event interfaces
 interface RegionCreatedEvent {
@@ -53,16 +54,30 @@ export const useWavesurferEvents = (transcriptionId: string, source?: string): v
     // Copy ref values to variables for cleanup function
     const currentStyleIdMap = styleIdRef.current;
 
-    const handleRegionCreated = (data: unknown) => {
+    const handleRegionCreated = async (data: unknown) => {
       const event = data as RegionCreatedEvent;
       console.log('Region Created', event);
-      const usecase = new CreateRegion({
+      
+      // First create the region
+      const createUseCase = new CreateRegion({
         transcriptionId,
         newRegion: { id: event.id, start: event.start, end: event.end },
         services,
         store: useEditorStore.getState(),
       });
-      usecase.execute();
+      createUseCase.execute();
+      
+      // Then select the region without playing
+      const selectUseCase = new SelectAndPlayRegion({
+        regionId: event.id,
+        doPlay: false,
+        services: {
+          wavesurferService: services.wavesurferService,
+          browserService: services.browserService,
+        },
+        store: useEditorStore.getState(),
+      });
+      await selectUseCase.execute();
     };
 
     const handleRegionUpdateEnd = (data: unknown) => {
@@ -95,6 +110,7 @@ export const useWavesurferEvents = (transcriptionId: string, source?: string): v
 
     const handleRegionIn = (data: unknown) => {
       const { regionId } = data as RegionEvent;
+
       if (highlightedInboundRegionRef.current) {
         const previousStyleId = styleIdRef.current.get(highlightedInboundRegionRef.current);
         if (previousStyleId) {
@@ -110,6 +126,7 @@ export const useWavesurferEvents = (transcriptionId: string, source?: string): v
       highlightedInboundRegionRef.current = regionId;
 
       // Scroll the region item into view
+
       browserService.scrollElementIntoView(targetRegionSelector);
     };
 
@@ -128,6 +145,13 @@ export const useWavesurferEvents = (transcriptionId: string, source?: string): v
     const handleTimeUpdate = (data: unknown) => {
       const event = data as TimeUpdateEvent;
       usePlayerStore.getState().setCurrentTime(event.currentTime);
+    };
+
+    const handleError = (data: unknown) => {
+      const event = data as MediaError;
+      console.error('Wavesurfer error:', event);
+      // Set error in store for UI to display
+      useEditorStore.getState().setWavesurferError('Failed to load media. Please contact support if this issue persists.');
     };
 
     const handleReadyWithDuration = (data: unknown) => {
@@ -159,6 +183,7 @@ export const useWavesurferEvents = (transcriptionId: string, source?: string): v
     wavesurferService.on('region-out', handleRegionOut);
     wavesurferService.on('ready', handleReadyWithDuration);
     wavesurferService.on('timeupdate', handleTimeUpdate);
+    wavesurferService.on('error', handleError);
 
     return () => {
       wavesurferService.clearAllListeners();

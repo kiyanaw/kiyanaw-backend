@@ -2,7 +2,6 @@ import { UpdateTranscriptionUseCase } from './update-transcription';
 import type { UpdateTranscriptionConfig } from './update-transcription';
 import { services } from '../services';
 import { TranscriptionModel } from '../services/adt';
-import { showToast } from '../services/toastService';
 
 // Mock the services and toast
 jest.mock('../services', () => ({
@@ -16,16 +15,13 @@ jest.mock('../services', () => ({
   },
 }));
 
-jest.mock('../services/toastService', () => ({
-  showToast: jest.fn(),
-}));
+
 
 jest.mock('../services/adt', () => ({
   TranscriptionModel: jest.fn().mockImplementation((data) => data),
 }));
 
 const mockServices = services as jest.Mocked<typeof services>;
-const mockShowToast = showToast as jest.MockedFunction<typeof showToast>;
 const MockedTranscriptionModel = TranscriptionModel as jest.MockedClass<typeof TranscriptionModel>;
 
 describe('UpdateTranscriptionUseCase', () => {
@@ -42,6 +38,7 @@ describe('UpdateTranscriptionUseCase', () => {
       { id: 'region2', start: 30, end: 60 },
     ],
     setTranscription: jest.fn(),
+    setSaveStatus: jest.fn(),
     calculateTranscriptionMetadata: jest.fn(() => ({ regionCount: 2, coverage: 0.75 })),
   };
 
@@ -113,7 +110,8 @@ describe('UpdateTranscriptionUseCase', () => {
           coverage: 0.75,
         })
       );
-      expect(mockShowToast).toHaveBeenCalledWith('Transcription saved', 'success');
+      expect(mockStore.setSaveStatus).toHaveBeenCalledWith('saving');
+      expect(mockStore.setSaveStatus).toHaveBeenCalledWith('saved');
     });
 
     it('should update both title and comments', async () => {
@@ -148,7 +146,8 @@ describe('UpdateTranscriptionUseCase', () => {
           coverage: 0.75,
         })
       );
-      expect(mockShowToast).toHaveBeenCalledWith('Transcription saved', 'success');
+      expect(mockStore.setSaveStatus).toHaveBeenCalledWith('saving');
+      expect(mockStore.setSaveStatus).toHaveBeenCalledWith('saved');
     });
 
     it('should handle errors and show error toast', async () => {
@@ -159,7 +158,8 @@ describe('UpdateTranscriptionUseCase', () => {
 
       await expect(useCase.execute()).rejects.toThrow('Network error');
 
-      expect(mockShowToast).toHaveBeenCalledWith('Failed to save transcription', 'error');
+      expect(mockStore.setSaveStatus).toHaveBeenCalledWith('saving');
+      expect(mockStore.setSaveStatus).toHaveBeenCalledWith('error');
       // Note: setTranscription is called for optimistic update even if API fails
       expect(mockStore.setTranscription).toHaveBeenCalled();
     });

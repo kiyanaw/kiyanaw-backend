@@ -1,6 +1,8 @@
 import * as authService from './userService';
 import * as regionService from './regionService'
 import * as transcriptionService from './transcriptionService';
+import * as issueService from './issueService';
+import * as commentService from './commentService';
 import { wavesurferService } from './wavesurferService'
 import { browserService } from './browserService';
 import { rteService } from './rteService';
@@ -22,6 +24,8 @@ export const services = {
   authService,
   regionService,
   transcriptionService,
+  issueService,
+  commentService,
   wavesurferService,
   browserService,
   rteService,

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <meta name="theme-color" content="#305880">
+  <title>Offline - kiyânaw Transcribe</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(135deg, #305880 0%, #1e3a52 100%);
+      color: white;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .container {
+      text-align: center;
+      padding: 2rem;
+      max-width: 500px;
+    }
+    .logo {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 2rem;
+      background: white;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      color: #305880;
+      font-weight: bold;
+    }
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+      font-weight: 600;
+    }
+    p {
+      font-size: 1.1rem;
+      line-height: 1.6;
+      margin-bottom: 2rem;
+      opacity: 0.9;
+    }
+    .retry-btn {
+      background: white;
+      color: #305880;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .retry-btn:hover {
+      transform: translateY(-2px);
+    }
+    .features {
+      margin-top: 3rem;
+      text-align: left;
+    }
+    .feature {
+      margin-bottom: 1rem;
+      opacity: 0.8;
+    }
+    .feature::before {
+      content: "✓";
+      margin-right: 0.5rem;
+      color: #4ade80;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">k</div>
+    <h1>You're Offline</h1>
+    <p>
+      kiyânaw Transcribe needs an internet connection to access your transcriptions and sync your work.
+    </p>
+    
+    <button class="retry-btn" onclick="window.location.reload()">
+      Try Again
+    </button>
+    
+    <div class="features">
+      <div class="feature">Your work is automatically saved locally</div>
+      <div class="feature">Changes will sync when you're back online</div>
+      <div class="feature">Previously viewed pages may still be available</div>
+    </div>
+  </div>
+
+  <script>
+    // Auto-retry when connection is restored
+    window.addEventListener('online', () => {
+      window.location.reload();
+    });
+  </script>
+</body>
+</html>

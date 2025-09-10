@@ -6,12 +6,15 @@ export interface TranscriptionData {
   authorFriendly: string;
   type: string;
   issues?: number;
+  regionCount?: number;
+  issueCount?: number;
   source: string;
   coverage?: number;
   isPrivate?: boolean;
+  publicIssues?: boolean;
   disableAnalyzer?: boolean;
   dateLastUpdated?: string;
-  userLastUpdated?: string;
+  userLastUpdated: string;
   length: number;
   editors?: string[] | null;
   viewers?: string[] | null;
@@ -48,18 +51,36 @@ export interface IssueComment {
 
 export interface IssueData {
   id: string;
+  text: string;
+  owner: string;
+  ownerFriendly: string;
+  index: number;
+  resolved?: boolean;
+  type: string;
+  dateLastUpdated: string;
+  userLastUpdated: string;
+  comments?: string; // AWSJSON - deprecated field, comments moving to Comment field
+  commentCount?: number;
+  regionId: string;
   transcriptionId: string;
-  regionId?: string;
-  createdAt: string;
-  updatedAt?: string;
-  title: string;
-  description?: string;
-  status: 'open' | 'closed' | 'in-progress';
-  priority: 'low' | 'medium' | 'high';
-  type: 'bug' | 'suggestion' | 'question' | 'other';
+  createdAt?: string; // Amplify auto-added field
+  updatedAt?: string; // Amplify auto-added field
+  _version?: number;
+}
+
+export interface CommentData {
+  id: string;
+  text: string;
   author: string;
-  assignedTo?: string;
-  comments: string; // JSON string of IssueComment array
+  authorFriendly: string;
+  createdAt: string;
+  updatedAt: string;
+  transcriptionId: string;
+  entityType: 'region' | 'issue' | 'transcription';
+  entityId: string;
+  parentCommentId?: string;
+  metadata?: string; // AWSJSON
+  _version?: number;
 }
 
 export interface InviteData {
@@ -77,9 +98,7 @@ export interface InviteData {
   updatedAt?: string;
 }
 
-export interface ProcessedIssue extends Omit<IssueData, 'comments'> {
-  comments: IssueComment[];
-}
+
 
 function pad(num: number, size: number): string {
   return ('000000000' + num).substr(-size);
@@ -111,9 +130,10 @@ export class TranscriptionModel {
   public source: string;
   public coverage: number;
   public isPrivate: boolean;
+  public publicIssues: boolean;
   public disableAnalyzer: boolean;
   public dateLastUpdated?: string;
-  public userLastUpdated?: string;
+  public userLastUpdated: string;
   public isVideo: boolean;
   public editors?: string[] | null;
   public viewers?: string[] | null;
@@ -130,7 +150,11 @@ export class TranscriptionModel {
     }
     
     this.id = data.id;
-    this.data = data;
+    this.data = {
+      ...data,
+      regionCount: data.regionCount ?? 0,
+      issueCount: data.issueCount ?? (Number(data.issues) || 0)
+    };
     this.title = data.title;
     this.comments = data.comments;
     this.author = data.author;
@@ -139,7 +163,8 @@ export class TranscriptionModel {
     // this.issues = Number(data.issues) || 0;
     this.source = data.source;
     this.coverage = data.coverage || 0;
-    this.isPrivate = data.isPrivate || false;
+    this.isPrivate = data.isPrivate ?? true;
+    this.publicIssues = data.publicIssues ?? false;
     this.disableAnalyzer = !!data.disableAnalyzer;
     this.dateLastUpdated = data.dateLastUpdated;
     this.userLastUpdated = data.userLastUpdated;
@@ -273,6 +298,34 @@ export class TranscriptionModel {
     return Boolean(hasViewers || hasEditors);
   }
 
+  /**
+   * Extract the filename from the source URL, removing timestamp prefix
+   * e.g., "https://bucket.s3.amazonaws.com/public/1753823638851-4A-Irene-Fineday-restored.mp3" returns "4A-Irene-Fineday-restored.mp3"
+   */
+  getSourceFilename(): string {
+    if (!this.source) return 'Unknown';
+    
+    try {
+      // Split by '/' and get the last part
+      const parts = this.source.split('/');
+      const filename = parts[parts.length - 1];
+      
+      // Decode URL encoding if present
+      const decodedFilename = decodeURIComponent(filename);
+      
+      // Remove timestamp prefix (e.g., "1753823638851-" from "1753823638851-4A-Irene-Fineday-restored.mp3")
+      const timestampMatch = decodedFilename.match(/^\d+-(.+)$/);
+      if (timestampMatch) {
+        return timestampMatch[1]; // Return everything after the first timestamp-
+      }
+      
+      return decodedFilename;
+    } catch (error) {
+      console.warn('Error extracting filename from source:', this.source, error);
+      return 'Unknown';
+    }
+  }
+
 }
 
 export class RegionModel {
@@ -322,6 +375,117 @@ export class RegionModel {
       console.error('Error constructing RegionModel:', e);
       console.error('Data:', JSON.stringify(data, null, 2));
       throw e;
+    }
+  }
+}
+
+export class CommentModel {
+  public id: string;
+  public text: string;
+  public author: string;
+  public authorFriendly: string;
+  public createdAt: string;
+  public updatedAt: string;
+  public transcriptionId: string;
+  public entityType: 'region' | 'issue' | 'transcription';
+  public entityId: string;
+  public parentCommentId?: string;
+  public metadata?: Record<string, unknown>;
+  public _version: number;
+
+  constructor(data: CommentData) {
+    this.id = data.id;
+    this.text = data.text;
+    this.author = data.author;
+    this.authorFriendly = data.authorFriendly;
+    this.createdAt = data.createdAt;
+    this.updatedAt = data.updatedAt;
+    this.transcriptionId = data.transcriptionId;
+    this.entityType = data.entityType;
+    this.entityId = data.entityId;
+    this.parentCommentId = data.parentCommentId;
+    
+    // Parse metadata if it's a JSON string
+    if (data.metadata) {
+      try {
+        this.metadata = typeof data.metadata === 'string' ? JSON.parse(data.metadata) : data.metadata;
+      } catch (e) {
+        console.warn('Failed to parse comment metadata:', e);
+        this.metadata = {};
+      }
+    }
+
+    // Set version tracking
+    if (data._version === undefined) {
+      console.warn('CommentModel: Missing _version for comment', data.id, '- should only happen during initial creation');
+      this._version = 1; // Temporary until DB assigns version
+    } else {
+      this._version = data._version;
+    }
+  }
+
+  /**
+   * Helper function to strip domain from email addresses
+   */
+  private stripEmailDomain(email: string): string {
+    if (!email) return email;
+    const atIndex = email.indexOf('@');
+    return atIndex !== -1 ? email.substring(0, atIndex) : email;
+  }
+
+  /**
+   * Check if the current user is the author of this comment
+   */
+  isMine(currentUserId?: string): boolean {
+    if (!currentUserId) return false;
+    return this.author === currentUserId;
+  }
+
+  /**
+   * Get the display name for the author, showing "me" if it's the current user
+   */
+  getAuthorDisplay(currentUserId?: string): string {
+    if (this.isMine(currentUserId)) {
+      return 'me';
+    }
+    return this.stripEmailDomain(this.authorFriendly);
+  }
+
+  /**
+   * Get a formatted date string for display
+   */
+  get createdAtFormatted(): string {
+    try {
+      const date = new Date(this.createdAt);
+      if (isNaN(date.getTime())) {
+        return 'Invalid Date';
+      }
+      return date.toLocaleDateString();
+    } catch {
+      return 'Invalid Date';
+    }
+  }
+
+  /**
+   * Check if this comment is a reply to another comment
+   */
+  get isReply(): boolean {
+    return !!this.parentCommentId;
+  }
+
+  /**
+   * Get the entity type display name
+   */
+  get entityTypeDisplay(): string {
+    switch (this.entityType) {
+      case 'region':
+        return 'Region';
+      case 'issue':
+        return 'Issue';
+      case 'transcription':
+        return 'Transcription';
+      default:
+        return 'Unknown';
     }
   }
 }

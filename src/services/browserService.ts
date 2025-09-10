@@ -1,3 +1,11 @@
+interface VideoPreferences {
+  position: 'left' | 'center' | 'right';
+  size: 'small' | 'big';
+  isMinimized: boolean;
+  zoom: number;
+  speed: number;
+}
+
 class BrowserService {
   private static instance: BrowserService;
   private readonly DYNAMIC_STYLES_STYLESHEET_ID = 'dynamic-styles';
@@ -168,6 +176,51 @@ class BrowserService {
   }
 
   /**
+   * Extracts issueId from the current URL
+   * Supports query parameter (?issueId=xxx)
+   */
+  getIssueIdFromUrl(): string | null {
+    if (typeof window === 'undefined') return null;
+
+    try {
+      const url = new URL(window.location.href);
+      const issueIdFromQuery = url.searchParams.get('issueId');
+      return issueIdFromQuery && issueIdFromQuery.trim() !== '' ? issueIdFromQuery : null;
+    } catch (error) {
+      console.warn('Error parsing URL for issueId:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Adds or updates the selected issue in the URL as a query parameter without reloading
+   */
+  setSelectedIssue(issueId: string): void {
+    if (typeof window === 'undefined' || !issueId || issueId.trim() === '') return;
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('issueId', issueId);
+      this.replaceUrl(url.toString());
+    } catch {
+      // Be resilient in non-browser environments
+    }
+  }
+
+  /**
+   * Clears the selected issue from the URL if present
+   */
+  clearSelectedIssue(): void {
+    if (typeof window === 'undefined') return;
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('issueId');
+      this.replaceUrl(url.toString());
+    } catch {
+      // Be resilient in non-browser environments
+    }
+  }
+
+  /**
    * Gets the current URL pathname
    * @returns current pathname or empty string if window is undefined
    */
@@ -205,6 +258,53 @@ class BrowserService {
   }
 
   /**
+   * Video preferences management
+   */
+  private readonly VIDEO_PREFERENCES_KEY = 'kiyanaw-video-preferences';
+
+  /**
+   * Gets video preferences from localStorage
+   */
+  getVideoPreferences(): VideoPreferences {
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+      return { position: 'right', size: 'small', isMinimized: false, zoom: 40, speed: 100 };
+    }
+
+    try {
+      const stored = localStorage.getItem(this.VIDEO_PREFERENCES_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        return {
+          position: parsed.position || 'right',
+          size: parsed.size || 'small',
+          isMinimized: parsed.isMinimized || false,
+          zoom: parsed.zoom || 40,
+          speed: parsed.speed || 100,
+        };
+      }
+    } catch (error) {
+      console.warn('Error loading video preferences:', error);
+    }
+
+    return { position: 'right', size: 'small', isMinimized: false, zoom: 40, speed: 100 };
+  }
+
+  /**
+   * Saves video preferences to localStorage
+   */
+  saveVideoPreferences(preferences: Partial<VideoPreferences>): void {
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') return;
+
+    try {
+      const current = this.getVideoPreferences();
+      const updated = { ...current, ...preferences };
+      localStorage.setItem(this.VIDEO_PREFERENCES_KEY, JSON.stringify(updated));
+    } catch (error) {
+      console.warn('Error saving video preferences:', error);
+    }
+  }
+
+  /**
    * Scrolls an element into view using the provided CSS selector
    * @param selector CSS selector to find the element (e.g., 'div#regionitem-123')
    * @param options Optional scroll behavior configuration
@@ -213,12 +313,57 @@ class BrowserService {
     if (typeof window === 'undefined' || typeof document === 'undefined') return;
 
     const element = document.querySelector(selector);
-    if (element && typeof element.scrollIntoView === 'function') {
-      const defaultOptions: ScrollIntoViewOptions = {
-        behavior: 'smooth',
-        block: 'nearest'
-      };
-      element.scrollIntoView({ ...defaultOptions, ...options });
+    if (!element || typeof element.scrollIntoView !== 'function') return;
+
+    const defaultOptions: ScrollIntoViewOptions = {
+      behavior: 'smooth',
+      block: 'nearest'
+    };
+    
+    // Try standard scrollIntoView first
+    element.scrollIntoView({ ...defaultOptions, ...options });
+    
+    // For mobile: also try manual scroll on the correct container
+    const isMobile = window.innerWidth < 1024;
+    let scrollContainer;
+    
+    if (isMobile) {
+      const mobileContainer = document.getElementById('mobile-regions-container');
+      scrollContainer = mobileContainer?.querySelector('.overflow-y-auto');
+    } else {
+      const desktopContainer = document.getElementById('desktop-regions-container');
+      scrollContainer = desktopContainer?.querySelector('.overflow-y-auto');
+    }
+    
+    if (scrollContainer && (scrollContainer as HTMLElement).offsetParent !== null && scrollContainer.clientHeight > 0) {
+      const targetElement = scrollContainer.querySelector(`#${element.id}`);
+      
+      if (targetElement) {
+        const containerRect = scrollContainer.getBoundingClientRect();
+        const elementRect = targetElement.getBoundingClientRect();
+        const elementTopRelativeToContainer = elementRect.top - containerRect.top + scrollContainer.scrollTop;
+        
+        // Scroll to nearest (like desktop) instead of center
+        let targetScrollTop = elementTopRelativeToContainer;
+        
+        // If element is above viewport, scroll to show it at top
+        if (elementRect.top < containerRect.top) {
+          targetScrollTop = elementTopRelativeToContainer;
+        }
+        // If element is below viewport, scroll to show it at bottom
+        else if (elementRect.bottom > containerRect.bottom) {
+          targetScrollTop = elementTopRelativeToContainer - scrollContainer.clientHeight + elementRect.height;
+        }
+        // If element is already visible, don't scroll
+        else {
+          return;
+        }
+        
+        scrollContainer.scrollTo({
+          top: Math.max(0, targetScrollTop),
+          behavior: 'smooth'
+        });
+      }
     }
   }
 }

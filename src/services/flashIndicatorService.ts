@@ -32,6 +32,13 @@ type FlashEventCallback = (username: string) => void;
 
 class FlashIndicatorServiceImpl {
   private listeners = new Map<string, Set<FlashEventCallback>>();
+  private issueListeners = new Map<string, Set<FlashEventCallback>>();
+  
+  // Track active flash timeouts to prevent interference
+  private activeFlashTimeouts = new Map<string, {
+    restoreTimeout?: NodeJS.Timeout;
+    clearTimeout?: NodeJS.Timeout;
+  }>();
 
   /**
    * Trigger a flash for a specific region
@@ -58,6 +65,29 @@ class FlashIndicatorServiceImpl {
   }
 
   /**
+   * Trigger a flash for a specific issue (flashes both the issue and its region)
+   */
+  flashIssue(issueId: string, regionId: string, userEmail: string): void {
+    const username = userEmail.includes('@') 
+      ? userEmail.split('@')[0] 
+      : userEmail;
+
+    console.log('⚡ Flash triggered for issue:', issueId, 'region:', regionId, 'by user:', username);
+
+    // 1) Flash the associated region (waveform + region list)
+    this.flashRegion(regionId, userEmail);
+
+    // 2) Trigger issue-specific flash
+    const issueListeners = this.issueListeners.get(issueId);
+    if (issueListeners) {
+      issueListeners.forEach(callback => callback(username));
+    }
+
+    // 3) Flash the issue card background
+    this.flashIssueCardBackground(issueId);
+  }
+
+  /**
    * Subscribe to flash events for a specific region
    */
   onFlash(regionId: string, callback: FlashEventCallback): () => void {
@@ -78,6 +108,26 @@ class FlashIndicatorServiceImpl {
   }
 
   /**
+   * Subscribe to flash events for a specific issue
+   */
+  onIssueFlash(issueId: string, callback: FlashEventCallback): () => void {
+    if (!this.issueListeners.has(issueId)) {
+      this.issueListeners.set(issueId, new Set());
+    }
+
+    const issueListeners = this.issueListeners.get(issueId)!;
+    issueListeners.add(callback);
+
+    // Return unsubscribe function
+    return () => {
+      issueListeners.delete(callback);
+      if (issueListeners.size === 0) {
+        this.issueListeners.delete(issueId);
+      }
+    };
+  }
+
+  /**
    * Get count of active listeners (for debugging)
    */
   getListenerCount(): number {
@@ -86,10 +136,30 @@ class FlashIndicatorServiceImpl {
   }
 
   /**
+   * Get count of active issue listeners (for debugging)
+   */
+  getIssueListenerCount(): number {
+    return Array.from(this.issueListeners.values())
+      .reduce((total, set) => total + set.size, 0);
+  }
+
+  /**
    * Clear all listeners (for testing/cleanup)
    */
   clearAll(): void {
     this.listeners.clear();
+    this.issueListeners.clear();
+    
+    // Clear all active flash timeouts
+    for (const timeouts of this.activeFlashTimeouts.values()) {
+      if (timeouts.restoreTimeout) {
+        clearTimeout(timeouts.restoreTimeout);
+      }
+      if (timeouts.clearTimeout) {
+        clearTimeout(timeouts.clearTimeout);
+      }
+    }
+    this.activeFlashTimeouts.clear();
   }
 
   /**
@@ -135,6 +205,73 @@ class FlashIndicatorServiceImpl {
       console.log('⚡ Flashed region list background:', regionId, hasBlueBackground ? 'with blue restore' : 'normal');
     } catch (error) {
       console.error('⚡ Failed to flash region list background:', error);
+    }
+  }
+
+  /**
+   * Flash the background of an issue card briefly
+   */
+  private flashIssueCardBackground(issueId: string): void {
+    const issueElement = document.getElementById(`issueitem-${issueId}`);
+    if (!issueElement) {
+      console.warn('⚡ Cannot flash issue card background: element not found:', issueId);
+      return;
+    }
+
+    try {
+      const flashKey = `issue-${issueId}`;
+      
+      // Clear any existing timeouts for this issue to prevent interference
+      const existingTimeouts = this.activeFlashTimeouts.get(flashKey);
+      if (existingTimeouts) {
+        if (existingTimeouts.restoreTimeout) {
+          clearTimeout(existingTimeouts.restoreTimeout);
+        }
+        if (existingTimeouts.clearTimeout) {
+          clearTimeout(existingTimeouts.clearTimeout);
+        }
+      }
+      
+      // Store the original inline style (if any) to restore later
+      const originalInlineBackground = issueElement.style.backgroundColor;
+      
+      // Flash green briefly
+      const flashColor = FLASH_CONFIG.flashColor;
+      
+      // Apply flash with CSS transition
+      issueElement.style.transition = `background-color ${FLASH_CONFIG.backgroundFlashDuration}ms ${FLASH_CONFIG.backgroundEasing}`;
+      issueElement.style.backgroundColor = flashColor;
+      
+      // Set up new timeouts
+      const restoreTimeout = setTimeout(() => {
+        // If there was an original inline background, restore it
+        // Otherwise, clear the inline style to let CSS classes take over
+        if (originalInlineBackground) {
+          issueElement.style.backgroundColor = originalInlineBackground;
+        } else {
+          issueElement.style.backgroundColor = '';
+        }
+        
+        // Remove transition after animation completes
+        const clearTimeout = setTimeout(() => {
+          issueElement.style.transition = '';
+          // Clean up timeout tracking
+          this.activeFlashTimeouts.delete(flashKey);
+        }, FLASH_CONFIG.backgroundFlashDuration);
+        
+        // Update timeout tracking
+        const timeouts = this.activeFlashTimeouts.get(flashKey);
+        if (timeouts) {
+          timeouts.clearTimeout = clearTimeout;
+        }
+      }, FLASH_CONFIG.backgroundFlashDuration);
+      
+      // Track the timeouts
+      this.activeFlashTimeouts.set(flashKey, { restoreTimeout });
+
+      console.log('⚡ Flashed issue card background:', issueId);
+    } catch (error) {
+      console.error('⚡ Failed to flash issue card background:', error);
     }
   }
 }

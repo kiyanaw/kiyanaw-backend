@@ -75,6 +75,7 @@ describe('UpdateRegionBounds', () => {
       },
       calculateTranscriptionMetadata: jest.fn().mockReturnValue({ coverage: 0.5 }),
       setTranscription: jest.fn(),
+    setSaveStatus: jest.fn(),
     };
 
     config = {

@@ -110,7 +110,7 @@ describe('EditorPage', () => {
     );
 
     expect(screen.getByTestId('waveform-player')).toBeInTheDocument();
-    expect(screen.getByTestId('region-list')).toBeInTheDocument();
+    expect(screen.getAllByTestId('region-list')[0]).toBeInTheDocument(); // Use first one (desktop version)
     expect(screen.getByTestId('stationary-inspector')).toBeInTheDocument();
   });
 

@@ -13,6 +13,9 @@ export const getTranscription = /* GraphQL */ `
       length
       issues
       comments
+      commentCount
+      regionCount
+      issueCount
       tags
       source
       index
@@ -21,6 +24,7 @@ export const getTranscription = /* GraphQL */ `
       type
       isPrivate
       isPublished
+      publicIssues
       disableAnalyzer
       editors
       viewers
@@ -32,6 +36,11 @@ export const getTranscription = /* GraphQL */ `
         __typename
       }
       issueList {
+        nextToken
+        startedAt
+        __typename
+      }
+      relatedComments {
         nextToken
         startedAt
         __typename
@@ -70,6 +79,9 @@ export const listTranscriptions = /* GraphQL */ `
         length
         issues
         comments
+        commentCount
+        regionCount
+        issueCount
         tags
         source
         index
@@ -78,6 +90,7 @@ export const listTranscriptions = /* GraphQL */ `
         type
         isPrivate
         isPublished
+        publicIssues
         disableAnalyzer
         editors
         viewers
@@ -119,6 +132,9 @@ export const syncTranscriptions = /* GraphQL */ `
         length
         issues
         comments
+        commentCount
+        regionCount
+        issueCount
         tags
         source
         index
@@ -127,6 +143,119 @@ export const syncTranscriptions = /* GraphQL */ `
         type
         isPrivate
         isPublished
+        publicIssues
+        disableAnalyzer
+        editors
+        viewers
+        editorGroups
+        viewerGroups
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      nextToken
+      startedAt
+      __typename
+    }
+  }
+`;
+export const transcriptionsByAuthor = /* GraphQL */ `
+  query TranscriptionsByAuthor(
+    $author: String!
+    $sortDirection: ModelSortDirection
+    $filter: ModelTranscriptionFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    transcriptionsByAuthor(
+      author: $author
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        author
+        authorFriendly
+        coverage
+        dateLastUpdated
+        userLastUpdated
+        length
+        issues
+        comments
+        commentCount
+        regionCount
+        issueCount
+        tags
+        source
+        index
+        lang
+        title
+        type
+        isPrivate
+        isPublished
+        publicIssues
+        disableAnalyzer
+        editors
+        viewers
+        editorGroups
+        viewerGroups
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      nextToken
+      startedAt
+      __typename
+    }
+  }
+`;
+export const transcriptionsByAuthorDate = /* GraphQL */ `
+  query TranscriptionsByAuthorDate(
+    $author: String!
+    $dateLastUpdated: ModelStringKeyConditionInput
+    $sortDirection: ModelSortDirection
+    $filter: ModelTranscriptionFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    transcriptionsByAuthorDate(
+      author: $author
+      dateLastUpdated: $dateLastUpdated
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        author
+        authorFriendly
+        coverage
+        dateLastUpdated
+        userLastUpdated
+        length
+        issues
+        comments
+        commentCount
+        regionCount
+        issueCount
+        tags
+        source
+        index
+        lang
+        title
+        type
+        isPrivate
+        isPublished
+        publicIssues
         disableAnalyzer
         editors
         viewers
@@ -170,6 +299,9 @@ export const byTitle = /* GraphQL */ `
         length
         issues
         comments
+        commentCount
+        regionCount
+        issueCount
         tags
         source
         index
@@ -178,6 +310,7 @@ export const byTitle = /* GraphQL */ `
         type
         isPrivate
         isPublished
+        publicIssues
         disableAnalyzer
         editors
         viewers
@@ -205,6 +338,7 @@ export const getRegion = /* GraphQL */ `
       regionText
       regionAnalysis
       isNote
+      commentCount
       translation
       dateLastUpdated
       userLastUpdated
@@ -218,6 +352,9 @@ export const getRegion = /* GraphQL */ `
         length
         issues
         comments
+        commentCount
+        regionCount
+        issueCount
         tags
         source
         index
@@ -226,6 +363,7 @@ export const getRegion = /* GraphQL */ `
         type
         isPrivate
         isPublished
+        publicIssues
         disableAnalyzer
         editors
         viewers
@@ -270,6 +408,7 @@ export const listRegions = /* GraphQL */ `
         regionText
         regionAnalysis
         isNote
+        commentCount
         translation
         dateLastUpdated
         userLastUpdated
@@ -307,6 +446,7 @@ export const syncRegions = /* GraphQL */ `
         regionText
         regionAnalysis
         isNote
+        commentCount
         translation
         dateLastUpdated
         userLastUpdated
@@ -346,6 +486,7 @@ export const regionsByTranscription = /* GraphQL */ `
         regionText
         regionAnalysis
         isNote
+        commentCount
         translation
         dateLastUpdated
         userLastUpdated
@@ -369,10 +510,14 @@ export const getIssue = /* GraphQL */ `
       id
       text
       owner
+      ownerFriendly
       index
       resolved
       type
+      dateLastUpdated
+      userLastUpdated
       comments
+      commentCount
       regionId
       transcription {
         id
@@ -384,6 +529,9 @@ export const getIssue = /* GraphQL */ `
         length
         issues
         comments
+        commentCount
+        regionCount
+        issueCount
         tags
         source
         index
@@ -392,6 +540,7 @@ export const getIssue = /* GraphQL */ `
         type
         isPrivate
         isPublished
+        publicIssues
         disableAnalyzer
         editors
         viewers
@@ -433,10 +582,14 @@ export const listIssues = /* GraphQL */ `
         id
         text
         owner
+        ownerFriendly
         index
         resolved
         type
+        dateLastUpdated
+        userLastUpdated
         comments
+        commentCount
         regionId
         transcriptionId
         createdAt
@@ -469,10 +622,140 @@ export const syncIssues = /* GraphQL */ `
         id
         text
         owner
+        ownerFriendly
         index
         resolved
         type
+        dateLastUpdated
+        userLastUpdated
         comments
+        commentCount
+        regionId
+        transcriptionId
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      nextToken
+      startedAt
+      __typename
+    }
+  }
+`;
+export const issuesByOwner = /* GraphQL */ `
+  query IssuesByOwner(
+    $owner: String!
+    $sortDirection: ModelSortDirection
+    $filter: ModelIssueFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    issuesByOwner(
+      owner: $owner
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        text
+        owner
+        ownerFriendly
+        index
+        resolved
+        type
+        dateLastUpdated
+        userLastUpdated
+        comments
+        commentCount
+        regionId
+        transcriptionId
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      nextToken
+      startedAt
+      __typename
+    }
+  }
+`;
+export const issuesByType = /* GraphQL */ `
+  query IssuesByType(
+    $type: String!
+    $sortDirection: ModelSortDirection
+    $filter: ModelIssueFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    issuesByType(
+      type: $type
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        text
+        owner
+        ownerFriendly
+        index
+        resolved
+        type
+        dateLastUpdated
+        userLastUpdated
+        comments
+        commentCount
+        regionId
+        transcriptionId
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      nextToken
+      startedAt
+      __typename
+    }
+  }
+`;
+export const issuesByRegion = /* GraphQL */ `
+  query IssuesByRegion(
+    $regionId: String!
+    $sortDirection: ModelSortDirection
+    $filter: ModelIssueFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    issuesByRegion(
+      regionId: $regionId
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        text
+        owner
+        ownerFriendly
+        index
+        resolved
+        type
+        dateLastUpdated
+        userLastUpdated
+        comments
+        commentCount
         regionId
         transcriptionId
         createdAt
@@ -507,10 +790,14 @@ export const issuesByTranscription = /* GraphQL */ `
         id
         text
         owner
+        ownerFriendly
         index
         resolved
         type
+        dateLastUpdated
+        userLastUpdated
         comments
+        commentCount
         regionId
         transcriptionId
         createdAt
@@ -663,6 +950,47 @@ export const invitesByEmail = /* GraphQL */ `
     }
   }
 `;
+export const invitesByEmailCreatedAt = /* GraphQL */ `
+  query InvitesByEmailCreatedAt(
+    $email: String!
+    $createdAt: ModelStringKeyConditionInput
+    $sortDirection: ModelSortDirection
+    $filter: ModelInviteFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    invitesByEmailCreatedAt(
+      email: $email
+      createdAt: $createdAt
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        email
+        status
+        permissionLevel
+        expiresAt
+        invitedBy
+        invitedByFriendly
+        createdAt
+        acceptedAt
+        transcriptionId
+        transcriptionTitle
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      nextToken
+      startedAt
+      __typename
+    }
+  }
+`;
 export const invitesByTranscription = /* GraphQL */ `
   query InvitesByTranscription(
     $transcriptionId: ID!
@@ -691,6 +1019,273 @@ export const invitesByTranscription = /* GraphQL */ `
         transcriptionId
         transcriptionTitle
         updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      nextToken
+      startedAt
+      __typename
+    }
+  }
+`;
+export const getComment = /* GraphQL */ `
+  query GetComment($id: ID!) {
+    getComment(id: $id) {
+      id
+      text
+      author
+      authorFriendly
+      createdAt
+      updatedAt
+      transcriptionId
+      transcription {
+        id
+        author
+        authorFriendly
+        coverage
+        dateLastUpdated
+        userLastUpdated
+        length
+        issues
+        comments
+        commentCount
+        regionCount
+        issueCount
+        tags
+        source
+        index
+        lang
+        title
+        type
+        isPrivate
+        isPublished
+        publicIssues
+        disableAnalyzer
+        editors
+        viewers
+        editorGroups
+        viewerGroups
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      entityType
+      entityId
+      parentCommentId
+      parentComment {
+        id
+        text
+        author
+        authorFriendly
+        createdAt
+        updatedAt
+        transcriptionId
+        entityType
+        entityId
+        parentCommentId
+        metadata
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      replies {
+        nextToken
+        startedAt
+        __typename
+      }
+      metadata
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;
+export const listComments = /* GraphQL */ `
+  query ListComments(
+    $id: ID
+    $filter: ModelCommentFilterInput
+    $limit: Int
+    $nextToken: String
+    $sortDirection: ModelSortDirection
+  ) {
+    listComments(
+      id: $id
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+      sortDirection: $sortDirection
+    ) {
+      items {
+        id
+        text
+        author
+        authorFriendly
+        createdAt
+        updatedAt
+        transcriptionId
+        entityType
+        entityId
+        parentCommentId
+        metadata
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      nextToken
+      startedAt
+      __typename
+    }
+  }
+`;
+export const syncComments = /* GraphQL */ `
+  query SyncComments(
+    $filter: ModelCommentFilterInput
+    $limit: Int
+    $nextToken: String
+    $lastSync: AWSTimestamp
+  ) {
+    syncComments(
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+      lastSync: $lastSync
+    ) {
+      items {
+        id
+        text
+        author
+        authorFriendly
+        createdAt
+        updatedAt
+        transcriptionId
+        entityType
+        entityId
+        parentCommentId
+        metadata
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      nextToken
+      startedAt
+      __typename
+    }
+  }
+`;
+export const commentsByAuthor = /* GraphQL */ `
+  query CommentsByAuthor(
+    $author: String!
+    $createdAt: ModelStringKeyConditionInput
+    $sortDirection: ModelSortDirection
+    $filter: ModelCommentFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    commentsByAuthor(
+      author: $author
+      createdAt: $createdAt
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        text
+        author
+        authorFriendly
+        createdAt
+        updatedAt
+        transcriptionId
+        entityType
+        entityId
+        parentCommentId
+        metadata
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      nextToken
+      startedAt
+      __typename
+    }
+  }
+`;
+export const commentsByTranscription = /* GraphQL */ `
+  query CommentsByTranscription(
+    $transcriptionId: ID!
+    $sortDirection: ModelSortDirection
+    $filter: ModelCommentFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    commentsByTranscription(
+      transcriptionId: $transcriptionId
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        text
+        author
+        authorFriendly
+        createdAt
+        updatedAt
+        transcriptionId
+        entityType
+        entityId
+        parentCommentId
+        metadata
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      nextToken
+      startedAt
+      __typename
+    }
+  }
+`;
+export const commentsByParentComment = /* GraphQL */ `
+  query CommentsByParentComment(
+    $parentCommentId: ID!
+    $sortDirection: ModelSortDirection
+    $filter: ModelCommentFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    commentsByParentComment(
+      parentCommentId: $parentCommentId
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        text
+        author
+        authorFriendly
+        createdAt
+        updatedAt
+        transcriptionId
+        entityType
+        entityId
+        parentCommentId
+        metadata
         _version
         _deleted
         _lastChangedAt

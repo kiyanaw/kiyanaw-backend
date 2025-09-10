@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import type { TranscriptionData, RegionData, ProcessedIssue } from '../types/shared';
+import type { TranscriptionData, RegionData } from '../types/shared';
+import type { IssueData, CommentData } from '../services/adt';
 import type { ConflictDetail } from '../services/conflictDetectionService';
 import type { PendingEdit } from '../services/pendingEditsService';
 import Timeout from 'smart-timeout';
@@ -8,7 +9,8 @@ import Timeout from 'smart-timeout';
 interface EditorDataPayload {
   transcription: TranscriptionData;
   regions: RegionData[];
-  issues: ProcessedIssue[];
+  issues: IssueData[];
+  comments: CommentData[];
   source?: string;
   peaks?: number[];
   isVideo?: boolean;
@@ -18,7 +20,9 @@ interface EditorState {
   // Transcription state
   transcription: TranscriptionData | null;
   saved: boolean;
+  saveStatus: 'saved' | 'saving' | 'error';
   peaks: number[] | null;
+  wavesurferError: string | null;
   accessDenied: boolean;
   canEdit: boolean;
 
@@ -29,6 +33,11 @@ interface EditorState {
   selectedRegionId: string | null;
   selectedRegion: RegionData | null;
   playbackWithinRegion: string | null;
+  // Issue selection (for deep-linking to a conversation)
+  selectedIssueId?: string | null;
+  
+  // Text selection state for creating issues
+  regionSelections: Record<string, { index: number; length: number; text: string } | null>;
   
   // Word analysis cache
   knownWords: Set<string>;
@@ -40,8 +49,19 @@ interface EditorState {
   conflictQueue: ConflictDetail[];
 
   // Issues state
-  issues: ProcessedIssue[];
-  issueMap: Record<string, ProcessedIssue>;
+  issues: IssueData[];
+  issueMap: Record<string, IssueData>;
+  issuesByRegionMap: Record<string, IssueData[]>; // regionId -> issues[]
+
+  // Comments state
+  comments: CommentData[];
+  commentMap: Record<string, CommentData>;
+  commentsByEntityMap: Record<string, CommentData[]>; // entityId -> comments[]
+  commentsByTranscriptionMap: CommentData[]; // transcription-level comments
+
+  // Issue link status tracking
+  issueLinkStatusesByRegion: Record<string, Record<string, 'matched' | 'unmatched'>>; // regionId -> issueId -> status
+  issueSuggestionsByRegion: Record<string, Record<string, Array<{ token: string; start: number; end: number; score: number }>>>; // regionId -> issueId -> suggestions
 
   // Subscriptions
   _subscriptions: { unsubscribe: () => void }[];
@@ -49,23 +69,42 @@ interface EditorState {
   // Actions
   setFullTranscriptionData: (data: EditorDataPayload, selectedRegionId?: string | null) => void;
   setAccessDenied: (denied: boolean) => void;
+  setWavesurferError: (error: string | null) => void;
   cleanup: () => void;
   
   // Transcription actions
   setTranscription: (transcription: TranscriptionData) => void;
   setSaved: (saved: boolean) => void;
+  setSaveStatus: (status: 'saved' | 'saving' | 'error') => void;
 
   // Region actions
   setSelectedRegion: (regionId: string | null) => void;
+  setSelectedIssueId?: (issueId: string | null) => void;
   setPlaybackWithinRegion: (regionId: string | null) => void;
+  setRegionSelection: (regionId: string, selection: { index: number; length: number; text: string } | null) => void;
   addNewRegion: (region: RegionData) => void;
   deleteRegion: (regionId: string) => void;
   setRegionText: (regionId: string, text: string) => void;
   setRegionTranslation: (regionId: string, translation: string) => void;
   updateRegionBounds: (regionId: string, start: number, end: number) => void;
 
+  // Issue actions
+  addNewIssue: (issue: IssueData) => void;
+  updateIssue: (issueId: string, updates: Partial<IssueData>) => void;
+  deleteIssue: (issueId: string) => void;
+
+  // Comment actions
+  addNewComment: (comment: CommentData) => void;
+  updateComment: (commentId: string, updates: Partial<CommentData>) => void;
+  deleteComment: (commentId: string) => void;
+
+  // Issue link status actions
+  setIssueLinkStatuses: (regionId: string, statuses: Record<string, 'matched' | 'unmatched'>) => void;
+  setIssueSuggestions: (regionId: string, suggestions: Record<string, Array<{ token: string; start: number; end: number; score: number }>>) => void;
+  clearIssueSuggestionsForIssue: (issueId: string) => void;
+
   // Transcription metadata helpers
-  calculateTranscriptionMetadata: () => { regionCount: number; coverage: number };
+  calculateTranscriptionMetadata: () => { regionCount: number; issueCount: number; coverage: number };
 
   // Spell checking actions
   addKnownWords: (words: string[]) => void;
@@ -85,8 +124,15 @@ interface EditorState {
 
   // Computed getters
   regionById: (id: string) => RegionData | null;
-  issueById: (id: string) => ProcessedIssue | null;
-  issuesByRegion: (regionId: string) => ProcessedIssue[];
+  issueById: (id: string) => IssueData | null;
+  issuesByRegion: (regionId: string) => IssueData[];
+  getIssuesForRegion: (regionId: string) => IssueData[];
+  commentById: (id: string) => CommentData | null;
+  commentsByEntity: (entityId: string) => CommentData[];
+  commentsByRegion: (regionId: string) => CommentData[];
+  commentsByIssue: (issueId: string) => CommentData[];
+  commentsByTranscription: () => CommentData[];
+  getCommentsForEntity: (entityId: string) => CommentData[];
   getRegionVersion: (id: string) => number;
   setRegionVersion: (id: string, version: number) => void;
   isPendingEdit: (regionId: string, field?: string) => boolean;
@@ -99,23 +145,42 @@ interface EditorState {
 
 
 
+// Stable empty arrays to prevent unnecessary re-renders
+const EMPTY_ISSUES_ARRAY: IssueData[] = [];
+const EMPTY_COMMENTS_ARRAY: CommentData[] = [];
+
 export const useEditorStore = create<EditorState>()(
   devtools(
     (set, get) => ({
       // Initial state
       transcription: null,
       saved: false,
+      saveStatus: 'saved',
       peaks: null,
+      wavesurferError: null,
       accessDenied: false,
       canEdit: false,
       regions: [],
       regionMap: {},
       regionVersions: {},
+      selectedIssueId: null,
+      regionSelections: {},
       knownWords: new Set<string>(),
       pendingEdits: {},
       conflictQueue: [],
       issues: [],
       issueMap: {},
+      issuesByRegionMap: {},
+
+      comments: [],
+      commentMap: {},
+      commentsByEntityMap: {},
+      commentsByTranscriptionMap: [],
+      
+      // Issue link status initial state
+      issueLinkStatusesByRegion: {},
+      issueSuggestionsByRegion: {},
+      
       _subscriptions: [],
 
       isTranscriptionAuthor: (user) => {
@@ -129,7 +194,7 @@ export const useEditorStore = create<EditorState>()(
 
       // Action to set data from TanStack Query
       setFullTranscriptionData: (data, selectedRegionId) => {
-        const { transcription, regions, issues, peaks } = data;
+        const { transcription, regions, issues, comments, peaks } = data;
         const state = get();
         state.cleanup();
 
@@ -149,9 +214,37 @@ export const useEditorStore = create<EditorState>()(
         });
 
         // Process issues
-        const issueMap: Record<string, ProcessedIssue> = {};
+        const issueMap: Record<string, IssueData> = {};
+        const issuesByRegionMap: Record<string, IssueData[]> = {};
+        
         issues.forEach((issue) => {
           issueMap[issue.id] = issue;
+          
+          // Group issues by regionId for efficient lookup
+          if (!issuesByRegionMap[issue.regionId]) {
+            issuesByRegionMap[issue.regionId] = [];
+          }
+          issuesByRegionMap[issue.regionId].push(issue);
+        });
+
+        // Process comments
+        const commentMap: Record<string, CommentData> = {};
+        const commentsByEntityMap: Record<string, CommentData[]> = {};
+        const commentsByTranscriptionMap: CommentData[] = [];
+        
+        comments.forEach((comment) => {
+          commentMap[comment.id] = comment;
+          
+          // Group comments by entityId for efficient lookup
+          if (!commentsByEntityMap[comment.entityId]) {
+            commentsByEntityMap[comment.entityId] = [];
+          }
+          commentsByEntityMap[comment.entityId].push(comment);
+          
+          // Separate transcription-level comments
+          if (comment.entityType === 'transcription') {
+            commentsByTranscriptionMap.push(comment);
+          }
         });
 
         // Set initial state
@@ -162,6 +255,11 @@ export const useEditorStore = create<EditorState>()(
           regionVersions,
           issues,
           issueMap,
+          issuesByRegionMap,
+          comments,
+          commentMap,
+          commentsByEntityMap,
+          commentsByTranscriptionMap,
           peaks: peaks,
           knownWords: new Set<string>() // Will be populated by use-case
         };
@@ -177,6 +275,10 @@ export const useEditorStore = create<EditorState>()(
 
       setAccessDenied: (denied) => {
         set({ accessDenied: denied });
+      },
+
+      setWavesurferError: (error: string | null) => {
+        set({ wavesurferError: error });
       },
 
       setCanEdit: (canEdit: boolean) => {
@@ -198,9 +300,15 @@ export const useEditorStore = create<EditorState>()(
           conflictQueue: [],
           issues: [],
           issueMap: {},
+          issuesByRegionMap: {},
+          comments: [],
+          commentMap: {},
+          commentsByEntityMap: {},
+          commentsByTranscriptionMap: [],
           selectedRegionId: null,
           selectedRegion: null,
           playbackWithinRegion: null,
+          regionSelections: {},
           _subscriptions: [],
         });
       },
@@ -215,6 +323,10 @@ export const useEditorStore = create<EditorState>()(
         }
       },
 
+      setSaveStatus: (status) => {
+        set({ saveStatus: status });
+      },
+
 
 
       // Region actions
@@ -226,8 +338,22 @@ export const useEditorStore = create<EditorState>()(
         });
       },
 
+      setSelectedIssueId: (issueId) => {
+        set({ selectedIssueId: issueId ?? null });
+      },
+
       setPlaybackWithinRegion: (regionId) => {
         set({ playbackWithinRegion: regionId });
+      },
+
+      setRegionSelection: (regionId, selection) => {
+        const { regionSelections } = get();
+        set({
+          regionSelections: {
+            ...regionSelections,
+            [regionId]: selection
+          }
+        });
       },
 
 
@@ -375,6 +501,298 @@ export const useEditorStore = create<EditorState>()(
         set(updateObj);
       },
 
+      // Issue actions
+      addNewIssue: (issue: IssueData) => {
+        const { issues, issueMap, issuesByRegionMap } = get();
+        
+        // Add to issues array
+        const newIssues = [...issues, issue];
+        
+        // Add to issueMap
+        const newIssueMap = { ...issueMap, [issue.id]: issue };
+        
+        // Add to issuesByRegionMap
+        const newIssuesByRegionMap = { ...issuesByRegionMap };
+        if (!newIssuesByRegionMap[issue.regionId]) {
+          newIssuesByRegionMap[issue.regionId] = [];
+        }
+        newIssuesByRegionMap[issue.regionId] = [...newIssuesByRegionMap[issue.regionId], issue];
+        
+        set({
+          issues: newIssues,
+          issueMap: newIssueMap,
+          issuesByRegionMap: newIssuesByRegionMap,
+        });
+      },
+
+      updateIssue: (issueId: string, updates: Partial<IssueData>) => {
+        const { issues, issueMap } = get();
+        const existingIssue = issueMap[issueId];
+        
+        if (!existingIssue) {
+          console.warn(`Attempted to update non-existent issue: ${issueId}`);
+          return;
+        }
+
+        // Create updated issue
+        const updatedIssue = { ...existingIssue, ...updates };
+        
+        // Update issues array
+        const newIssues = issues.map(issue => 
+          issue.id === issueId ? updatedIssue : issue
+        );
+        
+        // Update issueMap
+        const newIssueMap = { ...issueMap, [issueId]: updatedIssue };
+        
+        // Rebuild issuesByRegionMap (in case regionId changed)
+        const newIssuesByRegionMap: Record<string, IssueData[]> = {};
+        newIssues.forEach((issue) => {
+          if (!newIssuesByRegionMap[issue.regionId]) {
+            newIssuesByRegionMap[issue.regionId] = [];
+          }
+          newIssuesByRegionMap[issue.regionId].push(issue);
+        });
+        
+        set({
+          issues: newIssues,
+          issueMap: newIssueMap,
+          issuesByRegionMap: newIssuesByRegionMap,
+        });
+      },
+
+      deleteIssue: (issueId: string) => {
+        const { issues, issueMap } = get();
+        
+        // Remove from issues array
+        const newIssues = issues.filter(issue => issue.id !== issueId);
+        
+        // Remove from issueMap
+        const newIssueMap = { ...issueMap };
+        delete newIssueMap[issueId];
+        
+        // Rebuild issuesByRegionMap
+        const newIssuesByRegionMap: Record<string, IssueData[]> = {};
+        newIssues.forEach((issue) => {
+          if (!newIssuesByRegionMap[issue.regionId]) {
+            newIssuesByRegionMap[issue.regionId] = [];
+          }
+          newIssuesByRegionMap[issue.regionId].push(issue);
+        });
+        
+        set({
+          issues: newIssues,
+          issueMap: newIssueMap,
+          issuesByRegionMap: newIssuesByRegionMap,
+        });
+      },
+
+      // Comment actions
+      addNewComment: (comment: CommentData) => {
+        const { comments, commentMap, commentsByEntityMap, commentsByTranscriptionMap, issueMap, issues } = get();
+        
+        // Add to comments array
+        const newComments = [...comments, comment];
+        
+        // Add to commentMap
+        const newCommentMap = { ...commentMap, [comment.id]: comment };
+        
+        // Add to commentsByEntityMap
+        const newCommentsByEntityMap = { ...commentsByEntityMap };
+        if (!newCommentsByEntityMap[comment.entityId]) {
+          newCommentsByEntityMap[comment.entityId] = [];
+        }
+        newCommentsByEntityMap[comment.entityId] = [...newCommentsByEntityMap[comment.entityId], comment];
+        
+        // Update commentsByTranscriptionMap if it's a transcription-level comment
+        let newCommentsByTranscriptionMap = commentsByTranscriptionMap;
+        if (comment.entityType === 'transcription') {
+          newCommentsByTranscriptionMap = [...commentsByTranscriptionMap, comment];
+        }
+        
+        // If this is an issue comment, update the issue's comment count by counting
+        let newIssues = issues;
+        let newIssueMap = issueMap;
+        let newIssuesByRegionMap = get().issuesByRegionMap;
+        if (comment.entityType === 'issue') {
+          const issue = issueMap[comment.entityId];
+          if (issue) {
+            // Count all comments for this issue after adding the new one
+            const issueComments = newCommentsByEntityMap[comment.entityId] || [];
+            const actualCount = issueComments.length;
+            const updatedIssue = { ...issue, commentCount: actualCount };
+            newIssueMap = { ...issueMap, [issue.id]: updatedIssue };
+            newIssues = issues.map(i => i.id === issue.id ? updatedIssue : i);
+            
+            // Update issuesByRegionMap
+            newIssuesByRegionMap = { ...newIssuesByRegionMap };
+            if (newIssuesByRegionMap[issue.regionId]) {
+              newIssuesByRegionMap[issue.regionId] = newIssuesByRegionMap[issue.regionId].map(
+                i => i.id === issue.id ? updatedIssue : i
+              );
+            }
+          }
+        }
+        
+        set({
+          comments: newComments,
+          commentMap: newCommentMap,
+          commentsByEntityMap: newCommentsByEntityMap,
+          commentsByTranscriptionMap: newCommentsByTranscriptionMap,
+          issues: newIssues,
+          issueMap: newIssueMap,
+          issuesByRegionMap: newIssuesByRegionMap,
+        });
+      },
+
+      updateComment: (commentId: string, updates: Partial<CommentData>) => {
+        const { comments, commentMap, commentsByEntityMap, commentsByTranscriptionMap } = get();
+        const existingComment = commentMap[commentId];
+        
+        if (!existingComment) {
+          console.warn(`Attempted to update non-existent comment: ${commentId}`);
+          return;
+        }
+
+        // Create updated comment
+        const updatedComment = { ...existingComment, ...updates };
+        
+        // Update comments array
+        const newComments = comments.map(comment => 
+          comment.id === commentId ? updatedComment : comment
+        );
+        
+        // Update commentMap
+        const newCommentMap = { ...commentMap, [commentId]: updatedComment };
+        
+        // Update commentsByEntityMap
+        const newCommentsByEntityMap = { ...commentsByEntityMap };
+        if (newCommentsByEntityMap[updatedComment.entityId]) {
+          newCommentsByEntityMap[updatedComment.entityId] = newCommentsByEntityMap[updatedComment.entityId].map(
+            comment => comment.id === commentId ? updatedComment : comment
+          );
+        }
+        
+        // Update commentsByTranscriptionMap if needed
+        let newCommentsByTranscriptionMap = commentsByTranscriptionMap;
+        if (updatedComment.entityType === 'transcription') {
+          newCommentsByTranscriptionMap = commentsByTranscriptionMap.map(
+            comment => comment.id === commentId ? updatedComment : comment
+          );
+        }
+        
+        set({
+          comments: newComments,
+          commentMap: newCommentMap,
+          commentsByEntityMap: newCommentsByEntityMap,
+          commentsByTranscriptionMap: newCommentsByTranscriptionMap,
+        });
+      },
+
+      deleteComment: (commentId: string) => {
+        const { comments, commentMap, commentsByEntityMap, commentsByTranscriptionMap, issueMap, issues } = get();
+        const existingComment = commentMap[commentId];
+        
+        if (!existingComment) {
+          console.warn(`Attempted to delete non-existent comment: ${commentId}`);
+          return;
+        }
+        
+        // Remove from comments array
+        const newComments = comments.filter(comment => comment.id !== commentId);
+        
+        // Remove from commentMap
+        const newCommentMap = { ...commentMap };
+        delete newCommentMap[commentId];
+        
+        // Update commentsByEntityMap
+        const newCommentsByEntityMap = { ...commentsByEntityMap };
+        if (newCommentsByEntityMap[existingComment.entityId]) {
+          newCommentsByEntityMap[existingComment.entityId] = newCommentsByEntityMap[existingComment.entityId].filter(
+            comment => comment.id !== commentId
+          );
+        }
+        
+        // Update commentsByTranscriptionMap if needed
+        let newCommentsByTranscriptionMap = commentsByTranscriptionMap;
+        if (existingComment.entityType === 'transcription') {
+          newCommentsByTranscriptionMap = commentsByTranscriptionMap.filter(
+            comment => comment.id !== commentId
+          );
+        }
+        
+        // If this was an issue comment, update the issue's comment count by counting
+        let newIssues = issues;
+        let newIssueMap = issueMap;
+        let newIssuesByRegionMap = get().issuesByRegionMap;
+        if (existingComment.entityType === 'issue') {
+          const issue = issueMap[existingComment.entityId];
+          if (issue) {
+            // Count remaining comments for this issue after deletion
+            const remainingComments = newCommentsByEntityMap[existingComment.entityId] || [];
+            const actualCount = remainingComments.length;
+            const updatedIssue = { ...issue, commentCount: actualCount };
+            newIssueMap = { ...issueMap, [issue.id]: updatedIssue };
+            newIssues = issues.map(i => i.id === issue.id ? updatedIssue : i);
+            
+            // Update issuesByRegionMap
+            newIssuesByRegionMap = { ...newIssuesByRegionMap };
+            if (newIssuesByRegionMap[issue.regionId]) {
+              newIssuesByRegionMap[issue.regionId] = newIssuesByRegionMap[issue.regionId].map(
+                i => i.id === issue.id ? updatedIssue : i
+              );
+            }
+          }
+        }
+        
+        set({
+          comments: newComments,
+          commentMap: newCommentMap,
+          commentsByEntityMap: newCommentsByEntityMap,
+          commentsByTranscriptionMap: newCommentsByTranscriptionMap,
+          issues: newIssues,
+          issueMap: newIssueMap,
+          issuesByRegionMap: newIssuesByRegionMap,
+        });
+      },
+
+      // Issue link status actions
+      setIssueLinkStatuses: (regionId: string, statuses: Record<string, 'matched' | 'unmatched'>) => {
+        const { issueLinkStatusesByRegion } = get();
+        set({
+          issueLinkStatusesByRegion: {
+            ...issueLinkStatusesByRegion,
+            [regionId]: statuses
+          }
+        });
+      },
+
+      setIssueSuggestions: (regionId: string, suggestions: Record<string, Array<{ token: string; start: number; end: number; score: number }>>) => {
+        const { issueSuggestionsByRegion } = get();
+        set({
+          issueSuggestionsByRegion: {
+            ...issueSuggestionsByRegion,
+            [regionId]: suggestions
+          }
+        });
+      },
+
+      clearIssueSuggestionsForIssue: (issueId: string) => {
+        const { issueSuggestionsByRegion } = get();
+        const newSuggestions = { ...issueSuggestionsByRegion };
+        
+        // Remove suggestions for this issue from all regions
+        Object.keys(newSuggestions).forEach(regionId => {
+          const regionSuggestions = { ...newSuggestions[regionId] };
+          delete regionSuggestions[issueId];
+          newSuggestions[regionId] = regionSuggestions;
+        });
+        
+        set({
+          issueSuggestionsByRegion: newSuggestions
+        });
+      },
+
       // Computed getters
       regionById: (id) => {
         const { regionMap } = get();
@@ -387,8 +805,43 @@ export const useEditorStore = create<EditorState>()(
       },
 
       issuesByRegion: (regionId) => {
-        const { issues } = get();
-        return issues.filter(issue => issue.regionId === regionId);
+        const { issuesByRegionMap } = get();
+        return issuesByRegionMap[regionId] || EMPTY_ISSUES_ARRAY;
+      },
+
+      getIssuesForRegion: (regionId) => {
+        const { issuesByRegionMap } = get();
+        return issuesByRegionMap[regionId] || EMPTY_ISSUES_ARRAY;
+      },
+
+      commentById: (id) => {
+        const { commentMap } = get();
+        return commentMap[id] || null;
+      },
+
+      commentsByEntity: (entityId) => {
+        const { commentsByEntityMap } = get();
+        return commentsByEntityMap[entityId] || EMPTY_COMMENTS_ARRAY;
+      },
+
+      commentsByRegion: (regionId) => {
+        const { commentsByEntityMap } = get();
+        return commentsByEntityMap[regionId] || EMPTY_COMMENTS_ARRAY;
+      },
+
+      commentsByIssue: (issueId) => {
+        const { commentsByEntityMap } = get();
+        return commentsByEntityMap[issueId] || EMPTY_COMMENTS_ARRAY;
+      },
+
+      commentsByTranscription: () => {
+        const { commentsByTranscriptionMap } = get();
+        return commentsByTranscriptionMap;
+      },
+
+      getCommentsForEntity: (entityId) => {
+        const { commentsByEntityMap } = get();
+        return commentsByEntityMap[entityId] || EMPTY_COMMENTS_ARRAY;
       },
 
       getRegionVersion: (id) => {
@@ -539,9 +992,10 @@ export const useEditorStore = create<EditorState>()(
 
       // Transcription metadata helpers
       calculateTranscriptionMetadata: () => {
-        const { regions, transcription } = get();
+        const { regions, issues, transcription } = get();
         
         const regionCount = regions.length;
+        const issueCount = issues.length;
         
         // Calculate coverage: last region end / total transcription length
         let coverage = 0;
@@ -551,7 +1005,7 @@ export const useEditorStore = create<EditorState>()(
           coverage = Math.min(lastRegionEnd / transcription.length, 1.0); // Cap at 1.0
         }
         
-        return { regionCount, coverage };
+        return { regionCount, issueCount, coverage };
       },
     }),
     { name: 'EditorStore' }

@@ -3,6 +3,7 @@ module.exports = {
     Item: {
       __typename: 'Transcription',
       isPrivate: false,
+      publicIssues: true, // Added publicIssues field
       coverage: 0,
       issues: '0',
       createdAt: '2021-10-06T16:12:41.080Z',
@@ -20,6 +21,29 @@ module.exports = {
       userLastUpdated: 'aaronfay',
       lang: 'crk', // Language field for processing
       index: 'crk', // Added language index field
+    },
+  },
+  transcriptionPrivateIssues: {
+    Item: {
+      __typename: 'Transcription',
+      isPrivate: false,
+      publicIssues: false, // Issues are private
+      coverage: 0,
+      issues: '0',
+      createdAt: '2021-10-06T16:12:41.080Z',
+      source: 'https://example.com/test.mp4',
+      disableAnalyzer: false,
+      dateLastUpdated: '1639342736996',
+      length: 0,
+      updatedAt: '2021-12-12T20:58:57.336Z',
+      id: '3af0aaf1',
+      author: 'testuser',
+      contributors: '[]',
+      title: 'Test Transcription - Private Issues',
+      type: 'video/mp4',
+      userLastUpdated: 'testuser',
+      lang: 'crk',
+      index: 'crk',
     },
   },
   region: {
@@ -42,4 +66,56 @@ module.exports = {
       userLastUpdated: 'awolvengrey',
     },
   },
+  mockIssues: {
+    Items: [
+      {
+        id: 'issue-1',
+        text: 'Spelling issue with word',
+        type: 'spelling',
+        resolved: false,
+        transcriptionId: '73150c90',
+        regionId: 'wavesurfer_72hcq2e2q88',
+        dateLastUpdated: '2021-12-26T19:53:32.518Z',
+        owner: 'testuser',
+        ownerFriendly: 'Test User'
+      },
+      {
+        id: 'issue-2',
+        text: 'Grammar correction needed',
+        type: 'grammar',
+        resolved: true, // This should be filtered out
+        transcriptionId: '73150c90',
+        regionId: 'wavesurfer_72hcq2e2q88',
+        dateLastUpdated: '2021-12-26T19:53:32.518Z',
+        owner: 'testuser2',
+        ownerFriendly: 'Test User 2'
+      }
+    ]
+  },
+  mockIssuesAllResolved: {
+    Items: [
+      {
+        id: 'issue-resolved-1',
+        text: 'Already fixed spelling issue',
+        type: 'spelling',
+        resolved: true,
+        transcriptionId: '73150c90',
+        regionId: 'wavesurfer_72hcq2e2q88',
+        dateLastUpdated: '2021-12-26T19:53:32.518Z',
+        owner: 'testuser',
+        ownerFriendly: 'Test User'
+      },
+      {
+        id: 'issue-resolved-2',
+        text: 'Already fixed grammar issue',
+        type: 'grammar',
+        resolved: true,
+        transcriptionId: '73150c90',
+        regionId: 'wavesurfer_72hcq2e2q88',
+        dateLastUpdated: '2021-12-26T19:53:32.518Z',
+        owner: 'testuser2',
+        ownerFriendly: 'Test User 2'
+      }
+    ]
+  }
 }

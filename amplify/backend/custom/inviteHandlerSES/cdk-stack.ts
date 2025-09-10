@@ -21,11 +21,17 @@ export class cdkStack extends cdk.Stack {
     const amplifyProjectInfo = AmplifyHelpers.getProjectInfo();
     
     // Create SES Email Identity (you can change this to your domain/email)
-    let tld = 'dev'
-    if (cdk.Fn.ref('env') === "production") {
-      tld = 'net'
-    }
-    const fromEmailAddress = `noreply@kiyanaw.${tld}`;
+    // IMPORTANT: Use a CloudFormation condition so the value is resolved at deploy time,
+    // not at synth time (the env parameter is a Token at synth time).
+    const isProdCondition = new cdk.CfnCondition(this, 'IsProduction', {
+      expression: cdk.Fn.conditionEquals(cdk.Fn.ref('env'), 'production'),
+    });
+
+    const fromEmailAddress = cdk.Fn.conditionIf(
+      isProdCondition.logicalId,
+      'noreply@kiyanaw.net',
+      'noreply@kiyanaw.dev',
+    ).toString();
     
     const emailIdentity = new ses.EmailIdentity(this, 'InviteEmailIdentity', {
       identity: ses.Identity.email(fromEmailAddress),

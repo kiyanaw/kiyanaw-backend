@@ -42,7 +42,7 @@ export const schema = {
                     "name": "userLastUpdated",
                     "isArray": false,
                     "type": "String",
-                    "isRequired": false,
+                    "isRequired": true,
                     "attributes": []
                 },
                 "length": {
@@ -63,6 +63,27 @@ export const schema = {
                     "name": "comments",
                     "isArray": false,
                     "type": "String",
+                    "isRequired": false,
+                    "attributes": []
+                },
+                "commentCount": {
+                    "name": "commentCount",
+                    "isArray": false,
+                    "type": "Int",
+                    "isRequired": false,
+                    "attributes": []
+                },
+                "regionCount": {
+                    "name": "regionCount",
+                    "isArray": false,
+                    "type": "Int",
+                    "isRequired": false,
+                    "attributes": []
+                },
+                "issueCount": {
+                    "name": "issueCount",
+                    "isArray": false,
+                    "type": "Int",
                     "isRequired": false,
                     "attributes": []
                 },
@@ -117,6 +138,13 @@ export const schema = {
                 },
                 "isPublished": {
                     "name": "isPublished",
+                    "isArray": false,
+                    "type": "Boolean",
+                    "isRequired": false,
+                    "attributes": []
+                },
+                "publicIssues": {
+                    "name": "publicIssues",
                     "isArray": false,
                     "type": "Boolean",
                     "isRequired": false,
@@ -189,6 +217,20 @@ export const schema = {
                         "associatedWith": "transcription"
                     }
                 },
+                "relatedComments": {
+                    "name": "relatedComments",
+                    "isArray": true,
+                    "type": {
+                        "model": "Comment"
+                    },
+                    "isRequired": false,
+                    "attributes": [],
+                    "isArrayNullable": true,
+                    "association": {
+                        "connectionType": "HAS_MANY",
+                        "associatedWith": "transcription"
+                    }
+                },
                 "createdAt": {
                     "name": "createdAt",
                     "isArray": false,
@@ -218,6 +260,27 @@ export const schema = {
                     "properties": {
                         "fields": [
                             "id"
+                        ]
+                    }
+                },
+                {
+                    "type": "key",
+                    "properties": {
+                        "name": "ByAuthor",
+                        "queryField": "transcriptionsByAuthor",
+                        "fields": [
+                            "author"
+                        ]
+                    }
+                },
+                {
+                    "type": "key",
+                    "properties": {
+                        "name": "ByAuthorDate",
+                        "queryField": "transcriptionsByAuthorDate",
+                        "fields": [
+                            "author",
+                            "dateLastUpdated"
                         ]
                     }
                 },
@@ -338,6 +401,13 @@ export const schema = {
                     "name": "isNote",
                     "isArray": false,
                     "type": "Boolean",
+                    "isRequired": false,
+                    "attributes": []
+                },
+                "commentCount": {
+                    "name": "commentCount",
+                    "isArray": false,
+                    "type": "Int",
                     "isRequired": false,
                     "attributes": []
                 },
@@ -466,6 +536,13 @@ export const schema = {
                     "isRequired": true,
                     "attributes": []
                 },
+                "ownerFriendly": {
+                    "name": "ownerFriendly",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": true,
+                    "attributes": []
+                },
                 "index": {
                     "name": "index",
                     "isArray": false,
@@ -487,10 +564,31 @@ export const schema = {
                     "isRequired": true,
                     "attributes": []
                 },
+                "dateLastUpdated": {
+                    "name": "dateLastUpdated",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": true,
+                    "attributes": []
+                },
+                "userLastUpdated": {
+                    "name": "userLastUpdated",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": true,
+                    "attributes": []
+                },
                 "comments": {
                     "name": "comments",
                     "isArray": false,
                     "type": "AWSJSON",
+                    "isRequired": false,
+                    "attributes": []
+                },
+                "commentCount": {
+                    "name": "commentCount",
+                    "isArray": false,
+                    "type": "Int",
                     "isRequired": false,
                     "attributes": []
                 },
@@ -550,6 +648,7 @@ export const schema = {
                     "type": "key",
                     "properties": {
                         "name": "ByOwner",
+                        "queryField": "issuesByOwner",
                         "fields": [
                             "owner"
                         ]
@@ -559,8 +658,19 @@ export const schema = {
                     "type": "key",
                     "properties": {
                         "name": "ByType",
+                        "queryField": "issuesByType",
                         "fields": [
                             "type"
+                        ]
+                    }
+                },
+                {
+                    "type": "key",
+                    "properties": {
+                        "name": "ByRegion",
+                        "queryField": "issuesByRegion",
+                        "fields": [
+                            "regionId"
                         ]
                     }
                 },
@@ -589,10 +699,36 @@ export const schema = {
                                 ]
                             },
                             {
+                                "provider": "userPools",
+                                "ownerField": "owner",
+                                "allow": "owner",
+                                "operations": [
+                                    "create",
+                                    "read",
+                                    "update",
+                                    "delete"
+                                ],
+                                "identityClaim": "cognito:username"
+                            },
+                            {
                                 "allow": "private",
                                 "operations": [
                                     "read",
                                     "update"
+                                ]
+                            },
+                            {
+                                "groupClaim": "cognito:groups",
+                                "provider": "userPools",
+                                "allow": "groups",
+                                "groups": [
+                                    "Admins"
+                                ],
+                                "operations": [
+                                    "create",
+                                    "read",
+                                    "update",
+                                    "delete"
                                 ]
                             }
                         ]
@@ -717,6 +853,17 @@ export const schema = {
                 {
                     "type": "key",
                     "properties": {
+                        "name": "ByEmailCreatedAt",
+                        "queryField": "invitesByEmailCreatedAt",
+                        "fields": [
+                            "email",
+                            "createdAt"
+                        ]
+                    }
+                },
+                {
+                    "type": "key",
+                    "properties": {
                         "name": "ByTranscription",
                         "queryField": "invitesByTranscription",
                         "fields": [
@@ -778,10 +925,214 @@ export const schema = {
                     }
                 }
             ]
+        },
+        "Comment": {
+            "name": "Comment",
+            "fields": {
+                "id": {
+                    "name": "id",
+                    "isArray": false,
+                    "type": "ID",
+                    "isRequired": true,
+                    "attributes": []
+                },
+                "text": {
+                    "name": "text",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": true,
+                    "attributes": []
+                },
+                "author": {
+                    "name": "author",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": true,
+                    "attributes": []
+                },
+                "authorFriendly": {
+                    "name": "authorFriendly",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": true,
+                    "attributes": []
+                },
+                "createdAt": {
+                    "name": "createdAt",
+                    "isArray": false,
+                    "type": "AWSDateTime",
+                    "isRequired": true,
+                    "attributes": []
+                },
+                "updatedAt": {
+                    "name": "updatedAt",
+                    "isArray": false,
+                    "type": "AWSDateTime",
+                    "isRequired": true,
+                    "attributes": []
+                },
+                "transcription": {
+                    "name": "transcription",
+                    "isArray": false,
+                    "type": {
+                        "model": "Transcription"
+                    },
+                    "isRequired": true,
+                    "attributes": [],
+                    "association": {
+                        "connectionType": "BELONGS_TO",
+                        "targetName": "transcriptionId"
+                    }
+                },
+                "entityType": {
+                    "name": "entityType",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": true,
+                    "attributes": []
+                },
+                "entityId": {
+                    "name": "entityId",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": true,
+                    "attributes": []
+                },
+                "parentComment": {
+                    "name": "parentComment",
+                    "isArray": false,
+                    "type": {
+                        "model": "Comment"
+                    },
+                    "isRequired": false,
+                    "attributes": [],
+                    "association": {
+                        "connectionType": "BELONGS_TO",
+                        "targetName": "parentCommentId"
+                    }
+                },
+                "replies": {
+                    "name": "replies",
+                    "isArray": true,
+                    "type": {
+                        "model": "Comment"
+                    },
+                    "isRequired": false,
+                    "attributes": [],
+                    "isArrayNullable": true,
+                    "association": {
+                        "connectionType": "HAS_MANY",
+                        "associatedWith": "parentComment"
+                    }
+                },
+                "metadata": {
+                    "name": "metadata",
+                    "isArray": false,
+                    "type": "AWSJSON",
+                    "isRequired": false,
+                    "attributes": []
+                }
+            },
+            "syncable": true,
+            "pluralName": "Comments",
+            "attributes": [
+                {
+                    "type": "model",
+                    "properties": {}
+                },
+                {
+                    "type": "key",
+                    "properties": {
+                        "fields": [
+                            "id"
+                        ]
+                    }
+                },
+                {
+                    "type": "key",
+                    "properties": {
+                        "name": "ByAuthor",
+                        "queryField": "commentsByAuthor",
+                        "fields": [
+                            "author",
+                            "createdAt"
+                        ]
+                    }
+                },
+                {
+                    "type": "key",
+                    "properties": {
+                        "name": "ByTranscription",
+                        "queryField": "commentsByTranscription",
+                        "fields": [
+                            "transcriptionId"
+                        ]
+                    }
+                },
+                {
+                    "type": "key",
+                    "properties": {
+                        "name": "ByParentComment",
+                        "queryField": "commentsByParentComment",
+                        "fields": [
+                            "parentCommentId"
+                        ]
+                    }
+                },
+                {
+                    "type": "auth",
+                    "properties": {
+                        "rules": [
+                            {
+                                "allow": "private",
+                                "provider": "identityPool",
+                                "operations": [
+                                    "create",
+                                    "read",
+                                    "update",
+                                    "delete"
+                                ]
+                            },
+                            {
+                                "provider": "userPools",
+                                "ownerField": "author",
+                                "allow": "owner",
+                                "operations": [
+                                    "create",
+                                    "read",
+                                    "update",
+                                    "delete"
+                                ],
+                                "identityClaim": "cognito:username"
+                            },
+                            {
+                                "allow": "private",
+                                "operations": [
+                                    "read"
+                                ]
+                            },
+                            {
+                                "groupClaim": "cognito:groups",
+                                "provider": "userPools",
+                                "allow": "groups",
+                                "groups": [
+                                    "Admins"
+                                ],
+                                "operations": [
+                                    "create",
+                                    "read",
+                                    "update",
+                                    "delete"
+                                ]
+                            }
+                        ]
+                    }
+                }
+            ]
         }
     },
     "enums": {},
     "nonModels": {},
     "codegenVersion": "3.4.4",
-    "version": "0054febf43adff40080d1c4161e198a0"
+    "version": "309391442a3b817a2b2c869d4601abc0"
 };

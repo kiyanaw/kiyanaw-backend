@@ -67,9 +67,10 @@ export const RegionList = React.memo(({
       
       <div className="py-3 px-4 bg-gray-100 border-b border-gray-300 flex-shrink-0">
         <h4 className="m-0 text-sm font-semibold text-gray-800 uppercase tracking-wide">Regions ({regions.length})</h4>
+
       </div>
 
-      <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-track-gray-100 scrollbar-thumb-gray-400 hover:scrollbar-thumb-gray-500 min-h-0">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-track-gray-100 scrollbar-thumb-gray-400 hover:scrollbar-thumb-gray-500 min-h-0 regions-scroll-mobile lg:regions-scroll-desktop">
         {regions.map((region, index) => (
           <div
             key={region.id}

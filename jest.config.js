@@ -23,6 +23,8 @@ export default {
             esModuleInterop: true,
             allowSyntheticDefaultImports: true,
             allowJs: true,
+            target: 'ES2020',
+            lib: ['ES2020', 'DOM', 'DOM.Iterable'],
             types: ['@testing-library/jest-dom'],
           },
         }],
@@ -68,6 +70,41 @@ export default {
       collectCoverageFrom: [
         'lib/**/*.(js|ts)',
         'index.js',
+        '!test/**/*.(js|ts)',
+      ],
+      testPathIgnorePatterns: [
+        '/node_modules/',
+      ],
+    },
+    // Lambda function tests - onTranscriptionChange
+    {
+      displayName: 'Lambda Functions - OnTranscriptionChange',
+      testEnvironment: 'node',
+      rootDir: 'amplify/backend/function/onTranscriptionChange/src',
+      testMatch: [
+        '<rootDir>/test/test-*.(js|ts)',
+      ],
+      collectCoverageFrom: [
+        'lib/**/*.(js|ts)',
+        'index.js',
+        '!test/**/*.(js|ts)',
+      ],
+      testPathIgnorePatterns: [
+        '/node_modules/',
+      ],
+    },
+    // Lambda function tests - createPeaksFile
+    {
+      displayName: 'Lambda Functions - CreatePeaksFile',
+      testEnvironment: 'node',
+      rootDir: 'amplify/backend/function/createPeaksFile/src',
+      testMatch: [
+        '<rootDir>/test/test-*.(js|ts)',
+      ],
+      collectCoverageFrom: [
+        'lib/**/*.(js|ts)',
+        'index.js',
+        'utils.js',
         '!test/**/*.(js|ts)',
       ],
       testPathIgnorePatterns: [

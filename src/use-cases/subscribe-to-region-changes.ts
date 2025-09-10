@@ -1,5 +1,6 @@
 import { services } from '../services';
 import type { RegionSubscriptionEvent } from '../services/regionService';
+import { issueHighlightService } from '../services/issueHighlightService';
 
 export interface SubscribeToRegionChangesConfig {
   transcriptionId: string;
@@ -40,7 +41,8 @@ export class SubscribeToRegionChangesUseCase {
     const isSelfTriggered = currentUser && region.userLastUpdated === currentUser.username;
     
     if (isSelfTriggered) {
-      store.setRegionVersion(region.id, region._version!);
+      // Skip version update for self-triggered events - we already incremented it correctly
+      console.log('🔌 Self-triggered region event, skipping version update:', region.id);
       return;
     }
 
@@ -314,11 +316,18 @@ export class SubscribeToRegionChangesUseCase {
     if (rteService.hasEditor(editorKey)) {
       rteService.setContent(editorKey, content);
       
-      // Reapply known words formatting after content update
+      // Reapply known words and issue highlighting after content update
       const regionAnalysis = (updatedRegion.regionAnalysis as string[]) || store.regionById(updatedRegion.id as string)?.regionAnalysis;
-      if (regionAnalysis && regionAnalysis.length > 0) {
-        rteService.applyKnownWordsFormatting(editorKey, regionAnalysis);
-      }
+      // Get issues for the region
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const issues = (store as any).getIssuesForRegion(updatedRegion.id as string);
+      const issueHighlights = issueHighlightService.convertIssuesToHighlights(issues);
+      
+      // Apply highlighting with both known words and issues
+      rteService.applyHighlighting(editorKey, {
+        knownWords: regionAnalysis || [],
+        issues: issueHighlights
+      });
     }
   }
 

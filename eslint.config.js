@@ -8,6 +8,7 @@ export default tseslint.config(
   { 
     ignores: [
       'dist',
+      'dev-dist/**',
       'coverage/**',
       'src/aws-exports.js',
       'src/models/index.d.ts',
@@ -18,10 +19,13 @@ export default tseslint.config(
       'src/ui-components/studioTheme.js.d.ts',
       'src/ui-components/studioTheme.js', 
       'src/ui-components/utils.js',
+      'src/ui-components/*.jsx',
       'amplify/#current-cloud-backend/**',
       'amplify/backend/custom/regionChangeSQS/build/**',
       'amplify/backend/custom/inviteHandlerSES/cdk-stack.ts',
       'amplify-codegen-temp/models/models',
+      'tests/e2e/**',
+      '**/workbox-*.js',
     ] 
   },
   {

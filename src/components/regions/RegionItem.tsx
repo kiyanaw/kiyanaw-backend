@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useEditorStore } from '../../stores/useEditorStore';
 import { textHighlightService } from '../../services/textHighlightService';
+import { issueHighlightService } from '../../services/issueHighlightService';
 import { useFlashIndicator } from '../../hooks/useFlashIndicator';
 import { FLASH_CONFIG } from '../../services/flashIndicatorService';
 
@@ -34,15 +35,22 @@ export const RegionItem = ({
     return `${mins}:${paddedSecs}`;
   };
 
-  // Get known words reactively from store
+  // Get known words and issues reactively from store
   const knownWords = useEditorStore((state) => state.knownWords);
+  const issues = useEditorStore((state) => state.getIssuesForRegion(regionId));
   
   const renderTextContent = useMemo(() => {
     if (!region?.regionText) return '';
     
-    // Apply known words highlighting using centralized service
-    return textHighlightService.generateHTML(region.regionText, knownWords);
-  }, [region?.regionText, knownWords]);
+    // Convert issues to highlights for text highlighting
+    const issueHighlights = issueHighlightService.convertIssuesToHighlights(issues);
+    
+    // Apply both known words and issue highlighting
+    return textHighlightService.generateHTMLWithOptions(region.regionText, {
+      knownWords,
+      issues: issueHighlights
+    });
+  }, [region?.regionText, knownWords, issues]);
 
   const editorIndicator = useMemo(() => {
     if (editingUsers.length === 0) return '';
@@ -84,7 +92,7 @@ export const RegionItem = ({
             <span className="block font-mono font-bold text-red-600">{formatTime(region.end)}</span>
           </div>
           <div
-            className="pr-4 leading-relaxed [&_.known-word]:text-blue-600 [&_.unknown-word]:bg-red-50 [&_.unknown-word]:text-red-800 [&_.proper-noun]:font-bold [&_.proper-noun]:text-blue-700 [&_.emphasis]:italic [&_.strong]:font-bold empty:before:content-['No_text_content'] empty:before:text-gray-400 empty:before:italic"
+            className="pr-4 leading-relaxed [&_.known-word]:text-blue-600 [&_.unknown-word]:bg-red-50 [&_.unknown-word]:text-red-800 [&_.proper-noun]:font-bold [&_.proper-noun]:text-blue-700 [&_.emphasis]:italic [&_.strong]:font-bold [&_.issue-needs-help]:bg-red-50 [&_.issue-needs-help]:text-red-800 [&_.issue-needs-help]:px-0.5 [&_.issue-needs-help]:rounded [&_.issue-indexing]:bg-yellow-50 [&_.issue-indexing]:text-yellow-800 [&_.issue-indexing]:px-0.5 [&_.issue-indexing]:rounded [&_.issue-new-word]:bg-green-50 [&_.issue-new-word]:text-green-800 [&_.issue-new-word]:px-0.5 [&_.issue-new-word]:rounded [&_.issue-comment-icon]:inline-flex [&_.issue-comment-icon]:items-center [&_.issue-comment-icon]:opacity-70 [&_.issue-comment-icon]:ml-1 empty:before:content-['No_text_content'] empty:before:text-gray-400 empty:before:italic"
             dangerouslySetInnerHTML={{ __html: renderTextContent }}
           />
           <span className="absolute top-0 right-1 text-3xl font-black text-gray-200 pointer-events-none">{index + 1}</span>

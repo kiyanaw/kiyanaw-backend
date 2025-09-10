@@ -22,6 +22,7 @@ export class CreateRegion {
     this.config = config;
   }
 
+
   validate(): void {
     if (!this.config.transcriptionId || this.config.transcriptionId.trim() === '') {
       throw new Error('transcriptionId is required and cannot be empty');
@@ -53,6 +54,10 @@ export class CreateRegion {
     try {
       // async save to DB
       await regionService.createRegion(transcriptionId, newRegion, userLastUpdated)
+      
+      // Update the store's version tracking after successful creation
+      // New regions start with version 1 in the database
+      store.setRegionVersion(newRegion.id, 1);
       
       // Update the transcription with metadata
       const updateTranscriptionUseCase = new UpdateTranscriptionUseCase({

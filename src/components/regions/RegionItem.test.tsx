@@ -2,6 +2,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { RegionItem } from './RegionItem';
 import { useEditorStore } from '../../stores/useEditorStore';
 import { textHighlightService } from '../../services/textHighlightService';
+import { issueHighlightService } from '../../services/issueHighlightService';
 
 // Mock the store
 jest.mock('../../stores/useEditorStore', () => ({
@@ -12,11 +13,20 @@ jest.mock('../../stores/useEditorStore', () => ({
 jest.mock('../../services/textHighlightService', () => ({
   textHighlightService: {
     generateHTML: jest.fn(),
+    generateHTMLWithOptions: jest.fn(),
+  },
+}));
+
+// Mock the issue highlight service
+jest.mock('../../services/issueHighlightService', () => ({
+  issueHighlightService: {
+    convertIssuesToHighlights: jest.fn(),
   },
 }));
 
 const mockUseEditorStore = useEditorStore as jest.MockedFunction<typeof useEditorStore>;
 const mockTextHighlightService = textHighlightService as jest.Mocked<typeof textHighlightService>;
+const mockIssueHighlightService = issueHighlightService as jest.Mocked<typeof issueHighlightService>;
 
 describe('RegionItem', () => {
   const mockRegion = {
@@ -39,6 +49,7 @@ describe('RegionItem', () => {
       const mockState = {
         regionById: (id: string) => (id === 'test-region-1' ? mockRegion : null),
         knownWords: mockKnownWords,
+        getIssuesForRegion: () => [],
       } as any;
       
       return selector(mockState);
@@ -51,6 +62,10 @@ describe('RegionItem', () => {
 
     // Mock text highlight service
     mockTextHighlightService.generateHTML.mockReturnValue('<span class="known-word">Test</span> region text with some <span class="known-word">words</span>');
+    mockTextHighlightService.generateHTMLWithOptions.mockReturnValue('<span class="known-word">Test</span> region text with some <span class="known-word">words</span>');
+    
+    // Mock issue highlight service
+    mockIssueHighlightService.convertIssuesToHighlights.mockReturnValue([]);
   });
 
   it('should render region with correct time formatting', () => {
@@ -76,9 +91,9 @@ describe('RegionItem', () => {
       />
     );
 
-    expect(mockTextHighlightService.generateHTML).toHaveBeenCalledWith(
+    expect(mockTextHighlightService.generateHTMLWithOptions).toHaveBeenCalledWith(
       'Test region text with some words',
-      mockKnownWords
+      { knownWords: mockKnownWords, issues: [] }
     );
   });
 
@@ -92,7 +107,7 @@ describe('RegionItem', () => {
     );
 
     // Initial call
-    expect(mockTextHighlightService.generateHTML).toHaveBeenCalledTimes(1);
+    expect(mockTextHighlightService.generateHTMLWithOptions).toHaveBeenCalledTimes(1);
 
     // Update known words in store
     const updatedKnownWords = new Set(['Test', 'words', 'region']);
@@ -100,6 +115,7 @@ describe('RegionItem', () => {
       const mockState = {
         regionById: (id: string) => (id === 'test-region-1' ? mockRegion : null),
         knownWords: updatedKnownWords,
+        getIssuesForRegion: () => [],
       } as any;
       
       return selector(mockState);
@@ -114,11 +130,11 @@ describe('RegionItem', () => {
       />
     );
 
-    // Should call generateHTML again with updated known words
-    expect(mockTextHighlightService.generateHTML).toHaveBeenCalledTimes(2);
-    expect(mockTextHighlightService.generateHTML).toHaveBeenLastCalledWith(
+    // Should call generateHTMLWithOptions again with updated known words
+    expect(mockTextHighlightService.generateHTMLWithOptions).toHaveBeenCalledTimes(2);
+    expect(mockTextHighlightService.generateHTMLWithOptions).toHaveBeenLastCalledWith(
       'Test region text with some words',
-      updatedKnownWords
+      { knownWords: updatedKnownWords, issues: [] }
     );
   });
 
@@ -132,7 +148,7 @@ describe('RegionItem', () => {
     );
 
     // Initial call
-    expect(mockTextHighlightService.generateHTML).toHaveBeenCalledTimes(1);
+    expect(mockTextHighlightService.generateHTMLWithOptions).toHaveBeenCalledTimes(1);
 
     // Update region text
     const updatedRegion = {
@@ -144,6 +160,7 @@ describe('RegionItem', () => {
       const mockState = {
         regionById: (id: string) => (id === 'test-region-1' ? updatedRegion : null),
         knownWords: mockKnownWords,
+        getIssuesForRegion: () => [],
       } as any;
       
       return selector(mockState);
@@ -158,11 +175,11 @@ describe('RegionItem', () => {
       />
     );
 
-    // Should call generateHTML again with updated text
-    expect(mockTextHighlightService.generateHTML).toHaveBeenCalledTimes(2);
-    expect(mockTextHighlightService.generateHTML).toHaveBeenLastCalledWith(
+    // Should call generateHTMLWithOptions again with updated text
+    expect(mockTextHighlightService.generateHTMLWithOptions).toHaveBeenCalledTimes(2);
+    expect(mockTextHighlightService.generateHTMLWithOptions).toHaveBeenLastCalledWith(
       'Updated region text',
-      mockKnownWords
+      { knownWords: mockKnownWords, issues: [] }
     );
   });
 
@@ -176,6 +193,7 @@ describe('RegionItem', () => {
       const mockState = {
         regionById: (id: string) => (id === 'test-region-1' ? noteRegion : null),
         knownWords: mockKnownWords,
+        getIssuesForRegion: () => [],
       } as any;
       
       return selector(mockState);
@@ -207,6 +225,7 @@ describe('RegionItem', () => {
       const mockState = {
         regionById: (id: string) => (id === 'test-region-1' ? emptyRegion : null),
         knownWords: mockKnownWords,
+        getIssuesForRegion: () => [],
       } as any;
       
       return selector(mockState);
@@ -314,6 +333,7 @@ describe('RegionItem', () => {
       const mockState = {
         regionById: () => null,
         knownWords: mockKnownWords,
+        getIssuesForRegion: () => [],
       } as any;
       
       return selector(mockState);

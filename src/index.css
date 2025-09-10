@@ -29,6 +29,40 @@
 }
 
 @layer components {
+  /* Custom Amplify Authenticator styling - only for auth flow */
+  .amplify-authenticator:not([data-amplify-authenticated]) {
+    background-color: #f0f4f8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 1rem;
+  }
+  
+  .amplify-authenticator:not([data-amplify-authenticated]) [data-amplify-router] {
+    background: white !important;
+    border-radius: 12px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    overflow: hidden;
+    max-width: 28rem;
+    width: 100%;
+  }
+  
+  .amplify-authenticator [data-amplify-router] > * {
+    background: white !important;
+  }
+  
+  .amplify-authenticator .amplify-tabs,
+  .amplify-authenticator .amplify-authenticator__form {
+    background: white !important;
+  }
+  
+  /* Ensure authenticated app has clean styling and full width */
+  .amplify-authenticator[data-amplify-authenticated] {
+    background: white !important;
+    padding: 0 !important;
+  }
+  
   /* Quill editor styling */
   .ql-editor {
     font-size: 1.4em;
@@ -38,6 +72,8 @@
   .ql-editor .known-word {
     color: #3b82f6;
   }
+  
+
   
   .ql-editor .ignore-word {
     color: #777;
@@ -52,7 +88,8 @@
   }
   
   .ql-editor .issue-new-word {
-    background-color: #e6f3ff;
+    background-color: #f0fdf4;
+    color: #166534;
   }
   
   .ql-editor .suggestion {

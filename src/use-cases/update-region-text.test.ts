@@ -31,6 +31,7 @@ describe('UpdateRegionTextUseCase', () => {
     },
     calculateTranscriptionMetadata: jest.fn().mockReturnValue({ coverage: 0.5 }),
     setTranscription: jest.fn(),
+    setSaveStatus: jest.fn(),
     getState: jest.fn().mockReturnValue({
       setRegionText: mockSetRegionText,
       setRegionTranslation: mockSetRegionTranslation

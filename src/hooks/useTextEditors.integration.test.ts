@@ -18,14 +18,28 @@ jest.mock('../services/rteService', () => ({
       getText: jest.fn().mockReturnValue({ trim: jest.fn().mockReturnValue('') })
     }),
     hasEditor: jest.fn().mockReturnValue(true),
-    applyKnownWordsFormatting: jest.fn()
+    applyKnownWordsFormatting: jest.fn(),
+    updateIssueHighlighting: jest.fn(),
+    getSelection: jest.fn().mockReturnValue(null),
+    getIssueContext: jest.fn().mockReturnValue({ issueId: null, type: null }),
+    getWordAt: jest.fn().mockReturnValue(null),
+    onSelectionChange: jest.fn(),
+    offSelectionChange: jest.fn(),
+    getSelectedText: jest.fn().mockReturnValue(''),
+    getSelectionRange: jest.fn().mockReturnValue(null)
   }
 }));
 
-// Mock the use case
+// Mock the use cases
 jest.mock('../use-cases/update-region-text', () => ({
   UpdateRegionTextUseCase: jest.fn().mockImplementation(() => ({
     execute: jest.fn()
+  }))
+}));
+
+jest.mock('../use-cases/update-issue-text', () => ({
+  UpdateIssueTextUseCase: jest.fn().mockImplementation(() => ({
+    execute: jest.fn().mockResolvedValue(undefined)
   }))
 }));
 

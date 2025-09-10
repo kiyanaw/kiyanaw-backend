@@ -327,7 +327,8 @@ describe('useEditorStore known words functionality', () => {
           authorFriendly: 'Test Author',
           type: 'audio',
           source: 'test-source',
-          length: 120
+          length: 120,
+          userLastUpdated: 'test-author'
         },
         regions: [
           createTestRegion({ id: 'region-1', _version: 2 }),
@@ -335,6 +336,7 @@ describe('useEditorStore known words functionality', () => {
           createTestRegion({ id: 'region-3', _version: 4 }) // All regions must have versions
         ],
         issues: [],
+        comments: [],
         peaks: []
       };
 
@@ -645,13 +647,15 @@ describe('useEditorStore known words functionality', () => {
           authorFriendly: 'Test Author',
           type: 'audio',
           source: 'test-source',
-          length: 120
+          length: 120,
+          userLastUpdated: 'test-author'
         },
         regions: [
           createTestRegion({ id: 'region-1', _version: 2 }),
           createTestRegion({ id: 'region-2', _version: undefined }) // Missing version
         ],
         issues: [],
+        comments: [],
         peaks: []
       };
 

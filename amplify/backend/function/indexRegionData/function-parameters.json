@@ -7,6 +7,9 @@
       ],
       "Region:@model(appsync)": [
         "read"
+      ],
+      "Issue:@model(appsync)": [
+        "read"
       ]
     }
   }

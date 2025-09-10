@@ -1,5 +1,4 @@
 import { services } from '../services';
-import { showToast } from '../services/toastService';
 import { TranscriptionModel } from '../services/adt';
 import type { TranscriptionData } from '../types/shared';
 
@@ -47,6 +46,9 @@ export class UpdateTranscriptionUseCase {
 
     const { transcriptionId, updates, store, services } = this.config;
 
+    // Set saving status
+    store.setSaveStatus('saving');
+
     // Get current user from auth service
     const user = services.authService.currentUser();
     if (!user) {
@@ -59,11 +61,13 @@ export class UpdateTranscriptionUseCase {
       throw new Error('No transcription found in store');
     }
 
-        const { coverage } = store.calculateTranscriptionMetadata();
+        const { regionCount, issueCount, coverage } = store.calculateTranscriptionMetadata();
     
     // Only send updatable fields to API
     const apiUpdate = {
       ...updates,
+      regionCount,
+      issueCount,
       coverage,
       userLastUpdated: user.username.split('@')[0], // Extract username part from email
       dateLastUpdated: new Date().toISOString(),
@@ -80,20 +84,78 @@ export class UpdateTranscriptionUseCase {
     store.setTranscription(transcriptionModel);
 
     try {
-      // Save to API
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await services.transcriptionService.updateTranscription(transcriptionId, apiUpdate as any);
+      // Save to API with retry logic for version conflicts
+      const result = await this.saveWithRetry(transcriptionId, apiUpdate, services, 3);
 
-      // TODO: how to handle roll-back or conflict if this fails
-
-      // Show success toast
-      showToast('Transcription saved', 'success');
+      // Set saved status
+      store.setSaveStatus('saved');
 
       return result;
     } catch (error) {
       console.error('Failed to update transcription:', error);
-      showToast('Failed to save transcription', 'error');
+      store.setSaveStatus('error');
       throw error;
     }
+  }
+
+  /**
+   * Save transcription with automatic retry on version conflicts
+   */
+  private async saveWithRetry(
+    transcriptionId: string, 
+    apiUpdate: {
+      title?: string;
+      comments?: string;
+      isPrivate?: boolean;
+      publicIssues?: boolean;
+      lang?: string;
+      userLastUpdated: string;
+      regionCount?: number;
+      issueCount?: number;
+      coverage?: number;
+    }, 
+    services: typeof import('../services').services, 
+    maxRetries: number
+  ): Promise<TranscriptionData> {
+    let lastError: Error = new Error('Unknown error occurred');
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`📝 Attempting to save transcription (attempt ${attempt}/${maxRetries})`);
+        
+        const result = await services.transcriptionService.updateTranscription(transcriptionId, apiUpdate);
+        
+        if (attempt > 1) {
+          console.log(`✅ Transcription saved successfully on attempt ${attempt}`);
+        }
+        
+        return result;
+      } catch (error) {
+        lastError = error as Error;
+        
+        // Check if this is a version conflict
+        const isConflict = error && 
+          typeof error === 'object' && 
+          'errors' in error &&
+          Array.isArray((error as { errors: unknown[] }).errors) &&
+          (error as { errors: Array<{ errorType?: string; message?: string }> }).errors.some((err) => 
+            err?.errorType === 'ConflictUnhandled' || 
+            err?.message?.includes('Conflict resolver rejects mutation')
+          );
+        
+        if (isConflict && attempt < maxRetries) {
+          const waitTime = attempt * 100; // 100ms, 200ms, 300ms
+          console.log(`⚠️ Transcription version conflict on attempt ${attempt}, retrying in ${waitTime}ms...`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+          continue;
+        }
+        
+        // If not a conflict or we've exhausted retries, throw the error
+        console.error(`❌ Failed to save transcription after ${attempt} attempts:`, error);
+        throw error;
+      }
+    }
+    
+    throw lastError;
   }
 } 

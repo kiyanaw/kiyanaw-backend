@@ -60,7 +60,7 @@ describe('RegionService (Simple GraphQL Test)', () => {
 
       mockGraphqlClient.graphql.mockResolvedValue({
         data: {
-          listRegions: {
+          regionsByTranscription: {
             items: mockRegions,
           },
         },
@@ -71,11 +71,11 @@ describe('RegionService (Simple GraphQL Test)', () => {
       expect(mockGraphqlClient.graphql).toHaveBeenCalledWith({
         query: expect.any(String),
         variables: {
+          transcriptionId: transcriptionId,
           filter: {
-            transcriptionId: { eq: transcriptionId },
             _deleted: { ne: true },
           },
-          limit: 1000,
+          limit: 2000,
         },
       });
 

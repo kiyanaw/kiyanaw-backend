@@ -54,9 +54,13 @@ describe('ADT Models', () => {
         expect(model.lang).toBe(mockTranscriptionData.lang);
       });
 
-      it('should store original data reference', () => {
+      it('should store data with computed fields', () => {
         const model = new TranscriptionModel(mockTranscriptionData);
-        expect(model.data).toBe(mockTranscriptionData);
+        expect(model.data).toEqual({
+          ...mockTranscriptionData,
+          regionCount: 0,
+          issueCount: 5
+        });
       });
 
       it('should set default values for optional properties', () => {
@@ -68,12 +72,13 @@ describe('ADT Models', () => {
           type: 'audio/mp3',
           source: 'test.mp3',
           length: 60,
+          userLastUpdated: 'Test Author'
         };
 
         const model = new TranscriptionModel(minimalData);
 
         expect(model.coverage).toBe(0);
-        expect(model.isPrivate).toBe(false);
+        expect(model.isPrivate).toBe(true);
         expect(model.disableAnalyzer).toBe(false);
       });
 
@@ -187,13 +192,14 @@ describe('ADT Models', () => {
           type: 'audio/mp3',
           source: 'test.mp3',
           length: 60,
+          userLastUpdated: 'Test Author'
         };
 
         const model = new TranscriptionModel(minimalData);
 
         expect(model.comments).toBeUndefined();
         expect(model.dateLastUpdated).toBeUndefined();
-        expect(model.userLastUpdated).toBeUndefined();
+        expect(model.userLastUpdated).toBe('Test Author'); // This is now required
         expect(model.editors).toBeUndefined();
         expect(model.lang).toBeUndefined();
       });
