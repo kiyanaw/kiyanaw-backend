@@ -1,257 +1,119 @@
-# Playwright E2E Testing
+# E2E Testing with Playwright
 
-This directory contains end-to-end tests for the Kiyanaw transcription application using Playwright.
+This directory contains end-to-end tests for the Kiyânaw application using Playwright.
 
-## Setup
+## Quick Setup
 
-### Installation
-
-Playwright is already installed as a dev dependency. To install browsers:
+Run the setup script to get started:
 
 ```bash
-npx playwright install
+npm run setup:e2e
 ```
 
-### Configuration
+This will:
+- Create a `.env` file template with the required environment variables
+- Create the `playwright/.auth/` directory for authentication state
+- Provide instructions for the next steps
 
-The Playwright configuration is in `playwright.config.ts` at the project root. Key features:
+## Manual Setup
 
-- **Configurable Base URL**: Set via `PLAYWRIGHT_BASE_URL` environment variable
-- **Multiple Browsers**: Chrome, Firefox, Safari, and mobile variants
-- **Automatic Screenshots**: On test failures
-- **Video Recording**: On test failures
-- **Test Reports**: HTML, JSON, and JUnit formats
+If you prefer to set up manually or need to update your configuration:
 
-## Running Tests
+1. **Create test user accounts**: Create dedicated test users in your AWS Cognito User Pool:
+   - **Test user**: Standard permissions for general testing (required)
+   - **Viewer user**: Read-only permissions for testing viewer functionality (optional)
+   - **Editor user**: Edit permissions for testing editor functionality (optional)
 
-### Basic Commands
+2. **Set up environment variables**: Create a `.env` file in the project root with your test credentials:
 
 ```bash
-# Run all tests (defaults to production URL)
+# Test user account (required)
+PLAYWRIGHT_TEST_EMAIL=your-test-user@example.com
+PLAYWRIGHT_TEST_PASSWORD=your-test-password
+
+# Base URL for testing
+PLAYWRIGHT_BASE_URL=http://localhost:5173
+
+# Viewer user account (optional for parallel testing)
+# PLAYWRIGHT_TEST_EMAIL_VIEWER=your-viewer-user@example.com
+# PLAYWRIGHT_TEST_PASSWORD_VIEWER=your-viewer-password
+
+# Editor user account (optional for parallel testing)
+# PLAYWRIGHT_TEST_EMAIL_EDITOR=your-editor-user@example.com
+# PLAYWRIGHT_TEST_PASSWORD_EDITOR=your-editor-password
+```
+
+3. **Run the tests**:
+
+```bash
+# Run tests against local development server
 npm run test:e2e
 
-# Run tests with UI mode (interactive)
-npm run test:e2e:ui
-
-# Run tests in headed mode (see browser)
-npm run test:e2e:headed
-
-# Debug tests step by step
-npm run test:e2e:debug
-```
-
-### Environment-Specific Commands
-
-```bash
-# Test against local development server
-npm run test:e2e:local
-
-# Test against staging environment
+# Run tests against staging environment
 npm run test:e2e:staging
 
-# Test against production environment
-npm run test:e2e:prod
+# Run tests against production environment
+npm run test:e2e:production
 ```
 
-### Custom URL
+## Authentication
 
-You can test against any URL by setting the environment variable:
+The tests use Playwright's worker-scoped authentication with environment-defined accounts:
 
-```bash
-PLAYWRIGHT_BASE_URL=http://localhost:3000 npm run test:e2e
-```
+1. **Automatic Authentication**: Each parallel worker gets assigned a test account from the environment variables
+2. **Worker-Scoped**: Authentication happens once per worker using fixtures, not per test
+3. **State Persistence**: Authentication state is saved to `playwright/.auth/user-{account-name}.json`
+4. **Parallel Testing**: Tests run with their assigned account's authentication state
 
-## Environment Configuration
+### Account Assignment
 
-### Using Environment Variables
+- If you have 1 account configured: All workers use the same account
+- If you have multiple accounts: Workers are assigned accounts in round-robin fashion
+- Account names are derived from the environment variable names (e.g., `PLAYWRIGHT_TEST_EMAIL` → `main`)
 
-Set these environment variables to customize test behavior:
-
-```bash
-# Target URL (required)
-export PLAYWRIGHT_BASE_URL=https://transcribe.kiyanaw.dev
-
-# Test credentials (for authenticated tests)
-export TEST_USER_EMAIL=test@example.com
-export TEST_USER_PASSWORD=testpassword
-```
-
-### Using .env File
-
-Copy `playwright.env.example` to `.env` and customize:
-
-```bash
-cp playwright.env.example .env
-```
+This approach allows tests to run in parallel without conflicts, as each worker operates with its own authenticated session.
 
 ## Test Structure
 
-### Directory Layout
+- `playwright/fixtures.ts` - Worker-scoped authentication fixtures and account-specific test helpers
+- `transcription.spec.ts` - Transcription-related tests (uses default account assignment)
+- `playwright/.auth/` - Directory containing saved authentication states (gitignored)
 
-```
-tests/
-├── e2e/
-│   ├── example.spec.ts      # Basic application tests
-│   ├── auth.spec.ts         # Authentication flow tests
-│   └── transcription.spec.ts # Transcription feature tests
-└── README.md               # This file
-```
+## Writing Tests with Specific Accounts
 
-### Test Categories
+You can write tests that use specific accounts in two ways:
 
-1. **Basic Tests** (`example.spec.ts`)
-   - Homepage loading
-   - Navigation functionality
-   - 404 error handling
-
-2. **Authentication Tests** (`auth.spec.ts`)
-   - Login page display
-   - Protected route access
-   - Login flow (when credentials available)
-
-3. **Transcription Tests** (`transcription.spec.ts`)
-   - Transcription list display
-   - Creating new transcriptions
-   - Editor functionality
-   - Waveform player
-
-## Writing Tests
-
-### Basic Test Structure
+### Option 1: Using the `testWithAccount` Fixture
 
 ```typescript
-import { test, expect } from '@playwright/test';
+import { testWithAccount, expect } from '../../playwright/fixtures';
 
-test.describe('Feature Name', () => {
-  test('should do something', async ({ page }) => {
-    await page.goto('/');
-    
+// Always use the editor account
+const test = testWithAccount('editor');
+
+test.describe('Editor-Specific Tests', () => {
+  test('should have editor permissions', async ({ page }) => {
     // Your test code here
-    await expect(page.locator('selector')).toBeVisible();
   });
 });
 ```
 
-### Best Practices
-
-1. **Use data-testid attributes** for reliable element selection
-2. **Wait for network idle** on page loads: `await page.waitForLoadState('networkidle')`
-3. **Use descriptive test names** that explain the expected behavior
-4. **Group related tests** using `test.describe()`
-5. **Skip tests** that require authentication until test users are set up
-
-### Authentication Setup
-
-Authentication is now fully set up with helper utilities in `auth-helpers.ts`. Tests requiring authentication automatically handle login/logout.
-
-#### Environment Variables
-
-Set these environment variables for authenticated tests:
+### Option 2: Using Environment Variables
 
 ```bash
-export TEST_USER_EMAIL=your-test-user@example.com
-export TEST_USER_PASSWORD=your-test-password
+# Run tests with a specific worker index to use a specific account
+TEST_PARALLEL_INDEX=1 npm run test:e2e
 ```
 
-#### Using Authentication in Tests
+Available account names: `main`, `viewer`, `editor` (based on your environment variables)
 
-```typescript
-import { ensureAuthenticated, login, logout } from './auth-helpers';
+## Important Notes
 
-test.describe('Authenticated Features', () => {
-  // Automatically login before each test
-  test.beforeEach(async ({ page }) => {
-    await ensureAuthenticated(page);
-  });
-
-  test('should access protected feature', async ({ page }) => {
-    // Test authenticated functionality - user is already logged in
-    await page.goto('/transcriptions');
-    // ... test code
-  });
-});
-```
-
-#### Available Authentication Helpers
-
-- `ensureAuthenticated(page)` - Ensures user is logged in (main function to use)
-- `login(page, credentials?)` - Performs login with AWS Amplify Authenticator
-- `logout(page)` - Logs out the current user
-- `isAuthenticated(page)` - Checks if user is currently authenticated
-- `getTestCredentials()` - Gets credentials from environment variables
-- `skipIfNoCredentials()` - Skips test if credentials not available
-
-#### Automatic Test Skipping
-
-Tests that require authentication will automatically skip if `TEST_USER_EMAIL` and `TEST_USER_PASSWORD` are not set, with a helpful message explaining why.
-
-## CI/CD Integration
-
-### GitHub Actions Example
-
-```yaml
-- name: Install dependencies
-  run: npm ci
-
-- name: Install Playwright browsers
-  run: npx playwright install --with-deps
-
-- name: Run Playwright tests
-  run: npm run test:e2e
-  env:
-    PLAYWRIGHT_BASE_URL: https://staging.transcribe.kiyanaw.dev
-
-- name: Upload test results
-  uses: actions/upload-artifact@v3
-  if: always()
-  with:
-    name: playwright-report
-    path: playwright-report/
-```
-
-## Debugging
-
-### Debug Mode
-
-Run tests in debug mode to step through them:
-
-```bash
-npm run test:e2e:debug
-```
-
-### Screenshots and Videos
-
-Failed tests automatically capture:
-- Screenshots (in `test-results/`)
-- Videos (in `test-results/`)
-- Traces (viewable with `npx playwright show-trace`)
-
-### Viewing Reports
-
-After running tests, view the HTML report:
-
-```bash
-npx playwright show-report
-```
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Tests timing out**: Increase timeout in `playwright.config.ts`
-2. **Elements not found**: Use `data-testid` attributes or wait for elements
-3. **Authentication failures**: Verify test credentials and login flow
-4. **Local server not starting**: Check if dev server is already running
-
-### Useful Commands
-
-```bash
-# Check Playwright installation
-npx playwright --version
-
-# Update browsers
-npx playwright install
-
-# Generate test code
-npx playwright codegen https://transcribe.kiyanaw.dev
-```
+- The `playwright/.auth/` directory and `.env` file are gitignored for security
+- Never commit test credentials to version control
+- Use dedicated test user accounts, not your personal account
+- Authentication state is automatically saved and reused across test runs
+- If you have fewer accounts than workers, accounts will be reused (round-robin)
+- The setup script (`npm run setup:e2e`) helps create the initial configuration
+- Authentication uses simple, reliable selectors that work with AWS Amplify UI
+- Tests verify authentication by navigating to protected routes
