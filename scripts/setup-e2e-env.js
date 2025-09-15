@@ -18,20 +18,20 @@ const envTemplate = `# Playwright E2E Test Credentials
 # These should be dedicated test user accounts, not your personal account
 # Configure 3 accounts with different roles for parallel testing
 
-# Test user account (required)
-PLAYWRIGHT_TEST_EMAIL=your-test-user@example.com
-PLAYWRIGHT_TEST_PASSWORD=your-test-password
+# Owner user account
+PLAYWRIGHT_TEST_EMAIL=owner@kiyanaw.dev
+PLAYWRIGHT_TEST_PASSWORD=
+
+# Editor user account
+PLAYWRIGHT_TEST_EMAIL_EDITOR=editor@kiyanaw.dev
+PLAYWRIGHT_TEST_PASSWORD_EDITOR=
+
+# Viewer user account
+PLAYWRIGHT_TEST_EMAIL_VIEWER=viewer@kiyanaw.dev
+PLAYWRIGHT_TEST_PASSWORD_VIEWER=
 
 # Base URL for testing
 PLAYWRIGHT_BASE_URL=http://localhost:5173
-
-# Viewer user account (optional)
-# PLAYWRIGHT_TEST_EMAIL_VIEWER=your-viewer-user@example.com
-# PLAYWRIGHT_TEST_PASSWORD_VIEWER=your-viewer-password
-
-# Editor user account (optional)
-# PLAYWRIGHT_TEST_EMAIL_EDITOR=your-editor-user@example.com
-# PLAYWRIGHT_TEST_PASSWORD_EDITOR=your-editor-password
 
 `;
 
@@ -40,12 +40,14 @@ console.log('🎭 Setting up Playwright E2E testing environment...\n');
 // Check if .env file already exists
 if (fs.existsSync(envFile)) {
   console.log('⚠️  .env file already exists. Please update it manually with your test credentials.');
-  console.log('   Required variables:');
+  console.log('   Required variables (all must be set):');
   console.log('   - PLAYWRIGHT_TEST_EMAIL');
   console.log('   - PLAYWRIGHT_TEST_PASSWORD');
-  console.log('   Optional for parallel testing:');
-  console.log('   - PLAYWRIGHT_TEST_EMAIL_VIEWER / PLAYWRIGHT_TEST_PASSWORD_VIEWER');
-  console.log('   - PLAYWRIGHT_TEST_EMAIL_EDITOR / PLAYWRIGHT_TEST_PASSWORD_EDITOR\n');
+  console.log('   - PLAYWRIGHT_TEST_EMAIL_EDITOR');
+  console.log('   - PLAYWRIGHT_TEST_PASSWORD_EDITOR');
+  console.log('   - PLAYWRIGHT_TEST_EMAIL_VIEWER');
+  console.log('   - PLAYWRIGHT_TEST_PASSWORD_VIEWER');
+  console.log('   - PLAYWRIGHT_BASE_URL\n');
 } else {
   // Create .env file from template
   fs.writeFileSync(envFile, envTemplate);
@@ -59,14 +61,5 @@ if (!fs.existsSync(authDir)) {
   fs.mkdirSync(authDir, { recursive: true });
   console.log('✅ Created playwright/.auth directory for authentication state\n');
 }
-
-console.log('🚀 Next steps:');
-console.log('1. Edit .env file and add your test user credentials');
-console.log('2. Create 3 test users in your AWS Cognito User Pool:');
-console.log('   - Test user (standard permissions)');
-console.log('   - Viewer user (read-only permissions)');
-console.log('   - Editor user (edit permissions)');
-console.log('3. Run: npm run test:e2e\n');
-console.log('💡 Tip: Each parallel worker will use a different role-based account');
 
 console.log('📚 For more information, see tests/README.md');

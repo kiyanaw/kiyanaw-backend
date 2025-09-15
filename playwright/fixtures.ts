@@ -12,26 +12,37 @@ type Account = {
 };
 
 // Accounts available for testing
-const accounts = [
+const accounts: Account[] = [
   {
-    email: process.env.PLAYWRIGHT_TEST_EMAIL,
-    password: process.env.PLAYWRIGHT_TEST_PASSWORD,
-    name: 'main'
+    email: process.env.PLAYWRIGHT_TEST_EMAIL!,
+    password: process.env.PLAYWRIGHT_TEST_PASSWORD!,
+    name: 'owner'
   },
   {
-    email: process.env.PLAYWRIGHT_TEST_EMAIL_VIEWER,
-    password: process.env.PLAYWRIGHT_TEST_PASSWORD_VIEWER,
+    email: process.env.PLAYWRIGHT_TEST_EMAIL_VIEWER!,
+    password: process.env.PLAYWRIGHT_TEST_PASSWORD_VIEWER!,
     name: 'viewer'
   },
   {
-    email: process.env.PLAYWRIGHT_TEST_EMAIL_EDITOR,
-    password: process.env.PLAYWRIGHT_TEST_PASSWORD_EDITOR,
+    email: process.env.PLAYWRIGHT_TEST_EMAIL_EDITOR!,
+    password: process.env.PLAYWRIGHT_TEST_PASSWORD_EDITOR!,
     name: 'editor'
   }
-].filter(account => account.email && account.password); // Only include accounts with credentials
+];
 
-if (accounts.length === 0) {
-  throw new Error('No test accounts configured. Please set PLAYWRIGHT_TEST_EMAIL and PLAYWRIGHT_TEST_PASSWORD environment variables.');
+// Validate that all required environment variables are set
+const requiredEnvVars = [
+  'PLAYWRIGHT_TEST_EMAIL',
+  'PLAYWRIGHT_TEST_PASSWORD',
+  'PLAYWRIGHT_TEST_EMAIL_VIEWER',
+  'PLAYWRIGHT_TEST_PASSWORD_VIEWER',
+  'PLAYWRIGHT_TEST_EMAIL_EDITOR',
+  'PLAYWRIGHT_TEST_PASSWORD_EDITOR'
+];
+
+const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+if (missingVars.length > 0) {
+  throw new Error(`Missing required environment variables: ${missingVars.join(', ')}\nPlease set all test account credentials in your .env file.`);
 }
 
 async function authFileExists(authFile: string): Promise<boolean> {
@@ -159,7 +170,7 @@ const test = base.extend<{ workerStorageState: string }, { workerStorageState: s
 });
 
 // Custom fixture for specific account testing
-const testWithAccount = (accountName: 'main' | 'viewer' | 'editor') => {
+const testWithAccount = (accountName: 'owner' | 'viewer' | 'editor') => {
   return base.extend<{ workerStorageState: string }, { workerStorageState: string }>({
     // Use a unique storage state for each worker
     // eslint-disable-next-line react-hooks/rules-of-hooks
