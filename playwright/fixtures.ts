@@ -1,9 +1,15 @@
-import { test as base, expect } from '@playwright/test';
+import { test as base, expect, type Page, type Browser } from '@playwright/test';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+type Account = {
+  email: string;
+  password: string;
+  name: string;
+};
 
 // Accounts available for testing
 const accounts = [
@@ -33,7 +39,7 @@ async function authFileExists(authFile: string): Promise<boolean> {
   return fs.promises.access(authFile).then(() => true).catch(() => false);
 }
 
-async function authenticateAccount(page: any, account: any, baseURL: string): Promise<void> {
+async function authenticateAccount(page: Page, account: Account): Promise<void> {
   // Check if we're already authenticated (no login form visible)
   const loginForm = page.locator('input[name="username"]');
   const isAlreadyAuthenticated = !(await loginForm.isVisible({ timeout: 2000 }).catch(() => false));
@@ -69,7 +75,7 @@ async function authenticateAccount(page: any, account: any, baseURL: string): Pr
   }
 }
 
-async function verifyAuthentication(page: any, account: any, baseURL: string): Promise<void> {
+async function verifyAuthentication(page: Page, account: Account, baseURL: string): Promise<void> {
   // If login form is visible, we're definitely not authenticated
   const loginForm = page.locator('input[name="username"]');
   const loginFormVisible = await loginForm.isVisible({ timeout: 2000 }).catch(() => false);
@@ -96,7 +102,7 @@ async function verifyAuthentication(page: any, account: any, baseURL: string): P
   }
 }
 
-async function createAuthContext(browser: any, account: any, authFile: string): Promise<string> {
+async function createAuthContext(browser: Browser, account: Account, authFile: string): Promise<string> {
   const baseURL = process.env.PLAYWRIGHT_BASE_URL;
   
   // Create a new context and page for authentication
@@ -109,7 +115,7 @@ async function createAuthContext(browser: any, account: any, authFile: string): 
     await page.waitForLoadState('networkidle');
     
     // Perform authentication
-    await authenticateAccount(page, account, baseURL!);
+    await authenticateAccount(page, account);
     
     // Verify authentication
     await verifyAuthentication(page, account, baseURL!);
@@ -125,12 +131,13 @@ async function createAuthContext(browser: any, account: any, authFile: string): 
 }
 
 // Main test fixture with automatic account assignment
-const test = base.extend<{}, { workerStorageState: string }>({
+const test = base.extend<{ workerStorageState: string }, { workerStorageState: string }>({
   // Use a unique storage state for each worker
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   storageState: ({ workerStorageState }, use) => use(workerStorageState),
 
   // Set up authentication for each worker
-  workerStorageState: [async ({ browser }, use) => {
+  workerStorageState: [async ({ browser }: { browser: Browser }, use: (value: string) => Promise<void>) => {
     // Get the worker index to assign a unique account
     const workerIndex = process.env.TEST_PARALLEL_INDEX ? parseInt(process.env.TEST_PARALLEL_INDEX) : 0;
     const account = accounts[workerIndex % accounts.length];
@@ -145,23 +152,25 @@ const test = base.extend<{}, { workerStorageState: string }>({
     }
     
     // Create authentication context and perform authentication
-    const resultAuthFile = await createAuthContext(browser, account, authFile);
+    const resultAuthFile = await createAuthContext(browser, account as Account, authFile);
     await use(resultAuthFile);
+    // @ts-expect-error - Playwright scope type issue
   }, { scope: 'worker' }],
 });
 
 // Custom fixture for specific account testing
 const testWithAccount = (accountName: 'main' | 'viewer' | 'editor') => {
-  return base.extend<{}, { workerStorageState: string }>({
+  return base.extend<{ workerStorageState: string }, { workerStorageState: string }>({
     // Use a unique storage state for each worker
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     storageState: ({ workerStorageState }, use) => use(workerStorageState),
 
     // Set up authentication for the specific account
-    workerStorageState: [async ({ browser }, use) => {
+    workerStorageState: [async ({ browser }: { browser: Browser }, use: (value: string) => Promise<void>) => {
       // Find the specific account
       const specificAccount = accounts.find(acc => acc.name === accountName);
-      if (!specificAccount) {
-        throw new Error(`Account '${accountName}' not found. Available accounts: ${accounts.map(acc => acc.name).join(', ')}`);
+      if (!specificAccount || !specificAccount.email || !specificAccount.password) {
+        throw new Error(`Account '${accountName}' not found or missing credentials. Available accounts: ${accounts.map(acc => acc.name).join(', ')}`);
       }
       
       const authFile = path.join(__dirname, '.auth', `user-${specificAccount.name}.json`);
@@ -174,8 +183,9 @@ const testWithAccount = (accountName: 'main' | 'viewer' | 'editor') => {
       }
       
       // Create authentication context and perform authentication
-      const resultAuthFile = await createAuthContext(browser, specificAccount, authFile);
+      const resultAuthFile = await createAuthContext(browser, specificAccount as Account, authFile);
       await use(resultAuthFile);
+    // @ts-expect-error - Playwright scope type issue
     }, { scope: 'worker' }],
   });
 };
