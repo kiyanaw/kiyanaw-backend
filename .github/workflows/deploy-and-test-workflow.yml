@@ -128,12 +128,7 @@ jobs:
         EOF
         
     - name: Run E2E tests
-      run: |
-        if [ "${{ needs.determine-environment.outputs.environment }}" == "production" ]; then
-          npm run test:e2e:production
-        else
-          npm run test:e2e:staging
-        fi
+      run: npm run test:e2e
       
     - name: Upload test results
       uses: actions/upload-artifact@v4
