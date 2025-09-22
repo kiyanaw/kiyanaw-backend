@@ -48,42 +48,52 @@ jobs:
     - name: Install dependencies
       run: npm ci
       
-    - name: Configure Amplify
-      uses: ambientlight/amplify-cli-action@0.3.0
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
       with:
-        amplify_command: configure
-        amplify_env: ${{ vars.AMPLIFY_ENV }}
-        amplify_cli_version: latest
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+        
+    - name: Install Amplify CLI
+      run: npm install -g @aws-amplify/cli@latest
+      
+    - name: Configure Amplify
+      run: |
+        # Configure Amplify with the app ID
+        amplify configure set --amplify ${{ secrets.AMPLIFY_APP_ID }}
+        # Pull the project configuration for the specific environment
+        amplify pull --appId ${{ secrets.AMPLIFY_APP_ID }} --envName ${{ vars.AMPLIFY_ENV }} --yes
+        # Restore backend files from the current branch to ensure we deploy our changes
+        git checkout HEAD -- amplify/backend/
+        # Ensure we're on the correct environment
+        amplify env checkout ${{ vars.AMPLIFY_ENV }} --yes
       env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        AWS_REGION: ${{ env.AWS_REGION }}
+        AMPLIFY_APP_ID: ${{ secrets.AMPLIFY_APP_ID }}
         
     - name: Deploy backend (amplify push)
-      uses: ambientlight/amplify-cli-action@0.3.0
-      with:
-        amplify_command: push
-        amplify_env: ${{ vars.AMPLIFY_ENV }}
-        amplify_cli_version: latest
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        AWS_REGION: ${{ env.AWS_REGION }}
+      run: amplify push --yes
       timeout-minutes: 20
+      
+    - name: Commit Amplify changes
+      run: |
+        # Check if there are any changes after amplify push
+        if [ -n "$(git status --porcelain)" ]; then
+          echo "Amplify made changes to files, committing them..."
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add .
+          git commit -m "chore: update Amplify configuration after deployment to ${{ vars.AMPLIFY_ENV }}"
+          git push
+        else
+          echo "No changes detected after amplify push"
+        fi
       
     - name: Build frontend
       run: npm run build
       
     - name: Deploy frontend (amplify publish)
-      uses: ambientlight/amplify-cli-action@0.3.0
-      with:
-        amplify_command: publish
-        amplify_env: ${{ vars.AMPLIFY_ENV }}
-        amplify_cli_version: latest
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        AWS_REGION: ${{ env.AWS_REGION }}
+      run: amplify publish --yes
       timeout-minutes: 10
       
     - name: Wait for deployment to complete
