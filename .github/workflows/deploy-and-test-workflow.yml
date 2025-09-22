@@ -53,6 +53,7 @@ jobs:
       with:
         amplify_command: configure
         amplify_env: ${{ vars.AMPLIFY_ENV }}
+        amplify_cli_version: latest
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -63,7 +64,7 @@ jobs:
       with:
         amplify_command: push
         amplify_env: ${{ vars.AMPLIFY_ENV }}
-        amplify_arguments: --yes
+        amplify_cli_version: latest
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -78,7 +79,7 @@ jobs:
       with:
         amplify_command: publish
         amplify_env: ${{ vars.AMPLIFY_ENV }}
-        amplify_arguments: --yes
+        amplify_cli_version: latest
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
