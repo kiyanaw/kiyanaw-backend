@@ -19,7 +19,8 @@
     "test:e2e": "playwright test",
     "test:e2e:production": "PLAYWRIGHT_BASE_URL=https://bundle.kiyanaw.net playwright test",
     "test:e2e:staging": "PLAYWRIGHT_BASE_URL=https://transcribe.kiyanaw.dev playwright test",
-    "setup:e2e": "node scripts/setup-e2e-env.js"
+    "setup:e2e": "node scripts/setup-e2e-env.js",
+    "setup:github-secrets": "node scripts/setup-github-secrets.js"
   },
   "dependencies": {
     "@aws-amplify/auth": "^6.12.4",

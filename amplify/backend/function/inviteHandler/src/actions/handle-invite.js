@@ -9,8 +9,8 @@ const { SendInviteUseCase } = require('./use-cases/send-invite');
 exports.handleInvite = async (requestBody) => {
     // Inject environment-specific configuration
     const baseUrl = process.env.ENV === 'production' 
-        ? 'https://transcribe.kiyanaw.net' 
-        : 'https://transcribe.kiyanaw.dev';
+        ? 'https://bundle.kiyanaw.net' 
+        : 'https://bundle.kiyanaw.dev';
 
     // Create configuration with injected dependencies
     const config = {
