@@ -60,7 +60,11 @@ jobs:
     - name: Configure Amplify
       run: |
         amplify configure set --amplify ${{ secrets.AMPLIFY_APP_ID }}
-        amplify env checkout ${{ vars.AMPLIFY_ENV }}
+        mkdir -p amplify/.config
+        echo '{"projectPath":"'$(pwd)'","envName":"'${{ vars.AMPLIFY_ENV }}'","defaultEditor":"vscode"}' > amplify/.config/local-env-info.json
+        echo '{"configLevel":"project","useProfile":false,"profileName":"default"}' > amplify/.config/local-aws-info.json
+        echo "Configured for environment: ${{ vars.AMPLIFY_ENV }}"
+        amplify env checkout ${{ vars.AMPLIFY_ENV }} --yes
       env:
         AMPLIFY_APP_ID: ${{ secrets.AMPLIFY_APP_ID }}
         
