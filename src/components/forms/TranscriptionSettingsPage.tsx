@@ -547,6 +547,7 @@ export const TranscriptionSettingsPage = ({
                       value={newInviteEmail}
                       onChange={(e) => setNewInviteEmail(e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                      data-testid="invite-email-input"
                     />
                   </div>
                   <div>
@@ -554,6 +555,7 @@ export const TranscriptionSettingsPage = ({
                       value={newInvitePermission}
                       onChange={(e) => setNewInvitePermission(e.target.value as 'viewer' | 'editor')}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                      data-testid="invite-permission-select"
                     >
                       <option value="viewer">Viewer</option>
                       <option value="editor">Editor</option>
@@ -564,6 +566,7 @@ export const TranscriptionSettingsPage = ({
                       onClick={handleSendInvite}
                       disabled={sendingInvite || !newInviteEmail.trim()}
                       className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      data-testid="send-invite-button"
                     >
                       {sendingInvite ? (
                         <>
