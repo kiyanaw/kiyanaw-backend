@@ -685,6 +685,7 @@ export const TranscriptionSettingsPage = ({
                   <button
                     onClick={handleDeleteClick}
                     className="w-full md:w-auto md:ml-4 inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors"
+                    data-testid="delete-transcription-button"
                   >
                     <Trash2 size={16} />
                     Delete Transcription
@@ -730,6 +731,7 @@ export const TranscriptionSettingsPage = ({
                         placeholder="delete forever"
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm"
                         disabled={isDeleting}
+                        data-testid="delete-confirm-input"
                       />
                     </div>
 
@@ -748,6 +750,7 @@ export const TranscriptionSettingsPage = ({
                   onClick={handleDeleteConfirm}
                   disabled={isDeleting || deleteConfirmText.toLowerCase() !== 'delete forever'}
                   className="inline-flex w-full justify-center rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:ml-3 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
+                  data-testid="delete-forever-button"
                 >
                   {isDeleting ? (
                     <>
