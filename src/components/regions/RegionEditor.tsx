@@ -124,6 +124,7 @@ export const RegionEditor = memo(({
             onClick={canEdit ? handleDeleteRegion : undefined}
             disabled={!canEdit}
             title="Delete region"
+            data-testid="delete-region-button"
           >
             <Trash2 size={14} />
           </button>
