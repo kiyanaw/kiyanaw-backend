@@ -280,6 +280,11 @@
       "Value": {
         "Ref": "OriginAccessIdentity"
       }
+    },
+    "OpenSearchDomainEndpoint": {
+      "Value": {
+        "Fn::ImportValue": "kiyanaw-opensearch-domain-endpoint"
+      }
     }
   }
 }

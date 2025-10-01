@@ -20,6 +20,7 @@ interface UpdateRegionConfig {
   debounceMs: number;
   primaryField: string; // For conflict resolution UI (regionText, start, etc.)
   pendingEditField?: string; // For text/translation pending edit tracking
+  force?: boolean; // Skip unchanged check (useful when store was already updated optimistically)
   services: typeof services;
   store: typeof services.storeService;
 }
@@ -49,7 +50,7 @@ export class UpdateRegionUseCase {
   execute(): void {
     this.validate();
 
-    const { regionId, changes, debounceMs, primaryField, pendingEditField, services, store } = this.config;
+    const { regionId, changes, debounceMs, primaryField, pendingEditField, force, services, store } = this.config;
 
     // Check if the region exists
     const existingRegion = store.regionById(regionId);
@@ -58,14 +59,27 @@ export class UpdateRegionUseCase {
       return;
     }
 
-    // Check if there's actually a change
-    const hasChanges = Object.keys(changes).some(field => 
-      (existingRegion as unknown as Record<string, unknown>)[field] !== (changes as unknown as Record<string, unknown>)[field]
-    );
-    
-    if (!hasChanges) {
-      console.log(`Region ${regionId} unchanged, skipping update`);
-      return;
+    // Check if there's actually a change (unless forced)
+    if (!force) {
+      const hasChanges = Object.keys(changes).some(field => {
+        const existingValue = (existingRegion as unknown as Record<string, unknown>)[field];
+        const newValue = (changes as unknown as Record<string, unknown>)[field];
+        
+        // Special handling for regionAnalysis array comparison
+        if (field === 'regionAnalysis') {
+          const existingArray = existingValue as string[] || [];
+          const newArray = newValue as string[] || [];
+          // Compare arrays by content, not reference
+          return JSON.stringify(existingArray.sort()) !== JSON.stringify(newArray.sort());
+        }
+        
+        return existingValue !== newValue;
+      });
+      
+      if (!hasChanges) {
+        console.log(`Region ${regionId} unchanged, skipping update`);
+        return;
+      }
     }
 
     // Update store optimistically (for immediate UI feedback)
@@ -134,6 +148,9 @@ export class UpdateRegionUseCase {
           store.updateRegionBounds(existingRegion.id, newStart, newEnd);
           break;
         }
+        case 'regionAnalysis':
+          store.setRegionAnalysis(existingRegion.id, value as string[]);
+          break;
         default:
           console.warn(`Unknown field type for store update: ${field}`);
       }

@@ -2,6 +2,7 @@ import { spellCheckerService } from '../services/spellCheckerService';
 import type { EditorKey } from '../services/rteService';
 import { issueHighlightService } from '../services/issueHighlightService';
 import { services } from '../services';
+import { UpdateRegionUseCase } from './update-region';
 import Timeout from 'smart-timeout';
 
 interface AnalyzeRegionTextConfig {
@@ -115,8 +116,29 @@ export class AnalyzeRegionTextUseCase {
     // Build final analysis array as unique known words (for highlighting reference)
     const allKnownWords = Array.from(knownUniqueWords);
 
-    // Update region analysis in store (this will be picked up by the coordinated save)
+    // Get current analysis for comparison BEFORE updating store
+    const currentRegion = store.regionById(regionId);
+    const currentAnalysis = currentRegion?.regionAnalysis || [];
+    
+    // Check if analysis actually changed
+    const analysisChanged = JSON.stringify(currentAnalysis.sort()) !== JSON.stringify(allKnownWords.sort());
+    
+    // Update store immediately for UI highlighting
     store.setRegionAnalysis(regionId, allKnownWords);
+
+    // Only trigger save if analysis actually changed
+    if (analysisChanged) {
+      const updateRegionUseCase = new UpdateRegionUseCase({
+        regionId,
+        changes: { regionAnalysis: allKnownWords },
+        debounceMs: 1000, // Short debounce for analysis-only saves
+        primaryField: 'regionText',
+        force: true, // Force save since we already updated the store
+        services: this.config.services,
+        store
+      });
+      updateRegionUseCase.execute();
+    }
 
     // Apply known words and issue highlighting to the main editor
     const mainEditorKey: EditorKey = `${regionId}:main`;

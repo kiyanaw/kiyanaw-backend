@@ -1,0 +1,14 @@
+[
+  {
+    "Action": [
+      "es:ESHttpGet",
+      "es:ESHttpPost",
+      "es:ESHttpPut",
+      "es:ESHttpDelete",
+      "es:ESHttpHead"
+    ],
+    "Resource": [
+      "arn:aws:es:*:*:domain/kiyanaw-*/*"
+    ]
+  }
+]

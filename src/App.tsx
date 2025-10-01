@@ -16,6 +16,8 @@ import { EditorPage } from './pages/EditorPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { InvitationsPage } from './pages/InvitationsPage';
 import IssueBrowserPage from './pages/IssueBrowserPage';
+import { DatabaseHomePage } from './pages/DatabaseHomePage';
+import { DatabaseLemmaPage } from './pages/DatabaseLemmaPage';
 import { useConflictDialog } from './hooks/useConflictDialog';
 import { conflictDialogManager } from './services/conflictDialogManager';
 import './App.css';
@@ -44,6 +46,8 @@ function App() {
             />
             <Route path="invitations" element={<InvitationsPage />} />
             <Route path="invitations/:inviteId" element={<InvitationsPage />} />
+            <Route path="database" element={<DatabaseHomePage />} />
+            <Route path="database/lemma/:lemma" element={<DatabaseLemmaPage />} />
             <Route path="stats" element={<StatsPage />} />
             <Route path="about" element={<AboutPage />} />
             <Route path="support" element={<SupportPage />} />

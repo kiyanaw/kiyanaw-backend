@@ -9,6 +9,11 @@ export type AmplifyDependentResourcesAttributes = {
       "GraphQLAPIEndpointOutput": "string",
       "GraphQLAPIIdOutput": "string"
     },
+    "opensearchproxy": {
+      "ApiId": "string",
+      "ApiName": "string",
+      "RootUrl": "string"
+    },
     "spellcheck": {
       "ApiId": "string",
       "ApiName": "string",
@@ -104,6 +109,13 @@ export type AmplifyDependentResourcesAttributes = {
       "LambdaExecutionRoleArn": "string",
       "Name": "string",
       "Region": "string"
+    },
+    "opensearchproxy": {
+      "Arn": "string",
+      "LambdaExecutionRole": "string",
+      "LambdaExecutionRoleArn": "string",
+      "Name": "string",
+      "Region": "string"
     }
   },
   "hosting": {
@@ -113,6 +125,7 @@ export type AmplifyDependentResourcesAttributes = {
       "CloudFrontOriginAccessIdentity": "string",
       "CloudFrontSecureURL": "string",
       "HostingBucketName": "string",
+      "OpenSearchDomainEndpoint": "string",
       "Region": "string",
       "S3BucketSecureURL": "string",
       "WebsiteURL": "string"

@@ -98,6 +98,54 @@ export interface InviteData {
   updatedAt?: string;
 }
 
+// Database/Language Database Types
+export interface DatabaseStats {
+  totalWords: number;
+  totalTranscriptions: number;
+  wordTypeDistribution: WordTypeCount[];
+  topVerbs: LemmaCount[];
+  topNouns: LemmaCount[];
+}
+
+export interface WordTypeCount extends Record<string, unknown> {
+  wordType: string;
+  count: number;
+}
+
+export interface LemmaCount extends Record<string, unknown> {
+  lemma: string;
+  count: number;
+}
+
+export interface LemmaDetails {
+  lemma: string;
+  definition?: string;
+  itwêwinaUrl?: string;
+  surfaceForms: SurfaceForm[];
+  totalOccurrences: number;
+}
+
+export interface SurfaceForm {
+  surface: string;
+  count: number;
+}
+
+export interface Attestation {
+  transcriptionId: string;
+  transcriptionName: string;
+  regionId: string;
+  regionText: string;
+  timestamp: string;
+  surface: string;
+  lemma: string;
+}
+
+export interface SearchResult {
+  lemma: string;
+  count: number;
+  wordType?: string;
+}
+
 
 
 function pad(num: number, size: number): string {
