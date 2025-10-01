@@ -16,7 +16,14 @@ jest.mock('../services/spellCheckerService', () => ({
   }
 }));
 
+jest.mock('./update-region', () => ({
+  UpdateRegionUseCase: jest.fn().mockImplementation(() => ({
+    execute: jest.fn()
+  }))
+}));
+
 import { AnalyzeRegionTextUseCase } from './analyze-region-text';
+import { UpdateRegionUseCase } from './update-region';
 import { spellCheckerService } from '../services/spellCheckerService';
 import { rteService } from '../services/rteService';
 
@@ -35,6 +42,18 @@ const mockStore = {
   setRegionAnalysis: jest.fn(),
   addKnownWords: jest.fn(),
   getIssuesForRegion: jest.fn().mockReturnValue([]),
+  regionById: jest.fn().mockReturnValue({
+    id: 'region-1',
+    regionAnalysis: [],
+    transcriptionId: 'transcription-1'
+  }),
+  getRegionVersion: jest.fn().mockReturnValue(1),
+  setRegionVersion: jest.fn(),
+  isPendingEdit: jest.fn().mockReturnValue(false),
+  startPendingEdit: jest.fn(),
+  endPendingEdit: jest.fn(),
+  updatePendingEditActivity: jest.fn(),
+  setSaveStatus: jest.fn(),
   getState: jest.fn(),
   setState: jest.fn(),
   subscribe: jest.fn()
@@ -46,9 +65,13 @@ const mockServices = {
   regionService: {
     updateRegion: jest.fn()
   },
+  authService: {
+    currentUser: jest.fn().mockReturnValue({ username: 'testuser' })
+  },
   userService: {
     currentUser: jest.fn().mockReturnValue({ username: 'testuser' })
-  }
+  },
+  storeService: mockStore
 } as any;
 
 describe('AnalyzeRegionTextUseCase', () => {

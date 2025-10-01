@@ -116,24 +116,23 @@ export class AnalyzeRegionTextUseCase {
     // Build final analysis array as unique known words (for highlighting reference)
     const allKnownWords = Array.from(knownUniqueWords);
 
-    // Get current analysis for comparison BEFORE updating store
+    // Get current analysis to check if it changed
     const currentRegion = store.regionById(regionId);
     const currentAnalysis = currentRegion?.regionAnalysis || [];
-    
-    // Check if analysis actually changed
-    const analysisChanged = JSON.stringify(currentAnalysis.sort()) !== JSON.stringify(allKnownWords.sort());
-    
+    const analysisChanged = JSON.stringify([...currentAnalysis].sort()) !== JSON.stringify([...allKnownWords].sort());
+
     // Update store immediately for UI highlighting
     store.setRegionAnalysis(regionId, allKnownWords);
 
-    // Only trigger save if analysis actually changed
+    // If analysis changed, trigger a save
+    // The subscription will ignore this because it's self-triggered (lines 41-46 in subscribe-to-region-changes.ts)
     if (analysisChanged) {
       const updateRegionUseCase = new UpdateRegionUseCase({
         regionId,
         changes: { regionAnalysis: allKnownWords },
-        debounceMs: 1000, // Short debounce for analysis-only saves
+        debounceMs: 1000,
         primaryField: 'regionText',
-        force: true, // Force save since we already updated the store
+        force: true, // Force because we already updated the store
         services: this.config.services,
         store
       });
