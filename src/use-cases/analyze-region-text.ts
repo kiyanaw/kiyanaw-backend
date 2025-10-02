@@ -1,8 +1,9 @@
-import { spellCheckerService } from '../services/spellCheckerService';
+import { spellCheckerService, type WordAnalysis } from '../services/spellCheckerService';
 import type { EditorKey } from '../services/rteService';
 import { issueHighlightService } from '../services/issueHighlightService';
 import { services } from '../services';
 import { UpdateRegionUseCase } from './update-region';
+import { migrateRegionAnalysis, mergeAnalysis, extractWords, needsReanalysis, isNewFormat } from '../services/migrationService';
 import Timeout from 'smart-timeout';
 
 interface AnalyzeRegionTextConfig {
@@ -75,61 +76,112 @@ export class AnalyzeRegionTextUseCase {
       return;
     }
 
-    // Get global known words from store
-    const globalKnownWords = store.knownWords as Set<string>;
-    
-
-    
-    // Get unique words to minimize API calls
-    const uniqueWords = [...new Set(words)];
-    
-    // Separate unique words into already known and unknown
-    const knownUniqueWords = new Set<string>();
-    const unknownUniqueWords: string[] = [];
-    
-    uniqueWords.forEach(word => {
-      if (globalKnownWords.has(word)) {
-        knownUniqueWords.add(word);
-      } else {
-        unknownUniqueWords.push(word);
-      }
-    });
-
-    // Only make API call if we have unknown words
-    if (unknownUniqueWords.length > 0) {
-      try {
-        // Check unknown words against API using the transcription's language code
-        console.log(`🔍 Spell checking ${unknownUniqueWords.length} words with language: ${transcription.lang}`);
-        const result = await spellCheckerService.check(unknownUniqueWords, transcription.lang);
+        // Get existing region analysis and migrate if needed
+        const currentRegion = store.regionById(regionId);
+        const existingAnalysis = migrateRegionAnalysis(currentRegion?.regionAnalysis);
+        const isLegacyUpgrade = !isNewFormat(currentRegion?.regionAnalysis);
         
-        // Add newly discovered known words to our known set
-        if (result.known.length > 0) {
-          result.known.forEach(word => knownUniqueWords.add(word));
-          // Update global store with newly discovered known words
-          store.addKnownWords(result.known);
+        // Get global known words from store (ensure it's a Set)
+        const globalKnownWords = (store.knownWords as Set<string>) || new Set<string>();
+        
+        // Get unique words to minimize API calls
+        const uniqueWords = [...new Set(words)];
+        
+        // For legacy upgrades, analyze ALL words to get proper FST analysis
+        // For normal analysis, only analyze unknown words
+        const knownFromCache = new Set<string>();
+        const unknownWords: string[] = [];
+        
+        if (isLegacyUpgrade) {
+          console.log(`🔄 Legacy upgrade mode - will analyze ALL ${uniqueWords.length} words`);
+          unknownWords.push(...uniqueWords); // Analyze everything
+        } else {
+          uniqueWords.forEach(word => {
+            if (globalKnownWords.has(word)) {
+              knownFromCache.add(word);
+            } else {
+              unknownWords.push(word);
+            }
+          });
         }
-      } catch (error) {
-        console.error('Error checking unknown words:', error);
-      }
-    }
 
-    // Build final analysis array as unique known words (for highlighting reference)
-    const allKnownWords = Array.from(knownUniqueWords);
+        let newAnalysisResults: WordAnalysis[] = [];
 
-    // Get current analysis to check if it changed
-    const currentRegion = store.regionById(regionId);
-    const currentAnalysis = currentRegion?.regionAnalysis || [];
-    const analysisChanged = JSON.stringify([...currentAnalysis].sort()) !== JSON.stringify([...allKnownWords].sort());
+        // Only make API call if we have unknown words
+        if (unknownWords.length > 0) {
+          try {
+            // Check unknown words against FST API using the transcription's language code
+            console.log(`🔍 Spell checking ${unknownWords.length} words with language: ${transcription.lang}`);
+            console.log(`📝 Words to analyze:`, unknownWords);
+            
+            const result = await spellCheckerService.check(unknownWords, transcription.lang, isLegacyUpgrade);
+            
+            console.log(`📊 FST SPELL CHECK RESULT:`, result);
+            if (result.known.length > 0) {
+              console.log(`🔍 DETAILED FST ANALYSIS:`, result.known.map(item => `${item.word} → ${item.analysis} (${item.allAnalysis.length} options)`));
+            }
+            
+            // Store the detailed analysis results
+            newAnalysisResults = result.known;
+            
+            // Update global store with newly discovered known words
+            if (result.known.length > 0) {
+              store.addKnownWords(result.known); // Now supports WordAnalysis[]
+              console.log(`💾 Added ${result.known.length} new known words to global cache`);
+            }
+          } catch (error) {
+            console.error('Error checking unknown words:', error);
+          }
+        }
 
-    // Update store immediately for UI highlighting
-    store.setRegionAnalysis(regionId, allKnownWords);
+        // Create analysis objects for cached words (only for non-legacy upgrades)
+        const cachedAnalysis: WordAnalysis[] = isLegacyUpgrade ? [] : 
+          Array.from(knownFromCache).map(word => ({
+            word,
+            analysis: '',
+            allAnalysis: []
+          }));
+
+        // Combine cached and new analysis
+        const combinedAnalysis = [...cachedAnalysis, ...newAnalysisResults];
+        
+        // Merge with existing analysis to preserve user selections
+        const finalAnalysis = mergeAnalysis(existingAnalysis, combinedAnalysis);
+        
+        // Extract words for highlighting (backward compatibility)
+        const allKnownWords = extractWords(finalAnalysis);
+
+        // Update store immediately for UI highlighting
+        // Store the full WordAnalysis objects (new format)
+        console.log(`💾 SETTING REGION ANALYSIS for ${regionId}:`, finalAnalysis);
+        store.setRegionAnalysis(regionId, finalAnalysis);
+        
+        if (isLegacyUpgrade) {
+          console.log(`✅ LEGACY UPGRADE COMPLETE for ${regionId} - format changed from string[] to WordAnalysis[]`);
+        }
+
+        // Check if analysis changed for save trigger
+        const currentWords = extractWords(existingAnalysis);
+        const wordsChanged = JSON.stringify([...currentWords].sort()) !== JSON.stringify([...allKnownWords].sort());
+        const formatChanged = !isNewFormat(currentRegion?.regionAnalysis); // Legacy format needs saving
+        const analysisChanged = wordsChanged || formatChanged;
+        
+        console.log(`🔍 ANALYSIS CHANGE CHECK for ${regionId}:`, {
+          wordsChanged,
+          formatChanged,
+          analysisChanged,
+          currentWords,
+          newWords: allKnownWords
+        });
 
     // If analysis changed, trigger a save
     // The subscription will ignore this because it's self-triggered (lines 41-46 in subscribe-to-region-changes.ts)
     if (analysisChanged) {
+      console.log(`💾 TRIGGERING SAVE for ${regionId} - analysis changed from:`, currentWords, 'to:', allKnownWords);
+      
       const updateRegionUseCase = new UpdateRegionUseCase({
         regionId,
-        changes: { regionAnalysis: allKnownWords },
+        changes: { regionAnalysis: finalAnalysis },
         debounceMs: 1000,
         primaryField: 'regionText',
         force: true, // Force because we already updated the store
@@ -137,6 +189,8 @@ export class AnalyzeRegionTextUseCase {
         store
       });
       updateRegionUseCase.execute();
+    } else {
+      console.log(`ℹ️ NO SAVE NEEDED for ${regionId} - analysis unchanged`);
     }
 
     // Apply known words and issue highlighting to the main editor
@@ -147,7 +201,7 @@ export class AnalyzeRegionTextUseCase {
       const issueHighlights = issueHighlightService.convertIssuesToHighlights(issues);
       
       configRteService.applyHighlighting(mainEditorKey, {
-        knownWords: allKnownWords,
+        knownWords: allKnownWords, // This is already extracted as string[] for highlighting
         issues: issueHighlights
       });
     }

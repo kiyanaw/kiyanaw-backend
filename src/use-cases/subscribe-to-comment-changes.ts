@@ -118,7 +118,8 @@ export class SubscribeToCommentChangesUseCase {
 
       const issues = store.getIssuesForRegion(regionId);
       const issueHighlights = issueHighlightService.convertIssuesToHighlights(issues);
-      const knownWords = region.regionAnalysis || [];
+      // Extract words for highlighting using the migration helper
+      const knownWords = require('../services/migrationService').extractWords(region.regionAnalysis);
 
       // Update highlighting for both main and translation editors if they exist
       const mainEditorKey = `${regionId}:main` as const;

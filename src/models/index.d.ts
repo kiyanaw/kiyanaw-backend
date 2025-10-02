@@ -99,7 +99,7 @@ type EagerRegion = {
   readonly start: number;
   readonly end: number;
   readonly regionText?: string | null;
-  readonly regionAnalysis?: (string | null)[] | null;
+  readonly regionAnalysis?: string | null;
   readonly isNote?: boolean | null;
   readonly commentCount?: number | null;
   readonly translation?: string | null;
@@ -115,7 +115,7 @@ type LazyRegion = {
   readonly start: number;
   readonly end: number;
   readonly regionText?: string | null;
-  readonly regionAnalysis?: (string | null)[] | null;
+  readonly regionAnalysis?: string | null;
   readonly isNote?: boolean | null;
   readonly commentCount?: number | null;
   readonly translation?: string | null;

@@ -6,6 +6,12 @@ const utils = require('../utils')
 const { client } = require('./es')
 
 const clearKnownWordsForRegion = async (regionId) => {
+  // Validate regionId to prevent accidental bulk deletion
+  if (!regionId || typeof regionId !== 'string') {
+    console.error('Invalid regionId provided to clearKnownWordsForRegion:', regionId)
+    throw new Error('Invalid regionId: must be a non-empty string')
+  }
+
   const indexName = `knownwords-${process.env.ENV}`
   console.log('Clearing out region items for ', regionId, 'in index', indexName)
   
@@ -14,7 +20,7 @@ const clearKnownWordsForRegion = async (regionId) => {
       index: indexName,
       body: {
         query: {
-          match: { regionId: regionId },
+          term: { regionId: regionId }, // Use 'term' for exact match on keyword field
         },
       },
     })
@@ -156,6 +162,12 @@ const indexRegionAnalysis = async (region, transcription) => {
 }
 
 const clearIssuesForRegion = async (regionId) => {
+  // Validate regionId to prevent accidental bulk deletion
+  if (!regionId || typeof regionId !== 'string') {
+    console.error('Invalid regionId provided to clearIssuesForRegion:', regionId)
+    throw new Error('Invalid regionId: must be a non-empty string')
+  }
+
   const indexName = `issues-${process.env.ENV}`
   console.log('Clearing out issue items for region', regionId, 'in index', indexName)
   
@@ -164,7 +176,7 @@ const clearIssuesForRegion = async (regionId) => {
       index: indexName,
       body: {
         query: {
-          match: { regionId: regionId },
+          term: { regionId: regionId }, // Use 'term' for exact match on keyword field
         },
       },
     })

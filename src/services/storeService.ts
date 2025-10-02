@@ -11,12 +11,29 @@ import type { LazyRegion } from '../models';
 export const storeService = {
   // Editor Store operations
   // Region analysis operations
-  setRegionAnalysis: (regionId: string, analysis: string[]): void => {
+  setRegionAnalysis: (regionId: string, analysis: string[] | import('./spellCheckerService').WordAnalysis[]): void => {
     useEditorStore.getState().setRegionAnalysis(regionId, analysis);
   },
 
-  addKnownWords: (words: string[]): void => {
-    useEditorStore.getState().addKnownWords(words);
+  // Transcription access
+  get transcription() {
+    return useEditorStore.getState().transcription;
+  },
+
+  setSaveStatus: (status: 'saved' | 'saving' | 'error'): void => {
+    useEditorStore.getState().setSaveStatus(status);
+  },
+
+  calculateTranscriptionMetadata: () => {
+    return useEditorStore.getState().calculateTranscriptionMetadata();
+  },
+
+  setTranscription: (transcription: any) => {
+    useEditorStore.getState().setTranscription(transcription);
+  },
+
+  addKnownWords: (words: string[] | import('./spellCheckerService').WordAnalysis[]): void => {
+    useEditorStore.getState().addKnownWords(words as any);
   },
 
   getKnownWords: (): Set<string> => {

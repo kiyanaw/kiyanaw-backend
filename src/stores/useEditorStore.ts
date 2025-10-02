@@ -107,8 +107,8 @@ interface EditorState {
   calculateTranscriptionMetadata: () => { regionCount: number; issueCount: number; coverage: number };
 
   // Spell checking actions
-  addKnownWords: (words: string[]) => void;
-  setRegionAnalysis: (regionId: string, knownWords: string[]) => void;
+  addKnownWords: (words: string[] | import('../services/spellCheckerService').WordAnalysis[]) => void;
+  setRegionAnalysis: (regionId: string, analysis: string[] | import('../services/spellCheckerService').WordAnalysis[]) => void;
 
   // Pending edits actions moved below
 
@@ -332,10 +332,22 @@ export const useEditorStore = create<EditorState>()(
       // Region actions
       setSelectedRegion: (regionId) => {
         const { regionMap } = get();
+        const region = regionId ? regionMap[regionId] : null;
+        
         set({
           selectedRegionId: regionId,
-          selectedRegion: regionId ? regionMap[regionId] : null,
+          selectedRegion: region,
         });
+
+        // Check if the selected region has legacy analysis and upgrade it
+        if (region?.regionAnalysis && region.regionText) {
+          // Import dynamically to avoid circular dependency
+          import('../services/legacyAnalysisUpgrader').then(({ checkAndUpgradeLegacyAnalysis }) => {
+            checkAndUpgradeLegacyAnalysis(regionId!, region.regionText!).catch((error) => {
+              console.error('Failed to check/upgrade legacy analysis:', error);
+            });
+          });
+        }
       },
 
       setSelectedIssueId: (issueId) => {
@@ -959,13 +971,22 @@ export const useEditorStore = create<EditorState>()(
       addKnownWords: (words) => {
         const { knownWords } = get();
         const newKnownWords = new Set(knownWords);
+        
+        // Handle both string[] and WordAnalysis[] formats
         words.forEach(word => {
-          newKnownWords.add(word);
+          if (typeof word === 'object' && 'word' in word) {
+            // WordAnalysis format - extract the word
+            newKnownWords.add(word.word);
+          } else {
+            // Legacy string format
+            newKnownWords.add(word as string);
+          }
         });
+        
         set({ knownWords: newKnownWords });
       },
 
-      setRegionAnalysis: (regionId, knownWords) => {
+      setRegionAnalysis: (regionId, analysis) => {
         const { regionMap, regions, selectedRegionId } = get();
         const existingRegion = regionMap[regionId];
         
@@ -973,8 +994,8 @@ export const useEditorStore = create<EditorState>()(
           return; // Region not found
         }
 
-        // Create updated region with new analysis
-        const updatedRegion = { ...existingRegion, regionAnalysis: knownWords };
+        // Create updated region with new analysis (supports both string[] and WordAnalysis[])
+        const updatedRegion = { ...existingRegion, regionAnalysis: analysis };
         
         // Prepare the update object
         const updateObj: Partial<EditorState> = {

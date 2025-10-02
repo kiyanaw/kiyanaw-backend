@@ -37,7 +37,7 @@ export interface RegionData {
   translation?: string;
   userLastUpdated?: string;
   index?: number;
-  regionAnalysis?: string[]; // Array of known words
+  regionAnalysis?: string[] | import('./spellCheckerService').WordAnalysis[]; // Array of known words or detailed analysis
   updatedAt?: string; // Additional property needed for tests
   _version?: number; // Version tracking for conflict resolution
 }
@@ -388,7 +388,7 @@ export class RegionModel {
   public translation: string;
   public userLastUpdated?: string;
   public index?: number;
-  public regionAnalysis: string[];
+  public regionAnalysis: string[] | import('./spellCheckerService').WordAnalysis[];
   public _version: number;
 
   constructor(data: RegionData) {
@@ -407,8 +407,25 @@ export class RegionModel {
       // Use regionText as plain text (new approach)
       this.regionText = data.regionText || '';
 
-      // Use regionAnalysis directly as array
-      this.regionAnalysis = data.regionAnalysis || [];
+      // Parse regionAnalysis from AWSJSON format
+      if (data.regionAnalysis) {
+        if (typeof data.regionAnalysis === 'string') {
+          try {
+            // Parse JSON string from AWSJSON
+            this.regionAnalysis = JSON.parse(data.regionAnalysis);
+          } catch (error) {
+            console.error(`❌ Failed to parse regionAnalysis JSON for ${data.id}:`, error);
+            this.regionAnalysis = [];
+          }
+        } else if (Array.isArray(data.regionAnalysis)) {
+          // Already an array
+          this.regionAnalysis = data.regionAnalysis;
+        } else {
+          this.regionAnalysis = [];
+        }
+      } else {
+        this.regionAnalysis = [];
+      }
 
       // Set version tracking - must exist for existing regions
       if (data._version === undefined) {

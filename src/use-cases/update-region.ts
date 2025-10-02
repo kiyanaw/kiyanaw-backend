@@ -3,6 +3,7 @@ import { UpdateTranscriptionUseCase } from './update-transcription';
 import { isVersionConflictError, handleVersionConflict } from '../services/versionConflictService';
 import type { RegionData } from '../services/adt';
 import type { LazyRegion } from '../models';
+import type { WordAnalysis } from '../services/spellCheckerService';
 import Timeout from 'smart-timeout';
 
 // Type for changes that can be made to a region
@@ -11,7 +12,7 @@ type RegionChanges = {
   translation?: string;
   start?: number;
   end?: number;
-  regionAnalysis?: string[];
+  regionAnalysis?: string[] | WordAnalysis[];
 };
 
 interface UpdateRegionConfig {
@@ -149,7 +150,7 @@ export class UpdateRegionUseCase {
           break;
         }
         case 'regionAnalysis':
-          store.setRegionAnalysis(existingRegion.id, value as string[]);
+          store.setRegionAnalysis(existingRegion.id, value as string[] | WordAnalysis[]);
           break;
         default:
           console.warn(`Unknown field type for store update: ${field}`);

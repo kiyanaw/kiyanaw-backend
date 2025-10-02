@@ -253,8 +253,13 @@ export class SubscribeToRegionChangesUseCase {
     
     // Update region analysis (always unprotected)
     if (updatedRegion.regionAnalysis !== undefined) {
-      store.setRegionAnalysis(updatedRegion.id as string, updatedRegion.regionAnalysis as string[]);
-      store.addKnownWords(updatedRegion.regionAnalysis as string[]);
+      store.setRegionAnalysis(updatedRegion.id as string, updatedRegion.regionAnalysis);
+      // Only add to known words if it's the legacy format (strings)
+      if (Array.isArray(updatedRegion.regionAnalysis) && 
+          updatedRegion.regionAnalysis.length > 0 && 
+          typeof updatedRegion.regionAnalysis[0] === 'string') {
+        store.addKnownWords(updatedRegion.regionAnalysis as string[]);
+      }
     }
 
     // Determine if there are unprotected changes
@@ -298,8 +303,11 @@ export class SubscribeToRegionChangesUseCase {
     
     if (updatedRegion.regionAnalysis !== undefined) {
       store.setRegionAnalysis(updatedRegion.id, updatedRegion.regionAnalysis);
-      if (updatedRegion.regionAnalysis.length > 0) {
-        store.addKnownWords(updatedRegion.regionAnalysis);
+      // Only add to known words if it's the legacy format (strings)
+      if (Array.isArray(updatedRegion.regionAnalysis) && 
+          updatedRegion.regionAnalysis.length > 0 && 
+          typeof updatedRegion.regionAnalysis[0] === 'string') {
+        store.addKnownWords(updatedRegion.regionAnalysis as string[]);
       }
     }
     
@@ -317,7 +325,9 @@ export class SubscribeToRegionChangesUseCase {
       rteService.setContent(editorKey, content);
       
       // Reapply known words and issue highlighting after content update
-      const regionAnalysis = (updatedRegion.regionAnalysis as string[]) || store.regionById(updatedRegion.id as string)?.regionAnalysis;
+      const regionAnalysisRaw = updatedRegion.regionAnalysis || store.regionById(updatedRegion.id as string)?.regionAnalysis;
+      // Extract words for highlighting using the migration helper
+      const regionAnalysis = require('../services/migrationService').extractWords(regionAnalysisRaw);
       // Get issues for the region
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const issues = (store as any).getIssuesForRegion(updatedRegion.id as string);

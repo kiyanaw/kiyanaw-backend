@@ -134,6 +134,14 @@ export const updateRegion = async (regionId: string, updates: Partial<RegionData
       userLastUpdated: username,
     };
 
+    // Serialize regionAnalysis for AWSJSON storage if it's objects
+    if (input.regionAnalysis && Array.isArray(input.regionAnalysis)) {
+      if (input.regionAnalysis.length > 0 && typeof input.regionAnalysis[0] === 'object') {
+        console.log(`📦 Serializing WordAnalysis[] objects to JSON for GraphQL save`);
+        input.regionAnalysis = JSON.stringify(input.regionAnalysis) as any;
+      }
+    }
+
     await getClient().graphql({
       query: updateRegionMutation,
       variables: { input },

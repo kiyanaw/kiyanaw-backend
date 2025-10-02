@@ -30,7 +30,7 @@ describe('search.clearKnownWordsForRegion()', function () {
       index: 'knownwords-test',
       body: {
         query: {
-          match: { regionId: 'some-region-id' },
+          term: { regionId: 'some-region-id' }, // Changed to 'term' for exact match
         },
       },
     })
@@ -68,6 +68,24 @@ describe('search.clearKnownWordsForRegion()', function () {
       assert.equal(err.message, 'Some other error')
     }
   })
+
+  it('should throw error for invalid regionId', async function () {
+    try {
+      await search.clearKnownWordsForRegion(null)
+      assert.fail('Should have thrown error')
+    } catch (err) {
+      assert.equal(err.message, 'Invalid regionId: must be a non-empty string')
+    }
+  })
+
+  it('should throw error for empty regionId', async function () {
+    try {
+      await search.clearKnownWordsForRegion('')
+      assert.fail('Should have thrown error')
+    } catch (err) {
+      assert.equal(err.message, 'Invalid regionId: must be a non-empty string')
+    }
+  })
 })
 
 describe('search.clearIssuesForRegion()', function () {
@@ -91,7 +109,7 @@ describe('search.clearIssuesForRegion()', function () {
       index: 'issues-test',
       body: {
         query: {
-          match: { regionId: 'some-region-id' },
+          term: { regionId: 'some-region-id' }, // Changed to 'term' for exact match
         },
       },
     })
@@ -114,6 +132,24 @@ describe('search.clearIssuesForRegion()', function () {
 
     assert.ok(deleteStub.called)
     assert.equal(response.deleted, 0)
+  })
+
+  it('should throw error for invalid regionId in clearIssuesForRegion', async function () {
+    try {
+      await search.clearIssuesForRegion(null)
+      assert.fail('Should have thrown error')
+    } catch (err) {
+      assert.equal(err.message, 'Invalid regionId: must be a non-empty string')
+    }
+  })
+
+  it('should throw error for empty regionId in clearIssuesForRegion', async function () {
+    try {
+      await search.clearIssuesForRegion('')
+      assert.fail('Should have thrown error')
+    } catch (err) {
+      assert.equal(err.message, 'Invalid regionId: must be a non-empty string')
+    }
   })
 })
 

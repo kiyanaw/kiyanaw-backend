@@ -120,7 +120,10 @@ describe('AnalyzeRegionTextUseCase', () => {
       expect(mockStore.addKnownWords).not.toHaveBeenCalled();
       
       // Should set region analysis (with all known words including cached ones)
-      expect(mockStore.setRegionAnalysis).toHaveBeenCalledWith('region-1', ['hello', 'êkwa']);
+      expect(mockStore.setRegionAnalysis).toHaveBeenCalledWith('region-1', expect.arrayContaining([
+        expect.objectContaining({ word: 'hello' }),
+        expect.objectContaining({ word: 'êkwa' })
+      ]));
       
       jest.useRealTimers();
     });
@@ -171,7 +174,7 @@ describe('AnalyzeRegionTextUseCase', () => {
       jest.useFakeTimers();
       mockSpellCheckerService.tokenize.mockReturnValue(['itwêw', 'êkwa', 'tâpwê']);
       mockSpellCheckerService.check.mockResolvedValue({
-        known: ['tâpwê'],
+        known: [{ word: 'tâpwê', analysis: 'tâpwê+IPC', allAnalysis: ['tâpwê+IPC'] }],
         unknown: []
       });
       
@@ -193,8 +196,12 @@ describe('AnalyzeRegionTextUseCase', () => {
       await promise;
 
       expect(mockSpellCheckerService.check).toHaveBeenCalledWith(['tâpwê'], 'crk'); // only unknown word with language
-      expect(mockStore.addKnownWords).toHaveBeenCalledWith(['tâpwê']);
-      expect(mockStore.setRegionAnalysis).toHaveBeenCalledWith('region-1', ['itwêw', 'êkwa', 'tâpwê']);
+      expect(mockStore.addKnownWords).toHaveBeenCalledWith([{ word: 'tâpwê', analysis: 'tâpwê+IPC', allAnalysis: ['tâpwê+IPC'] }]);
+      expect(mockStore.setRegionAnalysis).toHaveBeenCalledWith('region-1', expect.arrayContaining([
+        expect.objectContaining({ word: 'itwêw' }),
+        expect.objectContaining({ word: 'êkwa' }),
+        expect.objectContaining({ word: 'tâpwê' })
+      ]));
       
       jest.useRealTimers();
     });
@@ -335,7 +342,7 @@ describe('AnalyzeRegionTextUseCase', () => {
       // Mock spell checker to return some words as known for Northern Michif
       mockSpellCheckerService.tokenize.mockReturnValue(['hello', 'kinwês', 'omâmâ']);
       mockSpellCheckerService.check.mockResolvedValue({
-        known: ['kinwês'],
+        known: [{ word: 'kinwês', analysis: 'kinwês+N+A', allAnalysis: ['kinwês+N+A'] }],
         unknown: ['omâmâ'] // Different result for Northern Michif
       });
 
@@ -346,8 +353,11 @@ describe('AnalyzeRegionTextUseCase', () => {
 
       // Should use 'crgn' language code instead of default 'crk'
       expect(mockSpellCheckerService.check).toHaveBeenCalledWith(['kinwês', 'omâmâ'], 'crgn');
-      expect(storeWithCrgn.addKnownWords).toHaveBeenCalledWith(['kinwês']);
-      expect(storeWithCrgn.setRegionAnalysis).toHaveBeenCalledWith('region-1', ['hello', 'kinwês']);
+      expect(storeWithCrgn.addKnownWords).toHaveBeenCalledWith([{ word: 'kinwês', analysis: 'kinwês+N+A', allAnalysis: ['kinwês+N+A'] }]);
+      expect(storeWithCrgn.setRegionAnalysis).toHaveBeenCalledWith('region-1', expect.arrayContaining([
+        expect.objectContaining({ word: 'hello' }),
+        expect.objectContaining({ word: 'kinwês' })
+      ]));
       
       jest.useRealTimers();
     });
@@ -378,6 +388,56 @@ describe('AnalyzeRegionTextUseCase', () => {
       
       jest.useRealTimers();
     });
+
+    it('should handle legacy string[] regionAnalysis and upgrade it to new format', async () => {
+      jest.useFakeTimers();
+      
+      // Mock a region with legacy string[] analysis
+      const storeWithLegacyData = {
+        ...mockStore,
+        transcription: { lang: 'crk' },
+        knownWords: new Set(['hello']), // Some words known globally
+        regionById: jest.fn().mockReturnValue({
+          id: 'region-1',
+          regionAnalysis: ['hello', 'tânisi'], // LEGACY FORMAT - string array
+          transcriptionId: 'transcription-1'
+        }),
+        setRegionAnalysis: jest.fn(),
+        addKnownWords: jest.fn()
+      };
+
+      // Mock spell checker to return detailed analysis for the unknown word
+      mockSpellCheckerService.tokenize.mockReturnValue(['hello', 'tânisi']);
+      mockSpellCheckerService.check.mockResolvedValue({
+        known: [{ word: 'tânisi', analysis: 'tânisi+IPC', allAnalysis: ['tânisi+IPC'] }],
+        unknown: []
+      });
+
+      const useCase = new AnalyzeRegionTextUseCase({
+        regionId: 'region-1',
+        text: 'hello tânisi',
+        services: mockServices,
+        store: storeWithLegacyData
+      });
+
+      const promise = useCase.execute();
+      jest.advanceTimersByTime(500);
+      await promise;
+
+      // Should call spell checker to get detailed analysis for unknown word
+      expect(mockSpellCheckerService.check).toHaveBeenCalledWith(['tânisi'], 'crk');
+      
+      // Should update store with new WordAnalysis format
+      expect(storeWithLegacyData.setRegionAnalysis).toHaveBeenCalledWith('region-1', expect.arrayContaining([
+        expect.objectContaining({ word: 'hello', analysis: 'CACHED' }), // Cached word
+        expect.objectContaining({ word: 'tânisi', analysis: 'tânisi+IPC', allAnalysis: ['tânisi+IPC'] }) // New detailed analysis
+      ]));
+
+      // Should add new known words to global cache
+      expect(storeWithLegacyData.addKnownWords).toHaveBeenCalledWith([{ word: 'tânisi', analysis: 'tânisi+IPC', allAnalysis: ['tânisi+IPC'] }]);
+      
+      jest.useRealTimers();
+    });
   });
 
   describe('RTE formatting integration', () => {
@@ -395,10 +455,10 @@ describe('AnalyzeRegionTextUseCase', () => {
 
       // Mock spell checker to return the new word as known
       mockSpellCheckerService.tokenize.mockReturnValue(['hello', 'world', 'tânisi']);
-      mockSpellCheckerService.check.mockResolvedValue({
-        known: ['tânisi'], // New word discovered as known
-        unknown: []
-      });
+        mockSpellCheckerService.check.mockResolvedValue({
+          known: [{ word: 'tânisi', analysis: 'tânisi+IPC', allAnalysis: ['tânisi+IPC'] }], // New word discovered as known
+          unknown: []
+        });
 
       // Reset RTE service mocks for this test
       mockRteServiceImport.hasEditor.mockReturnValue(true);
@@ -419,8 +479,12 @@ describe('AnalyzeRegionTextUseCase', () => {
       expect(mockSpellCheckerService.check).toHaveBeenCalledWith(['tânisi'], 'crk');
       
       // Verify store was updated with all known words
-      expect(storeWithPartialWords.addKnownWords).toHaveBeenCalledWith(['tânisi']);
-      expect(storeWithPartialWords.setRegionAnalysis).toHaveBeenCalledWith('region-1', ['hello', 'world', 'tânisi']);
+      expect(storeWithPartialWords.addKnownWords).toHaveBeenCalledWith([{ word: 'tânisi', analysis: 'tânisi+IPC', allAnalysis: ['tânisi+IPC'] }]);
+      expect(storeWithPartialWords.setRegionAnalysis).toHaveBeenCalledWith('region-1', expect.arrayContaining([
+        expect.objectContaining({ word: 'hello' }),
+        expect.objectContaining({ word: 'world' }),
+        expect.objectContaining({ word: 'tânisi' })
+      ]));
       
       // CRITICAL: Verify RTE formatting was applied with ALL known words (including newly discovered)
       expect(mockRteServiceImport.hasEditor).toHaveBeenCalledWith('region-1:main');
@@ -448,7 +512,7 @@ describe('AnalyzeRegionTextUseCase', () => {
 
       mockSpellCheckerService.tokenize.mockReturnValue(['hello', 'world']);
       mockSpellCheckerService.check.mockResolvedValue({
-        known: ['world'],
+        known: [{ word: 'world', analysis: 'world+N', allAnalysis: ['world+N'] }],
         unknown: []
       });
 
@@ -472,7 +536,10 @@ describe('AnalyzeRegionTextUseCase', () => {
       expect(mockRteServiceImport.applyKnownWordsFormatting).not.toHaveBeenCalled();
       
       // But store should still be updated
-      expect(storeWithWords.setRegionAnalysis).toHaveBeenCalledWith('region-1', ['hello', 'world']);
+      expect(storeWithWords.setRegionAnalysis).toHaveBeenCalledWith('region-1', expect.arrayContaining([
+        expect.objectContaining({ word: 'hello' }),
+        expect.objectContaining({ word: 'world' })
+      ]));
       
       jest.useRealTimers();
     });
@@ -518,7 +585,11 @@ describe('AnalyzeRegionTextUseCase', () => {
         }
       );
       
-      expect(storeWithAllWords.setRegionAnalysis).toHaveBeenCalledWith('region-1', ['hello', 'world', 'tânisi']);
+      expect(storeWithAllWords.setRegionAnalysis).toHaveBeenCalledWith('region-1', expect.arrayContaining([
+        expect.objectContaining({ word: 'hello' }),
+        expect.objectContaining({ word: 'world' }),
+        expect.objectContaining({ word: 'tânisi' })
+      ]));
       
       jest.useRealTimers();
     });
