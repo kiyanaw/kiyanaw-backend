@@ -55,3 +55,10 @@ amplifytools.xcconfig
 
 coverage/
 scripts/migrate-data
+
+# Playwright authentication state
+playwright/.auth/
+playwright-report/
+test-results/
+.env
+debug-*.png

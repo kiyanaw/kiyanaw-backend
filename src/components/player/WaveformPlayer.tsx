@@ -313,6 +313,7 @@ export const WaveformPlayer = ({
               onClick={onOpenSettings}
               className="flex items-center gap-2 text-left hover:text-gray-700 transition-colors cursor-pointer"
               title="Click to open transcription settings"
+              data-testid="transcription-settings-button"
             >
               <span>{title}</span>
               <Settings size={14} className="flex-shrink-0" />
@@ -327,7 +328,7 @@ export const WaveformPlayer = ({
         {/* Media Area: video overlays waveform on mobile via CSS toggle */}
         <div className="relative w-full h-32">
           {/* Waveform sits underneath; never unmounted */}
-          <div ref={setWaveformContainer} className="w-full h-32 bg-white relative" />
+          <div ref={setWaveformContainer} className="w-full h-32 bg-white relative" data-testid="waveform-container" />
           
           {/* Error Display */}
           {wavesurferError && (

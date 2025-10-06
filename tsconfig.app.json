@@ -22,7 +22,7 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["src"],
+  "include": ["src", "playwright"],
   "exclude": [
     "**/*.test.*",
     "**/*.spec.*",
