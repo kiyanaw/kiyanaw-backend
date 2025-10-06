@@ -481,22 +481,6 @@
           "resourceName": "onTranscriptionChange"
         }
       ]
-    },
-    "AMPLIFY_function_opensearchproxy_deploymentBucketName": {
-      "usedBy": [
-        {
-          "category": "function",
-          "resourceName": "opensearchproxy"
-        }
-      ]
-    },
-    "AMPLIFY_function_opensearchproxy_s3Key": {
-      "usedBy": [
-        {
-          "category": "function",
-          "resourceName": "opensearchproxy"
-        }
-      ]
     }
   },
   "storage": {
