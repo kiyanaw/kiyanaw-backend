@@ -17,7 +17,9 @@ type ErrorObject = {
 };
 
 // Type for region-like objects that may be incomplete
-type RegionLike = Partial<RegionData & LazyRegion>;
+type RegionLike = Partial<Omit<RegionData, 'regionAnalysis'> & Omit<LazyRegion, 'regionAnalysis'> & {
+  regionAnalysis?: string[] | import('./spellCheckerService').WordAnalysis[] | string | null;
+}>;
 
 /**
  * Check if an error is a version conflict error from DynamoDB/AppSync

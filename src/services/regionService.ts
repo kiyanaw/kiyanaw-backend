@@ -125,22 +125,24 @@ export const createRegion = async (
  */
 export const updateRegion = async (regionId: string, updates: Partial<RegionData>, username: string, version: number) => {
   try {
+    // Serialize regionAnalysis for AWSJSON storage BEFORE creating input
+    let serializedUpdates = { ...updates };
+    if (serializedUpdates.regionAnalysis && Array.isArray(serializedUpdates.regionAnalysis)) {
+      // Both WordAnalysis[] and legacy string[] need to be serialized to JSON for AWSJSON
+      serializedUpdates = {
+        ...serializedUpdates,
+        regionAnalysis: JSON.stringify(serializedUpdates.regionAnalysis) as any
+      };
+    }
+
     // Create input for GraphQL using provided version (no pre-save fetch needed)
     const input: RegionUpdateInput = {
       id: regionId,
       _version: version,
-      ...updates,
+      ...(serializedUpdates as Omit<Partial<RegionData>, 'regionAnalysis'> & { regionAnalysis?: string | null }),
       dateLastUpdated: new Date().toISOString(),
       userLastUpdated: username,
     };
-
-    // Serialize regionAnalysis for AWSJSON storage if it's objects
-    if (input.regionAnalysis && Array.isArray(input.regionAnalysis)) {
-      if (input.regionAnalysis.length > 0 && typeof input.regionAnalysis[0] === 'object') {
-        console.log(`📦 Serializing WordAnalysis[] objects to JSON for GraphQL save`);
-        input.regionAnalysis = JSON.stringify(input.regionAnalysis) as any;
-      }
-    }
 
     await getClient().graphql({
       query: updateRegionMutation,
