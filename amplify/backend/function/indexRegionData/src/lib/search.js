@@ -2,6 +2,7 @@ const assert = require('assert')
 
 const sapir = require('./sapir')
 const utils = require('../utils')
+const { getLanguageProcessor } = require('./special-processing')
 
 const { client } = require('./es')
 
@@ -60,11 +61,15 @@ const indexRegionAnalysis = async (region, transcription) => {
     sentence = region.regionText
   }
 
+  // Get language-specific processor if available
+  const languageProcessor = getLanguageProcessor(languageCode)
+
   // Process words in parallel using Promise.allSettled for better performance
   const wordProcessingPromises = words.map(async (word) => {
-    let surface = utils.toCircumflex(word)
-    // strip out any goofy characters
-    surface = surface.replace(/[.,\/#!$%\^&\*;:{}=_`~()]/g, '').trim()
+    // Apply language-specific character processing if available
+    const surface = languageProcessor?.processCharacters 
+      ? languageProcessor.processCharacters(word)
+      : word
     
     if (!surface) {
       console.log('Skipping empty word after normalization:', word)
@@ -92,7 +97,9 @@ const indexRegionAnalysis = async (region, transcription) => {
           surface,
           transcriptionId: region.transcriptionId,
           regionId: region.id,
-          regionText: utils.toCircumflex(sentence),
+          regionText: languageProcessor?.processCharacters 
+            ? languageProcessor.processCharacters(sentence)
+            : sentence,
           wordType,
           wordClass,
           transcriptionName: transcription.title,
