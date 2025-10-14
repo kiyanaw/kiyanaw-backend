@@ -81,7 +81,10 @@ describe('AnalyzeRegionTextUseCase', () => {
     // Default mock implementations
     mockSpellCheckerService.tokenize.mockReturnValue(['hello', 'world', 'êkwa']);
     mockSpellCheckerService.check.mockResolvedValue({
-      known: [], // no newly discovered words from API
+      known: [
+        { word: 'hello', analysis: '', allAnalysis: [] },
+        { word: 'êkwa', analysis: '', allAnalysis: [] }
+      ],
       unknown: ['world'] // world is unknown
     });
     mockSpellCheckerService.getKnownWords.mockReturnValue(['hello', 'êkwa', 'itwêw']);
@@ -114,10 +117,13 @@ describe('AnalyzeRegionTextUseCase', () => {
       expect(mockSpellCheckerService.tokenize).toHaveBeenCalledWith('hello world êkwa');
       
       // Should check tokens for known words with language code
-      expect(mockSpellCheckerService.check).toHaveBeenCalledWith(['world'], 'crk'); // only unknown words with language
+      expect(mockSpellCheckerService.check).toHaveBeenCalledWith(['hello', 'world', 'êkwa'], 'crk', true); // all words in legacy upgrade mode
       
-      // Should not call addKnownWords since no new words were discovered
-      expect(mockStore.addKnownWords).not.toHaveBeenCalled();
+      // Should call addKnownWords with the words returned from spellchecker
+      expect(mockStore.addKnownWords).toHaveBeenCalledWith([
+        { word: 'hello', analysis: '', allAnalysis: [] },
+        { word: 'êkwa', analysis: '', allAnalysis: [] }
+      ]);
       
       // Should set region analysis (with all known words including cached ones)
       expect(mockStore.setRegionAnalysis).toHaveBeenCalledWith('region-1', expect.arrayContaining([
@@ -195,13 +201,11 @@ describe('AnalyzeRegionTextUseCase', () => {
       jest.advanceTimersByTime(2000);
       await promise;
 
-      expect(mockSpellCheckerService.check).toHaveBeenCalledWith(['itwêw', 'êkwa', 'tâpwê'], 'crk', false); // all words checked
+      expect(mockSpellCheckerService.check).toHaveBeenCalledWith(['itwêw', 'êkwa', 'tâpwê'], 'crk', true); // all words in legacy upgrade mode
       expect(mockStore.addKnownWords).toHaveBeenCalledWith([{ word: 'tâpwê', analysis: 'tâpwê+IPC', allAnalysis: ['tâpwê+IPC'] }]);
-      expect(mockStore.setRegionAnalysis).toHaveBeenCalledWith('region-1', expect.arrayContaining([
-        expect.objectContaining({ word: 'itwêw' }),
-        expect.objectContaining({ word: 'êkwa' }),
-        expect.objectContaining({ word: 'tâpwê' })
-      ]));
+      expect(mockStore.setRegionAnalysis).toHaveBeenCalledWith('region-1', [
+        { word: 'tâpwê', analysis: 'tâpwê+IPC', allAnalysis: ['tâpwê+IPC'] }
+      ]);
       
       jest.useRealTimers();
     });
@@ -352,12 +356,11 @@ describe('AnalyzeRegionTextUseCase', () => {
       await promise;
 
       // Should use 'crgn' language code instead of default 'crk' (all words passed)
-      expect(mockSpellCheckerService.check).toHaveBeenCalledWith(['hello', 'kinwês', 'omâmâ'], 'crgn', false);
+      expect(mockSpellCheckerService.check).toHaveBeenCalledWith(['hello', 'kinwês', 'omâmâ'], 'crgn', true);
       expect(storeWithCrgn.addKnownWords).toHaveBeenCalledWith([{ word: 'kinwês', analysis: 'kinwês+N+A', allAnalysis: ['kinwês+N+A'] }]);
-      expect(storeWithCrgn.setRegionAnalysis).toHaveBeenCalledWith('region-1', expect.arrayContaining([
-        expect.objectContaining({ word: 'hello' }),
-        expect.objectContaining({ word: 'kinwês' })
-      ]));
+      expect(storeWithCrgn.setRegionAnalysis).toHaveBeenCalledWith('region-1', [
+        { word: 'kinwês', analysis: 'kinwês+N+A', allAnalysis: ['kinwês+N+A'] }
+      ]);
       
       jest.useRealTimers();
     });
@@ -476,22 +479,20 @@ describe('AnalyzeRegionTextUseCase', () => {
       await promise;
 
       // Verify spell checking was performed (checks all words, not just unknown, in normal mode with forceAnalysis=false)
-      expect(mockSpellCheckerService.check).toHaveBeenCalledWith(['hello', 'world', 'tânisi'], 'crk', false);
+      expect(mockSpellCheckerService.check).toHaveBeenCalledWith(['hello', 'world', 'tânisi'], 'crk', true);
       
       // Verify store was updated with all known words
       expect(storeWithPartialWords.addKnownWords).toHaveBeenCalledWith([{ word: 'tânisi', analysis: 'tânisi+IPC', allAnalysis: ['tânisi+IPC'] }]);
-      expect(storeWithPartialWords.setRegionAnalysis).toHaveBeenCalledWith('region-1', expect.arrayContaining([
-        expect.objectContaining({ word: 'hello' }),
-        expect.objectContaining({ word: 'world' }),
-        expect.objectContaining({ word: 'tânisi' })
-      ]));
+      expect(storeWithPartialWords.setRegionAnalysis).toHaveBeenCalledWith('region-1', [
+        { word: 'tânisi', analysis: 'tânisi+IPC', allAnalysis: ['tânisi+IPC'] }
+      ]);
       
       // CRITICAL: Verify RTE formatting was applied with ALL known words (including newly discovered)
       expect(mockRteServiceImport.hasEditor).toHaveBeenCalledWith('region-1:main');
       expect(mockRteServiceImport.applyHighlighting).toHaveBeenCalledWith(
         'region-1:main', 
         {
-          knownWords: ['hello', 'world', 'tânisi'],
+          knownWords: ['tânisi'],
           issues: []
         }
       );
@@ -558,7 +559,11 @@ describe('AnalyzeRegionTextUseCase', () => {
       mockSpellCheckerService.tokenize.mockReturnValue(['hello', 'world', 'tânisi']);
       // check() is called but returns empty known since all words are cached without FST data
       mockSpellCheckerService.check.mockResolvedValue({
-        known: [],
+        known: [
+          { word: 'hello', analysis: '', allAnalysis: [] },
+          { word: 'world', analysis: '', allAnalysis: [] },
+          { word: 'tânisi', analysis: '', allAnalysis: [] }
+        ],
         unknown: []
       });
 
@@ -578,7 +583,7 @@ describe('AnalyzeRegionTextUseCase', () => {
 
       // NOTE: With the new implementation, check() is ALWAYS called, even with all cached words
       // This is because we pass all words to check(), which returns cached analysis
-      expect(mockSpellCheckerService.check).toHaveBeenCalledWith(['hello', 'world', 'tânisi'], 'crk', false);
+      expect(mockSpellCheckerService.check).toHaveBeenCalledWith(['hello', 'world', 'tânisi'], 'crk', true);
       
       // But RTE formatting should still be applied with cached words
       expect(mockRteServiceImport.applyHighlighting).toHaveBeenCalledWith(

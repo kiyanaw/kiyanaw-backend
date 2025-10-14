@@ -1,6 +1,7 @@
 import { services } from '../services';
 import type { RegionSubscriptionEvent } from '../services/regionService';
 import { issueHighlightService } from '../services/issueHighlightService';
+import { extractWords } from '../services/migrationService';
 
 export interface SubscribeToRegionChangesConfig {
   transcriptionId: string;
@@ -327,7 +328,7 @@ export class SubscribeToRegionChangesUseCase {
       // Reapply known words and issue highlighting after content update
       const regionAnalysisRaw = updatedRegion.regionAnalysis || store.regionById(updatedRegion.id as string)?.regionAnalysis;
       // Extract words for highlighting using the migration helper
-      const regionAnalysis = require('../services/migrationService').extractWords(regionAnalysisRaw);
+      const regionAnalysis = extractWords(regionAnalysisRaw);
       // Get issues for the region
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const issues = (store as any).getIssuesForRegion(updatedRegion.id as string);

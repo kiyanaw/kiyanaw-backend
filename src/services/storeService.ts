@@ -28,11 +28,13 @@ export const storeService = {
     return useEditorStore.getState().calculateTranscriptionMetadata();
   },
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   setTranscription: (transcription: any) => {
     useEditorStore.getState().setTranscription(transcription);
   },
 
   addKnownWords: (words: string[] | import('./spellCheckerService').WordAnalysis[]): void => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useEditorStore.getState().addKnownWords(words as any);
   },
 

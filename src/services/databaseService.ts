@@ -8,6 +8,7 @@ import type {
 } from './adt';
 
 // Helper function to make requests to the OpenSearch proxy Lambda
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const makeProxyRequest = async (action: string, params?: any): Promise<any> => {
   try {
     const operation = post({
@@ -22,7 +23,7 @@ const makeProxyRequest = async (action: string, params?: any): Promise<any> => {
     });
 
     const response = await operation.response;
-    const data = await response.body.json();
+    const data = await response.body.json() as { success: boolean; error?: string; data: unknown };
 
     if (!data.success) {
       throw new Error(data.error || 'Unknown error from database proxy');

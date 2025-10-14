@@ -131,6 +131,7 @@ export const updateRegion = async (regionId: string, updates: Partial<RegionData
       // Both WordAnalysis[] and legacy string[] need to be serialized to JSON for AWSJSON
       serializedUpdates = {
         ...serializedUpdates,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         regionAnalysis: JSON.stringify(serializedUpdates.regionAnalysis) as any
       };
     }
@@ -139,7 +140,8 @@ export const updateRegion = async (regionId: string, updates: Partial<RegionData
     const input: RegionUpdateInput = {
       id: regionId,
       _version: version,
-      ...(serializedUpdates as Omit<Partial<RegionData>, 'regionAnalysis'> & { regionAnalysis?: string | null }),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ...(serializedUpdates as any),
       dateLastUpdated: new Date().toISOString(),
       userLastUpdated: username,
     };
