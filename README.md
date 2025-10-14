@@ -28,7 +28,7 @@ npx amplify pull
 
 ? Please choose the profile you want to use: profile
 ? Which app are you working on? d2vcnct5kwl6za
-? Pick a backend environment: auththree
+? Pick a backend environment: staging
 ? Choose your default editor: Visual Studio Code
 ✔ Choose the type of app that you're building: javascript
 Please tell us about your project
