@@ -3,7 +3,7 @@ import type { EditorKey } from '../services/rteService';
 import { issueHighlightService } from '../services/issueHighlightService';
 import { services } from '../services';
 import { UpdateRegionUseCase } from './update-region';
-import { migrateRegionAnalysis, mergeAnalysis, extractWords, needsReanalysis, isNewFormat } from '../services/migrationService';
+import { migrateRegionAnalysis, mergeAnalysis, extractWords, isNewFormat } from '../services/migrationService';
 import Timeout from 'smart-timeout';
 
 interface AnalyzeRegionTextConfig {
@@ -123,6 +123,16 @@ export class AnalyzeRegionTextUseCase {
             
             // Store the detailed analysis results
             newAnalysisResults = result.known;
+            
+            // Filter out analyses containing "Err/Frag"
+            newAnalysisResults = newAnalysisResults.map(item => {
+              const validAnalyses = item.allAnalysis.filter(analysis => !analysis.includes('Err/Frag'));
+              return {
+                word: item.word,
+                analysis: validAnalyses.length > 0 ? validAnalyses[0] : '',
+                allAnalysis: validAnalyses
+              };
+            });
             
             // Update global store with newly discovered known words
             if (result.known.length > 0) {
