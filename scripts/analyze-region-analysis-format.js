@@ -15,8 +15,6 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, ScanCommand } from '@aws-sdk/lib-dynamodb';
 import { fromIni } from '@aws-sdk/credential-providers';
-import fs from 'fs';
-import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 
@@ -36,7 +34,7 @@ if (!environment) {
 // Table names for each environment
 const TABLE_NAMES = {
   staging: 'Region-ez3ghbw5fjgqhdpfqehbce5jju-staging',
-  production: 'Region-<production-id>-production'
+  production: 'Region-3ufecmha4nhidg7iexhboozdm4-production'
 };
 
 if (!TABLE_NAMES[environment]) {
@@ -161,13 +159,36 @@ async function main() {
       try {
         if (!regionAnalysis) {
           noAnalysisRegions.push(regionId);
-        } else if (isLegacyFormat(regionAnalysis)) {
-          legacyRegions.push({
-            id: regionId,
-            analysis: regionAnalysis
-          });
         } else {
-          newFormatRegions.push(regionId);
+          // Parse if it's a JSON string
+          let parsed;
+          if (typeof regionAnalysis === 'string') {
+            try {
+              parsed = JSON.parse(regionAnalysis);
+            } catch (e) {
+              noAnalysisRegions.push(regionId);
+              continue;
+            }
+          } else {
+            parsed = regionAnalysis;
+          }
+
+          // Check if it's an array
+          if (!Array.isArray(parsed)) {
+            noAnalysisRegions.push(regionId);
+          } else if (parsed.length === 0) {
+            // Empty array
+            noAnalysisRegions.push(regionId);
+          } else if (isLegacyFormat(regionAnalysis)) {
+            legacyRegions.push({
+              id: regionId,
+              transcriptionId: region.transcriptionId,
+              regionText: region.regionText,
+              analysis: regionAnalysis
+            });
+          } else {
+            newFormatRegions.push(regionId);
+          }
         }
       } catch (error) {
         errorRegions.push({
@@ -186,6 +207,56 @@ async function main() {
     console.log(`No analysis:             ${noAnalysisRegions.length} (${((noAnalysisRegions.length / regions.length) * 100).toFixed(1)}%)`);
     console.log(`Errors:                  ${errorRegions.length}`);
     console.log('='.repeat(80));
+
+    // Show examples of legacy format
+    if (legacyRegions.length > 0) {
+      console.log('\n' + '='.repeat(80));
+      console.log('LEGACY FORMAT EXAMPLES (first 5)');
+      console.log('='.repeat(80));
+      for (let i = 0; i < Math.min(5, legacyRegions.length); i++) {
+        const region = legacyRegions[i];
+        console.log(`\n${i + 1}. Region ID: ${region.id}`);
+        console.log(`   Transcription: ${region.transcriptionId}`);
+        console.log(`   Text: "${region.regionText}"`);
+        console.log(`   Analysis: ${JSON.stringify(region.analysis)}`);
+      }
+    }
+
+    // Show examples of new format
+    if (newFormatRegions.length > 0) {
+      console.log('\n' + '='.repeat(80));
+      console.log('NEW FORMAT EXAMPLES (first 5)');
+      console.log('='.repeat(80));
+      for (let i = 0; i < Math.min(5, newFormatRegions.length); i++) {
+        const regionId = newFormatRegions[i];
+        const region = regions.find(r => r.id === regionId);
+        if (region) {
+          console.log(`\n${i + 1}. Region ID: ${region.id}`);
+          console.log(`   Transcription: ${region.transcriptionId}`);
+          console.log(`   Text: "${region.regionText}"`);
+          console.log(`   Analysis: ${JSON.stringify(region.regionAnalysis)}`);
+        }
+      }
+    }
+
+    // Show examples of no analysis
+    if (noAnalysisRegions.length > 0) {
+      console.log('\n' + '='.repeat(80));
+      console.log('NO ANALYSIS EXAMPLES (first 5)');
+      console.log('='.repeat(80));
+      for (let i = 0; i < Math.min(5, noAnalysisRegions.length); i++) {
+        const regionId = noAnalysisRegions[i];
+        const region = regions.find(r => r.id === regionId);
+        if (region) {
+          console.log(`\n${i + 1}. Region ID: ${region.id}`);
+          console.log(`   Transcription: ${region.transcriptionId}`);
+          console.log(`   Text: "${region.regionText}"`);
+          console.log(`   Analysis: ${JSON.stringify(region.regionAnalysis)}`);
+        }
+      }
+    }
+
+    console.log('\n' + '='.repeat(80));
     console.log('\nAnalysis complete!\n');
 
   } catch (error) {
