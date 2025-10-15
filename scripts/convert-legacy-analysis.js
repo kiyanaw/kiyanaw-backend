@@ -208,19 +208,21 @@ async function convertAndAnalyze(legacyAnalysis, languageCode, credentials) {
   // Call spellchecker API
   const spellcheckResult = await spellcheckWords(parsed, languageCode, credentials);
 
-  // Convert to new format with analyses
-  return parsed.map(word => {
-    const analyses = spellcheckResult[word] || [];
-    
-    // Filter out analyses containing "Err/Frag"
-    const validAnalyses = analyses.filter(analysis => !analysis.includes('Err/Frag'));
-    
-    return {
-      word: word,
-      analysis: validAnalyses.length > 0 ? validAnalyses[0] : '',
-      allAnalysis: validAnalyses
-    };
-  });
+  // Convert to new format with analyses, filtering out words with no valid analyses
+  return parsed
+    .map(word => {
+      const analyses = spellcheckResult[word] || [];
+      
+      // Filter out analyses containing "Err/Frag"
+      const validAnalyses = analyses.filter(analysis => !analysis.includes('Err/Frag'));
+      
+      return {
+        word: word,
+        analysis: validAnalyses.length > 0 ? validAnalyses[0] : '',
+        allAnalysis: validAnalyses
+      };
+    })
+    .filter(item => item.allAnalysis.length > 0); // Only include words with valid analyses
 }
 
 /**
@@ -322,12 +324,17 @@ async function main() {
 
     console.log(`Found ${legacyRegions.length} legacy regions to convert\n`);
 
-    // Convert and show 10 regions with spellchecker (TEST)
+    // Convert and show 5 regions with spellchecker (NO SAVING)
     console.log('='.repeat(80));
-    console.log('TESTING SPELLCHECKER ON 10 REGIONS');
+    console.log('CONVERTING 5 REGIONS (NO SAVING)');
     console.log('='.repeat(80));
 
-    const numToProcess = Math.min(10, legacyRegions.length);
+    if (legacyRegions.length === 0) {
+      console.log('No legacy regions found to convert.');
+      return;
+    }
+
+    const numToProcess = Math.min(5, legacyRegions.length);
     
     for (let i = 0; i < numToProcess; i++) {
       const region = legacyRegions[i];
@@ -342,7 +349,7 @@ async function main() {
       
       const converted = await convertAndAnalyze(region.analysis, 'crk', credentials);
       
-      console.log(`\nNew format with analyses:`);
+      console.log(`\nNew format with analyses (${converted.length} words with valid analyses):`);
       converted.forEach((item, idx) => {
         console.log(`\n[${idx}] word: "${item.word}"`);
         console.log(`    analysis: "${item.analysis}"`);
@@ -351,9 +358,9 @@ async function main() {
     }
 
     console.log('\n' + '='.repeat(80));
-    console.log('\nConversion complete!');
+    console.log('\nConversion preview complete!');
     console.log(`Total legacy regions: ${legacyRegions.length}`);
-    console.log('\nNOTE: No changes have been saved to DynamoDB yet.\n');
+    console.log('\nNOTE: No changes have been saved to DynamoDB.\n');
 
   } catch (error) {
     console.error('\nError:', error.message);

@@ -4,6 +4,27 @@ const PATH_TO_STRICT_ANALYZER = "/opt/crk-strict-analyzer.hfstol";
 const PATH_TO_RELAXED_ANALYZER = "/opt/crk-relaxed-analyzer.hfstol";
 const PATH_TO_STRICT_GENERATOR = "/opt/crk-strict-generator.hfstol";
 
+/**
+ * Converts macron diacritics to circumflex diacritics and strips punctuation
+ * This is standard normalization for Plains Cree orthography
+ * 
+ * @param {string} text - The text to process
+ * @returns {string} - Normalized text with circumflex diacritics and no punctuation
+ */
+const processCharacters = (text) => {
+  if (!text || typeof text !== 'string') {
+    return text
+  }
+  
+  return text
+    .replace(/ā/g, 'â')
+    .replace(/ī/g, 'î')
+    .replace(/ō/g, 'ô')
+    .replace(/ē/g, 'ê')
+    .replace(/[.,\/#!$%\^&\*;:{}=_`~()]/g, '')
+    .trim()
+}
+
 const HEADERS = {
   'Access-Control-Allow-Headers': '*',
   'Access-Control-Allow-Origin': '*',
@@ -85,7 +106,12 @@ async function bulkLookup(event) {
   try {
     const body = JSON.parse(event.body);
     console.log('Body:', body);
-    result = await analyzeStrict(body);
+    
+    // Process characters for CRK normalization before analysis
+    const processedWords = body.map(word => processCharacters(word));
+    console.log('Processed words:', processedWords);
+    
+    result = await analyzeStrict(processedWords);
     console.log('result:', result);
   } catch (e) {
     console.error('Error reading post body:', e);
@@ -123,7 +149,12 @@ async function suggest(event) {
   try {
     const body = JSON.parse(event.body);
     console.log('Body:', body);
-    final = await checkUnknowns(body);
+    
+    // Process characters for CRK normalization before checking suggestions
+    const processedWords = body.map(word => processCharacters(word));
+    console.log('Processed words:', processedWords);
+    
+    final = await checkUnknowns(processedWords);
   } catch (e) {
     console.error('Error reading post body:', e);
     statusCode = 500;
