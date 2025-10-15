@@ -136,10 +136,11 @@ export const updateRegion = async (regionId: string, updates: Partial<RegionData
     }
 
     // Create input for GraphQL using provided version (no pre-save fetch needed)
+    // After serialization, regionAnalysis is a string, so we cast appropriately
     const input: RegionUpdateInput = {
       id: regionId,
       _version: version,
-      ...(serializedUpdates as Omit<Partial<RegionData>, 'regionAnalysis'> & { regionAnalysis?: string | null }),
+      ...(serializedUpdates as unknown as Omit<Partial<RegionData>, 'regionAnalysis'> & { regionAnalysis?: string | null }),
       dateLastUpdated: new Date().toISOString(),
       userLastUpdated: username,
     };
