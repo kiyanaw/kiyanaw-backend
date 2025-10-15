@@ -36,7 +36,7 @@ if (!environment) {
 // Table names for each environment
 const TABLE_NAMES = {
   staging: 'Region-ez3ghbw5fjgqhdpfqehbce5jju-staging',
-  production: 'Region-<production-id>-production'
+  production: 'Region-3ufecmha4nhidg7iexhboozdm4-production'
 };
 
 if (!TABLE_NAMES[environment]) {
@@ -288,7 +288,29 @@ async function main() {
     for (const region of regions) {
       const regionAnalysis = region.regionAnalysis;
 
-      if (regionAnalysis && isLegacyFormat(regionAnalysis)) {
+      if (!regionAnalysis) {
+        continue;
+      }
+
+      // Parse if it's a JSON string
+      let parsed;
+      if (typeof regionAnalysis === 'string') {
+        try {
+          parsed = JSON.parse(regionAnalysis);
+        } catch (e) {
+          continue;
+        }
+      } else {
+        parsed = regionAnalysis;
+      }
+
+      // Check if it's an array with content
+      if (!Array.isArray(parsed) || parsed.length === 0) {
+        continue;
+      }
+
+      // Check if it's legacy format (all strings)
+      if (isLegacyFormat(regionAnalysis)) {
         legacyRegions.push({
           id: region.id,
           transcriptionId: region.transcriptionId,

@@ -1,6 +1,7 @@
 import { services } from '../services';
 import type { CommentSubscriptionEvent } from '../services/commentService';
 import { issueHighlightService } from '../services/issueHighlightService';
+import { extractWords } from '../services/migrationService';
 import Timeout from 'smart-timeout';
 
 export interface SubscribeToCommentChangesConfig {
@@ -119,7 +120,7 @@ export class SubscribeToCommentChangesUseCase {
       const issues = store.getIssuesForRegion(regionId);
       const issueHighlights = issueHighlightService.convertIssuesToHighlights(issues);
       // Extract words for highlighting using the migration helper
-      const knownWords = require('../services/migrationService').extractWords(region.regionAnalysis);
+      const knownWords = extractWords(region.regionAnalysis);
 
       // Update highlighting for both main and translation editors if they exist
       const mainEditorKey = `${regionId}:main` as const;
