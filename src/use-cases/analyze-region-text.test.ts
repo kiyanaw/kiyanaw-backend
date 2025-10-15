@@ -119,16 +119,15 @@ describe('AnalyzeRegionTextUseCase', () => {
       // Should check tokens for known words with language code
       expect(mockSpellCheckerService.check).toHaveBeenCalledWith(['hello', 'world', 'êkwa'], 'crk', true); // all words in legacy upgrade mode
       
-      // Should call addKnownWords with the words returned from spellchecker
-      expect(mockStore.addKnownWords).toHaveBeenCalledWith([
-        { word: 'hello', analysis: '', allAnalysis: [] },
-        { word: 'êkwa', analysis: '', allAnalysis: [] }
-      ]);
+      // Should NOT call addKnownWords because the returned words have empty analysis
+      // Words with empty analysis are not considered "known" and won't be cached
+      expect(mockStore.addKnownWords).not.toHaveBeenCalled();
       
-      // Should set region analysis (with all known words including cached ones)
+      // Should set region analysis with ALL words (even those with empty analysis)
+      // The analysis is stored, but words with empty analysis won't be highlighted
       expect(mockStore.setRegionAnalysis).toHaveBeenCalledWith('region-1', expect.arrayContaining([
-        expect.objectContaining({ word: 'hello' }),
-        expect.objectContaining({ word: 'êkwa' })
+        expect.objectContaining({ word: 'hello', analysis: '', allAnalysis: [] }),
+        expect.objectContaining({ word: 'êkwa', analysis: '', allAnalysis: [] })
       ]));
       
       jest.useRealTimers();
@@ -557,12 +556,12 @@ describe('AnalyzeRegionTextUseCase', () => {
       };
 
       mockSpellCheckerService.tokenize.mockReturnValue(['hello', 'world', 'tânisi']);
-      // check() is called but returns empty known since all words are cached without FST data
+      // check() is called and returns words WITH analysis (not empty)
       mockSpellCheckerService.check.mockResolvedValue({
         known: [
-          { word: 'hello', analysis: '', allAnalysis: [] },
-          { word: 'world', analysis: '', allAnalysis: [] },
-          { word: 'tânisi', analysis: '', allAnalysis: [] }
+          { word: 'hello', analysis: 'hello+N+Sg', allAnalysis: ['hello+N+Sg'] },
+          { word: 'world', analysis: 'world+N+Sg', allAnalysis: ['world+N+Sg'] },
+          { word: 'tânisi', analysis: 'tânisi+V+II+Ind+3Sg', allAnalysis: ['tânisi+V+II+Ind+3Sg'] }
         ],
         unknown: []
       });
@@ -757,6 +756,78 @@ describe('AnalyzeRegionTextUseCase', () => {
       const words = setAnalysisCall.map((item: any) => item.word);
       expect(words).not.toContain('anihi');
       expect(words).not.toContain('ana');
+      
+      jest.useRealTimers();
+    });
+
+    it('should re-analyze words that have empty analysis', async () => {
+      jest.useFakeTimers();
+      
+      // Setup: Region has words with empty analysis (incomplete from previous run)
+      const storeWithEmptyAnalysis = {
+        ...mockStore,
+        knownWords: new Set<string>(['awa', 'nôhkom']), // In global cache but...
+        regionById: jest.fn().mockReturnValue({
+          id: 'region-1',
+          regionAnalysis: [
+            // These words are in cache but have NO analysis - they need to be re-analyzed!
+            { word: 'awa', analysis: '', allAnalysis: [] },
+            { word: 'nôhkom', analysis: '', allAnalysis: [] }
+          ],
+          transcriptionId: 'transcription-1'
+        })
+      };
+
+      mockSpellCheckerService.tokenize.mockReturnValue(['awa', 'nôhkom']);
+      
+      // API should be called to analyze these words even though they're in global cache
+      mockSpellCheckerService.check.mockResolvedValue({
+        known: [
+          { word: 'awa', analysis: 'awa+Ipc', allAnalysis: ['awa+Ipc', 'awa+N+A+Sg'] },
+          { word: 'nôhkom', analysis: 'nôhkom+N+A+D+Px1Sg+Sg', allAnalysis: ['nôhkom+N+A+D+Px1Sg+Sg'] }
+        ],
+        unknown: []
+      });
+
+      const useCase = new AnalyzeRegionTextUseCase({
+        regionId: 'region-1',
+        text: 'awa nôhkom',
+        services: mockServices,
+        store: storeWithEmptyAnalysis
+      });
+
+      const promise = useCase.execute();
+      jest.runAllTimers();
+      await promise;
+
+      // Should analyze BOTH words even though they're in global cache
+      // because they have empty analysis in the region
+      expect(mockSpellCheckerService.check).toHaveBeenCalledWith(['awa', 'nôhkom'], 'crk', false);
+      
+      // Final analysis should have proper FST data
+      expect(storeWithEmptyAnalysis.setRegionAnalysis).toHaveBeenCalledWith('region-1', 
+        expect.arrayContaining([
+          expect.objectContaining({ 
+            word: 'awa', 
+            analysis: 'awa+Ipc',
+            allAnalysis: ['awa+Ipc', 'awa+N+A+Sg']
+          }),
+          expect.objectContaining({ 
+            word: 'nôhkom', 
+            analysis: 'nôhkom+N+A+D+Px1Sg+Sg',
+            allAnalysis: ['nôhkom+N+A+D+Px1Sg+Sg']
+          })
+        ])
+      );
+      
+      const setAnalysisCall = storeWithEmptyAnalysis.setRegionAnalysis.mock.calls[0][1];
+      expect(setAnalysisCall).toHaveLength(2);
+      
+      // Verify NO words have empty analysis anymore
+      setAnalysisCall.forEach((item: any) => {
+        expect(item.analysis).not.toBe('');
+        expect(item.allAnalysis.length).toBeGreaterThan(0);
+      });
       
       jest.useRealTimers();
     });

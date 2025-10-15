@@ -51,8 +51,8 @@ describe('legacyAnalysisUpgrader', () => {
     expect(mockExecute).toHaveBeenCalled();
   });
 
-  it('should not upgrade new format analysis', async () => {
-    // Mock a region with new WordAnalysis[] format
+  it('should not upgrade complete new format analysis', async () => {
+    // Mock a region with new WordAnalysis[] format and COMPLETE analysis
     mockServices.storeService.regionById.mockReturnValue({
       id: 'region-1',
       regionText: 'hello tânisi',
@@ -67,6 +67,31 @@ describe('legacyAnalysisUpgrader', () => {
 
     // Should not have created AnalyzeRegionTextUseCase
     expect(mockAnalyzeRegionTextUseCase).not.toHaveBeenCalled();
+  });
+
+  it('should re-analyze new format with incomplete analysis', async () => {
+    // Mock a region with new WordAnalysis[] format but INCOMPLETE analysis (empty fields)
+    mockServices.storeService.regionById.mockReturnValue({
+      id: 'region-1',
+      regionText: 'hello tânisi',
+      regionAnalysis: [
+        { word: 'hello', analysis: '', allAnalysis: [] }, // INCOMPLETE
+        { word: 'tânisi', analysis: '', allAnalysis: [] } // INCOMPLETE
+      ],
+      transcriptionId: 'transcription-1'
+    });
+
+    await checkAndUpgradeLegacyAnalysis('region-1', 'hello tânisi');
+
+    // Should have created and executed AnalyzeRegionTextUseCase for re-analysis
+    expect(mockAnalyzeRegionTextUseCase).toHaveBeenCalledWith({
+      regionId: 'region-1',
+      text: 'hello tânisi',
+      services,
+      store: services.storeService
+    });
+
+    expect(mockExecute).toHaveBeenCalled();
   });
 
   it('should handle regions with no analysis', async () => {

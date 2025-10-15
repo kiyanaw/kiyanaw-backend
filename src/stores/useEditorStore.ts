@@ -975,8 +975,13 @@ export const useEditorStore = create<EditorState>()(
         // Handle both string[] and WordAnalysis[] formats
         words.forEach(word => {
           if (typeof word === 'object' && 'word' in word) {
-            // WordAnalysis format - extract the word
-            newKnownWords.add(word.word);
+            // WordAnalysis format - only add if analysis is COMPLETE
+            // Words with empty analysis should not be in the known words cache
+            if (word.analysis && word.analysis !== '' && 
+                word.allAnalysis && word.allAnalysis.length > 0) {
+              newKnownWords.add(word.word);
+            }
+            // Skip words with empty analysis - they need to be re-analyzed
           } else {
             // Legacy string format
             newKnownWords.add(word as string);

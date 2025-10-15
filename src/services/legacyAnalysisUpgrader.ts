@@ -1,6 +1,7 @@
 import { AnalyzeRegionTextUseCase } from '../use-cases/analyze-region-text';
-import { isNewFormat } from './migrationService';
+import { isNewFormat, needsReanalysis } from './migrationService';
 import { services } from './index';
+import type { WordAnalysis } from './spellCheckerService';
 
 /**
  * Simple utility to check if a region has legacy analysis and upgrade it
@@ -32,39 +33,51 @@ export const checkAndUpgradeLegacyAnalysis = async (regionId: string, regionText
     isNewFormat: isNewFormat(region.regionAnalysis)
   });
   
-  if (!isNewFormat(region.regionAnalysis)) {
+  const isLegacyFormat = !isNewFormat(region.regionAnalysis);
+  const hasIncompleteAnalysis = isNewFormat(region.regionAnalysis) && 
+    needsReanalysis(region.regionAnalysis as WordAnalysis[]);
+  
+  if (isLegacyFormat) {
     console.log(`🔄 Legacy regionAnalysis detected for region ${regionId}, upgrading...`);
     console.log(`📊 BEFORE UPGRADE - Analysis format:`, region.regionAnalysis);
-    
-    // Check if we have transcription with language - if not, wait a bit and try again
-    const transcription = store.transcription;
-    if (!transcription?.lang) {
-      console.log(`⚠️ No language available yet for region ${regionId}, retrying in 100ms...`);
-      
-      // Wait a bit for transcription to load, then try again
-      setTimeout(() => {
-        checkAndUpgradeLegacyAnalysis(regionId, regionText).catch(error => {
-          console.error(`❌ Failed to upgrade legacy analysis on retry for region ${regionId}:`, error);
-        });
-      }, 100);
-      return;
-    }
-    
-    // Trigger analysis which will automatically upgrade the format
-    const analyzeUseCase = new AnalyzeRegionTextUseCase({
-      regionId,
-      text: regionText,
-      services,
-      store: store
-    });
-
-    try {
-      await analyzeUseCase.execute();
-      console.log(`🔄 Legacy upgrade initiated for region ${regionId} - analysis will complete after debounce`);
-    } catch (error) {
-      console.error(`❌ Failed to upgrade legacy analysis for region ${regionId}:`, error);
-    }
+  } else if (hasIncompleteAnalysis) {
+    console.log(`🔄 Incomplete analysis detected for region ${regionId} (has empty analysis fields), re-analyzing...`);
+    console.log(`📊 INCOMPLETE ANALYSIS:`, region.regionAnalysis);
   } else {
-    console.log(`✅ Region ${regionId} already has new analysis format:`, region.regionAnalysis);
+    console.log(`✅ Region ${regionId} has complete analysis, no upgrade needed:`, region.regionAnalysis);
+    return; // Analysis is complete, no action needed
+  }
+  
+  // Check if we have transcription with language - if not, wait a bit and try again
+  const transcription = store.transcription;
+  if (!transcription?.lang) {
+    console.log(`⚠️ No language available yet for region ${regionId}, retrying in 100ms...`);
+    
+    // Wait a bit for transcription to load, then try again
+    setTimeout(() => {
+      checkAndUpgradeLegacyAnalysis(regionId, regionText).catch(error => {
+        console.error(`❌ Failed to upgrade/re-analyze region ${regionId} on retry:`, error);
+      });
+    }, 100);
+    return;
+  }
+  
+  // Trigger analysis which will upgrade legacy format or re-analyze incomplete analysis
+  const analyzeUseCase = new AnalyzeRegionTextUseCase({
+    regionId,
+    text: regionText,
+    services,
+    store: store
+  });
+
+  try {
+    await analyzeUseCase.execute();
+    if (isLegacyFormat) {
+      console.log(`🔄 Legacy upgrade initiated for region ${regionId} - analysis will complete after debounce`);
+    } else {
+      console.log(`🔄 Re-analysis initiated for region ${regionId} - will complete after debounce`);
+    }
+  } catch (error) {
+    console.error(`❌ Failed to upgrade/re-analyze region ${regionId}:`, error);
   }
 };

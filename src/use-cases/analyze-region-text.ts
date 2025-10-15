@@ -81,6 +81,14 @@ export class AnalyzeRegionTextUseCase {
         const existingAnalysis = migrateRegionAnalysis(currentRegion?.regionAnalysis);
         const isLegacyUpgrade = !isNewFormat(currentRegion?.regionAnalysis);
         
+        // Build a set of words that have VALID analysis (analysis field is not empty)
+        // Words with empty analysis should be re-analyzed
+        const existingWordsWithValidAnalysis = new Set(
+          existingAnalysis
+            .filter(item => item.analysis !== '' && item.allAnalysis.length > 0)
+            .map(item => item.word)
+        );
+        
         // Get global known words from store (ensure it's a Set)
         const globalKnownWords = (store.knownWords as Set<string>) || new Set<string>();
         
@@ -97,9 +105,16 @@ export class AnalyzeRegionTextUseCase {
           unknownWords.push(...uniqueWords); // Analyze everything
         } else {
           uniqueWords.forEach(word => {
-            if (globalKnownWords.has(word)) {
+            // A word is "known" only if:
+            // 1. It's in the global cache AND
+            // 2. Either it has valid analysis in this region OR it's not in this region yet
+            const hasValidAnalysisInRegion = existingWordsWithValidAnalysis.has(word);
+            const isInGlobalCache = globalKnownWords.has(word);
+            
+            if (isInGlobalCache && (hasValidAnalysisInRegion || !existingAnalysis.some(item => item.word === word))) {
               knownFromCache.add(word);
             } else {
+              // Word needs analysis: either unknown or has empty analysis
               unknownWords.push(word);
             }
           });
@@ -135,9 +150,13 @@ export class AnalyzeRegionTextUseCase {
             });
             
             // Update global store with newly discovered known words
-            if (result.known.length > 0) {
-              store.addKnownWords(result.known); // Now supports WordAnalysis[]
-              console.log(`💾 Added ${result.known.length} new known words to global cache`);
+            // Only add words that have valid analysis (non-empty)
+            const wordsWithValidAnalysisToCache = newAnalysisResults.filter(
+              item => item.analysis !== '' && item.allAnalysis.length > 0
+            );
+            if (wordsWithValidAnalysisToCache.length > 0) {
+              store.addKnownWords(wordsWithValidAnalysisToCache);
+              console.log(`💾 Added ${wordsWithValidAnalysisToCache.length} new known words to global cache`);
             }
           } catch (error) {
             console.error('Error checking unknown words:', error);
@@ -146,10 +165,10 @@ export class AnalyzeRegionTextUseCase {
 
         // Create analysis objects for cached words that are NOT already in existing analysis
         // This prevents wiping out FST data for words we already analyzed
-        const existingWords = new Set(existingAnalysis.map(item => item.word));
+        // Note: We use existingWordsWithValidAnalysis to ensure we don't skip words that need re-analysis
         const cachedAnalysis: WordAnalysis[] = isLegacyUpgrade ? [] : 
           Array.from(knownFromCache)
-            .filter(word => !existingWords.has(word)) // Only add if not already in region
+            .filter(word => !existingWordsWithValidAnalysis.has(word)) // Only add if not already analyzed
             .map(word => ({
               word,
               analysis: '',
@@ -163,8 +182,12 @@ export class AnalyzeRegionTextUseCase {
         // Only keep words that are still in the current text (uniqueWords)
         const finalAnalysis = mergeAnalysis(existingAnalysis, combinedAnalysis, uniqueWords);
         
-        // Extract words for highlighting (backward compatibility)
-        const allKnownWords = extractWords(finalAnalysis);
+        // Extract words for highlighting - ONLY include words with valid analysis
+        // Words with empty analysis should not be highlighted as "known"
+        const wordsWithValidAnalysis = finalAnalysis.filter(
+          item => item.analysis !== '' && item.allAnalysis.length > 0
+        );
+        const allKnownWords = extractWords(wordsWithValidAnalysis);
 
         // Update store immediately for UI highlighting
         // Store the full WordAnalysis objects (new format)

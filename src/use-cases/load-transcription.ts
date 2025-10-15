@@ -99,8 +99,19 @@ export class LoadTranscription {
     if (regions && Array.isArray(regions)) {
       regions.forEach((region) => {
         if (region.regionAnalysis && Array.isArray(region.regionAnalysis)) {
-          region.regionAnalysis.forEach((word: string) => {
-            allKnownWords.add(word);
+          region.regionAnalysis.forEach((item: any) => {
+            // Handle new WordAnalysis format - only add words with VALID analysis
+            if (typeof item === 'object' && item.word) {
+              // Only add if analysis is complete (non-empty)
+              if (item.analysis && item.analysis !== '' && 
+                  item.allAnalysis && item.allAnalysis.length > 0) {
+                allKnownWords.add(item.word);
+              }
+              // Skip words with empty analysis - they need to be re-analyzed
+            } else if (typeof item === 'string') {
+              // Handle legacy string format
+              allKnownWords.add(item);
+            }
           });
         }
       });
