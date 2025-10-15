@@ -122,13 +122,16 @@ export const convertToLegacyFormat = (analysis: WordAnalysis[]): string[] => {
 
 /**
  * Merge new analysis results with existing analysis, preserving user selections
+ * Only keeps words that are in the current text (wordsInText)
  */
 export const mergeAnalysis = (
   existing: WordAnalysis[],
-  newAnalysis: WordAnalysis[]
+  newAnalysis: WordAnalysis[],
+  wordsInText: string[]
 ): WordAnalysis[] => {
   const result: WordAnalysis[] = [];
   const existingMap = new Map(existing.map(item => [item.word, item]));
+  const wordsInTextSet = new Set(wordsInText);
   
   // Process new analysis
   for (const newItem of newAnalysis) {
@@ -153,9 +156,12 @@ export const mergeAnalysis = (
     existingMap.delete(newItem.word);
   }
   
-  // Add any remaining existing words that weren't in the new analysis
+  // Add remaining existing words ONLY if they're still in the current text
   for (const remainingItem of existingMap.values()) {
-    result.push(remainingItem);
+    if (wordsInTextSet.has(remainingItem.word)) {
+      result.push(remainingItem);
+    }
+    // Otherwise, the word was deleted from the text and should be removed
   }
   
   return result;

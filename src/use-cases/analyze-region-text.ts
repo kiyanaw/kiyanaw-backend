@@ -144,19 +144,24 @@ export class AnalyzeRegionTextUseCase {
           }
         }
 
-        // Create analysis objects for cached words (only for non-legacy upgrades)
+        // Create analysis objects for cached words that are NOT already in existing analysis
+        // This prevents wiping out FST data for words we already analyzed
+        const existingWords = new Set(existingAnalysis.map(item => item.word));
         const cachedAnalysis: WordAnalysis[] = isLegacyUpgrade ? [] : 
-          Array.from(knownFromCache).map(word => ({
-            word,
-            analysis: '',
-            allAnalysis: []
-          }));
+          Array.from(knownFromCache)
+            .filter(word => !existingWords.has(word)) // Only add if not already in region
+            .map(word => ({
+              word,
+              analysis: '',
+              allAnalysis: []
+            }));
 
         // Combine cached and new analysis
         const combinedAnalysis = [...cachedAnalysis, ...newAnalysisResults];
         
-        // Merge with existing analysis to preserve user selections
-        const finalAnalysis = mergeAnalysis(existingAnalysis, combinedAnalysis);
+        // Merge with existing analysis to preserve user selections and existing FST data
+        // Only keep words that are still in the current text (uniqueWords)
+        const finalAnalysis = mergeAnalysis(existingAnalysis, combinedAnalysis, uniqueWords);
         
         // Extract words for highlighting (backward compatibility)
         const allKnownWords = extractWords(finalAnalysis);

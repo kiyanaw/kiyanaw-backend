@@ -602,6 +602,164 @@ describe('AnalyzeRegionTextUseCase', () => {
       
       jest.useRealTimers();
     });
+
+    it('should preserve existing FST analysis when adding new words', async () => {
+      jest.useFakeTimers();
+      
+      // Setup: Region already has 3 words with complete FST analysis
+      const storeWithExistingAnalysis = {
+        ...mockStore,
+        knownWords: new Set<string>(['awa', 'nôhkom', 'ê-âtotahk']),
+        regionById: jest.fn().mockReturnValue({
+          id: 'region-1',
+          regionAnalysis: [
+            { word: 'awa', analysis: 'awa+Ipc', allAnalysis: ['awa+Ipc', 'awa+N+A+Sg'] },
+            { word: 'nôhkom', analysis: 'nôhkom+N+A+D+Px1Sg+Sg', allAnalysis: ['nôhkom+N+A+D+Px1Sg+Sg'] },
+            { word: 'ê-âtotahk', analysis: 'PV/e+âtotam+V+TI+Cnj+3Sg', allAnalysis: ['PV/e+âtotam+V+TI+Cnj+3Sg'] }
+          ],
+          transcriptionId: 'transcription-1'
+        })
+      };
+
+      mockSpellCheckerService.tokenize.mockReturnValue(['awa', 'nôhkom', 'ê-âtotahk', 'êwako']);
+      
+      // API call only returns analysis for the NEW word
+      mockSpellCheckerService.check.mockResolvedValue({
+        known: [
+          { word: 'êwako', analysis: 'êwako+Pr+Dem+Prox+Sg', allAnalysis: ['êwako+Pr+Dem+Prox+Sg'] }
+        ],
+        unknown: []
+      });
+
+      const useCase = new AnalyzeRegionTextUseCase({
+        regionId: 'region-1',
+        text: 'awa nôhkom ê-âtotahk êwako',
+        services: mockServices,
+        store: storeWithExistingAnalysis
+      });
+
+      const promise = useCase.execute();
+      jest.runAllTimers();
+      await promise;
+
+      // Should only check the NEW unknown word
+      expect(mockSpellCheckerService.check).toHaveBeenCalledWith(['êwako'], 'crk', false);
+      
+      // Final analysis should preserve existing FST data AND add new word
+      expect(storeWithExistingAnalysis.setRegionAnalysis).toHaveBeenCalledWith('region-1', 
+        expect.arrayContaining([
+          // Existing words should have their analysis preserved
+          expect.objectContaining({ 
+            word: 'awa', 
+            analysis: 'awa+Ipc',  // PRESERVED!
+            allAnalysis: ['awa+Ipc', 'awa+N+A+Sg']
+          }),
+          expect.objectContaining({ 
+            word: 'nôhkom', 
+            analysis: 'nôhkom+N+A+D+Px1Sg+Sg',  // PRESERVED!
+            allAnalysis: ['nôhkom+N+A+D+Px1Sg+Sg']
+          }),
+          expect.objectContaining({ 
+            word: 'ê-âtotahk', 
+            analysis: 'PV/e+âtotam+V+TI+Cnj+3Sg',  // PRESERVED!
+            allAnalysis: ['PV/e+âtotam+V+TI+Cnj+3Sg']
+          }),
+          // New word added with fresh analysis
+          expect.objectContaining({ 
+            word: 'êwako', 
+            analysis: 'êwako+Pr+Dem+Prox+Sg',
+            allAnalysis: ['êwako+Pr+Dem+Prox+Sg']
+          })
+        ])
+      );
+      
+      // Should have exactly 4 words
+      const setAnalysisCall = storeWithExistingAnalysis.setRegionAnalysis.mock.calls[0][1];
+      expect(setAnalysisCall).toHaveLength(4);
+      
+      jest.useRealTimers();
+    });
+
+    it('should remove words from analysis that are no longer in the text', async () => {
+      jest.useFakeTimers();
+      
+      // Setup: Region has 5 words with analysis
+      const storeWithOldWords = {
+        ...mockStore,
+        knownWords: new Set<string>(['anihi', 'ana', 'awa', 'nôhkom', 'ê-âtotahk']), // 'aniki' NOT in cache yet
+        regionById: jest.fn().mockReturnValue({
+          id: 'region-1',
+          regionAnalysis: [
+            { word: 'anihi', analysis: 'anihi+Ipc', allAnalysis: ['anihi+Ipc', 'anihi+Pron+Dem+Med+A+Pl'] },
+            { word: 'ana', analysis: 'ana+Pron+Dem+Med+A+Sg', allAnalysis: ['ana+Pron+Dem+Med+A+Sg'] },
+            { word: 'awa', analysis: 'awa+Ipc', allAnalysis: ['awa+Ipc', 'awa+N+A+Sg'] },
+            { word: 'nôhkom', analysis: 'nôhkom+N+A+D+Px1Sg+Sg', allAnalysis: ['nôhkom+N+A+D+Px1Sg+Sg'] },
+            { word: 'ê-âtotahk', analysis: 'PV/e+âtotam+V+TI+Cnj+3Sg', allAnalysis: ['PV/e+âtotam+V+TI+Cnj+3Sg'] }
+          ],
+          transcriptionId: 'transcription-1'
+        })
+      };
+
+      // New text only has 4 words - 'anihi' and 'ana' are REMOVED, 'aniki' is NEW
+      mockSpellCheckerService.tokenize.mockReturnValue(['awa', 'nôhkom', 'ê-âtotahk', 'aniki']);
+      
+      // API call returns analysis for the NEW word only
+      mockSpellCheckerService.check.mockResolvedValue({
+        known: [
+          { word: 'aniki', analysis: 'aniki+Pron+Dem+Med+A+Pl', allAnalysis: ['aniki+Pron+Dem+Med+A+Pl'] }
+        ],
+        unknown: []
+      });
+
+      const useCase = new AnalyzeRegionTextUseCase({
+        regionId: 'region-1',
+        text: 'awa nôhkom ê-âtotahk aniki', // Only 4 words, removed 'anihi' and 'ana'
+        services: mockServices,
+        store: storeWithOldWords
+      });
+
+      const promise = useCase.execute();
+      jest.runAllTimers();
+      await promise;
+
+      // Should only check the NEW unknown word
+      expect(mockSpellCheckerService.check).toHaveBeenCalledWith(['aniki'], 'crk', false);
+      
+      // Final analysis should ONLY contain the 4 words in the current text
+      const setAnalysisCall = storeWithOldWords.setRegionAnalysis.mock.calls[0][1];
+      expect(setAnalysisCall).toHaveLength(4);
+      
+      // Should have the 3 existing words with preserved analysis
+      expect(setAnalysisCall).toEqual(expect.arrayContaining([
+        expect.objectContaining({ 
+          word: 'awa', 
+          analysis: 'awa+Ipc',
+          allAnalysis: ['awa+Ipc', 'awa+N+A+Sg']
+        }),
+        expect.objectContaining({ 
+          word: 'nôhkom', 
+          analysis: 'nôhkom+N+A+D+Px1Sg+Sg',
+          allAnalysis: ['nôhkom+N+A+D+Px1Sg+Sg']
+        }),
+        expect.objectContaining({ 
+          word: 'ê-âtotahk', 
+          analysis: 'PV/e+âtotam+V+TI+Cnj+3Sg',
+          allAnalysis: ['PV/e+âtotam+V+TI+Cnj+3Sg']
+        }),
+        expect.objectContaining({ 
+          word: 'aniki', 
+          analysis: 'aniki+Pron+Dem+Med+A+Pl',
+          allAnalysis: ['aniki+Pron+Dem+Med+A+Pl']
+        })
+      ]));
+      
+      // Should NOT contain the deleted words
+      const words = setAnalysisCall.map((item: any) => item.word);
+      expect(words).not.toContain('anihi');
+      expect(words).not.toContain('ana');
+      
+      jest.useRealTimers();
+    });
   });
 
   describe('validation', () => {
