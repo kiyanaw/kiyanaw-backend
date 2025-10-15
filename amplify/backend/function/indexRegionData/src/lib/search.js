@@ -113,6 +113,7 @@ const indexRegionAnalysis = async (region, transcription) => {
         transcriptionId: region.transcriptionId,
         regionId: region.id,
         regionText: languageProcessor.processCharacters(sentence),
+        translation: region.translation,
         wordType,
         wordClass,
         transcriptionName: transcription.title,
