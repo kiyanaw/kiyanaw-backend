@@ -111,7 +111,25 @@ async function bulkLookup(event) {
     const processedWords = body.map(word => processCharacters(word));
     console.log('Processed words:', processedWords);
     
-    result = await analyzeStrict(processedWords);
+    // Create mapping between original and processed words
+    const wordMapping = {};
+    body.forEach((original, index) => {
+      const processed = processedWords[index];
+      if (processed !== original) {
+        wordMapping[processed] = original;
+      }
+    });
+    
+    const analysisResult = await analyzeStrict(processedWords);
+    console.log('analysisResult:', analysisResult);
+    
+    // Map results back to original words
+    result = {};
+    for (const [processedWord, analyses] of Object.entries(analysisResult)) {
+      const originalWord = wordMapping[processedWord] || processedWord;
+      result[originalWord] = analyses;
+    }
+    
     console.log('result:', result);
   } catch (e) {
     console.error('Error reading post body:', e);
@@ -154,7 +172,25 @@ async function suggest(event) {
     const processedWords = body.map(word => processCharacters(word));
     console.log('Processed words:', processedWords);
     
-    final = await checkUnknowns(processedWords);
+    // Create mapping between original and processed words
+    const wordMapping = {};
+    body.forEach((original, index) => {
+      const processed = processedWords[index];
+      if (processed !== original) {
+        wordMapping[processed] = original;
+      }
+    });
+    
+    const suggestionResult = await checkUnknowns(processedWords);
+    console.log('suggestionResult:', suggestionResult);
+    
+    // Map results back to original words
+    final = {};
+    for (const [processedWord, suggestions] of Object.entries(suggestionResult)) {
+      const originalWord = wordMapping[processedWord] || processedWord;
+      final[originalWord] = suggestions;
+    }
+    
   } catch (e) {
     console.error('Error reading post body:', e);
     statusCode = 500;
