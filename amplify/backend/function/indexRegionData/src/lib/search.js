@@ -1,6 +1,5 @@
 const assert = require('assert')
 
-const sapir = require('./sapir')
 const utils = require('../utils')
 const { getLanguageProcessor } = require('./special-processing')
 
@@ -45,12 +44,12 @@ const indexRegionAnalysis = async (region, transcription) => {
   }
   const languageCode = transcription.lang
 
-  // Use regionAnalysis array instead of parsing regionText for known words
-  const words = region.regionAnalysis || []
-  console.log('Words to index from regionAnalysis:', words)
+  // Use regionAnalysis array - now contains objects with {word, analysis}
+  const wordAnalyses = region.regionAnalysis || []
+  console.log('Word analyses to index from regionAnalysis:', wordAnalyses)
 
-  if (words.length === 0) {
-    console.log('No words in regionAnalysis to index')
+  if (wordAnalyses.length === 0) {
+    console.log('No word analyses in regionAnalysis to index')
     return
   }
 
@@ -63,75 +62,85 @@ const indexRegionAnalysis = async (region, transcription) => {
 
   // Get language-specific processor if available
   const languageProcessor = getLanguageProcessor(languageCode)
+  
+  if (!languageProcessor) {
+    console.log(`⚠️ No language processor found for language: ${languageCode}`)
+    return
+  }
+  
+  if (!languageProcessor.analyze) {
+    console.log(`⚠️ Language processor for ${languageCode} does not support analysis`)
+    return
+  }
 
   // Process words in parallel using Promise.allSettled for better performance
-  const wordProcessingPromises = words.map(async (word) => {
-    // Apply language-specific character processing if available
-    const surface = languageProcessor?.processCharacters 
-      ? languageProcessor.processCharacters(word)
-      : word
+  const wordProcessingPromises = wordAnalyses.map(async (wordAnalysis) => {
+    // Expect wordAnalysis to be {word: "foo", analysis: "lemma+POS+..."}
+    const rawWord = wordAnalysis.word
+    const analysisString = wordAnalysis.analysis
     
-    if (!surface) {
-      console.log('Skipping empty word after normalization:', word)
-      return { status: 'skipped', word, reason: 'empty after normalization' }
+    if (!rawWord || !analysisString) {
+      console.log('Skipping word analysis with missing data:', wordAnalysis)
+      return { status: 'skipped', word: rawWord, reason: 'missing word or analysis' }
     }
     
-    console.log('Processing word:', surface)
+    // Apply language-specific character processing to get the surface form
+    const surface = languageProcessor.processCharacters(rawWord)
+    
+    if (!surface) {
+      console.log('Skipping empty word after normalization:', rawWord)
+      return { status: 'skipped', word: rawWord, reason: 'empty after normalization' }
+    }
+    
+    console.log('Processing word:', surface, 'with analysis:', analysisString)
     
     try {
-      // TODO: check for IPC
-      // TODO: pull only wolvengrey
-      // TODO: exact-match results
-      const raw = await sapir.clickInText(surface)
-      const results = raw.data.results
+      // Use language-specific analyzer instead of SaPir
+      const analyzed = languageProcessor.analyze(analysisString)
+      const { lemma, wordType, wordClass } = analyzed
+      
+      if (!lemma) {
+        console.log(`No lemma found for word: ${surface} (analysis: ${analysisString})`)
+        return { status: 'no_lemma', word: surface, analysis: analysisString }
+      }
+      
+      console.log(`Got lemma for surface form '${surface}': ${lemma} (${wordClass})`)
 
-      if (results.length) {
-        const lemma = results[0].lemma_wordform.text
-        const wordType = results[0].lemma_wordform.pos
-        const wordClass = results[0].lemma_wordform.wordclass
-        console.log(`Got lemma for surface form '${surface}': ${lemma}`)
+      const toIndex = {
+        lang: languageCode, // Use transcription language
+        lemma,
+        surface,
+        transcriptionId: region.transcriptionId,
+        regionId: region.id,
+        regionText: languageProcessor.processCharacters(sentence),
+        wordType,
+        wordClass,
+        transcriptionName: transcription.title,
+        timestamp: `${region.start}:${region.end}`,
+      }
 
-        const toIndex = {
-          lang: languageCode, // Use transcription language
-          lemma,
-          surface,
-          transcriptionId: region.transcriptionId,
-          regionId: region.id,
-          regionText: languageProcessor?.processCharacters 
-            ? languageProcessor.processCharacters(sentence)
-            : sentence,
-          wordType,
-          wordClass,
-          transcriptionName: transcription.title,
-          timestamp: `${region.start}:${region.end}`,
-        }
-
-        const indexName = `knownwords-${process.env.ENV}`
-        const success = await client.update({
-          index: indexName,
-          id: `${toIndex.regionId}-${surface}`,
-          body: {
-            // put the partial document under the `doc` key
-            doc: toIndex,
-            doc_as_upsert: true,
-          },
-        })
-        
-        // OpenSearch client response structure - check for successful indexing
-        const isSuccessful = success.body?._shards?.successful > 0 || 
-                           success.statusCode === 200 || 
-                           success.statusCode === 201
-        
-        return { 
-          status: 'indexed', 
-          word: surface, 
-          lemma,
-          successful: isSuccessful,
-          response: success.body?.result || 'success'
-        }
-      } else {
-        console.log(`No results found for word: ${surface}`)
-        return { status: 'no_results', word: surface }
+      const indexName = `knownwords-${process.env.ENV}`
+      const success = await client.update({
+        index: indexName,
+        id: `${toIndex.regionId}-${surface}`,
+        body: {
+          // put the partial document under the `doc` key
+          doc: toIndex,
+          doc_as_upsert: true,
+        },
+      })
+      
+      // OpenSearch client response structure - check for successful indexing
+      const isSuccessful = success.body?._shards?.successful > 0 || 
+                         success.statusCode === 200 || 
+                         success.statusCode === 201
+      
+      return { 
+        status: 'indexed', 
+        word: surface, 
+        lemma,
+        successful: isSuccessful,
+        response: success.body?.result || 'success'
       }
     } catch (error) {
       console.error(`Error processing word "${surface}":`, error.message)
@@ -144,11 +153,12 @@ const indexRegionAnalysis = async (region, transcription) => {
   
   // Log summary of results
   const summary = {
-    total: words.length,
+    total: wordAnalyses.length,
     indexed: 0,
     failed: 0,
     skipped: 0,
-    no_results: 0
+    no_lemma: 0,
+    error: 0
   }
   
   results.forEach((result, index) => {
@@ -161,7 +171,7 @@ const indexRegionAnalysis = async (region, transcription) => {
       }
     } else {
       summary.failed++
-      console.error(`Promise rejected for word ${words[index]}:`, result.reason)
+      console.error(`Promise rejected for word ${wordAnalyses[index].word}:`, result.reason)
     }
   })
   

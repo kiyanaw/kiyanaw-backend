@@ -27,19 +27,19 @@ describe('special-processing-crk', () => {
         expect(analyze('â+Ipc+Interj')).toEqual({
           lemma: 'â',
           wordType: 'Ipc',
-          wordClass: 'Ipc'
+          wordClass: 'IPC'
         })
 
         expect(analyze('âhâ+Ipc+Interj')).toEqual({
           lemma: 'âhâ',
           wordType: 'Ipc',
-          wordClass: 'Ipc'
+          wordClass: 'IPC'
         })
 
         expect(analyze('ahpô+Ipc')).toEqual({
           lemma: 'ahpô',
           wordType: 'Ipc',
-          wordClass: 'Ipc'
+          wordClass: 'IPC'
         })
       })
 
@@ -47,13 +47,13 @@ describe('special-processing-crk', () => {
         expect(analyze('anima+Ipc')).toEqual({
           lemma: 'anima',
           wordType: 'Ipc',
-          wordClass: 'Ipc'
+          wordClass: 'IPC'
         })
 
         expect(analyze('êkây+Ipc')).toEqual({
           lemma: 'êkây',
           wordType: 'Ipc',
-          wordClass: 'Ipc'
+          wordClass: 'IPC'
         })
       })
     })
@@ -333,13 +333,13 @@ describe('special-processing-crk', () => {
         expect(analyze('awiyak+Pron+Indef+A+Sg')).toEqual({
           lemma: 'awiyak',
           wordType: 'Pron',
-          wordClass: 'Pron'
+          wordClass: 'PRON'
         })
 
         expect(analyze('ôhi+Pron+Dem+Prox+I+Pl')).toEqual({
           lemma: 'ôhi',
           wordType: 'Pron',
-          wordClass: 'Pron'
+          wordClass: 'PRON'
         })
       })
     })

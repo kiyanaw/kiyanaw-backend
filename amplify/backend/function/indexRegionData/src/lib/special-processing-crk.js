@@ -53,7 +53,7 @@ const processCharacters = (text) => {
  * // Returns: { lemma: "ahcahk", wordType: "N", wordClass: "NA" }
  * 
  * analyze("êkây+Ipc")
- * // Returns: { lemma: "êkây", wordType: "Ipc", wordClass: "Ipc" }
+ * // Returns: { lemma: "êkây", wordType: "Ipc", wordClass: "IPC" }
  */
 const analyze = (analysis) => {
   // Handle null, undefined, or empty strings
@@ -126,11 +126,11 @@ const analyze = (analysis) => {
       break
     } else if (tag === 'Ipc') {
       wordType = 'Ipc'
-      wordClass = 'Ipc'
+      wordClass = 'IPC'
       break
     } else if (tag === 'Pron') {
       wordType = 'Pron'
-      wordClass = 'Pron'
+      wordClass = 'PRON'
       break
     }
   }
