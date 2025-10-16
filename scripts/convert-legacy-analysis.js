@@ -122,7 +122,16 @@ function convertLegacyAnalysis(legacyAnalysis) {
  * Call the spellchecker API to get word analyses
  */
 async function spellcheckWords(words, languageCode = 'crk', credentials) {
-  const endpoint = 'https://0zwfjqbw8l.execute-api.us-east-1.amazonaws.com/staging';
+  const endpoints = {
+    staging: 'https://0zwfjqbw8l.execute-api.us-east-1.amazonaws.com/staging',
+    production: 'https://88g4s21ys7.execute-api.us-east-1.amazonaws.com/production'
+  };
+  
+  const endpoint = endpoints[environment];
+  if (!endpoint) {
+    throw new Error(`Unknown environment: ${environment}`);
+  }
+  
   const url = new URL(`${endpoint}/${languageCode}/bulk-lookup`);
   
   const body = JSON.stringify(words);
@@ -226,6 +235,22 @@ async function convertAndAnalyze(legacyAnalysis, languageCode, credentials) {
 }
 
 /**
+ * Get a specific region by ID from DynamoDB
+ */
+async function getRegionById(tableName, regionId) {
+  const command = new ScanCommand({
+    TableName: tableName,
+    FilterExpression: 'id = :id',
+    ExpressionAttributeValues: {
+      ':id': regionId
+    }
+  });
+
+  const result = await docClient.send(command);
+  return result.Items && result.Items.length > 0 ? result.Items[0] : null;
+}
+
+/**
  * Scan all regions from DynamoDB
  */
 async function scanAllRegions(tableName) {
@@ -268,10 +293,76 @@ async function updateRegionAnalysis(tableName, regionId, newAnalysis) {
 }
 
 /**
+ * Process a single region
+ */
+async function processRegion(region, tableName) {
+  // Extract words from region text if no regionAnalysis exists or is empty
+  let words = [];
+  
+  if (!region.regionAnalysis || (Array.isArray(region.regionAnalysis) && region.regionAnalysis.length === 0)) {
+    // Check if region has regionText
+    if (!region.regionText || typeof region.regionText !== 'string') {
+      return { success: false, error: 'No regionText available' };
+    }
+    
+    // Extract words from region text by splitting on whitespace
+    words = region.regionText
+      .replace(/[.,\/#!$%\^&\*;:{}=_`~()]/g, '') // Remove punctuation
+      .trim()
+      .split(/\s+/)
+      .filter(word => word.length > 0);
+  } else {
+    // Parse the current analysis
+    let currentAnalysis;
+    if (typeof region.regionAnalysis === 'string') {
+      try {
+        currentAnalysis = JSON.parse(region.regionAnalysis);
+      } catch (e) {
+        console.error(`❌ Invalid JSON in regionAnalysis for ${region.id}: ${e.message}`);
+        return { success: false, error: 'Invalid JSON' };
+      }
+    } else {
+      currentAnalysis = region.regionAnalysis;
+    }
+
+    // Extract words from current analysis
+    if (Array.isArray(currentAnalysis)) {
+      if (currentAnalysis.length > 0 && typeof currentAnalysis[0] === 'string') {
+        // Legacy format (string array)
+        words = currentAnalysis;
+      } else if (currentAnalysis.length > 0 && typeof currentAnalysis[0] === 'object') {
+        // New format (object array) - extract word field
+        words = currentAnalysis.map(item => item.word).filter(word => word);
+      }
+    }
+  }
+
+  if (words.length === 0) {
+    return { success: false, error: 'No words found' };
+  }
+
+  try {
+    // Convert and analyze with spellchecker
+    const converted = await convertAndAnalyze(words, 'crk', credentials);
+    
+    // Save the updated analysis
+    await updateRegionAnalysis(tableName, region.id, converted);
+    
+    return { 
+      success: true, 
+      wordsProcessed: converted.length,
+      originalWords: words.length
+    };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
  * Main function
  */
 async function main() {
-  console.log(`\nConverting legacy regionAnalysis for environment: ${environment}`);
+  console.log(`\nProcessing all regions for environment: ${environment}`);
   console.log(`Table: ${TABLE_NAME}`);
   if (awsProfile) {
     console.log(`AWS Profile: ${awsProfile}`);
@@ -284,83 +375,41 @@ async function main() {
     const regions = await scanAllRegions(TABLE_NAME);
     console.log(`Found ${regions.length} total regions\n`);
 
-    // Find legacy regions
-    const legacyRegions = [];
+    let successCount = 0;
+    let errorCount = 0;
+    const processedRegionIds = [];
+    const errorDetails = [];
 
-    for (const region of regions) {
-      const regionAnalysis = region.regionAnalysis;
-
-      if (!regionAnalysis) {
-        continue;
-      }
-
-      // Parse if it's a JSON string
-      let parsed;
-      if (typeof regionAnalysis === 'string') {
-        try {
-          parsed = JSON.parse(regionAnalysis);
-        } catch (e) {
-          continue;
-        }
+    for (let i = 0; i < regions.length; i++) {
+      const region = regions[i];
+      
+      console.log(`Processing region ${i + 1}/${regions.length}: ${region.id}`);
+      
+      const result = await processRegion(region, TABLE_NAME);
+      
+      if (result.success) {
+        console.log(`✅ ${region.id}: ${result.wordsProcessed}/${result.originalWords} words analyzed`);
+        processedRegionIds.push(region.id);
+        successCount++;
       } else {
-        parsed = regionAnalysis;
+        console.log(`❌ ${region.id}: ${result.error}`);
+        errorDetails.push({ id: region.id, error: result.error });
+        errorCount++;
       }
-
-      // Check if it's an array with content
-      if (!Array.isArray(parsed) || parsed.length === 0) {
-        continue;
-      }
-
-      // Check if it's legacy format (all strings)
-      if (isLegacyFormat(regionAnalysis)) {
-        legacyRegions.push({
-          id: region.id,
-          transcriptionId: region.transcriptionId,
-          regionText: region.regionText,
-          analysis: regionAnalysis
-        });
-      }
-    }
-
-    console.log(`Found ${legacyRegions.length} legacy regions to convert\n`);
-
-    // Convert and show 5 regions with spellchecker (NO SAVING)
-    console.log('='.repeat(80));
-    console.log('CONVERTING 5 REGIONS (NO SAVING)');
-    console.log('='.repeat(80));
-
-    if (legacyRegions.length === 0) {
-      console.log('No legacy regions found to convert.');
-      return;
-    }
-
-    const numToProcess = Math.min(5, legacyRegions.length);
-    
-    for (let i = 0; i < numToProcess; i++) {
-      const region = legacyRegions[i];
-      
-      console.log(`\n${'='.repeat(80)}`);
-      console.log(`\nRegion ${i + 1}/${numToProcess}`);
-      console.log(`Region ID: ${region.id}`);
-      console.log(`Transcription: ${region.transcriptionId}`);
-      console.log(`Text: "${region.regionText}"`);
-      console.log(`Legacy format: ${JSON.stringify(region.analysis)}`);
-      console.log(`\nCalling spellchecker...`);
-      
-      const converted = await convertAndAnalyze(region.analysis, 'crk', credentials);
-      
-      console.log(`\nNew format with analyses (${converted.length} words with valid analyses):`);
-      converted.forEach((item, idx) => {
-        console.log(`\n[${idx}] word: "${item.word}"`);
-        console.log(`    analysis: "${item.analysis}"`);
-        console.log(`    allAnalysis: ${JSON.stringify(item.allAnalysis)}`);
-      });
     }
 
     console.log('\n' + '='.repeat(80));
-    console.log('\nConversion preview complete!');
-    console.log(`Total legacy regions: ${legacyRegions.length}`);
-    console.log('\nNOTE: No changes have been saved to DynamoDB.\n');
+    console.log('Processing complete!');
+    console.log(`✅ Successfully processed: ${successCount} regions`);
+    console.log(`❌ Errors: ${errorCount} regions`);
+    console.log(`📊 Total processed: ${successCount + errorCount}/${regions.length} regions`);
+    
+    if (errorDetails.length > 0) {
+      console.log('\nError details:');
+      errorDetails.forEach(({ id, error }) => {
+        console.log(`  ${id}: ${error}`);
+      });
+    }
 
   } catch (error) {
     console.error('\nError:', error.message);
