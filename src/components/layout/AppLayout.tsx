@@ -245,7 +245,7 @@ export const AppLayout = () => {
                 <span className="font-medium">Transcriptions</span>
               </Link>
               
-              <Link
+              {/* <Link
                 to="/database"
                 onClick={() => setMobileMenuOpen(false)}
                 className="flex items-center px-6 py-3 text-gray-900 hover:bg-gray-50 active:bg-gray-100 transition-colors duration-150"
@@ -253,7 +253,7 @@ export const AppLayout = () => {
                 <Database className="w-5 h-5 text-gray-600 mr-4" />
                 <span className="font-medium">Database</span>
               </Link>
-              
+               */}
               <Link
                 to="/invitations"
                 onClick={() => setMobileMenuOpen(false)}
