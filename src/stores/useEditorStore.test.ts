@@ -186,6 +186,49 @@ describe('useEditorStore known words functionality', () => {
       expect(state.knownWords.has('ohci')).toBe(true);
       expect(state.knownWords.size).toBe(4);
     });
+
+    it('should NOT add words with empty analysis from WordAnalysis objects (Bug #6 regression test)', () => {
+      const store = useEditorStore.getState();
+      
+      // Add WordAnalysis objects - mix of complete and incomplete
+      store.addKnownWords([
+        { word: 'awa', analysis: 'awa+Ipc', allAnalysis: ['awa+Ipc', 'awa+N+A+Sg'] }, // Complete - should be added
+        { word: 'nôhkom', analysis: '', allAnalysis: [] }, // INCOMPLETE - should NOT be added
+        { word: 'êwako', analysis: 'êwako+Pr+Dem+Prox+Sg', allAnalysis: ['êwako+Pr+Dem+Prox+Sg'] }, // Complete - should be added
+        { word: 'tânisi', analysis: '', allAnalysis: [] } // INCOMPLETE - should NOT be added
+      ]);
+      
+      const state = useEditorStore.getState();
+      
+      // Should have ONLY the words with complete analysis
+      expect(state.knownWords.has('awa')).toBe(true);
+      expect(state.knownWords.has('êwako')).toBe(true);
+      expect(state.knownWords.size).toBe(2);
+      
+      // Should NOT have words with empty analysis
+      expect(state.knownWords.has('nôhkom')).toBe(false);
+      expect(state.knownWords.has('tânisi')).toBe(false);
+    });
+
+    it('should handle mixed legacy strings and WordAnalysis objects', () => {
+      const store = useEditorStore.getState();
+      
+      // Add mix of legacy strings and new WordAnalysis objects
+      store.addKnownWords(['hello', 'world']); // Legacy strings
+      store.addKnownWords([
+        { word: 'awa', analysis: 'awa+Ipc', allAnalysis: ['awa+Ipc'] }, // Complete WordAnalysis
+        { word: 'empty', analysis: '', allAnalysis: [] } // Incomplete - should be filtered
+      ]);
+      
+      const state = useEditorStore.getState();
+      
+      // Should have legacy strings + complete WordAnalysis
+      expect(state.knownWords.size).toBe(3);
+      expect(state.knownWords.has('hello')).toBe(true);
+      expect(state.knownWords.has('world')).toBe(true);
+      expect(state.knownWords.has('awa')).toBe(true);
+      expect(state.knownWords.has('empty')).toBe(false); // Incomplete was filtered
+    });
   });
 
   describe('setRegionAnalysis', () => {

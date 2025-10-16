@@ -562,5 +562,54 @@ describe('LoadTranscription', () => {
         'kinwês', 'omâmâ', 'tânisi'
       ]);
     });
+
+    it('should NOT extract words with empty analysis from regions (Bug #6 regression test)', async () => {
+      const mockData = {
+        transcription: {
+          id: mockTranscriptionId,
+          title: 'Test Transcription',
+          source: 'test-audio.mp3',
+          lang: 'crk' // Has language index
+        },
+        peaks: [0.1, 0.2],
+        regions: [
+          {
+            id: 'region1',
+            regionAnalysis: [
+              { word: 'awa', analysis: 'awa+Ipc', allAnalysis: ['awa+Ipc', 'awa+N+A+Sg'] }, // Valid
+              { word: 'nôhkom', analysis: '', allAnalysis: [] }, // INCOMPLETE - should be filtered
+              { word: 'êwako', analysis: 'êwako+Pr+Dem+Prox+Sg', allAnalysis: ['êwako+Pr+Dem+Prox+Sg'] } // Valid
+            ]
+          },
+          {
+            id: 'region2',
+            regionAnalysis: [
+              { word: 'tânisi', analysis: '', allAnalysis: [] }, // INCOMPLETE - should be filtered
+              { word: 'kiya', analysis: 'kiya+Pron+Pers+2Sg', allAnalysis: ['kiya+Pron+Pers+2Sg'] } // Valid
+            ]
+          }
+        ],
+        issues: []
+      };
+
+      (services.transcriptionService.loadInFull as jest.Mock).mockResolvedValue(mockData);
+      (services.browserService.getRegionIdFromUrl as jest.Mock).mockReturnValue(null);
+
+      await useCase.execute();
+
+      // Should ONLY extract words with complete analysis (awa, êwako, kiya)
+      // Should NOT extract words with empty analysis (nôhkom, tânisi)
+      expect(services.spellCheckerService.addKnownWords).toHaveBeenCalledWith([
+        'awa', 'êwako', 'kiya'
+      ]);
+      expect(mockStore.addKnownWords).toHaveBeenCalledWith([
+        'awa', 'êwako', 'kiya'
+      ]);
+      
+      // Verify incomplete words are NOT in the list
+      const calledWith = (services.spellCheckerService.addKnownWords as jest.Mock).mock.calls[0][0];
+      expect(calledWith).not.toContain('nôhkom');
+      expect(calledWith).not.toContain('tânisi');
+    });
   });
 }); 

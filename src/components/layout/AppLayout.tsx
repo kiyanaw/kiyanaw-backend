@@ -82,12 +82,12 @@ export const AppLayout = () => {
             >
               Transcriptions
             </Link>
-            <Link
+            {/* <Link
               to="/database"
               className="text-white hover:text-white/80 transition-colors duration-200 text-base font-medium"
             >
               Database
-            </Link>
+            </Link> */}
             <Link
               to="/invitations"
               className="text-white hover:text-white/80 transition-colors duration-200 text-base font-medium relative flex items-center"
