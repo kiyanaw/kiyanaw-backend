@@ -415,18 +415,20 @@ describe('LoadTranscription', () => {
   });
 
   describe('extractKnownWordsFromRegions', () => {
-    it('should extract known words from regions with regionAnalysis', async () => {
+    it('should warn about legacy string[] format and not extract words', async () => {
+      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
+      
       const mockData = {
         transcription: { source: 'test.mp4', lang: 'crk' }, // Add language for spell checking
         peaks: [],
         regions: [
           {
             id: 'region1',
-            regionAnalysis: ['itwêw', 'êkwa']
+            regionAnalysis: ['itwêw', 'êkwa'] // LEGACY FORMAT
           },
           {
             id: 'region2',
-            regionAnalysis: ['tâpwê', 'itwêw'] // duplicate should be deduplicated
+            regionAnalysis: ['tâpwê', 'itwêw'] // LEGACY FORMAT
           },
           {
             id: 'region3',
@@ -440,20 +442,24 @@ describe('LoadTranscription', () => {
         issues: []
       };
 
-             (services.transcriptionService.loadInFull as jest.Mock).mockResolvedValue(mockData);
-       (services.browserService.getRegionIdFromUrl as jest.Mock).mockReturnValue(null);
+      (services.transcriptionService.loadInFull as jest.Mock).mockResolvedValue(mockData);
+      (services.browserService.getRegionIdFromUrl as jest.Mock).mockReturnValue(null);
 
-       await useCase.execute();
+      await useCase.execute();
 
-       // Verify spell checker service was called with deduplicated known words
-       expect(services.spellCheckerService.addKnownWords).toHaveBeenCalledWith([
-         'itwêw', 'êkwa', 'tâpwê'
-       ]);
-
-      // Verify store was updated with known words
-      expect(mockStore.addKnownWords).toHaveBeenCalledWith([
-        'itwêw', 'êkwa', 'tâpwê'
-      ]);
+      // Should NOT extract legacy string format (no FST analysis)
+      expect(services.spellCheckerService.addKnownWords).not.toHaveBeenCalled();
+      expect(mockStore.addKnownWords).not.toHaveBeenCalled();
+      
+      // Should warn for regions with legacy format
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Region region1 has legacy string[] analysis format')
+      );
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Region region2 has legacy string[] analysis format')
+      );
+      
+      consoleWarnSpy.mockRestore();
     });
 
     it('should not call spell checker when no known words exist', async () => {
@@ -478,31 +484,38 @@ describe('LoadTranscription', () => {
     });
 
     it('should handle regions with non-array regionAnalysis gracefully', async () => {
+      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
+      
       const mockData = {
         transcription: { source: 'test.mp4', lang: 'crk' }, // Add language for spell checking
         peaks: [],
         regions: [
           {
             id: 'region1',
-            regionAnalysis: 'not-an-array' // Invalid data
+            regionAnalysis: 'not-an-array' // Invalid data - should be ignored
           },
           {
             id: 'region2',
-            regionAnalysis: ['valid', 'words']
+            regionAnalysis: ['valid', 'words'] // LEGACY FORMAT - should warn
           }
         ],
         issues: []
       };
 
-             (services.transcriptionService.loadInFull as jest.Mock).mockResolvedValue(mockData);
-       (services.browserService.getRegionIdFromUrl as jest.Mock).mockReturnValue(null);
+      (services.transcriptionService.loadInFull as jest.Mock).mockResolvedValue(mockData);
+      (services.browserService.getRegionIdFromUrl as jest.Mock).mockReturnValue(null);
 
-       await useCase.execute();
+      await useCase.execute();
 
-       // Should only extract from valid arrays
-       expect(services.spellCheckerService.addKnownWords).toHaveBeenCalledWith([
-         'valid', 'words'
-       ]);
+      // Should NOT extract legacy string format
+      expect(services.spellCheckerService.addKnownWords).not.toHaveBeenCalled();
+      
+      // Should warn for region2 with legacy format
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Region region2 has legacy string[] analysis format')
+      );
+      
+      consoleWarnSpy.mockRestore();
     });
 
     it('should skip known words extraction when transcription has no language', async () => {
@@ -532,18 +545,20 @@ describe('LoadTranscription', () => {
       expect(mockStore.addKnownWords).not.toHaveBeenCalled();
     });
 
-    it('should extract known words when transcription language is set to crgn', async () => {
+    it('should warn and NOT extract words from legacy string[] format', async () => {
+      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
+      
       const mockData = {
         transcription: { source: 'test.mp4', lang: 'crgn' }, // Northern Michif
         peaks: [],
         regions: [
           {
             id: 'region1',
-            regionAnalysis: ['kinwês', 'omâmâ'] // Northern Michif words
+            regionAnalysis: ['kinwês', 'omâmâ'] // LEGACY STRING FORMAT
           },
           {
             id: 'region2',
-            regionAnalysis: ['tânisi', 'kinwês'] // duplicate should be deduplicated
+            regionAnalysis: ['tânisi', 'kinwês'] // LEGACY STRING FORMAT
           }
         ],
         issues: []
@@ -554,13 +569,20 @@ describe('LoadTranscription', () => {
 
       await useCase.execute();
 
-      // Should extract known words regardless of language (language code is used in spell checking, not extraction)
-      expect(services.spellCheckerService.addKnownWords).toHaveBeenCalledWith([
-        'kinwês', 'omâmâ', 'tânisi'
-      ]);
-      expect(mockStore.addKnownWords).toHaveBeenCalledWith([
-        'kinwês', 'omâmâ', 'tânisi'
-      ]);
+      // Should NOT extract legacy string format words (they have no FST analysis)
+      // These will be upgraded by legacyAnalysisUpgrader when regions are selected
+      expect(services.spellCheckerService.addKnownWords).not.toHaveBeenCalled();
+      expect(mockStore.addKnownWords).not.toHaveBeenCalled();
+      
+      // Should warn for each region with legacy format
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Region region1 has legacy string[] analysis format')
+      );
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Region region2 has legacy string[] analysis format')
+      );
+      
+      consoleWarnSpy.mockRestore();
     });
 
     it('should NOT extract words with empty analysis from regions (Bug #6 regression test)', async () => {

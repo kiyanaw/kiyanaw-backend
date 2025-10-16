@@ -99,6 +99,8 @@ export class LoadTranscription {
     if (regions && Array.isArray(regions)) {
       regions.forEach((region) => {
         if (region.regionAnalysis && Array.isArray(region.regionAnalysis)) {
+          let hasLegacyFormat = false;
+          
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           region.regionAnalysis.forEach((item: any) => {
             // Handle new WordAnalysis format - only add words with VALID analysis
@@ -110,10 +112,15 @@ export class LoadTranscription {
               }
               // Skip words with empty analysis - they need to be re-analyzed
             } else if (typeof item === 'string') {
-              // Handle legacy string format
-              allKnownWords.add(item);
+              // Legacy string format detected
+              hasLegacyFormat = true;
             }
           });
+          
+          // Warn once per region if legacy format detected
+          if (hasLegacyFormat) {
+            console.warn(`⚠️ Region ${region.id} has legacy string[] analysis format. Words will be re-analyzed on selection.`);
+          }
         }
       });
     }
