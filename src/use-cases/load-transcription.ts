@@ -99,6 +99,7 @@ export class LoadTranscription {
     if (regions && Array.isArray(regions)) {
       regions.forEach((region) => {
         if (region.regionAnalysis && Array.isArray(region.regionAnalysis)) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           region.regionAnalysis.forEach((item: any) => {
             // Handle new WordAnalysis format - only add words with VALID analysis
             if (typeof item === 'object' && item.word) {
