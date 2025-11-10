@@ -1,4 +1,4 @@
-import type { TranscriptionModel } from '../services/adt';
+import type { RegionData, TranscriptionModel } from '../services/adt';
 
 export interface ExportTranscriptionOptions {
   includeRegionNumbers: boolean;
@@ -17,14 +17,7 @@ export interface ExportTranscriptionResult {
   content: string;
 }
 
-export interface ExportRegion {
-  id?: string;
-  start: number;
-  end: number;
-  isNote?: boolean;
-  regionText?: string;
-  translation?: string;
-}
+export type ExportRegion = Pick<RegionData, 'start' | 'end' | 'isNote' | 'regionText' | 'translation' | 'id'>;
 
 const padNumber = (value: number, length: number): string => value.toString().padStart(length, '0');
 
