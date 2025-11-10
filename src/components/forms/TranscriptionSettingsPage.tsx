@@ -5,102 +5,15 @@ import { useRevokeInvite } from '../../hooks/useRevokeInvite';
 import { useDeleteTranscription } from '../../hooks/useDeleteTranscription';
 import * as inviteService from '../../services/inviteService';
 import { generateSignedUrl } from '../../services/transcriptionService';
-import type { InviteModel, TranscriptionModel, RegionModel } from '../../services/adt';
-
-const padNumber = (value: number, length: number): string => value.toString().padStart(length, '0');
-
-const formatTimecode = (seconds: number): string => {
-  const safeSeconds = Number.isFinite(seconds) ? Math.max(seconds, 0) : 0;
-  const totalMillis = Math.round(safeSeconds * 1000);
-  const hours = Math.floor(totalMillis / 3_600_000);
-  const minutes = Math.floor((totalMillis % 3_600_000) / 60_000);
-  const secs = Math.floor((totalMillis % 60_000) / 1_000);
-  const millis = totalMillis % 1_000;
-  return `${padNumber(hours, 2)}:${padNumber(minutes, 2)}:${padNumber(secs, 2)},${padNumber(millis, 3)}`;
-};
-
-const sanitizeLine = (value: string): string => value.replace(/\r?\n/g, ' ').replace(/\s+/g, ' ').trim();
-
-const buildExportContent = (
-  regions: RegionModel[],
-  options: { includeTranslation: boolean; includeTimestamps: boolean; includeRegionNumbers: boolean }
-): string => {
-  const preparedRegions = regions
-    .filter((region) => {
-      if (region.isNote) return false;
-      const hasPrimary = region.regionText && region.regionText.trim().length > 0;
-      const hasTranslation = options.includeTranslation && region.translation && region.translation.trim().length > 0;
-      return hasPrimary || hasTranslation;
-    })
-    .sort((a, b) => a.start - b.start);
-
-  if (preparedRegions.length === 0) {
-    throw new Error('There are no transcription regions with text to export.');
-  }
-
-  const segments = preparedRegions
-    .map((region, index) => {
-      const lines: string[] = [];
-
-      const primaryText = region.regionText?.trim();
-      if (primaryText) {
-        lines.push(sanitizeLine(primaryText));
-      }
-
-      if (options.includeTranslation) {
-        const translationText = region.translation?.trim();
-        if (translationText) {
-          lines.push(sanitizeLine(translationText));
-        }
-      }
-
-      if (lines.length === 0) {
-        return null;
-      }
-
-      const segmentParts: string[] = [];
-
-      if (options.includeRegionNumbers) {
-        segmentParts.push(`${index + 1}`);
-      }
-
-      if (options.includeTimestamps) {
-        const startTime = formatTimecode(region.start);
-        const endBoundary = region.end > region.start ? region.end : region.start + 0.001;
-        const endTime = formatTimecode(endBoundary);
-        segmentParts.push(`${startTime} --> ${endTime}`);
-      }
-
-      segmentParts.push(...lines);
-
-      return segmentParts.join('\n');
-    })
-    .filter((segment): segment is string => Boolean(segment));
-
-  if (segments.length === 0) {
-    throw new Error('There are no transcription regions with text to export.');
-  }
-
-  return segments.join('\n\n');
-};
-
-const deriveExportFilename = (transcription: TranscriptionModel): string => {
-  const fallbackBase = transcription.title?.trim() || transcription.id || 'transcription';
-  const sourceFilename = transcription.getSourceFilename();
-  if (!sourceFilename || sourceFilename === 'Unknown') {
-    return `${fallbackBase}.txt`;
-  }
-
-  const lastDotIndex = sourceFilename.lastIndexOf('.');
-  const baseName = lastDotIndex > 0 ? sourceFilename.slice(0, lastDotIndex) : sourceFilename;
-  return `${baseName}.txt`;
-};
+import type { InviteModel, TranscriptionModel } from '../../services/adt';
+import { useExportTranscription } from '../../hooks/useExportTranscription';
+import type { ExportRegion } from '../../use-cases/export-transcription';
 
 interface TranscriptionSettingsPageProps {
   transcription: TranscriptionModel;
   regionCount: number;
   issueCount: number;
-  regions: RegionModel[];
+  regions: ExportRegion[];
   onSave: (updates: { title?: string; comments?: string; isPrivate?: boolean; publicIssues?: boolean; lang?: string }) => void;
   onBack: () => void;
   onDelete?: () => void;
@@ -362,28 +275,22 @@ export const TranscriptionSettingsPage = ({
     }
   };
 
+  const exportTranscription = useExportTranscription();
+
   const handleExportTranscription = async () => {
     setExportError(null);
     setIsExporting(true);
 
     try {
-      const content = buildExportContent(regions, {
-        includeTranslation,
-        includeTimestamps,
-        includeRegionNumbers
+      await exportTranscription({
+        transcription,
+        regions,
+        options: {
+          includeTranslation,
+          includeTimestamps,
+          includeRegionNumbers,
+        },
       });
-      const filename = deriveExportFilename(transcription);
-      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      URL.revokeObjectURL(url);
       setShowExportDialog(false);
     } catch (error) {
       console.error('Transcription export failed:', error);
