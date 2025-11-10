@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Outlet, Link } from 'react-router-dom';
-import { Download, LogOut, HelpCircle } from 'lucide-react';
+import { Download, LogOut, HelpCircle, BookOpen } from 'lucide-react';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { useLoadMyInvites } from '../../hooks/useLoadMyInvites';
 import { signOut } from 'aws-amplify/auth';
@@ -93,6 +93,14 @@ export const AppLayout = () => {
                 </span>
               )}
             </Link>
+            <a
+              href="https://docs.kiyanaw.net/"
+              target="_blank"
+              rel="noreferrer"
+              className="text-white hover:text-white/80 transition-colors duration-200 text-base font-medium"
+            >
+              Documentation
+            </a>
           </nav>
         </div>
 
@@ -263,6 +271,16 @@ export const AppLayout = () => {
                 <HelpCircle className="w-5 h-5 text-gray-600 mr-4" />
                 <span className="font-medium">Support</span>
               </Link>
+              <a
+                href="https://docs.kiyanaw.net/"
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center px-6 py-3 text-gray-900 hover:bg-gray-50 active:bg-gray-100 transition-colors duration-150"
+              >
+                <BookOpen className="w-5 h-5 text-gray-600 mr-4" />
+                <span className="font-medium">Documentation</span>
+              </a>
 
               {shouldShowInstall() && (
                 <button
