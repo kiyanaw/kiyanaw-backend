@@ -1,13 +1,13 @@
 import { post } from 'aws-amplify/api';
 
 export interface WordAnalysis {
-  word: string;           // Original surface form
-  analysis: string;       // Primary/selected analysis (first from FST)
-  allAnalysis: string[];  // All possible analyses from FST
+  word: string;
+  analysis: string;           // The primary analysis to use
+  allAnalysis: string[];      // All available analyses
 }
 
 export interface SpellCheckResult {
-  known: WordAnalysis[];  // Changed from string[] to WordAnalysis[]
+  known: WordAnalysis[];
   unknown: string[];
 }
 
@@ -18,37 +18,37 @@ class SpellCheckerServiceImpl {
 
   /**
    * Check which words are known/unknown, using cache and batching API calls
+   * Returns WordAnalysis[] for known words with FST analysis details
    */
-  async check(words: string[], languageCode: string = 'crk', forceAnalysis: boolean = false): Promise<SpellCheckResult> {
+  async check(words: string[], languageCode: string = 'crk'): Promise<SpellCheckResult> {
     if (words.length === 0) {
       return { known: [], unknown: [] };
     }
 
-    // If forcing analysis, analyze all words regardless of cache
-    // Otherwise, filter out words we already know about
-    const unknownWords = forceAnalysis ? words : words.filter(word => 
+    // Filter out words we already know about
+    const unknownWords = words.filter(word => 
       !this.knownWordsCache.has(word) && !this.unknownWordsCache.has(word)
     );
 
-    if (unknownWords.length === 0 && !forceAnalysis) {
-      // Return cached results as WordAnalysis objects
-      const known: WordAnalysis[] = words
-        .filter(word => this.knownWordsCache.has(word))
-        .map(word => ({
-          word,
-          analysis: '',
-          allAnalysis: []
-        }));
-      const unknown = words.filter(word => this.unknownWordsCache.has(word));
-      
-      return { known, unknown };
+    if (unknownWords.length === 0) {
+      // Return cached results - words in cache get empty analysis
+      return {
+        known: words
+          .filter(word => this.knownWordsCache.has(word))
+          .map(word => ({
+            word,
+            analysis: '',
+            allAnalysis: []
+          })),
+        unknown: words.filter(word => this.unknownWordsCache.has(word))
+      };
     }
 
     // Create cache key for this batch of unknown words
     const cacheKey = unknownWords.sort().join('|');
     
-    // Check if we already have a pending request for this exact batch (only if not forcing)
-    if (!forceAnalysis && this.pendingRequests.has(cacheKey)) {
+    // Check if we already have a pending request for this exact batch
+    if (this.pendingRequests.has(cacheKey)) {
       const result = await this.pendingRequests.get(cacheKey)!;
       return this.combineWithCached(words, result);
     }
@@ -61,7 +61,7 @@ class SpellCheckerServiceImpl {
       const result = await promise;
       
       // Update caches
-      result.known.forEach(analysis => this.knownWordsCache.add(analysis.word));
+      result.known.forEach(item => this.knownWordsCache.add(item.word));
       result.unknown.forEach(word => this.unknownWordsCache.add(word));
 
       return this.combineWithCached(words, result);
@@ -83,8 +83,7 @@ class SpellCheckerServiceImpl {
       const res = await response;
       const result = await res.body.json() as Record<string, string[]>;
       
-      // Parse FST API response - keys are words, values are analysis arrays
-      // Example: { 'otâpana': ['otâpân+N+I+Pl', 'nitâpân+N+A+D+Px3Sg+Obv'], 'kâ-kî-cîskâtahosocik': [] }
+      // Parse API response - keys are words, values are arrays of analyses
       const known: WordAnalysis[] = [];
       const unknown: string[] = [];
 
@@ -93,8 +92,8 @@ class SpellCheckerServiceImpl {
         if (analyses && Array.isArray(analyses) && analyses.length > 0) {
           known.push({
             word,
-            analysis: analyses[0], // Select first analysis as primary
-            allAnalysis: analyses  // Keep all analyses for user selection
+            analysis: analyses[0],  // Use first analysis as primary
+            allAnalysis: analyses   // Keep all for potential user selection
           });
         } else {
           unknown.push(word);
@@ -114,14 +113,14 @@ class SpellCheckerServiceImpl {
     const unknown: string[] = [];
 
     for (const word of originalWords) {
-      // Check if word is in API results (new analysis)
-      const apiAnalysis = apiResult.known.find(analysis => analysis.word === word);
+      // Check if in API result
+      const apiAnalysis = apiResult.known.find(item => item.word === word);
       if (apiAnalysis) {
         known.push(apiAnalysis);
         continue;
       }
-
-      // Check if word is in known cache (create legacy analysis object)
+      
+      // Check if in known cache
       if (this.knownWordsCache.has(word)) {
         known.push({
           word,
@@ -130,8 +129,8 @@ class SpellCheckerServiceImpl {
         });
         continue;
       }
-
-      // Check if word is in unknown cache or API unknown results
+      
+      // Must be unknown
       if (this.unknownWordsCache.has(word) || apiResult.unknown.includes(word)) {
         unknown.push(word);
       }
@@ -142,22 +141,16 @@ class SpellCheckerServiceImpl {
 
   /**
    * Add words to known cache (useful for loading saved analysis)
-   * Supports both legacy string[] and new WordAnalysis[] formats
+   * Accepts both string[] (legacy) and WordAnalysis[] (new format)
    */
   addKnownWords(words: string[] | WordAnalysis[]): void {
-    if (words.length === 0) return;
-    
-    // Handle new WordAnalysis format
-    if (typeof words[0] === 'object') {
-      (words as WordAnalysis[]).forEach(analysis => 
-        this.knownWordsCache.add(analysis.word)
-      );
-    } else {
-      // Handle legacy string format
-      (words as string[]).forEach(word => 
-        this.knownWordsCache.add(word)
-      );
-    }
+    words.forEach(word => {
+      if (typeof word === 'string') {
+        this.knownWordsCache.add(word);
+      } else {
+        this.knownWordsCache.add(word.word);
+      }
+    });
   }
 
   /**
@@ -189,4 +182,4 @@ class SpellCheckerServiceImpl {
   }
 }
 
-export const spellCheckerService = new SpellCheckerServiceImpl(); 
+export const spellCheckerService = new SpellCheckerServiceImpl();

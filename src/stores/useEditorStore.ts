@@ -202,6 +202,21 @@ export const useEditorStore = create<EditorState>()(
         const regionMap: Record<string, RegionData> = {};
         const regionVersions: Record<string, number> = {};
         regions.forEach((region) => {
+          // Filter out empty analysis (WordAnalysis objects with empty analysis field)
+          // These are incomplete and should be re-analyzed
+          if (region.regionAnalysis && Array.isArray(region.regionAnalysis)) {
+            const hasEmptyAnalysis = region.regionAnalysis.some((item: any) => 
+              typeof item === 'object' && 
+              item.word && 
+              (!item.analysis || item.analysis === '' || !item.allAnalysis || item.allAnalysis.length === 0)
+            );
+            
+            if (hasEmptyAnalysis) {
+              console.log(`🧹 STORE: Clearing incomplete regionAnalysis for ${region.id} (has empty analysis fields)`);
+              region.regionAnalysis = [];
+            }
+          }
+          
           regionMap[region.id] = region;
           
           // Validate that existing regions from DB have versions
@@ -266,8 +281,19 @@ export const useEditorStore = create<EditorState>()(
 
         // If we have a selectedRegionId and it exists in our regions, set it as selected
         if (selectedRegionId && regionMap[selectedRegionId]) {
+          const region = regionMap[selectedRegionId];
           newState.selectedRegionId = selectedRegionId;
-          newState.selectedRegion = regionMap[selectedRegionId];
+          newState.selectedRegion = region;
+          
+          console.log(`🎯 STORE: Initial region selection (from URL) ${selectedRegionId}:`, {
+            id: region.id,
+            hasRegionAnalysis: !!region.regionAnalysis,
+            regionAnalysisType: typeof region.regionAnalysis,
+            regionAnalysisIsArray: Array.isArray(region.regionAnalysis),
+            regionAnalysisLength: Array.isArray(region.regionAnalysis) ? region.regionAnalysis.length : 'N/A',
+            firstItem: Array.isArray(region.regionAnalysis) && region.regionAnalysis.length > 0 ? region.regionAnalysis[0] : undefined,
+            regionAnalysis: region.regionAnalysis
+          });
         }
 
         set(newState);
@@ -334,20 +360,22 @@ export const useEditorStore = create<EditorState>()(
         const { regionMap } = get();
         const region = regionId ? regionMap[regionId] : null;
         
+        if (region) {
+          console.log(`🎯 STORE: Selected region ${regionId}:`, {
+            id: region.id,
+            hasRegionAnalysis: !!region.regionAnalysis,
+            regionAnalysisType: typeof region.regionAnalysis,
+            regionAnalysisIsArray: Array.isArray(region.regionAnalysis),
+            regionAnalysisLength: Array.isArray(region.regionAnalysis) ? region.regionAnalysis.length : 'N/A',
+            firstItem: Array.isArray(region.regionAnalysis) && region.regionAnalysis.length > 0 ? region.regionAnalysis[0] : undefined,
+            regionAnalysis: region.regionAnalysis
+          });
+        }
+        
         set({
           selectedRegionId: regionId,
           selectedRegion: region,
         });
-
-        // Check if the selected region has legacy analysis and upgrade it
-        if (region?.regionAnalysis && region.regionText) {
-          // Import dynamically to avoid circular dependency
-          import('../services/legacyAnalysisUpgrader').then(({ checkAndUpgradeLegacyAnalysis }) => {
-            checkAndUpgradeLegacyAnalysis(regionId!, region.regionText!).catch((error) => {
-              console.error('Failed to check/upgrade legacy analysis:', error);
-            });
-          });
-        }
       },
 
       setSelectedIssueId: (issueId) => {
@@ -996,11 +1024,25 @@ export const useEditorStore = create<EditorState>()(
         const existingRegion = regionMap[regionId];
         
         if (!existingRegion) {
+          console.warn(`⚠️ STORE: Region ${regionId} not found, cannot set analysis`);
           return; // Region not found
         }
 
+        console.log(`📝 STORE: Setting regionAnalysis for ${regionId}:`, {
+          analysisType: Array.isArray(analysis) ? 'array' : typeof analysis,
+          analysisLength: Array.isArray(analysis) ? analysis.length : 'N/A',
+          firstItem: Array.isArray(analysis) && analysis.length > 0 ? analysis[0] : undefined,
+          fullAnalysis: analysis
+        });
+
         // Create updated region with new analysis (supports both string[] and WordAnalysis[])
         const updatedRegion = { ...existingRegion, regionAnalysis: analysis };
+        
+        console.log(`📝 STORE: Updated region object:`, {
+          id: updatedRegion.id,
+          regionAnalysisType: typeof updatedRegion.regionAnalysis,
+          regionAnalysis: updatedRegion.regionAnalysis
+        });
         
         // Prepare the update object
         const updateObj: Partial<EditorState> = {
@@ -1014,6 +1056,8 @@ export const useEditorStore = create<EditorState>()(
         }
         
         set(updateObj);
+        
+        console.log(`✅ STORE: regionAnalysis set successfully for ${regionId}`);
       },
 
       // Transcription metadata helpers

@@ -125,15 +125,32 @@ export const createRegion = async (
  */
 export const updateRegion = async (regionId: string, updates: Partial<RegionData>, username: string, version: number) => {
   try {
+    console.log(`🔧 REGION-SERVICE: updateRegion called for ${regionId}`, {
+      updatesKeys: Object.keys(updates),
+      hasRegionAnalysis: !!updates.regionAnalysis,
+      regionAnalysisType: updates.regionAnalysis ? typeof updates.regionAnalysis : 'undefined',
+      regionAnalysisLength: Array.isArray(updates.regionAnalysis) ? updates.regionAnalysis.length : 'N/A',
+      regionAnalysis: updates.regionAnalysis
+    });
+    
     // Serialize regionAnalysis for AWSJSON storage BEFORE creating input
     let serializedUpdates = { ...updates };
     if (serializedUpdates.regionAnalysis && Array.isArray(serializedUpdates.regionAnalysis)) {
       // Both WordAnalysis[] and legacy string[] need to be serialized to JSON for AWSJSON
+      const jsonString = JSON.stringify(serializedUpdates.regionAnalysis);
+      console.log(`📦 REGION-SERVICE: Serializing regionAnalysis to JSON:`, {
+        originalLength: serializedUpdates.regionAnalysis.length,
+        jsonStringLength: jsonString.length,
+        jsonString: jsonString.substring(0, 200) + '...'
+      });
+      
       serializedUpdates = {
         ...serializedUpdates,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        regionAnalysis: JSON.stringify(serializedUpdates.regionAnalysis) as any
+        regionAnalysis: jsonString as any
       };
+      
+      console.log(`✅ REGION-SERVICE: Serialized regionAnalysis:`, serializedUpdates.regionAnalysis);
     }
 
     // Create input for GraphQL using provided version (no pre-save fetch needed)

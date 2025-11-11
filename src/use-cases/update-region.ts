@@ -12,7 +12,7 @@ type RegionChanges = {
   translation?: string;
   start?: number;
   end?: number;
-  regionAnalysis?: string[] | WordAnalysis[];
+  regionAnalysis?: WordAnalysis[]; // New WordAnalysis[] format
 };
 
 interface UpdateRegionConfig {
@@ -21,7 +21,6 @@ interface UpdateRegionConfig {
   debounceMs: number;
   primaryField: string; // For conflict resolution UI (regionText, start, etc.)
   pendingEditField?: string; // For text/translation pending edit tracking
-  force?: boolean; // Skip unchanged check (useful when store was already updated optimistically)
   services: typeof services;
   store: typeof services.storeService;
 }
@@ -51,7 +50,7 @@ export class UpdateRegionUseCase {
   execute(): void {
     this.validate();
 
-    const { regionId, changes, debounceMs, primaryField, pendingEditField, force, services, store } = this.config;
+    const { regionId, changes, debounceMs, primaryField, pendingEditField, services, store } = this.config;
 
     // Check if the region exists
     const existingRegion = store.regionById(regionId);
@@ -60,27 +59,14 @@ export class UpdateRegionUseCase {
       return;
     }
 
-    // Check if there's actually a change (unless forced)
-    if (!force) {
-      const hasChanges = Object.keys(changes).some(field => {
-        const existingValue = (existingRegion as unknown as Record<string, unknown>)[field];
-        const newValue = (changes as unknown as Record<string, unknown>)[field];
-        
-        // Special handling for regionAnalysis array comparison
-        if (field === 'regionAnalysis') {
-          const existingArray = existingValue as string[] || [];
-          const newArray = newValue as string[] || [];
-          // Compare arrays by content, not reference
-          return JSON.stringify(existingArray.sort()) !== JSON.stringify(newArray.sort());
-        }
-        
-        return existingValue !== newValue;
-      });
-      
-      if (!hasChanges) {
-        console.log(`Region ${regionId} unchanged, skipping update`);
-        return;
-      }
+    // Check if there's actually a change
+    const hasChanges = Object.keys(changes).some(field => 
+      (existingRegion as unknown as Record<string, unknown>)[field] !== (changes as unknown as Record<string, unknown>)[field]
+    );
+    
+    if (!hasChanges) {
+      console.log(`Region ${regionId} unchanged, skipping update`);
+      return;
     }
 
     // Update store optimistically (for immediate UI feedback)
@@ -150,7 +136,7 @@ export class UpdateRegionUseCase {
           break;
         }
         case 'regionAnalysis':
-          store.setRegionAnalysis(existingRegion.id, value as string[] | WordAnalysis[]);
+          store.setRegionAnalysis(existingRegion.id, value as WordAnalysis[]);
           break;
         default:
           console.warn(`Unknown field type for store update: ${field}`);
@@ -161,6 +147,12 @@ export class UpdateRegionUseCase {
   private async performSave(existingRegion: RegionData, user: { username: string }): Promise<void> {
     const { regionId, changes, primaryField, services, store } = this.config;
     
+    console.log(`💾 UPDATE-REGION: performSave called for ${regionId}`, {
+      primaryField,
+      changes: Object.keys(changes),
+      hasRegionAnalysis: 'regionAnalysis' in changes
+    });
+    
     // Prepare update data
     const updateData = { ...changes };
     
@@ -168,25 +160,42 @@ export class UpdateRegionUseCase {
     if (changes.regionText !== undefined) {
       try {
         const region = store.regionById(regionId);
+        console.log(`📝 UPDATE-REGION: Text update - fetching analysis from store`, {
+          hasRegion: !!region,
+          hasRegionAnalysis: !!region?.regionAnalysis,
+          regionAnalysisType: typeof region?.regionAnalysis,
+          regionAnalysis: region?.regionAnalysis
+        });
+        
         if (region?.regionAnalysis) {
-          updateData.regionAnalysis = region.regionAnalysis;
+          updateData.regionAnalysis = region.regionAnalysis as WordAnalysis[];
+          console.log(`✅ UPDATE-REGION: Added regionAnalysis to updateData:`, updateData.regionAnalysis);
         }
       } catch (error) {
         console.warn('Could not get analysis from store at save time:', error);
       }
     }
 
+    console.log(`💾 UPDATE-REGION: Final updateData to save:`, {
+      fields: Object.keys(updateData),
+      regionAnalysisType: updateData.regionAnalysis ? typeof updateData.regionAnalysis : 'undefined',
+      regionAnalysisLength: Array.isArray(updateData.regionAnalysis) ? updateData.regionAnalysis.length : 'N/A',
+      regionAnalysis: updateData.regionAnalysis
+    });
+
     // Get current version for optimistic concurrency control
     const currentVersion = store.getRegionVersion(regionId);
 
     try {
       // Save to database
+      console.log(`🚀 UPDATE-REGION: Calling regionService.updateRegion for ${regionId}`);
       await services.regionService.updateRegion(
         regionId,
         updateData,
         user.username,
         currentVersion
       );
+      console.log(`✅ UPDATE-REGION: Successfully saved ${regionId}`);
 
       // Update the store's version tracking after successful save
       // The database will have incremented the version, so we increment locally too
@@ -218,8 +227,9 @@ export class UpdateRegionUseCase {
           currentVersion,
           store,
           // onAcceptRemote
-          async (remoteRegion: Partial<RegionData & LazyRegion>) => {
-            this.applyRemoteChangesToStore(remoteRegion, store, services);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          async (remoteRegion: any) => {
+            this.applyRemoteChangesToStore(remoteRegion as Partial<RegionData & LazyRegion>, store);
             // Update version to match remote version
             if (remoteRegion._version) {
               store.setRegionVersion(regionId, remoteRegion._version);
@@ -240,67 +250,64 @@ export class UpdateRegionUseCase {
               user.username,
               latestVersion
             );
+            
+            // Update version tracking
+            store.setRegionVersion(regionId, latestVersion + 1);
+            
+            // Update transcription metadata
+            const updateTranscriptionUseCase = new UpdateTranscriptionUseCase({
+              transcriptionId: existingRegion.transcriptionId,
+              services,
+              store: store,
+            });
+            await updateTranscriptionUseCase.execute();
           }
         );
       } else {
-        throw error; // Re-throw non-conflict errors
+        // Not a version conflict, throw the error
+        throw error;
       }
     }
   }
 
-  private revertChangesToStore(changes: RegionChanges, existingRegion: RegionData, store: typeof services.storeService): void {
-    // Revert optimistic updates
+  private revertChangesToStore(changes: RegionChanges, originalRegion: RegionData, store: typeof services.storeService): void {
+    // Revert each changed field to its original value
     Object.keys(changes).forEach(field => {
-      const originalValue = (existingRegion as unknown as Record<string, unknown>)[field];
+      const originalValue = (originalRegion as unknown as Record<string, unknown>)[field];
       
       switch (field) {
         case 'regionText':
-          store.setRegionText(existingRegion.id, originalValue as string);
+          store.setRegionText(originalRegion.id, originalValue as string);
           break;
         case 'translation':
-          store.setRegionTranslation(existingRegion.id, originalValue as string);
+          store.setRegionTranslation(originalRegion.id, originalValue as string);
           break;
         case 'start':
         case 'end':
-          store.updateRegionBounds(existingRegion.id, existingRegion.start, existingRegion.end);
+          store.updateRegionBounds(originalRegion.id, originalRegion.start, originalRegion.end);
+          break;
+        case 'regionAnalysis':
+          store.setRegionAnalysis(originalRegion.id, originalValue as WordAnalysis[]);
           break;
       }
     });
   }
 
-  private applyRemoteChangesToStore(remoteRegion: Partial<RegionData & LazyRegion>, store: typeof services.storeService, servicesArg: typeof services): void {
-    const { regionId } = this.config;
+  private applyRemoteChangesToStore(remoteRegion: Partial<RegionData & LazyRegion>, store: typeof services.storeService): void {
+    if (!remoteRegion.id) return;
     
-    // Apply all remote changes to store
+    // Apply each field from the remote region
     if (remoteRegion.regionText !== undefined) {
-      store.setRegionText(regionId, remoteRegion.regionText);
-      
-      // Update RTE editor if exists
-      const editorKey = `${regionId}:main` as const;
-      if (servicesArg.rteService.hasEditor(editorKey)) {
-        console.log('🔄 Updating RTE editor with remote content');
-        servicesArg.rteService.setContent(editorKey, remoteRegion.regionText);
-      }
+      store.setRegionText(remoteRegion.id, remoteRegion.regionText);
     }
-    
     if (remoteRegion.translation !== undefined) {
-      store.setRegionTranslation(regionId, remoteRegion.translation);
-      
-      // Update translation RTE if exists
-      const translationEditorKey = `${regionId}:translation` as const;
-      if (servicesArg.rteService.hasEditor(translationEditorKey)) {
-        servicesArg.rteService.setContent(translationEditorKey, remoteRegion.translation);
-      }
+      store.setRegionTranslation(remoteRegion.id, remoteRegion.translation);
     }
-    
     if (remoteRegion.start !== undefined && remoteRegion.end !== undefined) {
-      store.updateRegionBounds(regionId, remoteRegion.start, remoteRegion.end);
-      
-      // Update wavesurfer position
-      servicesArg.wavesurferService.setRegionPosition(regionId, {
-        start: remoteRegion.start,
-        end: remoteRegion.end
-      });
+      store.updateRegionBounds(remoteRegion.id, remoteRegion.start, remoteRegion.end);
+    }
+    if (remoteRegion.regionAnalysis !== undefined) {
+      store.setRegionAnalysis(remoteRegion.id, remoteRegion.regionAnalysis as WordAnalysis[]);
     }
   }
-} 
+}
