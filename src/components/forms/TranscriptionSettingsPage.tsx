@@ -6,11 +6,14 @@ import { useDeleteTranscription } from '../../hooks/useDeleteTranscription';
 import * as inviteService from '../../services/inviteService';
 import { generateSignedUrl } from '../../services/transcriptionService';
 import type { InviteModel, TranscriptionModel } from '../../services/adt';
+import { useExportTranscription } from '../../hooks/useExportTranscription';
+import type { ExportRegion } from '../../use-cases/export-transcription';
 
 interface TranscriptionSettingsPageProps {
   transcription: TranscriptionModel;
   regionCount: number;
   issueCount: number;
+  regions: ExportRegion[];
   onSave: (updates: { title?: string; comments?: string; isPrivate?: boolean; publicIssues?: boolean; lang?: string }) => void;
   onBack: () => void;
   onDelete?: () => void;
@@ -21,6 +24,7 @@ export const TranscriptionSettingsPage = ({
   transcription,
   regionCount,
   issueCount,
+  regions,
   onSave,
   onBack,
   onDelete,
@@ -58,7 +62,13 @@ export const TranscriptionSettingsPage = ({
   const [deleteError, setDeleteError] = useState<string | null>(null);
   
   // Download state
-  const [isDownloading, setIsDownloading] = useState(false);
+  const [isDownloadingSource, setIsDownloadingSource] = useState(false);
+  const [showExportDialog, setShowExportDialog] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [includeRegionNumbers, setIncludeRegionNumbers] = useState(true);
+  const [includeTimestamps, setIncludeTimestamps] = useState(true);
+  const [includeTranslation, setIncludeTranslation] = useState(true);
+  const [exportError, setExportError] = useState<string | null>(null);
   
   // Hooks
   const createInvite = useCreateInvite();
@@ -241,10 +251,10 @@ export const TranscriptionSettingsPage = ({
     }
   };
 
-  const handleDownload = async () => {
+  const handleDownloadSource = async () => {
     if (!transcription.source) return;
 
-    setIsDownloading(true);
+    setIsDownloadingSource(true);
     try {
       // Generate a fresh signed URL
       const signedUrl = await generateSignedUrl(transcription.source);
@@ -261,7 +271,32 @@ export const TranscriptionSettingsPage = ({
       console.error('Download failed:', error);
       // Could add error state/toast here if needed
     } finally {
-      setIsDownloading(false);
+      setIsDownloadingSource(false);
+    }
+  };
+
+  const exportTranscription = useExportTranscription();
+
+  const handleExportTranscription = async () => {
+    setExportError(null);
+    setIsExporting(true);
+
+    try {
+      await exportTranscription({
+        transcription,
+        regions,
+        options: {
+          includeTranslation,
+          includeTimestamps,
+          includeRegionNumbers,
+        },
+      });
+      setShowExportDialog(false);
+    } catch (error) {
+      console.error('Transcription export failed:', error);
+      setExportError(error instanceof Error ? error.message : 'Failed to export transcription.');
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -485,7 +520,20 @@ export const TranscriptionSettingsPage = ({
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-600">Total Regions</label>
-                    <p className="text-base text-gray-900 mt-1">{regionCount}</p>
+                    <div className="mt-1 flex items-center gap-2">
+                      <span className="text-base text-gray-900">{regionCount}</span>
+                      <button
+                        onClick={() => setShowExportDialog(true)}
+                        className="ml-auto inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-purple-600 bg-purple-50 border border-purple-200 rounded hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-1 transition-colors"
+                        title="Export transcription"
+                      >
+                        <Download size={12} />
+                        Export transcription
+                      </button>
+                    </div>
+                    {exportError && (
+                      <p className="mt-2 text-xs text-red-600">{exportError}</p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-600">Total Issues</label>
@@ -494,15 +542,15 @@ export const TranscriptionSettingsPage = ({
                   <div>
                     <label className="block text-sm font-medium text-gray-600">Source File</label>
                     {transcription.source ? (
-                      <div className="flex items-center gap-2 mt-1">
+                      <div className="flex flex-wrap items-center gap-2 mt-1">
                         <span className="text-base text-gray-900 break-all flex-1">{transcription.getSourceFilename()}</span>
                         <button
-                          onClick={handleDownload}
-                          disabled={isDownloading}
+                          onClick={handleDownloadSource}
+                          disabled={isDownloadingSource}
                           className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                           title="Download original file"
                         >
-                          {isDownloading ? (
+                          {isDownloadingSource ? (
                             <>
                               <Loader2 size={12} className="animate-spin" />
                               Downloading...
@@ -768,6 +816,130 @@ export const TranscriptionSettingsPage = ({
                   type="button"
                   onClick={handleDeleteCancel}
                   disabled={isDeleting}
+                  className="mt-3 inline-flex w-full justify-center rounded-lg bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showExportDialog && (
+        <div className="fixed inset-0 z-50">
+          <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+            <div className="fixed inset-0 bg-gray-800/60 backdrop-saturate-0 transition-opacity" onClick={() => setShowExportDialog(false)}></div>
+
+            <div className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-md sm:p-6">
+              <div className="sm:flex sm:items-start">
+                <div className="mt-3 text-center sm:mt-0 sm:text-left flex-1">
+                  <h3 className="text-base font-semibold leading-6 text-gray-900">
+                    Export transcription
+                  </h3>
+                  <p className="mt-2 text-sm text-gray-500">
+                    Choose the details to include in the exported transcript.
+                  </p>
+
+                  <div className="mt-4 space-y-3">
+                    <label className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                      <div>
+                        <span className="text-sm font-medium text-gray-900">Include region numbers</span>
+                        <p className="text-xs text-gray-500">Adds sequential numbering for each region.</p>
+                      </div>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={includeRegionNumbers}
+                        onClick={() => setIncludeRegionNumbers(!includeRegionNumbers)}
+                        className={`
+                          relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2
+                          ${includeRegionNumbers ? 'bg-purple-600' : 'bg-gray-200'}
+                        `}
+                      >
+                        <span
+                          aria-hidden="true"
+                          className={`
+                            pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out
+                            ${includeRegionNumbers ? 'translate-x-5' : 'translate-x-0'}
+                          `}
+                        />
+                      </button>
+                    </label>
+
+                    <label className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                      <div>
+                        <span className="text-sm font-medium text-gray-900">Include timestamps</span>
+                        <p className="text-xs text-gray-500">Adds region timing in HH:MM:SS,MS format.</p>
+                      </div>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={includeTimestamps}
+                        onClick={() => setIncludeTimestamps(!includeTimestamps)}
+                        className={`
+                          relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2
+                          ${includeTimestamps ? 'bg-purple-600' : 'bg-gray-200'}
+                        `}
+                      >
+                        <span
+                          aria-hidden="true"
+                          className={`
+                            pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out
+                            ${includeTimestamps ? 'translate-x-5' : 'translate-x-0'}
+                          `}
+                        />
+                      </button>
+                    </label>
+
+                    <label className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                      <div>
+                        <span className="text-sm font-medium text-gray-900">Include translation</span>
+                        <p className="text-xs text-gray-500">Adds translated text beneath each region when available.</p>
+                      </div>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={includeTranslation}
+                        onClick={() => setIncludeTranslation(!includeTranslation)}
+                        className={`
+                          relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2
+                          ${includeTranslation ? 'bg-purple-600' : 'bg-gray-200'}
+                        `}
+                      >
+                        <span
+                          aria-hidden="true"
+                          className={`
+                            pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out
+                            ${includeTranslation ? 'translate-x-5' : 'translate-x-0'}
+                          `}
+                        />
+                      </button>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 sm:mt-5 sm:flex sm:flex-row-reverse">
+                <button
+                  type="button"
+                  onClick={handleExportTranscription}
+                  disabled={isExporting}
+                  className="inline-flex w-full justify-center rounded-lg bg-purple-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-purple-500 sm:ml-3 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isExporting ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin mr-2" />
+                      Exporting...
+                    </>
+                  ) : (
+                    'Export'
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowExportDialog(false)}
+                  disabled={isExporting}
                   className="mt-3 inline-flex w-full justify-center rounded-lg bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
