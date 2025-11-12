@@ -3,7 +3,6 @@ import { services } from './index';
 import { issueHighlightService } from './issueHighlightService';
 import type { WordAnalysis } from './spellCheckerService';
 
-
 interface PendingChanges {
   regionText?: string;
   translation?: string;
@@ -129,6 +128,24 @@ class RegionSaveManagerImpl {
       return [];
     }
     
+    // Get existing analysis from store to preserve it for cached words
+    const existingRegion = store.regionById(regionId);
+    const existingAnalysis = existingRegion?.regionAnalysis || [];
+    
+    // Build a map of existing analysis by word for fast lookup
+    const existingAnalysisMap = new Map<string, WordAnalysis>();
+    if (Array.isArray(existingAnalysis)) {
+      existingAnalysis.forEach((item: unknown) => {
+        if (typeof item === 'object' && item !== null && 'word' in item) {
+          const analysis = item as WordAnalysis;
+          // Only keep complete analysis (not empty)
+          if (analysis.word && analysis.analysis && analysis.allAnalysis?.length > 0) {
+            existingAnalysisMap.set(analysis.word, analysis);
+          }
+        }
+      });
+    }
+    
     // Get known words from cache
     const globalKnownWords = store.getKnownWords();
     const uniqueWords = [...new Set(words)];
@@ -145,7 +162,7 @@ class RegionSaveManagerImpl {
       }
     });
     
-    // Only get fresh analysis from API for unknown words
+    // Get fresh analysis from API for unknown words
     const freshAnalysis: WordAnalysis[] = [];
     if (unknownUniqueWords.length > 0) {
       try {
@@ -163,11 +180,26 @@ class RegionSaveManagerImpl {
       }
     }
     
-    // IMPORTANT: Only save fresh analysis (not cached words with empty analysis)
-    // The cache is only for highlighting, not for saving
-    store.setRegionAnalysis(regionId, freshAnalysis);
+    // CRITICAL: Merge existing analysis with fresh analysis
+    // This prevents losing analysis for cached words
+    const mergedAnalysis: WordAnalysis[] = [];
+    const freshAnalysisMap = new Map(freshAnalysis.map(item => [item.word, item]));
     
-    // For highlighting, include BOTH cached words and fresh analysis
+    uniqueWords.forEach(word => {
+      if (freshAnalysisMap.has(word)) {
+        // Fresh analysis takes priority
+        mergedAnalysis.push(freshAnalysisMap.get(word)!);
+      } else if (existingAnalysisMap.has(word)) {
+        // Preserve existing analysis for cached words
+        mergedAnalysis.push(existingAnalysisMap.get(word)!);
+      }
+      // If neither, skip (unknown word with no analysis)
+    });
+    
+    // Save merged analysis
+    store.setRegionAnalysis(regionId, mergedAnalysis);
+    
+    // For highlighting, include all known words (cached + fresh)
     const allKnownWords = [...cachedWords, ...freshAnalysis.map(item => item.word)];
     
     // Update RTE highlighting with all known words
@@ -184,10 +216,12 @@ class RegionSaveManagerImpl {
     console.log(`📊 SAVE-MANAGER: Spell check results for ${regionId}:`, {
       cachedWords: cachedWords.length,
       freshAnalysis: freshAnalysis.length,
+      preservedAnalysis: mergedAnalysis.length - freshAnalysis.length,
+      totalSaved: mergedAnalysis.length,
       totalHighlighted: allKnownWords.length
     });
     
-    return freshAnalysis;
+    return mergedAnalysis;
   }
   
   /**

@@ -401,5 +401,141 @@ describe('RegionSaveManager', () => {
       );
     });
   });
+
+  describe('Analysis Merging (Bug Fix)', () => {
+    it('should preserve existing analysis for cached words', async () => {
+      // Setup: Region has existing analysis
+      const existingAnalysis: WordAnalysis[] = [
+        { word: 'awa', analysis: 'awa+Ipc', allAnalysis: ['awa+Ipc'] },
+        { word: 'ana', analysis: 'ana+Pron', allAnalysis: ['ana+Pron'] },
+        { word: 'êkwa', analysis: 'êkwa+Ipc', allAnalysis: ['êkwa+Ipc'] },
+      ];
+      
+      (services.storeService.regionById as jest.Mock).mockReturnValue({
+        transcriptionId: 'trans-1',
+        regionAnalysis: existingAnalysis
+      });
+      
+      // "awa" and "ana" are in cache, "êkwa" is NOT, "new" is NOT
+      (services.storeService.getKnownWords as jest.Mock).mockReturnValue(
+        new Set(['awa', 'ana'])
+      );
+      
+      // API returns analysis for unknown words
+      (services.spellCheckerService.check as jest.Mock).mockResolvedValue({
+        known: [
+          { word: 'êkwa', analysis: 'êkwa+Ipc+Updated', allAnalysis: ['êkwa+Ipc+Updated'] },
+          { word: 'new', analysis: 'new+N', allAnalysis: ['new+N'] }
+        ],
+        unknown: []
+      });
+      
+      // Queue text change with all words
+      regionSaveManager.queueTextChange('region-1', 'awa ana êkwa new');
+      
+      // Trigger spell check timer
+      const spellCheckCallback = (Timeout.set as jest.Mock).mock.calls.find(
+        call => call[0].startsWith('spell-check-')
+      )?.[1];
+      await spellCheckCallback();
+      
+      // Verify merged analysis was set
+      expect(services.storeService.setRegionAnalysis).toHaveBeenCalledWith(
+        'region-1',
+        expect.arrayContaining([
+          { word: 'awa', analysis: 'awa+Ipc', allAnalysis: ['awa+Ipc'] }, // Preserved
+          { word: 'ana', analysis: 'ana+Pron', allAnalysis: ['ana+Pron'] }, // Preserved
+          { word: 'êkwa', analysis: 'êkwa+Ipc+Updated', allAnalysis: ['êkwa+Ipc+Updated'] }, // Updated
+          { word: 'new', analysis: 'new+N', allAnalysis: ['new+N'] } // New
+        ])
+      );
+    });
+
+    it('should not lose analysis when all words are cached', async () => {
+      // Setup: Region has existing analysis
+      const existingAnalysis: WordAnalysis[] = [
+        { word: 'awa', analysis: 'awa+Ipc', allAnalysis: ['awa+Ipc'] },
+        { word: 'ana', analysis: 'ana+Pron', allAnalysis: ['ana+Pron'] },
+      ];
+      
+      (services.storeService.regionById as jest.Mock).mockReturnValue({
+        transcriptionId: 'trans-1',
+        regionAnalysis: existingAnalysis
+      });
+      
+      // ALL words are in cache
+      (services.storeService.getKnownWords as jest.Mock).mockReturnValue(
+        new Set(['awa', 'ana'])
+      );
+      
+      // API is NOT called (all words cached)
+      (services.spellCheckerService.check as jest.Mock).mockResolvedValue({
+        known: [],
+        unknown: []
+      });
+      
+      // Queue text change
+      regionSaveManager.queueTextChange('region-1', 'awa ana');
+      
+      // Trigger spell check timer
+      const spellCheckCallback = (Timeout.set as jest.Mock).mock.calls.find(
+        call => call[0].startsWith('spell-check-')
+      )?.[1];
+      await spellCheckCallback();
+      
+      // Verify existing analysis was preserved (not empty array!)
+      expect(services.storeService.setRegionAnalysis).toHaveBeenCalledWith(
+        'region-1',
+        expect.arrayContaining([
+          { word: 'awa', analysis: 'awa+Ipc', allAnalysis: ['awa+Ipc'] },
+          { word: 'ana', analysis: 'ana+Pron', allAnalysis: ['ana+Pron'] }
+        ])
+      );
+      
+      // Should NOT be empty
+      const call = (services.storeService.setRegionAnalysis as jest.Mock).mock.calls[0];
+      expect(call[1].length).toBe(2);
+    });
+
+    it('should skip words with empty existing analysis', async () => {
+      // Setup: Region has mix of complete and incomplete analysis
+      const existingAnalysis = [
+        { word: 'awa', analysis: 'awa+Ipc', allAnalysis: ['awa+Ipc'] }, // Complete
+        { word: 'bad', analysis: '', allAnalysis: [] }, // Incomplete - should be skipped
+      ];
+      
+      (services.storeService.regionById as jest.Mock).mockReturnValue({
+        transcriptionId: 'trans-1',
+        regionAnalysis: existingAnalysis
+      });
+      
+      // Both words are in cache
+      (services.storeService.getKnownWords as jest.Mock).mockReturnValue(
+        new Set(['awa', 'bad'])
+      );
+      
+      (services.spellCheckerService.check as jest.Mock).mockResolvedValue({
+        known: [],
+        unknown: []
+      });
+      
+      // Queue text change
+      regionSaveManager.queueTextChange('region-1', 'awa bad');
+      
+      // Trigger spell check timer
+      const spellCheckCallback = (Timeout.set as jest.Mock).mock.calls.find(
+        call => call[0].startsWith('spell-check-')
+      )?.[1];
+      await spellCheckCallback();
+      
+      // Verify only complete analysis was preserved
+      const call = (services.storeService.setRegionAnalysis as jest.Mock).mock.calls[0];
+      const savedAnalysis = call[1];
+      
+      expect(savedAnalysis).toContainEqual({ word: 'awa', analysis: 'awa+Ipc', allAnalysis: ['awa+Ipc'] });
+      expect(savedAnalysis).not.toContainEqual({ word: 'bad', analysis: '', allAnalysis: [] });
+      expect(savedAnalysis.length).toBe(1);
+    });
+  });
 });
 
