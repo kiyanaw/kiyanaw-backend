@@ -255,6 +255,32 @@ export class SubscribeToRegionChangesUseCase {
     // Update region analysis (always unprotected)
     if (updatedRegion.regionAnalysis !== undefined) {
       store.setRegionAnalysis(updatedRegion.id as string, updatedRegion.regionAnalysis);
+      
+      // If only analysis changed (not text), we need to reapply highlighting
+      // This happens when Dan types and saves, and we receive the realtime update
+      if (actualChanges.analysis && !actualChanges.text) {
+        const mainEditorKey = `${updatedRegion.id}:main` as const;
+        const rteService = this.config.services.rteService;
+        
+        if (rteService.hasEditor(mainEditorKey)) {
+          // Parse the analysis (it comes as JSON string from GraphQL)
+          const regionAnalysisRaw = updatedRegion.regionAnalysis;
+          const regionAnalysis = extractWords(regionAnalysisRaw);
+          
+          // Get issues for the region
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const issues = (store as any).getIssuesForRegion(updatedRegion.id as string);
+          const issueHighlights = issueHighlightService.convertIssuesToHighlights(issues);
+          
+          // Reapply highlighting with updated analysis
+          rteService.applyHighlighting(mainEditorKey, {
+            knownWords: regionAnalysis || [],
+            issues: issueHighlights
+          });
+          
+          console.log(`🎨 SUBSCRIBE: Applied highlighting for analysis-only update to ${updatedRegion.id}`);
+        }
+      }
     }
 
     // Determine if there are unprotected changes

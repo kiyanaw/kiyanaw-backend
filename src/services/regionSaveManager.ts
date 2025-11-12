@@ -3,6 +3,7 @@ import { services } from './index';
 import { issueHighlightService } from './issueHighlightService';
 import type { WordAnalysis } from './spellCheckerService';
 
+
 interface PendingChanges {
   regionText?: string;
   translation?: string;
@@ -132,22 +133,20 @@ class RegionSaveManagerImpl {
     const globalKnownWords = store.getKnownWords();
     const uniqueWords = [...new Set(words)];
     
-    const knownAnalysis: WordAnalysis[] = [];
+    // Separate cached words from unknown words
+    const cachedWords: string[] = [];
     const unknownUniqueWords: string[] = [];
     
     uniqueWords.forEach(word => {
       if (globalKnownWords.has(word)) {
-        knownAnalysis.push({
-          word,
-          analysis: '',
-          allAnalysis: []
-        });
+        cachedWords.push(word);
       } else {
         unknownUniqueWords.push(word);
       }
     });
     
-    // Check unknown words via API
+    // Only get fresh analysis from API for unknown words
+    const freshAnalysis: WordAnalysis[] = [];
     if (unknownUniqueWords.length > 0) {
       try {
         const result = await services.spellCheckerService.check(
@@ -156,7 +155,7 @@ class RegionSaveManagerImpl {
         );
         
         if (result.known.length > 0) {
-          knownAnalysis.push(...result.known);
+          freshAnalysis.push(...result.known);
           store.addKnownWords(result.known);
         }
       } catch (error) {
@@ -164,21 +163,31 @@ class RegionSaveManagerImpl {
       }
     }
     
-    // Update store with analysis (for immediate UI feedback)
-    store.setRegionAnalysis(regionId, knownAnalysis);
+    // IMPORTANT: Only save fresh analysis (not cached words with empty analysis)
+    // The cache is only for highlighting, not for saving
+    store.setRegionAnalysis(regionId, freshAnalysis);
     
-    // Also update RTE highlighting
+    // For highlighting, include BOTH cached words and fresh analysis
+    const allKnownWords = [...cachedWords, ...freshAnalysis.map(item => item.word)];
+    
+    // Update RTE highlighting with all known words
     const mainEditorKey = `${regionId}:main` as const;
     if (services.rteService.hasEditor(mainEditorKey)) {
       const issues = store.getIssuesForRegion(regionId);
       const issueHighlights = issueHighlightService.convertIssuesToHighlights(issues);
       services.rteService.applyHighlighting(mainEditorKey, {
-        knownWords: knownAnalysis.map(item => item.word),
+        knownWords: allKnownWords,
         issues: issueHighlights
       });
     }
     
-    return knownAnalysis;
+    console.log(`📊 SAVE-MANAGER: Spell check results for ${regionId}:`, {
+      cachedWords: cachedWords.length,
+      freshAnalysis: freshAnalysis.length,
+      totalHighlighted: allKnownWords.length
+    });
+    
+    return freshAnalysis;
   }
   
   /**
