@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Outlet, Link } from 'react-router-dom';
-import { Download, LogOut, HelpCircle, Database } from 'lucide-react';
+import { Download, LogOut, HelpCircle } from 'lucide-react';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { useLoadMyInvites } from '../../hooks/useLoadMyInvites';
 import { signOut } from 'aws-amplify/auth';

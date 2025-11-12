@@ -241,11 +241,6 @@ class RegionSaveManagerImpl {
     const changes = { ...queue.pendingChanges };
     const pendingEditField = queue.pendingEditField;
     
-    // Determine primary field for conflict resolution
-    const primaryField = queue.lastChangeSource === 'text' ? 'regionText' :
-                        queue.lastChangeSource === 'translation' ? 'translation' :
-                        'start';
-    
     // Clear the queue BEFORE saving (prevent re-entry)
     this.clearQueue(regionId);
     
@@ -300,8 +295,110 @@ class RegionSaveManagerImpl {
       
     } catch (error) {
       console.error(`❌ SAVE-MANAGER: Save failed for ${regionId}:`, error);
-      // Re-throw to allow error handling upstream
-      throw error;
+      
+      // Check if this is a version conflict error
+      const { isVersionConflictError, handleVersionConflict } = await import('./versionConflictService');
+      
+      if (isVersionConflictError(error)) {
+        console.log(`⚠️ SAVE-MANAGER: Version conflict detected for ${regionId}, showing conflict dialog`);
+        
+        // Determine primary field from the changes
+        const primaryField = changes.regionText !== undefined ? 'regionText' :
+                           changes.translation !== undefined ? 'translation' :
+                           'start';
+        
+        const store = services.storeService;
+        const currentVersion = store.getRegionVersion(regionId);
+        
+        // Handle the conflict with the dialog
+        await handleVersionConflict(
+          regionId,
+          changes,
+          primaryField,
+          currentVersion,
+          store,
+          // onAcceptRemote: Update local state with remote version
+          async (remoteRegion) => {
+            console.log(`✅ SAVE-MANAGER: User accepted remote version for ${regionId}`, {
+              remoteVersion: (remoteRegion as { _version?: number })?._version,
+              primaryField
+            });
+            
+            // Update the store with the remote region data
+            const remoteData = remoteRegion as Record<string, unknown>;
+            
+            // Update the specific field in the store
+            if (primaryField === 'regionText' && remoteData.regionText !== undefined) {
+              store.setRegionText(regionId, remoteData.regionText as string);
+            } else if (primaryField === 'translation' && remoteData.translation !== undefined) {
+              store.setRegionTranslation(regionId, remoteData.translation as string);
+            }
+            
+            // Update the RTE editor with remote content
+            if (primaryField === 'regionText') {
+              const mainEditorKey = `${regionId}:main` as const;
+              if (services.rteService.hasEditor(mainEditorKey)) {
+                services.rteService.setContent(mainEditorKey, remoteData.regionText as string);
+                console.log(`🔄 SAVE-MANAGER: Updated RTE editor with remote text`);
+              }
+            } else if (primaryField === 'translation') {
+              const translationEditorKey = `${regionId}:translation` as const;
+              if (services.rteService.hasEditor(translationEditorKey)) {
+                services.rteService.setContent(translationEditorKey, remoteData.translation as string);
+                console.log(`🔄 SAVE-MANAGER: Updated RTE editor with remote translation`);
+              }
+            }
+            
+            // Update version
+            const remoteVersion = (remoteData._version as number) || currentVersion + 1;
+            store.setRegionVersion(regionId, remoteVersion);
+            
+            // End the pending edit
+            if (pendingEditField) {
+              services.storeService.endPendingEdit(regionId, pendingEditField);
+            }
+            
+            console.log(`✅ SAVE-MANAGER: Local state updated with remote version`);
+          },
+          // onKeepLocal: Retry save with latest version
+          async (latestVersion) => {
+            console.log(`🔄 SAVE-MANAGER: User kept local version for ${regionId}, retrying save with version ${latestVersion}`);
+            
+            // Retry the save with the latest version
+            await services.regionService.updateRegion(
+              regionId,
+              changes,
+              services.authService.currentUser()!.username,
+              latestVersion
+            );
+            
+            // Update version after successful save
+            store.setRegionVersion(regionId, latestVersion + 1);
+            
+            // Update transcription metadata
+            const region = store.regionById(regionId);
+            if (region) {
+              const { UpdateTranscriptionUseCase } = await import('../use-cases/update-transcription');
+              const updateTranscriptionUseCase = new UpdateTranscriptionUseCase({
+                transcriptionId: region.transcriptionId,
+                services,
+                store: store,
+              });
+              await updateTranscriptionUseCase.execute();
+            }
+            
+            // End pending edit
+            if (pendingEditField) {
+              services.storeService.endPendingEdit(regionId, pendingEditField);
+            }
+            
+            console.log(`✅ SAVE-MANAGER: Retry save completed for ${regionId}`);
+          }
+        );
+      } else {
+        // Not a conflict error, re-throw
+        throw error;
+      }
     }
   }
   
