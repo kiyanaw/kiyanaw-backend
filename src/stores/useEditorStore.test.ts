@@ -143,7 +143,11 @@ describe('useEditorStore known words functionality', () => {
     it('should add new known words to the set', () => {
       const store = useEditorStore.getState();
       
-      store.addKnownWords(['hello', 'world', 'êkwa']);
+      store.addKnownWords([
+        { word: 'hello', analysis: 'hello+N', allAnalysis: ['hello+N'] },
+        { word: 'world', analysis: 'world+N', allAnalysis: ['world+N'] },
+        { word: 'êkwa', analysis: 'êkwa+Ipc', allAnalysis: ['êkwa+Ipc'] }
+      ]);
       
       const state = useEditorStore.getState();
       expect(state.knownWords.has('hello')).toBe(true);
@@ -155,8 +159,14 @@ describe('useEditorStore known words functionality', () => {
     it('should not add duplicates', () => {
       const store = useEditorStore.getState();
       
-      store.addKnownWords(['hello', 'world']);
-      store.addKnownWords(['hello', 'êkwa']); // hello is duplicate
+      store.addKnownWords([
+        { word: 'hello', analysis: 'hello+N', allAnalysis: ['hello+N'] },
+        { word: 'world', analysis: 'world+N', allAnalysis: ['world+N'] }
+      ]);
+      store.addKnownWords([
+        { word: 'hello', analysis: 'hello+N', allAnalysis: ['hello+N'] }, // duplicate
+        { word: 'êkwa', analysis: 'êkwa+Ipc', allAnalysis: ['êkwa+Ipc'] }
+      ]);
       
       const state = useEditorStore.getState();
       expect(state.knownWords.size).toBe(3); // hello, world, êkwa
@@ -177,7 +187,12 @@ describe('useEditorStore known words functionality', () => {
     it('should handle Unicode characters', () => {
       const store = useEditorStore.getState();
       
-      store.addKnownWords(['itwêw', 'êkwa', 'tâpwê', 'ohci']);
+      store.addKnownWords([
+        { word: 'itwêw', analysis: 'itwêw+V+AI', allAnalysis: ['itwêw+V+AI'] },
+        { word: 'êkwa', analysis: 'êkwa+Ipc', allAnalysis: ['êkwa+Ipc'] },
+        { word: 'tâpwê', analysis: 'tâpwê+Ipc', allAnalysis: ['tâpwê+Ipc'] },
+        { word: 'ohci', analysis: 'ohci+Ipc', allAnalysis: ['ohci+Ipc'] }
+      ]);
       
       const state = useEditorStore.getState();
       expect(state.knownWords.has('itwêw')).toBe(true);
@@ -210,19 +225,20 @@ describe('useEditorStore known words functionality', () => {
       expect(state.knownWords.has('tânisi')).toBe(false);
     });
 
-    it('should handle mixed legacy strings and WordAnalysis objects', () => {
+    it('should only accept WordAnalysis objects (no legacy strings)', () => {
       const store = useEditorStore.getState();
       
-      // Add mix of legacy strings and new WordAnalysis objects
-      store.addKnownWords(['hello', 'world']); // Legacy strings
+      // Add complete and incomplete WordAnalysis objects
       store.addKnownWords([
+        { word: 'hello', analysis: 'hello+N', allAnalysis: ['hello+N'] }, // Complete
+        { word: 'world', analysis: 'world+N', allAnalysis: ['world+N'] }, // Complete
         { word: 'awa', analysis: 'awa+Ipc', allAnalysis: ['awa+Ipc'] }, // Complete WordAnalysis
         { word: 'empty', analysis: '', allAnalysis: [] } // Incomplete - should be filtered
       ]);
       
       const state = useEditorStore.getState();
       
-      // Should have legacy strings + complete WordAnalysis
+      // Should only have complete WordAnalysis objects
       expect(state.knownWords.size).toBe(3);
       expect(state.knownWords.has('hello')).toBe(true);
       expect(state.knownWords.has('world')).toBe(true);

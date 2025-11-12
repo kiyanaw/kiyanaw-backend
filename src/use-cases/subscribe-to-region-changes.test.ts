@@ -317,7 +317,10 @@ describe('SubscribeToRegionChangesUseCase', () => {
       it('should handle region analysis updates', async () => {
         const currentRegion = { id: 'region-1' };
         const updatedRegion = createMockRegion({ 
-          regionAnalysis: ['word1', 'word2'],
+          regionAnalysis: [
+            { word: 'word1', analysis: 'word1+N', allAnalysis: ['word1+N'] },
+            { word: 'word2', analysis: 'word2+N', allAnalysis: ['word2+N'] }
+          ],
           userLastUpdated: 'other@user.com'
         });
 
@@ -327,8 +330,12 @@ describe('SubscribeToRegionChangesUseCase', () => {
 
         await await subscriptionCallback(event);
 
-        expect(mockServices.storeService.setRegionAnalysis).toHaveBeenCalledWith('region-1', ['word1', 'word2']);
-        expect(mockServices.storeService.addKnownWords).toHaveBeenCalledWith(['word1', 'word2']);
+        expect(mockServices.storeService.setRegionAnalysis).toHaveBeenCalledWith('region-1', [
+          { word: 'word1', analysis: 'word1+N', allAnalysis: ['word1+N'] },
+          { word: 'word2', analysis: 'word2+N', allAnalysis: ['word2+N'] }
+        ]);
+        // addKnownWords should NOT be called for WordAnalysis format (only for legacy string[])
+        expect(mockServices.storeService.addKnownWords).not.toHaveBeenCalled();
       });
 
       it('should handle text changes and update RTE if available', async () => {

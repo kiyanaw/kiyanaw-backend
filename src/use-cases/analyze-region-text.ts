@@ -15,6 +15,11 @@ interface AnalyzeRegionTextConfig {
 // Debounced analysis state - now stores timeout keys instead of timeout objects
 const pendingAnalysis = new Map<string, string>();
 
+/**
+ * @deprecated Use regionSaveManager.queueTextChange() instead.
+ * This use-case is now only called internally by RegionSaveManager.
+ * The manager handles spell checking automatically for text changes.
+ */
 export class AnalyzeRegionTextUseCase {
   private config: AnalyzeRegionTextConfig;
 

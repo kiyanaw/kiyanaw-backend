@@ -1000,7 +1000,7 @@ export const useEditorStore = create<EditorState>()(
         const { knownWords } = get();
         const newKnownWords = new Set(knownWords);
         
-        // Handle both string[] and WordAnalysis[] formats
+        // Handle WordAnalysis[] format ONLY
         words.forEach(word => {
           if (typeof word === 'object' && 'word' in word) {
             // WordAnalysis format - only add if analysis is COMPLETE
@@ -1011,8 +1011,7 @@ export const useEditorStore = create<EditorState>()(
             }
             // Skip words with empty analysis - they need to be re-analyzed
           } else {
-            // Legacy string format
-            newKnownWords.add(word as string);
+            console.error('❌ STORE: addKnownWords received non-WordAnalysis format:', word);
           }
         });
         

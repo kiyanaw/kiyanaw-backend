@@ -622,16 +622,20 @@ describe('LoadTranscription', () => {
       // Should ONLY extract words with complete analysis (awa, êwako, kiya)
       // Should NOT extract words with empty analysis (nôhkom, tânisi)
       expect(services.spellCheckerService.addKnownWords).toHaveBeenCalledWith([
-        'awa', 'êwako', 'kiya'
+        { word: 'awa', analysis: 'awa+Ipc', allAnalysis: ['awa+Ipc', 'awa+N+A+Sg'] },
+        { word: 'êwako', analysis: 'êwako+Pr+Dem+Prox+Sg', allAnalysis: ['êwako+Pr+Dem+Prox+Sg'] },
+        { word: 'kiya', analysis: 'kiya+Pron+Pers+2Sg', allAnalysis: ['kiya+Pron+Pers+2Sg'] }
       ]);
       expect(mockStore.addKnownWords).toHaveBeenCalledWith([
-        'awa', 'êwako', 'kiya'
+        { word: 'awa', analysis: 'awa+Ipc', allAnalysis: ['awa+Ipc', 'awa+N+A+Sg'] },
+        { word: 'êwako', analysis: 'êwako+Pr+Dem+Prox+Sg', allAnalysis: ['êwako+Pr+Dem+Prox+Sg'] },
+        { word: 'kiya', analysis: 'kiya+Pron+Pers+2Sg', allAnalysis: ['kiya+Pron+Pers+2Sg'] }
       ]);
       
       // Verify incomplete words are NOT in the list
       const calledWith = (services.spellCheckerService.addKnownWords as jest.Mock).mock.calls[0][0];
-      expect(calledWith).not.toContain('nôhkom');
-      expect(calledWith).not.toContain('tânisi');
+      expect(calledWith.find((w: { word: string }) => w.word === 'nôhkom')).toBeUndefined();
+      expect(calledWith.find((w: { word: string }) => w.word === 'tânisi')).toBeUndefined();
     });
   });
 }); 

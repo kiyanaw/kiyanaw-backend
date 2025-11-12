@@ -20,6 +20,9 @@ jest.mock('../services', () => ({
       updateRegion: jest.fn(),
       getRegion: jest.fn().mockResolvedValue(null), // Default return
     },
+    transcriptionService: {
+      updateTranscription: jest.fn().mockResolvedValue({}),
+    },
     storeService: {
       endPendingEdit: jest.fn(),
     },
@@ -72,6 +75,7 @@ describe('UpdateRegionTextUseCase - Enhanced Conflict Resolution Integration', (
       calculateTranscriptionMetadata: jest.fn().mockReturnValue({ coverage: 0.5 }),
       setTranscription: jest.fn(),
       setRegionVersion: jest.fn(),
+      setSaveStatus: jest.fn(),
     };
 
     // Setup service mocks

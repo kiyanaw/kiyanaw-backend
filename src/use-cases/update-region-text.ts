@@ -14,6 +14,11 @@ interface UpdateRegionTextConfig {
 
 // NOTE: Debounced save state moved to unified UpdateRegionUseCase
 
+/**
+ * @deprecated Use regionSaveManager.queueTextChange() or queueTranslationChange() instead.
+ * This use-case is now only called internally by RegionSaveManager.
+ * Direct usage from components/hooks should be migrated to the manager.
+ */
 export class UpdateRegionTextUseCase {
   private config: UpdateRegionTextConfig;
 

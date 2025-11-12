@@ -238,7 +238,10 @@ async function analyzeStrict(lookup) {
   
   for (const word of lookup) {
     try {
-      result[word] = fst.lookup(word);
+      const rawAnalyses = fst.lookup(word);
+      // Filter out error analyses (anything containing +Err/)
+      // These are fragments or orthographic errors that shouldn't be shown to users
+      result[word] = rawAnalyses.filter(analysis => !analysis.includes('+Err/'));
     } catch (e) {
       console.error(`Error looking up word "${word}":`, e);
       result[word] = [];

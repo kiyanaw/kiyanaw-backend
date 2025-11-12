@@ -94,8 +94,10 @@ export class LoadTranscription {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private extractKnownWordsFromRegions(regions: any[]): string[] {
-    const allKnownWords = new Set<string>();
+  private extractKnownWordsFromRegions(regions: any[]): import('../services/spellCheckerService').WordAnalysis[] {
+    const allKnownWords: import('../services/spellCheckerService').WordAnalysis[] = [];
+    const seenWords = new Set<string>();
+    
     if (regions && Array.isArray(regions)) {
       regions.forEach((region) => {
         if (region.regionAnalysis && Array.isArray(region.regionAnalysis)) {
@@ -105,10 +107,12 @@ export class LoadTranscription {
           region.regionAnalysis.forEach((item: any) => {
             // Handle new WordAnalysis format - only add words with VALID analysis
             if (typeof item === 'object' && item.word) {
-              // Only add if analysis is complete (non-empty)
+              // Only add if analysis is complete (non-empty) and not already seen
               if (item.analysis && item.analysis !== '' && 
-                  item.allAnalysis && item.allAnalysis.length > 0) {
-                allKnownWords.add(item.word);
+                  item.allAnalysis && item.allAnalysis.length > 0 &&
+                  !seenWords.has(item.word)) {
+                allKnownWords.push(item);
+                seenWords.add(item.word);
               }
               // Skip words with empty analysis - they need to be re-analyzed
             } else if (typeof item === 'string') {
@@ -124,6 +128,6 @@ export class LoadTranscription {
         }
       });
     }
-    return Array.from(allKnownWords);
+    return allKnownWords;
   }
 } 

@@ -1,11 +1,10 @@
 import { useLayoutEffect, useRef } from 'react';
 import { rteService, type EditorKey } from '../services/rteService';
 
-import { UpdateRegionTextUseCase } from '../use-cases/update-region-text';
 import { UpdateIssueTextUseCase } from '../use-cases/update-issue-text';
-import { AnalyzeRegionTextUseCase } from '../use-cases/analyze-region-text';
 import { useEditorStore } from '../stores/useEditorStore';
 import { services } from '../services';
+import { regionSaveManager } from '../services/regionSaveManager';
 
 export const useTextEditors = (regionId: string, activeTab: 'main' | 'translation') => {
   const mainEditorRef = useRef<HTMLDivElement>(null);
@@ -95,26 +94,15 @@ export const useTextEditors = (regionId: string, activeTab: 'main' | 'translatio
           services.storeService.updatePendingEditActivity(regionId, 'regionText');
         }
 
-        // Update region text
-        new UpdateRegionTextUseCase({
-          regionId,
-          text,
-          field: 'regionText',
-          store: useEditorStore.getState(),
-          services
-        }).execute();
+        // Update store immediately for UI responsiveness
+        services.storeService.setRegionText(regionId, text);
 
         // IMMEDIATELY apply highlighting and run issue matching detection
         // This solves format inheritance and word splitting issues
         rteService.updateIssueHighlighting(regionId);
 
-        // Analyze text for known words
-        new AnalyzeRegionTextUseCase({
-          regionId,
-          text,
-          services,
-          store: useEditorStore.getState()
-        }).execute();
+        // Queue through save manager (handles spell check + save)
+        regionSaveManager.queueTextChange(regionId, text);
       });
     }
 
@@ -163,13 +151,11 @@ export const useTextEditors = (regionId: string, activeTab: 'main' | 'translatio
           services.storeService.updatePendingEditActivity(regionId, 'translation');
         }
 
-        new UpdateRegionTextUseCase({
-          regionId,
-          text,
-          field: 'translation',
-          store: useEditorStore.getState(),
-          services
-        }).execute();
+        // Update store immediately for UI responsiveness
+        services.storeService.setRegionTranslation(regionId, text);
+
+        // Queue through save manager
+        regionSaveManager.queueTranslationChange(regionId, text);
       });
     }
 

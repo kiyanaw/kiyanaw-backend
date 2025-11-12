@@ -84,6 +84,25 @@ export class UpdateRegionUseCase {
       return;
     }
 
+    // NEW: If debounceMs is 0, save immediately (called by manager)
+    if (debounceMs === 0) {
+      this.performSave(existingRegion, user).then(() => {
+        // End pending edit if specified
+        if (pendingEditField) {
+          services.storeService.endPendingEdit(regionId, pendingEditField);
+        }
+        // End bounds pending edit if this was a bounds operation
+        if (changes.start !== undefined || changes.end !== undefined) {
+          services.storeService.endPendingEdit(regionId, 'bounds');
+        }
+      }).catch(error => {
+        console.error(`Failed to save region ${regionId}:`, error);
+        // Error handling already in performSave
+      });
+      return;
+    }
+
+    // OLD PATH: Debounced save (for backwards compatibility)
     // Clear any existing timeout for this region
     const existingTimeout = pendingSaves.get(regionId);
     if (existingTimeout) {
@@ -156,25 +175,8 @@ export class UpdateRegionUseCase {
     // Prepare update data
     const updateData = { ...changes };
     
-    // If updating main text, include current analysis from store at save time
-    if (changes.regionText !== undefined) {
-      try {
-        const region = store.regionById(regionId);
-        console.log(`📝 UPDATE-REGION: Text update - fetching analysis from store`, {
-          hasRegion: !!region,
-          hasRegionAnalysis: !!region?.regionAnalysis,
-          regionAnalysisType: typeof region?.regionAnalysis,
-          regionAnalysis: region?.regionAnalysis
-        });
-        
-        if (region?.regionAnalysis) {
-          updateData.regionAnalysis = region.regionAnalysis as WordAnalysis[];
-          console.log(`✅ UPDATE-REGION: Added regionAnalysis to updateData:`, updateData.regionAnalysis);
-        }
-      } catch (error) {
-        console.warn('Could not get analysis from store at save time:', error);
-      }
-    }
+    // NOTE: Manager now passes regionAnalysis directly in changes if needed
+    // We no longer read it from the store to avoid race conditions
 
     console.log(`💾 UPDATE-REGION: Final updateData to save:`, {
       fields: Object.keys(updateData),

@@ -35,6 +35,7 @@ const mockStore = {
   setRegionAnalysis: jest.fn(),
   addKnownWords: jest.fn(),
   getIssuesForRegion: jest.fn().mockReturnValue([]),
+  regionById: jest.fn().mockReturnValue({ regionAnalysis: [] }),
   getState: jest.fn(),
   setState: jest.fn(),
   subscribe: jest.fn()
@@ -97,7 +98,10 @@ describe('AnalyzeRegionTextUseCase', () => {
       expect(mockStore.addKnownWords).not.toHaveBeenCalled();
       
       // Should set region analysis (with all known words including cached ones)
-      expect(mockStore.setRegionAnalysis).toHaveBeenCalledWith('region-1', ['hello', 'êkwa']);
+      expect(mockStore.setRegionAnalysis).toHaveBeenCalledWith('region-1', [
+        { word: 'hello', analysis: '', allAnalysis: [] },
+        { word: 'êkwa', analysis: '', allAnalysis: [] }
+      ]);
       
       jest.useRealTimers();
     });
@@ -148,7 +152,7 @@ describe('AnalyzeRegionTextUseCase', () => {
       jest.useFakeTimers();
       mockSpellCheckerService.tokenize.mockReturnValue(['itwêw', 'êkwa', 'tâpwê']);
       mockSpellCheckerService.check.mockResolvedValue({
-        known: ['tâpwê'],
+        known: [{ word: 'tâpwê', analysis: '', allAnalysis: [] }],
         unknown: []
       });
       
@@ -170,8 +174,12 @@ describe('AnalyzeRegionTextUseCase', () => {
       await promise;
 
       expect(mockSpellCheckerService.check).toHaveBeenCalledWith(['tâpwê'], 'crk'); // only unknown word with language
-      expect(mockStore.addKnownWords).toHaveBeenCalledWith(['tâpwê']);
-      expect(mockStore.setRegionAnalysis).toHaveBeenCalledWith('region-1', ['itwêw', 'êkwa', 'tâpwê']);
+      expect(mockStore.addKnownWords).toHaveBeenCalledWith([{ word: 'tâpwê', analysis: '', allAnalysis: [] }]);
+      expect(mockStore.setRegionAnalysis).toHaveBeenCalledWith('region-1', [
+        { word: 'itwêw', analysis: '', allAnalysis: [] },
+        { word: 'êkwa', analysis: '', allAnalysis: [] },
+        { word: 'tâpwê', analysis: '', allAnalysis: [] }
+      ]);
       
       jest.useRealTimers();
     });
@@ -312,7 +320,7 @@ describe('AnalyzeRegionTextUseCase', () => {
       // Mock spell checker to return some words as known for Northern Michif
       mockSpellCheckerService.tokenize.mockReturnValue(['hello', 'kinwês', 'omâmâ']);
       mockSpellCheckerService.check.mockResolvedValue({
-        known: ['kinwês'],
+        known: [{ word: 'kinwês', analysis: '', allAnalysis: [] }],
         unknown: ['omâmâ'] // Different result for Northern Michif
       });
 
@@ -323,8 +331,11 @@ describe('AnalyzeRegionTextUseCase', () => {
 
       // Should use 'crgn' language code instead of default 'crk'
       expect(mockSpellCheckerService.check).toHaveBeenCalledWith(['kinwês', 'omâmâ'], 'crgn');
-      expect(storeWithCrgn.addKnownWords).toHaveBeenCalledWith(['kinwês']);
-      expect(storeWithCrgn.setRegionAnalysis).toHaveBeenCalledWith('region-1', ['hello', 'kinwês']);
+      expect(storeWithCrgn.addKnownWords).toHaveBeenCalledWith([{ word: 'kinwês', analysis: '', allAnalysis: [] }]);
+      expect(storeWithCrgn.setRegionAnalysis).toHaveBeenCalledWith('region-1', [
+        { word: 'hello', analysis: '', allAnalysis: [] },
+        { word: 'kinwês', analysis: '', allAnalysis: [] }
+      ]);
       
       jest.useRealTimers();
     });
@@ -373,7 +384,7 @@ describe('AnalyzeRegionTextUseCase', () => {
       // Mock spell checker to return the new word as known
       mockSpellCheckerService.tokenize.mockReturnValue(['hello', 'world', 'tânisi']);
       mockSpellCheckerService.check.mockResolvedValue({
-        known: ['tânisi'], // New word discovered as known
+        known: [{ word: 'tânisi', analysis: '', allAnalysis: [] }], // New word discovered as known
         unknown: []
       });
 
@@ -396,8 +407,12 @@ describe('AnalyzeRegionTextUseCase', () => {
       expect(mockSpellCheckerService.check).toHaveBeenCalledWith(['tânisi'], 'crk');
       
       // Verify store was updated with all known words
-      expect(storeWithPartialWords.addKnownWords).toHaveBeenCalledWith(['tânisi']);
-      expect(storeWithPartialWords.setRegionAnalysis).toHaveBeenCalledWith('region-1', ['hello', 'world', 'tânisi']);
+      expect(storeWithPartialWords.addKnownWords).toHaveBeenCalledWith([{ word: 'tânisi', analysis: '', allAnalysis: [] }]);
+      expect(storeWithPartialWords.setRegionAnalysis).toHaveBeenCalledWith('region-1', [
+        { word: 'hello', analysis: '', allAnalysis: [] },
+        { word: 'world', analysis: '', allAnalysis: [] },
+        { word: 'tânisi', analysis: '', allAnalysis: [] }
+      ]);
       
       // CRITICAL: Verify RTE formatting was applied with ALL known words (including newly discovered)
       expect(mockRteServiceImport.hasEditor).toHaveBeenCalledWith('region-1:main');
@@ -425,7 +440,7 @@ describe('AnalyzeRegionTextUseCase', () => {
 
       mockSpellCheckerService.tokenize.mockReturnValue(['hello', 'world']);
       mockSpellCheckerService.check.mockResolvedValue({
-        known: ['world'],
+        known: [{ word: 'world', analysis: '', allAnalysis: [] }],
         unknown: []
       });
 
@@ -449,7 +464,10 @@ describe('AnalyzeRegionTextUseCase', () => {
       expect(mockRteServiceImport.applyKnownWordsFormatting).not.toHaveBeenCalled();
       
       // But store should still be updated
-      expect(storeWithWords.setRegionAnalysis).toHaveBeenCalledWith('region-1', ['hello', 'world']);
+      expect(storeWithWords.setRegionAnalysis).toHaveBeenCalledWith('region-1', [
+        { word: 'hello', analysis: '', allAnalysis: [] },
+        { word: 'world', analysis: '', allAnalysis: [] }
+      ]);
       
       jest.useRealTimers();
     });
@@ -495,7 +513,11 @@ describe('AnalyzeRegionTextUseCase', () => {
         }
       );
       
-      expect(storeWithAllWords.setRegionAnalysis).toHaveBeenCalledWith('region-1', ['hello', 'world', 'tânisi']);
+      expect(storeWithAllWords.setRegionAnalysis).toHaveBeenCalledWith('region-1', [
+        { word: 'hello', analysis: '', allAnalysis: [] },
+        { word: 'world', analysis: '', allAnalysis: [] },
+        { word: 'tânisi', analysis: '', allAnalysis: [] }
+      ]);
       
       jest.useRealTimers();
     });
