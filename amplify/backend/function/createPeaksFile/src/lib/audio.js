@@ -68,9 +68,19 @@ const processPeaksData = async (jsonPath) => {
   
   console.log(`Processing peaks data with ${parsed.data.length} elements`)
   
+  // Check if array is too large and might cause memory issues
+  if (parsed.data.length > 1000000) {
+    console.warn(`Large array detected (${parsed.data.length} elements). This might cause memory issues.`)
+  }
+  
   // Find maximum value for normalization (avoid spread operator for large arrays)
   const max = getMaxValue(parsed.data)
   console.log(`Max peak value: ${max}`)
+  
+  if (max === 0) {
+    console.warn('Max value is 0, skipping normalization')
+    return parsed
+  }
   
   // Normalize data using chunked processing to avoid stack overflow
   parsed.data = processArrayInChunks(parsed.data, max)
@@ -100,19 +110,21 @@ const getMaxValue = (arr) => {
  * @returns {number[]} - Processed array
  */
 const processArrayInChunks = (data, max) => {
-  const chunkSize = 10000
-  const result = []
+  const chunkSize = 5000 // Reduced chunk size to be more conservative
+  const result = new Array(data.length) // Pre-allocate array with exact size
   
   for (let i = 0; i < data.length; i += chunkSize) {
     const endIndex = Math.min(i + chunkSize, data.length)
     
     // Process chunk without using .map() to avoid stack issues
     for (let j = i; j < endIndex; j++) {
-      result[j] = Number(Number(data[j] / max).toFixed(2))
+      // Simplified calculation to avoid nested Number() calls
+      const normalized = data[j] / max
+      result[j] = Math.round(normalized * 100) / 100 // Round to 2 decimal places
     }
     
-    // Log progress for large arrays (every 50k elements)
-    if (i % 50000 === 0 && i > 0) {
+    // Log progress for large arrays (every 25k elements)
+    if (i % 25000 === 0 && i > 0) {
       console.log(`Processed ${endIndex} / ${data.length} elements`)
     }
   }
