@@ -205,16 +205,14 @@ class RegionSaveManagerImpl {
     // Save merged analysis
     store.setRegionAnalysis(regionId, mergedAnalysis);
     
-    // For highlighting, include all known words (cached + fresh)
-    const allKnownWords = [...cachedWords, ...freshAnalysis.map(item => item.word)];
-    
-    // Update RTE highlighting with all known words
+    // Update RTE highlighting using ONLY this region's saved analysis
+    // This makes it visually clear which words have been analyzed for this specific region
     const mainEditorKey = `${regionId}:main` as const;
     if (services.rteService.hasEditor(mainEditorKey)) {
       const issues = store.getIssuesForRegion(regionId);
       const issueHighlights = issueHighlightService.convertIssuesToHighlights(issues);
       services.rteService.applyHighlighting(mainEditorKey, {
-        knownWords: allKnownWords,
+        knownWords: mergedAnalysis.map(item => item.word),
         issues: issueHighlights
       });
     }
@@ -224,7 +222,6 @@ class RegionSaveManagerImpl {
       freshAnalysis: freshAnalysis.length,
       fromCache: cachedWords.filter(w => globalKnownWords.has(w)).length,
       totalSaved: mergedAnalysis.length,
-      totalHighlighted: allKnownWords.length
     });
     
     return mergedAnalysis;
@@ -389,12 +386,38 @@ class RegionSaveManagerImpl {
               if (services.rteService.hasEditor(mainEditorKey)) {
                 services.rteService.setContent(mainEditorKey, remoteData.regionText as string);
                 console.log(`🔄 SAVE-MANAGER: Updated RTE editor with remote text`);
+                
+                // Reapply highlighting with region's analysis
+                const region = store.regionById(regionId);
+                const regionAnalysis = region?.regionAnalysis || [];
+                const knownWords = regionAnalysis.map((item: { word: string }) => item.word);
+                const issues = store.getIssuesForRegion(regionId);
+                const issueHighlights = issueHighlightService.convertIssuesToHighlights(issues);
+                
+                services.rteService.applyHighlighting(mainEditorKey, {
+                  knownWords,
+                  issues: issueHighlights
+                });
+                console.log(`🎨 SAVE-MANAGER: Reapplied highlighting after accepting remote text`);
               }
             } else if (primaryField === 'translation') {
               const translationEditorKey = `${regionId}:translation` as const;
               if (services.rteService.hasEditor(translationEditorKey)) {
                 services.rteService.setContent(translationEditorKey, remoteData.translation as string);
                 console.log(`🔄 SAVE-MANAGER: Updated RTE editor with remote translation`);
+                
+                // Reapply highlighting with region's analysis
+                const region = store.regionById(regionId);
+                const regionAnalysis = region?.regionAnalysis || [];
+                const knownWords = regionAnalysis.map((item: { word: string }) => item.word);
+                const issues = store.getIssuesForRegion(regionId);
+                const issueHighlights = issueHighlightService.convertIssuesToHighlights(issues);
+                
+                services.rteService.applyHighlighting(translationEditorKey, {
+                  knownWords,
+                  issues: issueHighlights
+                });
+                console.log(`🎨 SAVE-MANAGER: Reapplied highlighting after accepting remote translation`);
               }
             }
             

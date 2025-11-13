@@ -11,7 +11,7 @@ import type { LazyRegion } from '../models';
 export const storeService = {
   // Editor Store operations
   // Region analysis operations
-  setRegionAnalysis: (regionId: string, analysis: string[] | import('./spellCheckerService').WordAnalysis[]): void => {
+  setRegionAnalysis: (regionId: string, analysis: import('./spellCheckerService').WordAnalysis[]): void => {
     useEditorStore.getState().setRegionAnalysis(regionId, analysis);
   },
 
@@ -33,9 +33,8 @@ export const storeService = {
     useEditorStore.getState().setTranscription(transcription);
   },
 
-  addKnownWords: (words: string[] | import('./spellCheckerService').WordAnalysis[]): void => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    useEditorStore.getState().addKnownWords(words as any);
+  addKnownWords: (words: import('./spellCheckerService').WordAnalysis[]): void => {
+    useEditorStore.getState().addKnownWords(words);
   },
 
   getKnownWords: (): Map<string, import('./spellCheckerService').WordAnalysis> => {

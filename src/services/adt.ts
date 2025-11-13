@@ -37,7 +37,7 @@ export interface RegionData {
   translation?: string;
   userLastUpdated?: string;
   index?: number;
-  regionAnalysis?: string[] | import('./spellCheckerService').WordAnalysis[]; // Array of known words or detailed analysis
+  regionAnalysis?: import('./spellCheckerService').WordAnalysis[]; // Array of detailed word analysis
   updatedAt?: string; // Additional property needed for tests
   _version?: number; // Version tracking for conflict resolution
 }
@@ -388,7 +388,7 @@ export class RegionModel {
   public translation: string;
   public userLastUpdated?: string;
   public index?: number;
-  public regionAnalysis: string[] | import('./spellCheckerService').WordAnalysis[];
+  public regionAnalysis: import('./spellCheckerService').WordAnalysis[];
   public _version: number;
 
   constructor(data: RegionData) {

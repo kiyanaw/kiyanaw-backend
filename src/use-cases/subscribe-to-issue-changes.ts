@@ -2,7 +2,6 @@ import { services } from '../services';
 import type { IssueSubscriptionEvent } from '../services/issueService';
 import type { IssueData } from '../services/adt';
 import { issueHighlightService } from '../services/issueHighlightService';
-import { extractWords } from '../services/migrationService';
 
 export interface SubscribeToIssueChangesConfig {
   transcriptionId: string;
@@ -126,8 +125,9 @@ export class SubscribeToIssueChangesUseCase {
 
     const issues = store.getIssuesForRegion(regionId);
     const issueHighlights = issueHighlightService.convertIssuesToHighlights(issues);
-    // Extract words for highlighting using the migration helper
-    const knownWords = extractWords(region.regionAnalysis);
+    // Extract words for highlighting from region's own analysis
+    const regionAnalysis = region.regionAnalysis || [];
+    const knownWords = regionAnalysis.map(item => item.word);
 
     // Update highlighting for both main and translation editors if they exist
     const mainEditorKey = `${regionId}:main` as const;

@@ -107,8 +107,8 @@ interface EditorState {
   calculateTranscriptionMetadata: () => { regionCount: number; issueCount: number; coverage: number };
 
   // Spell checking actions
-  addKnownWords: (words: string[] | import('../services/spellCheckerService').WordAnalysis[]) => void;
-  setRegionAnalysis: (regionId: string, analysis: string[] | import('../services/spellCheckerService').WordAnalysis[]) => void;
+  addKnownWords: (words: import('../services/spellCheckerService').WordAnalysis[]) => void;
+  setRegionAnalysis: (regionId: string, analysis: import('../services/spellCheckerService').WordAnalysis[]) => void;
 
   // Pending edits actions moved below
 
@@ -1035,7 +1035,7 @@ export const useEditorStore = create<EditorState>()(
           fullAnalysis: analysis
         });
 
-        // Create updated region with new analysis (supports both string[] and WordAnalysis[])
+        // Create updated region with new analysis
         const updatedRegion = { ...existingRegion, regionAnalysis: analysis };
         
         console.log(`📝 STORE: Updated region object:`, {

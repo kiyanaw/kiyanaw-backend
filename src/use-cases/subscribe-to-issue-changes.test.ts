@@ -26,7 +26,10 @@ const mockRegion: RegionData = {
   start: 0,
   end: 10,
   regionText: 'test text',
-  regionAnalysis: ['test', 'text'],
+  regionAnalysis: [
+    { word: 'test', analysis: 'test+N', allAnalysis: ['test+N'] },
+    { word: 'text', analysis: 'text+N', allAnalysis: ['text+N'] }
+  ],
   translation: '',
   transcriptionId: 'transcription-1',
   isNote: false,

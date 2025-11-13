@@ -226,7 +226,10 @@ describe('SpellCheckerService', () => {
 
   describe('addKnownWords', () => {
     it('should add words to known cache', async () => {
-      spellCheckerService.addKnownWords(['itwêw', 'êkwa']);
+      spellCheckerService.addKnownWords([
+        { word: 'itwêw', analysis: 'itwêw+V+AI+Ind+3Sg', allAnalysis: ['itwêw+V+AI+Ind+3Sg'] },
+        { word: 'êkwa', analysis: 'êkwa+Ipc', allAnalysis: ['êkwa+Ipc'] }
+      ]);
       
       // Mock the API response for the 'hello' word
       const mockResponse = { 'hello': [] };
@@ -255,7 +258,10 @@ describe('SpellCheckerService', () => {
 
   describe('getKnownWords', () => {
     it('should return current known words', () => {
-      spellCheckerService.addKnownWords(['itwêw', 'êkwa']);
+      spellCheckerService.addKnownWords([
+        { word: 'itwêw', analysis: 'itwêw+V+AI+Ind+3Sg', allAnalysis: ['itwêw+V+AI+Ind+3Sg'] },
+        { word: 'êkwa', analysis: 'êkwa+Ipc', allAnalysis: ['êkwa+Ipc'] }
+      ]);
       const knownWords = spellCheckerService.getKnownWords();
       expect(knownWords).toContain('itwêw');
       expect(knownWords).toContain('êkwa');

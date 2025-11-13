@@ -259,11 +259,15 @@ describe('useEditorStore known words functionality', () => {
       store.addNewRegion(testRegion);
       
       // Set analysis
-      store.setRegionAnalysis('region-1', ['hello', 'êkwa']);
+      const analysis = [
+        { word: 'hello', analysis: 'hello+N', allAnalysis: ['hello+N'] },
+        { word: 'êkwa', analysis: 'êkwa+Ipc', allAnalysis: ['êkwa+Ipc'] }
+      ];
+      store.setRegionAnalysis('region-1', analysis);
       
       const state = useEditorStore.getState();
       const region = state.regionMap['region-1'];
-      expect(region.regionAnalysis).toEqual(['hello', 'êkwa']);
+      expect(region.regionAnalysis).toEqual(analysis);
     });
 
     it('should update selectedRegion if it matches', () => {
@@ -278,17 +282,23 @@ describe('useEditorStore known words functionality', () => {
       store.setSelectedRegion('region-1');
       
       // Set analysis
-      store.setRegionAnalysis('region-1', ['hello', 'êkwa']);
+      const analysis = [
+        { word: 'hello', analysis: 'hello+N', allAnalysis: ['hello+N'] },
+        { word: 'êkwa', analysis: 'êkwa+Ipc', allAnalysis: ['êkwa+Ipc'] }
+      ];
+      store.setRegionAnalysis('region-1', analysis);
       
       const state = useEditorStore.getState();
-      expect(state.selectedRegion?.regionAnalysis).toEqual(['hello', 'êkwa']);
+      expect(state.selectedRegion?.regionAnalysis).toEqual(analysis);
     });
 
     it('should handle non-existent region gracefully', () => {
       const store = useEditorStore.getState();
       
       // This should not throw
-      store.setRegionAnalysis('non-existent', ['hello']);
+      store.setRegionAnalysis('non-existent', [
+        { word: 'hello', analysis: 'hello+N', allAnalysis: ['hello+N'] }
+      ]);
       
       const state = useEditorStore.getState();
       expect(state.regionMap['non-existent']).toBeUndefined();

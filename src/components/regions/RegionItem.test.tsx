@@ -36,9 +36,12 @@ describe('RegionItem', () => {
     regionText: 'Test region text with some words',
     translation: 'Test translation',
     isNote: false,
+    regionAnalysis: [
+      { word: 'Test', analysis: 'test+N+Sg', allAnalysis: ['test+N+Sg'] },
+      { word: 'words', analysis: 'word+N+Pl', allAnalysis: ['word+N+Pl'] },
+    ],
   };
 
-  const mockKnownWords = new Set(['Test', 'words']);
   const mockOnClick = jest.fn();
 
   beforeEach(() => {
@@ -48,16 +51,10 @@ describe('RegionItem', () => {
     mockUseEditorStore.mockImplementation((selector) => {
       const mockState = {
         regionById: (id: string) => (id === 'test-region-1' ? mockRegion : null),
-        knownWords: mockKnownWords,
         getIssuesForRegion: () => [],
       } as any;
       
       return selector(mockState);
-    });
-
-    // Mock getState for the textHighlightService call
-    mockUseEditorStore.getState = jest.fn().mockReturnValue({
-      knownWords: mockKnownWords,
     });
 
     // Mock text highlight service
@@ -82,7 +79,7 @@ describe('RegionItem', () => {
     expect(screen.getByText('1')).toBeInTheDocument(); // index + 1
   });
 
-  it('should render region text with known words highlighting', () => {
+  it('should render region text with highlighting from region analysis only', () => {
     render(
       <RegionItem
         regionId="test-region-1"
@@ -91,13 +88,15 @@ describe('RegionItem', () => {
       />
     );
 
+    // Should use ONLY the region's own analysis, not global cache
+    const expectedKnownWords = new Set(['Test', 'words']);
     expect(mockTextHighlightService.generateHTMLWithOptions).toHaveBeenCalledWith(
       'Test region text with some words',
-      { knownWords: mockKnownWords, issues: [] }
+      { knownWords: expectedKnownWords, issues: [] }
     );
   });
 
-  it('should re-render when knownWords change', () => {
+  it('should re-render when regionAnalysis changes', () => {
     const { rerender } = render(
       <RegionItem
         regionId="test-region-1"
@@ -109,12 +108,18 @@ describe('RegionItem', () => {
     // Initial call
     expect(mockTextHighlightService.generateHTMLWithOptions).toHaveBeenCalledTimes(1);
 
-    // Update known words in store
-    const updatedKnownWords = new Set(['Test', 'words', 'region']);
+    // Update region analysis
+    const updatedRegion = {
+      ...mockRegion,
+      regionAnalysis: [
+        { word: 'Test', analysis: 'test+N+Sg', allAnalysis: ['test+N+Sg'] },
+        { word: 'words', analysis: 'word+N+Pl', allAnalysis: ['word+N+Pl'] },
+        { word: 'region', analysis: 'region+N+Sg', allAnalysis: ['region+N+Sg'] },
+      ],
+    };
     mockUseEditorStore.mockImplementation((selector) => {
       const mockState = {
-        regionById: (id: string) => (id === 'test-region-1' ? mockRegion : null),
-        knownWords: updatedKnownWords,
+        regionById: (id: string) => (id === 'test-region-1' ? updatedRegion : null),
         getIssuesForRegion: () => [],
       } as any;
       
@@ -130,11 +135,12 @@ describe('RegionItem', () => {
       />
     );
 
-    // Should call generateHTMLWithOptions again with updated known words
+    // Should call generateHTMLWithOptions again with updated analysis
+    const expectedKnownWords = new Set(['Test', 'words', 'region']);
     expect(mockTextHighlightService.generateHTMLWithOptions).toHaveBeenCalledTimes(2);
     expect(mockTextHighlightService.generateHTMLWithOptions).toHaveBeenLastCalledWith(
       'Test region text with some words',
-      { knownWords: updatedKnownWords, issues: [] }
+      { knownWords: expectedKnownWords, issues: [] }
     );
   });
 
@@ -159,7 +165,6 @@ describe('RegionItem', () => {
     mockUseEditorStore.mockImplementation((selector) => {
       const mockState = {
         regionById: (id: string) => (id === 'test-region-1' ? updatedRegion : null),
-        knownWords: mockKnownWords,
         getIssuesForRegion: () => [],
       } as any;
       
@@ -176,10 +181,11 @@ describe('RegionItem', () => {
     );
 
     // Should call generateHTMLWithOptions again with updated text
+    const expectedKnownWords = new Set(['Test', 'words']);
     expect(mockTextHighlightService.generateHTMLWithOptions).toHaveBeenCalledTimes(2);
     expect(mockTextHighlightService.generateHTMLWithOptions).toHaveBeenLastCalledWith(
       'Updated region text',
-      { knownWords: mockKnownWords, issues: [] }
+      { knownWords: expectedKnownWords, issues: [] }
     );
   });
 
@@ -192,7 +198,6 @@ describe('RegionItem', () => {
     mockUseEditorStore.mockImplementation((selector) => {
       const mockState = {
         regionById: (id: string) => (id === 'test-region-1' ? noteRegion : null),
-        knownWords: mockKnownWords,
         getIssuesForRegion: () => [],
       } as any;
       
@@ -224,7 +229,6 @@ describe('RegionItem', () => {
     mockUseEditorStore.mockImplementation((selector) => {
       const mockState = {
         regionById: (id: string) => (id === 'test-region-1' ? emptyRegion : null),
-        knownWords: mockKnownWords,
         getIssuesForRegion: () => [],
       } as any;
       
@@ -332,7 +336,6 @@ describe('RegionItem', () => {
     mockUseEditorStore.mockImplementation((selector) => {
       const mockState = {
         regionById: () => null,
-        knownWords: mockKnownWords,
         getIssuesForRegion: () => [],
       } as any;
       
@@ -348,5 +351,67 @@ describe('RegionItem', () => {
     );
 
     expect(container.firstChild).toBeNull();
+  });
+
+  it('should handle region with no analysis', () => {
+    const regionWithoutAnalysis = {
+      ...mockRegion,
+      regionAnalysis: undefined,
+    };
+
+    mockUseEditorStore.mockImplementation((selector) => {
+      const mockState = {
+        regionById: (id: string) => (id === 'test-region-1' ? regionWithoutAnalysis : null),
+        getIssuesForRegion: () => [],
+      } as any;
+      
+      return selector(mockState);
+    });
+
+    render(
+      <RegionItem
+        regionId="test-region-1"
+        index={0}
+        onClick={mockOnClick}
+      />
+    );
+
+    // Should call with empty knownWords set when no analysis exists
+    const expectedKnownWords = new Set();
+    expect(mockTextHighlightService.generateHTMLWithOptions).toHaveBeenCalledWith(
+      'Test region text with some words',
+      { knownWords: expectedKnownWords, issues: [] }
+    );
+  });
+
+  it('should handle region with empty analysis array', () => {
+    const regionWithEmptyAnalysis = {
+      ...mockRegion,
+      regionAnalysis: [],
+    };
+
+    mockUseEditorStore.mockImplementation((selector) => {
+      const mockState = {
+        regionById: (id: string) => (id === 'test-region-1' ? regionWithEmptyAnalysis : null),
+        getIssuesForRegion: () => [],
+      } as any;
+      
+      return selector(mockState);
+    });
+
+    render(
+      <RegionItem
+        regionId="test-region-1"
+        index={0}
+        onClick={mockOnClick}
+      />
+    );
+
+    // Should call with empty knownWords set
+    const expectedKnownWords = new Set();
+    expect(mockTextHighlightService.generateHTMLWithOptions).toHaveBeenCalledWith(
+      'Test region text with some words',
+      { knownWords: expectedKnownWords, issues: [] }
+    );
   });
 }); 

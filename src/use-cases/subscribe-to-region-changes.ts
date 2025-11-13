@@ -1,7 +1,6 @@
 import { services } from '../services';
 import type { RegionSubscriptionEvent } from '../services/regionService';
 import { issueHighlightService } from '../services/issueHighlightService';
-import { extractWords } from '../services/migrationService';
 
 export interface SubscribeToRegionChangesConfig {
   transcriptionId: string;
@@ -274,8 +273,9 @@ export class SubscribeToRegionChangesUseCase {
         const rteService = this.config.services.rteService;
         
         if (rteService.hasEditor(mainEditorKey)) {
-          // Extract words for highlighting (handles both array and string formats)
-          const regionAnalysis = extractWords(parsedAnalysis);
+          // Extract words for highlighting from region's own analysis
+          const regionAnalysis = parsedAnalysis || [];
+          const knownWords = regionAnalysis.map((item: { word: string }) => item.word);
           
           // Get issues for the region
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -284,7 +284,7 @@ export class SubscribeToRegionChangesUseCase {
           
           // Reapply highlighting with updated analysis
           rteService.applyHighlighting(mainEditorKey, {
-            knownWords: regionAnalysis || [],
+            knownWords,
             issues: issueHighlights
           });
           
@@ -344,6 +344,28 @@ export class SubscribeToRegionChangesUseCase {
         }
       }
       store.setRegionAnalysis(updatedRegion.id, parsedAnalysis);
+      
+      // Reapply highlighting to RTE if it exists
+      const mainEditorKey = `${updatedRegion.id}:main` as const;
+      const rteService = this.config.services.rteService;
+      
+      if (rteService.hasEditor(mainEditorKey)) {
+        const regionAnalysis = parsedAnalysis || [];
+        const knownWords = regionAnalysis.map((item: { word: string }) => item.word);
+        
+        // Get issues for the region
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const issues = (store as any).getIssuesForRegion(updatedRegion.id as string);
+        const issueHighlights = issueHighlightService.convertIssuesToHighlights(issues);
+        
+        // Reapply highlighting with updated analysis
+        rteService.applyHighlighting(mainEditorKey, {
+          knownWords,
+          issues: issueHighlights
+        });
+        
+        console.log(`🎨 SUBSCRIBE: Reapplied highlighting after analysis update for ${updatedRegion.id}`);
+      }
     }
     
     if (updatedRegion._version !== undefined) {
@@ -355,32 +377,29 @@ export class SubscribeToRegionChangesUseCase {
   private updateRteIfExists(editorKey: `${string}:main` | `${string}:translation`, content: string, updatedRegion: any): void {
     const rteService = this.config.services.rteService;
     const store = this.config.services.storeService;
-    const spellCheckerService = this.config.services.spellCheckerService;
     
     if (rteService.hasEditor(editorKey)) {
       rteService.setContent(editorKey, content);
       
-      // Get all known words for highlighting (from both regionAnalysis AND global cache)
-      // This ensures we don't lose highlighting for words that are in the cache but not in regionAnalysis
-      const globalKnownWords = store.getKnownWords();
-      const words = spellCheckerService.tokenize(content);
-      const allKnownWords: string[] = [];
-      
-      // Check each word in the text against the global cache
-      words.forEach(word => {
-        if (globalKnownWords.has(word)) {
-          allKnownWords.push(word);
-        }
-      });
+      // ONLY use this region's own analysis for highlighting, not the global cache
+      // This makes it visually clear which words have been analyzed for this specific region
+      const regionAnalysis = updatedRegion.regionAnalysis || [];
+      const knownWords: string[] = Array.isArray(regionAnalysis)
+        ? regionAnalysis
+            .filter((item: unknown): item is { word: string } => 
+              typeof item === 'object' && item !== null && 'word' in item && typeof (item as { word: unknown }).word === 'string'
+            )
+            .map((item) => item.word)
+        : [];
       
       // Get issues for the region
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const issues = (store as any).getIssuesForRegion(updatedRegion.id as string);
       const issueHighlights = issueHighlightService.convertIssuesToHighlights(issues);
       
-      // Apply highlighting with ALL known words (from cache) and issues
+      // Apply highlighting using ONLY this region's analysis
       rteService.applyHighlighting(editorKey, {
-        knownWords: allKnownWords,
+        knownWords,
         issues: issueHighlights
       });
     }

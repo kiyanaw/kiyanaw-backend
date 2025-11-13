@@ -377,7 +377,7 @@ describe('UpdateRegionTextUseCase', () => {
         regionById: jest.fn((regionId) => ({ 
           id: regionId,
           transcriptionId: 'test-transcription-id', 
-          regionAnalysis: ['word1', 'word2'],
+          regionAnalysis: [{ word: 'word1', analysis: 'word1+N', allAnalysis: ['word1+N'] }, { word: 'word2', analysis: 'word2+N', allAnalysis: ['word2+N'] }],
           regionText: 'existing text',
           _version: 7
         })),

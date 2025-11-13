@@ -883,8 +883,12 @@ class RTEServiceImpl {
 
     // Get current state from store
     const state = useEditorStore.getState();
-    // Extract word strings from the Map (keys are word strings)
-    const knownWords = Array.from(state.knownWords.keys());
+    
+    // ONLY use this region's own analysis for highlighting, not the global cache
+    const region = state.regionById(regionId);
+    const regionAnalysis = region?.regionAnalysis || [];
+    const knownWords: string[] = regionAnalysis.map(item => item.word);
+    
     const issues = state.getIssuesForRegion(regionId);
 
     // Get current text from editor

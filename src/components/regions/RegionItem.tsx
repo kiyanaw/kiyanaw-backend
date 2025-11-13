@@ -35,25 +35,32 @@ export const RegionItem = ({
     return `${mins}:${paddedSecs}`;
   };
 
-  // Get known words and issues reactively from store
-  const knownWordsMap = useEditorStore((state) => state.knownWords);
+  // Get issues reactively from store
   const issues = useEditorStore((state) => state.getIssuesForRegion(regionId));
   
   const renderTextContent = useMemo(() => {
     if (!region?.regionText) return '';
     
-    // Convert Map to Set of word strings for text highlighting
-    const knownWords = new Set(knownWordsMap.keys());
+    // ONLY use this region's own analysis, not the global cache
+    // This makes it visually clear which words still need analysis
+    const regionAnalysis = region.regionAnalysis || [];
+    const knownWords = new Set(
+      Array.isArray(regionAnalysis) 
+        ? regionAnalysis
+            .filter(item => typeof item === 'object' && item !== null && 'word' in item)
+            .map(item => (item as { word: string }).word)
+        : []
+    );
     
     // Convert issues to highlights for text highlighting
     const issueHighlights = issueHighlightService.convertIssuesToHighlights(issues);
     
-    // Apply both known words and issue highlighting
+    // Apply highlighting using ONLY this region's analysis
     return textHighlightService.generateHTMLWithOptions(region.regionText, {
       knownWords,
       issues: issueHighlights
     });
-  }, [region?.regionText, knownWordsMap, issues]);
+  }, [region?.regionText, region?.regionAnalysis, issues]);
 
   const editorIndicator = useMemo(() => {
     if (editingUsers.length === 0) return '';
