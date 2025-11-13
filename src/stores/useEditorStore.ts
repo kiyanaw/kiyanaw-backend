@@ -2,6 +2,16 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import type { TranscriptionData, RegionData } from '../types/shared';
 import type { IssueData, CommentData } from '../services/adt';
+import type { WordAnalysis } from '../services/spellCheckerService';
+
+const isWordAnalysis = (value: unknown): value is WordAnalysis => {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'word' in value &&
+    typeof (value as { word: unknown }).word === 'string'
+  );
+};
 import type { ConflictDetail } from '../services/conflictDetectionService';
 import type { PendingEdit } from '../services/pendingEditsService';
 import Timeout from 'smart-timeout';
@@ -205,11 +215,16 @@ export const useEditorStore = create<EditorState>()(
           // Filter out empty analysis (WordAnalysis objects with empty analysis field)
           // These are incomplete and should be re-analyzed
           if (region.regionAnalysis && Array.isArray(region.regionAnalysis)) {
-            const hasEmptyAnalysis = region.regionAnalysis.some((item: any) => 
-              typeof item === 'object' && 
-              item.word && 
-              (!item.analysis || item.analysis === '' || !item.allAnalysis || item.allAnalysis.length === 0)
-            );
+            const hasEmptyAnalysis = region.regionAnalysis.some((item) => {
+              if (!isWordAnalysis(item)) {
+                return false;
+              }
+
+              const primaryAnalysisMissing = typeof item.analysis !== 'string' || item.analysis.trim() === '';
+              const allAnalysesMissing = !Array.isArray(item.allAnalysis) || item.allAnalysis.length === 0;
+
+              return primaryAnalysisMissing || allAnalysesMissing;
+            });
             
             if (hasEmptyAnalysis) {
               console.log(`🧹 STORE: Clearing incomplete regionAnalysis for ${region.id} (has empty analysis fields)`);
@@ -1074,7 +1089,7 @@ export const useEditorStore = create<EditorState>()(
           const lastRegionEnd = Math.max(...regions.map(r => r.end));
           coverage = Math.min(lastRegionEnd / transcription.length, 1.0); // Cap at 1.0
         }
-        
+
         return { regionCount, issueCount, coverage };
       },
     }),
