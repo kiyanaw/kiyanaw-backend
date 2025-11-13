@@ -141,15 +141,10 @@ class SpellCheckerServiceImpl {
 
   /**
    * Add words to known cache (useful for loading saved analysis)
-   * Accepts both string[] (legacy) and WordAnalysis[] (new format)
    */
-  addKnownWords(words: string[] | WordAnalysis[]): void {
+  addKnownWords(words: WordAnalysis[]): void {
     words.forEach(word => {
-      if (typeof word === 'string') {
-        this.knownWordsCache.add(word);
-      } else {
-        this.knownWordsCache.add(word.word);
-      }
+      this.knownWordsCache.add(word.word);
     });
   }
 

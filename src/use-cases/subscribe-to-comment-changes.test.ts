@@ -83,7 +83,10 @@ describe('SubscribeToCommentChangesUseCase', () => {
     start: 0,
     end: 10,
     regionText: 'Test region text',
-    regionAnalysis: ['test', 'region'],
+    regionAnalysis: [
+      { word: 'test', analysis: 'test+N', allAnalysis: ['test+N'] },
+      { word: 'region', analysis: 'region+N', allAnalysis: ['region+N'] }
+    ],
     transcriptionId: 'transcription-789',
     _version: 1,
   };

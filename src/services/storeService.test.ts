@@ -31,7 +31,10 @@ describe('storeService', () => {
   describe('region analysis operations', () => {
     it('should call setRegionAnalysis with fresh state', () => {
       const regionId = 'test-region';
-      const analysis = ['word1', 'word2'];
+      const analysis = [
+        { word: 'word1', analysis: 'word1+N', allAnalysis: ['word1+N'] },
+        { word: 'word2', analysis: 'word2+N', allAnalysis: ['word2+N'] }
+      ];
 
       storeService.setRegionAnalysis(regionId, analysis);
 
@@ -40,7 +43,10 @@ describe('storeService', () => {
     });
 
     it('should call addKnownWords with fresh state', () => {
-      const words = ['new', 'words'];
+      const words = [
+        { word: 'new', analysis: 'new+Adj', allAnalysis: ['new+Adj'] },
+        { word: 'words', analysis: 'word+N+Pl', allAnalysis: ['word+N+Pl'] }
+      ];
 
       storeService.addKnownWords(words);
 
