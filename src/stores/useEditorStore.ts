@@ -39,8 +39,8 @@ interface EditorState {
   // Text selection state for creating issues
   regionSelections: Record<string, { index: number; length: number; text: string } | null>;
   
-  // Word analysis cache
-  knownWords: Set<string>;
+  // Word analysis cache - stores full WordAnalysis objects, not just strings
+  knownWords: Map<string, import('../services/spellCheckerService').WordAnalysis>;
 
   // Pending edits tracking
   pendingEdits: Record<string, PendingEdit>;
@@ -165,7 +165,7 @@ export const useEditorStore = create<EditorState>()(
       regionVersions: {},
       selectedIssueId: null,
       regionSelections: {},
-      knownWords: new Set<string>(),
+      knownWords: new Map(),
       pendingEdits: {},
       conflictQueue: [],
       issues: [],
@@ -276,7 +276,7 @@ export const useEditorStore = create<EditorState>()(
           commentsByEntityMap,
           commentsByTranscriptionMap,
           peaks: peaks,
-          knownWords: new Set<string>() // Will be populated by use-case
+          knownWords: new Map() // Will be populated by use-case
         };
 
         // If we have a selectedRegionId and it exists in our regions, set it as selected
@@ -321,7 +321,7 @@ export const useEditorStore = create<EditorState>()(
           regions: [],
           regionMap: {},
           regionVersions: {},
-          knownWords: new Set<string>(),
+          knownWords: new Map(),
           pendingEdits: {},
           conflictQueue: [],
           issues: [],
@@ -998,7 +998,7 @@ export const useEditorStore = create<EditorState>()(
       // Spell checking actions
       addKnownWords: (words) => {
         const { knownWords } = get();
-        const newKnownWords = new Set(knownWords);
+        const newKnownWords = new Map(knownWords);
         
         // Handle WordAnalysis[] format ONLY
         words.forEach(word => {
@@ -1007,7 +1007,8 @@ export const useEditorStore = create<EditorState>()(
             // Words with empty analysis should not be in the known words cache
             if (word.analysis && word.analysis !== '' && 
                 word.allAnalysis && word.allAnalysis.length > 0) {
-              newKnownWords.add(word.word);
+              // Store the FULL WordAnalysis object, not just the word string
+              newKnownWords.set(word.word, word);
             }
             // Skip words with empty analysis - they need to be re-analyzed
           } else {

@@ -135,7 +135,7 @@ describe('useEditorStore known words functionality', () => {
       regionMap: {},
       selectedRegionId: null,
       selectedRegion: null,
-      knownWords: new Set()
+      knownWords: new Map()
     });
   });
 

@@ -38,7 +38,7 @@ export const storeService = {
     useEditorStore.getState().addKnownWords(words as any);
   },
 
-  getKnownWords: (): Set<string> => {
+  getKnownWords: (): Map<string, import('./spellCheckerService').WordAnalysis> => {
     return useEditorStore.getState().knownWords;
   },
 

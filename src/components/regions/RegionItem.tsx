@@ -36,11 +36,14 @@ export const RegionItem = ({
   };
 
   // Get known words and issues reactively from store
-  const knownWords = useEditorStore((state) => state.knownWords);
+  const knownWordsMap = useEditorStore((state) => state.knownWords);
   const issues = useEditorStore((state) => state.getIssuesForRegion(regionId));
   
   const renderTextContent = useMemo(() => {
     if (!region?.regionText) return '';
+    
+    // Convert Map to Set of word strings for text highlighting
+    const knownWords = new Set(knownWordsMap.keys());
     
     // Convert issues to highlights for text highlighting
     const issueHighlights = issueHighlightService.convertIssuesToHighlights(issues);
@@ -50,7 +53,7 @@ export const RegionItem = ({
       knownWords,
       issues: issueHighlights
     });
-  }, [region?.regionText, knownWords, issues]);
+  }, [region?.regionText, knownWordsMap, issues]);
 
   const editorIndicator = useMemo(() => {
     if (editingUsers.length === 0) return '';

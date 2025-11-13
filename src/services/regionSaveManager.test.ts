@@ -8,7 +8,7 @@ jest.mock('./index', () => ({
   services: {
     storeService: {
       transcription: { lang: 'crk' },
-      getKnownWords: jest.fn(() => new Set<string>()),
+      getKnownWords: jest.fn(() => new Map()),
       regionById: jest.fn(() => ({ transcriptionId: 'trans-1' })),
       setRegionAnalysis: jest.fn(),
       addKnownWords: jest.fn(),
@@ -61,7 +61,7 @@ describe('RegionSaveManager', () => {
     
     // Reset mock implementations
     (services.storeService.transcription as { lang: string }).lang = 'crk';
-    (services.storeService.getKnownWords as jest.Mock).mockReturnValue(new Set<string>());
+    (services.storeService.getKnownWords as jest.Mock).mockReturnValue(new Map());
   });
 
   describe('Queue Management', () => {
@@ -416,10 +416,11 @@ describe('RegionSaveManager', () => {
         regionAnalysis: existingAnalysis
       });
       
-      // "awa" and "ana" are in cache, "êkwa" is NOT, "new" is NOT
-      (services.storeService.getKnownWords as jest.Mock).mockReturnValue(
-        new Set(['awa', 'ana'])
-      );
+      // "awa" and "ana" are in cache with full analysis
+      const cacheMap = new Map<string, WordAnalysis>();
+      cacheMap.set('awa', { word: 'awa', analysis: 'awa+Ipc', allAnalysis: ['awa+Ipc'] });
+      cacheMap.set('ana', { word: 'ana', analysis: 'ana+Pron', allAnalysis: ['ana+Pron'] });
+      (services.storeService.getKnownWords as jest.Mock).mockReturnValue(cacheMap);
       
       // API returns analysis for unknown words
       (services.spellCheckerService.check as jest.Mock).mockResolvedValue({
@@ -463,10 +464,11 @@ describe('RegionSaveManager', () => {
         regionAnalysis: existingAnalysis
       });
       
-      // ALL words are in cache
-      (services.storeService.getKnownWords as jest.Mock).mockReturnValue(
-        new Set(['awa', 'ana'])
-      );
+      // ALL words are in cache with full analysis
+      const cacheMap = new Map<string, WordAnalysis>();
+      cacheMap.set('awa', { word: 'awa', analysis: 'awa+Ipc', allAnalysis: ['awa+Ipc'] });
+      cacheMap.set('ana', { word: 'ana', analysis: 'ana+Pron', allAnalysis: ['ana+Pron'] });
+      (services.storeService.getKnownWords as jest.Mock).mockReturnValue(cacheMap);
       
       // API is NOT called (all words cached)
       (services.spellCheckerService.check as jest.Mock).mockResolvedValue({
@@ -509,10 +511,11 @@ describe('RegionSaveManager', () => {
         regionAnalysis: existingAnalysis
       });
       
-      // Both words are in cache
-      (services.storeService.getKnownWords as jest.Mock).mockReturnValue(
-        new Set(['awa', 'bad'])
-      );
+      // Both words are in cache (but 'bad' has empty analysis)
+      const cacheMap = new Map<string, WordAnalysis>();
+      cacheMap.set('awa', { word: 'awa', analysis: 'awa+Ipc', allAnalysis: ['awa+Ipc'] });
+      // 'bad' is NOT in cache because it has empty analysis
+      (services.storeService.getKnownWords as jest.Mock).mockReturnValue(cacheMap);
       
       (services.spellCheckerService.check as jest.Mock).mockResolvedValue({
         known: [],

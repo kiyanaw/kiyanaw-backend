@@ -254,7 +254,18 @@ export class SubscribeToRegionChangesUseCase {
     
     // Update region analysis (always unprotected)
     if (updatedRegion.regionAnalysis !== undefined) {
-      store.setRegionAnalysis(updatedRegion.id as string, updatedRegion.regionAnalysis);
+      // Parse regionAnalysis if it's a JSON string (from GraphQL subscription)
+      let parsedAnalysis = updatedRegion.regionAnalysis;
+      if (typeof parsedAnalysis === 'string') {
+        try {
+          parsedAnalysis = JSON.parse(parsedAnalysis);
+        } catch (error) {
+          console.error('🔌 SUBSCRIBE: Failed to parse regionAnalysis JSON string:', error);
+          parsedAnalysis = [];
+        }
+      }
+      
+      store.setRegionAnalysis(updatedRegion.id as string, parsedAnalysis);
       
       // If only analysis changed (not text), we need to reapply highlighting
       // This happens when Dan types and saves, and we receive the realtime update
@@ -263,9 +274,8 @@ export class SubscribeToRegionChangesUseCase {
         const rteService = this.config.services.rteService;
         
         if (rteService.hasEditor(mainEditorKey)) {
-          // Parse the analysis (it comes as JSON string from GraphQL)
-          const regionAnalysisRaw = updatedRegion.regionAnalysis;
-          const regionAnalysis = extractWords(regionAnalysisRaw);
+          // Extract words for highlighting (handles both array and string formats)
+          const regionAnalysis = extractWords(parsedAnalysis);
           
           // Get issues for the region
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -323,7 +333,17 @@ export class SubscribeToRegionChangesUseCase {
     }
     
     if (updatedRegion.regionAnalysis !== undefined) {
-      store.setRegionAnalysis(updatedRegion.id, updatedRegion.regionAnalysis);
+      // Parse regionAnalysis if it's a JSON string (from GraphQL subscription)
+      let parsedAnalysis = updatedRegion.regionAnalysis;
+      if (typeof parsedAnalysis === 'string') {
+        try {
+          parsedAnalysis = JSON.parse(parsedAnalysis);
+        } catch (error) {
+          console.error('🔌 SUBSCRIBE: Failed to parse regionAnalysis JSON string:', error);
+          parsedAnalysis = [];
+        }
+      }
+      store.setRegionAnalysis(updatedRegion.id, parsedAnalysis);
     }
     
     if (updatedRegion._version !== undefined) {
@@ -335,22 +355,32 @@ export class SubscribeToRegionChangesUseCase {
   private updateRteIfExists(editorKey: `${string}:main` | `${string}:translation`, content: string, updatedRegion: any): void {
     const rteService = this.config.services.rteService;
     const store = this.config.services.storeService;
+    const spellCheckerService = this.config.services.spellCheckerService;
     
     if (rteService.hasEditor(editorKey)) {
       rteService.setContent(editorKey, content);
       
-      // Reapply known words and issue highlighting after content update
-      const regionAnalysisRaw = updatedRegion.regionAnalysis || store.regionById(updatedRegion.id as string)?.regionAnalysis;
-      // Extract words for highlighting using the migration helper
-      const regionAnalysis = extractWords(regionAnalysisRaw);
+      // Get all known words for highlighting (from both regionAnalysis AND global cache)
+      // This ensures we don't lose highlighting for words that are in the cache but not in regionAnalysis
+      const globalKnownWords = store.getKnownWords();
+      const words = spellCheckerService.tokenize(content);
+      const allKnownWords: string[] = [];
+      
+      // Check each word in the text against the global cache
+      words.forEach(word => {
+        if (globalKnownWords.has(word)) {
+          allKnownWords.push(word);
+        }
+      });
+      
       // Get issues for the region
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const issues = (store as any).getIssuesForRegion(updatedRegion.id as string);
       const issueHighlights = issueHighlightService.convertIssuesToHighlights(issues);
       
-      // Apply highlighting with both known words and issues
+      // Apply highlighting with ALL known words (from cache) and issues
       rteService.applyHighlighting(editorKey, {
-        knownWords: regionAnalysis || [],
+        knownWords: allKnownWords,
         issues: issueHighlights
       });
     }

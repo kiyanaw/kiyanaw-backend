@@ -146,7 +146,7 @@ class RegionSaveManagerImpl {
       });
     }
     
-    // Get known words from cache
+    // Get known words cache (now stores full WordAnalysis objects!)
     const globalKnownWords = store.getKnownWords();
     const uniqueWords = [...new Set(words)];
     
@@ -162,7 +162,7 @@ class RegionSaveManagerImpl {
       }
     });
     
-    // Get fresh analysis from API for unknown words
+    // Get fresh analysis from API for unknown words only
     const freshAnalysis: WordAnalysis[] = [];
     if (unknownUniqueWords.length > 0) {
       try {
@@ -180,20 +180,26 @@ class RegionSaveManagerImpl {
       }
     }
     
-    // CRITICAL: Merge existing analysis with fresh analysis
-    // This prevents losing analysis for cached words
+    // CRITICAL: Merge analysis from THREE sources:
+    // 1. Fresh analysis from API (highest priority)
+    // 2. Global cache (has full WordAnalysis objects)
+    // 3. Existing region analysis (fallback)
     const mergedAnalysis: WordAnalysis[] = [];
     const freshAnalysisMap = new Map(freshAnalysis.map(item => [item.word, item]));
     
     uniqueWords.forEach(word => {
       if (freshAnalysisMap.has(word)) {
-        // Fresh analysis takes priority
+        // 1. Fresh analysis from API takes highest priority
         mergedAnalysis.push(freshAnalysisMap.get(word)!);
+      } else if (globalKnownWords.has(word)) {
+        // 2. Get full analysis from global cache
+        const cachedAnalysis = globalKnownWords.get(word)!;
+        mergedAnalysis.push(cachedAnalysis);
       } else if (existingAnalysisMap.has(word)) {
-        // Preserve existing analysis for cached words
+        // 3. Fallback to existing region analysis
         mergedAnalysis.push(existingAnalysisMap.get(word)!);
       }
-      // If neither, skip (unknown word with no analysis)
+      // If none of the above, skip (unknown word with no analysis)
     });
     
     // Save merged analysis
@@ -216,7 +222,7 @@ class RegionSaveManagerImpl {
     console.log(`📊 SAVE-MANAGER: Spell check results for ${regionId}:`, {
       cachedWords: cachedWords.length,
       freshAnalysis: freshAnalysis.length,
-      preservedAnalysis: mergedAnalysis.length - freshAnalysis.length,
+      fromCache: cachedWords.filter(w => globalKnownWords.has(w)).length,
       totalSaved: mergedAnalysis.length,
       totalHighlighted: allKnownWords.length
     });
