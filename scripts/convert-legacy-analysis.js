@@ -359,6 +359,51 @@ async function processRegion(region, tableName) {
 }
 
 /**
+ * Process regions with limited concurrency
+ */
+async function processRegionsWithConcurrency(regions, tableName, concurrencyLimit) {
+  const results = new Array(regions.length);
+  let index = 0;
+
+  const worker = async () => {
+    while (true) {
+      const currentIndex = index;
+      index += 1;
+
+      if (currentIndex >= regions.length) {
+        break;
+      }
+
+      const region = regions[currentIndex];
+
+      console.log(`Processing region ${currentIndex + 1}/${regions.length}: ${region.id}`);
+
+      const result = await processRegion(region, tableName);
+
+      if (result.success) {
+        console.log(`✅ ${region.id}: ${result.wordsProcessed}/${result.originalWords} words analyzed`);
+      } else {
+        console.log(`❌ ${region.id}: ${result.error}`);
+      }
+
+      results[currentIndex] = {
+        id: region.id,
+        ...result
+      };
+    }
+  };
+
+  const workers = Array.from(
+    { length: Math.min(concurrencyLimit, regions.length) },
+    () => worker()
+  );
+
+  await Promise.all(workers);
+
+  return results;
+}
+
+/**
  * Main function
  */
 async function main() {
@@ -375,38 +420,27 @@ async function main() {
     const regions = await scanAllRegions(TABLE_NAME);
     console.log(`Found ${regions.length} total regions\n`);
 
-    let successCount = 0;
-    let errorCount = 0;
-    const processedRegionIds = [];
-    const errorDetails = [];
+    const concurrencyFromEnv = Number(process.env.CONVERSION_CONCURRENCY);
+    const concurrencyLimit = Number.isFinite(concurrencyFromEnv) && concurrencyFromEnv > 0
+      ? Math.floor(concurrencyFromEnv)
+      : 5;
 
-    for (let i = 0; i < regions.length; i++) {
-      const region = regions[i];
-      
-      console.log(`Processing region ${i + 1}/${regions.length}: ${region.id}`);
-      
-      const result = await processRegion(region, TABLE_NAME);
-      
-      if (result.success) {
-        console.log(`✅ ${region.id}: ${result.wordsProcessed}/${result.originalWords} words analyzed`);
-        processedRegionIds.push(region.id);
-        successCount++;
-      } else {
-        console.log(`❌ ${region.id}: ${result.error}`);
-        errorDetails.push({ id: region.id, error: result.error });
-        errorCount++;
-      }
-    }
+    console.log(`Using concurrency limit: ${concurrencyLimit}\n`);
+
+    const results = await processRegionsWithConcurrency(regions, TABLE_NAME, concurrencyLimit);
+
+    const successCount = results.filter(result => result?.success).length;
+    const errorEntries = results.filter(result => result && !result.success);
 
     console.log('\n' + '='.repeat(80));
     console.log('Processing complete!');
     console.log(`✅ Successfully processed: ${successCount} regions`);
-    console.log(`❌ Errors: ${errorCount} regions`);
-    console.log(`📊 Total processed: ${successCount + errorCount}/${regions.length} regions`);
+    console.log(`❌ Errors: ${errorEntries.length} regions`);
+    console.log(`📊 Total processed: ${results.length}/${regions.length} regions`);
     
-    if (errorDetails.length > 0) {
+    if (errorEntries.length > 0) {
       console.log('\nError details:');
-      errorDetails.forEach(({ id, error }) => {
+      errorEntries.forEach(({ id, error }) => {
         console.log(`  ${id}: ${error}`);
       });
     }
