@@ -23,15 +23,33 @@ import https from 'https';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Get environment and AWS profile from command line arguments
-const environment = process.argv[2];
-const awsProfile = process.argv[3];
+// Get environment, optional AWS profile, and flags from command line arguments
+const CLI_ARGS = process.argv.slice(2);
+
+const environment = CLI_ARGS[0];
+let awsProfile = undefined;
+let isVerbose = false;
+
+for (let i = 1; i < CLI_ARGS.length; i++) {
+  const arg = CLI_ARGS[i];
+  if (arg === '--verbose') {
+    isVerbose = true;
+  } else if (!awsProfile) {
+    awsProfile = arg;
+  }
+}
 
 if (!environment) {
   console.error('Error: Please provide an environment (staging, production)');
-  console.error('Usage: node scripts/convert-legacy-analysis.js <environment> [aws-profile]');
+  console.error('Usage: node scripts/convert-legacy-analysis.js <environment> [aws-profile] [--verbose]');
   process.exit(1);
 }
+
+const logVerbose = (...args) => {
+  if (isVerbose) {
+    console.log(...args);
+  }
+};
 
 // Table names for each environment
 const TABLE_NAMES = {
@@ -186,7 +204,7 @@ async function spellcheckWords(words, languageCode = 'crk', credentials) {
       res.on('end', () => {
         try {
           const result = JSON.parse(data);
-          console.log(`Spellchecker API response:`, result);
+          logVerbose(`Spellchecker API response:`, result);
           resolve(result);
         } catch (error) {
           reject(new Error(`Failed to parse response: ${error.message}`));
@@ -407,25 +425,25 @@ async function processRegionsWithConcurrency(regions, tableName, concurrencyLimi
  * Main function
  */
 async function main() {
-  console.log(`\nProcessing all regions for environment: ${environment}`);
-  console.log(`Table: ${TABLE_NAME}`);
+  logVerbose(`\nProcessing all regions for environment: ${environment}`);
+  logVerbose(`Table: ${TABLE_NAME}`);
   if (awsProfile) {
-    console.log(`AWS Profile: ${awsProfile}`);
+    logVerbose(`AWS Profile: ${awsProfile}`);
   }
-  console.log();
+  logVerbose('');
 
   try {
-    console.log('Scanning all regions...\n');
+    logVerbose('Scanning all regions...\n');
 
     const regions = await scanAllRegions(TABLE_NAME);
-    console.log(`Found ${regions.length} total regions\n`);
+    logVerbose(`Found ${regions.length} total regions\n`);
 
     const concurrencyFromEnv = Number(process.env.CONVERSION_CONCURRENCY);
     const concurrencyLimit = Number.isFinite(concurrencyFromEnv) && concurrencyFromEnv > 0
       ? Math.floor(concurrencyFromEnv)
       : 5;
 
-    console.log(`Using concurrency limit: ${concurrencyLimit}\n`);
+    logVerbose(`Using concurrency limit: ${concurrencyLimit}\n`);
 
     const results = await processRegionsWithConcurrency(regions, TABLE_NAME, concurrencyLimit);
 
@@ -439,9 +457,9 @@ async function main() {
     console.log(`📊 Total processed: ${results.length}/${regions.length} regions`);
     
     if (errorEntries.length > 0) {
-      console.log('\nError details:');
+      logVerbose('\nError details:');
       errorEntries.forEach(({ id, error }) => {
-        console.log(`  ${id}: ${error}`);
+        logVerbose(`  ${id}: ${error}`);
       });
     }
 
