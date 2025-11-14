@@ -82,12 +82,6 @@ export const AppLayout = () => {
             >
               Transcriptions
             </Link>
-            {/* <Link
-              to="/database"
-              className="text-white hover:text-white/80 transition-colors duration-200 text-base font-medium"
-            >
-              Database
-            </Link> */}
             <Link
               to="/invitations"
               className="text-white hover:text-white/80 transition-colors duration-200 text-base font-medium relative flex items-center"
@@ -252,16 +246,6 @@ export const AppLayout = () => {
                 </svg>
                 <span className="font-medium">Transcriptions</span>
               </Link>
-              
-              {/* <Link
-                to="/database"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center px-6 py-3 text-gray-900 hover:bg-gray-50 active:bg-gray-100 transition-colors duration-150"
-              >
-                <Database className="w-5 h-5 text-gray-600 mr-4" />
-                <span className="font-medium">Database</span>
-              </Link>
-               */}
               <Link
                 to="/invitations"
                 onClick={() => setMobileMenuOpen(false)}
