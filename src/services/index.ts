@@ -18,7 +18,6 @@ import { pendingEditsService } from './pendingEditsService';
 import { conflictDetectionService } from './conflictDetectionService';
 import { conflictResolutionService } from './conflictResolutionService';
 import * as versionConflictService from './versionConflictService';
-import { regionSaveManager } from './regionSaveManager';
 
 export const services = {
   userService: authService,
@@ -42,7 +41,6 @@ export const services = {
   conflictDetectionService,
   conflictResolutionService,
   versionConflictService,
-  regionSaveManager,
 };
 
 export { regionSaveManager } from './regionSaveManager';
