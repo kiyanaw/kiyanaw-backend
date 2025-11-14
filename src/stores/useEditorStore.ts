@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import type { TranscriptionData, RegionData } from '../types/shared';
 import type { IssueData, CommentData } from '../services/adt';
-import type { WordAnalysis } from '../services/spellCheckerService';
+import type { WordAnalysis } from '../services/adt';
 
 const isWordAnalysis = (value: unknown): value is WordAnalysis => {
   return (
@@ -50,7 +50,7 @@ interface EditorState {
   regionSelections: Record<string, { index: number; length: number; text: string } | null>;
   
   // Word analysis cache - stores full WordAnalysis objects, not just strings
-  knownWords: Map<string, import('../services/spellCheckerService').WordAnalysis>;
+  knownWords: Map<string, WordAnalysis>;
 
   // Pending edits tracking
   pendingEdits: Record<string, PendingEdit>;
@@ -117,8 +117,8 @@ interface EditorState {
   calculateTranscriptionMetadata: () => { regionCount: number; issueCount: number; coverage: number };
 
   // Spell checking actions
-  addKnownWords: (words: import('../services/spellCheckerService').WordAnalysis[]) => void;
-  setRegionAnalysis: (regionId: string, analysis: import('../services/spellCheckerService').WordAnalysis[]) => void;
+  addKnownWords: (words: WordAnalysis[]) => void;
+  setRegionAnalysis: (regionId: string, analysis: WordAnalysis[]) => void;
 
   // Pending edits actions moved below
 

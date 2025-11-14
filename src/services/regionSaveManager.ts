@@ -1,7 +1,7 @@
 import Timeout from 'smart-timeout';
 import { services } from './index';
 import { issueHighlightService } from './issueHighlightService';
-import type { WordAnalysis } from './spellCheckerService';
+import type { WordAnalysis } from './adt';
 
 interface PendingChanges {
   regionText?: string;

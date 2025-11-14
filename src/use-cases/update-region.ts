@@ -3,7 +3,7 @@ import { UpdateTranscriptionUseCase } from './update-transcription';
 import { isVersionConflictError, handleVersionConflict } from '../services/versionConflictService';
 import type { RegionData } from '../services/adt';
 import type { LazyRegion } from '../models';
-import type { WordAnalysis } from '../services/spellCheckerService';
+import type { WordAnalysis } from '../services/adt';
 import Timeout from 'smart-timeout';
 
 // Type for changes that can be made to a region

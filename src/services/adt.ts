@@ -37,7 +37,7 @@ export interface RegionData {
   translation?: string;
   userLastUpdated?: string;
   index?: number;
-  regionAnalysis?: import('./spellCheckerService').WordAnalysis[]; // Array of detailed word analysis
+  regionAnalysis?: WordAnalysis[]; // Array of detailed word analysis
   updatedAt?: string; // Additional property needed for tests
   _version?: number; // Version tracking for conflict resolution
 }
@@ -144,6 +144,18 @@ export interface SearchResult {
   lemma: string;
   count: number;
   wordType?: string;
+}
+
+// Word Analysis Types
+export interface WordAnalysis {
+  word: string;
+  analysis: string;           // The primary analysis to use
+  allAnalysis: string[];      // All available analyses
+}
+
+export interface SpellCheckResult {
+  known: WordAnalysis[];
+  unknown: string[];
 }
 
 
@@ -388,7 +400,7 @@ export class RegionModel {
   public translation: string;
   public userLastUpdated?: string;
   public index?: number;
-  public regionAnalysis: import('./spellCheckerService').WordAnalysis[];
+  public regionAnalysis: WordAnalysis[];
   public _version: number;
 
   constructor(data: RegionData) {

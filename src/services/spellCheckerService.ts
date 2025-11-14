@@ -1,15 +1,5 @@
 import { post } from 'aws-amplify/api';
-
-export interface WordAnalysis {
-  word: string;
-  analysis: string;           // The primary analysis to use
-  allAnalysis: string[];      // All available analyses
-}
-
-export interface SpellCheckResult {
-  known: WordAnalysis[];
-  unknown: string[];
-}
+import type { WordAnalysis, SpellCheckResult } from './adt';
 
 class SpellCheckerServiceImpl {
   private knownWordsCache = new Set<string>();

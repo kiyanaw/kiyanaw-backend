@@ -1,5 +1,5 @@
 import { useEditorStore } from '../stores/useEditorStore';
-import type { RegionData, IssueData, CommentData } from './adt';
+import type { RegionData, IssueData, CommentData, WordAnalysis } from './adt';
 import type { ConflictDetail } from './conflictDetectionService';
 import type { LazyRegion } from '../models';
 
@@ -11,7 +11,7 @@ import type { LazyRegion } from '../models';
 export const storeService = {
   // Editor Store operations
   // Region analysis operations
-  setRegionAnalysis: (regionId: string, analysis: import('./spellCheckerService').WordAnalysis[]): void => {
+  setRegionAnalysis: (regionId: string, analysis: WordAnalysis[]): void => {
     useEditorStore.getState().setRegionAnalysis(regionId, analysis);
   },
 
@@ -33,11 +33,11 @@ export const storeService = {
     useEditorStore.getState().setTranscription(transcription);
   },
 
-  addKnownWords: (words: import('./spellCheckerService').WordAnalysis[]): void => {
+  addKnownWords: (words: WordAnalysis[]): void => {
     useEditorStore.getState().addKnownWords(words);
   },
 
-  getKnownWords: (): Map<string, import('./spellCheckerService').WordAnalysis> => {
+  getKnownWords: (): Map<string, WordAnalysis> => {
     return useEditorStore.getState().knownWords;
   },
 

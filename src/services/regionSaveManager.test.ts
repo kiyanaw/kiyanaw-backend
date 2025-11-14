@@ -1,7 +1,7 @@
 import { regionSaveManager } from './regionSaveManager';
 import { services } from './index';
 import Timeout from 'smart-timeout';
-import type { WordAnalysis } from './spellCheckerService';
+import type { WordAnalysis } from './adt';
 
 // Mock services
 jest.mock('./index', () => ({

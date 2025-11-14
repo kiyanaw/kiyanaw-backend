@@ -1,4 +1,5 @@
-import { spellCheckerService, type WordAnalysis } from '../services/spellCheckerService';
+import { spellCheckerService } from '../services/spellCheckerService';
+import type { WordAnalysis } from '../services/adt';
 import type { EditorKey } from '../services/rteService';
 import { issueHighlightService } from '../services/issueHighlightService';
 import { services } from '../services';

@@ -1,4 +1,5 @@
 import { services } from '../services';
+import type { WordAnalysis } from '../services/adt';
 
 interface LoadTranscriptionConfig {
   transcriptionId: string;
@@ -94,8 +95,8 @@ export class LoadTranscription {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private extractKnownWordsFromRegions(regions: any[]): import('../services/spellCheckerService').WordAnalysis[] {
-    const allKnownWords: import('../services/spellCheckerService').WordAnalysis[] = [];
+  private extractKnownWordsFromRegions(regions: any[]): WordAnalysis[] {
+    const allKnownWords: WordAnalysis[] = [];
     const seenWords = new Set<string>();
     
     if (regions && Array.isArray(regions)) {
