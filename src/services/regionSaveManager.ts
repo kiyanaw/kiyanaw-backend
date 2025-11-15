@@ -1,6 +1,8 @@
 import Timeout from 'smart-timeout';
 import { services } from './index';
 import { issueHighlightService } from './issueHighlightService';
+import { isVersionConflictError, handleVersionConflict } from './versionConflictService';
+import { UpdateTranscriptionUseCase } from '../use-cases/update-transcription';
 import type { WordAnalysis } from './adt';
 
 interface PendingChanges {
@@ -267,7 +269,6 @@ class RegionSaveManagerImpl {
       // Update transcription metadata
       const region = store.regionById(regionId);
       if (region) {
-        const { UpdateTranscriptionUseCase } = await import('../use-cases/update-transcription');
         const updateTranscriptionUseCase = new UpdateTranscriptionUseCase({
           transcriptionId: region.transcriptionId,
           services,
@@ -287,8 +288,6 @@ class RegionSaveManagerImpl {
       console.error(`❌ SAVE-MANAGER: Save failed for ${regionId}:`, error);
       
       // Check if this is a version conflict error
-      const { isVersionConflictError, handleVersionConflict } = await import('./versionConflictService');
-      
       if (isVersionConflictError(error)) {
         console.log(`⚠️ SAVE-MANAGER: Version conflict detected for ${regionId}, showing conflict dialog`);
         
@@ -394,7 +393,6 @@ class RegionSaveManagerImpl {
             // Update transcription metadata
             const region = store.regionById(regionId);
             if (region) {
-              const { UpdateTranscriptionUseCase } = await import('../use-cases/update-transcription');
               const updateTranscriptionUseCase = new UpdateTranscriptionUseCase({
                 transcriptionId: region.transcriptionId,
                 services,
