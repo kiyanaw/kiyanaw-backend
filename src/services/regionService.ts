@@ -136,7 +136,7 @@ export const updateRegion = async (regionId: string, updates: Partial<RegionData
     // Serialize regionAnalysis for AWSJSON storage BEFORE creating input
     let serializedUpdates = { ...updates };
     if (serializedUpdates.regionAnalysis && Array.isArray(serializedUpdates.regionAnalysis)) {
-      // Both WordAnalysis[] and legacy string[] need to be serialized to JSON for AWSJSON
+      // serialize to JSON for AWSJSON
       const jsonString = JSON.stringify(serializedUpdates.regionAnalysis);
       console.log(`📦 REGION-SERVICE: Serializing regionAnalysis to JSON:`, {
         originalLength: serializedUpdates.regionAnalysis.length,

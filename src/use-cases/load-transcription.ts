@@ -99,6 +99,7 @@ export class LoadTranscription {
     const allKnownWords: WordAnalysis[] = [];
     const seenWords = new Set<string>();
     
+    // TODO: REMOVE LEGACY FORMAT PROCESSING
     if (regions && Array.isArray(regions)) {
       regions.forEach((region) => {
         if (region.regionAnalysis && Array.isArray(region.regionAnalysis)) {
