@@ -31,8 +31,6 @@ jest.mock('../services/rteService', () => ({
   }
 }));
 jest.mock('../stores/useEditorStore');
-jest.mock('../use-cases/update-region-text');
-jest.mock('../use-cases/analyze-region-text');
 jest.mock('../services', () => ({
   services: {
     authService: {

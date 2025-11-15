@@ -165,6 +165,104 @@ class SpellCheckerServiceImpl {
       .map(word => word.replace(/[.,()!?;:"']/g, '').toLowerCase())
       .filter(word => word.length > 0);
   }
+
+  /**
+   * Analyze region text and return merged word analysis.
+   * 
+   * Coordinates between:
+   * - Fresh API analysis for unknown words
+   * - Global known words cache
+   * - Existing region analysis (for persistence)
+   * 
+   * This is the primary method for spell checking region text.
+   * 
+   * @param text - The text to analyze
+   * @param languageCode - Language code for spell checking (e.g., 'crk')
+   * @param globalKnownWords - Map of globally cached word analyses
+   * @param existingAnalysis - Existing analysis from the region (for fallback)
+   * @returns Array of WordAnalysis objects for all words in text
+   */
+  async analyzeRegionText(
+    text: string,
+    languageCode: string,
+    globalKnownWords: Map<string, WordAnalysis>,
+    existingAnalysis: WordAnalysis[] = []
+  ): Promise<{ analysis: WordAnalysis[]; newlyKnown: WordAnalysis[] }> {
+    // Tokenize
+    const words = this.tokenize(text);
+    if (words.length === 0) {
+      return { analysis: [], newlyKnown: [] };
+    }
+    
+    // Build a map of existing analysis by word for fast lookup
+    const existingAnalysisMap = new Map<string, WordAnalysis>();
+    if (Array.isArray(existingAnalysis)) {
+      existingAnalysis.forEach((item: unknown) => {
+        if (typeof item === 'object' && item !== null && 'word' in item) {
+          const analysis = item as WordAnalysis;
+          // Only keep complete analysis (not empty)
+          if (analysis.word && analysis.analysis && analysis.allAnalysis?.length > 0) {
+            existingAnalysisMap.set(analysis.word, analysis);
+          }
+        }
+      });
+    }
+    
+    const uniqueWords = [...new Set(words)];
+    
+    // Separate cached words from unknown words
+    const cachedWords: string[] = [];
+    const unknownUniqueWords: string[] = [];
+    
+    uniqueWords.forEach(word => {
+      if (globalKnownWords.has(word)) {
+        cachedWords.push(word);
+      } else {
+        unknownUniqueWords.push(word);
+      }
+    });
+    
+    // Get fresh analysis from API for unknown words only
+    const freshAnalysis: WordAnalysis[] = [];
+    if (unknownUniqueWords.length > 0) {
+      try {
+        const result = await this.check(unknownUniqueWords, languageCode);
+        
+        if (result.known.length > 0) {
+          freshAnalysis.push(...result.known);
+        }
+      } catch (error) {
+        console.error('Spell check API error during region analysis:', error);
+      }
+    }
+    
+    // CRITICAL: Merge analysis from THREE sources:
+    // 1. Fresh analysis from API (highest priority)
+    // 2. Global cache (has full WordAnalysis objects)
+    // 3. Existing region analysis (fallback)
+    const mergedAnalysis: WordAnalysis[] = [];
+    const freshAnalysisMap = new Map(freshAnalysis.map(item => [item.word, item]));
+    
+    uniqueWords.forEach(word => {
+      if (freshAnalysisMap.has(word)) {
+        // 1. Fresh analysis from API takes highest priority
+        mergedAnalysis.push(freshAnalysisMap.get(word)!);
+      } else if (globalKnownWords.has(word)) {
+        // 2. Get full analysis from global cache
+        const cachedAnalysis = globalKnownWords.get(word)!;
+        mergedAnalysis.push(cachedAnalysis);
+      } else if (existingAnalysisMap.has(word)) {
+        // 3. Fallback to existing region analysis
+        mergedAnalysis.push(existingAnalysisMap.get(word)!);
+      }
+      // If none of the above, skip (unknown word with no analysis)
+    });
+    
+    return {
+      analysis: mergedAnalysis,
+      newlyKnown: freshAnalysis
+    };
+  }
 }
 
 export const spellCheckerService = new SpellCheckerServiceImpl();

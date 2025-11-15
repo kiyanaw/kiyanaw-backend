@@ -110,7 +110,8 @@ class RegionSaveManagerImpl {
   }
   
   /**
-   * Perform spell check and return analysis
+   * Perform spell check and return analysis.
+   * Delegates to spellCheckerService and updates store + RTE highlighting.
    */
   private async performSpellCheck(regionId: string, text: string): Promise<WordAnalysis[]> {
     const store = services.storeService;
@@ -122,109 +123,52 @@ class RegionSaveManagerImpl {
       return [];
     }
     
-    // Tokenize
-    const words = services.spellCheckerService.tokenize(text);
-    if (words.length === 0) {
+    try {
+      // Get existing analysis from store to preserve it for cached words
+      const existingRegion = store.regionById(regionId);
+      const existingAnalysis = existingRegion?.regionAnalysis || [];
+      
+      // Get known words cache
+      const globalKnownWords = store.getKnownWords();
+      
+      // Delegate to spellCheckerService for analysis
+      const result = await services.spellCheckerService.analyzeRegionText(
+        text,
+        transcription.lang,
+        globalKnownWords,
+        existingAnalysis
+      );
+      
+      // Add newly known words to global cache
+      if (result.newlyKnown.length > 0) {
+        store.addKnownWords(result.newlyKnown);
+      }
+      
+      // Save merged analysis
+      store.setRegionAnalysis(regionId, result.analysis);
+      
+      // Update RTE highlighting using ONLY this region's saved analysis
+      const mainEditorKey = `${regionId}:main` as const;
+      if (services.rteService.hasEditor(mainEditorKey)) {
+        const issues = store.getIssuesForRegion(regionId);
+        const issueHighlights = issueHighlightService.convertIssuesToHighlights(issues);
+        services.rteService.applyHighlighting(mainEditorKey, {
+          knownWords: result.analysis.map(item => item.word),
+          issues: issueHighlights
+        });
+      }
+      
+      console.log(`📊 SAVE-MANAGER: Spell check results for ${regionId}:`, {
+        newlyKnown: result.newlyKnown.length,
+        totalSaved: result.analysis.length,
+      });
+      
+      return result.analysis;
+    } catch (error) {
+      console.error('SAVE-MANAGER: Spell check error:', error);
+      // Return empty array on error (graceful degradation)
       return [];
     }
-    
-    // Get existing analysis from store to preserve it for cached words
-    const existingRegion = store.regionById(regionId);
-    const existingAnalysis = existingRegion?.regionAnalysis || [];
-    
-    // Build a map of existing analysis by word for fast lookup
-    const existingAnalysisMap = new Map<string, WordAnalysis>();
-    if (Array.isArray(existingAnalysis)) {
-      existingAnalysis.forEach((item: unknown) => {
-        if (typeof item === 'object' && item !== null && 'word' in item) {
-          const analysis = item as WordAnalysis;
-          // Only keep complete analysis (not empty)
-          if (analysis.word && analysis.analysis && analysis.allAnalysis?.length > 0) {
-            existingAnalysisMap.set(analysis.word, analysis);
-          }
-        }
-      });
-    }
-    
-    // Get known words cache (now stores full WordAnalysis objects!)
-    const globalKnownWords = store.getKnownWords();
-    const uniqueWords = [...new Set(words)];
-    
-    // Separate cached words from unknown words
-    const cachedWords: string[] = [];
-    const unknownUniqueWords: string[] = [];
-    
-    uniqueWords.forEach(word => {
-      if (globalKnownWords.has(word)) {
-        cachedWords.push(word);
-      } else {
-        unknownUniqueWords.push(word);
-      }
-    });
-    
-    // Get fresh analysis from API for unknown words only
-    const freshAnalysis: WordAnalysis[] = [];
-    if (unknownUniqueWords.length > 0) {
-      try {
-        const result = await services.spellCheckerService.check(
-          unknownUniqueWords,
-          transcription.lang
-        );
-        
-        if (result.known.length > 0) {
-          freshAnalysis.push(...result.known);
-          store.addKnownWords(result.known);
-        }
-      } catch (error) {
-        console.error('SAVE-MANAGER: Spell check API error:', error);
-      }
-    }
-    
-    // CRITICAL: Merge analysis from THREE sources:
-    // 1. Fresh analysis from API (highest priority)
-    // 2. Global cache (has full WordAnalysis objects)
-    // 3. Existing region analysis (fallback)
-    const mergedAnalysis: WordAnalysis[] = [];
-    const freshAnalysisMap = new Map(freshAnalysis.map(item => [item.word, item]));
-    
-    uniqueWords.forEach(word => {
-      if (freshAnalysisMap.has(word)) {
-        // 1. Fresh analysis from API takes highest priority
-        mergedAnalysis.push(freshAnalysisMap.get(word)!);
-      } else if (globalKnownWords.has(word)) {
-        // 2. Get full analysis from global cache
-        const cachedAnalysis = globalKnownWords.get(word)!;
-        mergedAnalysis.push(cachedAnalysis);
-      } else if (existingAnalysisMap.has(word)) {
-        // 3. Fallback to existing region analysis
-        mergedAnalysis.push(existingAnalysisMap.get(word)!);
-      }
-      // If none of the above, skip (unknown word with no analysis)
-    });
-    
-    // Save merged analysis
-    store.setRegionAnalysis(regionId, mergedAnalysis);
-    
-    // Update RTE highlighting using ONLY this region's saved analysis
-    // This makes it visually clear which words have been analyzed for this specific region
-    const mainEditorKey = `${regionId}:main` as const;
-    if (services.rteService.hasEditor(mainEditorKey)) {
-      const issues = store.getIssuesForRegion(regionId);
-      const issueHighlights = issueHighlightService.convertIssuesToHighlights(issues);
-      services.rteService.applyHighlighting(mainEditorKey, {
-        knownWords: mergedAnalysis.map(item => item.word),
-        issues: issueHighlights
-      });
-    }
-    
-    console.log(`📊 SAVE-MANAGER: Spell check results for ${regionId}:`, {
-      cachedWords: cachedWords.length,
-      freshAnalysis: freshAnalysis.length,
-      fromCache: cachedWords.filter(w => globalKnownWords.has(w)).length,
-      totalSaved: mergedAnalysis.length,
-    });
-    
-    return mergedAnalysis;
   }
   
   /**

@@ -23,6 +23,7 @@ jest.mock('./index', () => ({
     spellCheckerService: {
       tokenize: jest.fn((text: string) => text.split(/\s+/).filter(Boolean)),
       check: jest.fn(),
+      analyzeRegionText: jest.fn(),
     },
     rteService: {
       hasEditor: jest.fn(() => false),
@@ -172,9 +173,9 @@ describe('RegionSaveManager', () => {
         { word: 'test', analysis: 'analysis', allAnalysis: [] }
       ];
       
-      (services.spellCheckerService.check as jest.Mock).mockResolvedValue({
-        known: mockAnalysis,
-        unknown: []
+      (services.spellCheckerService.analyzeRegionText as jest.Mock).mockResolvedValue({
+        analysis: mockAnalysis,
+        newlyKnown: mockAnalysis
       });
       
       regionSaveManager.queueTextChange('region-1', 'test');
@@ -198,9 +199,9 @@ describe('RegionSaveManager', () => {
         { word: 'test', analysis: 'analysis', allAnalysis: [] }
       ];
       
-      (services.spellCheckerService.check as jest.Mock).mockResolvedValue({
-        known: mockAnalysis,
-        unknown: []
+      (services.spellCheckerService.analyzeRegionText as jest.Mock).mockResolvedValue({
+        analysis: mockAnalysis,
+        newlyKnown: mockAnalysis
       });
       
       regionSaveManager.queueTextChange('region-1', 'test');
@@ -219,7 +220,7 @@ describe('RegionSaveManager', () => {
     });
 
     it('should handle spell check failure gracefully', async () => {
-      (services.spellCheckerService.check as jest.Mock).mockRejectedValue(
+      (services.spellCheckerService.analyzeRegionText as jest.Mock).mockRejectedValue(
         new Error('API error')
       );
       
@@ -254,7 +255,7 @@ describe('RegionSaveManager', () => {
         await spellCheckCallback();
       }
       
-      expect(services.spellCheckerService.check).not.toHaveBeenCalled();
+      expect(services.spellCheckerService.analyzeRegionText).not.toHaveBeenCalled();
     });
   });
 
@@ -302,9 +303,9 @@ describe('RegionSaveManager', () => {
         { word: 'test', analysis: 'analysis', allAnalysis: [] }
       ];
       
-      (services.spellCheckerService.check as jest.Mock).mockResolvedValue({
-        known: mockAnalysis,
-        unknown: []
+      (services.spellCheckerService.analyzeRegionText as jest.Mock).mockResolvedValue({
+        analysis: mockAnalysis,
+        newlyKnown: mockAnalysis
       });
       
       regionSaveManager.queueTextChange('region-1', 'test');
@@ -423,12 +424,17 @@ describe('RegionSaveManager', () => {
       (services.storeService.getKnownWords as jest.Mock).mockReturnValue(cacheMap);
       
       // API returns analysis for unknown words
-      (services.spellCheckerService.check as jest.Mock).mockResolvedValue({
-        known: [
+      (services.spellCheckerService.analyzeRegionText as jest.Mock).mockResolvedValue({
+        analysis: [
+          { word: 'awa', analysis: 'awa+Ipc', allAnalysis: ['awa+Ipc'] }, // From cache
+          { word: 'ana', analysis: 'ana+Pron', allAnalysis: ['ana+Pron'] }, // From cache
+          { word: 'êkwa', analysis: 'êkwa+Ipc+Updated', allAnalysis: ['êkwa+Ipc+Updated'] }, // Updated
+          { word: 'new', analysis: 'new+N', allAnalysis: ['new+N'] } // New
+        ],
+        newlyKnown: [
           { word: 'êkwa', analysis: 'êkwa+Ipc+Updated', allAnalysis: ['êkwa+Ipc+Updated'] },
           { word: 'new', analysis: 'new+N', allAnalysis: ['new+N'] }
-        ],
-        unknown: []
+        ]
       });
       
       // Queue text change with all words
@@ -471,9 +477,12 @@ describe('RegionSaveManager', () => {
       (services.storeService.getKnownWords as jest.Mock).mockReturnValue(cacheMap);
       
       // API is NOT called (all words cached)
-      (services.spellCheckerService.check as jest.Mock).mockResolvedValue({
-        known: [],
-        unknown: []
+      (services.spellCheckerService.analyzeRegionText as jest.Mock).mockResolvedValue({
+        analysis: [
+          { word: 'awa', analysis: 'awa+Ipc', allAnalysis: ['awa+Ipc'] },
+          { word: 'ana', analysis: 'ana+Pron', allAnalysis: ['ana+Pron'] }
+        ],
+        newlyKnown: []
       });
       
       // Queue text change
@@ -517,9 +526,11 @@ describe('RegionSaveManager', () => {
       // 'bad' is NOT in cache because it has empty analysis
       (services.storeService.getKnownWords as jest.Mock).mockReturnValue(cacheMap);
       
-      (services.spellCheckerService.check as jest.Mock).mockResolvedValue({
-        known: [],
-        unknown: []
+      (services.spellCheckerService.analyzeRegionText as jest.Mock).mockResolvedValue({
+        analysis: [
+          { word: 'awa', analysis: 'awa+Ipc', allAnalysis: ['awa+Ipc'] }
+        ],
+        newlyKnown: []
       });
       
       // Queue text change
