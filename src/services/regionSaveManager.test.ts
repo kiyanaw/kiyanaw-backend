@@ -19,6 +19,8 @@ jest.mock('./index', () => ({
       isPendingEdit: jest.fn(() => false),
       getRegionVersion: jest.fn(() => 1),
       setRegionVersion: jest.fn(),
+      setRegionText: jest.fn(),
+      setRegionTranslation: jest.fn(),
     },
     spellCheckerService: {
       tokenize: jest.fn((text: string) => text.split(/\s+/).filter(Boolean)),
@@ -549,6 +551,256 @@ describe('RegionSaveManager', () => {
       expect(savedAnalysis).toContainEqual({ word: 'awa', analysis: 'awa+Ipc', allAnalysis: ['awa+Ipc'] });
       expect(savedAnalysis).not.toContainEqual({ word: 'bad', analysis: '', allAnalysis: [] });
       expect(savedAnalysis.length).toBe(1);
+    });
+  });
+
+  describe('Unit Tests for Extracted Private Methods', () => {
+    describe('determinePrimaryField', () => {
+      it('should return regionText when text is changed', () => {
+        const changes = { regionText: 'new text', translation: undefined };
+        const result = regionSaveManager.__determinePrimaryField(changes);
+        expect(result).toBe('regionText');
+      });
+
+      it('should return translation when only translation is changed', () => {
+        const changes = { translation: 'new translation' };
+        const result = regionSaveManager.__determinePrimaryField(changes);
+        expect(result).toBe('translation');
+      });
+
+      it('should return start when bounds are changed', () => {
+        const changes = { start: 10, end: 20 };
+        const result = regionSaveManager.__determinePrimaryField(changes);
+        expect(result).toBe('start');
+      });
+
+      it('should prioritize regionText over translation', () => {
+        const changes = { regionText: 'text', translation: 'trans' };
+        const result = regionSaveManager.__determinePrimaryField(changes);
+        expect(result).toBe('regionText');
+      });
+    });
+
+    describe('waitForSpellCheckCompletion', () => {
+      it('should return immediately if no spell check promise', async () => {
+        // Create a queue first
+        regionSaveManager.queueTextChange('test-region', 'test');
+        const queue = regionSaveManager.__getQueueForTesting('test-region');
+        if (!queue) throw new Error('Queue not found');
+        
+        queue.spellCheckPromise = null;
+        
+        await expect(regionSaveManager.__waitForSpellCheckCompletion(queue))
+          .resolves.toBeUndefined();
+      });
+
+      it('should wait for spell check and update pendingChanges', async () => {
+        regionSaveManager.queueTextChange('region-1', 'test');
+        const queue = regionSaveManager.__getQueueForTesting('region-1');
+        if (!queue) throw new Error('Queue not found');
+        
+        const mockAnalysis: WordAnalysis[] = [
+          { word: 'test', analysis: 'test+N', allAnalysis: ['test+N'] }
+        ];
+        
+        queue.spellCheckPromise = Promise.resolve(mockAnalysis);
+        
+        await regionSaveManager.__waitForSpellCheckCompletion(queue);
+        
+        expect(queue.pendingChanges.regionAnalysis).toEqual(mockAnalysis);
+      });
+
+      it('should handle spell check timeout gracefully', async () => {
+        regionSaveManager.queueTextChange('region-1', 'test');
+        const queue = regionSaveManager.__getQueueForTesting('region-1');
+        if (!queue) throw new Error('Queue not found');
+        
+        // Create a promise that rejects with timeout error
+        queue.spellCheckPromise = Promise.reject(new Error('Spell check timeout'));
+        
+        // Should not throw, should handle timeout gracefully
+        await expect(regionSaveManager.__waitForSpellCheckCompletion(queue))
+          .resolves.toBeUndefined();
+      }, 1000);
+
+      it('should handle spell check errors gracefully', async () => {
+        regionSaveManager.queueTextChange('region-1', 'test');
+        const queue = regionSaveManager.__getQueueForTesting('region-1');
+        if (!queue) throw new Error('Queue not found');
+        
+        queue.spellCheckPromise = Promise.reject(new Error('API error'));
+        
+        // Should not throw, should handle error
+        await expect(regionSaveManager.__waitForSpellCheckCompletion(queue))
+          .resolves.toBeUndefined();
+      });
+    });
+
+    describe('updateStoreWithRemoteData', () => {
+      it('should update store with remote regionText', () => {
+        const remoteData = { regionText: 'remote text', _version: 2 };
+        
+        regionSaveManager.__updateStoreWithRemoteData('region-1', remoteData, 'regionText');
+        
+        expect(services.storeService.setRegionText).toHaveBeenCalledWith('region-1', 'remote text');
+      });
+
+      it('should update store with remote translation', () => {
+        const remoteData = { translation: 'remote translation', _version: 2 };
+        
+        regionSaveManager.__updateStoreWithRemoteData('region-1', remoteData, 'translation');
+        
+        expect(services.storeService.setRegionTranslation).toHaveBeenCalledWith('region-1', 'remote translation');
+      });
+
+      it('should not update store for bounds changes', () => {
+        const remoteData = { start: 10, end: 20, _version: 2 };
+        
+        const setTextSpy = services.storeService.setRegionText as jest.Mock;
+        setTextSpy.mockClear();
+        
+        regionSaveManager.__updateStoreWithRemoteData('region-1', remoteData, 'start');
+        
+        expect(services.storeService.setRegionText).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('reapplyHighlighting', () => {
+      beforeEach(() => {
+        (services.rteService.hasEditor as jest.Mock).mockReturnValue(true);
+        (services.storeService.regionById as jest.Mock).mockReturnValue({
+          regionAnalysis: [
+            { word: 'test', analysis: 'test+N', allAnalysis: ['test+N'] }
+          ]
+        });
+      });
+
+      it('should apply highlighting with known words', async () => {
+        await regionSaveManager.__reapplyHighlighting('region-1', 'region-1:main');
+        
+        expect(services.rteService.applyHighlighting).toHaveBeenCalledWith(
+          'region-1:main',
+          expect.objectContaining({
+            knownWords: ['test'],
+            issues: []
+          })
+        );
+      });
+
+      it('should handle empty regionAnalysis', async () => {
+        (services.storeService.regionById as jest.Mock).mockReturnValue({
+          regionAnalysis: []
+        });
+        
+        await regionSaveManager.__reapplyHighlighting('region-1', 'region-1:main');
+        
+        expect(services.rteService.applyHighlighting).toHaveBeenCalledWith(
+          'region-1:main',
+          expect.objectContaining({
+            knownWords: [],
+            issues: []
+          })
+        );
+      });
+
+      it('should work for translation editor', async () => {
+        await regionSaveManager.__reapplyHighlighting('region-1', 'region-1:translation');
+        
+        expect(services.rteService.applyHighlighting).toHaveBeenCalledWith(
+          'region-1:translation',
+          expect.objectContaining({
+            knownWords: ['test']
+          })
+        );
+      });
+    });
+
+    describe('updateTranscriptionMetadata', () => {
+      it('should update transcription metadata when region exists', async () => {
+        (services.storeService.regionById as jest.Mock).mockReturnValue({
+          transcriptionId: 'trans-1'
+        });
+        
+        await regionSaveManager.__updateTranscriptionMetadata('region-1');
+        
+        const { UpdateTranscriptionUseCase } = require('../use-cases/update-transcription');
+        expect(UpdateTranscriptionUseCase).toHaveBeenCalledWith(
+          expect.objectContaining({
+            transcriptionId: 'trans-1'
+          })
+        );
+      });
+
+      it('should do nothing when region does not exist', async () => {
+        (services.storeService.regionById as jest.Mock).mockReturnValue(null);
+        
+        const { UpdateTranscriptionUseCase } = require('../use-cases/update-transcription');
+        UpdateTranscriptionUseCase.mockClear();
+        
+        await regionSaveManager.__updateTranscriptionMetadata('region-1');
+        
+        expect(UpdateTranscriptionUseCase).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('saveRegionChanges', () => {
+      beforeEach(() => {
+        (services.authService.currentUser as jest.Mock).mockReturnValue({ username: 'testuser' });
+        (services.storeService.getRegionVersion as jest.Mock).mockReturnValue(1);
+        (services.storeService.regionById as jest.Mock).mockReturnValue({
+          transcriptionId: 'trans-1'
+        });
+        (services.regionService.updateRegion as jest.Mock).mockResolvedValue(undefined);
+      });
+
+      it('should save region changes successfully', async () => {
+        const changes = { regionText: 'new text' };
+        
+        await regionSaveManager.__saveRegionChanges('region-1', changes, 'regionText');
+        
+        expect(services.regionService.updateRegion).toHaveBeenCalledWith(
+          'region-1',
+          changes,
+          'testuser',
+          1
+        );
+        expect(services.storeService.setRegionVersion).toHaveBeenCalledWith('region-1', 2);
+        expect(services.storeService.endPendingEdit).toHaveBeenCalledWith('region-1', 'regionText');
+      });
+
+      it('should skip save when user not authenticated', async () => {
+        (services.authService.currentUser as jest.Mock).mockReturnValue(null);
+        
+        await regionSaveManager.__saveRegionChanges('region-1', { regionText: 'text' }, undefined);
+        
+        expect(services.regionService.updateRegion).not.toHaveBeenCalled();
+      });
+
+      it('should not end pending edit when field not specified', async () => {
+        await regionSaveManager.__saveRegionChanges('region-1', { regionText: 'text' }, undefined);
+        
+        expect(services.storeService.endPendingEdit).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('handleSaveError', () => {
+      beforeEach(() => {
+        (services.storeService.getRegionVersion as jest.Mock).mockReturnValue(1);
+      });
+
+      it('should rethrow non-conflict errors', async () => {
+        const error = new Error('Network error');
+        
+        // Mock isVersionConflictError to return false
+        jest.mock('./versionConflictService', () => ({
+          isVersionConflictError: jest.fn(() => false),
+          handleVersionConflict: jest.fn()
+        }));
+        
+        await expect(
+          regionSaveManager.__handleSaveError(error, 'region-1', { regionText: 'text' }, undefined)
+        ).rejects.toThrow('Network error');
+      });
     });
   });
 });

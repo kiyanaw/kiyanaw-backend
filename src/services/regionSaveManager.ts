@@ -206,214 +206,318 @@ class RegionSaveManagerImpl {
       hasSpellCheckPromise: !!queue.spellCheckPromise
     });
     
-    // CRITICAL: Wait for spell check if it's pending
-    if (queue.spellCheckPromise) {
-      try {
-        console.log(`⏳ SAVE-MANAGER: Waiting for spell check to complete...`);
-        const analysis = await Promise.race([
-          queue.spellCheckPromise,
-          this.timeout(5000, 'Spell check timeout')
-        ]);
-        
-        // Analysis might already be in pendingChanges, but ensure it's there
-        if (analysis && analysis.length > 0) {
-          queue.pendingChanges.regionAnalysis = analysis;
-          console.log(`✅ SAVE-MANAGER: Spell check already complete, including analysis`);
-        }
-      } catch (error) {
-        if (error instanceof Error && error.message === 'Spell check timeout') {
-          console.warn(`⚠️ SAVE-MANAGER: Spell check took >5s, saving without analysis`);
-        } else {
-          console.error(`❌ SAVE-MANAGER: Spell check error:`, error);
-        }
-      }
-    }
+    // Wait for spell check if pending
+    await this.waitForSpellCheckCompletion(queue);
     
-    // Collect all changes
+    // Collect changes and clear queue
     const changes = { ...queue.pendingChanges };
     const pendingEditField = queue.pendingEditField;
-    
-    // Clear the queue BEFORE saving (prevent re-entry)
     this.clearQueue(regionId);
     
     // Perform the save
     try {
-      const store = services.storeService;
-      
-      // Call regionService.updateRegion directly instead of going through UpdateRegionUseCase
-      // This avoids the complexity of the use-case's execute() being void
-      const user = services.authService.currentUser();
-      if (!user) {
-        console.warn('User not authenticated, skipping region update');
-        return;
-      }
-      
-      const currentVersion = store.getRegionVersion(regionId);
-      
-      console.log(`💾 SAVE-MANAGER: Saving region ${regionId}`, {
-        changes: Object.keys(changes),
-        hasRegionAnalysis: 'regionAnalysis' in changes,
-        version: currentVersion
-      });
-      
-      await services.regionService.updateRegion(
-        regionId,
-        changes,
-        user.username,
-        currentVersion
-      );
-      
-      // Update version after successful save
-      store.setRegionVersion(regionId, currentVersion + 1);
-      
-      // Update transcription metadata
-      const region = store.regionById(regionId);
-      if (region) {
-        const updateTranscriptionUseCase = new UpdateTranscriptionUseCase({
-          transcriptionId: region.transcriptionId,
-          services,
-          store: store,
-        });
-        await updateTranscriptionUseCase.execute();
-      }
-      
-      // End pending edit
-      if (pendingEditField) {
-        services.storeService.endPendingEdit(regionId, pendingEditField);
-      }
-      
-      console.log(`✅ SAVE-MANAGER: Save completed for ${regionId}`);
-      
+      await this.saveRegionChanges(regionId, changes, pendingEditField);
     } catch (error) {
-      console.error(`❌ SAVE-MANAGER: Save failed for ${regionId}:`, error);
+      await this.handleSaveError(error, regionId, changes, pendingEditField);
+    }
+  }
+  
+  /**
+   * Wait for pending spell check to complete (with timeout)
+   */
+  private async waitForSpellCheckCompletion(queue: SaveQueue): Promise<void> {
+    if (!queue.spellCheckPromise) return;
+    
+    try {
+      console.log(`⏳ SAVE-MANAGER: Waiting for spell check to complete...`);
+      const analysis = await Promise.race([
+        queue.spellCheckPromise,
+        this.timeout(5000, 'Spell check timeout')
+      ]);
       
-      // Check if this is a version conflict error
-      if (isVersionConflictError(error)) {
-        console.log(`⚠️ SAVE-MANAGER: Version conflict detected for ${regionId}, showing conflict dialog`);
-        
-        // Determine primary field from the changes
-        const primaryField = changes.regionText !== undefined ? 'regionText' :
-                           changes.translation !== undefined ? 'translation' :
-                           'start';
-        
-        const store = services.storeService;
-        const currentVersion = store.getRegionVersion(regionId);
-        
-        // Handle the conflict with the dialog
-        await handleVersionConflict(
-          regionId,
-          changes,
-          primaryField,
-          currentVersion,
-          store,
-          // onAcceptRemote: Update local state with remote version
-          async (remoteRegion) => {
-            console.log(`✅ SAVE-MANAGER: User accepted remote version for ${regionId}`, {
-              remoteVersion: (remoteRegion as { _version?: number })?._version,
-              primaryField
-            });
-            
-            // Update the store with the remote region data
-            const remoteData = remoteRegion as Record<string, unknown>;
-            
-            // Update the specific field in the store
-            if (primaryField === 'regionText' && remoteData.regionText !== undefined) {
-              store.setRegionText(regionId, remoteData.regionText as string);
-            } else if (primaryField === 'translation' && remoteData.translation !== undefined) {
-              store.setRegionTranslation(regionId, remoteData.translation as string);
-            }
-            
-            // Update the RTE editor with remote content
-            if (primaryField === 'regionText') {
-              const mainEditorKey = `${regionId}:main` as const;
-              if (services.rteService.hasEditor(mainEditorKey)) {
-                services.rteService.setContent(mainEditorKey, remoteData.regionText as string);
-                console.log(`🔄 SAVE-MANAGER: Updated RTE editor with remote text`);
-                
-                // Reapply highlighting with region's analysis
-                const region = store.regionById(regionId);
-                const regionAnalysis = region?.regionAnalysis || [];
-                const knownWords = regionAnalysis.map((item: { word: string }) => item.word);
-                const issues = store.getIssuesForRegion(regionId);
-                const issueHighlights = issueHighlightService.convertIssuesToHighlights(issues);
-                
-                services.rteService.applyHighlighting(mainEditorKey, {
-                  knownWords,
-                  issues: issueHighlights
-                });
-                console.log(`🎨 SAVE-MANAGER: Reapplied highlighting after accepting remote text`);
-              }
-            } else if (primaryField === 'translation') {
-              const translationEditorKey = `${regionId}:translation` as const;
-              if (services.rteService.hasEditor(translationEditorKey)) {
-                services.rteService.setContent(translationEditorKey, remoteData.translation as string);
-                console.log(`🔄 SAVE-MANAGER: Updated RTE editor with remote translation`);
-                
-                // Reapply highlighting with region's analysis
-                const region = store.regionById(regionId);
-                const regionAnalysis = region?.regionAnalysis || [];
-                const knownWords = regionAnalysis.map((item: { word: string }) => item.word);
-                const issues = store.getIssuesForRegion(regionId);
-                const issueHighlights = issueHighlightService.convertIssuesToHighlights(issues);
-                
-                services.rteService.applyHighlighting(translationEditorKey, {
-                  knownWords,
-                  issues: issueHighlights
-                });
-                console.log(`🎨 SAVE-MANAGER: Reapplied highlighting after accepting remote translation`);
-              }
-            }
-            
-            // Update version
-            const remoteVersion = (remoteData._version as number) || currentVersion + 1;
-            store.setRegionVersion(regionId, remoteVersion);
-            
-            // End the pending edit
-            if (pendingEditField) {
-              services.storeService.endPendingEdit(regionId, pendingEditField);
-            }
-            
-            console.log(`✅ SAVE-MANAGER: Local state updated with remote version`);
-          },
-          // onKeepLocal: Retry save with latest version
-          async (latestVersion) => {
-            console.log(`🔄 SAVE-MANAGER: User kept local version for ${regionId}, retrying save with version ${latestVersion}`);
-            
-            // Retry the save with the latest version
-            await services.regionService.updateRegion(
-              regionId,
-              changes,
-              services.authService.currentUser()!.username,
-              latestVersion
-            );
-            
-            // Update version after successful save
-            store.setRegionVersion(regionId, latestVersion + 1);
-            
-            // Update transcription metadata
-            const region = store.regionById(regionId);
-            if (region) {
-              const updateTranscriptionUseCase = new UpdateTranscriptionUseCase({
-                transcriptionId: region.transcriptionId,
-                services,
-                store: store,
-              });
-              await updateTranscriptionUseCase.execute();
-            }
-            
-            // End pending edit
-            if (pendingEditField) {
-              services.storeService.endPendingEdit(regionId, pendingEditField);
-            }
-            
-            console.log(`✅ SAVE-MANAGER: Retry save completed for ${regionId}`);
-          }
-        );
+      if (analysis && analysis.length > 0) {
+        queue.pendingChanges.regionAnalysis = analysis;
+        console.log(`✅ SAVE-MANAGER: Spell check complete, including ${analysis.length} words`);
+      }
+    } catch (error) {
+      if (error instanceof Error && error.message === 'Spell check timeout') {
+        console.warn(`⚠️ SAVE-MANAGER: Spell check took >5s, saving without analysis`);
       } else {
-        // Not a conflict error, re-throw
-        throw error;
+        console.error(`❌ SAVE-MANAGER: Spell check error:`, error);
       }
     }
+  }
+  
+  /**
+   * Save region changes to database and update metadata
+   */
+  private async saveRegionChanges(
+    regionId: string,
+    changes: PendingChanges,
+    pendingEditField?: string
+  ): Promise<void> {
+    const store = services.storeService;
+    const user = services.authService.currentUser();
+    
+    if (!user) {
+      console.warn('User not authenticated, skipping region update');
+      return;
+    }
+    
+    const currentVersion = store.getRegionVersion(regionId);
+    
+    console.log(`💾 SAVE-MANAGER: Saving region ${regionId}`, {
+      changes: Object.keys(changes),
+      hasRegionAnalysis: 'regionAnalysis' in changes,
+      version: currentVersion
+    });
+    
+    // Save to database
+    await services.regionService.updateRegion(
+      regionId,
+      changes,
+      user.username,
+      currentVersion
+    );
+    
+    // Update local version
+    store.setRegionVersion(regionId, currentVersion + 1);
+    
+    // Update transcription metadata
+    await this.updateTranscriptionMetadata(regionId);
+    
+    // End pending edit
+    if (pendingEditField) {
+      services.storeService.endPendingEdit(regionId, pendingEditField);
+    }
+    
+    console.log(`✅ SAVE-MANAGER: Save completed for ${regionId}`);
+  }
+  
+  /**
+   * Update transcription metadata after region save
+   */
+  private async updateTranscriptionMetadata(regionId: string): Promise<void> {
+    const store = services.storeService;
+    const region = store.regionById(regionId);
+    
+    if (!region) return;
+    
+    const updateTranscriptionUseCase = new UpdateTranscriptionUseCase({
+      transcriptionId: region.transcriptionId,
+      services,
+      store: store,
+    });
+    await updateTranscriptionUseCase.execute();
+  }
+  
+  /**
+   * Handle save errors (primarily version conflicts)
+   */
+  private async handleSaveError(
+    error: unknown,
+    regionId: string,
+    changes: PendingChanges,
+    pendingEditField?: string
+  ): Promise<void> {
+    console.error(`❌ SAVE-MANAGER: Save failed for ${regionId}:`, error);
+    
+    if (!isVersionConflictError(error)) {
+      throw error;
+    }
+    
+    console.log(`⚠️ SAVE-MANAGER: Version conflict detected for ${regionId}`);
+    
+    const primaryField = this.determinePrimaryField(changes);
+    const store = services.storeService;
+    const currentVersion = store.getRegionVersion(regionId);
+    
+    await handleVersionConflict(
+      regionId,
+      changes as Record<string, unknown>,
+      primaryField,
+      currentVersion,
+      store,
+      (remoteRegion) => this.handleAcceptRemoteVersion(
+        regionId,
+        remoteRegion,
+        primaryField,
+        currentVersion,
+        pendingEditField
+      ),
+      (latestVersion) => this.handleKeepLocalVersion(
+        regionId,
+        changes,
+        latestVersion,
+        pendingEditField
+      )
+    );
+  }
+  
+  /**
+   * Determine which field is the primary one being edited
+   */
+  private determinePrimaryField(changes: PendingChanges): 'regionText' | 'translation' | 'start' {
+    if (changes.regionText !== undefined) return 'regionText';
+    if (changes.translation !== undefined) return 'translation';
+    return 'start';
+  }
+  
+  /**
+   * Handle user accepting remote version in conflict dialog
+   */
+  private async handleAcceptRemoteVersion(
+    regionId: string,
+    remoteRegion: unknown,
+    primaryField: 'regionText' | 'translation' | 'start',
+    currentVersion: number,
+    pendingEditField?: string
+  ): Promise<void> {
+    const store = services.storeService;
+    const remoteData = remoteRegion as Record<string, unknown>;
+    
+    console.log(`✅ SAVE-MANAGER: User accepted remote version for ${regionId}`, {
+      remoteVersion: remoteData._version,
+      primaryField
+    });
+    
+    // Update store with remote data
+    this.updateStoreWithRemoteData(regionId, remoteData, primaryField);
+    
+    // Update RTE editor with remote content
+    await this.updateEditorWithRemoteContent(regionId, remoteData, primaryField);
+    
+    // Update version
+    const remoteVersion = (remoteData._version as number) || currentVersion + 1;
+    store.setRegionVersion(regionId, remoteVersion);
+    
+    // End pending edit
+    if (pendingEditField) {
+      services.storeService.endPendingEdit(regionId, pendingEditField);
+    }
+    
+    console.log(`✅ SAVE-MANAGER: Local state updated with remote version`);
+  }
+  
+  /**
+   * Update store with remote region data
+   */
+  private updateStoreWithRemoteData(
+    regionId: string,
+    remoteData: Record<string, unknown>,
+    primaryField: 'regionText' | 'translation' | 'start'
+  ): void {
+    const store = services.storeService;
+    
+    if (primaryField === 'regionText' && remoteData.regionText !== undefined) {
+      store.setRegionText(regionId, remoteData.regionText as string);
+    } else if (primaryField === 'translation' && remoteData.translation !== undefined) {
+      store.setRegionTranslation(regionId, remoteData.translation as string);
+    }
+  }
+  
+  /**
+   * Update RTE editor with remote content and reapply highlighting
+   */
+  private async updateEditorWithRemoteContent(
+    regionId: string,
+    remoteData: Record<string, unknown>,
+    primaryField: 'regionText' | 'translation' | 'start'
+  ): Promise<void> {
+    if (primaryField === 'regionText') {
+      await this.updateMainEditorWithRemote(regionId, remoteData.regionText as string);
+    } else if (primaryField === 'translation') {
+      await this.updateTranslationEditorWithRemote(regionId, remoteData.translation as string);
+    }
+  }
+  
+  /**
+   * Update main text editor with remote content
+   */
+  private async updateMainEditorWithRemote(regionId: string, remoteText: string): Promise<void> {
+    const mainEditorKey = `${regionId}:main` as const;
+    if (!services.rteService.hasEditor(mainEditorKey)) return;
+    
+    services.rteService.setContent(mainEditorKey, remoteText);
+    console.log(`🔄 SAVE-MANAGER: Updated RTE editor with remote text`);
+    
+    await this.reapplyHighlighting(regionId, mainEditorKey);
+  }
+  
+  /**
+   * Update translation editor with remote content
+   */
+  private async updateTranslationEditorWithRemote(regionId: string, remoteTranslation: string): Promise<void> {
+    const translationEditorKey = `${regionId}:translation` as const;
+    if (!services.rteService.hasEditor(translationEditorKey)) return;
+    
+    services.rteService.setContent(translationEditorKey, remoteTranslation);
+    console.log(`🔄 SAVE-MANAGER: Updated RTE editor with remote translation`);
+    
+    await this.reapplyHighlighting(regionId, translationEditorKey);
+  }
+  
+  /**
+   * Reapply highlighting to editor after content update
+   */
+  private async reapplyHighlighting(
+    regionId: string,
+    editorKey: `${string}:main` | `${string}:translation`
+  ): Promise<void> {
+    const store = services.storeService;
+    const region = store.regionById(regionId);
+    const regionAnalysis = region?.regionAnalysis || [];
+    const knownWords = regionAnalysis.map((item: { word: string }) => item.word);
+    const issues = store.getIssuesForRegion(regionId);
+    const issueHighlights = issueHighlightService.convertIssuesToHighlights(issues);
+    
+    services.rteService.applyHighlighting(editorKey, {
+      knownWords,
+      issues: issueHighlights
+    });
+    
+    console.log(`🎨 SAVE-MANAGER: Reapplied highlighting`);
+  }
+  
+  /**
+   * Handle user keeping local version in conflict dialog (retry save)
+   */
+  private async handleKeepLocalVersion(
+    regionId: string,
+    changes: PendingChanges,
+    latestVersion: number,
+    pendingEditField?: string
+  ): Promise<void> {
+    console.log(`🔄 SAVE-MANAGER: User kept local version for ${regionId}, retrying with version ${latestVersion}`);
+    
+    const store = services.storeService;
+    const user = services.authService.currentUser();
+    
+    if (!user) {
+      console.warn('User not authenticated, cannot retry save');
+      return;
+    }
+    
+    // Retry save with latest version
+    await services.regionService.updateRegion(
+      regionId,
+      changes,
+      user.username,
+      latestVersion
+    );
+    
+    // Update version
+    store.setRegionVersion(regionId, latestVersion + 1);
+    
+    // Update transcription metadata
+    await this.updateTranscriptionMetadata(regionId);
+    
+    // End pending edit
+    if (pendingEditField) {
+      services.storeService.endPendingEdit(regionId, pendingEditField);
+    }
+    
+    console.log(`✅ SAVE-MANAGER: Retry save completed for ${regionId}`);
   }
   
   /**
@@ -478,6 +582,18 @@ class RegionSaveManagerImpl {
   __getQueueForTesting(regionId: string): SaveQueue | undefined {
     return this.queues.get(regionId);
   }
+  
+  // Expose private methods for unit testing
+  __waitForSpellCheckCompletion = this.waitForSpellCheckCompletion.bind(this);
+  __saveRegionChanges = this.saveRegionChanges.bind(this);
+  __updateTranscriptionMetadata = this.updateTranscriptionMetadata.bind(this);
+  __handleSaveError = this.handleSaveError.bind(this);
+  __determinePrimaryField = this.determinePrimaryField.bind(this);
+  __handleAcceptRemoteVersion = this.handleAcceptRemoteVersion.bind(this);
+  __handleKeepLocalVersion = this.handleKeepLocalVersion.bind(this);
+  __updateStoreWithRemoteData = this.updateStoreWithRemoteData.bind(this);
+  __updateEditorWithRemoteContent = this.updateEditorWithRemoteContent.bind(this);
+  __reapplyHighlighting = this.reapplyHighlighting.bind(this);
 }
 
 export const regionSaveManager = new RegionSaveManagerImpl();
