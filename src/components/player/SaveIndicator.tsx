@@ -1,7 +1,7 @@
-import { CircleCheckBig, Loader2, AlertCircle } from 'lucide-react';
+import { CircleCheckBig, Loader2, AlertCircle, Clock } from 'lucide-react';
 
 interface SaveIndicatorProps {
-  status: 'saved' | 'saving' | 'error';
+  status: 'saved' | 'saving' | 'pending' | 'error';
 }
 
 export const SaveIndicator = ({ status }: SaveIndicatorProps) => {
@@ -12,6 +12,17 @@ export const SaveIndicator = ({ status }: SaveIndicatorProps) => {
         title="All changes saved"
       >
         <CircleCheckBig size={14} className="text-green-500" />
+      </div>
+    );
+  }
+
+  if (status === 'pending') {
+    return (
+      <div 
+        className="flex items-center justify-center w-4 h-4"
+        title="Changes pending save..."
+      >
+        <Clock size={14} className="text-yellow-500" />
       </div>
     );
   }

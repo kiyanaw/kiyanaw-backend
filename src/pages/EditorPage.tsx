@@ -7,6 +7,7 @@ import { useWavesurferEvents } from '../hooks/useWavesurferEvents';
 import { useSubscriptions } from '../hooks/useSubscriptions';
 import { useUpdateTranscription } from '../hooks/useUpdateTranscription';
 import { useAuthStore } from '../stores/useAuthStore';
+import { useNavigationGuard } from '../hooks/useNavigationGuard';
 
 import { useUpdateIssue } from '../hooks/useUpdateIssue';
 import { useDeleteIssue } from '../hooks/useDeleteIssue';
@@ -99,6 +100,7 @@ export const EditorPage = () => {
   
   useLoadTranscription(transcriptionId!);
   useSubscriptions(transcriptionId!);
+  useNavigationGuard(); // Warns on browser close/refresh if pending saves
   
   // Editor store selectors
   const transcription = useEditorStore((state) => state.transcription);

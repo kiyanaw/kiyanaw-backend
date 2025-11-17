@@ -20,7 +20,7 @@ export const storeService = {
     return useEditorStore.getState().transcription;
   },
 
-  setSaveStatus: (status: 'saved' | 'saving' | 'error'): void => {
+  setSaveStatus: (status: 'saved' | 'saving' | 'pending' | 'error'): void => {
     useEditorStore.getState().setSaveStatus(status);
   },
 
