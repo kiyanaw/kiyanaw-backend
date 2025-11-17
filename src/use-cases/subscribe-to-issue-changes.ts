@@ -125,7 +125,9 @@ export class SubscribeToIssueChangesUseCase {
 
     const issues = store.getIssuesForRegion(regionId);
     const issueHighlights = issueHighlightService.convertIssuesToHighlights(issues);
-    const knownWords = region.regionAnalysis || [];
+    // Extract words for highlighting from region's own analysis
+    const regionAnalysis = region.regionAnalysis || [];
+    const knownWords = regionAnalysis.map(item => item.word);
 
     // Update highlighting for both main and translation editors if they exist
     const mainEditorKey = `${regionId}:main` as const;

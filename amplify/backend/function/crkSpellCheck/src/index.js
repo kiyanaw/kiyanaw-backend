@@ -4,6 +4,27 @@ const PATH_TO_STRICT_ANALYZER = "/opt/crk-strict-analyzer.hfstol";
 const PATH_TO_RELAXED_ANALYZER = "/opt/crk-relaxed-analyzer.hfstol";
 const PATH_TO_STRICT_GENERATOR = "/opt/crk-strict-generator.hfstol";
 
+/**
+ * Converts macron diacritics to circumflex diacritics and strips punctuation
+ * This is standard normalization for Plains Cree orthography
+ * 
+ * @param {string} text - The text to process
+ * @returns {string} - Normalized text with circumflex diacritics and no punctuation
+ */
+const processCharacters = (text) => {
+  if (!text || typeof text !== 'string') {
+    return text
+  }
+  
+  return text
+    .replace(/ā/g, 'â')
+    .replace(/ī/g, 'î')
+    .replace(/ō/g, 'ô')
+    .replace(/ē/g, 'ê')
+    .replace(/[.,\/#!$%\^&\*;:{}=_`~()]/g, '')
+    .trim()
+}
+
 const HEADERS = {
   'Access-Control-Allow-Headers': '*',
   'Access-Control-Allow-Origin': '*',
@@ -85,7 +106,30 @@ async function bulkLookup(event) {
   try {
     const body = JSON.parse(event.body);
     console.log('Body:', body);
-    result = await analyzeStrict(body);
+    
+    // Process characters for CRK normalization before analysis
+    const processedWords = body.map(word => processCharacters(word));
+    console.log('Processed words:', processedWords);
+    
+    // Create mapping between original and processed words
+    const wordMapping = {};
+    body.forEach((original, index) => {
+      const processed = processedWords[index];
+      if (processed !== original) {
+        wordMapping[processed] = original;
+      }
+    });
+    
+    const analysisResult = await analyzeStrict(processedWords);
+    console.log('analysisResult:', analysisResult);
+    
+    // Map results back to original words
+    result = {};
+    for (const [processedWord, analyses] of Object.entries(analysisResult)) {
+      const originalWord = wordMapping[processedWord] || processedWord;
+      result[originalWord] = analyses;
+    }
+    
     console.log('result:', result);
   } catch (e) {
     console.error('Error reading post body:', e);
@@ -123,7 +167,30 @@ async function suggest(event) {
   try {
     const body = JSON.parse(event.body);
     console.log('Body:', body);
-    final = await checkUnknowns(body);
+    
+    // Process characters for CRK normalization before checking suggestions
+    const processedWords = body.map(word => processCharacters(word));
+    console.log('Processed words:', processedWords);
+    
+    // Create mapping between original and processed words
+    const wordMapping = {};
+    body.forEach((original, index) => {
+      const processed = processedWords[index];
+      if (processed !== original) {
+        wordMapping[processed] = original;
+      }
+    });
+    
+    const suggestionResult = await checkUnknowns(processedWords);
+    console.log('suggestionResult:', suggestionResult);
+    
+    // Map results back to original words
+    final = {};
+    for (const [processedWord, suggestions] of Object.entries(suggestionResult)) {
+      const originalWord = wordMapping[processedWord] || processedWord;
+      final[originalWord] = suggestions;
+    }
+    
   } catch (e) {
     console.error('Error reading post body:', e);
     statusCode = 500;
@@ -171,7 +238,10 @@ async function analyzeStrict(lookup) {
   
   for (const word of lookup) {
     try {
-      result[word] = fst.lookup(word);
+      const rawAnalyses = fst.lookup(word);
+      // Filter out error analyses (anything containing +Err/)
+      // These are fragments or orthographic errors that shouldn't be shown to users
+      result[word] = rawAnalyses.filter(analysis => !analysis.includes('+Err/'));
     } catch (e) {
       console.error(`Error looking up word "${word}":`, e);
       result[word] = [];
@@ -187,7 +257,10 @@ async function analyzeRelaxed(lookup) {
   
   for (const word of lookup) {
     try {
-      result[word] = fst.lookup(word);
+      const rawAnalyses = fst.lookup(word);
+      // Filter out error analyses (anything containing +Err/)
+      // These are fragments or orthographic errors that shouldn't be shown to users
+      result[word] = rawAnalyses.filter(analysis => !analysis.includes('+Err/'));
     } catch (e) {
       console.error(`Error looking up word "${word}":`, e);
       result[word] = [];

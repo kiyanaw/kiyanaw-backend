@@ -3,6 +3,7 @@ import { UpdateTranscriptionUseCase } from './update-transcription';
 import { isVersionConflictError, handleVersionConflict } from '../services/versionConflictService';
 import type { RegionData } from '../services/adt';
 import type { LazyRegion } from '../models';
+import type { WordAnalysis } from '../services/adt';
 import Timeout from 'smart-timeout';
 
 // Type for changes that can be made to a region
@@ -11,7 +12,7 @@ type RegionChanges = {
   translation?: string;
   start?: number;
   end?: number;
-  regionAnalysis?: string[];
+  regionAnalysis?: WordAnalysis[]; // New WordAnalysis[] format
 };
 
 interface UpdateRegionConfig {
@@ -83,6 +84,25 @@ export class UpdateRegionUseCase {
       return;
     }
 
+    // NEW: If debounceMs is 0, save immediately (called by manager)
+    if (debounceMs === 0) {
+      this.performSave(existingRegion, user).then(() => {
+        // End pending edit if specified
+        if (pendingEditField) {
+          services.storeService.endPendingEdit(regionId, pendingEditField);
+        }
+        // End bounds pending edit if this was a bounds operation
+        if (changes.start !== undefined || changes.end !== undefined) {
+          services.storeService.endPendingEdit(regionId, 'bounds');
+        }
+      }).catch(error => {
+        console.error(`Failed to save region ${regionId}:`, error);
+        // Error handling already in performSave
+      });
+      return;
+    }
+
+    // OLD PATH: Debounced save (for backwards compatibility)
     // Clear any existing timeout for this region
     const existingTimeout = pendingSaves.get(regionId);
     if (existingTimeout) {
@@ -134,6 +154,9 @@ export class UpdateRegionUseCase {
           store.updateRegionBounds(existingRegion.id, newStart, newEnd);
           break;
         }
+        case 'regionAnalysis':
+          store.setRegionAnalysis(existingRegion.id, value as WordAnalysis[]);
+          break;
         default:
           console.warn(`Unknown field type for store update: ${field}`);
       }
@@ -143,32 +166,38 @@ export class UpdateRegionUseCase {
   private async performSave(existingRegion: RegionData, user: { username: string }): Promise<void> {
     const { regionId, changes, primaryField, services, store } = this.config;
     
+    console.log(`💾 UPDATE-REGION: performSave called for ${regionId}`, {
+      primaryField,
+      changes: Object.keys(changes),
+      hasRegionAnalysis: 'regionAnalysis' in changes
+    });
+    
     // Prepare update data
     const updateData = { ...changes };
     
-    // If updating main text, include current analysis from store at save time
-    if (changes.regionText !== undefined) {
-      try {
-        const region = store.regionById(regionId);
-        if (region?.regionAnalysis) {
-          updateData.regionAnalysis = region.regionAnalysis;
-        }
-      } catch (error) {
-        console.warn('Could not get analysis from store at save time:', error);
-      }
-    }
+    // NOTE: Manager now passes regionAnalysis directly in changes if needed
+    // We no longer read it from the store to avoid race conditions
+
+    console.log(`💾 UPDATE-REGION: Final updateData to save:`, {
+      fields: Object.keys(updateData),
+      regionAnalysisType: updateData.regionAnalysis ? typeof updateData.regionAnalysis : 'undefined',
+      regionAnalysisLength: Array.isArray(updateData.regionAnalysis) ? updateData.regionAnalysis.length : 'N/A',
+      regionAnalysis: updateData.regionAnalysis
+    });
 
     // Get current version for optimistic concurrency control
     const currentVersion = store.getRegionVersion(regionId);
 
     try {
       // Save to database
+      console.log(`🚀 UPDATE-REGION: Calling regionService.updateRegion for ${regionId}`);
       await services.regionService.updateRegion(
         regionId,
         updateData,
         user.username,
         currentVersion
       );
+      console.log(`✅ UPDATE-REGION: Successfully saved ${regionId}`);
 
       // Update the store's version tracking after successful save
       // The database will have incremented the version, so we increment locally too
@@ -200,8 +229,9 @@ export class UpdateRegionUseCase {
           currentVersion,
           store,
           // onAcceptRemote
-          async (remoteRegion: Partial<RegionData & LazyRegion>) => {
-            this.applyRemoteChangesToStore(remoteRegion, store, services);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          async (remoteRegion: any) => {
+            this.applyRemoteChangesToStore(remoteRegion as Partial<RegionData & LazyRegion>, store);
             // Update version to match remote version
             if (remoteRegion._version) {
               store.setRegionVersion(regionId, remoteRegion._version);
@@ -222,67 +252,64 @@ export class UpdateRegionUseCase {
               user.username,
               latestVersion
             );
+            
+            // Update version tracking
+            store.setRegionVersion(regionId, latestVersion + 1);
+            
+            // Update transcription metadata
+            const updateTranscriptionUseCase = new UpdateTranscriptionUseCase({
+              transcriptionId: existingRegion.transcriptionId,
+              services,
+              store: store,
+            });
+            await updateTranscriptionUseCase.execute();
           }
         );
       } else {
-        throw error; // Re-throw non-conflict errors
+        // Not a version conflict, throw the error
+        throw error;
       }
     }
   }
 
-  private revertChangesToStore(changes: RegionChanges, existingRegion: RegionData, store: typeof services.storeService): void {
-    // Revert optimistic updates
+  private revertChangesToStore(changes: RegionChanges, originalRegion: RegionData, store: typeof services.storeService): void {
+    // Revert each changed field to its original value
     Object.keys(changes).forEach(field => {
-      const originalValue = (existingRegion as unknown as Record<string, unknown>)[field];
+      const originalValue = (originalRegion as unknown as Record<string, unknown>)[field];
       
       switch (field) {
         case 'regionText':
-          store.setRegionText(existingRegion.id, originalValue as string);
+          store.setRegionText(originalRegion.id, originalValue as string);
           break;
         case 'translation':
-          store.setRegionTranslation(existingRegion.id, originalValue as string);
+          store.setRegionTranslation(originalRegion.id, originalValue as string);
           break;
         case 'start':
         case 'end':
-          store.updateRegionBounds(existingRegion.id, existingRegion.start, existingRegion.end);
+          store.updateRegionBounds(originalRegion.id, originalRegion.start, originalRegion.end);
+          break;
+        case 'regionAnalysis':
+          store.setRegionAnalysis(originalRegion.id, originalValue as WordAnalysis[]);
           break;
       }
     });
   }
 
-  private applyRemoteChangesToStore(remoteRegion: Partial<RegionData & LazyRegion>, store: typeof services.storeService, servicesArg: typeof services): void {
-    const { regionId } = this.config;
+  private applyRemoteChangesToStore(remoteRegion: Partial<RegionData & LazyRegion>, store: typeof services.storeService): void {
+    if (!remoteRegion.id) return;
     
-    // Apply all remote changes to store
+    // Apply each field from the remote region
     if (remoteRegion.regionText !== undefined) {
-      store.setRegionText(regionId, remoteRegion.regionText);
-      
-      // Update RTE editor if exists
-      const editorKey = `${regionId}:main` as const;
-      if (servicesArg.rteService.hasEditor(editorKey)) {
-        console.log('🔄 Updating RTE editor with remote content');
-        servicesArg.rteService.setContent(editorKey, remoteRegion.regionText);
-      }
+      store.setRegionText(remoteRegion.id, remoteRegion.regionText);
     }
-    
     if (remoteRegion.translation !== undefined) {
-      store.setRegionTranslation(regionId, remoteRegion.translation);
-      
-      // Update translation RTE if exists
-      const translationEditorKey = `${regionId}:translation` as const;
-      if (servicesArg.rteService.hasEditor(translationEditorKey)) {
-        servicesArg.rteService.setContent(translationEditorKey, remoteRegion.translation);
-      }
+      store.setRegionTranslation(remoteRegion.id, remoteRegion.translation);
     }
-    
     if (remoteRegion.start !== undefined && remoteRegion.end !== undefined) {
-      store.updateRegionBounds(regionId, remoteRegion.start, remoteRegion.end);
-      
-      // Update wavesurfer position
-      servicesArg.wavesurferService.setRegionPosition(regionId, {
-        start: remoteRegion.start,
-        end: remoteRegion.end
-      });
+      store.updateRegionBounds(remoteRegion.id, remoteRegion.start, remoteRegion.end);
+    }
+    if (remoteRegion.regionAnalysis !== undefined) {
+      store.setRegionAnalysis(remoteRegion.id, remoteRegion.regionAnalysis as WordAnalysis[]);
     }
   }
-} 
+}

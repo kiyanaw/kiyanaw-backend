@@ -60,7 +60,7 @@ type Region
   start: Float!
   end: Float!
   regionText: String
-  regionAnalysis: [String]
+  regionAnalysis: AWSJSON
   isNote: Boolean # deprecated field, notes moving into Comments
   commentCount: Int
   translation: String

@@ -101,7 +101,7 @@ interface AmplifyApiError {
  */
 export const loadInvitesForTranscription = async (transcriptionId: string): Promise<InviteModel[]> => {
   try {
-    console.log(`🔍 Loading invites for transcription: ${transcriptionId}`);
+    console.debug(`🔍 Loading invites for transcription: ${transcriptionId}`);
     
     const response = await getClient().graphql({
       query: listInvites,
@@ -118,18 +118,6 @@ export const loadInvitesForTranscription = async (transcriptionId: string): Prom
 
   } catch (error) {
     console.error('❌ Failed to load invites for transcription:', error);
-    
-    // If it's a GraphQL error with partial data, try to extract what we can
-    if (error && typeof error === 'object' && 'data' in error) {
-      console.log('🔄 Attempting to recover partial data from GraphQL error...');
-      const errorResponse = error as GraphQLListResponse;
-      
-      const recovered = processInviteResponse(errorResponse, transcriptionId);
-      console.log(`✅ Recovered ${recovered.length} invites from partial data`);
-      return recovered;
-    }
-    
-    // If we can't recover any data, re-throw the error
     throw error;
   }
 };
@@ -142,14 +130,14 @@ const processInviteResponse = (response: GraphQLListResponse, transcriptionId: s
   let invites: InviteData[] = [];
   
   if (response.data?.listInvites?.items) {
-    console.log(`📝 Processing ${response.data.listInvites.items.length} raw invite items`);
+    console.debug(`📝 Processing ${response.data.listInvites.items.length} raw invite items`);
     
     // Filter out any items that might be problematic due to null required fields
     invites = response.data.listInvites.items.filter((invite: InviteData | null, index: number): invite is InviteData => {
-      console.log(`📋 Processing invite ${index}:`, invite);
+      console.debug(`📋 Processing invite ${index}:`, invite);
       
       if (!invite) {
-        console.log(`⚠️ Skipping null/undefined invite at index ${index}`);
+        console.debug(`⚠️ Skipping null/undefined invite at index ${index}`);
         return false;
       }
       
@@ -161,7 +149,7 @@ const processInviteResponse = (response: GraphQLListResponse, transcriptionId: s
                                invite.permissionLevel;
       
       if (!hasRequiredFields) {
-        console.log(`⚠️ Skipping invite ${index} with missing required fields:`, {
+        console.debug(`⚠️ Skipping invite ${index} with missing required fields:`, {
           id: invite.id,
           email: invite.email,
           transcriptionId: invite.transcriptionId,
@@ -174,7 +162,7 @@ const processInviteResponse = (response: GraphQLListResponse, transcriptionId: s
       }
       
       // The invite is valid for our purposes, even if it has null _version/_lastChangedAt
-      console.log(`✅ Valid invite found at index ${index}:`, invite.email, invite.status);
+      console.debug(`✅ Valid invite found at index ${index}:`, invite.email, invite.status);
       return true;
     }).map((invite: InviteData) => {
       // Create a clean invite object with defaults for missing metadata fields
@@ -200,7 +188,7 @@ const processInviteResponse = (response: GraphQLListResponse, transcriptionId: s
     console.warn('⚠️ GraphQL errors encountered while loading invites (continuing with available data):', response.errors);
   }
   
-  console.log(`✅ Processed ${invites.length} valid invites`);
+  console.debug(`✅ Processed ${invites.length} valid invites`);
   
   return invites.map((invite: InviteData) => new InviteModel(invite));
 };
@@ -212,7 +200,7 @@ const processInviteResponse = (response: GraphQLListResponse, transcriptionId: s
  */
 export const sendInvite = async (data: CreateInviteData): Promise<{ messageId: string; inviteId: string }> => {
   try {
-    console.log('🔄 Sending invite via API Gateway:', data);
+    console.debug('🔄 Sending invite via API Gateway:', data);
 
     const response = await post({
       apiName: 'invite',
@@ -232,7 +220,7 @@ export const sendInvite = async (data: CreateInviteData): Promise<{ messageId: s
     };
     
     if (result && result.success) {
-      console.log('✅ Invite sent successfully:', result.messageId);
+      console.info('✅ Invite sent successfully:', result.messageId);
       return {
         messageId: result.messageId || '',
         inviteId: result.inviteId || ''
@@ -251,9 +239,6 @@ export const sendInvite = async (data: CreateInviteData): Promise<{ messageId: s
     // AWS Amplify wraps HTTP errors differently
     // Check if this is a RestApiError with status and body
     if (apiError.response?.statusCode) {
-      const statusCode = apiError.response.statusCode;
-      console.log(`❌ HTTP ${statusCode} error response`);
-      
       // Try to extract error message from response body
       const responseBody = apiError.response.body;
       if (responseBody) {
@@ -306,7 +291,7 @@ export const revokeInvite = async (inviteId: string, requestorUserId: string): P
   permissionLevel: 'viewer' | 'editor';
 }> => {
   try {
-    console.log('🔄 Revoking invite:', { inviteId, requestorUserId });
+    console.debug('🔄 Revoking invite:', { inviteId, requestorUserId });
 
     const response = await post({
       apiName: 'invite',
@@ -335,7 +320,7 @@ export const revokeInvite = async (inviteId: string, requestorUserId: string): P
       throw new Error(result.error || 'Failed to revoke invite');
     }
 
-    console.log('✅ Invite revoked successfully:', result);
+    console.info('✅ Invite revoked successfully:', result);
     return {
       message: result.message || 'Invitation revoked successfully',
       inviteId: result.inviteId!,
@@ -375,7 +360,7 @@ export const revokeInvite = async (inviteId: string, requestorUserId: string): P
  */
 export const deleteInvite = async (inviteId: string): Promise<void> => {
   try {
-    console.log('🔄 Deleting invite:', inviteId);
+    console.debug('🔄 Deleting invite:', inviteId);
 
     const { data: result } = await getClient().graphql({
       query: deleteInviteMutation,
@@ -388,7 +373,7 @@ export const deleteInvite = async (inviteId: string): Promise<void> => {
       throw new Error('Failed to delete invite - no data returned');
     }
 
-    console.log('✅ Invite deleted successfully:', deleted.id);
+    console.info('✅ Invite deleted successfully:', deleted.id);
   } catch (error) {
     console.error('❌ Failed to delete invite via API:', error);
     throw error;
@@ -461,7 +446,7 @@ export interface GetMyInvitesResponse {
  */
 export const getMyInvites = async (request: GetMyInvitesRequest): Promise<GetMyInvitesResponse> => {
   try {
-    console.log('🔍 Loading my invites:', request);
+    console.debug('🔍 Loading my invites:', request);
 
     const response = await post({
       apiName: 'invite',
@@ -481,7 +466,7 @@ export const getMyInvites = async (request: GetMyInvitesRequest): Promise<GetMyI
     };
 
     if (result && result.success) {
-      console.log('✅ My invites loaded successfully:', result);
+      console.debug('✅ My invites loaded successfully:', result);
       return {
         invites: result.invites || [],
         total: result.total || 0,
@@ -501,9 +486,6 @@ export const getMyInvites = async (request: GetMyInvitesRequest): Promise<GetMyI
     // AWS Amplify wraps HTTP errors differently
     // Check if this is a RestApiError with status and body
     if (apiError.response?.statusCode) {
-      const statusCode = apiError.response.statusCode;
-      console.log(`❌ HTTP ${statusCode} error response`);
-
       // Try to extract error message from response body
       const responseBody = apiError.response.body;
       if (responseBody) {
@@ -549,7 +531,7 @@ export const getMyInvites = async (request: GetMyInvitesRequest): Promise<GetMyI
  */
 export const getInviteById = async (inviteId: string, userEmail: string): Promise<{ invite: InviteModel; validation: InviteWithValidation['validation'] } | null> => {
   try {
-    console.log('🔍 Loading invite by ID:', inviteId);
+    console.debug('🔍 Loading invite by ID:', inviteId);
 
     const result = await getMyInvites({
       userEmail,
@@ -559,11 +541,11 @@ export const getInviteById = async (inviteId: string, userEmail: string): Promis
     const inviteWithValidation = result.invites[0];
     
     if (!inviteWithValidation) {
-      console.log('❌ Invite not found:', inviteId);
+      console.debug('❌ Invite not found:', inviteId);
       return null;
     }
 
-    console.log('✅ Invite loaded successfully:', inviteId);
+    console.debug('✅ Invite loaded successfully:', inviteId);
     return {
       invite: new InviteModel(inviteWithValidation.invite),
       validation: inviteWithValidation.validation
@@ -601,7 +583,7 @@ export interface AcceptInviteResult {
  */
 export const acceptInvite = async (data: AcceptInviteData): Promise<AcceptInviteResult> => {
   try {
-    console.log('🔄 Accepting invite:', { inviteId: data.inviteId, userEmail: data.userEmail });
+    console.debug('🔄 Accepting invite:', { inviteId: data.inviteId, userEmail: data.userEmail });
 
     const response = await post({
       apiName: 'invite',
@@ -623,7 +605,7 @@ export const acceptInvite = async (data: AcceptInviteData): Promise<AcceptInvite
     };
 
     if (result && result.success) {
-      console.log('✅ Invite accepted successfully:', result);
+      console.info('✅ Invite accepted successfully:', result);
       return {
         message: result.message || 'Invitation accepted successfully',
         invite: result.invite!
@@ -642,9 +624,6 @@ export const acceptInvite = async (data: AcceptInviteData): Promise<AcceptInvite
     // AWS Amplify wraps HTTP errors differently
     // Check if this is a RestApiError with status and body
     if (apiError.response?.statusCode) {
-      const statusCode = apiError.response.statusCode;
-      console.log(`❌ HTTP ${statusCode} error response`);
-
       // Try to extract error message from response body
       const responseBody = apiError.response.body;
       if (responseBody) {

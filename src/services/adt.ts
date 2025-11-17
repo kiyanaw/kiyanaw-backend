@@ -37,7 +37,7 @@ export interface RegionData {
   translation?: string;
   userLastUpdated?: string;
   index?: number;
-  regionAnalysis?: string[]; // Array of known words
+  regionAnalysis?: WordAnalysis[]; // Array of detailed word analysis
   updatedAt?: string; // Additional property needed for tests
   _version?: number; // Version tracking for conflict resolution
 }
@@ -96,6 +96,66 @@ export interface InviteData {
   transcriptionId: string;
   transcriptionTitle: string;
   updatedAt?: string;
+}
+
+// Database/Language Database Types
+export interface DatabaseStats {
+  totalWords: number;
+  totalTranscriptions: number;
+  wordTypeDistribution: WordTypeCount[];
+  topVerbs: LemmaCount[];
+  topNouns: LemmaCount[];
+}
+
+export interface WordTypeCount extends Record<string, unknown> {
+  wordType: string;
+  count: number;
+}
+
+export interface LemmaCount extends Record<string, unknown> {
+  lemma: string;
+  count: number;
+}
+
+export interface LemmaDetails {
+  lemma: string;
+  definition?: string;
+  itwêwinaUrl?: string;
+  surfaceForms: SurfaceForm[];
+  totalOccurrences: number;
+}
+
+export interface SurfaceForm {
+  surface: string;
+  count: number;
+}
+
+export interface Attestation {
+  transcriptionId: string;
+  transcriptionName: string;
+  regionId: string;
+  regionText: string;
+  timestamp: string;
+  surface: string;
+  lemma: string;
+}
+
+export interface SearchResult {
+  lemma: string;
+  count: number;
+  wordType?: string;
+}
+
+// Word Analysis Types
+export interface WordAnalysis {
+  word: string;
+  analysis: string;           // The primary analysis to use
+  allAnalysis: string[];      // All available analyses
+}
+
+export interface SpellCheckResult {
+  known: WordAnalysis[];
+  unknown: string[];
 }
 
 
@@ -340,7 +400,7 @@ export class RegionModel {
   public translation: string;
   public userLastUpdated?: string;
   public index?: number;
-  public regionAnalysis: string[];
+  public regionAnalysis: WordAnalysis[];
   public _version: number;
 
   constructor(data: RegionData) {
@@ -359,8 +419,25 @@ export class RegionModel {
       // Use regionText as plain text (new approach)
       this.regionText = data.regionText || '';
 
-      // Use regionAnalysis directly as array
-      this.regionAnalysis = data.regionAnalysis || [];
+      // Parse regionAnalysis from AWSJSON format
+      if (data.regionAnalysis) {
+        if (typeof data.regionAnalysis === 'string') {
+          try {
+            // Parse JSON string from AWSJSON
+            this.regionAnalysis = JSON.parse(data.regionAnalysis);
+          } catch (error) {
+            console.error(`❌ Failed to parse regionAnalysis JSON for ${data.id}:`, error);
+            this.regionAnalysis = [];
+          }
+        } else if (Array.isArray(data.regionAnalysis)) {
+          // Already an array
+          this.regionAnalysis = data.regionAnalysis;
+        } else {
+          this.regionAnalysis = [];
+        }
+      } else {
+        this.regionAnalysis = [];
+      }
 
       // Set version tracking - must exist for existing regions
       if (data._version === undefined) {

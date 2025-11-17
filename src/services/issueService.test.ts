@@ -34,6 +34,8 @@ describe('issueService', () => {
     jest.clearAllMocks();
     // Reset console spies
     jest.spyOn(console, 'log').mockImplementation(() => {});
+    jest.spyOn(console, 'debug').mockImplementation(() => {});
+    jest.spyOn(console, 'info').mockImplementation(() => {});
     jest.spyOn(console, 'error').mockImplementation(() => {});
   });
 
@@ -104,8 +106,8 @@ describe('issueService', () => {
       // Should be sorted newest first (issue-1 is newer than issue-2)
       expect(result[0].id).toBe('issue-1');
       expect(result[1].id).toBe('issue-2');
-      expect(console.log).toHaveBeenCalledWith(`🔍 Loading issues for transcription ${transcriptionId} via GraphQL...`);
-      expect(console.log).toHaveBeenCalledWith(`📊 Found 2 issues for transcription ${transcriptionId}`);
+      expect(console.debug).toHaveBeenCalledWith(`🔍 Loading issues for transcription ${transcriptionId} via GraphQL...`);
+      expect(console.debug).toHaveBeenCalledWith(`📊 Found 2 issues for transcription ${transcriptionId}`);
     });
 
     it('should handle empty results', async () => {
@@ -120,7 +122,7 @@ describe('issueService', () => {
       const result = await loadIssuesForTranscription(transcriptionId);
 
       expect(result).toEqual([]);
-      expect(console.log).toHaveBeenCalledWith(`📊 Found 0 issues for transcription ${transcriptionId}`);
+      expect(console.debug).toHaveBeenCalledWith(`📊 Found 0 issues for transcription ${transcriptionId}`);
     });
 
     it('should handle missing data structure', async () => {
@@ -212,8 +214,8 @@ describe('issueService', () => {
       });
 
       expect(result).toEqual(mockCreatedIssue);
-      expect(console.log).toHaveBeenCalledWith('🔨 Creating new issue via GraphQL...');
-      expect(console.log).toHaveBeenCalledWith('✅ Issue created successfully');
+      expect(console.debug).toHaveBeenCalledWith('🔨 Creating new issue via GraphQL...');
+      expect(console.info).toHaveBeenCalledWith('✅ Issue created successfully');
     });
 
     it('should handle GraphQL errors', async () => {
@@ -281,8 +283,8 @@ describe('issueService', () => {
       });
 
       expect(result).toEqual(mockUpdatedIssue);
-      expect(console.log).toHaveBeenCalledWith(`🔧 Updating issue ${issueId} via GraphQL...`);
-      expect(console.log).toHaveBeenCalledWith('✅ Issue updated successfully');
+      expect(console.debug).toHaveBeenCalledWith(`🔧 Updating issue ${issueId} via GraphQL...`);
+      expect(console.info).toHaveBeenCalledWith('✅ Issue updated successfully');
     });
 
     it('should filter out read-only fields', async () => {
@@ -349,8 +351,8 @@ describe('issueService', () => {
         }
       });
 
-      expect(console.log).toHaveBeenCalledWith(`🗑️ Deleting issue ${issueId} via GraphQL...`);
-      expect(console.log).toHaveBeenCalledWith('✅ Issue deleted successfully');
+      expect(console.debug).toHaveBeenCalledWith(`🗑️ Deleting issue ${issueId} via GraphQL...`);
+      expect(console.info).toHaveBeenCalledWith('✅ Issue deleted successfully');
     });
 
     it('should handle GraphQL errors', async () => {

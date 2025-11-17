@@ -42,3 +42,5 @@ export const services = {
   conflictResolutionService,
   versionConflictService,
 };
+
+export { regionSaveManager } from './regionSaveManager';

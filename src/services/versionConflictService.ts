@@ -2,7 +2,7 @@ import { services } from './index';
 import type { ConflictData } from './conflictResolutionService';
 import type { ConflictDetail } from './conflictDetectionService';
 type ConflictValue = string | number | boolean;
-import type { RegionData } from './adt';
+import type { RegionData, WordAnalysis } from './adt';
 import type { LazyRegion } from '../models';
 
 // Types for error handling
@@ -17,7 +17,9 @@ type ErrorObject = {
 };
 
 // Type for region-like objects that may be incomplete
-type RegionLike = Partial<RegionData & LazyRegion>;
+type RegionLike = Partial<Omit<RegionData, 'regionAnalysis'> & Omit<LazyRegion, 'regionAnalysis'> & {
+  regionAnalysis?: WordAnalysis[] | string | null;
+}>;
 
 /**
  * Check if an error is a version conflict error from DynamoDB/AppSync

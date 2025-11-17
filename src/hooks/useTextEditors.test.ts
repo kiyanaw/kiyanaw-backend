@@ -2,13 +2,6 @@ import { renderHook, act } from '@testing-library/react';
 import { useTextEditors } from './useTextEditors';
 import { rteService } from '../services/rteService';
 
-// Mock the use case
-jest.mock('../use-cases/update-region-text', () => ({
-  UpdateRegionTextUseCase: jest.fn().mockImplementation(() => ({
-    execute: jest.fn()
-  }))
-}));
-
 // Mock the store
 jest.mock('../stores/useEditorStore', () => {
   const mockStoreState = {

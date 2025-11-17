@@ -31,12 +31,6 @@ jest.mock('../services/rteService', () => ({
 }));
 
 // Mock the use cases
-jest.mock('../use-cases/update-region-text', () => ({
-  UpdateRegionTextUseCase: jest.fn().mockImplementation(() => ({
-    execute: jest.fn()
-  }))
-}));
-
 jest.mock('../use-cases/update-issue-text', () => ({
   UpdateIssueTextUseCase: jest.fn().mockImplementation(() => ({
     execute: jest.fn().mockResolvedValue(undefined)

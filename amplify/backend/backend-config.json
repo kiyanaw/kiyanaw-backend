@@ -42,6 +42,20 @@
       "providerPlugin": "awscloudformation",
       "service": "AppSync"
     },
+    "opensearchproxy": {
+      "dependsOn": [
+        {
+          "attributes": [
+            "Name",
+            "Arn"
+          ],
+          "category": "function",
+          "resourceName": "opensearchproxy"
+        }
+      ],
+      "providerPlugin": "awscloudformation",
+      "service": "API Gateway"
+    },
     "spellcheck": {
       "dependsOn": [
         {
@@ -275,6 +289,12 @@
           "resourceName": "kiyanaw"
         }
       ],
+      "providerPlugin": "awscloudformation",
+      "service": "Lambda"
+    },
+    "opensearchproxy": {
+      "build": true,
+      "dependsOn": [],
       "providerPlugin": "awscloudformation",
       "service": "Lambda"
     }

@@ -1,4 +1,5 @@
 import { services } from '../services';
+import type { WordAnalysis } from '../services/adt';
 
 interface LoadTranscriptionConfig {
   transcriptionId: string;
@@ -94,17 +95,41 @@ export class LoadTranscription {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private extractKnownWordsFromRegions(regions: any[]): string[] {
-    const allKnownWords = new Set<string>();
+  private extractKnownWordsFromRegions(regions: any[]): WordAnalysis[] {
+    const allKnownWords: WordAnalysis[] = [];
+    const seenWords = new Set<string>();
+    
+    // TODO: REMOVE LEGACY FORMAT PROCESSING
     if (regions && Array.isArray(regions)) {
       regions.forEach((region) => {
         if (region.regionAnalysis && Array.isArray(region.regionAnalysis)) {
-          region.regionAnalysis.forEach((word: string) => {
-            allKnownWords.add(word);
+          let hasLegacyFormat = false;
+          
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          region.regionAnalysis.forEach((item: any) => {
+            // Handle new WordAnalysis format - only add words with VALID analysis
+            if (typeof item === 'object' && item.word) {
+              // Only add if analysis is complete (non-empty) and not already seen
+              if (item.analysis && item.analysis !== '' && 
+                  item.allAnalysis && item.allAnalysis.length > 0 &&
+                  !seenWords.has(item.word)) {
+                allKnownWords.push(item);
+                seenWords.add(item.word);
+              }
+              // Skip words with empty analysis - they need to be re-analyzed
+            } else if (typeof item === 'string') {
+              // Legacy string format detected
+              hasLegacyFormat = true;
+            }
           });
+          
+          // Warn once per region if legacy format detected
+          if (hasLegacyFormat) {
+            console.warn(`⚠️ Region ${region.id} has legacy string[] analysis format. Words will be re-analyzed on selection.`);
+          }
         }
       });
     }
-    return Array.from(allKnownWords);
+    return allKnownWords;
   }
 } 

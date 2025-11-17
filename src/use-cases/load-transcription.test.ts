@@ -415,18 +415,18 @@ describe('LoadTranscription', () => {
   });
 
   describe('extractKnownWordsFromRegions', () => {
-    it('should extract known words from regions with regionAnalysis', async () => {
+    it('should extract known words from WordAnalysis[] format', async () => {
       const mockData = {
         transcription: { source: 'test.mp4', lang: 'crk' }, // Add language for spell checking
         peaks: [],
         regions: [
           {
             id: 'region1',
-            regionAnalysis: ['itwêw', 'êkwa']
+            regionAnalysis: [{ word: 'itwêw', analysis: 'itwêw+V+AI+Ind+3Sg', allAnalysis: ['itwêw+V+AI+Ind+3Sg'] }, { word: 'êkwa', analysis: 'êkwa+Ipc', allAnalysis: ['êkwa+Ipc'] }]
           },
           {
             id: 'region2',
-            regionAnalysis: ['tâpwê', 'itwêw'] // duplicate should be deduplicated
+            regionAnalysis: [{ word: 'tâpwê', analysis: 'tâpwê+Ipc', allAnalysis: ['tâpwê+Ipc'] }, { word: 'itwêw', analysis: 'itwêw+V+AI+Ind+3Sg', allAnalysis: ['itwêw+V+AI+Ind+3Sg'] }]
           },
           {
             id: 'region3',
@@ -440,20 +440,21 @@ describe('LoadTranscription', () => {
         issues: []
       };
 
-             (services.transcriptionService.loadInFull as jest.Mock).mockResolvedValue(mockData);
-       (services.browserService.getRegionIdFromUrl as jest.Mock).mockReturnValue(null);
+      (services.transcriptionService.loadInFull as jest.Mock).mockResolvedValue(mockData);
+      (services.browserService.getRegionIdFromUrl as jest.Mock).mockReturnValue(null);
 
-       await useCase.execute();
+      await useCase.execute();
 
-       // Verify spell checker service was called with deduplicated known words
-       expect(services.spellCheckerService.addKnownWords).toHaveBeenCalledWith([
-         'itwêw', 'êkwa', 'tâpwê'
-       ]);
-
-      // Verify store was updated with known words
-      expect(mockStore.addKnownWords).toHaveBeenCalledWith([
-        'itwêw', 'êkwa', 'tâpwê'
-      ]);
+      // Should extract WordAnalysis objects from regions
+      expect(services.spellCheckerService.addKnownWords).toHaveBeenCalled();
+      expect(mockStore.addKnownWords).toHaveBeenCalled();
+      
+      // Should have extracted unique words (itwêw appears twice, should be deduplicated)
+      const addedWords = (mockStore.addKnownWords as jest.Mock).mock.calls[0][0];
+      expect(addedWords).toHaveLength(3); // itwêw, êkwa, tâpwê (deduplicated)
+      expect(addedWords.map((w: { word: string }) => w.word)).toContain('itwêw');
+      expect(addedWords.map((w: { word: string }) => w.word)).toContain('êkwa');
+      expect(addedWords.map((w: { word: string }) => w.word)).toContain('tâpwê');
     });
 
     it('should not call spell checker when no known words exist', async () => {
@@ -484,25 +485,29 @@ describe('LoadTranscription', () => {
         regions: [
           {
             id: 'region1',
-            regionAnalysis: 'not-an-array' // Invalid data
+            regionAnalysis: 'not-an-array' // Invalid data - should be ignored
           },
           {
             id: 'region2',
-            regionAnalysis: ['valid', 'words']
+            regionAnalysis: [{ word: 'valid', analysis: 'valid+Adj', allAnalysis: ['valid+Adj'] }, { word: 'words', analysis: 'word+N+Pl', allAnalysis: ['word+N+Pl'] }]
           }
         ],
         issues: []
       };
 
-             (services.transcriptionService.loadInFull as jest.Mock).mockResolvedValue(mockData);
-       (services.browserService.getRegionIdFromUrl as jest.Mock).mockReturnValue(null);
+      (services.transcriptionService.loadInFull as jest.Mock).mockResolvedValue(mockData);
+      (services.browserService.getRegionIdFromUrl as jest.Mock).mockReturnValue(null);
 
-       await useCase.execute();
+      await useCase.execute();
 
-       // Should only extract from valid arrays
-       expect(services.spellCheckerService.addKnownWords).toHaveBeenCalledWith([
-         'valid', 'words'
-       ]);
+      // Should extract valid WordAnalysis from region2, ignore invalid region1
+      expect(services.spellCheckerService.addKnownWords).toHaveBeenCalled();
+      expect(mockStore.addKnownWords).toHaveBeenCalled();
+      
+      const addedWords = (mockStore.addKnownWords as jest.Mock).mock.calls[0][0];
+      expect(addedWords).toHaveLength(2); // valid, words
+      expect(addedWords.map((w: { word: string }) => w.word)).toContain('valid');
+      expect(addedWords.map((w: { word: string }) => w.word)).toContain('words');
     });
 
     it('should skip known words extraction when transcription has no language', async () => {
@@ -512,11 +517,11 @@ describe('LoadTranscription', () => {
         regions: [
           {
             id: 'region1',
-            regionAnalysis: ['itwêw', 'êkwa']
+            regionAnalysis: [{ word: 'itwêw', analysis: 'itwêw+V+AI+Ind+3Sg', allAnalysis: ['itwêw+V+AI+Ind+3Sg'] }, { word: 'êkwa', analysis: 'êkwa+Ipc', allAnalysis: ['êkwa+Ipc'] }]
           },
           {
             id: 'region2',
-            regionAnalysis: ['tâpwê', 'hello']
+            regionAnalysis: [{ word: 'tâpwê', analysis: 'tâpwê+Ipc', allAnalysis: ['tâpwê+Ipc'] }, { word: 'hello', analysis: 'hello+N', allAnalysis: ['hello+N'] }]
           }
         ],
         issues: []
@@ -532,18 +537,18 @@ describe('LoadTranscription', () => {
       expect(mockStore.addKnownWords).not.toHaveBeenCalled();
     });
 
-    it('should extract known words when transcription language is set to crgn', async () => {
+    it('should extract words from WordAnalysis[] format with Northern Michif', async () => {
       const mockData = {
         transcription: { source: 'test.mp4', lang: 'crgn' }, // Northern Michif
         peaks: [],
         regions: [
           {
             id: 'region1',
-            regionAnalysis: ['kinwês', 'omâmâ'] // Northern Michif words
+            regionAnalysis: [{ word: 'kinwês', analysis: 'kinwês+Ipc', allAnalysis: ['kinwês+Ipc'] }, { word: 'omâmâ', analysis: 'omâmâ+N+A+Sg', allAnalysis: ['omâmâ+N+A+Sg'] }]
           },
           {
             id: 'region2',
-            regionAnalysis: ['tânisi', 'kinwês'] // duplicate should be deduplicated
+            regionAnalysis: [{ word: 'tânisi', analysis: 'tânisi+Ipc', allAnalysis: ['tânisi+Ipc'] }, { word: 'kinwês', analysis: 'kinwês+Ipc', allAnalysis: ['kinwês+Ipc'] }]
           }
         ],
         issues: []
@@ -554,13 +559,69 @@ describe('LoadTranscription', () => {
 
       await useCase.execute();
 
-      // Should extract known words regardless of language (language code is used in spell checking, not extraction)
+      // Should extract WordAnalysis objects from regions
+      expect(services.spellCheckerService.addKnownWords).toHaveBeenCalled();
+      expect(mockStore.addKnownWords).toHaveBeenCalled();
+      
+      // Should have extracted unique words (kinwês appears twice, should be deduplicated)
+      const addedWords = (mockStore.addKnownWords as jest.Mock).mock.calls[0][0];
+      expect(addedWords).toHaveLength(3); // kinwês, omâmâ, tânisi (deduplicated)
+      expect(addedWords.map((w: { word: string }) => w.word)).toContain('kinwês');
+      expect(addedWords.map((w: { word: string }) => w.word)).toContain('omâmâ');
+      expect(addedWords.map((w: { word: string }) => w.word)).toContain('tânisi');
+    });
+
+    it('should NOT extract words with empty analysis from regions (Bug #6 regression test)', async () => {
+      const mockData = {
+        transcription: {
+          id: mockTranscriptionId,
+          title: 'Test Transcription',
+          source: 'test-audio.mp3',
+          lang: 'crk' // Has language index
+        },
+        peaks: [0.1, 0.2],
+        regions: [
+          {
+            id: 'region1',
+            regionAnalysis: [
+              { word: 'awa', analysis: 'awa+Ipc', allAnalysis: ['awa+Ipc', 'awa+N+A+Sg'] }, // Valid
+              { word: 'nôhkom', analysis: '', allAnalysis: [] }, // INCOMPLETE - should be filtered
+              { word: 'êwako', analysis: 'êwako+Pr+Dem+Prox+Sg', allAnalysis: ['êwako+Pr+Dem+Prox+Sg'] } // Valid
+            ]
+          },
+          {
+            id: 'region2',
+            regionAnalysis: [
+              { word: 'tânisi', analysis: '', allAnalysis: [] }, // INCOMPLETE - should be filtered
+              { word: 'kiya', analysis: 'kiya+Pron+Pers+2Sg', allAnalysis: ['kiya+Pron+Pers+2Sg'] } // Valid
+            ]
+          }
+        ],
+        issues: []
+      };
+
+      (services.transcriptionService.loadInFull as jest.Mock).mockResolvedValue(mockData);
+      (services.browserService.getRegionIdFromUrl as jest.Mock).mockReturnValue(null);
+
+      await useCase.execute();
+
+      // Should ONLY extract words with complete analysis (awa, êwako, kiya)
+      // Should NOT extract words with empty analysis (nôhkom, tânisi)
       expect(services.spellCheckerService.addKnownWords).toHaveBeenCalledWith([
-        'kinwês', 'omâmâ', 'tânisi'
+        { word: 'awa', analysis: 'awa+Ipc', allAnalysis: ['awa+Ipc', 'awa+N+A+Sg'] },
+        { word: 'êwako', analysis: 'êwako+Pr+Dem+Prox+Sg', allAnalysis: ['êwako+Pr+Dem+Prox+Sg'] },
+        { word: 'kiya', analysis: 'kiya+Pron+Pers+2Sg', allAnalysis: ['kiya+Pron+Pers+2Sg'] }
       ]);
       expect(mockStore.addKnownWords).toHaveBeenCalledWith([
-        'kinwês', 'omâmâ', 'tânisi'
+        { word: 'awa', analysis: 'awa+Ipc', allAnalysis: ['awa+Ipc', 'awa+N+A+Sg'] },
+        { word: 'êwako', analysis: 'êwako+Pr+Dem+Prox+Sg', allAnalysis: ['êwako+Pr+Dem+Prox+Sg'] },
+        { word: 'kiya', analysis: 'kiya+Pron+Pers+2Sg', allAnalysis: ['kiya+Pron+Pers+2Sg'] }
       ]);
+      
+      // Verify incomplete words are NOT in the list
+      const calledWith = (services.spellCheckerService.addKnownWords as jest.Mock).mock.calls[0][0];
+      expect(calledWith.find((w: { word: string }) => w.word === 'nôhkom')).toBeUndefined();
+      expect(calledWith.find((w: { word: string }) => w.word === 'tânisi')).toBeUndefined();
     });
   });
 }); 

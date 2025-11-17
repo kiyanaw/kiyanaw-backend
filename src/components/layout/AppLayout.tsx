@@ -246,7 +246,6 @@ export const AppLayout = () => {
                 </svg>
                 <span className="font-medium">Transcriptions</span>
               </Link>
-              
               <Link
                 to="/invitations"
                 onClick={() => setMobileMenuOpen(false)}

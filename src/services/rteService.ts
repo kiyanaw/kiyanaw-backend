@@ -287,7 +287,7 @@ class RTEServiceImpl {
         window.debugEditors = {};
       }
       window.debugEditors[key] = quill;
-      console.log(`Added editor "${key}" to window.debugEditors`);
+      console.debug(`Added editor "${key}" to window.debugEditors`);
     }
 
     return quill;
@@ -883,7 +883,12 @@ class RTEServiceImpl {
 
     // Get current state from store
     const state = useEditorStore.getState();
-    const knownWords = Array.from(state.knownWords);
+    
+    // ONLY use this region's own analysis for highlighting, not the global cache
+    const region = state.regionById(regionId);
+    const regionAnalysis = region?.regionAnalysis || [];
+    const knownWords: string[] = regionAnalysis.map(item => item.word);
+    
     const issues = state.getIssuesForRegion(regionId);
 
     // Get current text from editor
@@ -932,7 +937,7 @@ class RTEServiceImpl {
       const instance = this.registry.get(key);
       if (!instance) return;
 
-      console.log(`🔄 Resetting corrupted editor: ${key}`);
+      console.debug(`🔄 Resetting corrupted editor: ${key}`);
 
       // Clear all formatting and reset content
       instance.quill.setText('', 'api');

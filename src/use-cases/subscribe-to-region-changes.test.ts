@@ -33,6 +33,7 @@ const mockServices = {
     setRegionVersion: jest.fn(),
     getRegionVersion: jest.fn().mockReturnValue(1), // Add missing mock
     getIssuesForRegion: jest.fn().mockReturnValue([]), // Add missing mock for issues
+    getKnownWords: jest.fn(() => new Map()), // Add missing mock for known words cache (now Map)
     addConflictToQueue: jest.fn(),
     removeConflictFromQueue: jest.fn(),
     isPendingEdit: jest.fn(),
@@ -64,6 +65,9 @@ const mockServices = {
   },
   conflictDetectionService: {
     detectConflict: jest.fn()
+  },
+  spellCheckerService: {
+    tokenize: jest.fn((text: string) => text.split(/\s+/).filter(Boolean))
   }
 } as any;
 
@@ -317,7 +321,10 @@ describe('SubscribeToRegionChangesUseCase', () => {
       it('should handle region analysis updates', async () => {
         const currentRegion = { id: 'region-1' };
         const updatedRegion = createMockRegion({ 
-          regionAnalysis: ['word1', 'word2'],
+          regionAnalysis: [
+            { word: 'word1', analysis: 'word1+N', allAnalysis: ['word1+N'] },
+            { word: 'word2', analysis: 'word2+N', allAnalysis: ['word2+N'] }
+          ],
           userLastUpdated: 'other@user.com'
         });
 
@@ -327,15 +334,70 @@ describe('SubscribeToRegionChangesUseCase', () => {
 
         await await subscriptionCallback(event);
 
-        expect(mockServices.storeService.setRegionAnalysis).toHaveBeenCalledWith('region-1', ['word1', 'word2']);
-        expect(mockServices.storeService.addKnownWords).toHaveBeenCalledWith(['word1', 'word2']);
+        expect(mockServices.storeService.setRegionAnalysis).toHaveBeenCalledWith('region-1', [
+          { word: 'word1', analysis: 'word1+N', allAnalysis: ['word1+N'] },
+          { word: 'word2', analysis: 'word2+N', allAnalysis: ['word2+N'] }
+        ]);
+        // addKnownWords should NOT be called for WordAnalysis format (only for legacy string[])
+        expect(mockServices.storeService.addKnownWords).not.toHaveBeenCalled();
+      });
+
+      it('should parse regionAnalysis from JSON string (from GraphQL subscription)', async () => {
+        const currentRegion = { id: 'region-1' };
+        const analysisArray = [
+          { word: 'ana', analysis: 'ana+Pron+Dem+Med+A+Sg', allAnalysis: ['ana+Pron+Dem+Med+A+Sg'] },
+          { word: 'ôhi', analysis: 'ôhi+Pron+Dem+Prox+I+Pl', allAnalysis: ['ôhi+Pron+Dem+Prox+I+Pl'] }
+        ];
+        
+        // Simulate GraphQL subscription sending regionAnalysis as JSON string
+        const updatedRegion = createMockRegion({ 
+          regionAnalysis: JSON.stringify(analysisArray) as any, // GraphQL sends as string
+          userLastUpdated: 'other@user.com'
+        });
+
+        mockServices.storeService.regionById.mockReturnValue(currentRegion);
+
+        const event = { mutation: 'UPDATE', region: updatedRegion };
+
+        await subscriptionCallback(event);
+
+        // Should parse the JSON string and set as array
+        expect(mockServices.storeService.setRegionAnalysis).toHaveBeenCalledWith('region-1', analysisArray);
+      });
+
+      it('should handle invalid JSON string in regionAnalysis gracefully', async () => {
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+        const currentRegion = { id: 'region-1' };
+        
+        // Simulate invalid JSON string
+        const updatedRegion = createMockRegion({ 
+          regionAnalysis: 'invalid json {' as any,
+          userLastUpdated: 'other@user.com'
+        });
+
+        mockServices.storeService.regionById.mockReturnValue(currentRegion);
+
+        const event = { mutation: 'UPDATE', region: updatedRegion };
+
+        await subscriptionCallback(event);
+
+        // Should log error and set empty array
+        expect(consoleSpy).toHaveBeenCalledWith(
+          '🔌 SUBSCRIBE: Failed to parse regionAnalysis JSON string:',
+          expect.any(Error)
+        );
+        expect(mockServices.storeService.setRegionAnalysis).toHaveBeenCalledWith('region-1', []);
+
+        consoleSpy.mockRestore();
       });
 
       it('should handle text changes and update RTE if available', async () => {
         const currentRegion = { id: 'region-1', regionText: 'old text' };
         const updatedRegion = createMockRegion({ 
           regionText: 'new text',
-          regionAnalysis: ['word1'],
+          regionAnalysis: [
+            { word: 'word1', analysis: 'word1+N', allAnalysis: ['word1+N'] }
+          ],
           userLastUpdated: 'other@user.com'
         });
 
@@ -350,7 +412,38 @@ describe('SubscribeToRegionChangesUseCase', () => {
         expect(mockServices.rteService.hasEditor).toHaveBeenCalledWith('region-1:main');
         expect(mockServices.rteService.setContent).toHaveBeenCalledWith('region-1:main', 'new text');
         expect(mockServices.rteService.applyHighlighting).toHaveBeenCalledWith('region-1:main', {
-          knownWords: ['word1'],
+          knownWords: ['word1'], // From region's own analysis
+          issues: []
+        });
+      });
+
+      it('should highlight ONLY words from region analysis, not global cache', async () => {
+        const currentRegion = { id: 'region-1', regionText: 'old text' };
+        const updatedRegion = createMockRegion({ 
+          regionText: 'word1 word2 word3',
+          regionAnalysis: [
+            { word: 'word1', analysis: 'word1+N', allAnalysis: ['word1+N'] }
+          ], // Only word1 in regionAnalysis
+          userLastUpdated: 'other@user.com'
+        });
+
+        mockServices.storeService.regionById.mockReturnValue(currentRegion);
+        mockServices.rteService.hasEditor.mockReturnValue(true);
+        // Global cache has all 3 words (but we should NOT use it for highlighting)
+        const cacheMap = new Map();
+        cacheMap.set('word1', { word: 'word1', analysis: 'word1+N', allAnalysis: ['word1+N'] });
+        cacheMap.set('word2', { word: 'word2', analysis: 'word2+N', allAnalysis: ['word2+N'] });
+        cacheMap.set('word3', { word: 'word3', analysis: 'word3+N', allAnalysis: ['word3+N'] });
+        mockServices.storeService.getKnownWords.mockReturnValue(cacheMap);
+
+        const event = { mutation: 'UPDATE', region: updatedRegion };
+
+        await subscriptionCallback(event);
+
+        // Should highlight ONLY word1 from regionAnalysis, NOT all words from cache
+        // This makes it visually clear which words have been analyzed for this specific region
+        expect(mockServices.rteService.applyHighlighting).toHaveBeenCalledWith('region-1:main', {
+          knownWords: ['word1'], // Only from region's own analysis
           issues: []
         });
       });
@@ -479,13 +572,13 @@ describe('SubscribeToRegionChangesUseCase', () => {
         const firstSaveRegion = createMockRegion({
           userLastUpdated: 'current@user.com',
           _version: 71,
-          regionAnalysis: ['word1', 'word2', 'word3'] // 3 words
+          regionAnalysis: [{ word: 'word1', analysis: 'word1+N', allAnalysis: ['word1+N'] }, { word: 'word2', analysis: 'word2+N', allAnalysis: ['word2+N'] }, { word: 'word3', analysis: 'word3+N', allAnalysis: ['word3+N'] }] // 3 words
         });
 
         const secondSaveRegion = createMockRegion({
           userLastUpdated: 'current@user.com', 
           _version: 72,
-          regionAnalysis: ['word1', 'word2', 'word3', 'word4'] // 4 words, not 7!
+          regionAnalysis: [{ word: 'word1', analysis: 'word1+N', allAnalysis: ['word1+N'] }, { word: 'word2', analysis: 'word2+N', allAnalysis: ['word2+N'] }, { word: 'word3', analysis: 'word3+N', allAnalysis: ['word3+N'] }, { word: 'word4', analysis: 'word4+N', allAnalysis: ['word4+N'] }] // 4 words, not 7!
         });
 
         mockServices.storeService.setRegionVersion = jest.fn();
@@ -516,7 +609,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
           translation: 'current translation',
           start: 10,
           end: 20,
-          regionAnalysis: ['known', 'words']
+          regionAnalysis: [{ word: 'known', analysis: 'known+V', allAnalysis: ['known+V'] }, { word: 'words', analysis: 'word+N+Pl', allAnalysis: ['word+N+Pl'] }]
         });
       });
 
@@ -624,7 +717,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
           const updatedRegion = {
             id: 'region-1',
             regionText: 'CHANGED TEXT FROM BROWSER A',  // Text changed
-            regionAnalysis: ['new', 'analysis'],        // Side effect - should NOT trigger version update
+            regionAnalysis: [{ word: 'new', analysis: 'new+Adj', allAnalysis: ['new+Adj'] }, { word: 'analysis', analysis: 'analysis+N', allAnalysis: ['analysis+N'] }],        // Side effect - should NOT trigger version update
             userLastUpdated: 'browser.a@user.com',
             _version: 1
           } as any;
@@ -943,7 +1036,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
 
             const updatedRegion = {
               id: 'region-1',
-              regionAnalysis: ['new', 'analysis', 'words'],
+              regionAnalysis: [{ word: 'new', analysis: 'new+Adj', allAnalysis: ['new+Adj'] }, { word: 'analysis', analysis: 'analysis+N', allAnalysis: ['analysis+N'] }, { word: 'words', analysis: 'word+N+Pl', allAnalysis: ['word+N+Pl'] }],
               userLastUpdated: 'browser.b@user.com',
               _version: 2
             } as any;
@@ -951,7 +1044,11 @@ describe('SubscribeToRegionChangesUseCase', () => {
             const event = { mutation: 'UPDATE', region: updatedRegion };
             await subscriptionCallback(event);
 
-            expect(mockServices.storeService.setRegionAnalysis).toHaveBeenCalledWith('region-1', ['new', 'analysis', 'words']);
+            expect(mockServices.storeService.setRegionAnalysis).toHaveBeenCalledWith('region-1', [
+              { word: 'new', analysis: 'new+Adj', allAnalysis: ['new+Adj'] },
+              { word: 'analysis', analysis: 'analysis+N', allAnalysis: ['analysis+N'] },
+              { word: 'words', analysis: 'word+N+Pl', allAnalysis: ['word+N+Pl'] }
+            ]);
             expect(mockServices.storeService.setRegionVersion).toHaveBeenCalledWith('region-1', 2);
           });
         });
@@ -980,7 +1077,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
               regionText: 'ORIGINAL TEXT',       // Same as baseline - text unchanged
               start: 30,                        // Changed from baseline (10 → 30)
               end: 40,                          // Changed from baseline (20 → 40)
-              regionAnalysis: ['word1', 'word2'], // Present in subscription
+              regionAnalysis: [{ word: 'word1', analysis: 'word1+N', allAnalysis: ['word1+N'] }, { word: 'word2', analysis: 'word2+N', allAnalysis: ['word2+N'] }], // Present in subscription
               userLastUpdated: 'browser.b@user.com',
               _version: 41
             } as any;
@@ -1039,7 +1136,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
           // Remote update with ONLY regionAnalysis change
           const updatedRegion = {
             id: 'region-1',
-            regionAnalysis: ['new', 'analysis', 'words'],
+            regionAnalysis: [{ word: 'new', analysis: 'new+Adj', allAnalysis: ['new+Adj'] }, { word: 'analysis', analysis: 'analysis+N', allAnalysis: ['analysis+N'] }, { word: 'words', analysis: 'word+N+Pl', allAnalysis: ['word+N+Pl'] }],
             userLastUpdated: 'other@user.com',
             _version: 1
           } as any;
@@ -1048,7 +1145,11 @@ describe('SubscribeToRegionChangesUseCase', () => {
           await subscriptionCallback(event);
 
           // Should update regionAnalysis
-          expect(mockServices.storeService.setRegionAnalysis).toHaveBeenCalledWith('region-1', ['new', 'analysis', 'words']);
+          expect(mockServices.storeService.setRegionAnalysis).toHaveBeenCalledWith('region-1', [
+            { word: 'new', analysis: 'new+Adj', allAnalysis: ['new+Adj'] },
+            { word: 'analysis', analysis: 'analysis+N', allAnalysis: ['analysis+N'] },
+            { word: 'words', analysis: 'word+N+Pl', allAnalysis: ['word+N+Pl'] }
+          ]);
           
           // VERSION SHOULD BE UPDATED - regionAnalysis alone is not a conflicting change
           expect(mockServices.storeService.setRegionVersion).toHaveBeenCalledWith('region-1', 1);
@@ -1140,7 +1241,10 @@ describe('SubscribeToRegionChangesUseCase', () => {
 
           const updatedRegion = createMockRegion({
             regionText: 'remote text with known words',
-            regionAnalysis: ['known', 'words'],
+            regionAnalysis: [
+              { word: 'known', analysis: 'known+V', allAnalysis: ['known+V'] },
+              { word: 'words', analysis: 'word+N+Pl', allAnalysis: ['word+N+Pl'] }
+            ],
             userLastUpdated: 'other@user.com'
           });
 
@@ -1151,9 +1255,9 @@ describe('SubscribeToRegionChangesUseCase', () => {
           expect(mockServices.rteService.hasEditor).toHaveBeenCalledWith('region-1:main');
           expect(mockServices.rteService.setContent).toHaveBeenCalledWith('region-1:main', 'remote text with known words');
           
-          // Known words formatting should be reapplied via applyHighlighting
+          // Known words formatting should be reapplied via applyHighlighting (from region's own analysis)
           expect(mockServices.rteService.applyHighlighting).toHaveBeenCalledWith('region-1:main', {
-            knownWords: ['known', 'words'],
+            knownWords: ['known', 'words'], // Only from region's own analysis
             issues: []
           });
         });
@@ -1164,7 +1268,10 @@ describe('SubscribeToRegionChangesUseCase', () => {
 
           const updatedRegion = createMockRegion({
             translation: 'remote translation with known words',
-            regionAnalysis: ['known', 'words'],
+            regionAnalysis: [
+              { word: 'known', analysis: 'known+V', allAnalysis: ['known+V'] },
+              { word: 'words', analysis: 'word+N+Pl', allAnalysis: ['word+N+Pl'] }
+            ],
             userLastUpdated: 'other@user.com'
           });
 
@@ -1175,14 +1282,14 @@ describe('SubscribeToRegionChangesUseCase', () => {
           expect(mockServices.rteService.hasEditor).toHaveBeenCalledWith('region-1:translation');
           expect(mockServices.rteService.setContent).toHaveBeenCalledWith('region-1:translation', 'remote translation with known words');
           
-          // Known words formatting should be reapplied via applyHighlighting
+          // Known words formatting should be reapplied via applyHighlighting (from region's own analysis)
           expect(mockServices.rteService.applyHighlighting).toHaveBeenCalledWith('region-1:translation', {
-            knownWords: ['known', 'words'],
+            knownWords: ['known', 'words'], // Only from region's own analysis
             issues: []
           });
         });
 
-        it('should use fallback region analysis when updated region has no analysis', async () => {
+        it('should show no highlighting when updated region has no analysis', async () => {
           // User is not editing anything
           mockServices.storeService.isPendingEdit.mockReturnValue(false);
 
@@ -1198,9 +1305,10 @@ describe('SubscribeToRegionChangesUseCase', () => {
           // RTE should be updated
           expect(mockServices.rteService.setContent).toHaveBeenCalledWith('region-1:main', 'remote text change');
           
-          // Should use fallback analysis from store via applyHighlighting
+          // Should show NO highlighting since region has no analysis
+          // This makes it visually clear that this region needs to be analyzed
           expect(mockServices.rteService.applyHighlighting).toHaveBeenCalledWith('region-1:main', {
-            knownWords: ['known', 'words'],
+            knownWords: [], // No analysis in region
             issues: []
           });
         });
@@ -1215,7 +1323,10 @@ describe('SubscribeToRegionChangesUseCase', () => {
 
           const updatedRegion = createMockRegion({
             translation: 'remote translation change',
-            regionAnalysis: ['test', 'words'],
+            regionAnalysis: [
+              { word: 'test', analysis: 'test+N', allAnalysis: ['test+N'] },
+              { word: 'words', analysis: 'word+N+Pl', allAnalysis: ['word+N+Pl'] }
+            ],
             userLastUpdated: 'other@user.com'
           });
 
@@ -1231,7 +1342,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
           
           // Known words formatting should be reapplied to translation RTE via applyHighlighting
           expect(mockServices.rteService.applyHighlighting).toHaveBeenCalledWith('region-1:translation', {
-            knownWords: ['test', 'words'],
+            knownWords: ['test', 'words'], // Only from region's own analysis
             issues: []
           });
         });
@@ -1392,7 +1503,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
       });
       const remoteRegion = createMockRegion({
         regionText: 'old text kiya', // Simple addition like reported in the bug
-        regionAnalysis: ['old', 'text', 'kiya'],
+        regionAnalysis: [{ word: 'old', analysis: 'old+Adj', allAnalysis: ['old+Adj'] }, { word: 'text', analysis: 'text+N', allAnalysis: ['text+N'] }, { word: 'kiya', analysis: 'kiya+Ipc', allAnalysis: ['kiya+Ipc'] }],
         _version: 2
       });
 
@@ -1404,7 +1515,11 @@ describe('SubscribeToRegionChangesUseCase', () => {
 
       // Should apply changes directly without any conflict detection
       expect(mockStoreService.setRegionText).toHaveBeenCalledWith('test-region-1', 'old text kiya');
-      expect(mockStoreService.setRegionAnalysis).toHaveBeenCalledWith('test-region-1', ['old', 'text', 'kiya']);
+      expect(mockStoreService.setRegionAnalysis).toHaveBeenCalledWith('test-region-1', [
+        { word: 'old', analysis: 'old+Adj', allAnalysis: ['old+Adj'] },
+        { word: 'text', analysis: 'text+N', allAnalysis: ['text+N'] },
+        { word: 'kiya', analysis: 'kiya+Ipc', allAnalysis: ['kiya+Ipc'] }
+      ]);
       expect(mockStoreService.setRegionVersion).toHaveBeenCalledWith('test-region-1', 2);
       
       // Should NOT queue any conflicts

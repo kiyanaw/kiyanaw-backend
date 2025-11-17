@@ -2,6 +2,16 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import type { TranscriptionData, RegionData } from '../types/shared';
 import type { IssueData, CommentData } from '../services/adt';
+import type { WordAnalysis } from '../services/adt';
+
+const isWordAnalysis = (value: unknown): value is WordAnalysis => {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'word' in value &&
+    typeof (value as { word: unknown }).word === 'string'
+  );
+};
 import type { ConflictDetail } from '../services/conflictDetectionService';
 import type { PendingEdit } from '../services/pendingEditsService';
 import Timeout from 'smart-timeout';
@@ -39,8 +49,8 @@ interface EditorState {
   // Text selection state for creating issues
   regionSelections: Record<string, { index: number; length: number; text: string } | null>;
   
-  // Word analysis cache
-  knownWords: Set<string>;
+  // Word analysis cache - stores full WordAnalysis objects, not just strings
+  knownWords: Map<string, WordAnalysis>;
 
   // Pending edits tracking
   pendingEdits: Record<string, PendingEdit>;
@@ -107,8 +117,8 @@ interface EditorState {
   calculateTranscriptionMetadata: () => { regionCount: number; issueCount: number; coverage: number };
 
   // Spell checking actions
-  addKnownWords: (words: string[]) => void;
-  setRegionAnalysis: (regionId: string, knownWords: string[]) => void;
+  addKnownWords: (words: WordAnalysis[]) => void;
+  setRegionAnalysis: (regionId: string, analysis: WordAnalysis[]) => void;
 
   // Pending edits actions moved below
 
@@ -165,7 +175,7 @@ export const useEditorStore = create<EditorState>()(
       regionVersions: {},
       selectedIssueId: null,
       regionSelections: {},
-      knownWords: new Set<string>(),
+      knownWords: new Map(),
       pendingEdits: {},
       conflictQueue: [],
       issues: [],
@@ -202,6 +212,26 @@ export const useEditorStore = create<EditorState>()(
         const regionMap: Record<string, RegionData> = {};
         const regionVersions: Record<string, number> = {};
         regions.forEach((region) => {
+          // Filter out empty analysis (WordAnalysis objects with empty analysis field)
+          // These are incomplete and should be re-analyzed
+          if (region.regionAnalysis && Array.isArray(region.regionAnalysis)) {
+            const hasEmptyAnalysis = region.regionAnalysis.some((item) => {
+              if (!isWordAnalysis(item)) {
+                return false;
+              }
+
+              const primaryAnalysisMissing = typeof item.analysis !== 'string' || item.analysis.trim() === '';
+              const allAnalysesMissing = !Array.isArray(item.allAnalysis) || item.allAnalysis.length === 0;
+
+              return primaryAnalysisMissing || allAnalysesMissing;
+            });
+            
+            if (hasEmptyAnalysis) {
+              console.debug(`🧹 STORE: Clearing incomplete regionAnalysis for ${region.id} (has empty analysis fields)`);
+              region.regionAnalysis = [];
+            }
+          }
+          
           regionMap[region.id] = region;
           
           // Validate that existing regions from DB have versions
@@ -261,13 +291,24 @@ export const useEditorStore = create<EditorState>()(
           commentsByEntityMap,
           commentsByTranscriptionMap,
           peaks: peaks,
-          knownWords: new Set<string>() // Will be populated by use-case
+          knownWords: new Map() // Will be populated by use-case
         };
 
         // If we have a selectedRegionId and it exists in our regions, set it as selected
         if (selectedRegionId && regionMap[selectedRegionId]) {
+          const region = regionMap[selectedRegionId];
           newState.selectedRegionId = selectedRegionId;
-          newState.selectedRegion = regionMap[selectedRegionId];
+          newState.selectedRegion = region;
+          
+          console.debug(`🎯 STORE: Initial region selection (from URL) ${selectedRegionId}:`, {
+            id: region.id,
+            hasRegionAnalysis: !!region.regionAnalysis,
+            regionAnalysisType: typeof region.regionAnalysis,
+            regionAnalysisIsArray: Array.isArray(region.regionAnalysis),
+            regionAnalysisLength: Array.isArray(region.regionAnalysis) ? region.regionAnalysis.length : 'N/A',
+            firstItem: Array.isArray(region.regionAnalysis) && region.regionAnalysis.length > 0 ? region.regionAnalysis[0] : undefined,
+            regionAnalysis: region.regionAnalysis
+          });
         }
 
         set(newState);
@@ -295,7 +336,7 @@ export const useEditorStore = create<EditorState>()(
           regions: [],
           regionMap: {},
           regionVersions: {},
-          knownWords: new Set<string>(),
+          knownWords: new Map(),
           pendingEdits: {},
           conflictQueue: [],
           issues: [],
@@ -332,9 +373,23 @@ export const useEditorStore = create<EditorState>()(
       // Region actions
       setSelectedRegion: (regionId) => {
         const { regionMap } = get();
+        const region = regionId ? regionMap[regionId] : null;
+        
+        if (region) {
+          console.debug(`🎯 STORE: Selected region ${regionId}:`, {
+            id: region.id,
+            hasRegionAnalysis: !!region.regionAnalysis,
+            regionAnalysisType: typeof region.regionAnalysis,
+            regionAnalysisIsArray: Array.isArray(region.regionAnalysis),
+            regionAnalysisLength: Array.isArray(region.regionAnalysis) ? region.regionAnalysis.length : 'N/A',
+            firstItem: Array.isArray(region.regionAnalysis) && region.regionAnalysis.length > 0 ? region.regionAnalysis[0] : undefined,
+            regionAnalysis: region.regionAnalysis
+          });
+        }
+        
         set({
           selectedRegionId: regionId,
-          selectedRegion: regionId ? regionMap[regionId] : null,
+          selectedRegion: region,
         });
       },
 
@@ -370,7 +425,7 @@ export const useEditorStore = create<EditorState>()(
         // Existing regions (from subscriptions/DB) should have _version
         let version = region._version;
         if (version === undefined) {
-          console.log('📝 Adding new region without _version (will be updated from subscription):', region.id);
+          console.debug('📝 Adding new region without _version (will be updated from subscription):', region.id);
           version = 0; // Temporary version for new regions
         }
 
@@ -951,30 +1006,58 @@ export const useEditorStore = create<EditorState>()(
       processConflictQueue: () => {
         const { conflictQueue } = get();
         // For now, just log the conflicts - actual processing will be implemented in Phase 4
-        console.log('Processing conflict queue:', conflictQueue);
+        console.debug('Processing conflict queue:', conflictQueue);
         // TODO: Implement actual conflict processing logic in Phase 4
       },
 
       // Spell checking actions
       addKnownWords: (words) => {
         const { knownWords } = get();
-        const newKnownWords = new Set(knownWords);
+        const newKnownWords = new Map(knownWords);
+        
+        // Handle WordAnalysis[] format ONLY
         words.forEach(word => {
-          newKnownWords.add(word);
+          if (typeof word === 'object' && 'word' in word) {
+            // WordAnalysis format - only add if analysis is COMPLETE
+            // Words with empty analysis should not be in the known words cache
+            if (word.analysis && word.analysis !== '' && 
+                word.allAnalysis && word.allAnalysis.length > 0) {
+              // Store the FULL WordAnalysis object, not just the word string
+              newKnownWords.set(word.word, word);
+            }
+            // Skip words with empty analysis - they need to be re-analyzed
+          } else {
+            console.error('❌ STORE: addKnownWords received non-WordAnalysis format:', word);
+          }
         });
+        
         set({ knownWords: newKnownWords });
       },
 
-      setRegionAnalysis: (regionId, knownWords) => {
+      setRegionAnalysis: (regionId, analysis) => {
         const { regionMap, regions, selectedRegionId } = get();
         const existingRegion = regionMap[regionId];
         
         if (!existingRegion) {
+          console.warn(`⚠️ STORE: Region ${regionId} not found, cannot set analysis`);
           return; // Region not found
         }
 
+        console.debug(`📝 STORE: Setting regionAnalysis for ${regionId}:`, {
+          analysisType: Array.isArray(analysis) ? 'array' : typeof analysis,
+          analysisLength: Array.isArray(analysis) ? analysis.length : 'N/A',
+          firstItem: Array.isArray(analysis) && analysis.length > 0 ? analysis[0] : undefined,
+          fullAnalysis: analysis
+        });
+
         // Create updated region with new analysis
-        const updatedRegion = { ...existingRegion, regionAnalysis: knownWords };
+        const updatedRegion = { ...existingRegion, regionAnalysis: analysis };
+        
+        console.debug(`📝 STORE: Updated region object:`, {
+          id: updatedRegion.id,
+          regionAnalysisType: typeof updatedRegion.regionAnalysis,
+          regionAnalysis: updatedRegion.regionAnalysis
+        });
         
         // Prepare the update object
         const updateObj: Partial<EditorState> = {
@@ -988,6 +1071,8 @@ export const useEditorStore = create<EditorState>()(
         }
         
         set(updateObj);
+        
+        console.debug(`✅ STORE: regionAnalysis set successfully for ${regionId}`);
       },
 
       // Transcription metadata helpers
@@ -1004,7 +1089,7 @@ export const useEditorStore = create<EditorState>()(
           const lastRegionEnd = Math.max(...regions.map(r => r.end));
           coverage = Math.min(lastRegionEnd / transcription.length, 1.0); // Cap at 1.0
         }
-        
+
         return { regionCount, issueCount, coverage };
       },
     }),

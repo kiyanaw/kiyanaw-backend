@@ -42,7 +42,7 @@ export class SubscribeToRegionChangesUseCase {
     
     if (isSelfTriggered) {
       // Skip version update for self-triggered events - we already incremented it correctly
-      console.log('🔌 Self-triggered region event, skipping version update:', region.id);
+      console.debug('🔌 Self-triggered region event, skipping version update:', region.id);
       return;
     }
 
@@ -253,8 +253,44 @@ export class SubscribeToRegionChangesUseCase {
     
     // Update region analysis (always unprotected)
     if (updatedRegion.regionAnalysis !== undefined) {
-      store.setRegionAnalysis(updatedRegion.id as string, updatedRegion.regionAnalysis as string[]);
-      store.addKnownWords(updatedRegion.regionAnalysis as string[]);
+      // Parse regionAnalysis if it's a JSON string (from GraphQL subscription)
+      let parsedAnalysis = updatedRegion.regionAnalysis;
+      if (typeof parsedAnalysis === 'string') {
+        try {
+          parsedAnalysis = JSON.parse(parsedAnalysis);
+        } catch (error) {
+          console.error('🔌 SUBSCRIBE: Failed to parse regionAnalysis JSON string:', error);
+          parsedAnalysis = [];
+        }
+      }
+      
+      store.setRegionAnalysis(updatedRegion.id as string, parsedAnalysis);
+      
+      // If only analysis changed (not text), we need to reapply highlighting
+      // This happens when Dan types and saves, and we receive the realtime update
+      if (actualChanges.analysis && !actualChanges.text) {
+        const mainEditorKey = `${updatedRegion.id}:main` as const;
+        const rteService = this.config.services.rteService;
+        
+        if (rteService.hasEditor(mainEditorKey)) {
+          // Extract words for highlighting from region's own analysis
+          const regionAnalysis = parsedAnalysis || [];
+          const knownWords = regionAnalysis.map((item: { word: string }) => item.word);
+          
+          // Get issues for the region
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const issues = (store as any).getIssuesForRegion(updatedRegion.id as string);
+          const issueHighlights = issueHighlightService.convertIssuesToHighlights(issues);
+          
+          // Reapply highlighting with updated analysis
+          rteService.applyHighlighting(mainEditorKey, {
+            knownWords,
+            issues: issueHighlights
+          });
+          
+          console.debug(`🎨 SUBSCRIBE: Applied highlighting for analysis-only update to ${updatedRegion.id}`);
+        }
+      }
     }
 
     // Determine if there are unprotected changes
@@ -297,9 +333,38 @@ export class SubscribeToRegionChangesUseCase {
     }
     
     if (updatedRegion.regionAnalysis !== undefined) {
-      store.setRegionAnalysis(updatedRegion.id, updatedRegion.regionAnalysis);
-      if (updatedRegion.regionAnalysis.length > 0) {
-        store.addKnownWords(updatedRegion.regionAnalysis);
+      // Parse regionAnalysis if it's a JSON string (from GraphQL subscription)
+      let parsedAnalysis = updatedRegion.regionAnalysis;
+      if (typeof parsedAnalysis === 'string') {
+        try {
+          parsedAnalysis = JSON.parse(parsedAnalysis);
+        } catch (error) {
+          console.error('🔌 SUBSCRIBE: Failed to parse regionAnalysis JSON string:', error);
+          parsedAnalysis = [];
+        }
+      }
+      store.setRegionAnalysis(updatedRegion.id, parsedAnalysis);
+      
+      // Reapply highlighting to RTE if it exists
+      const mainEditorKey = `${updatedRegion.id}:main` as const;
+      const rteService = this.config.services.rteService;
+      
+      if (rteService.hasEditor(mainEditorKey)) {
+        const regionAnalysis = parsedAnalysis || [];
+        const knownWords = regionAnalysis.map((item: { word: string }) => item.word);
+        
+        // Get issues for the region
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const issues = (store as any).getIssuesForRegion(updatedRegion.id as string);
+        const issueHighlights = issueHighlightService.convertIssuesToHighlights(issues);
+        
+        // Reapply highlighting with updated analysis
+        rteService.applyHighlighting(mainEditorKey, {
+          knownWords,
+          issues: issueHighlights
+        });
+        
+        console.debug(`🎨 SUBSCRIBE: Reapplied highlighting after analysis update for ${updatedRegion.id}`);
       }
     }
     
@@ -316,16 +381,25 @@ export class SubscribeToRegionChangesUseCase {
     if (rteService.hasEditor(editorKey)) {
       rteService.setContent(editorKey, content);
       
-      // Reapply known words and issue highlighting after content update
-      const regionAnalysis = (updatedRegion.regionAnalysis as string[]) || store.regionById(updatedRegion.id as string)?.regionAnalysis;
+      // ONLY use this region's own analysis for highlighting, not the global cache
+      // This makes it visually clear which words have been analyzed for this specific region
+      const regionAnalysis = updatedRegion.regionAnalysis || [];
+      const knownWords: string[] = Array.isArray(regionAnalysis)
+        ? regionAnalysis
+            .filter((item: unknown): item is { word: string } => 
+              typeof item === 'object' && item !== null && 'word' in item && typeof (item as { word: unknown }).word === 'string'
+            )
+            .map((item) => item.word)
+        : [];
+      
       // Get issues for the region
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const issues = (store as any).getIssuesForRegion(updatedRegion.id as string);
       const issueHighlights = issueHighlightService.convertIssuesToHighlights(issues);
       
-      // Apply highlighting with both known words and issues
+      // Apply highlighting using ONLY this region's analysis
       rteService.applyHighlighting(editorKey, {
-        knownWords: regionAnalysis || [],
+        knownWords,
         issues: issueHighlights
       });
     }
@@ -352,7 +426,7 @@ export class SubscribeToRegionChangesUseCase {
       return;
     }
 
-    console.log('🔄 Active conflict detected for region, checking for updates:', updatedRegion.id);
+    console.debug('🔄 Active conflict detected for region, checking for updates:', updatedRegion.id);
 
     // Get all active conflicts for this region
     const activeConflicts = conflictResolutionService.getActiveConflictsForRegion(updatedRegion.id);
@@ -366,7 +440,7 @@ export class SubscribeToRegionChangesUseCase {
       const newRemoteValue = updatedRegion[field];
 
       if (currentRemoteValue !== newRemoteValue) {
-        console.log('🔄 Remote value changed for active conflict:', {
+        console.debug('🔄 Remote value changed for active conflict:', {
           regionId: updatedRegion.id,
           field,
           oldRemote: currentRemoteValue,

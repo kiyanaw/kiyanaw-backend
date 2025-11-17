@@ -70,7 +70,10 @@ describe('SpellCheckerService', () => {
       expect(callArgs.apiName).toBe('spellcheck');
       expect(callArgs.path).toBe('/crk/bulk-lookup');
       expect(callArgs.options.body).toEqual(expect.arrayContaining(['itwêw', 'hello', 'êkwa']));
-      expect(result.known).toEqual(['itwêw', 'êkwa']);
+      expect(result.known).toEqual(expect.arrayContaining([
+        expect.objectContaining({ word: 'itwêw' }),
+        expect.objectContaining({ word: 'êkwa' })
+      ]));
       expect(result.unknown).toEqual(['hello']);
     });
 
@@ -100,7 +103,10 @@ describe('SpellCheckerService', () => {
           body: ['bonjour', 'monde']
         }
       });
-      expect(result.known).toEqual(['bonjour', 'monde']);
+      expect(result.known).toEqual(expect.arrayContaining([
+        expect.objectContaining({ word: 'bonjour' }),
+        expect.objectContaining({ word: 'monde' })
+      ]));
       expect(result.unknown).toEqual([]);
     });
 
@@ -123,13 +129,17 @@ describe('SpellCheckerService', () => {
       // First call - should hit API
       const result1 = await spellCheckerService.check(['itwêw', 'hello']);
       expect(mockPost).toHaveBeenCalledTimes(1);
-      expect(result1.known).toEqual(['itwêw']);
+      expect(result1.known).toEqual(expect.arrayContaining([
+        expect.objectContaining({ word: 'itwêw' })
+      ]));
       expect(result1.unknown).toEqual(['hello']);
 
       // Second call with same words - should use cache
       const result2 = await spellCheckerService.check(['itwêw', 'hello']);
       expect(mockPost).toHaveBeenCalledTimes(1); // No additional API call
-      expect(result2.known).toEqual(['itwêw']);
+      expect(result2.known).toEqual(expect.arrayContaining([
+        expect.objectContaining({ word: 'itwêw' })
+      ]));
       expect(result2.unknown).toEqual(['hello']);
     });
 
@@ -168,7 +178,10 @@ describe('SpellCheckerService', () => {
       expect(lastCallArgs.path).toBe('/crk/bulk-lookup');
       expect(lastCallArgs.options.body).toEqual(expect.arrayContaining(['êkwa', 'world']));
 
-      expect(result.known).toEqual(['itwêw', 'êkwa']);
+      expect(result.known).toEqual(expect.arrayContaining([
+        expect.objectContaining({ word: 'itwêw', analysis: '', allAnalysis: [] }), // From cache - no analysis
+        expect.objectContaining({ word: 'êkwa', analysis: 'data', allAnalysis: ['data'] }) // Fresh from API
+      ]));
       expect(result.unknown).toEqual(['hello', 'world']);
     });
 
@@ -203,7 +216,9 @@ describe('SpellCheckerService', () => {
       
       // All results should be identical
       results.forEach(result => {
-        expect(result.known).toEqual(['itwêw']);
+        expect(result.known).toEqual(expect.arrayContaining([
+          expect.objectContaining({ word: 'itwêw', analysis: 'data', allAnalysis: ['data'] })
+        ]));
         expect(result.unknown).toEqual(['hello']);
       });
     });
@@ -211,7 +226,10 @@ describe('SpellCheckerService', () => {
 
   describe('addKnownWords', () => {
     it('should add words to known cache', async () => {
-      spellCheckerService.addKnownWords(['itwêw', 'êkwa']);
+      spellCheckerService.addKnownWords([
+        { word: 'itwêw', analysis: 'itwêw+V+AI+Ind+3Sg', allAnalysis: ['itwêw+V+AI+Ind+3Sg'] },
+        { word: 'êkwa', analysis: 'êkwa+Ipc', allAnalysis: ['êkwa+Ipc'] }
+      ]);
       
       // Mock the API response for the 'hello' word
       const mockResponse = { 'hello': [] };
@@ -240,7 +258,10 @@ describe('SpellCheckerService', () => {
 
   describe('getKnownWords', () => {
     it('should return current known words', () => {
-      spellCheckerService.addKnownWords(['itwêw', 'êkwa']);
+      spellCheckerService.addKnownWords([
+        { word: 'itwêw', analysis: 'itwêw+V+AI+Ind+3Sg', allAnalysis: ['itwêw+V+AI+Ind+3Sg'] },
+        { word: 'êkwa', analysis: 'êkwa+Ipc', allAnalysis: ['êkwa+Ipc'] }
+      ]);
       const knownWords = spellCheckerService.getKnownWords();
       expect(knownWords).toContain('itwêw');
       expect(knownWords).toContain('êkwa');

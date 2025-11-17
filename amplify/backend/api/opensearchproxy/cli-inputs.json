@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "paths": {
+    "/search": {
+      "name": "/search",
+      "lambdaFunction": "opensearchproxy",
+      "permissions": {
+        "setting": "private",
+        "auth": [
+          "create",
+          "read",
+          "update"
+        ]
+      }
+    }
+  }
+}

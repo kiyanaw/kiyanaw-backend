@@ -28,7 +28,7 @@ export type IssueSubscriptionEvent = {
  */
 export const loadIssuesForTranscription = async (transcriptionId: string): Promise<IssueData[]> => {
   try {
-    console.log(`🔍 Loading issues for transcription ${transcriptionId} via GraphQL...`);
+    console.debug(`🔍 Loading issues for transcription ${transcriptionId} via GraphQL...`);
     
     const result = await client.graphql({
       query: listIssues,
@@ -42,7 +42,7 @@ export const loadIssuesForTranscription = async (transcriptionId: string): Promi
     }) as { data: { listIssues: { items: IssueData[] } } };
     
     const issues = result.data?.listIssues?.items || [];
-    console.log(`📊 Found ${issues.length} issues for transcription ${transcriptionId}`);
+    console.debug(`📊 Found ${issues.length} issues for transcription ${transcriptionId}`);
     
     // Sort issues by creation date (newest first)
     return issues.sort(
@@ -71,7 +71,7 @@ export const createIssueForRegion = async (issueData: {
   transcriptionId: string;
 }, username: string): Promise<IssueData> => {
   try {
-    console.log('🔨 Creating new issue via GraphQL...');
+    console.debug('🔨 Creating new issue via GraphQL...');
     
     const result = await client.graphql({
       query: createIssue,
@@ -86,7 +86,7 @@ export const createIssueForRegion = async (issueData: {
       }
     }) as { data: { createIssue: IssueData } };
     
-    console.log('✅ Issue created successfully');
+    console.info('✅ Issue created successfully');
     return result.data.createIssue;
   } catch (error) {
     console.error('❌ Failed to create issue:', error);
@@ -99,7 +99,7 @@ export const createIssueForRegion = async (issueData: {
  */
 export const updateExistingIssue = async (issueId: string, updates: Partial<IssueData>, version: number, username: string): Promise<IssueData> => {
   try {
-    console.log(`🔧 Updating issue ${issueId} via GraphQL...`);
+    console.debug(`🔧 Updating issue ${issueId} via GraphQL...`);
     
     // Filter out read-only fields that shouldn't be sent to GraphQL
     // Keep _version for optimistic concurrency control
@@ -119,7 +119,7 @@ export const updateExistingIssue = async (issueId: string, updates: Partial<Issu
       }
     }) as { data: { updateIssue: IssueData } };
     
-    console.log('✅ Issue updated successfully');
+    console.info('✅ Issue updated successfully');
     return result.data.updateIssue;
   } catch (error) {
     console.error('❌ Failed to update issue:', error);
@@ -132,7 +132,7 @@ export const updateExistingIssue = async (issueId: string, updates: Partial<Issu
  */
 export const deleteExistingIssue = async (issueId: string, version: number): Promise<void> => {
   try {
-    console.log(`🗑️ Deleting issue ${issueId} via GraphQL...`);
+    console.debug(`🗑️ Deleting issue ${issueId} via GraphQL...`);
     
     await client.graphql({
       query: deleteIssue,
@@ -144,7 +144,7 @@ export const deleteExistingIssue = async (issueId: string, version: number): Pro
       }
     });
     
-    console.log('✅ Issue deleted successfully');
+    console.info('✅ Issue deleted successfully');
   } catch (error) {
     console.error('❌ Failed to delete issue:', error);
     throw error;
@@ -161,7 +161,7 @@ export const subscribeToIssueChanges = (
   transcriptionId: string,
   onEvent: (event: IssueSubscriptionEvent) => void
 ): (() => void) => {
-  console.log('🔌 Setting up issue subscriptions for transcriptionId:', transcriptionId);
+  console.debug('🔌 Setting up issue subscriptions for transcriptionId:', transcriptionId);
 
   try {
     const subscriptions: Array<{ unsubscribe: () => void }> = [];
@@ -181,7 +181,7 @@ export const subscribeToIssueChanges = (
       next: (result: any) => {
         const issue = result.data?.onCreateIssue;
         if (issue) {
-          console.log('🔌 Issue CREATE subscription event:', issue.id);
+          console.debug('🔌 Issue CREATE subscription event:', issue.id);
           onEvent({ mutation: 'CREATE', issue });
         }
       },
@@ -203,7 +203,7 @@ export const subscribeToIssueChanges = (
       next: (result: any) => {
         const issue = result.data?.onUpdateIssue;
         if (issue) {
-          console.log('🔌 Issue UPDATE subscription event:', issue.id);
+          console.debug('🔌 Issue UPDATE subscription event:', issue.id);
           onEvent({ mutation: 'UPDATE', issue });
         }
       },
@@ -224,7 +224,7 @@ export const subscribeToIssueChanges = (
       next: (result: any) => {
         const issue = result.data?.onDeleteIssue;
         if (issue) {
-          console.log('🔌 Issue DELETE subscription event:', issue.id);
+          console.debug('🔌 Issue DELETE subscription event:', issue.id);
           onEvent({ mutation: 'DELETE', issue });
         }
       },
@@ -235,7 +235,7 @@ export const subscribeToIssueChanges = (
 
     // Return unsubscribe function
     return () => {
-      console.log('🔌 Unsubscribing from issue changes');
+      console.debug('🔌 Unsubscribing from issue changes');
       subscriptions.forEach(sub => {
         try {
           sub.unsubscribe();

@@ -135,7 +135,7 @@ describe('useEditorStore known words functionality', () => {
       regionMap: {},
       selectedRegionId: null,
       selectedRegion: null,
-      knownWords: new Set()
+      knownWords: new Map()
     });
   });
 
@@ -143,7 +143,11 @@ describe('useEditorStore known words functionality', () => {
     it('should add new known words to the set', () => {
       const store = useEditorStore.getState();
       
-      store.addKnownWords(['hello', 'world', 'êkwa']);
+      store.addKnownWords([
+        { word: 'hello', analysis: 'hello+N', allAnalysis: ['hello+N'] },
+        { word: 'world', analysis: 'world+N', allAnalysis: ['world+N'] },
+        { word: 'êkwa', analysis: 'êkwa+Ipc', allAnalysis: ['êkwa+Ipc'] }
+      ]);
       
       const state = useEditorStore.getState();
       expect(state.knownWords.has('hello')).toBe(true);
@@ -155,8 +159,14 @@ describe('useEditorStore known words functionality', () => {
     it('should not add duplicates', () => {
       const store = useEditorStore.getState();
       
-      store.addKnownWords(['hello', 'world']);
-      store.addKnownWords(['hello', 'êkwa']); // hello is duplicate
+      store.addKnownWords([
+        { word: 'hello', analysis: 'hello+N', allAnalysis: ['hello+N'] },
+        { word: 'world', analysis: 'world+N', allAnalysis: ['world+N'] }
+      ]);
+      store.addKnownWords([
+        { word: 'hello', analysis: 'hello+N', allAnalysis: ['hello+N'] }, // duplicate
+        { word: 'êkwa', analysis: 'êkwa+Ipc', allAnalysis: ['êkwa+Ipc'] }
+      ]);
       
       const state = useEditorStore.getState();
       expect(state.knownWords.size).toBe(3); // hello, world, êkwa
@@ -177,7 +187,12 @@ describe('useEditorStore known words functionality', () => {
     it('should handle Unicode characters', () => {
       const store = useEditorStore.getState();
       
-      store.addKnownWords(['itwêw', 'êkwa', 'tâpwê', 'ohci']);
+      store.addKnownWords([
+        { word: 'itwêw', analysis: 'itwêw+V+AI', allAnalysis: ['itwêw+V+AI'] },
+        { word: 'êkwa', analysis: 'êkwa+Ipc', allAnalysis: ['êkwa+Ipc'] },
+        { word: 'tâpwê', analysis: 'tâpwê+Ipc', allAnalysis: ['tâpwê+Ipc'] },
+        { word: 'ohci', analysis: 'ohci+Ipc', allAnalysis: ['ohci+Ipc'] }
+      ]);
       
       const state = useEditorStore.getState();
       expect(state.knownWords.has('itwêw')).toBe(true);
@@ -185,6 +200,50 @@ describe('useEditorStore known words functionality', () => {
       expect(state.knownWords.has('tâpwê')).toBe(true);
       expect(state.knownWords.has('ohci')).toBe(true);
       expect(state.knownWords.size).toBe(4);
+    });
+
+    it('should NOT add words with empty analysis from WordAnalysis objects (Bug #6 regression test)', () => {
+      const store = useEditorStore.getState();
+      
+      // Add WordAnalysis objects - mix of complete and incomplete
+      store.addKnownWords([
+        { word: 'awa', analysis: 'awa+Ipc', allAnalysis: ['awa+Ipc', 'awa+N+A+Sg'] }, // Complete - should be added
+        { word: 'nôhkom', analysis: '', allAnalysis: [] }, // INCOMPLETE - should NOT be added
+        { word: 'êwako', analysis: 'êwako+Pr+Dem+Prox+Sg', allAnalysis: ['êwako+Pr+Dem+Prox+Sg'] }, // Complete - should be added
+        { word: 'tânisi', analysis: '', allAnalysis: [] } // INCOMPLETE - should NOT be added
+      ]);
+      
+      const state = useEditorStore.getState();
+      
+      // Should have ONLY the words with complete analysis
+      expect(state.knownWords.has('awa')).toBe(true);
+      expect(state.knownWords.has('êwako')).toBe(true);
+      expect(state.knownWords.size).toBe(2);
+      
+      // Should NOT have words with empty analysis
+      expect(state.knownWords.has('nôhkom')).toBe(false);
+      expect(state.knownWords.has('tânisi')).toBe(false);
+    });
+
+    it('should only accept WordAnalysis objects (no legacy strings)', () => {
+      const store = useEditorStore.getState();
+      
+      // Add complete and incomplete WordAnalysis objects
+      store.addKnownWords([
+        { word: 'hello', analysis: 'hello+N', allAnalysis: ['hello+N'] }, // Complete
+        { word: 'world', analysis: 'world+N', allAnalysis: ['world+N'] }, // Complete
+        { word: 'awa', analysis: 'awa+Ipc', allAnalysis: ['awa+Ipc'] }, // Complete WordAnalysis
+        { word: 'empty', analysis: '', allAnalysis: [] } // Incomplete - should be filtered
+      ]);
+      
+      const state = useEditorStore.getState();
+      
+      // Should only have complete WordAnalysis objects
+      expect(state.knownWords.size).toBe(3);
+      expect(state.knownWords.has('hello')).toBe(true);
+      expect(state.knownWords.has('world')).toBe(true);
+      expect(state.knownWords.has('awa')).toBe(true);
+      expect(state.knownWords.has('empty')).toBe(false); // Incomplete was filtered
     });
   });
 
@@ -200,11 +259,15 @@ describe('useEditorStore known words functionality', () => {
       store.addNewRegion(testRegion);
       
       // Set analysis
-      store.setRegionAnalysis('region-1', ['hello', 'êkwa']);
+      const analysis = [
+        { word: 'hello', analysis: 'hello+N', allAnalysis: ['hello+N'] },
+        { word: 'êkwa', analysis: 'êkwa+Ipc', allAnalysis: ['êkwa+Ipc'] }
+      ];
+      store.setRegionAnalysis('region-1', analysis);
       
       const state = useEditorStore.getState();
       const region = state.regionMap['region-1'];
-      expect(region.regionAnalysis).toEqual(['hello', 'êkwa']);
+      expect(region.regionAnalysis).toEqual(analysis);
     });
 
     it('should update selectedRegion if it matches', () => {
@@ -219,17 +282,23 @@ describe('useEditorStore known words functionality', () => {
       store.setSelectedRegion('region-1');
       
       // Set analysis
-      store.setRegionAnalysis('region-1', ['hello', 'êkwa']);
+      const analysis = [
+        { word: 'hello', analysis: 'hello+N', allAnalysis: ['hello+N'] },
+        { word: 'êkwa', analysis: 'êkwa+Ipc', allAnalysis: ['êkwa+Ipc'] }
+      ];
+      store.setRegionAnalysis('region-1', analysis);
       
       const state = useEditorStore.getState();
-      expect(state.selectedRegion?.regionAnalysis).toEqual(['hello', 'êkwa']);
+      expect(state.selectedRegion?.regionAnalysis).toEqual(analysis);
     });
 
     it('should handle non-existent region gracefully', () => {
       const store = useEditorStore.getState();
       
       // This should not throw
-      store.setRegionAnalysis('non-existent', ['hello']);
+      store.setRegionAnalysis('non-existent', [
+        { word: 'hello', analysis: 'hello+N', allAnalysis: ['hello+N'] }
+      ]);
       
       const state = useEditorStore.getState();
       expect(state.regionMap['non-existent']).toBeUndefined();
@@ -560,7 +629,7 @@ describe('useEditorStore known words functionality', () => {
       store.addConflictToQueue(conflict);
       
       // For now, processConflictQueue just logs - this will be implemented in Phase 4
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      const consoleSpy = jest.spyOn(console, 'debug').mockImplementation();
       
       store.processConflictQueue();
       

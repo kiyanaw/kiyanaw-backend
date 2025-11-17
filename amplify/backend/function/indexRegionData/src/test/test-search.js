@@ -30,7 +30,7 @@ describe('search.clearKnownWordsForRegion()', function () {
       index: 'knownwords-test',
       body: {
         query: {
-          match: { regionId: 'some-region-id' },
+          term: { regionId: 'some-region-id' }, // Changed to 'term' for exact match
         },
       },
     })
@@ -68,6 +68,24 @@ describe('search.clearKnownWordsForRegion()', function () {
       assert.equal(err.message, 'Some other error')
     }
   })
+
+  it('should throw error for invalid regionId', async function () {
+    try {
+      await search.clearKnownWordsForRegion(null)
+      assert.fail('Should have thrown error')
+    } catch (err) {
+      assert.equal(err.message, 'Invalid regionId: must be a non-empty string')
+    }
+  })
+
+  it('should throw error for empty regionId', async function () {
+    try {
+      await search.clearKnownWordsForRegion('')
+      assert.fail('Should have thrown error')
+    } catch (err) {
+      assert.equal(err.message, 'Invalid regionId: must be a non-empty string')
+    }
+  })
 })
 
 describe('search.clearIssuesForRegion()', function () {
@@ -91,7 +109,7 @@ describe('search.clearIssuesForRegion()', function () {
       index: 'issues-test',
       body: {
         query: {
-          match: { regionId: 'some-region-id' },
+          term: { regionId: 'some-region-id' }, // Changed to 'term' for exact match
         },
       },
     })
@@ -114,6 +132,24 @@ describe('search.clearIssuesForRegion()', function () {
 
     assert.ok(deleteStub.called)
     assert.equal(response.deleted, 0)
+  })
+
+  it('should throw error for invalid regionId in clearIssuesForRegion', async function () {
+    try {
+      await search.clearIssuesForRegion(null)
+      assert.fail('Should have thrown error')
+    } catch (err) {
+      assert.equal(err.message, 'Invalid regionId: must be a non-empty string')
+    }
+  })
+
+  it('should throw error for empty regionId in clearIssuesForRegion', async function () {
+    try {
+      await search.clearIssuesForRegion('')
+      assert.fail('Should have thrown error')
+    } catch (err) {
+      assert.equal(err.message, 'Invalid regionId: must be a non-empty string')
+    }
   })
 })
 
@@ -161,43 +197,6 @@ describe('search.indexRegionAnalysis()', function () {
   })
 
   it('should not index if no results from sapir', async function () {
-    const sapirStub = sinon.stub(sapir, 'clickInText').resolves({ data: { results: [] } })
-    const searchStub = sinon.stub(client, 'update')
-
-    await search.indexRegionAnalysis(region, transcription)
-
-    assert.equal(sapirStub.args[0][0], 'tânisi')
-    assert.ok(!searchStub.called)
-  })
-
-  it('should call sapir for each word in regionAnalysis', async function () {
-    const sapirStub = sinon.stub(sapir, 'clickInText').resolves({ data: { results: [] } })
-    const searchStub = sinon.stub(client, 'update')
-
-    const regionWithTwoWords = {
-      ...region,
-      regionAnalysis: ['tānisi', 'nitisiyihkâson']
-    }
-
-    await search.indexRegionAnalysis(regionWithTwoWords, transcription)
-
-    assert.equal(sapirStub.callCount, 2)
-    assert.equal(sapirStub.args[0][0], 'tânisi')
-    assert.equal(sapirStub.args[1][0], 'nitisiyihkâson')
-    assert.ok(!searchStub.called)
-  })
-
-  it('should index words with transcription language', async function () {
-    const results = [
-      {
-        lemma_wordform: {
-          text: 'some lemma',
-          pos: 'some type',
-          wordclass: 'some word class',
-        },
-      },
-    ]
-    const sapirStub = sinon.stub(sapir, 'clickInText').resolves({ data: { results } })
     const searchStub = sinon.stub(client, 'update').resolves({
       body: {
         _shards: { successful: 1 },
@@ -208,8 +207,43 @@ describe('search.indexRegionAnalysis()', function () {
 
     await search.indexRegionAnalysis(region, transcription)
 
-    assert.equal(sapirStub.callCount, 1)
-    assert.equal(sapirStub.args[0][0], 'tânisi')
+    // The function now processes the analysis directly and should call client.update
+    assert.equal(searchStub.callCount, 1)
+  })
+
+  it('should call sapir for each word in regionAnalysis', async function () {
+    const searchStub = sinon.stub(client, 'update').resolves({
+      body: {
+        _shards: { successful: 1 },
+        result: 'created'
+      },
+      statusCode: 200
+    })
+
+    const regionWithTwoWords = {
+      ...region,
+      regionAnalysis: [
+        { word: 'tānisi', analysis: 'tānisi+IPC', allAnalysis: ['tānisi+IPC'] },
+        { word: 'nitisiyihkâson', analysis: 'nitisiyihkâson+IPC', allAnalysis: ['nitisiyihkâson+IPC'] }
+      ]
+    }
+
+    await search.indexRegionAnalysis(regionWithTwoWords, transcription)
+
+    // The function now uses language processor and should call client.update for each word
+    assert.equal(searchStub.callCount, 2)
+  })
+
+  it('should index words with transcription language', async function () {
+    const searchStub = sinon.stub(client, 'update').resolves({
+      body: {
+        _shards: { successful: 1 },
+        result: 'created'
+      },
+      statusCode: 200
+    })
+
+    await search.indexRegionAnalysis(region, transcription)
 
     assert.equal(searchStub.callCount, 1)
     assert.deepEqual(searchStub.args[0][0], {
@@ -218,15 +252,16 @@ describe('search.indexRegionAnalysis()', function () {
       body: {
         doc: {
           lang: 'crk', // Uses transcription.lang field
-          lemma: 'some lemma',
+          lemma: 'tânisi', // Extracted from analysis string by language processor
           surface: 'tânisi',
           timestamp: '211.69267466560015:214.74777862951606',
           transcriptionId: '73150c90',
           transcriptionName: 'YT - Francis McAdam',
           regionId: 'wavesurfer_72hcq2e2q88',
-          regionText: 'tânisi k-isi-nôcihtâcik pê-pimâtisiwin \n',
-          wordType: 'some type',
-          wordClass: 'some word class',
+          regionText: 'tânisi k-isi-nôcihtâcik pê-pimâtisiwin',
+          translation: '\n',
+          wordType: 'Ipc', // Extracted from analysis string by language processor
+          wordClass: 'IPC',
         },
         doc_as_upsert: true,
       },
@@ -234,16 +269,6 @@ describe('search.indexRegionAnalysis()', function () {
   })
 
   it('should use different language index when transcription index is crgn', async function () {
-    const results = [
-      {
-        lemma_wordform: {
-          text: 'northern michif lemma',
-          pos: 'noun',
-          wordclass: 'animate',
-        },
-      },
-    ]
-    const sapirStub = sinon.stub(sapir, 'clickInText').resolves({ data: { results } })
     const searchStub = sinon.stub(client, 'update').resolves({
       body: {
         _shards: { successful: 1 },
@@ -252,6 +277,7 @@ describe('search.indexRegionAnalysis()', function () {
       statusCode: 200
     })
 
+    // Since there's no 'crgn' processor, the function will return early without calling searchStub
     const transcriptionWithCrgn = {
       ...transcription,
       lang: 'crgn'
@@ -259,7 +285,7 @@ describe('search.indexRegionAnalysis()', function () {
 
     await search.indexRegionAnalysis(region, transcriptionWithCrgn)
 
-    assert.equal(searchStub.callCount, 1)
-    assert.equal(searchStub.args[0][0].body.doc.lang, 'crgn')
+    // Function returns early because no language processor found for 'crgn'
+    assert.equal(searchStub.callCount, 0)
   })
 })

@@ -1,9 +1,5 @@
 import { post } from 'aws-amplify/api';
-
-interface SpellCheckResult {
-  known: string[];
-  unknown: string[];
-}
+import type { WordAnalysis, SpellCheckResult } from './adt';
 
 class SpellCheckerServiceImpl {
   private knownWordsCache = new Set<string>();
@@ -12,6 +8,7 @@ class SpellCheckerServiceImpl {
 
   /**
    * Check which words are known/unknown, using cache and batching API calls
+   * Returns WordAnalysis[] for known words with FST analysis details
    */
   async check(words: string[], languageCode: string = 'crk'): Promise<SpellCheckResult> {
     if (words.length === 0) {
@@ -24,9 +21,15 @@ class SpellCheckerServiceImpl {
     );
 
     if (unknownWords.length === 0) {
-      // Return cached results
+      // Return cached results - words in cache get empty analysis
       return {
-        known: words.filter(word => this.knownWordsCache.has(word)),
+        known: words
+          .filter(word => this.knownWordsCache.has(word))
+          .map(word => ({
+            word,
+            analysis: '',
+            allAnalysis: []
+          })),
         unknown: words.filter(word => this.unknownWordsCache.has(word))
       };
     }
@@ -48,7 +51,7 @@ class SpellCheckerServiceImpl {
       const result = await promise;
       
       // Update caches
-      result.known.forEach(word => this.knownWordsCache.add(word));
+      result.known.forEach(item => this.knownWordsCache.add(item.word));
       result.unknown.forEach(word => this.unknownWordsCache.add(word));
 
       return this.combineWithCached(words, result);
@@ -68,15 +71,20 @@ class SpellCheckerServiceImpl {
         }
       });
       const res = await response;
-      const result = await res.body.json() as Record<string, unknown[]>;
+      const result = await res.body.json() as Record<string, string[]>;
       
-      // Parse API response - keys are words, values are arrays (empty if not found)
-      const known: string[] = [];
+      // Parse API response - keys are words, values are arrays of analyses
+      const known: WordAnalysis[] = [];
       const unknown: string[] = [];
 
       for (const word of words) {
-        if (result[word] && Array.isArray(result[word]) && result[word].length > 0) {
-          known.push(word);
+        const analyses = result[word];
+        if (analyses && Array.isArray(analyses) && analyses.length > 0) {
+          known.push({
+            word,
+            analysis: analyses[0],  // Use first analysis as primary
+            allAnalysis: analyses   // Keep all for potential user selection
+          });
         } else {
           unknown.push(word);
         }
@@ -91,21 +99,43 @@ class SpellCheckerServiceImpl {
   }
 
   private combineWithCached(originalWords: string[], apiResult: SpellCheckResult): SpellCheckResult {
-    return {
-      known: originalWords.filter(word => 
-        this.knownWordsCache.has(word) || apiResult.known.indexOf(word) !== -1
-      ),
-      unknown: originalWords.filter(word => 
-        this.unknownWordsCache.has(word) || apiResult.unknown.indexOf(word) !== -1
-      )
-    };
+    const known: WordAnalysis[] = [];
+    const unknown: string[] = [];
+
+    for (const word of originalWords) {
+      // Check if in API result
+      const apiAnalysis = apiResult.known.find(item => item.word === word);
+      if (apiAnalysis) {
+        known.push(apiAnalysis);
+        continue;
+      }
+      
+      // Check if in known cache
+      if (this.knownWordsCache.has(word)) {
+        known.push({
+          word,
+          analysis: '',
+          allAnalysis: []
+        });
+        continue;
+      }
+      
+      // Must be unknown
+      if (this.unknownWordsCache.has(word) || apiResult.unknown.includes(word)) {
+        unknown.push(word);
+      }
+    }
+
+    return { known, unknown };
   }
 
   /**
    * Add words to known cache (useful for loading saved analysis)
    */
-  addKnownWords(words: string[]): void {
-    words.forEach(word => this.knownWordsCache.add(word));
+  addKnownWords(words: WordAnalysis[]): void {
+    words.forEach(word => {
+      this.knownWordsCache.add(word.word);
+    });
   }
 
   /**
@@ -135,6 +165,104 @@ class SpellCheckerServiceImpl {
       .map(word => word.replace(/[.,()!?;:"']/g, '').toLowerCase())
       .filter(word => word.length > 0);
   }
+
+  /**
+   * Analyze region text and return merged word analysis.
+   * 
+   * Coordinates between:
+   * - Fresh API analysis for unknown words
+   * - Global known words cache
+   * - Existing region analysis (for persistence)
+   * 
+   * This is the primary method for spell checking region text.
+   * 
+   * @param text - The text to analyze
+   * @param languageCode - Language code for spell checking (e.g., 'crk')
+   * @param globalKnownWords - Map of globally cached word analyses
+   * @param existingAnalysis - Existing analysis from the region (for fallback)
+   * @returns Array of WordAnalysis objects for all words in text
+   */
+  async analyzeRegionText(
+    text: string,
+    languageCode: string,
+    globalKnownWords: Map<string, WordAnalysis>,
+    existingAnalysis: WordAnalysis[] = []
+  ): Promise<{ analysis: WordAnalysis[]; newlyKnown: WordAnalysis[] }> {
+    // Tokenize
+    const words = this.tokenize(text);
+    if (words.length === 0) {
+      return { analysis: [], newlyKnown: [] };
+    }
+    
+    // Build a map of existing analysis by word for fast lookup
+    const existingAnalysisMap = new Map<string, WordAnalysis>();
+    if (Array.isArray(existingAnalysis)) {
+      existingAnalysis.forEach((item: unknown) => {
+        if (typeof item === 'object' && item !== null && 'word' in item) {
+          const analysis = item as WordAnalysis;
+          // Only keep complete analysis (not empty)
+          if (analysis.word && analysis.analysis && analysis.allAnalysis?.length > 0) {
+            existingAnalysisMap.set(analysis.word, analysis);
+          }
+        }
+      });
+    }
+    
+    const uniqueWords = [...new Set(words)];
+    
+    // Separate cached words from unknown words
+    const cachedWords: string[] = [];
+    const unknownUniqueWords: string[] = [];
+    
+    uniqueWords.forEach(word => {
+      if (globalKnownWords.has(word)) {
+        cachedWords.push(word);
+      } else {
+        unknownUniqueWords.push(word);
+      }
+    });
+    
+    // Get fresh analysis from API for unknown words only
+    const freshAnalysis: WordAnalysis[] = [];
+    if (unknownUniqueWords.length > 0) {
+      try {
+        const result = await this.check(unknownUniqueWords, languageCode);
+        
+        if (result.known.length > 0) {
+          freshAnalysis.push(...result.known);
+        }
+      } catch (error) {
+        console.error('Spell check API error during region analysis:', error);
+      }
+    }
+    
+    // CRITICAL: Merge analysis from THREE sources:
+    // 1. Fresh analysis from API (highest priority)
+    // 2. Global cache (has full WordAnalysis objects)
+    // 3. Existing region analysis (fallback)
+    const mergedAnalysis: WordAnalysis[] = [];
+    const freshAnalysisMap = new Map(freshAnalysis.map(item => [item.word, item]));
+    
+    uniqueWords.forEach(word => {
+      if (freshAnalysisMap.has(word)) {
+        // 1. Fresh analysis from API takes highest priority
+        mergedAnalysis.push(freshAnalysisMap.get(word)!);
+      } else if (globalKnownWords.has(word)) {
+        // 2. Get full analysis from global cache
+        const cachedAnalysis = globalKnownWords.get(word)!;
+        mergedAnalysis.push(cachedAnalysis);
+      } else if (existingAnalysisMap.has(word)) {
+        // 3. Fallback to existing region analysis
+        mergedAnalysis.push(existingAnalysisMap.get(word)!);
+      }
+      // If none of the above, skip (unknown word with no analysis)
+    });
+    
+    return {
+      analysis: mergedAnalysis,
+      newlyKnown: freshAnalysis
+    };
+  }
 }
 
-export const spellCheckerService = new SpellCheckerServiceImpl(); 
+export const spellCheckerService = new SpellCheckerServiceImpl();
