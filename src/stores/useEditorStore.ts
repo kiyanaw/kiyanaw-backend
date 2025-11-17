@@ -30,7 +30,7 @@ interface EditorState {
   // Transcription state
   transcription: TranscriptionData | null;
   saved: boolean;
-  saveStatus: 'saved' | 'saving' | 'error';
+  saveStatus: 'saved' | 'saving' | 'pending' | 'error';
   peaks: number[] | null;
   wavesurferError: string | null;
   accessDenied: boolean;
@@ -85,7 +85,7 @@ interface EditorState {
   // Transcription actions
   setTranscription: (transcription: TranscriptionData) => void;
   setSaved: (saved: boolean) => void;
-  setSaveStatus: (status: 'saved' | 'saving' | 'error') => void;
+  setSaveStatus: (status: 'saved' | 'saving' | 'pending' | 'error') => void;
 
   // Region actions
   setSelectedRegion: (regionId: string | null) => void;

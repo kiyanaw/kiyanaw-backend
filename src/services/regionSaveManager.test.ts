@@ -21,6 +21,7 @@ jest.mock('./index', () => ({
       setRegionVersion: jest.fn(),
       setRegionText: jest.fn(),
       setRegionTranslation: jest.fn(),
+      setSaveStatus: jest.fn(),
     },
     spellCheckerService: {
       tokenize: jest.fn((text: string) => text.split(/\s+/).filter(Boolean)),

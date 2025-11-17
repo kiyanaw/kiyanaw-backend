@@ -37,7 +37,6 @@ class RegionSaveManagerImpl {
    * Queue a text change with automatic spell checking
    */
   queueTextChange(regionId: string, text: string): void {
-    console.debug(`💾 SAVE-MANAGER: Queuing text change for ${regionId}: "${text.substring(0, 50)}..."`);
     
     const queue = this.getOrCreateQueue(regionId);
     
@@ -47,20 +46,20 @@ class RegionSaveManagerImpl {
     queue.lastChangeTime = Date.now();
     queue.pendingEditField = 'regionText';
     
+    // Set save status to pending
+    services.storeService.setSaveStatus('pending');
+    
     // Cancel any existing spell check
     if (queue.spellCheckTimer) {
       Timeout.clear(queue.spellCheckTimer);
       queue.spellCheckPromise = null;
     }
     
-    // Start NEW spell check (debounced 500ms)
-    console.debug(`⏱️ SAVE-MANAGER: Starting spell check timer (500ms) for ${regionId}`);
     const spellCheckKey = `spell-check-${regionId}`;
     queue.spellCheckTimer = spellCheckKey;
     Timeout.set(
       spellCheckKey,
       async () => {
-        console.debug(`🔍 SAVE-MANAGER: Spell check firing for ${regionId}`);
         queue.spellCheckPromise = this.performSpellCheck(regionId, text);
         try {
           const analysis = await queue.spellCheckPromise;
@@ -74,8 +73,6 @@ class RegionSaveManagerImpl {
       500
     );
     
-    // Reset save timer (debounced 3000ms from last change)
-    console.debug(`⏱️ SAVE-MANAGER: Starting save timer (3000ms) for ${regionId}`);
     this.resetSaveTimer(regionId, 3000);
   }
   
@@ -92,6 +89,9 @@ class RegionSaveManagerImpl {
     queue.lastChangeTime = Date.now();
     queue.pendingEditField = 'translation';
     
+    // Set save status to pending
+    services.storeService.setSaveStatus('pending');
+    
     this.resetSaveTimer(regionId, 3000);
   }
   
@@ -107,6 +107,9 @@ class RegionSaveManagerImpl {
     queue.pendingChanges.end = end;
     queue.lastChangeSource = 'bounds';
     queue.lastChangeTime = Date.now();
+    
+    // Set save status to pending
+    services.storeService.setSaveStatus('pending');
     
     this.resetSaveTimer(regionId, 2500);
   }
@@ -206,6 +209,9 @@ class RegionSaveManagerImpl {
       hasSpellCheckPromise: !!queue.spellCheckPromise
     });
     
+    // Set status to saving
+    services.storeService.setSaveStatus('saving');
+    
     // Wait for spell check if pending
     await this.waitForSpellCheckCompletion(queue);
     
@@ -217,6 +223,11 @@ class RegionSaveManagerImpl {
     // Perform the save
     try {
       await this.saveRegionChanges(regionId, changes, pendingEditField);
+      
+      // Only set to 'saved' if no other pending saves exist
+      if (!this.hasAnyPendingSaves()) {
+        services.storeService.setSaveStatus('saved');
+      }
     } catch (error) {
       await this.handleSaveError(error, regionId, changes, pendingEditField);
     }
@@ -532,6 +543,13 @@ class RegionSaveManagerImpl {
    */
   hasPendingSaves(regionId: string): boolean {
     return this.queues.has(regionId);
+  }
+  
+  /**
+   * Check if there are any pending saves across all regions
+   */
+  hasAnyPendingSaves(): boolean {
+    return this.queues.size > 0;
   }
   
   // Helper methods
