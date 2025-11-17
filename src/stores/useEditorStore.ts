@@ -227,7 +227,7 @@ export const useEditorStore = create<EditorState>()(
             });
             
             if (hasEmptyAnalysis) {
-              console.log(`🧹 STORE: Clearing incomplete regionAnalysis for ${region.id} (has empty analysis fields)`);
+              console.debug(`🧹 STORE: Clearing incomplete regionAnalysis for ${region.id} (has empty analysis fields)`);
               region.regionAnalysis = [];
             }
           }
@@ -300,7 +300,7 @@ export const useEditorStore = create<EditorState>()(
           newState.selectedRegionId = selectedRegionId;
           newState.selectedRegion = region;
           
-          console.log(`🎯 STORE: Initial region selection (from URL) ${selectedRegionId}:`, {
+          console.debug(`🎯 STORE: Initial region selection (from URL) ${selectedRegionId}:`, {
             id: region.id,
             hasRegionAnalysis: !!region.regionAnalysis,
             regionAnalysisType: typeof region.regionAnalysis,
@@ -376,7 +376,7 @@ export const useEditorStore = create<EditorState>()(
         const region = regionId ? regionMap[regionId] : null;
         
         if (region) {
-          console.log(`🎯 STORE: Selected region ${regionId}:`, {
+          console.debug(`🎯 STORE: Selected region ${regionId}:`, {
             id: region.id,
             hasRegionAnalysis: !!region.regionAnalysis,
             regionAnalysisType: typeof region.regionAnalysis,
@@ -425,7 +425,7 @@ export const useEditorStore = create<EditorState>()(
         // Existing regions (from subscriptions/DB) should have _version
         let version = region._version;
         if (version === undefined) {
-          console.log('📝 Adding new region without _version (will be updated from subscription):', region.id);
+          console.debug('📝 Adding new region without _version (will be updated from subscription):', region.id);
           version = 0; // Temporary version for new regions
         }
 
@@ -1006,7 +1006,7 @@ export const useEditorStore = create<EditorState>()(
       processConflictQueue: () => {
         const { conflictQueue } = get();
         // For now, just log the conflicts - actual processing will be implemented in Phase 4
-        console.log('Processing conflict queue:', conflictQueue);
+        console.debug('Processing conflict queue:', conflictQueue);
         // TODO: Implement actual conflict processing logic in Phase 4
       },
 
@@ -1043,7 +1043,7 @@ export const useEditorStore = create<EditorState>()(
           return; // Region not found
         }
 
-        console.log(`📝 STORE: Setting regionAnalysis for ${regionId}:`, {
+        console.debug(`📝 STORE: Setting regionAnalysis for ${regionId}:`, {
           analysisType: Array.isArray(analysis) ? 'array' : typeof analysis,
           analysisLength: Array.isArray(analysis) ? analysis.length : 'N/A',
           firstItem: Array.isArray(analysis) && analysis.length > 0 ? analysis[0] : undefined,
@@ -1053,7 +1053,7 @@ export const useEditorStore = create<EditorState>()(
         // Create updated region with new analysis
         const updatedRegion = { ...existingRegion, regionAnalysis: analysis };
         
-        console.log(`📝 STORE: Updated region object:`, {
+        console.debug(`📝 STORE: Updated region object:`, {
           id: updatedRegion.id,
           regionAnalysisType: typeof updatedRegion.regionAnalysis,
           regionAnalysis: updatedRegion.regionAnalysis
@@ -1072,7 +1072,7 @@ export const useEditorStore = create<EditorState>()(
         
         set(updateObj);
         
-        console.log(`✅ STORE: regionAnalysis set successfully for ${regionId}`);
+        console.debug(`✅ STORE: regionAnalysis set successfully for ${regionId}`);
       },
 
       // Transcription metadata helpers

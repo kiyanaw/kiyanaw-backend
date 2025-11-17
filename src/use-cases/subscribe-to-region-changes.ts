@@ -42,7 +42,7 @@ export class SubscribeToRegionChangesUseCase {
     
     if (isSelfTriggered) {
       // Skip version update for self-triggered events - we already incremented it correctly
-      console.log('🔌 Self-triggered region event, skipping version update:', region.id);
+      console.debug('🔌 Self-triggered region event, skipping version update:', region.id);
       return;
     }
 
@@ -288,7 +288,7 @@ export class SubscribeToRegionChangesUseCase {
             issues: issueHighlights
           });
           
-          console.log(`🎨 SUBSCRIBE: Applied highlighting for analysis-only update to ${updatedRegion.id}`);
+          console.debug(`🎨 SUBSCRIBE: Applied highlighting for analysis-only update to ${updatedRegion.id}`);
         }
       }
     }
@@ -364,7 +364,7 @@ export class SubscribeToRegionChangesUseCase {
           issues: issueHighlights
         });
         
-        console.log(`🎨 SUBSCRIBE: Reapplied highlighting after analysis update for ${updatedRegion.id}`);
+        console.debug(`🎨 SUBSCRIBE: Reapplied highlighting after analysis update for ${updatedRegion.id}`);
       }
     }
     
@@ -426,7 +426,7 @@ export class SubscribeToRegionChangesUseCase {
       return;
     }
 
-    console.log('🔄 Active conflict detected for region, checking for updates:', updatedRegion.id);
+    console.debug('🔄 Active conflict detected for region, checking for updates:', updatedRegion.id);
 
     // Get all active conflicts for this region
     const activeConflicts = conflictResolutionService.getActiveConflictsForRegion(updatedRegion.id);
@@ -440,7 +440,7 @@ export class SubscribeToRegionChangesUseCase {
       const newRemoteValue = updatedRegion[field];
 
       if (currentRemoteValue !== newRemoteValue) {
-        console.log('🔄 Remote value changed for active conflict:', {
+        console.debug('🔄 Remote value changed for active conflict:', {
           regionId: updatedRegion.id,
           field,
           oldRemote: currentRemoteValue,

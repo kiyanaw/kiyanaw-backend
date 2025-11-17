@@ -37,7 +37,7 @@ class RegionSaveManagerImpl {
    * Queue a text change with automatic spell checking
    */
   queueTextChange(regionId: string, text: string): void {
-    console.log(`💾 SAVE-MANAGER: Queuing text change for ${regionId}: "${text.substring(0, 50)}..."`);
+    console.debug(`💾 SAVE-MANAGER: Queuing text change for ${regionId}: "${text.substring(0, 50)}..."`);
     
     const queue = this.getOrCreateQueue(regionId);
     
@@ -54,18 +54,18 @@ class RegionSaveManagerImpl {
     }
     
     // Start NEW spell check (debounced 500ms)
-    console.log(`⏱️ SAVE-MANAGER: Starting spell check timer (500ms) for ${regionId}`);
+    console.debug(`⏱️ SAVE-MANAGER: Starting spell check timer (500ms) for ${regionId}`);
     const spellCheckKey = `spell-check-${regionId}`;
     queue.spellCheckTimer = spellCheckKey;
     Timeout.set(
       spellCheckKey,
       async () => {
-        console.log(`🔍 SAVE-MANAGER: Spell check firing for ${regionId}`);
+        console.debug(`🔍 SAVE-MANAGER: Spell check firing for ${regionId}`);
         queue.spellCheckPromise = this.performSpellCheck(regionId, text);
         try {
           const analysis = await queue.spellCheckPromise;
           queue.pendingChanges.regionAnalysis = analysis;
-          console.log(`✅ SAVE-MANAGER: Spell check completed for ${regionId}, found ${analysis.length} known words`);
+          console.debug(`✅ SAVE-MANAGER: Spell check completed for ${regionId}, found ${analysis.length} known words`);
         } catch (error) {
           console.error(`❌ SAVE-MANAGER: Spell check failed for ${regionId}:`, error);
           queue.spellCheckPromise = null;
@@ -75,7 +75,7 @@ class RegionSaveManagerImpl {
     );
     
     // Reset save timer (debounced 3000ms from last change)
-    console.log(`⏱️ SAVE-MANAGER: Starting save timer (3000ms) for ${regionId}`);
+    console.debug(`⏱️ SAVE-MANAGER: Starting save timer (3000ms) for ${regionId}`);
     this.resetSaveTimer(regionId, 3000);
   }
   
@@ -83,7 +83,7 @@ class RegionSaveManagerImpl {
    * Queue a translation change (no spell checking)
    */
   queueTranslationChange(regionId: string, translation: string): void {
-    console.log(`💾 SAVE-MANAGER: Queuing translation change for ${regionId}`);
+    console.debug(`💾 SAVE-MANAGER: Queuing translation change for ${regionId}`);
     
     const queue = this.getOrCreateQueue(regionId);
     
@@ -99,7 +99,7 @@ class RegionSaveManagerImpl {
    * Queue bounds change (for Phase 2)
    */
   queueBoundsChange(regionId: string, start: number, end: number): void {
-    console.log(`💾 SAVE-MANAGER: Queuing bounds change for ${regionId}`);
+    console.debug(`💾 SAVE-MANAGER: Queuing bounds change for ${regionId}`);
     
     const queue = this.getOrCreateQueue(regionId);
     
@@ -121,7 +121,7 @@ class RegionSaveManagerImpl {
     
     // Check if transcription has language set
     if (!transcription?.lang) {
-      console.log('⚠️ SAVE-MANAGER: No language set, skipping spell check');
+      console.debug('⚠️ SAVE-MANAGER: No language set, skipping spell check');
       return [];
     }
     
@@ -160,7 +160,7 @@ class RegionSaveManagerImpl {
         });
       }
       
-      console.log(`📊 SAVE-MANAGER: Spell check results for ${regionId}:`, {
+      console.debug(`📊 SAVE-MANAGER: Spell check results for ${regionId}:`, {
         newlyKnown: result.newlyKnown.length,
         totalSaved: result.analysis.length,
       });
@@ -201,7 +201,7 @@ class RegionSaveManagerImpl {
     const queue = this.queues.get(regionId);
     if (!queue) return;
     
-    console.log(`💾 SAVE-MANAGER: Flushing saves for ${regionId}`, {
+    console.debug(`💾 SAVE-MANAGER: Flushing saves for ${regionId}`, {
       pendingChanges: Object.keys(queue.pendingChanges),
       hasSpellCheckPromise: !!queue.spellCheckPromise
     });
@@ -229,7 +229,7 @@ class RegionSaveManagerImpl {
     if (!queue.spellCheckPromise) return;
     
     try {
-      console.log(`⏳ SAVE-MANAGER: Waiting for spell check to complete...`);
+      console.debug(`⏳ SAVE-MANAGER: Waiting for spell check to complete...`);
       const analysis = await Promise.race([
         queue.spellCheckPromise,
         this.timeout(5000, 'Spell check timeout')
@@ -237,7 +237,7 @@ class RegionSaveManagerImpl {
       
       if (analysis && analysis.length > 0) {
         queue.pendingChanges.regionAnalysis = analysis;
-        console.log(`✅ SAVE-MANAGER: Spell check complete, including ${analysis.length} words`);
+        console.debug(`✅ SAVE-MANAGER: Spell check complete, including ${analysis.length} words`);
       }
     } catch (error) {
       if (error instanceof Error && error.message === 'Spell check timeout') {
@@ -266,7 +266,7 @@ class RegionSaveManagerImpl {
     
     const currentVersion = store.getRegionVersion(regionId);
     
-    console.log(`💾 SAVE-MANAGER: Saving region ${regionId}`, {
+    console.debug(`💾 SAVE-MANAGER: Saving region ${regionId}`, {
       changes: Object.keys(changes),
       hasRegionAnalysis: 'regionAnalysis' in changes,
       version: currentVersion
@@ -291,7 +291,7 @@ class RegionSaveManagerImpl {
       services.storeService.endPendingEdit(regionId, pendingEditField);
     }
     
-    console.log(`✅ SAVE-MANAGER: Save completed for ${regionId}`);
+    console.info(`✅ SAVE-MANAGER: Save completed for ${regionId}`);
   }
   
   /**
@@ -326,7 +326,7 @@ class RegionSaveManagerImpl {
       throw error;
     }
     
-    console.log(`⚠️ SAVE-MANAGER: Version conflict detected for ${regionId}`);
+    console.debug(`⚠️ SAVE-MANAGER: Version conflict detected for ${regionId}`);
     
     const primaryField = this.determinePrimaryField(changes);
     const store = services.storeService;
@@ -376,7 +376,7 @@ class RegionSaveManagerImpl {
     const store = services.storeService;
     const remoteData = remoteRegion as Record<string, unknown>;
     
-    console.log(`✅ SAVE-MANAGER: User accepted remote version for ${regionId}`, {
+    console.debug(`✅ SAVE-MANAGER: User accepted remote version for ${regionId}`, {
       remoteVersion: remoteData._version,
       primaryField
     });
@@ -396,7 +396,7 @@ class RegionSaveManagerImpl {
       services.storeService.endPendingEdit(regionId, pendingEditField);
     }
     
-    console.log(`✅ SAVE-MANAGER: Local state updated with remote version`);
+    console.debug(`✅ SAVE-MANAGER: Local state updated with remote version`);
   }
   
   /**
@@ -439,7 +439,7 @@ class RegionSaveManagerImpl {
     if (!services.rteService.hasEditor(mainEditorKey)) return;
     
     services.rteService.setContent(mainEditorKey, remoteText);
-    console.log(`🔄 SAVE-MANAGER: Updated RTE editor with remote text`);
+    console.debug(`🔄 SAVE-MANAGER: Updated RTE editor with remote text`);
     
     await this.reapplyHighlighting(regionId, mainEditorKey);
   }
@@ -452,7 +452,7 @@ class RegionSaveManagerImpl {
     if (!services.rteService.hasEditor(translationEditorKey)) return;
     
     services.rteService.setContent(translationEditorKey, remoteTranslation);
-    console.log(`🔄 SAVE-MANAGER: Updated RTE editor with remote translation`);
+    console.debug(`🔄 SAVE-MANAGER: Updated RTE editor with remote translation`);
     
     await this.reapplyHighlighting(regionId, translationEditorKey);
   }
@@ -476,7 +476,7 @@ class RegionSaveManagerImpl {
       issues: issueHighlights
     });
     
-    console.log(`🎨 SAVE-MANAGER: Reapplied highlighting`);
+    console.debug(`🎨 SAVE-MANAGER: Reapplied highlighting`);
   }
   
   /**
@@ -488,7 +488,7 @@ class RegionSaveManagerImpl {
     latestVersion: number,
     pendingEditField?: string
   ): Promise<void> {
-    console.log(`🔄 SAVE-MANAGER: User kept local version for ${regionId}, retrying with version ${latestVersion}`);
+    console.debug(`🔄 SAVE-MANAGER: User kept local version for ${regionId}, retrying with version ${latestVersion}`);
     
     const store = services.storeService;
     const user = services.authService.currentUser();
@@ -517,7 +517,7 @@ class RegionSaveManagerImpl {
       services.storeService.endPendingEdit(regionId, pendingEditField);
     }
     
-    console.log(`✅ SAVE-MANAGER: Retry save completed for ${regionId}`);
+    console.info(`✅ SAVE-MANAGER: Retry save completed for ${regionId}`);
   }
   
   /**

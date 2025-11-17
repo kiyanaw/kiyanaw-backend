@@ -97,7 +97,7 @@ export const generateSignedUrl = async (sourceUrl: string, fileSuffix: string = 
     const fileKey = extractS3KeyFromUrl(sourceUrl);
     const targetKey = `${fileKey}${fileSuffix}`;
     
-    console.log(`Generating signed URL for file: ${targetKey}`);
+    console.debug(`Generating signed URL for file: ${targetKey}`);
     
     // Determine the path - if the key already starts with 'public/', use it as is
     // Otherwise, prepend 'public/'
@@ -145,13 +145,13 @@ const fetchPeaksData = async (
     try {
       // Generate signed URL for the peaks file
       const signedPeaksUrl = await generateSignedPeaksUrl(source);
-      console.log(`Fetching peaks data (attempt ${attempt + 1}/${maxRetries + 1}): ${signedPeaksUrl}`);
+      console.debug(`Fetching peaks data (attempt ${attempt + 1}/${maxRetries + 1}): ${signedPeaksUrl}`);
       
       const peaksResponse = await fetch(signedPeaksUrl);
       
       if (peaksResponse.ok) {
         const peaksObject = await peaksResponse.json();
-        console.log('✅ Peaks data loaded successfully');
+        console.debug('✅ Peaks data loaded successfully');
         
         // WaveSurfer expects the raw array of peaks, not the wrapper object.
         if (peaksObject && peaksObject.data) {
@@ -164,12 +164,12 @@ const fetchPeaksData = async (
       // If we get 403/404, the file is likely still being processed
       if (peaksResponse.status === 403 || peaksResponse.status === 404) {
         lastError = new Error(`Peaks file not ready yet (${peaksResponse.status}), will retry...`);
-        console.log(`⏳ ${lastError.message}`);
+        console.debug(`⏳ ${lastError.message}`);
         
         // Don't retry on the last attempt
         if (attempt < maxRetries) {
           const delay = baseDelay * Math.pow(1.5, attempt); // Exponential backoff
-          console.log(`⏱️ Waiting ${delay}ms before retry...`);
+          console.debug(`⏱️ Waiting ${delay}ms before retry...`);
           await new Promise(resolve => setTimeout(resolve, delay));
           continue;
         }
@@ -191,7 +191,7 @@ const fetchPeaksData = async (
       // Don't retry on the last attempt
       if (attempt < maxRetries) {
         const delay = baseDelay * Math.pow(1.5, attempt); // Exponential backoff
-        console.log(`⏱️ Waiting ${delay}ms before retry...`);
+        console.debug(`⏱️ Waiting ${delay}ms before retry...`);
         await new Promise(resolve => setTimeout(resolve, delay));
         continue;
       }
@@ -216,7 +216,7 @@ export const loadInFull = async (transcriptionId: string): Promise<false | LoadT
   // Load via GraphQL API (this will enforce authorization)
   let transcriptionData: SharedTranscriptionData;
   try {
-    console.log('🔍 Loading transcription via GraphQL API...');
+    console.debug('🔍 Loading transcription via GraphQL API...');
     const graphqlResult = await getClient().graphql({
       query: getTranscription,
       variables: { id: transcriptionId }
@@ -271,7 +271,7 @@ const loadOwnedTranscriptions = async (userId: string): Promise<TranscriptionMod
   let nextToken: string | undefined;
 
   try {
-    console.log(`🔍 Loading owned transcriptions for user ${userId} via GSI...`);
+    console.debug(`🔍 Loading owned transcriptions for user ${userId} via GSI...`);
     
     do {
       const graphqlResult = await getClient().graphql({
@@ -302,13 +302,13 @@ const loadOwnedTranscriptions = async (userId: string): Promise<TranscriptionMod
         });
         
         allTranscriptions.push(...pageModels);
-        console.log(`📄 Loaded owned page: ${pageModels.length} transcriptions`);
+        console.debug(`📄 Loaded owned page: ${pageModels.length} transcriptions`);
       }
       
       nextToken = page?.nextToken;
     } while (nextToken);
 
-    console.log(`✅ Owned transcriptions query completed: ${allTranscriptions.length} transcriptions`);
+    console.debug(`✅ Owned transcriptions query completed: ${allTranscriptions.length} transcriptions`);
     return allTranscriptions;
   } catch (error) {
     console.error('❌ Failed to load owned transcriptions via GSI:', error);
@@ -343,7 +343,7 @@ const loadOwnedTranscriptions = async (userId: string): Promise<TranscriptionMod
 const loadSharedTranscriptions = async (userEmail: string, sinceTimestamp?: string): Promise<TranscriptionModel[]> => {
   try {
     const syncType = sinceTimestamp ? 'incremental' : 'full';
-    console.log(`🔍 Loading shared transcriptions for user ${userEmail} via enhanced Lambda (${syncType} sync)...`);
+    console.debug(`🔍 Loading shared transcriptions for user ${userEmail} via enhanced Lambda (${syncType} sync)...`);
     
     // Single call to enhanced Lambda with transcription data included
     const invitesResponse = await getMyInvites({
@@ -359,10 +359,10 @@ const loadSharedTranscriptions = async (userEmail: string, sinceTimestamp?: stri
       inviteWithValidation.transcription // Only include if transcription data exists
     );
     
-    console.log(`📧 Found ${acceptedInvitesWithData.length} accepted invites with transcription data out of ${allInvites.length} total`);
+    console.debug(`📧 Found ${acceptedInvitesWithData.length} accepted invites with transcription data out of ${allInvites.length} total`);
     
     if (acceptedInvitesWithData.length === 0) {
-      console.log('✅ No shared transcriptions found');
+      console.debug('✅ No shared transcriptions found');
       return [];
     }
     
@@ -412,11 +412,11 @@ const loadSharedTranscriptions = async (userEmail: string, sinceTimestamp?: stri
         sharedTranscriptions.push(model);
         
       } catch (error) {
-        console.warn(`⚠️ Skipping transcription ${inviteWithValidation.invite.transcriptionId} due to processing error:`, error);
+        console.debug(`⚠️ Skipping transcription ${inviteWithValidation.invite.transcriptionId} due to processing error:`, error);
       }
     }
     
-    console.log(`✅ Shared transcriptions loaded: ${sharedTranscriptions.length} accessible`);
+    console.debug(`✅ Shared transcriptions loaded: ${sharedTranscriptions.length} accessible`);
     return sharedTranscriptions;
     
   } catch (error) {
@@ -437,7 +437,7 @@ const loadOwnedTranscriptionsSince = async (userId: string, sinceDate: string): 
   let nextToken: string | undefined;
 
   try {
-    console.log(`🔍 Loading owned transcriptions for user ${userId} since ${sinceDate} via compound GSI...`);
+    console.debug(`🔍 Loading owned transcriptions for user ${userId} since ${sinceDate} via compound GSI...`);
     
     do {
       const graphqlResult = await getClient().graphql({
@@ -471,13 +471,13 @@ const loadOwnedTranscriptionsSince = async (userId: string, sinceDate: string): 
         });
         
         allTranscriptions.push(...pageModels);
-        console.log(`📄 Loaded page: ${pageModels.length} owned transcriptions`);
+        console.debug(`📄 Loaded page: ${pageModels.length} owned transcriptions`);
       }
       
       nextToken = page?.nextToken;
     } while (nextToken);
 
-    console.log(`✅ Compound GSI query completed: ${allTranscriptions.length} owned transcriptions since ${sinceDate}`);
+    console.debug(`✅ Compound GSI query completed: ${allTranscriptions.length} owned transcriptions since ${sinceDate}`);
     return allTranscriptions;
   } catch (error) {
     console.error('❌ Failed to load owned transcriptions via compound GSI:', error);
@@ -524,9 +524,9 @@ export const loadFromCache = async (): Promise<TranscriptionModel[]> => {
   }
 
   try {
-    console.log('⚡ Loading transcriptions from cache...');
+    console.debug('⚡ Loading transcriptions from cache...');
     const cached = await transcriptionStorage.getAll();
-    console.log(`📦 Loaded ${cached.length} transcriptions from cache`);
+    console.debug(`📦 Loaded ${cached.length} transcriptions from cache`);
     return cached;
   } catch (error) {
     console.error('❌ Failed to load from cache:', error);
@@ -571,13 +571,13 @@ export const syncLatestChanges = async (sinceTimestamp?: string): Promise<Transc
 
   // Prevent concurrent sync operations
   if (currentSyncOperation) {
-    console.log('🔄 Sync already in progress, waiting for completion...');
+    console.debug('🔄 Sync already in progress, waiting for completion...');
     return await currentSyncOperation;
   }
 
   const syncPromise = (async () => {
     try {
-      console.log(`🔄 Syncing ${sinceTimestamp ? 'incremental' : 'full'} changes...`);
+      console.debug(`🔄 Syncing ${sinceTimestamp ? 'incremental' : 'full'} changes...`);
       
       const syncResult = await performSync(sinceTimestamp);
       
@@ -587,7 +587,7 @@ export const syncLatestChanges = async (sinceTimestamp?: string): Promise<Transc
       }
       await transcriptionStorage.setLastSyncedAt(user.userId, new Date().toISOString());
       
-      console.log(`✅ Sync completed: ${syncResult.length} transcriptions`);
+      console.debug(`✅ Sync completed: ${syncResult.length} transcriptions`);
       return syncResult;
       
     } finally {
@@ -612,45 +612,45 @@ export const loadAll = async (): Promise<TranscriptionModel[]> => {
 
 
   try {
-    console.log('🔍 LoadAll: Checking cache and sync status...');
+    console.debug('🔍 LoadAll: Checking cache and sync status...');
     
     // Check if we need to validate cache (remove orphaned transcriptions)
     const needsValidation = await transcriptionStorage.shouldValidateCache(user.userId);
     if (needsValidation) {
-      console.log('🔍 Cache validation needed, checking for orphaned transcriptions...');
+      console.debug('🔍 Cache validation needed, checking for orphaned transcriptions...');
       await validateCachedTranscriptions();
       await transcriptionStorage.markCacheValidated(user.userId);
     }
     
     // Always check for latest data, but only sync what's new since last sync
-    console.log('🔄 Checking for latest data...');
+    console.debug('🔄 Checking for latest data...');
     
     // Get last sync timestamp
     const lastSyncedAt = await transcriptionStorage.getLastSyncedAt(user.userId);
     
     if (!lastSyncedAt) {
       // First sync - do full sync using hybrid approach (both owned + shared)
-      console.log('🆕 First sync - loading all transcriptions and invites...');
+      console.debug('🆕 First sync - loading all transcriptions and invites...');
       const fullSyncResult = await performSync(); // No timestamp = full sync
       
       // Store in cache
       await transcriptionStorage.storeTranscriptions(fullSyncResult);
       await transcriptionStorage.setLastSyncedAt(user.userId, new Date().toISOString());
       
-      console.log(`✅ Full sync completed: ${fullSyncResult.length} transcriptions cached`);
+      console.debug(`✅ Full sync completed: ${fullSyncResult.length} transcriptions cached`);
       return fullSyncResult;
     } else {
       // Always sync latest changes since last sync timestamp
-      console.log(`🔄 Syncing latest changes since ${lastSyncedAt}...`);
+      console.debug(`🔄 Syncing latest changes since ${lastSyncedAt}...`);
       const newSyncTimestamp = new Date().toISOString();
       const latestResults = await performSync(lastSyncedAt); // Get only what's new
       
       if (latestResults.length > 0) {
         // Merge with existing cache
         await transcriptionStorage.storeTranscriptions(latestResults);
-        console.log(`✅ Latest sync: ${latestResults.length} new/updated transcriptions and invites`);
+        console.debug(`✅ Latest sync: ${latestResults.length} new/updated transcriptions and invites`);
       } else {
-        console.log('✅ Latest sync: No new transcriptions or invites');
+        console.debug('✅ Latest sync: No new transcriptions or invites');
       }
       
       // Update sync timestamp to now
@@ -658,7 +658,7 @@ export const loadAll = async (): Promise<TranscriptionModel[]> => {
       
       // Return all cached transcriptions (old + new)
       const allCached = await transcriptionStorage.getAll();
-      console.log(`📦 Returning ${allCached.length} transcriptions (cached + latest)`);
+      console.debug(`📦 Returning ${allCached.length} transcriptions (cached + latest)`);
       return allCached;
     }
     
@@ -666,7 +666,7 @@ export const loadAll = async (): Promise<TranscriptionModel[]> => {
     console.error('❌ LoadAll failed:', error);
     
     // Fallback to direct API call if sync fails
-    console.log('🔄 Falling back to direct API call...');
+    console.debug('🔄 Falling back to direct API call...');
     return await performSync(); // Full sync fallback
   }
 };
@@ -677,7 +677,7 @@ export const loadAll = async (): Promise<TranscriptionModel[]> => {
  */
 const validateCachedTranscriptions = async (): Promise<void> => {
   try {
-    console.log('🔍 Validating cached transcriptions against current permissions...');
+    console.debug('🔍 Validating cached transcriptions against current permissions...');
     
     // Get current accessible transcriptions from API (this respects ACL)
     const currentAccessible = await performSync();
@@ -692,16 +692,16 @@ const validateCachedTranscriptions = async (): Promise<void> => {
       .map(t => t.id);
     
     if (orphanedIds.length > 0) {
-      console.log(`🧹 Removing ${orphanedIds.length} orphaned transcriptions from cache:`, orphanedIds);
+      console.debug(`🧹 Removing ${orphanedIds.length} orphaned transcriptions from cache:`, orphanedIds);
       
       // Remove orphaned transcriptions from cache
       for (const id of orphanedIds) {
         await transcriptionStorage.removeTranscription(id);
       }
       
-      console.log('✅ Cache cleanup completed');
+      console.debug('✅ Cache cleanup completed');
     } else {
-      console.log('✅ Cache validation passed - no orphaned transcriptions');
+      console.debug('✅ Cache validation passed - no orphaned transcriptions');
     }
     
   } catch (error) {
@@ -720,7 +720,7 @@ const performSync = async (sinceTimestamp?: string): Promise<TranscriptionModel[
   }
 
   const syncType = sinceTimestamp ? 'incremental' : 'full';
-  console.log(`🔍 Performing hybrid ${syncType} sync...`);
+  console.debug(`🔍 Performing hybrid ${syncType} sync...`);
   
   try {
     // Load owned transcriptions via efficient GSI
@@ -730,11 +730,11 @@ const performSync = async (sinceTimestamp?: string): Promise<TranscriptionModel[
     } else {
       ownedTranscriptions = await loadOwnedTranscriptions(user.userId);
     }
-    console.log(`📝 Loaded ${ownedTranscriptions.length} owned transcriptions`);
+    console.debug(`📝 Loaded ${ownedTranscriptions.length} owned transcriptions`);
     
     // Load shared transcriptions via invites (need email for invite lookup)
     const sharedTranscriptions: TranscriptionModel[] = await loadSharedTranscriptions(user.username, sinceTimestamp);
-    console.log(`🤝 Loaded ${sharedTranscriptions.length} shared transcriptions`);
+    console.debug(`🤝 Loaded ${sharedTranscriptions.length} shared transcriptions`);
 
     // Combine and deduplicate (in case user has both ownership and invite access)
     const allTranscriptions = new Map<string, TranscriptionModel>();
@@ -747,7 +747,7 @@ const performSync = async (sinceTimestamp?: string): Promise<TranscriptionModel[
     
     const combinedTranscriptions = Array.from(allTranscriptions.values());
     
-    console.log(`✅ Hybrid sync completed: ${combinedTranscriptions.length} total transcriptions (${ownedTranscriptions.length} owned + ${sharedTranscriptions.length} shared)`);
+    console.debug(`✅ Hybrid sync completed: ${combinedTranscriptions.length} total transcriptions (${ownedTranscriptions.length} owned + ${sharedTranscriptions.length} shared)`);
     return combinedTranscriptions;
     
   } catch (error) {
@@ -845,7 +845,7 @@ export const create = async (data: CreateTranscriptionData): Promise<SharedTrans
     // Invalidate cache after successful creation
     const user = currentUser();
     if (user?.userId) {
-      console.log('🔄 Invalidating cache after transcription creation');
+      console.debug('🔄 Invalidating cache after transcription creation');
       await transcriptionStorage.setLastSyncedAt(user.userId, new Date().toISOString());
       
       // Optimistically add to cache if it exists
@@ -853,7 +853,7 @@ export const create = async (data: CreateTranscriptionData): Promise<SharedTrans
         const model = new TranscriptionModel(created as unknown as ADTTranscriptionData);
         model.setAccessLevel(user.userId);
         await transcriptionStorage.storeTranscriptions([model]);
-        console.log('✅ Optimistically added new transcription to cache');
+        console.debug('✅ Optimistically added new transcription to cache');
       } catch (cacheError) {
         console.warn('⚠️ Failed to add to cache optimistically:', cacheError);
       }
@@ -916,7 +916,7 @@ export const updateTranscription = async (
     // Invalidate cache and update optimistically
     const user = currentUser();
     if (user?.userId) {
-      console.log('🔄 Invalidating cache after transcription update');
+      console.debug('🔄 Invalidating cache after transcription update');
       await transcriptionStorage.setLastSyncedAt(user.userId, new Date().toISOString());
       
       // Optimistically update cache if it exists
@@ -924,7 +924,7 @@ export const updateTranscription = async (
         const model = new TranscriptionModel(updated as unknown as ADTTranscriptionData);
         model.setAccessLevel(user.userId);
         await transcriptionStorage.storeTranscriptions([model]);
-        console.log('✅ Optimistically updated transcription in cache');
+        console.debug('✅ Optimistically updated transcription in cache');
       } catch (cacheError) {
         console.warn('⚠️ Failed to update cache optimistically:', cacheError);
       }
@@ -979,10 +979,10 @@ export const deleteTranscription = async (transcriptionId: string): Promise<Shar
     // Remove from cache and invalidate
     const user = currentUser();
     if (user?.userId) {
-      console.log('🔄 Removing deleted transcription from cache');
+      console.debug('🔄 Removing deleted transcription from cache');
       await transcriptionStorage.removeTranscription(transcriptionId);
       await transcriptionStorage.setLastSyncedAt(user.userId, new Date().toISOString());
-      console.log('✅ Removed transcription from cache after deletion');
+      console.info('✅ Removed transcription from cache after deletion');
     }
 
     return deleted;

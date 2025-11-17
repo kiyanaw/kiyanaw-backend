@@ -287,7 +287,7 @@ class RTEServiceImpl {
         window.debugEditors = {};
       }
       window.debugEditors[key] = quill;
-      console.log(`Added editor "${key}" to window.debugEditors`);
+      console.debug(`Added editor "${key}" to window.debugEditors`);
     }
 
     return quill;
@@ -937,7 +937,7 @@ class RTEServiceImpl {
       const instance = this.registry.get(key);
       if (!instance) return;
 
-      console.log(`🔄 Resetting corrupted editor: ${key}`);
+      console.debug(`🔄 Resetting corrupted editor: ${key}`);
 
       // Clear all formatting and reset content
       instance.quill.setText('', 'api');

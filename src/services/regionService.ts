@@ -125,7 +125,7 @@ export const createRegion = async (
  */
 export const updateRegion = async (regionId: string, updates: Partial<RegionData>, username: string, version: number) => {
   try {
-    console.log(`🔧 REGION-SERVICE: updateRegion called for ${regionId}`, {
+    console.debug(`🔧 REGION-SERVICE: updateRegion called for ${regionId}`, {
       updatesKeys: Object.keys(updates),
       hasRegionAnalysis: !!updates.regionAnalysis,
       regionAnalysisType: updates.regionAnalysis ? typeof updates.regionAnalysis : 'undefined',
@@ -138,7 +138,7 @@ export const updateRegion = async (regionId: string, updates: Partial<RegionData
     if (serializedUpdates.regionAnalysis && Array.isArray(serializedUpdates.regionAnalysis)) {
       // serialize to JSON for AWSJSON
       const jsonString = JSON.stringify(serializedUpdates.regionAnalysis);
-      console.log(`📦 REGION-SERVICE: Serializing regionAnalysis to JSON:`, {
+      console.debug(`📦 REGION-SERVICE: Serializing regionAnalysis to JSON:`, {
         originalLength: serializedUpdates.regionAnalysis.length,
         jsonStringLength: jsonString.length,
         jsonString: jsonString.substring(0, 200) + '...'
@@ -150,7 +150,7 @@ export const updateRegion = async (regionId: string, updates: Partial<RegionData
         regionAnalysis: jsonString as any
       };
       
-      console.log(`✅ REGION-SERVICE: Serialized regionAnalysis:`, serializedUpdates.regionAnalysis);
+      console.debug(`✅ REGION-SERVICE: Serialized regionAnalysis:`, serializedUpdates.regionAnalysis);
     }
 
     // Create input for GraphQL using provided version (no pre-save fetch needed)
@@ -232,7 +232,7 @@ export const deleteRegion = async (regionId: string) => {
       authMode: 'iam',
     });
     
-    console.log(`✅ Deleted region ${regionId}`);
+    console.info(`✅ Deleted region ${regionId}`);
     
   } catch (error) {
     console.error(`❌ Failed to delete region ${regionId}:`, error);
@@ -249,7 +249,7 @@ export const subscribeToRegionChanges = (
   transcriptionId: string,
   callback: (event: RegionSubscriptionEvent) => void
 ): (() => void) => {
-  console.log('🔌 Setting up subscriptions for transcriptionId:', transcriptionId);
+  console.debug('🔌 Setting up subscriptions for transcriptionId:', transcriptionId);
   
   const client = getClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -322,7 +322,7 @@ export const subscribeToRegionChanges = (
     });
 
     subscriptions.push(createSub, updateSub, deleteSub);
-    console.log('🔌 Subscriptions established for transcriptionId:', transcriptionId);
+    console.info('🔌 Subscriptions established for transcriptionId:', transcriptionId);
 
   } catch (error) {
     console.error('🔌 Failed to establish subscriptions:', error);
@@ -330,7 +330,7 @@ export const subscribeToRegionChanges = (
 
   // Return unsubscribe function
   return () => {
-    console.log('🔌 Unsubscribing from transcriptionId:', transcriptionId);
+    console.debug('🔌 Unsubscribing from transcriptionId:', transcriptionId);
     subscriptions.forEach(sub => {
       try {
         sub.unsubscribe();

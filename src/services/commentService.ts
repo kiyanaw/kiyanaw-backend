@@ -34,7 +34,7 @@ export const __resetClient = () => {
  */
 export const loadCommentsForTranscription = async (transcriptionId: string): Promise<CommentData[]> => {
   try {
-    console.log(`🔍 Loading comments for transcription ${transcriptionId} via GraphQL...`);
+    console.debug(`🔍 Loading comments for transcription ${transcriptionId} via GraphQL...`);
     
     const result = await getClient().graphql({
       query: listComments,
@@ -48,7 +48,7 @@ export const loadCommentsForTranscription = async (transcriptionId: string): Pro
     }) as { data: { listComments: { items: CommentData[] } } };
     
     const comments = result.data?.listComments?.items || [];
-    console.log(`💬 Found ${comments.length} comments for transcription ${transcriptionId}`);
+    console.debug(`💬 Found ${comments.length} comments for transcription ${transcriptionId}`);
     
     // Sort comments by creation date (newest first)
     return comments.sort(
@@ -74,7 +74,7 @@ export const createNewComment = async (
   input: Omit<CommentData, 'id' | 'createdAt' | 'updatedAt' | '_version'>
 ): Promise<CommentData> => {
   try {
-    console.log(`📝 Creating comment for entity ${input.entityType}:${input.entityId}...`);
+    console.debug(`📝 Creating comment for entity ${input.entityType}:${input.entityId}...`);
     
     const result = await getClient().graphql({
       query: createComment,
@@ -86,7 +86,7 @@ export const createNewComment = async (
       throw new Error('Failed to create comment - no data returned');
     }
     
-    console.log(`✅ Comment created successfully: ${comment.id}`);
+    console.info(`✅ Comment created successfully: ${comment.id}`);
     return comment;
   } catch (error) {
     console.error('❌ Failed to create comment:', error);
@@ -107,7 +107,7 @@ export const updateExistingComment = async (
   version: number
 ): Promise<CommentData> => {
   try {
-    console.log(`📝 Updating comment ${commentId} (version ${version})...`);
+    console.debug(`📝 Updating comment ${commentId} (version ${version})...`);
     
     // Filter out read-only fields that shouldn't be sent to GraphQL
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -129,7 +129,7 @@ export const updateExistingComment = async (
       throw new Error('Failed to update comment - no data returned');
     }
     
-    console.log(`✅ Comment updated successfully: ${comment.id}`);
+    console.info(`✅ Comment updated successfully: ${comment.id}`);
     return comment;
   } catch (error) {
     console.error('❌ Failed to update comment:', error);
@@ -147,7 +147,7 @@ export const deleteExistingComment = async (
   version: number
 ): Promise<void> => {
   try {
-    console.log(`🗑️ Deleting comment ${commentId} (version ${version})...`);
+    console.debug(`🗑️ Deleting comment ${commentId} (version ${version})...`);
     
     await getClient().graphql({
       query: deleteComment,
@@ -159,7 +159,7 @@ export const deleteExistingComment = async (
       },
     });
     
-    console.log(`✅ Comment deleted successfully: ${commentId}`);
+    console.info(`✅ Comment deleted successfully: ${commentId}`);
   } catch (error) {
     console.error('❌ Failed to delete comment:', error);
     throw error;
@@ -181,7 +181,7 @@ export const subscribeToCommentChanges = (
   transcriptionId: string,
   onEvent: (event: CommentSubscriptionEvent) => void
 ): (() => void) => {
-  console.log('🔌 Setting up comment subscriptions for transcriptionId:', transcriptionId);
+  console.debug('🔌 Setting up comment subscriptions for transcriptionId:', transcriptionId);
 
   try {
     const subscriptions: Array<{ unsubscribe: () => void }> = [];
@@ -201,7 +201,7 @@ export const subscribeToCommentChanges = (
       next: (result: any) => {
         const comment = result.data?.onCreateComment;
         if (comment) {
-          console.log('🔌 Comment CREATE subscription event:', comment.id);
+          console.debug('🔌 Comment CREATE subscription event:', comment.id);
           onEvent({ mutation: 'CREATE', comment });
         }
       },
@@ -222,7 +222,7 @@ export const subscribeToCommentChanges = (
       next: (result: any) => {
         const comment = result.data?.onDeleteComment;
         if (comment) {
-          console.log('🔌 Comment DELETE subscription event:', comment.id);
+          console.debug('🔌 Comment DELETE subscription event:', comment.id);
           onEvent({ mutation: 'DELETE', comment });
         }
       },
@@ -233,7 +233,7 @@ export const subscribeToCommentChanges = (
 
     // Return unsubscribe function
     return () => {
-      console.log('🔌 Unsubscribing from comment changes');
+      console.debug('🔌 Unsubscribing from comment changes');
       subscriptions.forEach(sub => {
         try {
           sub.unsubscribe();

@@ -28,7 +28,7 @@ function App() {
   // Register the dialog function with the global manager
   useEffect(() => {
     conflictDialogManager.setDialogFunction(showConflictDialog);
-    console.log('🔧 Conflict dialog manager initialized');
+    console.debug('🔧 Conflict dialog manager initialized');
   }, [showConflictDialog]);
 
   return (

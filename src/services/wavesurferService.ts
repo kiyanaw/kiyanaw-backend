@@ -286,7 +286,7 @@ class WaveSurferService {
       // Check if we should ignore this region-out event
       const shouldIgnoreRegionOutEvent = this._inboundRegionIgnoreNextOut;
       if (shouldIgnoreRegionOutEvent) {
-        console.log('📋 Ignoring region-out event after initial seek')
+        console.debug('📋 Ignoring region-out event after initial seek')
         this._inboundRegionIgnoreNextOut = false
         return
       }
@@ -510,7 +510,7 @@ class WaveSurferService {
     try {
       // Temporarily mark this as a subscription-created region to prevent double creation
       this._isAddingSubscriptionRegion = true;
-      console.log('📡 Adding region from subscription (will not trigger creation event):', regionData.id);
+      console.debug('📡 Adding region from subscription (will not trigger creation event):', regionData.id);
       
       this.regionsPlugin!.addRegion({
         id: regionData.id,

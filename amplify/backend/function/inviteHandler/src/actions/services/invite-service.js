@@ -64,7 +64,7 @@ class InviteService {
 
     await this.docClient.send(command);
 
-    console.log(`Invite created successfully: ${inviteData.id} for ${inviteData.email}`);
+    console.info(`Invite created successfully: ${inviteData.id} for ${inviteData.email}`);
 
     return inviteRecord;
   }
@@ -96,7 +96,7 @@ class InviteService {
     const result = await this.docClient.send(command);
     
     const items = result.Items || [];
-    console.log(`Found ${items.length} active invites for email: ${email}`);
+    console.debug(`Found ${items.length} active invites for email: ${email}`);
     
     return items;
   }
@@ -112,7 +112,7 @@ class InviteService {
       throw new InternalError('API_KIYANAW_INVITETABLE_NAME environment variable not configured');
     }
 
-    console.log(`Querying invites for ${email} since ${sinceTimestamp} using ByEmailCreatedAt GSI...`);
+    console.debug(`Querying invites for ${email} since ${sinceTimestamp} using ByEmailCreatedAt GSI...`);
 
     const command = new QueryCommand({
       TableName: this.tableName,
@@ -133,7 +133,7 @@ class InviteService {
     const result = await this.docClient.send(command);
     
     const items = result.Items || [];
-    console.log(`Found ${items.length} invites for email: ${email} since ${sinceTimestamp}`);
+    console.debug(`Found ${items.length} invites for email: ${email} since ${sinceTimestamp}`);
     
     return items;
   }
@@ -164,7 +164,7 @@ class InviteService {
         return null;
       }
       
-      console.log(`Found invite: ${inviteId}`);
+      console.debug(`Found invite: ${inviteId}`);
       return invite;
     } catch (error) {
       console.error(`Error getting invite ${inviteId}:`, error);
@@ -198,7 +198,7 @@ class InviteService {
         throw new NotFoundError(`Invite ${inviteId} not found or already deleted`);
       }
       
-      console.log(`Invite deleted successfully: ${inviteId}`);
+      console.info(`Invite deleted successfully: ${inviteId}`);
       return deletedInvite;
     } catch (error) {
       console.error(`Error deleting invite ${inviteId}:`, error);
@@ -251,7 +251,7 @@ class InviteService {
       _lastChangedAt: now
     };
 
-    console.log(`Invite status updated: ${inviteId} -> ${status}`);
+    console.info(`Invite status updated: ${inviteId} -> ${status}`);
     return updatedInvite;
   }
 
