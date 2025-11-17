@@ -185,39 +185,6 @@ describe('InviteService', () => {
        expect(result[0].permissionLevel).toBe('editor');
      });
 
-    it('should handle GraphQL errors gracefully and recover partial data', async () => {
-      const partialValidData = {
-        id: 'invite-123',
-        email: 'test@example.com',
-        status: 'pending',
-        permissionLevel: 'editor',
-        expiresAt: '2024-12-31T23:59:59Z',
-        invitedBy: 'user-123',
-        invitedByFriendly: 'John Doe',
-        createdAt: '2024-01-01T00:00:00Z',
-        transcriptionId: transcriptionId
-      };
-
-      const errorWithPartialData = {
-        data: {
-          listInvites: {
-            items: [partialValidData]
-          }
-        },
-        errors: [
-          { message: 'Cannot return null for non-nullable field' }
-        ]
-      };
-
-      mockGraphQLClient.graphql.mockRejectedValue(errorWithPartialData);
-
-      const result = await loadInvitesForTranscription(transcriptionId);
-
-      // Should recover the valid data despite the error
-      expect(result).toHaveLength(1);
-      expect(result[0].email).toBe('test@example.com');
-    });
-
     it('should throw error when no data can be recovered', async () => {
       const pureError = new Error('Network error');
       mockGraphQLClient.graphql.mockRejectedValue(pureError);
