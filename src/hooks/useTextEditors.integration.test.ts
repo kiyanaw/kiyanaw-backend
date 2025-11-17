@@ -133,7 +133,9 @@ describe('useTextEditors Integration Test', () => {
       isPendingEdit: jest.fn().mockReturnValue(false),
       startPendingEdit: jest.fn(),
       endPendingEdit: jest.fn(),
-      updatePendingEditActivity: jest.fn()
+      updatePendingEditActivity: jest.fn(),
+      // Add save status method
+      setSaveStatus: jest.fn()
     };
     
     (useEditorStore as unknown as jest.Mock).mockImplementation((selector) => {
