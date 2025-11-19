@@ -55,7 +55,7 @@ exports.handler = async (event) => {
         result = await getDatabaseStats(params?.lang);
         break;
       case 'searchDatabase':
-        result = await searchDatabase(params?.query, params?.lang);
+        result = await searchDatabase(params?.query, params?.lang, params?.page, params?.limit);
         break;
       case 'getLemmaDetails':
         result = await getLemmaDetails(params?.lemma, params?.lang);
@@ -79,12 +79,18 @@ exports.handler = async (event) => {
   } catch (error) {
     console.error('Database proxy error:', error);
     
+    // Extract OpenSearch error details if available
+    const errorMessage = error.meta?.body?.error?.root_cause?.[0]?.reason 
+      || error.meta?.body?.error?.reason
+      || error.message 
+      || 'Database query failed';
+    
     return {
       statusCode: 500,
       headers,
       body: JSON.stringify({
         success: false,
-        error: error.message
+        error: errorMessage
       })
     };
   }
@@ -101,14 +107,16 @@ async function getDatabaseStats(lang) {
     size: 0,
     query: langFilter,
     aggs: {
-      total_words: {
+      unique_lemmas: {
         cardinality: {
-          field: 'lemma.keyword'
+          field: 'lemma.keyword',
+          precision_threshold: 40000
         }
       },
       total_transcriptions: {
         cardinality: {
-          field: 'transcriptionId.keyword'
+          field: 'transcriptionId.keyword',
+          precision_threshold: 40000
         }
       },
       word_types: {
@@ -152,9 +160,13 @@ async function getDatabaseStats(lang) {
   });
   
   const aggs = response.body.aggregations;
+  // Safely extract total count (handles both old and new OpenSearch formats)
+  const totalHits = response.body.hits.total;
+  const totalWords = (typeof totalHits === 'object' ? totalHits.value : totalHits) || 0;
   
   return {
-    totalWords: aggs?.total_words?.value || 0,
+    totalWords,
+    uniqueLemmas: aggs?.unique_lemmas?.value || 0,
     totalTranscriptions: aggs?.total_transcriptions?.value || 0,
     wordTypeDistribution: (aggs?.word_types?.buckets || []).map(bucket => ({
       wordType: bucket.key,
@@ -171,7 +183,7 @@ async function getDatabaseStats(lang) {
   };
 }
 
-async function searchDatabase(query, lang) {
+async function searchDatabase(query, lang, page = 1, limit = 50) {
   if (!query?.trim()) {
     return [];
   }
@@ -183,38 +195,89 @@ async function searchDatabase(query, lang) {
     filters.push({ term: { lang } });
   }
   
+  // Parse search operators
+  let searchQuery;
+  const trimmedQuery = query.trim();
+  
+  // Check if query contains quotes (complete or incomplete)
+  const hasQuote = trimmedQuery.includes('"');
+  const isCompleteQuotedPhrase = trimmedQuery.startsWith('"') && trimmedQuery.endsWith('"') && trimmedQuery.length > 2;
+  
+  // Handle incomplete quotes (user still typing) - strip quotes and treat as regular search
+  if (hasQuote && !isCompleteQuotedPhrase) {
+    const cleanedQuery = trimmedQuery.replace(/"/g, '').trim();
+    if (!cleanedQuery) {
+      return []; // Empty after stripping quotes
+    }
+    searchQuery = {
+      query_string: {
+        query: `*${cleanedQuery.toLowerCase()}*`,
+        fields: ['regionText'],
+        default_operator: 'AND',
+        analyze_wildcard: true
+      }
+    };
+  }
+  // Complete quoted phrase - treat as literal substring search
+  // "wa ay" becomes "*wa ay*" to match the typed phrase anywhere
+  else if (isCompleteQuotedPhrase) {
+    const phraseQuery = trimmedQuery.slice(1, -1).toLowerCase(); // Strip quotes
+    searchQuery = {
+      query_string: {
+        query: `*${phraseQuery}*`,
+        fields: ['regionText'],
+        default_operator: 'AND',
+        analyze_wildcard: true
+      }
+    };
+  }
+  // Wildcard search
+  else if (trimmedQuery.includes('*')) {
+    searchQuery = {
+      query_string: {
+        query: trimmedQuery.toLowerCase(),
+        fields: ['regionText'],
+        default_operator: 'AND',
+        analyze_wildcard: true
+      }
+    };
+  }
+  // Regular search - wrap in wildcards for "contains" behavior
+  else {
+    searchQuery = {
+      query_string: {
+        query: `*${trimmedQuery.toLowerCase()}*`,
+        fields: ['regionText'],
+        default_operator: 'AND',
+        analyze_wildcard: true
+      }
+    };
+  }
+  
   const searchBody = {
-    size: 0,
+    size: limit,
+    from: (page - 1) * limit,
     query: {
       bool: {
-        must: [
-          {
-            multi_match: {
-              query: query.toLowerCase(),
-              fields: ['lemma', 'surface'],
-              type: 'phrase_prefix'
-            }
-          }
-        ],
+        must: [searchQuery],
         filter: filters
       }
     },
-    aggs: {
-      lemmas: {
-        terms: {
-          field: 'lemma.keyword',
-          size: 10
-        },
-        aggs: {
-          word_type: {
-            top_hits: {
-              size: 1,
-              _source: ['wordType']
-            }
-          }
-        }
-      }
-    }
+    _source: [
+      'transcriptionId',
+      'transcriptionName',
+      'regionId',
+      'regionText',
+      'timestamp',
+      'surface',
+      'lemma'
+    ],
+    collapse: {
+      field: 'regionId.keyword'
+    },
+    sort: [
+      { 'transcriptionName.keyword': { order: 'asc' } }
+    ]
   };
   
   const response = await client.search({
@@ -222,13 +285,28 @@ async function searchDatabase(query, lang) {
     body: searchBody
   });
   
-  const aggs = response.body.aggregations;
+  const hits = (response.body.hits?.hits || []).map(hit => {
+    const source = hit._source;
+    return {
+      transcriptionId: source.transcriptionId,
+      transcriptionName: source.transcriptionName,
+      regionId: source.regionId,
+      regionText: source.regionText || '',
+      timestamp: source.timestamp || '0:0',
+      surface: source.surface,
+      lemma: source.lemma
+    };
+  });
   
-  return (aggs?.lemmas?.buckets || []).map(bucket => ({
-    lemma: bucket.key,
-    count: bucket.doc_count,
-    wordType: bucket.word_type?.hits?.hits?.[0]?._source?.wordType || 'Unknown'
-  }));
+  // Note: hits.total shows count BEFORE collapse/deduplication
+  // We can't get accurate deduplicated count without a separate aggregation
+  // So we just return what we got and let pagination handle it
+  return {
+    results: hits,
+    page,
+    limit,
+    hasMore: hits.length === limit // If we got a full page, there might be more
+  };
 }
 
 async function getLemmaDetails(lemma, lang) {
@@ -316,8 +394,7 @@ async function getAttestations(lemma, surface, lang, page = 1, limit = 20) {
       'lemma'
     ],
     sort: [
-      { 'transcriptionName.keyword': { order: 'asc' } },
-      { 'timestamp': { order: 'asc' } }
+      { 'transcriptionName.keyword': { order: 'asc' } }
     ]
   };
   

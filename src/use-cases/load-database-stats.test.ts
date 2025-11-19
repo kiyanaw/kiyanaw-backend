@@ -13,6 +13,7 @@ describe('LoadDatabaseStatsUseCase', () => {
 
   const mockStats: DatabaseStats = {
     totalWords: 1000,
+    uniqueLemmas: 250,
     totalTranscriptions: 10,
     wordTypeDistribution: [
       { wordType: 'VTI', count: 500 },
@@ -42,7 +43,7 @@ describe('LoadDatabaseStatsUseCase', () => {
 
     it('should throw error for invalid language code', () => {
       const useCase = new LoadDatabaseStatsUseCase({ lang: 'invalid' });
-      expect(() => useCase.validate()).toThrow('Invalid language code. Must be "crk" or "crgn"');
+      expect(() => useCase.validate()).toThrow('Invalid language code. Must be one of:');
     });
   });
 

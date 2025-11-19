@@ -100,7 +100,8 @@ export interface InviteData {
 
 // Database/Language Database Types
 export interface DatabaseStats {
-  totalWords: number;
+  totalWords: number; // Total number of word instances (documents)
+  uniqueLemmas: number; // Number of unique lemmas
   totalTranscriptions: number;
   wordTypeDistribution: WordTypeCount[];
   topVerbs: LemmaCount[];
@@ -138,6 +139,13 @@ export interface Attestation {
   timestamp: string;
   surface: string;
   lemma: string;
+}
+
+export interface SearchResponse {
+  results: Attestation[];
+  page: number;
+  limit: number;
+  hasMore: boolean; // True if there might be more results to load
 }
 
 export interface SearchResult {

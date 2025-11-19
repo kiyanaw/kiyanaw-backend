@@ -3,8 +3,8 @@ import type {
   DatabaseStats, 
   LemmaDetails, 
   SurfaceForm, 
-  Attestation, 
-  SearchResult
+  Attestation,
+  SearchResponse
 } from './adt';
 
 // Helper function to make requests to the OpenSearch proxy Lambda
@@ -116,22 +116,29 @@ export const getAttestations = async (
 };
 
 /**
- * Search the database for lemmas matching a query
+ * Search the database for text examples (attestations) matching a query
  * @param query Search query string
  * @param lang Optional language filter
- * @returns Promise<SearchResult[]>
+ * @param page Page number for pagination
+ * @param limit Results per page
+ * @returns Promise<Attestation[]>
  */
-export const searchDatabase = async (query: string, lang?: string): Promise<SearchResult[]> => {
+export const searchDatabase = async (
+  query: string, 
+  lang?: string,
+  page: number = 1,
+  limit: number = 50
+): Promise<SearchResponse> => {
   console.log(`🔎 Searching database for: "${query}"${lang ? ` (${lang})` : ''}`);
   
   if (!query.trim()) {
-    return [];
+    return { results: [], page: 1, limit, hasMore: false };
   }
   
   try {
-    const results = await makeProxyRequest('searchDatabase', { query, lang });
-    console.log(`🔍 Search results for "${query}":`, results);
-    return results;
+    const response = await makeProxyRequest('searchDatabase', { query, lang, page, limit });
+    console.log(`🔍 Search results for "${query}":`, response.results?.length || 0, 'attestations (page', page + ')');
+    return response;
   } catch (error) {
     console.error('❌ Error searching database:', error);
     throw new Error(`Failed to search database: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -139,19 +146,31 @@ export const searchDatabase = async (query: string, lang?: string): Promise<Sear
 };
 
 /**
- * TODO: Production implementation notes
+ * Implementation notes:
  * 
- * In production, these functions should:
- * 1. Call Lambda functions that query OpenSearch directly
- * 2. Use proper authentication (IAM roles, API Gateway)
- * 3. Handle pagination for large result sets
- * 4. Implement proper error handling and retries
- * 5. Cache results for better performance
+ * This service uses a Lambda proxy to query OpenSearch.
+ * The Lambda function handles authentication and executes queries server-side.
  * 
- * Example Lambda function structure:
- * - GET /api/database/stats?lang=crk
- * - GET /api/database/lemma/{lemma}?lang=crk
- * - GET /api/database/lemma/{lemma}/surface-forms?lang=crk
- * - GET /api/database/attestations?lemma=X&surface=Y&lang=crk
- * - GET /api/database/search?q=query&lang=crk
+ * Architecture:
+ * 1. Client calls makeProxyRequest with action and params
+ * 2. Request goes to API Gateway -> Lambda (opensearchproxy)
+ * 3. Lambda signs request with IAM role and queries OpenSearch
+ * 4. Results returned to client
+ * 
+ * Benefits:
+ * - No CORS issues (Lambda handles authentication)
+ * - Credentials stay server-side
+ * - Standard AWS architecture pattern
+ * 
+ * Performance note:
+ * Lambda cold starts can add latency (~1-2s). Consider:
+ * 1. Provisioned concurrency for production
+ * 2. Client-side caching for frequently accessed data
+ * 3. Pre-warming Lambda on user login
+ * 
+ * Future improvements:
+ * 1. Implement client-side caching for better performance
+ * 2. Add retry logic for transient failures
+ * 3. Add request/response interceptors for monitoring
+ * 4. Consider direct OpenSearch access once CORS/SigV4 issues resolved
  */

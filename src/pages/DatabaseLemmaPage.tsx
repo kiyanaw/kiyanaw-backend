@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
-import { LanguageSelector } from '../components/database/LanguageSelector';
-import { LemmaDefinition } from '../components/database/LemmaDefinition';
 import { SurfaceFormTable } from '../components/database/SurfaceFormTable';
 import { AttestationTable } from '../components/database/AttestationTable';
 import { useLemmaDetails } from '../hooks/useLemmaDetails';
 import { useAttestations } from '../hooks/useAttestations';
 import type { LemmaDetails, Attestation } from '../services/adt';
+import { getLanguageName } from '../config/languages';
 
 export const DatabaseLemmaPage = () => {
   const { lemma } = useParams<{ lemma: string }>();
@@ -79,12 +78,6 @@ export const DatabaseLemmaPage = () => {
     }
   };
 
-  // Handle language change
-  const handleLanguageChange = (lang: string) => {
-    setSelectedLang(lang);
-    // loadLemmaData will be called by useEffect
-  };
-
   // Handle back navigation
   const handleBack = () => {
     navigate('/database');
@@ -111,37 +104,28 @@ export const DatabaseLemmaPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="h-screen flex flex-col bg-gray-50">
       {/* Page Header */}
-      <div className="bg-white border-b border-gray-200 shadow-sm">
+      <div className="bg-white border-b border-gray-200 shadow-sm flex-shrink-0">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={handleBack}
-                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-                title="Back to Database"
-              >
-                <ArrowLeft size={20} />
-              </button>
-              <h1 className="text-2xl font-semibold text-gray-900">
-                {decodedLemma}
-              </h1>
-            </div>
-            
-            <div className="w-48">
-              <LanguageSelector
-                value={selectedLang}
-                onChange={handleLanguageChange}
-                disabled={loading}
-              />
-            </div>
+          <div className="flex items-center h-16">
+            <button
+              onClick={handleBack}
+              className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              title="Back to Database"
+            >
+              <ArrowLeft size={20} />
+            </button>
+            <h1 className="text-2xl font-semibold text-gray-900 ml-3">
+              {decodedLemma}
+            </h1>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Error State */}
         {error && (
           <div className="mb-8 bg-red-50 border border-red-200 rounded-lg p-4">
@@ -172,13 +156,6 @@ export const DatabaseLemmaPage = () => {
         {/* Content */}
         {!loading && lemmaDetails && (
           <div className="space-y-8">
-            {/* Lemma Definition */}
-            <LemmaDefinition
-              lemma={lemmaDetails.lemma}
-              definition={lemmaDetails.definition}
-              itwêwinaUrl={lemmaDetails.itwêwinaUrl}
-            />
-
             {/* Surface Forms */}
             <SurfaceFormTable
               surfaceForms={lemmaDetails.surfaceForms}
@@ -203,7 +180,7 @@ export const DatabaseLemmaPage = () => {
             <h3 className="text-lg font-medium text-gray-900 mb-2">No Data Found</h3>
             <p className="text-gray-600 mb-4">
               No surface forms found for "{decodedLemma}"
-              {selectedLang && ` in ${selectedLang === 'crk' ? 'Plains Cree Y-dialect' : 'Northern Michif'}`}.
+              {selectedLang && ` in ${getLanguageName(selectedLang)}`}.
             </p>
             <div className="space-x-4">
               <button
@@ -221,6 +198,7 @@ export const DatabaseLemmaPage = () => {
             </div>
           </div>
         )}
+        </div>
       </div>
     </div>
   );

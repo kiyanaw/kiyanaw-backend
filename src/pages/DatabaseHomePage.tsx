@@ -1,31 +1,100 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Database, Loader2, AlertCircle } from 'lucide-react';
-import { LanguageSelector } from '../components/database/LanguageSelector';
-import { SearchBox } from '../components/database/SearchBox';
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Database, Loader2, AlertCircle, Search, ExternalLink } from 'lucide-react';
 import { StatsTable } from '../components/database/StatsTable';
 import { useDatabaseStats } from '../hooks/useDatabaseStats';
 import { useDatabaseSearch } from '../hooks/useDatabaseSearch';
-import type { DatabaseStats, SearchResult, WordTypeCount, LemmaCount } from '../services/adt';
+import type { DatabaseStats, Attestation, WordTypeCount, LemmaCount } from '../services/adt';
+import { formatTimestamp } from '../utils/timeFormat';
+import { LANGUAGES } from '../config/languages';
 
 export const DatabaseHomePage = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   
-  // State
-  const [selectedLang, setSelectedLang] = useState<string>('');
+  // State - initialize from localStorage
+  const [selectedLang, setSelectedLang] = useState<string>(() => {
+    return localStorage.getItem('database-language') || '';
+  });
   const [stats, setStats] = useState<DatabaseStats | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Search state - initialize from URL query param
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get('q') || '');
+  const [searchResults, setSearchResults] = useState<Attestation[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
 
   // Hooks
   const loadStats = useDatabaseStats();
   const searchDatabase = useDatabaseSearch();
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Load initial stats
+  // Load initial stats only if language is selected
   useEffect(() => {
-    loadInitialStats();
+    if (selectedLang) {
+      loadInitialStats();
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Auto-search with debouncing
+  useEffect(() => {
+    // Clear previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    // Update URL with search query
+    if (searchQuery.trim()) {
+      setSearchParams({ q: searchQuery }, { replace: true });
+    } else {
+      setSearchParams({}, { replace: true });
+    }
+
+    // If query is empty, clear results
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      setHasSearched(false);
+      setCurrentPage(1);
+      setHasMore(false);
+      return;
+    }
+
+    // Don't search if no language selected
+    if (!selectedLang) {
+      return;
+    }
+
+    // Clear old results immediately when starting a new search
+    setSearchResults([]);
+    setCurrentPage(1);
+
+    // Store the current active element to restore focus
+    const activeElement = document.activeElement;
+
+    // Debounce search 
+    searchTimeoutRef.current = setTimeout(() => {
+      performSearch().finally(() => {
+        // Restore focus to input after search completes
+        if (activeElement === searchInputRef.current) {
+          searchInputRef.current?.focus();
+        }
+      });
+    }, 600);
+
+    // Cleanup timeout on unmount or query change
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery, selectedLang]);
 
   const loadInitialStats = async () => {
     setLoading(true);
@@ -45,6 +114,13 @@ export const DatabaseHomePage = () => {
   // Handle language change
   const handleLanguageChange = async (lang: string) => {
     setSelectedLang(lang);
+    // Persist to localStorage
+    if (lang) {
+      localStorage.setItem('database-language', lang);
+    } else {
+      localStorage.removeItem('database-language');
+    }
+    
     setLoading(true);
     setError(null);
     
@@ -59,19 +135,62 @@ export const DatabaseHomePage = () => {
     }
   };
 
-  // Handle search
-  const handleSearch = async (query: string): Promise<SearchResult[]> => {
-    return await searchDatabase(query, selectedLang || undefined);
+  // Perform search
+  const performSearch = async (page: number = 1, append: boolean = false) => {
+    if (!searchQuery.trim() || !selectedLang) return;
+    
+    setSearching(true);
+    setHasSearched(true);
+    try {
+      const response = await searchDatabase(searchQuery, selectedLang, page, 50);
+      
+      if (append) {
+        setSearchResults(prev => [...prev, ...response.results]);
+      } else {
+        setSearchResults(response.results);
+      }
+      setCurrentPage(page);
+      setHasMore(response.hasMore);
+    } catch (err) {
+      console.error('Search failed:', err);
+      setError(err instanceof Error ? err.message : 'Search failed');
+    } finally {
+      setSearching(false);
+    }
   };
 
-  // Handle search result selection
-  const handleSearchResultSelect = (result: SearchResult) => {
-    navigate(`/database/lemma/${encodeURIComponent(result.lemma)}`);
+  // Load more results
+  const loadMore = async () => {
+    if (!hasMore || searching) return;
+    await performSearch(currentPage + 1, true);
+  };
+
+  // Handle attestation click - navigate to transcription
+  const handleAttestationClick = (attestation: Attestation) => {
+    navigate(`/transcribe-edit/${attestation.transcriptionId}/${attestation.regionId}`);
   };
 
   // Handle lemma click from tables
   const handleLemmaClick = (lemma: LemmaCount) => {
     navigate(`/database/lemma/${encodeURIComponent(lemma.lemma)}`);
+  };
+  
+  // Highlight search term in text
+  const highlightText = (text: string, query: string) => {
+    if (!query.trim()) return text;
+    
+    // Strip wildcards and quotes from query for highlighting
+    const cleanQuery = query.replace(/[*"]/g, '').trim();
+    if (!cleanQuery) return text;
+    
+    // Escape special regex characters for safe matching
+    const escapedQuery = cleanQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const parts = text.split(new RegExp(`(${escapedQuery})`, 'gi'));
+    return parts.map((part, i) => 
+      part.toLowerCase() === cleanQuery.toLowerCase() 
+        ? <mark key={i} className="bg-yellow-200 font-bold">{part}</mark>
+        : part
+    );
   };
 
   // Table column definitions
@@ -98,53 +217,144 @@ export const DatabaseHomePage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="h-screen flex flex-col bg-gray-50">
       {/* Page Header */}
-      <div className="bg-white border-b border-gray-200 shadow-sm">
+      <div className="bg-white border-b border-gray-200 shadow-sm flex-shrink-0">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+          <div className="flex items-center justify-between h-16 gap-4">
             <div className="flex items-center gap-3">
-              <Database className="text-blue-600" size={24} />
               <h1 className="text-2xl font-semibold text-gray-900">Language Database</h1>
+            </div>
+            <div className="flex items-center gap-2">
+              <label htmlFor="header-language-selector" className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                Language:
+              </label>
+              <select
+                id="header-language-selector"
+                value={selectedLang}
+                onChange={(e) => handleLanguageChange(e.target.value)}
+                disabled={loading}
+                className="px-3 py-1.5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-600 disabled:cursor-not-allowed text-sm"
+              >
+                <option value="">Select language</option>
+                {LANGUAGES.map((language) => (
+                  <option key={language.code} value={language.code}>
+                    {language.name}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Introduction */}
-        <div className="mb-8">
-          <p className="text-lg text-gray-600 mb-4">
-            Explore linguistic data from transcribed audio recordings. Search for specific words, 
-            browse by language, and discover usage patterns across the corpus.
-          </p>
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <p className="text-sm text-yellow-800">
-              <strong>Note:</strong> This section is currently experimental and contains sample data. 
-              The full database will be populated as more transcriptions are analyzed.
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-16">
+
+        {/* No Language Selected Message */}
+        {!selectedLang && (
+          <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
+            <Database className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Please select an available language</h3>
+            <p className="text-sm text-gray-600">
+              Choose a language from the dropdown above to view statistics and search the database.
             </p>
           </div>
-        </div>
+        )}
 
-        {/* Controls */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <LanguageSelector
-            value={selectedLang}
-            onChange={handleLanguageChange}
-            disabled={loading}
-          />
-          
-          <SearchBox
-            onSearch={handleSearch}
-            onResultSelect={handleSearchResultSelect}
-            disabled={loading}
-            placeholder="Search for lemmas (e.g., kiskêyihtam, wâpam)..."
-          />
-        </div>
+        {/* Search - Only show when language selected */}
+        {selectedLang && (
+          <div className="mb-8">
+            <div>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search (e.g., êkota, *tam, aya*, *kê*)..."
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                {searching && (
+                  <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-blue-600 animate-spin" size={20} />
+                )}
+              </div>
+              <p className="mt-1 text-xs text-gray-500">
+                Use <code className="bg-gray-100 px-1 rounded">*</code> for wildcards: 
+                <code className="bg-gray-100 px-1 rounded mx-1">foo*</code> starts with, 
+                <code className="bg-gray-100 px-1 rounded mx-1">*foo</code> ends with, 
+                <code className="bg-gray-100 px-1 rounded mx-1">*foo*</code> contains. 
+                Use <code className="bg-gray-100 px-1 rounded">"quotes"</code> for exact phrases: 
+                <code className="bg-gray-100 px-1 rounded mx-1">"wa ay"</code>
+              </p>
+            </div>
+
+            {/* Search Results */}
+            {searchResults.length > 0 && (
+              <div className="mt-6 bg-white rounded-lg border border-gray-200 overflow-hidden">
+                <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
+                  <h3 className="font-medium text-gray-900">
+                    {searchResults.length} {searchResults.length === 1 ? 'result' : 'results'}
+                  </h3>
+                </div>
+                <div className="divide-y divide-gray-200 pb-4">
+                  {searchResults.map((attestation, index) => (
+                    <div
+                      key={`${attestation.transcriptionId}-${attestation.regionId}-${index}`}
+                      onClick={() => handleAttestationClick(attestation)}
+                      className="px-4 py-4 hover:bg-gray-50 cursor-pointer transition-colors"
+                    >
+                      <div className="text-gray-900 mb-2">
+                        {highlightText(attestation.regionText, searchQuery)}
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <ExternalLink size={14} />
+                        <a
+                          href={`/transcribe-edit/${attestation.transcriptionId}/${attestation.regionId}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="hover:text-blue-600 underline"
+                        >
+                          {attestation.transcriptionName}
+                        </a>
+                        <span className="text-gray-400">({formatTimestamp(attestation.timestamp)})</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {/* Load More Button */}
+                {hasMore && (
+                  <div className="px-4 py-4 border-t border-gray-200 bg-gray-50">
+                    <button
+                      onClick={loadMore}
+                      disabled={searching}
+                      className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                    >
+                      {searching ? (
+                        <>
+                          <Loader2 className="animate-spin" size={16} />
+                          Loading...
+                        </>
+                      ) : (
+                        'Load More Results'
+                      )}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {hasSearched && searchResults.length === 0 && !searching && (
+              <div className="mt-6 text-center py-8 bg-white rounded-lg border border-gray-200">
+                <p className="text-gray-600">No results found for "{searchQuery}"</p>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Error State */}
-        {error && (
+        {error && selectedLang && (
           <div className="mb-8 bg-red-50 border border-red-200 rounded-lg p-4">
             <div className="flex items-center gap-2">
               <AlertCircle className="text-red-600" size={20} />
@@ -163,15 +373,15 @@ export const DatabaseHomePage = () => {
         )}
 
         {/* Loading State */}
-        {loading && (
+        {loading && selectedLang && (
           <div className="text-center py-12">
             <Loader2 className="mx-auto h-8 w-8 animate-spin text-blue-600" />
             <p className="mt-2 text-sm text-gray-600">Loading database statistics...</p>
           </div>
         )}
 
-        {/* Statistics */}
-        {!loading && stats && (
+        {/* Statistics - Hide when there's any search query */}
+        {!loading && stats && selectedLang && !searchQuery.trim() && (
           <>
             {/* Summary Stats */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
@@ -217,6 +427,7 @@ export const DatabaseHomePage = () => {
             </div>
           </>
         )}
+        </div>
       </div>
     </div>
   );

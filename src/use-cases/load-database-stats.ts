@@ -1,8 +1,9 @@
 import type { DatabaseStats } from '../services/adt';
 import * as databaseService from '../services/databaseService';
+import { isValidLanguageCode, LANGUAGE_CODES } from '../config/languages';
 
 export interface LoadDatabaseStatsConfig {
-  lang?: string; // Optional language filter (crk, crgn)
+  lang?: string; // Optional language filter
 }
 
 export class LoadDatabaseStatsUseCase {
@@ -10,8 +11,8 @@ export class LoadDatabaseStatsUseCase {
 
   validate(): void {
     // Language is optional, but if provided should be valid
-    if (this.config.lang && !['crk', 'crgn'].includes(this.config.lang)) {
-      throw new Error('Invalid language code. Must be "crk" or "crgn"');
+    if (this.config.lang && !isValidLanguageCode(this.config.lang)) {
+      throw new Error(`Invalid language code. Must be one of: ${LANGUAGE_CODES.join(', ')}`);
     }
   }
 
