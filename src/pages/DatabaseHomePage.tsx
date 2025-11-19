@@ -22,6 +22,8 @@ export const DatabaseHomePage = () => {
   const [searchResults, setSearchResults] = useState<Attestation[]>([]);
   const [searching, setSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
 
   // Hooks
   const loadStats = useDatabaseStats();
@@ -48,6 +50,8 @@ export const DatabaseHomePage = () => {
     if (!searchQuery.trim()) {
       setSearchResults([]);
       setHasSearched(false);
+      setCurrentPage(1);
+      setHasMore(false);
       return;
     }
 
@@ -58,6 +62,7 @@ export const DatabaseHomePage = () => {
 
     // Clear old results immediately when starting a new search
     setSearchResults([]);
+    setCurrentPage(1);
 
     // Store the current active element to restore focus
     const activeElement = document.activeElement;
@@ -121,20 +126,33 @@ export const DatabaseHomePage = () => {
   };
 
   // Perform search
-  const performSearch = async () => {
+  const performSearch = async (page: number = 1, append: boolean = false) => {
     if (!searchQuery.trim() || !selectedLang) return;
     
     setSearching(true);
     setHasSearched(true);
     try {
-      const results = await searchDatabase(searchQuery, selectedLang);
-      setSearchResults(results);
+      const response = await searchDatabase(searchQuery, selectedLang, page, 50);
+      
+      if (append) {
+        setSearchResults(prev => [...prev, ...response.results]);
+      } else {
+        setSearchResults(response.results);
+      }
+      setCurrentPage(page);
+      setHasMore(response.hasMore);
     } catch (err) {
       console.error('Search failed:', err);
       setError(err instanceof Error ? err.message : 'Search failed');
     } finally {
       setSearching(false);
     }
+  };
+
+  // Load more results
+  const loadMore = async () => {
+    if (!hasMore || searching) return;
+    await performSearch(currentPage + 1, true);
   };
 
   // Handle attestation click - navigate to transcription
@@ -282,7 +300,9 @@ export const DatabaseHomePage = () => {
             {searchResults.length > 0 && (
               <div className="mt-6 bg-white rounded-lg border border-gray-200 overflow-hidden">
                 <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
-                  <h3 className="font-medium text-gray-900">{searchResults.length} results</h3>
+                  <h3 className="font-medium text-gray-900">
+                    {searchResults.length} {searchResults.length === 1 ? 'result' : 'results'}
+                  </h3>
                 </div>
                 <div className="divide-y divide-gray-200">
                   {searchResults.map((attestation, index) => (
@@ -308,6 +328,25 @@ export const DatabaseHomePage = () => {
                     </div>
                   ))}
                 </div>
+                {/* Load More Button */}
+                {hasMore && (
+                  <div className="px-4 py-4 border-t border-gray-200 bg-gray-50">
+                    <button
+                      onClick={loadMore}
+                      disabled={searching}
+                      className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                    >
+                      {searching ? (
+                        <>
+                          <Loader2 className="animate-spin" size={16} />
+                          Loading...
+                        </>
+                      ) : (
+                        'Load More Results'
+                      )}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
             

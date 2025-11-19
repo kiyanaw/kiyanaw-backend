@@ -141,6 +141,13 @@ export interface Attestation {
   lemma: string;
 }
 
+export interface SearchResponse {
+  results: Attestation[];
+  page: number;
+  limit: number;
+  hasMore: boolean; // True if there might be more results to load
+}
+
 export interface SearchResult {
   lemma: string;
   count: number;

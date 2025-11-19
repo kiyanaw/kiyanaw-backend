@@ -285,7 +285,7 @@ async function searchDatabase(query, lang, page = 1, limit = 50) {
     body: searchBody
   });
   
-  return (response.body.hits?.hits || []).map(hit => {
+  const hits = (response.body.hits?.hits || []).map(hit => {
     const source = hit._source;
     return {
       transcriptionId: source.transcriptionId,
@@ -297,6 +297,16 @@ async function searchDatabase(query, lang, page = 1, limit = 50) {
       lemma: source.lemma
     };
   });
+  
+  // Note: hits.total shows count BEFORE collapse/deduplication
+  // We can't get accurate deduplicated count without a separate aggregation
+  // So we just return what we got and let pagination handle it
+  return {
+    results: hits,
+    page,
+    limit,
+    hasMore: hits.length === limit // If we got a full page, there might be more
+  };
 }
 
 async function getLemmaDetails(lemma, lang) {

@@ -3,7 +3,8 @@ import type {
   DatabaseStats, 
   LemmaDetails, 
   SurfaceForm, 
-  Attestation
+  Attestation,
+  SearchResponse
 } from './adt';
 
 // Helper function to make requests to the OpenSearch proxy Lambda
@@ -127,17 +128,17 @@ export const searchDatabase = async (
   lang?: string,
   page: number = 1,
   limit: number = 50
-): Promise<Attestation[]> => {
+): Promise<SearchResponse> => {
   console.log(`🔎 Searching database for: "${query}"${lang ? ` (${lang})` : ''}`);
   
   if (!query.trim()) {
-    return [];
+    return { results: [], page: 1, limit, hasMore: false };
   }
   
   try {
-    const results = await makeProxyRequest('searchDatabase', { query, lang, page, limit });
-    console.log(`🔍 Search results for "${query}":`, results.length, 'attestations');
-    return results;
+    const response = await makeProxyRequest('searchDatabase', { query, lang, page, limit });
+    console.log(`🔍 Search results for "${query}":`, response.results?.length || 0, 'attestations (page', page + ')');
+    return response;
   } catch (error) {
     console.error('❌ Error searching database:', error);
     throw new Error(`Failed to search database: ${error instanceof Error ? error.message : 'Unknown error'}`);

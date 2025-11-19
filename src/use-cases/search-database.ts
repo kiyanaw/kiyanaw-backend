@@ -1,4 +1,4 @@
-import type { Attestation } from '../services/adt';
+import type { SearchResponse } from '../services/adt';
 import * as databaseService from '../services/databaseService';
 
 export interface SearchDatabaseConfig {
@@ -22,22 +22,22 @@ export class SearchDatabaseUseCase {
     }
   }
 
-  async execute(): Promise<Attestation[]> {
+  async execute(): Promise<SearchResponse> {
     this.validate();
 
     console.log(`🔎 SearchDatabaseUseCase executing for query: "${this.config.query}"`);
     
     try {
-      const results = await databaseService.searchDatabase(
+      const response = await databaseService.searchDatabase(
         this.config.query.trim(),
         this.config.lang,
         this.config.page,
         this.config.limit
       );
       
-      console.log(`✅ SearchDatabaseUseCase completed: ${results.length} attestations found`);
+      console.log(`✅ SearchDatabaseUseCase completed: ${response.results.length} attestations (page ${response.page})`);
       
-      return results;
+      return response;
     } catch (error) {
       console.error('❌ SearchDatabaseUseCase failed:', error);
       throw error;
