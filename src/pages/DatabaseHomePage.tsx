@@ -148,19 +148,36 @@ export const DatabaseHomePage = () => {
   const highlightText = (text: string, query: string) => {
     if (!query.trim()) return text;
     
-    // Skip highlighting for wildcard searches (contains *)
-    if (query.includes('*')) {
-      return text;
-    }
+    // Strip wildcards from query for highlighting
+    const cleanQuery = query.replace(/\*/g, '').trim();
+    if (!cleanQuery) return text;
     
     // Escape special regex characters for safe matching
-    const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const escapedQuery = cleanQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const parts = text.split(new RegExp(`(${escapedQuery})`, 'gi'));
     return parts.map((part, i) => 
-      part.toLowerCase() === query.toLowerCase() 
+      part.toLowerCase() === cleanQuery.toLowerCase() 
         ? <mark key={i} className="bg-yellow-200 font-bold">{part}</mark>
         : part
     );
+  };
+
+  // Format timestamp as mm:ss
+  const formatTimestamp = (timestamp: string) => {
+    // Timestamp format is "start:end" in seconds (e.g. "202.108:202.869")
+    const [start, end] = timestamp.split(':').map(t => parseFloat(t));
+    
+    const formatTime = (seconds: number) => {
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
+    
+    if (!end || start === end) {
+      return formatTime(start);
+    }
+    
+    return `${formatTime(start)}-${formatTime(end)}`;
   };
 
   // Table column definitions
@@ -280,7 +297,7 @@ export const DatabaseHomePage = () => {
                         >
                           {attestation.transcriptionName}
                         </a>
-                        <span className="text-gray-400">({attestation.timestamp})</span>
+                        <span className="text-gray-400">({formatTimestamp(attestation.timestamp)})</span>
                       </div>
                     </div>
                   ))}
