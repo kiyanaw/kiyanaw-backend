@@ -18,7 +18,7 @@ export const AttestationTable = ({
   className = ""
 }: AttestationTableProps) => {
   const [currentPage, setCurrentPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage, setRowsPerPage] = useState(50);
 
   // Calculate pagination
   const totalRows = attestations.length;
@@ -57,8 +57,25 @@ export const AttestationTable = ({
 
   // Function to create transcription editor link
   const getTranscriptionLink = (attestation: Attestation) => {
-    const [start] = attestation.timestamp.split(':');
-    return `/transcribe-edit/${attestation.transcriptionId}?t=${start}`;
+    return `/transcribe-edit/${attestation.transcriptionId}/${attestation.regionId}`;
+  };
+  
+  // Function to format timestamp as mm:ss
+  const formatTimestamp = (timestamp: string) => {
+    // Timestamp format is "start:end" in seconds (e.g. "202.108:202.869")
+    const [start, end] = timestamp.split(':').map(t => parseFloat(t));
+    
+    const formatTime = (seconds: number) => {
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
+    
+    if (!end || start === end) {
+      return formatTime(start);
+    }
+    
+    return `${formatTime(start)}-${formatTime(end)}`;
   };
 
   if (loading) {
@@ -118,14 +135,16 @@ export const AttestationTable = ({
                   <td className="px-4 py-3 text-sm">
                     <a
                       href={getTranscriptionLink(attestation)}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1"
-                      title={`Go to transcription at ${attestation.timestamp}`}
+                      title={`Go to transcription at ${formatTimestamp(attestation.timestamp)}`}
                     >
                       <span className="truncate">{attestation.transcriptionName}</span>
                       <ExternalLink size={12} className="flex-shrink-0" />
                     </a>
                     <div className="text-xs text-gray-500 mt-1">
-                      {attestation.timestamp}
+                      {formatTimestamp(attestation.timestamp)}
                     </div>
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-900">

@@ -206,7 +206,7 @@ export const DatabaseHomePage = () => {
                 disabled={loading}
                 className="px-3 py-1.5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-600 disabled:cursor-not-allowed text-sm"
               >
-                <option value="">All Languages</option>
+                <option value="">Select language</option>
                 <option value="crk">Plains Cree Y-dialect</option>
                 <option value="crgn">Northern Michif</option>
               </select>

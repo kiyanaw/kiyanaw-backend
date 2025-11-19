@@ -20,7 +20,7 @@ export const SurfaceFormTable = ({
   className = ""
 }: SurfaceFormTableProps) => {
   const [currentPage, setCurrentPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage, setRowsPerPage] = useState(50);
 
   // Calculate pagination
   const totalRows = surfaceForms.length;

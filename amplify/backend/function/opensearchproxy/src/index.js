@@ -154,7 +154,9 @@ async function getDatabaseStats(lang) {
   });
   
   const aggs = response.body.aggregations;
-  const totalWords = response.body.hits.total.value || response.body.hits.total || 0;
+  // Safely extract total count (handles both old and new OpenSearch formats)
+  const totalHits = response.body.hits.total;
+  const totalWords = (typeof totalHits === 'object' ? totalHits.value : totalHits) || 0;
   
   return {
     totalWords,
@@ -191,30 +193,25 @@ async function searchDatabase(query, lang, page = 1, limit = 50) {
   let searchQuery;
   const trimmedQuery = query.trim();
   
-  // Check if query contains wildcards (* anywhere)
+  // For all searches, use query_string with wildcard support
+  // If user doesn't provide wildcards, treat as "contains" (*query*)
+  let searchPattern;
   if (trimmedQuery.includes('*')) {
-    const searchPattern = trimmedQuery.toLowerCase();
-    // Wildcard search only in regionText (the actual transcribed text)
-    // Use query_string for analyzed text field with wildcard support
-    searchQuery = {
-      query_string: {
-        query: searchPattern,
-        fields: ['regionText'],
-        default_operator: 'AND',
-        analyze_wildcard: true
-      }
-    };
+    // User provided explicit wildcards, use as-is
+    searchPattern = trimmedQuery.toLowerCase();
+  } else {
+    // No wildcards provided, wrap in wildcards for "contains" behavior
+    searchPattern = `*${trimmedQuery.toLowerCase()}*`;
   }
-  // Regular search (phrase prefix for natural typing)
-  else {
-    searchQuery = {
-      multi_match: {
-        query: trimmedQuery.toLowerCase(),
-        fields: ['lemma', 'surface', 'regionText'],
-        type: 'phrase_prefix'
-      }
-    };
-  }
+  
+  searchQuery = {
+    query_string: {
+      query: searchPattern,
+      fields: ['regionText'],
+      default_operator: 'AND',
+      analyze_wildcard: true
+    }
+  };
   
   const searchBody = {
     size: limit,
@@ -234,6 +231,9 @@ async function searchDatabase(query, lang, page = 1, limit = 50) {
       'surface',
       'lemma'
     ],
+    collapse: {
+      field: 'regionId.keyword'
+    },
     sort: [
       { 'transcriptionName.keyword': { order: 'asc' } }
     ]
@@ -343,8 +343,7 @@ async function getAttestations(lemma, surface, lang, page = 1, limit = 20) {
       'lemma'
     ],
     sort: [
-      { 'transcriptionName.keyword': { order: 'asc' } },
-      { 'timestamp': { order: 'asc' } }
+      { 'transcriptionName.keyword': { order: 'asc' } }
     ]
   };
   
