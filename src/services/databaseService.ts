@@ -3,8 +3,7 @@ import type {
   DatabaseStats, 
   LemmaDetails, 
   SurfaceForm, 
-  Attestation, 
-  SearchResult
+  Attestation
 } from './adt';
 
 // Helper function to make requests to the OpenSearch proxy Lambda
@@ -116,12 +115,19 @@ export const getAttestations = async (
 };
 
 /**
- * Search the database for lemmas matching a query
+ * Search the database for text examples (attestations) matching a query
  * @param query Search query string
  * @param lang Optional language filter
- * @returns Promise<SearchResult[]>
+ * @param page Page number for pagination
+ * @param limit Results per page
+ * @returns Promise<Attestation[]>
  */
-export const searchDatabase = async (query: string, lang?: string): Promise<SearchResult[]> => {
+export const searchDatabase = async (
+  query: string, 
+  lang?: string,
+  page: number = 1,
+  limit: number = 50
+): Promise<Attestation[]> => {
   console.log(`🔎 Searching database for: "${query}"${lang ? ` (${lang})` : ''}`);
   
   if (!query.trim()) {
@@ -129,8 +135,8 @@ export const searchDatabase = async (query: string, lang?: string): Promise<Sear
   }
   
   try {
-    const results = await makeProxyRequest('searchDatabase', { query, lang });
-    console.log(`🔍 Search results for "${query}":`, results);
+    const results = await makeProxyRequest('searchDatabase', { query, lang, page, limit });
+    console.log(`🔍 Search results for "${query}":`, results.length, 'attestations');
     return results;
   } catch (error) {
     console.error('❌ Error searching database:', error);

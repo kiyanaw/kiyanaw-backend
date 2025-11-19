@@ -1,11 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Database, Loader2, AlertCircle } from 'lucide-react';
-import { SearchBox } from '../components/database/SearchBox';
+import { Database, Loader2, AlertCircle, Search, ExternalLink } from 'lucide-react';
 import { StatsTable } from '../components/database/StatsTable';
 import { useDatabaseStats } from '../hooks/useDatabaseStats';
 import { useDatabaseSearch } from '../hooks/useDatabaseSearch';
-import type { DatabaseStats, SearchResult, WordTypeCount, LemmaCount } from '../services/adt';
+import type { DatabaseStats, Attestation, WordTypeCount, LemmaCount } from '../services/adt';
 
 export const DatabaseHomePage = () => {
   const navigate = useNavigate();
@@ -17,10 +16,18 @@ export const DatabaseHomePage = () => {
   const [stats, setStats] = useState<DatabaseStats | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Attestation[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
 
   // Hooks
   const loadStats = useDatabaseStats();
   const searchDatabase = useDatabaseSearch();
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Load initial stats only if language is selected
   useEffect(() => {
@@ -29,6 +36,47 @@ export const DatabaseHomePage = () => {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Auto-search with debouncing
+  useEffect(() => {
+    // Clear previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    // If query is empty, clear results
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      setHasSearched(false);
+      return;
+    }
+
+    // Don't search if no language selected
+    if (!selectedLang) {
+      return;
+    }
+
+    // Store the current active element to restore focus
+    const activeElement = document.activeElement;
+
+    // Debounce search by 300ms
+    searchTimeoutRef.current = setTimeout(() => {
+      performSearch().finally(() => {
+        // Restore focus to input after search completes
+        if (activeElement === searchInputRef.current) {
+          searchInputRef.current?.focus();
+        }
+      });
+    }, 300);
+
+    // Cleanup timeout on unmount or query change
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery, selectedLang]);
 
   const loadInitialStats = async () => {
     setLoading(true);
@@ -69,19 +117,50 @@ export const DatabaseHomePage = () => {
     }
   };
 
-  // Handle search
-  const handleSearch = async (query: string): Promise<SearchResult[]> => {
-    return await searchDatabase(query, selectedLang || undefined);
+  // Perform search
+  const performSearch = async () => {
+    if (!searchQuery.trim() || !selectedLang) return;
+    
+    setSearching(true);
+    setHasSearched(true);
+    try {
+      const results = await searchDatabase(searchQuery, selectedLang);
+      setSearchResults(results);
+    } catch (err) {
+      console.error('Search failed:', err);
+      setError(err instanceof Error ? err.message : 'Search failed');
+    } finally {
+      setSearching(false);
+    }
   };
 
-  // Handle search result selection
-  const handleSearchResultSelect = (result: SearchResult) => {
-    navigate(`/database/lemma/${encodeURIComponent(result.lemma)}`);
+  // Handle attestation click - navigate to transcription
+  const handleAttestationClick = (attestation: Attestation) => {
+    navigate(`/transcribe-edit/${attestation.transcriptionId}/${attestation.regionId}`);
   };
 
   // Handle lemma click from tables
   const handleLemmaClick = (lemma: LemmaCount) => {
     navigate(`/database/lemma/${encodeURIComponent(lemma.lemma)}`);
+  };
+  
+  // Highlight search term in text
+  const highlightText = (text: string, query: string) => {
+    if (!query.trim()) return text;
+    
+    // Skip highlighting for wildcard searches (contains *)
+    if (query.includes('*')) {
+      return text;
+    }
+    
+    // Escape special regex characters for safe matching
+    const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const parts = text.split(new RegExp(`(${escapedQuery})`, 'gi'));
+    return parts.map((part, i) => 
+      part.toLowerCase() === query.toLowerCase() 
+        ? <mark key={i} className="bg-yellow-200 font-bold">{part}</mark>
+        : part
+    );
   };
 
   // Table column definitions
@@ -150,15 +229,70 @@ export const DatabaseHomePage = () => {
           </div>
         )}
 
-        {/* Search Box - Only show when language selected */}
+        {/* Search - Only show when language selected */}
         {selectedLang && (
           <div className="mb-8">
-            <SearchBox
-              onSearch={handleSearch}
-              onResultSelect={handleSearchResultSelect}
-              disabled={loading}
-              placeholder="Search for lemmas (e.g., kiskêyihtam, wâpam)..."
-            />
+            <div>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search (e.g., êkota, *tam, aya*, *kê*)..."
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                {searching && (
+                  <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-blue-600 animate-spin" size={20} />
+                )}
+              </div>
+              <p className="mt-1 text-xs text-gray-500">
+                Use <code className="bg-gray-100 px-1 rounded">*</code> for wildcards: 
+                <code className="bg-gray-100 px-1 rounded mx-1">foo*</code> starts with, 
+                <code className="bg-gray-100 px-1 rounded mx-1">*foo</code> ends with, 
+                <code className="bg-gray-100 px-1 rounded mx-1">*foo*</code> contains
+              </p>
+            </div>
+
+            {/* Search Results */}
+            {searchResults.length > 0 && (
+              <div className="mt-6 bg-white rounded-lg border border-gray-200 overflow-hidden">
+                <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
+                  <h3 className="font-medium text-gray-900">{searchResults.length} results</h3>
+                </div>
+                <div className="divide-y divide-gray-200">
+                  {searchResults.map((attestation, index) => (
+                    <div
+                      key={`${attestation.transcriptionId}-${attestation.regionId}-${index}`}
+                      onClick={() => handleAttestationClick(attestation)}
+                      className="px-4 py-4 hover:bg-gray-50 cursor-pointer transition-colors"
+                    >
+                      <div className="text-gray-900 mb-2">
+                        {highlightText(attestation.regionText, searchQuery)}
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <ExternalLink size={14} />
+                        <a
+                          href={`/transcribe-edit/${attestation.transcriptionId}/${attestation.regionId}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="hover:text-blue-600 underline"
+                        >
+                          {attestation.transcriptionName}
+                        </a>
+                        <span className="text-gray-400">({attestation.timestamp})</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {hasSearched && searchResults.length === 0 && !searching && (
+              <div className="mt-6 text-center py-8 bg-white rounded-lg border border-gray-200">
+                <p className="text-gray-600">No results found for "{searchQuery}"</p>
+              </div>
+            )}
           </div>
         )}
 
@@ -189,8 +323,8 @@ export const DatabaseHomePage = () => {
           </div>
         )}
 
-        {/* Statistics */}
-        {!loading && stats && selectedLang && (
+        {/* Statistics - Hide when there's any search query */}
+        {!loading && stats && selectedLang && !searchQuery.trim() && (
           <>
             {/* Summary Stats */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">

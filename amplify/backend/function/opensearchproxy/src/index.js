@@ -55,7 +55,7 @@ exports.handler = async (event) => {
         result = await getDatabaseStats(params?.lang);
         break;
       case 'searchDatabase':
-        result = await searchDatabase(params?.query, params?.lang);
+        result = await searchDatabase(params?.query, params?.lang, params?.page, params?.limit);
         break;
       case 'getLemmaDetails':
         result = await getLemmaDetails(params?.lemma, params?.lang);
@@ -175,7 +175,7 @@ async function getDatabaseStats(lang) {
   };
 }
 
-async function searchDatabase(query, lang) {
+async function searchDatabase(query, lang, page = 1, limit = 50) {
   if (!query?.trim()) {
     return [];
   }
@@ -187,38 +187,56 @@ async function searchDatabase(query, lang) {
     filters.push({ term: { lang } });
   }
   
+  // Parse search operators
+  let searchQuery;
+  const trimmedQuery = query.trim();
+  
+  // Check if query contains wildcards (* anywhere)
+  if (trimmedQuery.includes('*')) {
+    const searchPattern = trimmedQuery.toLowerCase();
+    // Wildcard search only in regionText (the actual transcribed text)
+    // Use query_string for analyzed text field with wildcard support
+    searchQuery = {
+      query_string: {
+        query: searchPattern,
+        fields: ['regionText'],
+        default_operator: 'AND',
+        analyze_wildcard: true
+      }
+    };
+  }
+  // Regular search (phrase prefix for natural typing)
+  else {
+    searchQuery = {
+      multi_match: {
+        query: trimmedQuery.toLowerCase(),
+        fields: ['lemma', 'surface', 'regionText'],
+        type: 'phrase_prefix'
+      }
+    };
+  }
+  
   const searchBody = {
-    size: 0,
+    size: limit,
+    from: (page - 1) * limit,
     query: {
       bool: {
-        must: [
-          {
-            multi_match: {
-              query: query.toLowerCase(),
-              fields: ['lemma', 'surface'],
-              type: 'phrase_prefix'
-            }
-          }
-        ],
+        must: [searchQuery],
         filter: filters
       }
     },
-    aggs: {
-      lemmas: {
-        terms: {
-          field: 'lemma.keyword',
-          size: 10
-        },
-        aggs: {
-          word_type: {
-            top_hits: {
-              size: 1,
-              _source: ['wordType']
-            }
-          }
-        }
-      }
-    }
+    _source: [
+      'transcriptionId',
+      'transcriptionName',
+      'regionId',
+      'regionText',
+      'timestamp',
+      'surface',
+      'lemma'
+    ],
+    sort: [
+      { 'transcriptionName.keyword': { order: 'asc' } }
+    ]
   };
   
   const response = await client.search({
@@ -226,13 +244,18 @@ async function searchDatabase(query, lang) {
     body: searchBody
   });
   
-  const aggs = response.body.aggregations;
-  
-  return (aggs?.lemmas?.buckets || []).map(bucket => ({
-    lemma: bucket.key,
-    count: bucket.doc_count,
-    wordType: bucket.word_type?.hits?.hits?.[0]?._source?.wordType || 'Unknown'
-  }));
+  return (response.body.hits?.hits || []).map(hit => {
+    const source = hit._source;
+    return {
+      transcriptionId: source.transcriptionId,
+      transcriptionName: source.transcriptionName,
+      regionId: source.regionId,
+      regionText: source.regionText || '',
+      timestamp: source.timestamp || '0:0',
+      surface: source.surface,
+      lemma: source.lemma
+    };
+  });
 }
 
 async function getLemmaDetails(lemma, lang) {

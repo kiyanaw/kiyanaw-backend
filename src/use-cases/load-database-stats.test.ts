@@ -13,6 +13,7 @@ describe('LoadDatabaseStatsUseCase', () => {
 
   const mockStats: DatabaseStats = {
     totalWords: 1000,
+    uniqueLemmas: 250,
     totalTranscriptions: 10,
     wordTypeDistribution: [
       { wordType: 'VTI', count: 500 },

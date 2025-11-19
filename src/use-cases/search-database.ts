@@ -1,9 +1,11 @@
-import type { SearchResult } from '../services/adt';
+import type { Attestation } from '../services/adt';
 import * as databaseService from '../services/databaseService';
 
 export interface SearchDatabaseConfig {
   query: string;
   lang?: string; // Optional language filter (crk, crgn)
+  page?: number;
+  limit?: number;
 }
 
 export class SearchDatabaseUseCase {
@@ -20,7 +22,7 @@ export class SearchDatabaseUseCase {
     }
   }
 
-  async execute(): Promise<SearchResult[]> {
+  async execute(): Promise<Attestation[]> {
     this.validate();
 
     console.log(`🔎 SearchDatabaseUseCase executing for query: "${this.config.query}"`);
@@ -28,10 +30,12 @@ export class SearchDatabaseUseCase {
     try {
       const results = await databaseService.searchDatabase(
         this.config.query.trim(),
-        this.config.lang
+        this.config.lang,
+        this.config.page,
+        this.config.limit
       );
       
-      console.log(`✅ SearchDatabaseUseCase completed: ${results.length} results found`);
+      console.log(`✅ SearchDatabaseUseCase completed: ${results.length} attestations found`);
       
       return results;
     } catch (error) {
