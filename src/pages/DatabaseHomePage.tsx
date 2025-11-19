@@ -180,7 +180,7 @@ export const DatabaseHomePage = () => {
     if (!query.trim()) return text;
     
     // Strip wildcards and quotes from query for highlighting
-    const cleanQuery = query.replace(/[\*\"]/g, '').trim();
+    const cleanQuery = query.replace(/[*"]/g, '').trim();
     if (!cleanQuery) return text;
     
     // Escape special regex characters for safe matching
