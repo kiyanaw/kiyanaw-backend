@@ -6,6 +6,7 @@ import { AttestationTable } from '../components/database/AttestationTable';
 import { useLemmaDetails } from '../hooks/useLemmaDetails';
 import { useAttestations } from '../hooks/useAttestations';
 import type { LemmaDetails, Attestation } from '../services/adt';
+import { getLanguageName } from '../config/languages';
 
 export const DatabaseLemmaPage = () => {
   const { lemma } = useParams<{ lemma: string }>();
@@ -179,7 +180,7 @@ export const DatabaseLemmaPage = () => {
             <h3 className="text-lg font-medium text-gray-900 mb-2">No Data Found</h3>
             <p className="text-gray-600 mb-4">
               No surface forms found for "{decodedLemma}"
-              {selectedLang && ` in ${selectedLang === 'crk' ? 'Plains Cree Y-dialect' : 'Northern Michif'}`}.
+              {selectedLang && ` in ${getLanguageName(selectedLang)}`}.
             </p>
             <div className="space-x-4">
               <button

@@ -6,6 +6,7 @@ import { useDatabaseStats } from '../hooks/useDatabaseStats';
 import { useDatabaseSearch } from '../hooks/useDatabaseSearch';
 import type { DatabaseStats, Attestation, WordTypeCount, LemmaCount } from '../services/adt';
 import { formatTimestamp } from '../utils/timeFormat';
+import { LANGUAGES } from '../config/languages';
 
 export const DatabaseHomePage = () => {
   const navigate = useNavigate();
@@ -236,8 +237,11 @@ export const DatabaseHomePage = () => {
                 className="px-3 py-1.5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-600 disabled:cursor-not-allowed text-sm"
               >
                 <option value="">Select language</option>
-                <option value="crk">Plains Cree Y-dialect</option>
-                <option value="crgn">Northern Michif</option>
+                {LANGUAGES.map((language) => (
+                  <option key={language.code} value={language.code}>
+                    {language.name}
+                  </option>
+                ))}
               </select>
             </div>
           </div>

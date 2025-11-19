@@ -43,7 +43,7 @@ describe('LoadDatabaseStatsUseCase', () => {
 
     it('should throw error for invalid language code', () => {
       const useCase = new LoadDatabaseStatsUseCase({ lang: 'invalid' });
-      expect(() => useCase.validate()).toThrow('Invalid language code. Must be "crk" or "crgn"');
+      expect(() => useCase.validate()).toThrow('Invalid language code. Must be one of:');
     });
   });
 

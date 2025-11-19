@@ -8,6 +8,7 @@ import { generateSignedUrl } from '../../services/transcriptionService';
 import type { InviteModel, TranscriptionModel } from '../../services/adt';
 import { useExportTranscription } from '../../hooks/useExportTranscription';
 import type { ExportRegion } from '../../use-cases/export-transcription';
+import { LANGUAGES } from '../../config/languages';
 
 interface TranscriptionSettingsPageProps {
   transcription: TranscriptionModel;
@@ -404,8 +405,11 @@ export const TranscriptionSettingsPage = ({
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-600 disabled:cursor-not-allowed text-base"
                   >
                     <option value="">None</option>
-                    <option value="crk">Plains Cree Y-dialect</option>
-                    <option value="crgn">Northern Michif</option>
+                    {LANGUAGES.map((language) => (
+                      <option key={language.code} value={language.code}>
+                        {language.name}
+                      </option>
+                    ))}
                   </select>
                   <p className="text-xs text-gray-500 mt-1">
                     Select the spell checker to use for this transctiption. If "Is Discoverable?" is enabled, will determine the index of the Language Database used.
