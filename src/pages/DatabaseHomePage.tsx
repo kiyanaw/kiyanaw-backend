@@ -56,6 +56,9 @@ export const DatabaseHomePage = () => {
       return;
     }
 
+    // Clear old results immediately when starting a new search
+    setSearchResults([]);
+
     // Store the current active element to restore focus
     const activeElement = document.activeElement;
 
@@ -67,7 +70,7 @@ export const DatabaseHomePage = () => {
           searchInputRef.current?.focus();
         }
       });
-    }, 300);
+    }, 600);
 
     // Cleanup timeout on unmount or query change
     return () => {
@@ -148,8 +151,8 @@ export const DatabaseHomePage = () => {
   const highlightText = (text: string, query: string) => {
     if (!query.trim()) return text;
     
-    // Strip wildcards from query for highlighting
-    const cleanQuery = query.replace(/\*/g, '').trim();
+    // Strip wildcards and quotes from query for highlighting
+    const cleanQuery = query.replace(/[\*\"]/g, '').trim();
     if (!cleanQuery) return text;
     
     // Escape special regex characters for safe matching
@@ -204,9 +207,9 @@ export const DatabaseHomePage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="h-screen flex flex-col bg-gray-50">
       {/* Page Header */}
-      <div className="bg-white border-b border-gray-200 shadow-sm">
+      <div className="bg-white border-b border-gray-200 shadow-sm flex-shrink-0">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 gap-4">
             <div className="flex items-center gap-3">
@@ -233,7 +236,8 @@ export const DatabaseHomePage = () => {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
         {/* No Language Selected Message */}
         {!selectedLang && (
@@ -268,7 +272,9 @@ export const DatabaseHomePage = () => {
                 Use <code className="bg-gray-100 px-1 rounded">*</code> for wildcards: 
                 <code className="bg-gray-100 px-1 rounded mx-1">foo*</code> starts with, 
                 <code className="bg-gray-100 px-1 rounded mx-1">*foo</code> ends with, 
-                <code className="bg-gray-100 px-1 rounded mx-1">*foo*</code> contains
+                <code className="bg-gray-100 px-1 rounded mx-1">*foo*</code> contains. 
+                Use <code className="bg-gray-100 px-1 rounded">"quotes"</code> for exact phrases: 
+                <code className="bg-gray-100 px-1 rounded mx-1">"wa ay"</code>
               </p>
             </div>
 
@@ -387,6 +393,7 @@ export const DatabaseHomePage = () => {
             </div>
           </>
         )}
+        </div>
       </div>
     </div>
   );

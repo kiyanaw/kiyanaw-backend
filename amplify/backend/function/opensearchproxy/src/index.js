@@ -79,12 +79,18 @@ exports.handler = async (event) => {
   } catch (error) {
     console.error('Database proxy error:', error);
     
+    // Extract OpenSearch error details if available
+    const errorMessage = error.meta?.body?.error?.root_cause?.[0]?.reason 
+      || error.meta?.body?.error?.reason
+      || error.message 
+      || 'Database query failed';
+    
     return {
       statusCode: 500,
       headers,
       body: JSON.stringify({
         success: false,
-        error: error.message
+        error: errorMessage
       })
     };
   }
@@ -193,25 +199,60 @@ async function searchDatabase(query, lang, page = 1, limit = 50) {
   let searchQuery;
   const trimmedQuery = query.trim();
   
-  // For all searches, use query_string with wildcard support
-  // If user doesn't provide wildcards, treat as "contains" (*query*)
-  let searchPattern;
-  if (trimmedQuery.includes('*')) {
-    // User provided explicit wildcards, use as-is
-    searchPattern = trimmedQuery.toLowerCase();
-  } else {
-    // No wildcards provided, wrap in wildcards for "contains" behavior
-    searchPattern = `*${trimmedQuery.toLowerCase()}*`;
-  }
+  // Check if query contains quotes (complete or incomplete)
+  const hasQuote = trimmedQuery.includes('"');
+  const isCompleteQuotedPhrase = trimmedQuery.startsWith('"') && trimmedQuery.endsWith('"') && trimmedQuery.length > 2;
   
-  searchQuery = {
-    query_string: {
-      query: searchPattern,
-      fields: ['regionText'],
-      default_operator: 'AND',
-      analyze_wildcard: true
+  // Handle incomplete quotes (user still typing) - strip quotes and treat as regular search
+  if (hasQuote && !isCompleteQuotedPhrase) {
+    const cleanedQuery = trimmedQuery.replace(/"/g, '').trim();
+    if (!cleanedQuery) {
+      return []; // Empty after stripping quotes
     }
-  };
+    searchQuery = {
+      query_string: {
+        query: `*${cleanedQuery.toLowerCase()}*`,
+        fields: ['regionText'],
+        default_operator: 'AND',
+        analyze_wildcard: true
+      }
+    };
+  }
+  // Complete quoted phrase - treat as literal substring search
+  // "wa ay" becomes "*wa ay*" to match the typed phrase anywhere
+  else if (isCompleteQuotedPhrase) {
+    const phraseQuery = trimmedQuery.slice(1, -1).toLowerCase(); // Strip quotes
+    searchQuery = {
+      query_string: {
+        query: `*${phraseQuery}*`,
+        fields: ['regionText'],
+        default_operator: 'AND',
+        analyze_wildcard: true
+      }
+    };
+  }
+  // Wildcard search
+  else if (trimmedQuery.includes('*')) {
+    searchQuery = {
+      query_string: {
+        query: trimmedQuery.toLowerCase(),
+        fields: ['regionText'],
+        default_operator: 'AND',
+        analyze_wildcard: true
+      }
+    };
+  }
+  // Regular search - wrap in wildcards for "contains" behavior
+  else {
+    searchQuery = {
+      query_string: {
+        query: `*${trimmedQuery.toLowerCase()}*`,
+        fields: ['regionText'],
+        default_operator: 'AND',
+        analyze_wildcard: true
+      }
+    };
+  }
   
   const searchBody = {
     size: limit,
