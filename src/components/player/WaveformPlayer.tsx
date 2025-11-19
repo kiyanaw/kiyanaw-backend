@@ -10,6 +10,7 @@ import { CreateRegion } from '../../use-cases/create-region';
 import { services } from '../../services';
 import { SaveIndicator } from './SaveIndicator';
 import { browserService } from '../../services/browserService';
+import { formatTime } from '../../utils/timeFormat';
 
 interface Region {
   id: string;
@@ -293,15 +294,6 @@ export const WaveformPlayer = ({
     const maxH = videoSize === 'big' ? '65vh' : '40vh';
     return { maxWidth: maxW, maxHeight: maxH as unknown as number } as React.CSSProperties;
   };
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    const secsStr = secs < 10 ? `0${secs}` : `${secs}`;
-    return `${mins}:${secsStr}`;
-  };
-
-
 
   return (
     <>

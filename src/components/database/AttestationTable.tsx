@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
 import type { Attestation } from '../../services/adt';
+import { formatTimestamp } from '../../utils/timeFormat';
 
 interface AttestationTableProps {
   attestations: Attestation[];
@@ -58,24 +59,6 @@ export const AttestationTable = ({
   // Function to create transcription editor link
   const getTranscriptionLink = (attestation: Attestation) => {
     return `/transcribe-edit/${attestation.transcriptionId}/${attestation.regionId}`;
-  };
-  
-  // Function to format timestamp as mm:ss
-  const formatTimestamp = (timestamp: string) => {
-    // Timestamp format is "start:end" in seconds (e.g. "202.108:202.869")
-    const [start, end] = timestamp.split(':').map(t => parseFloat(t));
-    
-    const formatTime = (seconds: number) => {
-      const mins = Math.floor(seconds / 60);
-      const secs = Math.floor(seconds % 60);
-      return `${mins}:${secs.toString().padStart(2, '0')}`;
-    };
-    
-    if (!end || start === end) {
-      return formatTime(start);
-    }
-    
-    return `${formatTime(start)}-${formatTime(end)}`;
   };
 
   if (loading) {

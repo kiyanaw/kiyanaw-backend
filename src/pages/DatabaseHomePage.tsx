@@ -5,6 +5,7 @@ import { StatsTable } from '../components/database/StatsTable';
 import { useDatabaseStats } from '../hooks/useDatabaseStats';
 import { useDatabaseSearch } from '../hooks/useDatabaseSearch';
 import type { DatabaseStats, Attestation, WordTypeCount, LemmaCount } from '../services/adt';
+import { formatTimestamp } from '../utils/timeFormat';
 
 export const DatabaseHomePage = () => {
   const navigate = useNavigate();
@@ -75,7 +76,7 @@ export const DatabaseHomePage = () => {
     // Store the current active element to restore focus
     const activeElement = document.activeElement;
 
-    // Debounce search by 300ms
+    // Debounce search 
     searchTimeoutRef.current = setTimeout(() => {
       performSearch().finally(() => {
         // Restore focus to input after search completes
@@ -189,24 +190,6 @@ export const DatabaseHomePage = () => {
         ? <mark key={i} className="bg-yellow-200 font-bold">{part}</mark>
         : part
     );
-  };
-
-  // Format timestamp as mm:ss
-  const formatTimestamp = (timestamp: string) => {
-    // Timestamp format is "start:end" in seconds (e.g. "202.108:202.869")
-    const [start, end] = timestamp.split(':').map(t => parseFloat(t));
-    
-    const formatTime = (seconds: number) => {
-      const mins = Math.floor(seconds / 60);
-      const secs = Math.floor(seconds % 60);
-      return `${mins}:${secs.toString().padStart(2, '0')}`;
-    };
-    
-    if (!end || start === end) {
-      return formatTime(start);
-    }
-    
-    return `${formatTime(start)}-${formatTime(end)}`;
   };
 
   // Table column definitions
