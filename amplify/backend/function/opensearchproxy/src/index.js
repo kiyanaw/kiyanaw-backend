@@ -101,14 +101,16 @@ async function getDatabaseStats(lang) {
     size: 0,
     query: langFilter,
     aggs: {
-      total_words: {
+      unique_lemmas: {
         cardinality: {
-          field: 'lemma.keyword'
+          field: 'lemma.keyword',
+          precision_threshold: 40000
         }
       },
       total_transcriptions: {
         cardinality: {
-          field: 'transcriptionId.keyword'
+          field: 'transcriptionId.keyword',
+          precision_threshold: 40000
         }
       },
       word_types: {
@@ -152,9 +154,11 @@ async function getDatabaseStats(lang) {
   });
   
   const aggs = response.body.aggregations;
+  const totalWords = response.body.hits.total.value || response.body.hits.total || 0;
   
   return {
-    totalWords: aggs?.total_words?.value || 0,
+    totalWords,
+    uniqueLemmas: aggs?.unique_lemmas?.value || 0,
     totalTranscriptions: aggs?.total_transcriptions?.value || 0,
     wordTypeDistribution: (aggs?.word_types?.buckets || []).map(bucket => ({
       wordType: bucket.key,

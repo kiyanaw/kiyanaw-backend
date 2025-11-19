@@ -139,19 +139,31 @@ export const searchDatabase = async (query: string, lang?: string): Promise<Sear
 };
 
 /**
- * TODO: Production implementation notes
+ * Implementation notes:
  * 
- * In production, these functions should:
- * 1. Call Lambda functions that query OpenSearch directly
- * 2. Use proper authentication (IAM roles, API Gateway)
- * 3. Handle pagination for large result sets
- * 4. Implement proper error handling and retries
- * 5. Cache results for better performance
+ * This service uses a Lambda proxy to query OpenSearch.
+ * The Lambda function handles authentication and executes queries server-side.
  * 
- * Example Lambda function structure:
- * - GET /api/database/stats?lang=crk
- * - GET /api/database/lemma/{lemma}?lang=crk
- * - GET /api/database/lemma/{lemma}/surface-forms?lang=crk
- * - GET /api/database/attestations?lemma=X&surface=Y&lang=crk
- * - GET /api/database/search?q=query&lang=crk
+ * Architecture:
+ * 1. Client calls makeProxyRequest with action and params
+ * 2. Request goes to API Gateway -> Lambda (opensearchproxy)
+ * 3. Lambda signs request with IAM role and queries OpenSearch
+ * 4. Results returned to client
+ * 
+ * Benefits:
+ * - No CORS issues (Lambda handles authentication)
+ * - Credentials stay server-side
+ * - Standard AWS architecture pattern
+ * 
+ * Performance note:
+ * Lambda cold starts can add latency (~1-2s). Consider:
+ * 1. Provisioned concurrency for production
+ * 2. Client-side caching for frequently accessed data
+ * 3. Pre-warming Lambda on user login
+ * 
+ * Future improvements:
+ * 1. Implement client-side caching for better performance
+ * 2. Add retry logic for transient failures
+ * 3. Add request/response interceptors for monitoring
+ * 4. Consider direct OpenSearch access once CORS/SigV4 issues resolved
  */

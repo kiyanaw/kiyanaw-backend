@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Database, Loader2, AlertCircle } from 'lucide-react';
-import { LanguageSelector } from '../components/database/LanguageSelector';
 import { SearchBox } from '../components/database/SearchBox';
 import { StatsTable } from '../components/database/StatsTable';
 import { useDatabaseStats } from '../hooks/useDatabaseStats';
@@ -11,19 +10,23 @@ import type { DatabaseStats, SearchResult, WordTypeCount, LemmaCount } from '../
 export const DatabaseHomePage = () => {
   const navigate = useNavigate();
   
-  // State
-  const [selectedLang, setSelectedLang] = useState<string>('');
+  // State - initialize from localStorage
+  const [selectedLang, setSelectedLang] = useState<string>(() => {
+    return localStorage.getItem('database-language') || '';
+  });
   const [stats, setStats] = useState<DatabaseStats | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Hooks
   const loadStats = useDatabaseStats();
   const searchDatabase = useDatabaseSearch();
 
-  // Load initial stats
+  // Load initial stats only if language is selected
   useEffect(() => {
-    loadInitialStats();
+    if (selectedLang) {
+      loadInitialStats();
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -45,6 +48,13 @@ export const DatabaseHomePage = () => {
   // Handle language change
   const handleLanguageChange = async (lang: string) => {
     setSelectedLang(lang);
+    // Persist to localStorage
+    if (lang) {
+      localStorage.setItem('database-language', lang);
+    } else {
+      localStorage.removeItem('database-language');
+    }
+    
     setLoading(true);
     setError(null);
     
@@ -102,10 +112,25 @@ export const DatabaseHomePage = () => {
       {/* Page Header */}
       <div className="bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+          <div className="flex items-center justify-between h-16 gap-4">
             <div className="flex items-center gap-3">
-              <Database className="text-blue-600" size={24} />
               <h1 className="text-2xl font-semibold text-gray-900">Language Database</h1>
+            </div>
+            <div className="flex items-center gap-2">
+              <label htmlFor="header-language-selector" className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                Language:
+              </label>
+              <select
+                id="header-language-selector"
+                value={selectedLang}
+                onChange={(e) => handleLanguageChange(e.target.value)}
+                disabled={loading}
+                className="px-3 py-1.5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-600 disabled:cursor-not-allowed text-sm"
+              >
+                <option value="">All Languages</option>
+                <option value="crk">Plains Cree Y-dialect</option>
+                <option value="crgn">Northern Michif</option>
+              </select>
             </div>
           </div>
         </div>
@@ -113,38 +138,32 @@ export const DatabaseHomePage = () => {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Introduction */}
-        <div className="mb-8">
-          <p className="text-lg text-gray-600 mb-4">
-            Explore linguistic data from transcribed audio recordings. Search for specific words, 
-            browse by language, and discover usage patterns across the corpus.
-          </p>
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <p className="text-sm text-yellow-800">
-              <strong>Note:</strong> This section is currently experimental and contains sample data. 
-              The full database will be populated as more transcriptions are analyzed.
+
+        {/* No Language Selected Message */}
+        {!selectedLang && (
+          <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
+            <Database className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Please select an available language</h3>
+            <p className="text-sm text-gray-600">
+              Choose a language from the dropdown above to view statistics and search the database.
             </p>
           </div>
-        </div>
+        )}
 
-        {/* Controls */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <LanguageSelector
-            value={selectedLang}
-            onChange={handleLanguageChange}
-            disabled={loading}
-          />
-          
-          <SearchBox
-            onSearch={handleSearch}
-            onResultSelect={handleSearchResultSelect}
-            disabled={loading}
-            placeholder="Search for lemmas (e.g., kiskêyihtam, wâpam)..."
-          />
-        </div>
+        {/* Search Box - Only show when language selected */}
+        {selectedLang && (
+          <div className="mb-8">
+            <SearchBox
+              onSearch={handleSearch}
+              onResultSelect={handleSearchResultSelect}
+              disabled={loading}
+              placeholder="Search for lemmas (e.g., kiskêyihtam, wâpam)..."
+            />
+          </div>
+        )}
 
         {/* Error State */}
-        {error && (
+        {error && selectedLang && (
           <div className="mb-8 bg-red-50 border border-red-200 rounded-lg p-4">
             <div className="flex items-center gap-2">
               <AlertCircle className="text-red-600" size={20} />
@@ -163,7 +182,7 @@ export const DatabaseHomePage = () => {
         )}
 
         {/* Loading State */}
-        {loading && (
+        {loading && selectedLang && (
           <div className="text-center py-12">
             <Loader2 className="mx-auto h-8 w-8 animate-spin text-blue-600" />
             <p className="mt-2 text-sm text-gray-600">Loading database statistics...</p>
@@ -171,7 +190,7 @@ export const DatabaseHomePage = () => {
         )}
 
         {/* Statistics */}
-        {!loading && stats && (
+        {!loading && stats && selectedLang && (
           <>
             {/* Summary Stats */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">

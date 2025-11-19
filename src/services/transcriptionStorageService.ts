@@ -133,7 +133,7 @@ export class TranscriptionStorageService {
   async getLastSyncedAt(userId: string): Promise<string | null> {
     const syncId = `transcriptions-${userId}`;
     const metadata = await db.syncMetadata.get(syncId);
-    console.log(`🔍 Getting last sync for ${syncId}:`, metadata?.lastSyncedAt || 'null');
+    console.info(`🔍 Getting last sync for ${syncId}:`, metadata?.lastSyncedAt || 'null');
     return metadata?.lastSyncedAt || null;
   }
 
@@ -142,7 +142,7 @@ export class TranscriptionStorageService {
    */
   async setLastSyncedAt(userId: string, timestamp: string): Promise<void> {
     const syncId = `transcriptions-${userId}`;
-    console.log(`💾 Setting last sync for ${syncId}:`, timestamp);
+    console.debug(`💾 Setting last sync for ${syncId}:`, timestamp);
     await db.syncMetadata.put({
       id: syncId,
       userId,

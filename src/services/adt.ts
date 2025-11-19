@@ -100,7 +100,8 @@ export interface InviteData {
 
 // Database/Language Database Types
 export interface DatabaseStats {
-  totalWords: number;
+  totalWords: number; // Total number of word instances (documents)
+  uniqueLemmas: number; // Number of unique lemmas
   totalTranscriptions: number;
   wordTypeDistribution: WordTypeCount[];
   topVerbs: LemmaCount[];
