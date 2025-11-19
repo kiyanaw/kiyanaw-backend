@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Database, Loader2, AlertCircle, Search, ExternalLink } from 'lucide-react';
 import { StatsTable } from '../components/database/StatsTable';
 import { useDatabaseStats } from '../hooks/useDatabaseStats';
@@ -8,6 +8,7 @@ import type { DatabaseStats, Attestation, WordTypeCount, LemmaCount } from '../s
 
 export const DatabaseHomePage = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   
   // State - initialize from localStorage
   const [selectedLang, setSelectedLang] = useState<string>(() => {
@@ -17,8 +18,8 @@ export const DatabaseHomePage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  // Search state
-  const [searchQuery, setSearchQuery] = useState('');
+  // Search state - initialize from URL query param
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get('q') || '');
   const [searchResults, setSearchResults] = useState<Attestation[]>([]);
   const [searching, setSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
@@ -44,6 +45,13 @@ export const DatabaseHomePage = () => {
     // Clear previous timeout
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
+    }
+
+    // Update URL with search query
+    if (searchQuery.trim()) {
+      setSearchParams({ q: searchQuery }, { replace: true });
+    } else {
+      setSearchParams({}, { replace: true });
     }
 
     // If query is empty, clear results
@@ -255,7 +263,7 @@ export const DatabaseHomePage = () => {
 
       {/* Main Content */}
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-16">
 
         {/* No Language Selected Message */}
         {!selectedLang && (
@@ -304,7 +312,7 @@ export const DatabaseHomePage = () => {
                     {searchResults.length} {searchResults.length === 1 ? 'result' : 'results'}
                   </h3>
                 </div>
-                <div className="divide-y divide-gray-200">
+                <div className="divide-y divide-gray-200 pb-4">
                   {searchResults.map((attestation, index) => (
                     <div
                       key={`${attestation.transcriptionId}-${attestation.regionId}-${index}`}
