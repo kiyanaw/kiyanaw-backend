@@ -19,23 +19,54 @@ describe('search.clearKnownWordsForRegion()', function () {
     delete process.env.ENV
   })
   
-  it('should run a delete query for region', async function () {
-    const deleteStub = sinon.stub(client, 'deleteByQuery').resolves('whatever')
+  it('should search for documents and bulk delete by ID', async function () {
+    const searchStub = sinon.stub(client, 'search').resolves({
+      body: {
+        hits: {
+          hits: [
+            { _id: 'some-region-id-word1' },
+            { _id: 'some-region-id-word2' }
+          ]
+        }
+      }
+    })
+    
+    const bulkStub = sinon.stub(client, 'bulk').resolves({
+      body: {
+        items: [
+          { delete: { result: 'deleted', status: 200 } },
+          { delete: { result: 'deleted', status: 200 } }
+        ]
+      }
+    })
 
     const response = await search.clearKnownWordsForRegion('some-region-id')
 
-    assert.ok(deleteStub.called)
+    assert.ok(searchStub.called)
+    assert.ok(bulkStub.called)
 
-    assert.deepEqual(deleteStub.args[0][0], {
+    // Check search was called correctly
+    assert.deepEqual(searchStub.args[0][0], {
       index: 'knownwords-test',
       body: {
         query: {
-          term: { regionId: 'some-region-id' }, // Changed to 'term' for exact match
+          term: { regionId: 'some-region-id' }
         },
+        _source: false,
+        size: 1000,
       },
     })
 
-    assert.equal(response, 'whatever')
+    // Check bulk delete was called correctly
+    assert.deepEqual(bulkStub.args[0][0], {
+      body: [
+        { delete: { _index: 'knownwords-test', _id: 'some-region-id-word1' } },
+        { delete: { _index: 'knownwords-test', _id: 'some-region-id-word2' } }
+      ],
+      refresh: false,
+    })
+
+    assert.equal(response.deleted, 2)
   })
 
   it('should handle index not found error gracefully', async function () {
@@ -48,18 +79,18 @@ describe('search.clearKnownWordsForRegion()', function () {
         }
       }
     }
-    const deleteStub = sinon.stub(client, 'deleteByQuery').rejects(error)
+    const searchStub = sinon.stub(client, 'search').rejects(error)
 
     const response = await search.clearKnownWordsForRegion('some-region-id')
 
-    assert.ok(deleteStub.called)
+    assert.ok(searchStub.called)
     assert.equal(response.deleted, 0)
   })
 
   it('should re-throw non-404 errors', async function () {
     const error = new Error('Some other error')
     error.meta = { statusCode: 500 }
-    const deleteStub = sinon.stub(client, 'deleteByQuery').rejects(error)
+    const searchStub = sinon.stub(client, 'search').rejects(error)
 
     try {
       await search.clearKnownWordsForRegion('some-region-id')
@@ -86,6 +117,24 @@ describe('search.clearKnownWordsForRegion()', function () {
       assert.equal(err.message, 'Invalid regionId: must be a non-empty string')
     }
   })
+
+  it('should return 0 deleted when no documents found', async function () {
+    const searchStub = sinon.stub(client, 'search').resolves({
+      body: {
+        hits: {
+          hits: []
+        }
+      }
+    })
+    
+    const bulkStub = sinon.stub(client, 'bulk')
+
+    const response = await search.clearKnownWordsForRegion('some-region-id')
+
+    assert.ok(searchStub.called)
+    assert.ok(!bulkStub.called) // Bulk should not be called
+    assert.equal(response.deleted, 0)
+  })
 })
 
 describe('search.clearIssuesForRegion()', function () {
@@ -99,20 +148,46 @@ describe('search.clearIssuesForRegion()', function () {
     delete process.env.ENV
   })
   
-  it('should run a delete query for region issues', async function () {
-    const deleteStub = sinon.stub(client, 'deleteByQuery').resolves({ deleted: 3 })
+  it('should search for issues and bulk delete by ID', async function () {
+    const searchStub = sinon.stub(client, 'search').resolves({
+      body: {
+        hits: {
+          hits: [
+            { _id: 'issue-1' },
+            { _id: 'issue-2' },
+            { _id: 'issue-3' }
+          ]
+        }
+      }
+    })
+    
+    const bulkStub = sinon.stub(client, 'bulk').resolves({
+      body: {
+        items: [
+          { delete: { result: 'deleted', status: 200 } },
+          { delete: { result: 'deleted', status: 200 } },
+          { delete: { result: 'deleted', status: 200 } }
+        ]
+      }
+    })
 
     const response = await search.clearIssuesForRegion('some-region-id')
 
-    assert.ok(deleteStub.called)
-    assert.deepEqual(deleteStub.args[0][0], {
+    assert.ok(searchStub.called)
+    assert.ok(bulkStub.called)
+    
+    // Check search was called correctly
+    assert.deepEqual(searchStub.args[0][0], {
       index: 'issues-test',
       body: {
         query: {
-          term: { regionId: 'some-region-id' }, // Changed to 'term' for exact match
+          term: { regionId: 'some-region-id' }
         },
+        _source: false,
+        size: 1000,
       },
     })
+    
     assert.equal(response.deleted, 3)
   })
 
@@ -126,11 +201,11 @@ describe('search.clearIssuesForRegion()', function () {
         }
       }
     }
-    const deleteStub = sinon.stub(client, 'deleteByQuery').rejects(error)
+    const searchStub = sinon.stub(client, 'search').rejects(error)
 
     const response = await search.clearIssuesForRegion('some-region-id')
 
-    assert.ok(deleteStub.called)
+    assert.ok(searchStub.called)
     assert.equal(response.deleted, 0)
   })
 
