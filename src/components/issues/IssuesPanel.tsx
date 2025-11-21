@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Check, Trash2, MessageSquare, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Check, Trash2, MessageSquare, AlertTriangle, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { useEditorStore } from '../../stores/useEditorStore';
 import { browserService } from '../../services/browserService';
@@ -404,6 +404,11 @@ interface IssuesPanelProps {
   onDeleteIssue: (issueId: string) => void;
   variant?: 'modal' | 'bottom-sheet';
   onJumpToRegion?: (regionId: string) => void;
+  enabledIssueTypes?: Set<'needs-help' | 'indexing' | 'new-word'>;
+  onToggleIssueType?: (type: 'needs-help' | 'indexing' | 'new-word') => void;
+  searchText?: string;
+  onSearchChange?: (text: string) => void;
+  onResetFilters?: () => void;
 }
 
 const issueTypes = [
@@ -420,6 +425,11 @@ export const IssuesPanel = ({
   onDeleteIssue,
   variant = 'modal',
   onJumpToRegion,
+  enabledIssueTypes,
+  onToggleIssueType,
+  searchText = '',
+  onSearchChange,
+  onResetFilters,
 }: IssuesPanelProps) => {
   const user = useAuthStore((state) => state.user);
   const selectAndPlayRegion = useSelectAndPlayRegion();
@@ -430,6 +440,7 @@ export const IssuesPanel = ({
   const setSelectedIssueId = useEditorStore((s) => s.setSelectedIssueId ?? (() => {}));
   const [dialogIssueId, setDialogIssueId] = useState<string | null>(selectedIssueId);
   const [isDialogOpen, setIsDialogOpen] = useState(!!selectedIssueId);
+  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
 
   // Sync store selectedIssueId with local dialog state
   useEffect(() => {
@@ -585,6 +596,20 @@ export const IssuesPanel = ({
           })()}
         </div>
         <div className="flex items-center gap-2">
+          {/* Filter button - only show when no region selected */}
+          {!selectedRegionId && enabledIssueTypes && onToggleIssueType && (
+            <button
+              onClick={() => setIsFilterPanelOpen(!isFilterPanelOpen)}
+              className={`p-1.5 rounded border transition-all ${
+                enabledIssueTypes.size < 3
+                  ? 'border-ki-blue bg-ki-blue text-white hover:bg-blue-700'
+                  : 'border-gray-300 text-gray-700 hover:bg-gray-100'
+              }`}
+              title="Filter by issue type"
+            >
+              <Filter className="w-4 h-4" />
+            </button>
+          )}
           <div className="flex items-center gap-1" title="Navigate regions with unresolved issues">
             <button
               onClick={handleNavigateIssues('prev')}
@@ -601,6 +626,55 @@ export const IssuesPanel = ({
           </div>
         </div>
       </div>
+
+      {/* Collapsible Filter Panel */}
+      {!selectedRegionId && enabledIssueTypes && onToggleIssueType && isFilterPanelOpen && (
+        <div className="px-4 py-2 bg-gray-100 border-b border-gray-200">
+          <div className="flex gap-2 justify-start items-center">
+            {issueTypes.map((type) => {
+              const isEnabled = enabledIssueTypes.has(type.value as 'needs-help' | 'indexing' | 'new-word');
+              return (
+                <button
+                  key={type.value}
+                  onClick={() => onToggleIssueType(type.value as 'needs-help' | 'indexing' | 'new-word')}
+                  className={`px-1.5 py-0.5 text-[10px] font-medium uppercase rounded border transition-all hover:bg-gray-100 flex items-center gap-0.5 ${
+                    isEnabled 
+                      ? 'bg-white border-gray-300' 
+                      : 'bg-gray-100 border-gray-200'
+                  }`}
+                >
+                  <Check 
+                    className="w-2.5 h-2.5" 
+                    strokeWidth={3}
+                    style={{ color: isEnabled ? type.color : '#9ca3af' }} 
+                  />
+                  <span className={isEnabled ? '' : 'text-gray-400'} style={{ color: isEnabled ? type.color : undefined }}>
+                    {type.label}
+                  </span>
+                </button>
+              );
+            })}
+            {onSearchChange && (
+              <input
+                type="text"
+                value={searchText}
+                onChange={(e) => onSearchChange(e.target.value)}
+                placeholder="Search issues..."
+                className="px-2 py-0.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-ki-blue focus:border-ki-blue"
+                style={{ width: '150px' }}
+              />
+            )}
+            {onResetFilters && (enabledIssueTypes.size < 3 || searchText.trim()) && (
+              <button
+                onClick={onResetFilters}
+                className="px-2 py-0.5 text-xs font-medium rounded border border-gray-400 bg-white text-gray-700 hover:bg-gray-50 transition-all"
+              >
+                Reset
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="flex-1 overflow-y-auto p-4">
         {filteredIssues.length === 0 ? (

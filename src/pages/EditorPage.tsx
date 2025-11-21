@@ -36,6 +36,14 @@ export const EditorPage = () => {
   // Mobile tab state
   const [mobileTab, setMobileTab] = useState<'editor' | 'regions' | 'issues'>('regions');
   
+  // Issue type filter state (all enabled by default)
+  const [enabledIssueTypes, setEnabledIssueTypes] = useState<Set<'needs-help' | 'indexing' | 'new-word'>>(
+    new Set(['needs-help', 'indexing', 'new-word'])
+  );
+  
+  // Issue search state
+  const [issueSearchText, setIssueSearchText] = useState('');
+  
   // Mobile swipe handling
   const handleTouchStart = useRef<{ x: number; y: number } | null>(null);
   const handleTouchMove = useRef<{ x: number; y: number } | null>(null);
@@ -128,6 +136,27 @@ export const EditorPage = () => {
   const handleSaveChanges = (updates: { title?: string; comments?: string; isPrivate?: boolean; publicIssues?: boolean; lang?: string }) => {
     updateTranscription(updates);
   };
+  
+  // Issue type filter handlers
+  const toggleIssueType = (type: 'needs-help' | 'indexing' | 'new-word') => {
+    setEnabledIssueTypes(prev => {
+      const next = new Set(prev);
+      if (next.has(type)) {
+        // Don't allow disabling all types
+        if (next.size > 1) {
+          next.delete(type);
+        }
+      } else {
+        next.add(type);
+      }
+      return next;
+    });
+  };
+  
+  const resetFilters = () => {
+    setEnabledIssueTypes(new Set(['needs-help', 'indexing', 'new-word']));
+    setIssueSearchText('');
+  };
 
   const handleDeleteTranscription = () => {
     // Add a 4 second pause before navigating
@@ -140,6 +169,50 @@ export const EditorPage = () => {
   // Determine user permissions for this transcription
   const userCanEdit = canEdit(transcription, user);
   const isOwner = isAuthor(transcription, user);
+  
+  // Filter issues by enabled types and search text (only when no region selected)
+  const getFilteredIssues = () => {
+    if (!issues) return [];
+    
+    return issues
+      .filter(issue => {
+        // Filter by type
+        if (!enabledIssueTypes.has(issue.type as 'needs-help' | 'indexing' | 'new-word')) {
+          return false;
+        }
+        
+        // Filter by search text
+        if (issueSearchText.trim()) {
+          const searchLower = issueSearchText.toLowerCase();
+          return issue.text.toLowerCase().includes(searchLower);
+        }
+        
+        return true;
+      })
+      .map(issue => {
+        const linkStatus = selectedRegion?.id
+          ? issueLinkStatusesByRegion[selectedRegion.id]?.[issue.id]
+          : undefined;
+        const suggestions = selectedRegion?.id
+          ? issueSuggestionsByRegion[selectedRegion.id]?.[issue.id]
+          : undefined;
+
+        return {
+          id: issue.id,
+          text: issue.text,
+          type: issue.type as 'needs-help' | 'indexing' | 'new-word',
+          owner: issue.owner,
+          ownerFriendly: issue.ownerFriendly,
+          regionId: issue.regionId,
+          resolved: issue.resolved || false,
+          createdAt: issue.createdAt || new Date().toISOString(),
+          updatedAt: issue.updatedAt || new Date().toISOString(),
+          commentCount: issue.commentCount || 0,
+          linkStatus,
+          suggestions,
+        };
+      });
+  };
   
   // Issue management handlers
   const handleUpdateIssue = async (issueId: string, updates: { resolved?: boolean; text?: string; type?: string }) => {
@@ -233,33 +306,15 @@ export const EditorPage = () => {
               <>
                 <IssuesPanel
                   selectedRegionId={selectedRegion?.id}
-                  // TODO: why is this mapping happenning here and not our ADT?
-                  issues={(issues || []).map(issue => {
-                    const linkStatus = selectedRegion?.id
-                      ? issueLinkStatusesByRegion[selectedRegion.id]?.[issue.id]
-                      : undefined;
-                    const suggestions = selectedRegion?.id
-                      ? issueSuggestionsByRegion[selectedRegion.id]?.[issue.id]
-                      : undefined;
-
-                    return {
-                      id: issue.id,
-                      text: issue.text,
-                      type: issue.type as 'needs-help' | 'indexing' | 'new-word',
-                      owner: issue.owner, // Use actual owner UUID for permission checking
-                      ownerFriendly: issue.ownerFriendly,
-                      regionId: issue.regionId,
-                      resolved: issue.resolved || false,
-                      createdAt: issue.createdAt || new Date().toISOString(),
-                      updatedAt: issue.updatedAt || new Date().toISOString(),
-                      commentCount: issue.commentCount || 0,
-                      linkStatus,
-                      suggestions,
-                    };
-                  })}
+                  issues={getFilteredIssues()}
                   canEdit={userCanEdit}
                   onUpdateIssue={handleUpdateIssue}
                   onDeleteIssue={handleDeleteIssue}
+                  enabledIssueTypes={enabledIssueTypes}
+                  onToggleIssueType={toggleIssueType}
+                  searchText={issueSearchText}
+                  onSearchChange={setIssueSearchText}
+                  onResetFilters={resetFilters}
                 />
               </>
             )}
@@ -302,38 +357,20 @@ export const EditorPage = () => {
           )}
           
           {mobileTab === 'issues' && transcription && (
-            <div className="h-full overflow-hidden">
+            <div className="h-full overflow-hidden flex flex-col">
               <IssuesPanel
                 selectedRegionId={selectedRegion?.id}
-                // TODO: why is this mapping happenning here and not our ADT?
-                issues={(issues || []).map(issue => {
-                  const linkStatus = selectedRegion?.id
-                    ? issueLinkStatusesByRegion[selectedRegion.id]?.[issue.id]
-                    : undefined;
-                  const suggestions = selectedRegion?.id
-                    ? issueSuggestionsByRegion[selectedRegion.id]?.[issue.id]
-                    : undefined;
-
-                  return {
-                    id: issue.id,
-                    text: issue.text,
-                    type: issue.type as 'needs-help' | 'indexing' | 'new-word',
-                    owner: issue.owner, // Use actual owner UUID for permission checking
-                    ownerFriendly: issue.ownerFriendly,
-                    regionId: issue.regionId,
-                    resolved: issue.resolved || false,
-                    createdAt: issue.createdAt || new Date().toISOString(),
-                    updatedAt: issue.updatedAt || new Date().toISOString(),
-                    commentCount: issue.commentCount || 0,
-                    linkStatus,
-                    suggestions,
-                  };
-                })}
+                issues={getFilteredIssues()}
                 canEdit={userCanEdit}
                 onUpdateIssue={handleUpdateIssue}
                 onDeleteIssue={handleDeleteIssue}
                 variant="bottom-sheet"
                 onJumpToRegion={() => setMobileTab('regions')}
+                enabledIssueTypes={enabledIssueTypes}
+                onToggleIssueType={toggleIssueType}
+                searchText={issueSearchText}
+                onSearchChange={setIssueSearchText}
+                onResetFilters={resetFilters}
               />
             </div>
           )}
