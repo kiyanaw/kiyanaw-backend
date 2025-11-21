@@ -143,7 +143,7 @@ async function getDatabaseStats(lang) {
           verbs: {
             terms: {
               field: 'lemma.keyword',
-              size: 5
+              size: 500
             }
           }
         }
@@ -156,7 +156,7 @@ async function getDatabaseStats(lang) {
           nouns: {
             terms: {
               field: 'lemma.keyword',
-              size: 5
+              size: 500
             }
           }
         }
