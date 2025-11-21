@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
 import { SurfaceFormTable } from '../components/database/SurfaceFormTable';
 import { AttestationTable } from '../components/database/AttestationTable';
@@ -11,12 +11,13 @@ import { getLanguageName } from '../config/languages';
 export const DatabaseLemmaPage = () => {
   const { lemma } = useParams<{ lemma: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   
   // State
   const [selectedLang, setSelectedLang] = useState<string>('');
   const [lemmaDetails, setLemmaDetails] = useState<LemmaDetails | null>(null);
   const [attestations, setAttestations] = useState<Attestation[]>([]);
-  const [selectedSurface, setSelectedSurface] = useState<string>('');
+  const [selectedSurface, setSelectedSurface] = useState<string>(() => searchParams.get('surface') || '');
   const [loading, setLoading] = useState(true);
   const [attestationsLoading, setAttestationsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,12 +42,38 @@ export const DatabaseLemmaPage = () => {
     
     setLoading(true);
     setError(null);
-    setSelectedSurface(''); // Reset selected surface form
-    setAttestations([]); // Clear attestations
+    
+    // Check if there's a surface form in URL
+    const surfaceFromUrl = searchParams.get('surface');
+    
+    // Only reset selected surface if there's no URL param
+    if (!surfaceFromUrl) {
+      setSelectedSurface('');
+      setAttestations([]);
+    }
     
     try {
       const details = await loadLemmaDetails(decodedLemma, selectedLang || undefined);
       setLemmaDetails(details);
+      
+      // After loading lemma details, load attestations if surface is in URL
+      if (surfaceFromUrl) {
+        setSelectedSurface(surfaceFromUrl);
+        setAttestationsLoading(true);
+        try {
+          const attestationData = await loadAttestations(
+            decodedLemma, 
+            surfaceFromUrl, 
+            selectedLang || undefined
+          );
+          setAttestations(attestationData);
+        } catch (err) {
+          console.error('Failed to load attestations:', err);
+          setAttestations([]);
+        } finally {
+          setAttestationsLoading(false);
+        }
+      }
     } catch (err) {
       console.error('Failed to load lemma details:', err);
       setError(err instanceof Error ? err.message : 'Failed to load lemma details');
@@ -59,6 +86,8 @@ export const DatabaseLemmaPage = () => {
   const handleSurfaceFormClick = async (surface: string) => {
     if (!decodedLemma) return;
     
+    // Update URL with selected surface
+    setSearchParams({ surface }, { replace: true });
     setSelectedSurface(surface);
     setAttestationsLoading(true);
     

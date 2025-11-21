@@ -311,13 +311,15 @@ export const DatabaseHomePage = () => {
                       </div>
                       <div className="flex items-center gap-2 text-sm text-gray-600">
                         <ExternalLink size={14} />
-                        <a
-                          href={`/transcribe-edit/${attestation.transcriptionId}/${attestation.regionId}`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="hover:text-blue-600 underline"
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAttestationClick(attestation);
+                          }}
+                          className="hover:text-blue-600 underline text-left"
                         >
                           {attestation.transcriptionName}
-                        </a>
+                        </button>
                         <span className="text-gray-400">({formatTimestamp(attestation.timestamp)})</span>
                       </div>
                     </div>

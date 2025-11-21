@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
 import type { Attestation } from '../../services/adt';
 import { formatTimestamp } from '../../utils/timeFormat';
@@ -18,6 +19,7 @@ export const AttestationTable = ({
   loading = false,
   className = ""
 }: AttestationTableProps) => {
+  const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
@@ -116,16 +118,14 @@ export const AttestationTable = ({
               currentData.map((attestation, index) => (
                 <tr key={`${attestation.regionId}-${index}`} className="hover:bg-gray-50">
                   <td className="px-4 py-3 text-sm">
-                    <a
-                      href={getTranscriptionLink(attestation)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1"
+                    <button
+                      onClick={() => navigate(getTranscriptionLink(attestation))}
+                      className="text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1 text-left"
                       title={`Go to transcription at ${formatTimestamp(attestation.timestamp)}`}
                     >
                       <span className="truncate">{attestation.transcriptionName}</span>
                       <ExternalLink size={12} className="flex-shrink-0" />
-                    </a>
+                    </button>
                     <div className="text-xs text-gray-500 mt-1">
                       {formatTimestamp(attestation.timestamp)}
                     </div>
