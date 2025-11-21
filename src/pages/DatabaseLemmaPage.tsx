@@ -3,15 +3,23 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
 import { SurfaceFormTable } from '../components/database/SurfaceFormTable';
 import { AttestationTable } from '../components/database/AttestationTable';
+import { DatabaseTermsDialog } from '../components/database/DatabaseTermsDialog';
 import { useLemmaDetails } from '../hooks/useLemmaDetails';
 import { useAttestations } from '../hooks/useAttestations';
 import type { LemmaDetails, Attestation } from '../services/adt';
 import { getLanguageName } from '../config/languages';
 
+const DATABASE_TERMS_ACCEPTED_KEY = 'database-terms-accepted';
+
 export const DatabaseLemmaPage = () => {
   const { lemma } = useParams<{ lemma: string }>();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  
+  // Terms dialog state
+  const [showTermsDialog, setShowTermsDialog] = useState(() => {
+    return !localStorage.getItem(DATABASE_TERMS_ACCEPTED_KEY);
+  });
   
   // State
   const [selectedLang, setSelectedLang] = useState<string>('');
@@ -107,6 +115,12 @@ export const DatabaseLemmaPage = () => {
     }
   };
 
+  // Handle terms acceptance
+  const handleAcceptTerms = () => {
+    localStorage.setItem(DATABASE_TERMS_ACCEPTED_KEY, 'true');
+    setShowTermsDialog(false);
+  };
+
   // Handle back navigation
   const handleBack = () => {
     navigate('/database');
@@ -133,8 +147,12 @@ export const DatabaseLemmaPage = () => {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50">
-      {/* Page Header */}
+    <>
+      {/* Terms Dialog */}
+      {showTermsDialog && <DatabaseTermsDialog onAccept={handleAcceptTerms} />}
+      
+      <div className="h-screen flex flex-col bg-gray-50">
+        {/* Page Header */}
       <div className="bg-white border-b border-gray-200 shadow-sm flex-shrink-0">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center h-16">
@@ -229,6 +247,7 @@ export const DatabaseLemmaPage = () => {
         )}
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 };
