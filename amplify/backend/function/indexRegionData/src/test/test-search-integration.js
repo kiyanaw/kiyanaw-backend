@@ -10,6 +10,8 @@ jest.mock('../lib/es', () => ({
   client: {
     update: jest.fn(),
     deleteByQuery: jest.fn(),
+    search: jest.fn(),
+    bulk: jest.fn(),
   }
 }))
 
@@ -28,6 +30,18 @@ describe('search.js integration', () => {
     })
     client.deleteByQuery.mockResolvedValue({
       body: { deleted: 5 }
+    })
+    client.search.mockResolvedValue({
+      body: {
+        hits: {
+          hits: []
+        }
+      }
+    })
+    client.bulk.mockResolvedValue({
+      body: {
+        items: []
+      }
     })
   })
 
@@ -416,15 +430,49 @@ describe('search.js integration', () => {
 
   describe('clearKnownWordsForRegion', () => {
     it('should clear words for a region', async () => {
+      // Mock search to return some document IDs
+      client.search.mockResolvedValueOnce({
+        body: {
+          hits: {
+            hits: [
+              { _id: 'region-123-word1' },
+              { _id: 'region-123-word2' }
+            ]
+          }
+        }
+      })
+
+      // Mock bulk delete
+      client.bulk.mockResolvedValueOnce({
+        body: {
+          items: [
+            { delete: { status: 200 } },
+            { delete: { status: 200 } }
+          ]
+        }
+      })
+
       await clearKnownWordsForRegion('region-123')
 
-      expect(client.deleteByQuery).toHaveBeenCalledWith({
+      // Should have searched for documents
+      expect(client.search).toHaveBeenCalledWith({
         index: 'knownwords-undefined',
         body: {
           query: {
             term: { regionId: 'region-123' }
-          }
+          },
+          _source: false,
+          size: 1000
         }
+      })
+
+      // Should have deleted via bulk
+      expect(client.bulk).toHaveBeenCalledWith({
+        body: [
+          { delete: { _index: 'knownwords-undefined', _id: 'region-123-word1' } },
+          { delete: { _index: 'knownwords-undefined', _id: 'region-123-word2' } }
+        ],
+        refresh: false
       })
     })
 
@@ -435,7 +483,7 @@ describe('search.js integration', () => {
     })
 
     it('should handle index not found gracefully', async () => {
-      client.deleteByQuery.mockRejectedValueOnce({
+      client.search.mockRejectedValueOnce({
         meta: {
           statusCode: 404,
           body: {
