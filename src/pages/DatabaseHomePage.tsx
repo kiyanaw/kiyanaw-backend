@@ -304,8 +304,6 @@ export const DatabaseHomePage = () => {
                 <code className="bg-gray-100 px-1 rounded mx-1">foo*</code> starts with, 
                 <code className="bg-gray-100 px-1 rounded mx-1">*foo</code> ends with, 
                 <code className="bg-gray-100 px-1 rounded mx-1">*foo*</code> contains. 
-                Use <code className="bg-gray-100 px-1 rounded">"quotes"</code> for exact phrases: 
-                <code className="bg-gray-100 px-1 rounded mx-1">"wa ay"</code>
               </p>
             </div>
 
