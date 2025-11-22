@@ -9,7 +9,7 @@ export const StationaryInspector = ({
   selectedRegion,
 }: StationaryInspectorProps) => {
   return (
-    <div className="h-full flex flex-col bg-white border border-gray-300 rounded-lg overflow-hidden">
+    <div className="h-full flex flex-col min-w-0 bg-white border border-gray-300 rounded-lg overflow-hidden">
       {selectedRegion ? (
         <RegionEditor
           region={selectedRegion}

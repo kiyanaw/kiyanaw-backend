@@ -292,7 +292,7 @@ export const EditorPage = () => {
       {/* Desktop Layout - Hidden on Mobile */}
       <div className="hidden lg:flex flex-1 overflow-hidden min-h-0">
         {/* Left Side Container */}
-        <div className="flex-1 bg-white border-r border-gray-300 flex flex-col">
+        <div className="flex-1 min-w-0 bg-white border-r border-gray-300 flex flex-col">
           {/* Stationary Inspector - 50% height */}
           <div className="h-1/2 overflow-hidden flex flex-col border-b border-gray-300">
             <StationaryInspector
@@ -340,7 +340,7 @@ export const EditorPage = () => {
           onTouchEnd={onTouchEnd}
         >
           {mobileTab === 'editor' && (
-            <div className="h-full overflow-hidden">
+            <div className="h-full min-w-0 overflow-hidden">
               <StationaryInspector
                 selectedRegion={selectedRegion}
               />

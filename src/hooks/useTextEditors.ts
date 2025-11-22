@@ -48,6 +48,8 @@ export const useTextEditors = (regionId: string, activeTab: 'main' | 'translatio
       // Track text selection changes
       rteService.onSelectionChange(mainEditorKey, (range) => {
         const store = useEditorStore.getState();
+        
+        // Handle text selection for creating issues
         if (range && range.length > 0) {
           const selectedText = rteService.getSelectedText(mainEditorKey);
           if (selectedText && selectedText.trim().length > 0) {
@@ -61,6 +63,21 @@ export const useTextEditors = (regionId: string, activeTab: 'main' | 'translatio
           }
         } else {
           store.setRegionSelection(regionId, null);
+        }
+        
+        // Handle cursor position for showing analysis
+        if (range) {
+          const wordAtCursor = rteService.getWordAt(mainEditorKey, range.index);
+          if (wordAtCursor && wordAtCursor.trim().length > 0) {
+            store.setRegionCursorWord(regionId, {
+              word: wordAtCursor.trim(),
+              index: range.index
+            });
+          } else {
+            store.setRegionCursorWord(regionId, null);
+          }
+        } else {
+          store.setRegionCursorWord(regionId, null);
         }
       });
 

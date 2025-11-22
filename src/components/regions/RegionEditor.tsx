@@ -6,6 +6,7 @@ import { useDeleteRegion } from '../../hooks/useDeleteRegion';
 import { useSelectAndPlayRegion } from '../../hooks/useSelectAndPlayRegion';
 import { useCreateIssueFromSelection } from '../../hooks/useCreateIssueFromSelection';
 import { useEditorStore } from '../../stores/useEditorStore';
+import { RegionContextBar } from './RegionContextBar';
 
 interface RegionEditorProps {
   region: Region;
@@ -25,9 +26,15 @@ export const RegionEditor = memo(({
   const setSelectedRegion = useEditorStore((state) => state.setSelectedRegion);
   const regions = useEditorStore((state) => state.regions);
   const regionSelection = useEditorStore((state) => state.regionSelections[region.id]);
+  const regionCursorWord = useEditorStore((state) => state.regionCursorWords?.[region.id]);
   
   // Check if there's a text selection in the current region
   const hasSelection = regionSelection && regionSelection.length > 0 && regionSelection.text.trim().length > 0;
+  
+  // Find analysis for the word under cursor
+  const cursorWordAnalysis = regionCursorWord && region.regionAnalysis
+    ? region.regionAnalysis.find(wa => wa.word.toLowerCase() === regionCursorWord.word.toLowerCase())
+    : null;
   
   // Get the region number (1-based index)
   const regionNumber = regions.findIndex(r => r.id === region.id) + 1;
@@ -75,7 +82,7 @@ export const RegionEditor = memo(({
   }
 
   return (
-    <div className="flex flex-col h-full bg-white rounded-lg overflow-hidden">
+    <div className="flex flex-col h-full min-w-0 bg-white rounded-lg overflow-hidden">
       {/* Header with region info and toolbar */}
       <div className="flex justify-between items-center p-1.5 bg-gray-50 border-b border-gray-200">
         {/* Custom Toolbar */}
@@ -185,6 +192,12 @@ export const RegionEditor = memo(({
           {region.isNote && <span className="py-0.5 px-1.5 bg-yellow-400 text-gray-800 rounded-lg text-xs font-medium">Note</span>}
         </div>
       </div>
+
+      {/* Contextual Info Bar */}
+      <RegionContextBar 
+        cursorWordAnalysis={cursorWordAnalysis || null}
+        cursorWord={regionCursorWord?.word}
+      />
 
       {/* Editor Content */}
       <div className="flex-1 overflow-hidden">

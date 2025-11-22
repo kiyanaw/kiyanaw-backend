@@ -50,6 +50,9 @@ interface EditorState {
   // Text selection state for creating issues
   regionSelections: Record<string, { index: number; length: number; text: string } | null>;
   
+  // Cursor word state for showing analysis
+  regionCursorWords: Record<string, { word: string; index: number } | null>;
+  
   // Word analysis cache - stores full WordAnalysis objects, not just strings
   knownWords: Map<string, WordAnalysis>;
 
@@ -94,6 +97,7 @@ interface EditorState {
   setSelectedIssueId?: (issueId: string | null) => void;
   setPlaybackWithinRegion: (regionId: string | null) => void;
   setRegionSelection: (regionId: string, selection: { index: number; length: number; text: string } | null) => void;
+  setRegionCursorWord: (regionId: string, wordInfo: { word: string; index: number } | null) => void;
   addNewRegion: (region: RegionData) => void;
   deleteRegion: (regionId: string) => void;
   setRegionText: (regionId: string, text: string) => void;
@@ -178,6 +182,7 @@ export const useEditorStore = create<EditorState>()(
       regionVersions: {},
       selectedIssueId: null,
       regionSelections: {},
+      regionCursorWords: {},
       knownWords: new Map(),
       pendingEdits: {},
       conflictQueue: [],
@@ -357,6 +362,7 @@ export const useEditorStore = create<EditorState>()(
           selectedRegion: null,
           playbackWithinRegion: null,
           regionSelections: {},
+          regionCursorWords: {},
           _subscriptions: [],
         });
       },
@@ -414,6 +420,16 @@ export const useEditorStore = create<EditorState>()(
           regionSelections: {
             ...regionSelections,
             [regionId]: selection
+          }
+        });
+      },
+
+      setRegionCursorWord: (regionId, wordInfo) => {
+        const { regionCursorWords } = get();
+        set({
+          regionCursorWords: {
+            ...regionCursorWords,
+            [regionId]: wordInfo
           }
         });
       },
