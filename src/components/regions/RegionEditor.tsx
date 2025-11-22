@@ -55,10 +55,12 @@ export const RegionEditor = memo(({
     }
   };
 
-  const formatTime = (seconds: number) => {
+  const formatTime = (seconds: number, includeDecimals = true) => {
     const mins = Math.floor(seconds / 60);
-    const secs = (seconds % 60).toFixed(2);
-    return `${mins}:${secs.padStart(5, '0')}`;
+    const secs = includeDecimals 
+      ? (seconds % 60).toFixed(2)
+      : Math.floor(seconds % 60).toString();
+    return `${mins}:${secs.padStart(includeDecimals ? 5 : 2, '0')}`;
   };
 
   if (!region) {
@@ -102,6 +104,46 @@ export const RegionEditor = memo(({
             <AlertTriangle size={14} />
           </button>
 
+          {/* Divider */}
+          <div className="w-px h-7 bg-gray-300"></div>
+
+          {/* Tab Toggle Button Group */}
+          <div className="flex border border-gray-300 rounded overflow-hidden" style={{ fontSize: '12px' }}>
+            <button
+              className={`px-1.5 py-0.5 font-medium uppercase transition-all duration-200 ${
+                activeTab === 'main'
+                  ? 'bg-gray-300 text-gray-800 shadow-inner border-t border-gray-400'
+                  : canEdit 
+                    ? 'bg-white text-gray-600 hover:bg-gray-100 cursor-pointer' 
+                    : 'bg-gray-50 text-gray-400 cursor-not-allowed'
+              }`}
+              onClick={canEdit ? () => setActiveTab('main') : undefined}
+              disabled={!canEdit}
+              title="Original Text"
+            >
+              <span className="lg:hidden">OL</span>
+              <span className="hidden lg:inline">ORIG</span>
+            </button>
+            <button
+              className={`px-1.5 py-0.5 font-medium uppercase transition-all duration-200 border-l border-gray-300 ${
+                activeTab === 'translation'
+                  ? 'bg-gray-300 text-gray-800 shadow-inner border-t border-gray-400'
+                  : canEdit 
+                    ? 'bg-white text-gray-600 hover:bg-gray-100 cursor-pointer' 
+                    : 'bg-gray-50 text-gray-400 cursor-not-allowed'
+              }`}
+              onClick={canEdit ? () => setActiveTab('translation') : undefined}
+              disabled={!canEdit}
+              title="Translation"
+            >
+              <span className="lg:hidden">TR</span>
+              <span className="hidden lg:inline">TRAN</span>
+            </button>
+          </div>
+
+          {/* Divider */}
+          <div className="w-px h-7 bg-gray-300"></div>
+
           <button
             className={`flex items-center justify-center w-7 h-7 border border-gray-300 rounded-md bg-white transition-all duration-200 text-sm ${
               canEdit 
@@ -132,41 +174,16 @@ export const RegionEditor = memo(({
 
         <div className="flex items-center gap-2">
           <h3 className="m-0 text-sm font-semibold text-gray-800">Region {regionNumber}</h3>
-          <span className="text-xs text-gray-500 font-mono">
+          {/* Mobile: no decimals */}
+          <span className="lg:hidden text-xs text-gray-500 font-mono">
+            {formatTime(region.start, false)} - {formatTime(region.end, false)}
+          </span>
+          {/* Desktop: with decimals */}
+          <span className="hidden lg:inline text-xs text-gray-500 font-mono">
             {formatTime(region.start)} - {formatTime(region.end)}
           </span>
           {region.isNote && <span className="py-0.5 px-1.5 bg-yellow-400 text-gray-800 rounded-lg text-xs font-medium">Note</span>}
         </div>
-      </div>
-
-      {/* Tab Navigation */}
-      <div className="flex bg-gray-100 border-b border-gray-300">
-        <button
-          className={`flex-1 py-2 px-3 text-sm font-medium transition-all duration-200 ${
-            activeTab === 'main'
-              ? 'bg-white text-blue-600 border-b-2 border-blue-600'
-              : canEdit 
-                ? 'text-gray-600 hover:text-gray-800 hover:bg-gray-200 cursor-pointer' 
-                : 'text-gray-400 cursor-not-allowed'
-          }`}
-          onClick={canEdit ? () => setActiveTab('main') : undefined}
-          disabled={!canEdit}
-        >
-          Original Text
-        </button>
-        <button
-          className={`flex-1 py-2 px-3 text-sm font-medium transition-all duration-200 ${
-            activeTab === 'translation'
-              ? 'bg-white text-blue-600 border-b-2 border-blue-600'
-              : canEdit 
-                ? 'text-gray-600 hover:text-gray-800 hover:bg-gray-200 cursor-pointer' 
-                : 'text-gray-400 cursor-not-allowed'
-          }`}
-          onClick={canEdit ? () => setActiveTab('translation') : undefined}
-          disabled={!canEdit}
-        >
-          Translation
-        </button>
       </div>
 
       {/* Editor Content */}
