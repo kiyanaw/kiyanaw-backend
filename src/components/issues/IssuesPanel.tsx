@@ -567,7 +567,7 @@ export const IssuesPanel = ({
         }
       `}</style>
       <div className="flex flex-col h-full bg-white rounded-lg overflow-hidden">
-      <div className="flex justify-between items-center p-4 bg-gray-50 border-b border-gray-200">
+      <div className="flex justify-between items-center py-2 px-4 bg-gray-50 border-b border-gray-200">
         <div className="flex items-center gap-2">
           {(() => {
             // Count only unresolved issues (unless showResolved is true)
@@ -577,7 +577,7 @@ export const IssuesPanel = ({
               return matchesResolvedFilter && matchesRegion;
             }).length;
             return (
-              <h3 className="m-0 text-lg font-semibold text-gray-800">{`Issues (${count})`}</h3>
+              <h3 className="m-0 text-sm font-semibold text-gray-800">{`Issues (${count})`}</h3>
             );
           })()}
           {(() => {
