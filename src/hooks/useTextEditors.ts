@@ -40,8 +40,8 @@ export const useTextEditors = (regionId: string, activeTab: 'main' | 'translatio
       rteService.setContent(mainEditorKey, currentRegion.regionText);
     }
 
-    // Always run matching/highlighting on attach to compute link statuses
-    rteService.updateIssueHighlighting(regionId);
+    // Note: highlighting is now automatic via rteService's store subscription
+    // attach() method triggers initial highlighting
 
     // Set up text change listener only if user can edit
     if (canEdit) {
@@ -114,11 +114,9 @@ export const useTextEditors = (regionId: string, activeTab: 'main' | 'translatio
         // Update store immediately for UI responsiveness
         services.storeService.setRegionText(regionId, text);
 
-        // IMMEDIATELY apply highlighting and run issue matching detection
-        // This solves format inheritance and word splitting issues
-        rteService.updateIssueHighlighting(regionId);
-
-        // Queue through save manager (handles spell check + save)
+        // Queue through save manager (handles spell check + save + highlighting)
+        // The save manager will handle all highlighting updates (known words, ambiguous words, issues)
+        // after spell check completes to avoid race conditions
         regionSaveManager.queueTextChange(regionId, text);
       });
     }

@@ -1045,8 +1045,14 @@ export const useEditorStore = create<EditorState>()(
             // Words with empty analysis should not be in the known words cache
             if (word.analysis && word.analysis !== '' && 
                 word.allAnalysis && word.allAnalysis.length > 0) {
-              // Store the FULL WordAnalysis object, not just the word string
-              newKnownWords.set(word.word, word);
+              // Store the WordAnalysis WITHOUT the source field
+              // The global cache is region-agnostic - each region decides its own source
+              newKnownWords.set(word.word, {
+                word: word.word,
+                analysis: word.analysis,
+                allAnalysis: word.allAnalysis,
+                // Explicitly omit 'source' and 'index' - these are region-specific
+              });
             }
             // Skip words with empty analysis - they need to be re-analyzed
           } else {

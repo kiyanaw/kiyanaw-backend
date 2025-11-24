@@ -150,18 +150,8 @@ class RegionSaveManagerImpl {
       }
       
       // Save merged analysis
+      // The rteService will automatically update highlighting via its store subscription
       store.setRegionAnalysis(regionId, result.analysis);
-      
-      // Update RTE highlighting using ONLY this region's saved analysis
-      const mainEditorKey = `${regionId}:main` as const;
-      if (services.rteService.hasEditor(mainEditorKey)) {
-        const issues = store.getIssuesForRegion(regionId);
-        const issueHighlights = issueHighlightService.convertIssuesToHighlights(issues);
-        services.rteService.applyHighlighting(mainEditorKey, {
-          knownWords: result.analysis.map(item => item.word),
-          issues: issueHighlights
-        });
-      }
       
       console.debug(`📊 SAVE-MANAGER: Spell check results for ${regionId}:`, {
         newlyKnown: result.newlyKnown.length,

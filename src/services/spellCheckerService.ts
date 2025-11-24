@@ -250,13 +250,28 @@ class SpellCheckerServiceImpl {
     uniqueWords.forEach(word => {
       if (freshAnalysisMap.has(word)) {
         // 1. Fresh analysis from API takes highest priority
-        mergedAnalysis.push(freshAnalysisMap.get(word)!);
+        // Always mark as 'auto' since this is fresh from the API
+        const fresh = freshAnalysisMap.get(word)!;
+        mergedAnalysis.push({
+          ...fresh,
+          source: 'auto'
+        });
       } else if (globalKnownWords.has(word)) {
         // 2. Get full analysis from global cache
-        const cachedAnalysis = globalKnownWords.get(word)!;
-        mergedAnalysis.push(cachedAnalysis);
+        // Check if we have existing analysis for this word in THIS region
+        if (existingAnalysisMap.has(word)) {
+          // Preserve existing analysis (including source) from this region
+          mergedAnalysis.push(existingAnalysisMap.get(word)!);
+        } else {
+          // New word in this region - use cache but reset source to 'auto'
+          const cachedAnalysis = globalKnownWords.get(word)!;
+          mergedAnalysis.push({
+            ...cachedAnalysis,
+            source: 'auto'
+          });
+        }
       } else if (existingAnalysisMap.has(word)) {
-        // 3. Fallback to existing region analysis
+        // 3. Fallback to existing region analysis (preserve source)
         mergedAnalysis.push(existingAnalysisMap.get(word)!);
       }
       // If none of the above, skip (unknown word with no analysis)

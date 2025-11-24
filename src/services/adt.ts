@@ -162,6 +162,8 @@ export interface WordAnalysis {
   word: string;
   analysis: string;           // The primary analysis to use
   allAnalysis: string[];      // All available analyses
+  source?: 'auto' | 'user';   // Source of the analysis selection (default: 'auto')
+  index?: number;             // Position/index in the text (for handling duplicates)
 }
 
 export interface SpellCheckResult {

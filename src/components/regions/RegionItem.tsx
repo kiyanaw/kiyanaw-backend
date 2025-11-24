@@ -44,13 +44,22 @@ export const RegionItem = ({
     // ONLY use this region's own analysis, not the global cache
     // This makes it visually clear which words still need analysis
     const regionAnalysis = region.regionAnalysis || [];
-    const knownWords = new Set(
-      Array.isArray(regionAnalysis) 
-        ? regionAnalysis
-            .filter(item => typeof item === 'object' && item !== null && 'word' in item)
-            .map(item => (item as { word: string }).word)
-        : []
-    );
+    const knownWords = new Set<string>();
+    const ambiguousWords = new Set<string>();
+    
+    if (Array.isArray(regionAnalysis)) {
+      regionAnalysis
+        .filter(item => typeof item === 'object' && item !== null && 'word' in item)
+        .forEach(item => {
+          const analysis = item as { word: string; allAnalysis?: string[]; source?: 'auto' | 'user' };
+          knownWords.add(analysis.word);
+          
+          // Mark as ambiguous if multiple analyses and not user-selected
+          if (analysis.allAnalysis && analysis.allAnalysis.length > 1 && analysis.source !== 'user') {
+            ambiguousWords.add(analysis.word);
+          }
+        });
+    }
     
     // Convert issues to highlights for text highlighting
     const issueHighlights = issueHighlightService.convertIssuesToHighlights(issues);
@@ -58,6 +67,7 @@ export const RegionItem = ({
     // Apply highlighting using ONLY this region's analysis
     return textHighlightService.generateHTMLWithOptions(region.regionText, {
       knownWords,
+      ambiguousWords,
       issues: issueHighlights
     });
   }, [region?.regionText, region?.regionAnalysis, issues]);
@@ -102,7 +112,7 @@ export const RegionItem = ({
             <span className="block font-mono font-bold text-red-600">{formatTime(region.end)}</span>
           </div>
           <div
-            className="pr-4 leading-relaxed [&_.known-word]:text-blue-600 [&_.unknown-word]:bg-red-50 [&_.unknown-word]:text-red-800 [&_.proper-noun]:font-bold [&_.proper-noun]:text-blue-700 [&_.emphasis]:italic [&_.strong]:font-bold [&_.issue-needs-help]:bg-red-50 [&_.issue-needs-help]:text-red-800 [&_.issue-needs-help]:px-0.5 [&_.issue-needs-help]:rounded [&_.issue-indexing]:bg-yellow-50 [&_.issue-indexing]:text-yellow-800 [&_.issue-indexing]:px-0.5 [&_.issue-indexing]:rounded [&_.issue-new-word]:bg-green-50 [&_.issue-new-word]:text-green-800 [&_.issue-new-word]:px-0.5 [&_.issue-new-word]:rounded [&_.issue-comment-icon]:inline-flex [&_.issue-comment-icon]:items-center [&_.issue-comment-icon]:opacity-70 [&_.issue-comment-icon]:ml-1 empty:before:content-['No_text_content'] empty:before:text-gray-400 empty:before:italic"
+            className="pr-4 leading-relaxed [&_.known-word]:text-blue-600 [&_.ambiguous-word]:text-blue-600 [&_.ambiguous-word]:underline [&_.ambiguous-word]:decoration-blue-300 [&_.ambiguous-word]:decoration-2 [&_.unknown-word]:bg-red-50 [&_.unknown-word]:text-red-800 [&_.proper-noun]:font-bold [&_.proper-noun]:text-blue-700 [&_.emphasis]:italic [&_.strong]:font-bold [&_.issue-needs-help]:bg-red-50 [&_.issue-needs-help]:text-red-800 [&_.issue-needs-help]:px-0.5 [&_.issue-needs-help]:rounded [&_.issue-indexing]:bg-yellow-50 [&_.issue-indexing]:text-yellow-800 [&_.issue-indexing]:px-0.5 [&_.issue-indexing]:rounded [&_.issue-new-word]:bg-green-50 [&_.issue-new-word]:text-green-800 [&_.issue-new-word]:px-0.5 [&_.issue-new-word]:rounded [&_.issue-comment-icon]:inline-flex [&_.issue-comment-icon]:items-center [&_.issue-comment-icon]:opacity-70 [&_.issue-comment-icon]:ml-1 empty:before:content-['No_text_content'] empty:before:text-gray-400 empty:before:italic"
             dangerouslySetInnerHTML={{ __html: renderTextContent }}
           />
           <span className="absolute top-0 right-1 text-3xl font-black text-gray-200 pointer-events-none">{index + 1}</span>

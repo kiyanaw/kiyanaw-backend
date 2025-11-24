@@ -10,6 +10,21 @@ import { issueHighlightService } from './issueHighlightService';
 import { issueMatchingService } from './issueMatchingService';
 import { REGION_TEXT_MATCH_PATTERN } from '../constants/text-patterns';
 
+const ISSUE_FORMATS = ['issue-needs-help', 'issue-indexing', 'issue-new-word'] as const;
+type IssueFormatName = typeof ISSUE_FORMATS[number];
+
+interface DeltaInstance {
+  ops: Array<Record<string, unknown>>;
+  retain(count: number, attributes?: Record<string, unknown>): DeltaInstance;
+}
+
+type DeltaConstructor = {
+  new (): DeltaInstance;
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const Delta = Quill.import('delta') as DeltaConstructor;
+
 // Quill-related interfaces
 interface QuillModulesConfig extends Record<string, unknown> {
   toolbar?: boolean | object;
@@ -182,10 +197,37 @@ class IssueNewWordBlot extends Inline implements BlotInstance {
   }
 }
 
+class AmbiguousWordBlot extends Inline implements BlotInstance {
+  declare domNode: HTMLElement;
+  
+  static blotName = 'ambiguous-word';
+  static tagName = 'span';
+  static className = 'ambiguous-word';
+  
+  static create() {
+    const node = super.create();
+    node.setAttribute('class', 'ambiguous-word');
+    return node;
+  }
+  
+  static formats(node: HTMLElement) {
+    return node.getAttribute('class') === 'ambiguous-word';
+  }
+  
+  format(name: string, value: boolean | string) {
+    if (name !== 'ambiguous-word' || !value) {
+      super.format(name, value);
+    } else {
+      this.domNode.setAttribute('class', 'ambiguous-word');
+    }
+  }
+}
+
 Quill.register('formats/known-word', KnownWordBlot);
 Quill.register('formats/issue-needs-help', IssueNeedsHelpBlot);
 Quill.register('formats/issue-indexing', IssueIndexingBlot);
 Quill.register('formats/issue-new-word', IssueNewWordBlot);
+Quill.register('formats/ambiguous-word', AmbiguousWordBlot);
 
 // Custom formats are now defined in src/index.css
 
@@ -206,9 +248,119 @@ interface RTEInstance {
   textChangeCallback?: (text: string) => void;
 }
 
+interface EditorDebugInfo {
+  version: number;
+  lastEvent: string;
+  lastTimestamp: number;
+  lastDetails?: Record<string, unknown>;
+}
+
 class RTEServiceImpl {
   private registry = new Map<EditorKey, RTEInstance>();
   private offScreenParent: HTMLElement | null = null;
+  private highlightingQueues = new Map<EditorKey, Promise<void>>();
+  private storeUnsubscribe: (() => void) | null = null;
+  private previousRegionAnalysisState = new Map<string, unknown>();
+  private editorDebugInfo = new Map<EditorKey, EditorDebugInfo>();
+  private highlightOperationCounter = 0;
+  private editorVersions = new Map<EditorKey, number>();
+
+  private isEditorConnected(instance?: RTEInstance | null): boolean {
+    if (!instance || !instance.quill) {
+      return false;
+    }
+
+    try {
+      const { container } = instance.quill;
+      return Boolean(container?.isConnected);
+    } catch {
+      return false;
+    }
+  }
+
+  private updateDebugInfo(
+    key: EditorKey,
+    event: string,
+    details: Record<string, unknown> = {}
+  ): void {
+    const existing = this.editorDebugInfo.get(key) ?? {
+      version: 0,
+      lastEvent: 'init',
+      lastTimestamp: 0,
+    };
+
+    const { incrementVersion, ...restDetails } = details;
+    const nextInfo: EditorDebugInfo = {
+      version: incrementVersion ? existing.version + 1 : existing.version,
+      lastEvent: event,
+      lastTimestamp: Date.now(),
+      lastDetails: restDetails,
+    };
+
+    this.editorDebugInfo.set(key, nextInfo);
+    // eslint-disable-next-line no-console
+    console.debug(`[RTE][${key}] ${event}`, {
+      version: nextInfo.version,
+      timestamp: nextInfo.lastTimestamp,
+      details: { incrementVersion, ...restDetails },
+    });
+  }
+
+  private getDebugSnapshot(key: EditorKey): EditorDebugInfo | null {
+    const info = this.editorDebugInfo.get(key);
+    return info ? { ...info } : null;
+  }
+
+  constructor() {
+    // Store subscription will be initialized lazily on first attach
+  }
+
+  /**
+   * Subscribe to store changes and automatically trigger highlighting updates
+   * when regionAnalysis changes for any region
+   */
+  private initializeStoreSubscription(): void {
+    // Already subscribed
+    if (this.storeUnsubscribe) return;
+
+    // Only initialize in browser environment and if subscribe exists
+    if (typeof window === 'undefined') return;
+    if (typeof useEditorStore.subscribe !== 'function') return;
+
+    this.storeUnsubscribe = useEditorStore.subscribe((state) => {
+      // Check each region that has an active editor
+      const regionsToUpdate: string[] = [];
+      
+      state.regions.forEach((region) => {
+        const editorKey = `${region.id}:main` as EditorKey;
+        
+        // Only process if this region has an active editor
+        if (!this.hasEditor(editorKey)) {
+          return;
+        }
+
+        // Check if regionAnalysis changed for this region
+        const currentAnalysis = region.regionAnalysis;
+        const previousAnalysis = this.previousRegionAnalysisState.get(region.id);
+        
+        // Simple reference equality check - if the array reference changed, update
+        if (currentAnalysis !== previousAnalysis) {
+          // Update our tracking
+          this.previousRegionAnalysisState.set(region.id, currentAnalysis);
+          regionsToUpdate.push(region.id);
+        }
+      });
+
+      // CRITICAL: Defer highlighting updates to next animation frame to avoid React-Quill corruption
+      // Zustand subscriptions fire synchronously during React's event handling
+      // We must wait for the browser to paint before touching Quill
+      if (regionsToUpdate.length > 0) {
+        regionsToUpdate.forEach(regionId => {
+          this.updateIssueHighlighting(regionId);
+        });
+      }
+    });
+  }
 
   private getOffScreenParent(): HTMLElement {
     if (!this.offScreenParent && typeof document !== 'undefined') {
@@ -247,7 +399,7 @@ class RTEServiceImpl {
           matchVisual: false,
         },
       },
-      formats: ['bold', 'italic', 'underline', 'color', 'background', 'known-word', 'issue-needs-help', 'issue-indexing', 'issue-new-word']
+      formats: ['bold', 'italic', 'underline', 'color', 'background', 'known-word', 'ambiguous-word', 'issue-needs-help', 'issue-indexing', 'issue-new-word']
     };
 
     const defaultTranslationConfig = {
@@ -281,6 +433,8 @@ class RTEServiceImpl {
     };
     
     this.registry.set(key, rteInstance);
+    this.updateDebugInfo(key, 'editor-created', { incrementVersion: true, editorType });
+    this.editorVersions.set(key, (this.editorVersions.get(key) ?? 0) + 1);
 
     // Add to window for debugging
     if (typeof window !== 'undefined') {
@@ -300,13 +454,30 @@ class RTEServiceImpl {
       throw new Error(`RTE instance not found for key: ${key}`);
     }
 
+    // Initialize store subscription lazily on first attach
+    this.initializeStoreSubscription();
+
     // Remove from current parent (if any)
     if (instance.container.parentNode) {
       instance.container.parentNode.removeChild(instance.container);
     }
 
+    const regionId = key.split(':')[0];
+    const state = useEditorStore.getState();
+    const region = state.regionById(regionId);
+    if (region) {
+      this.previousRegionAnalysisState.set(regionId, region.regionAnalysis);
+    }
+
     // Attach to new host
     hostElement.appendChild(instance.container);
+    const version = this.editorVersions.get(key) ?? 0;
+    this.updateDebugInfo(key, 'editor-attached', {
+      host: hostElement.className || hostElement.id || 'unknown',
+      regionId,
+      incrementVersion: true,
+      version,
+    });
 
     // Set readonly state based on config
     if (instance.config.readonly) {
@@ -314,6 +485,9 @@ class RTEServiceImpl {
     } else {
       instance.quill.enable();
     }
+
+    // Trigger initial highlighting
+    this.updateIssueHighlighting(regionId);
   }
 
   detach(key: EditorKey): void {
@@ -327,7 +501,16 @@ class RTEServiceImpl {
       instance.container.parentNode.removeChild(instance.container);
     }
     
+    const regionId = key.split(':')[0];
     this.getOffScreenParent().appendChild(instance.container);
+    this.editorVersions.set(key, (this.editorVersions.get(key) ?? 0) + 1);
+    this.updateDebugInfo(key, 'editor-detached', {
+      regionId,
+      version: this.editorVersions.get(key),
+    });
+
+    // Clean up tracking for this region
+    this.previousRegionAnalysisState.delete(regionId);
   }
 
   destroy(key: EditorKey): void {
@@ -338,13 +521,8 @@ class RTEServiceImpl {
 
     // Clean up event listeners - Quill will handle cleanup when DOM element is removed
 
-    // Clear any pending highlighting timeouts for this region
-    const regionId = key.split(':')[0];
-    const existingTimeout = this.highlightingTimeouts.get(regionId);
-    if (existingTimeout) {
-      clearTimeout(existingTimeout);
-      this.highlightingTimeouts.delete(regionId);
-    }
+    // Cancel any pending highlighting queue for this editor
+    this.highlightingQueues.delete(key);
 
     // Remove from DOM
     if (instance.container.parentNode) {
@@ -353,6 +531,9 @@ class RTEServiceImpl {
 
     // Remove from registry
     this.registry.delete(key);
+    this.editorDebugInfo.delete(key);
+    this.editorVersions.delete(key);
+    this.updateDebugInfo(key, 'editor-destroyed', { incrementVersion: true });
   }
 
   // Utility method to get quill instance (for direct manipulation if needed)
@@ -521,113 +702,430 @@ class RTEServiceImpl {
     });
   }
 
+  /**
+   * Queue a highlighting update to prevent concurrent modifications
+   * This ensures only one highlighting operation runs at a time per editor
+   */
+  queueHighlightingUpdate(
+    key: EditorKey,
+    options: { knownWords?: string[]; issues?: IssueHighlight[]; ambiguousWords?: string[] }
+  ): Promise<void> {
+    const editorVersion = this.editorVersions.get(key) ?? 0;
+    const hasExistingQueue = this.highlightingQueues.has(key);
+    const existingQueue = this.highlightingQueues.get(key) || Promise.resolve();
+    const operationId = ++this.highlightOperationCounter;
+
+    this.updateDebugInfo(key, 'highlight-queue-scheduled', {
+      operationId,
+      hasExistingQueue,
+      knownWords: options.knownWords?.length ?? 0,
+      ambiguousWords: options.ambiguousWords?.length ?? 0,
+      issues: options.issues?.length ?? 0,
+      editorVersion,
+    });
+
+    // Chain the new operation onto the existing queue
+    const newQueue = existingQueue
+      .then(() => {
+        this.updateDebugInfo(key, 'highlight-queue-run', { operationId });
+        this.applyHighlightingInternal(key, options, { operationId, editorVersion });
+        this.updateDebugInfo(key, 'highlight-queue-complete', { operationId });
+      })
+      .catch((error) => {
+        const snapshot = this.getDebugSnapshot(key);
+        console.warn(`Highlighting queue error for ${key}:`, error, {
+          operationId,
+          snapshot,
+        });
+        // Don't propagate the error - let the queue continue
+      });
+    
+    // Store the new queue
+    this.highlightingQueues.set(key, newQueue);
+    
+    // Clean up the queue after it completes
+    newQueue.finally(() => {
+      if (this.highlightingQueues.get(key) === newQueue) {
+        this.highlightingQueues.delete(key);
+      }
+    });
+    
+    return newQueue;
+  }
+
+  /**
+   * @deprecated Use queueHighlightingUpdate instead to prevent race conditions
+   */
+  applyHighlighting(key: EditorKey, options: { knownWords?: string[]; issues?: IssueHighlight[]; ambiguousWords?: string[] }): void {
+    // For backwards compatibility, synchronously call the internal method
+    // New code should use queueHighlightingUpdate
+    this.applyHighlightingInternal(key, options);
+  }
+
   // Apply both known words and issue formatting (issues take priority)
   // Uses selective formatting removal to avoid cursor jumping
-  applyHighlighting(key: EditorKey, options: { knownWords?: string[]; issues?: IssueHighlight[] }): void {
+  private applyHighlightingInternal(
+    key: EditorKey,
+    options: { knownWords?: string[]; issues?: IssueHighlight[]; ambiguousWords?: string[] },
+    debugContext: { operationId?: number; editorVersion?: number } = {}
+  ): void {
     const instance = this.registry.get(key);
     if (!instance) {
       return;
     }
 
-    // Validate that the Quill editor is still mounted and functional
-    try {
-      if (!instance.quill || !instance.quill.container || !instance.quill.container.isConnected) {
-        console.warn(`🚫 Skipping highlighting for ${key} - editor no longer mounted`);
-        return;
-      }
-    } catch (error) {
-      console.warn(`🚫 Skipping highlighting for ${key} - editor validation failed:`, error);
+    if (!this.isEditorConnected(instance)) {
+      console.warn(`🚫 Skipping highlighting for ${key} - editor no longer mounted`);
       return;
     }
 
     const text = instance.quill.getText();
     if (!text) return;
 
-    const { knownWords = [], issues = [] } = options;
+    const { knownWords = [], issues = [], ambiguousWords = [] } = options;
 
     // Capture current selection to restore after formatting (Safari fix)
     const currentSelection = instance.quill.getSelection();
 
-    // Get what should be formatted
+    const textLength = text.length;
+
     const knownWordsSet = new Set(knownWords);
-    const desiredKnownWordMatches = knownWords.length > 0 ? 
-      textHighlightService.findMatches(text, knownWordsSet) : [];
-    const desiredIssueMatches = issues.length > 0 ? 
-      this.findIssueMatches(text, issues) : [];
+    const ambiguousWordsSet = new Set(ambiguousWords);
 
-    // Create sets for quick lookup of what should be formatted
-    const shouldBeKnownWord = new Set<string>();
-    const shouldBeIssue = new Map<string, { type: IssueType; id: string }>();
+    const desiredKnownWordMatches = knownWords.length > 0
+      ? textHighlightService.findMatches(text, knownWordsSet)
+      : [];
 
-    desiredKnownWordMatches.forEach(match => {
-      for (let i = match.index; i < match.index + match.length; i++) {
-        shouldBeKnownWord.add(`${i}`);
-      }
+    const desiredAmbiguousWordMatches = ambiguousWords.length > 0
+      ? textHighlightService.findMatches(text, ambiguousWordsSet)
+      : [];
+
+    const desiredIssueMatches = issues.length > 0
+      ? this.findIssueMatches(text, issues)
+      : [];
+
+    const toRange = (match: { index: number; length: number }) => ({
+      start: match.index,
+      end: match.index + match.length,
     });
 
-    desiredIssueMatches.forEach(match => {
-      for (let i = match.index; i < match.index + match.length; i++) {
-        shouldBeKnownWord.delete(`${i}`); // Issues override known words
-        shouldBeIssue.set(`${i}`, { type: match.type, id: match.id });
-      }
+    const rangesOverlap = (
+      start: number,
+      end: number,
+      ranges: Array<{ start: number; end: number }>
+    ): boolean => ranges.some(range => start < range.end && end > range.start);
+
+    const issueRanges = desiredIssueMatches.map(toRange);
+    const ambiguousRanges = desiredAmbiguousWordMatches.map(toRange);
+
+    const filteredKnownMatches = desiredKnownWordMatches.filter(match => {
+      const start = match.index;
+      const end = match.index + match.length;
+      return !rangesOverlap(start, end, issueRanges) && !rangesOverlap(start, end, ambiguousRanges);
     });
 
-    // Scan through the text and selectively remove/add formatting
-    // Use batch updates to prevent React-Quill corruption with overlapping formats
-    const formatUpdates: Array<{ index: number; length: number; format: string; value: boolean | string }> = [];
-    let i = 0;
+    const filteredAmbiguousMatches = desiredAmbiguousWordMatches.filter(match => {
+      const start = match.index;
+      const end = match.index + match.length;
+      return !rangesOverlap(start, end, issueRanges);
+    });
 
-    while (i < text.length) {
-      try {
-        const currentFormat = instance.quill.getFormat(i, 1);
-        const posKey = `${i}`;
+    type SimpleRange = { start: number; end: number };
+    type IssueRange = SimpleRange & { type: IssueType; id: string | null };
+    type FormatOperation = {
+      index: number;
+      length: number;
+      value: boolean | string | null;
+      phase: 'remove' | 'add';
+      origin: 'known' | 'ambiguous' | 'issue';
+      formatName: string;
+    };
 
-        // Check known-word formatting
-        const hasKnownWord = currentFormat['known-word'];
-        const shouldHaveKnownWord = shouldBeKnownWord.has(posKey);
+    const desiredKnownRanges: SimpleRange[] = filteredKnownMatches.map(toRange);
+    const desiredAmbiguousRanges: SimpleRange[] = filteredAmbiguousMatches.map(toRange);
+    const desiredIssueRanges: IssueRange[] = desiredIssueMatches.map(match => ({
+      ...toRange(match),
+      type: match.type,
+      id: match.id,
+    }));
 
-        if (hasKnownWord && !shouldHaveKnownWord) {
-          // Remove known-word formatting
-          formatUpdates.push({ index: i, length: 1, format: 'known-word', value: false });
-        } else if (!hasKnownWord && shouldHaveKnownWord) {
-          // Add known-word formatting
-          formatUpdates.push({ index: i, length: 1, format: 'known-word', value: true });
-        }
-
-        // Check issue formatting
-        const issueFormats = ['issue-needs-help', 'issue-indexing', 'issue-new-word'] as const;
-        const shouldHaveIssue = shouldBeIssue.get(posKey);
-
-        for (const formatName of issueFormats) {
-          const hasIssueFormat = currentFormat[formatName];
-          const shouldHaveThisIssueFormat = shouldHaveIssue && `issue-${shouldHaveIssue.type}` === formatName;
-
-          if (hasIssueFormat && !shouldHaveThisIssueFormat) {
-            // Remove this issue formatting
-            formatUpdates.push({ index: i, length: 1, format: formatName, value: false });
-          } else if (!hasIssueFormat && shouldHaveThisIssueFormat) {
-            // Add this issue formatting
-            formatUpdates.push({ index: i, length: 1, format: formatName, value: shouldHaveIssue.id });
-          }
-        }
-      } catch (error) {
-        console.warn(`🚫 Failed to check format at position ${i} for ${key}:`, error);
-        // Skip this position and continue
-      }
-
-      i++;
+    const operationId = debugContext.operationId ?? null;
+    const expectedVersion = debugContext.editorVersion ?? null;
+    const currentVersion = this.editorVersions.get(key) ?? 0;
+    if (expectedVersion !== null && expectedVersion !== currentVersion) {
+      this.updateDebugInfo(key, 'highlight-skip-stale-version', {
+        operationId,
+        expectedVersion,
+        currentVersion,
+      });
+      return;
     }
 
-    // Apply formatting updates in batches to prevent React-Quill corruption
-    // Group updates by type to minimize conflicts
-    const knownWordUpdates = formatUpdates.filter(u => u.format === 'known-word');
-    const issueUpdates = formatUpdates.filter(u => u.format.startsWith('issue-'));
-    
-    // Apply known-word formatting first (lower priority)
-    this.applyFormatBatch(instance, key, knownWordUpdates);
-    
-    // Then apply issue formatting (higher priority, may override known words)
-    this.applyFormatBatch(instance, key, issueUpdates);
+    this.updateDebugInfo(key, 'highlight-apply-start', {
+      operationId,
+      knownWords: knownWords.length,
+      ambiguousWords: ambiguousWords.length,
+      issues: issues.length,
+    });
+
+    const queueFormatOperation = (
+      target: FormatOperation[],
+      index: number,
+      length: number,
+      value: boolean | string | null,
+      phase: 'remove' | 'add',
+      origin: 'known' | 'ambiguous' | 'issue',
+      formatName: string
+    ): void => {
+      if (length <= 0 || index < 0 || index >= textLength) {
+        return;
+      }
+
+      const safeLength = Math.min(length, textLength - index);
+      if (safeLength <= 0) {
+        return;
+      }
+      target.push({ index, length: safeLength, value, phase, origin, formatName });
+    };
+
+    const applyConsolidatedDelta = (
+      operations: FormatOperation[],
+      phase: 'remove' | 'add'
+    ): void => {
+      const subset = operations
+        .filter(op => op.phase === phase)
+        .sort((a, b) => a.index - b.index);
+
+      if (subset.length === 0 || !this.isEditorConnected(instance)) {
+        return;
+      }
+
+      // Build a single delta that applies ALL format changes at once
+      // This groups changes by position to minimize Quill's optimization cycles
+      const delta = new Delta();
+      let cursor = 0;
+
+      for (const op of subset) {
+        if (!this.isEditorConnected(instance)) {
+          return;
+        }
+
+        if (op.index > cursor) {
+          delta.retain(op.index - cursor);
+          cursor = op.index;
+        }
+
+        const attrValue =
+          phase === 'remove'
+            ? null
+            : op.value === null
+              ? true
+              : op.value;
+
+        delta.retain(op.length, { [op.formatName]: attrValue });
+        cursor = op.index + op.length;
+      }
+
+      if (delta.ops.length === 0) {
+        return;
+      }
+
+      try {
+        this.updateDebugInfo(key, 'highlight-delta-apply', {
+          operationId,
+          phase,
+          operations: subset.length,
+          formats: [...new Set(subset.map(op => op.formatName))].join(', '),
+        });
+        instance.quill.updateContents(delta as Parameters<QuillInstance['updateContents']>[0], 'silent');
+      } catch (error) {
+        const isCorruption =
+          error instanceof Error && error.message.includes('mutations');
+
+        if (isCorruption) {
+          const snapshot = this.getDebugSnapshot(key);
+          console.warn(`🔄 Highlight delta corruption for ${key}`, {
+            operationId,
+            phase,
+            operations: subset.length,
+            snapshot,
+          });
+          throw error;
+        }
+
+        console.warn(`🚫 Failed to apply consolidated delta for ${key}:`, error);
+      }
+    };
+
+    const collectCurrentRanges = (): {
+      known: SimpleRange[];
+      ambiguous: SimpleRange[];
+      issues: IssueRange[];
+    } => {
+      if (!this.isEditorConnected(instance)) {
+        return { known: [], ambiguous: [], issues: [] };
+      }
+
+      const contents = instance.quill.getContents();
+      const known: SimpleRange[] = [];
+      const ambiguous: SimpleRange[] = [];
+      const issues: IssueRange[] = [];
+
+      let cursor = 0;
+      for (const op of contents.ops ?? []) {
+        const insert = op.insert;
+        const segment = typeof insert === 'string' ? insert : '\uFFFC';
+        const segmentLength = segment.length;
+        if (segmentLength === 0) {
+          continue;
+        }
+
+        const attrs = op.attributes || {};
+
+        if (attrs['known-word']) {
+          known.push({ start: cursor, end: cursor + segmentLength });
+        }
+
+        if (attrs['ambiguous-word']) {
+          ambiguous.push({ start: cursor, end: cursor + segmentLength });
+        }
+
+        for (const formatName of ISSUE_FORMATS) {
+          const value = attrs[formatName];
+          if (value) {
+            const type = formatName.replace('issue-', '') as IssueType;
+            issues.push({
+              start: cursor,
+              end: cursor + segmentLength,
+              type,
+              id: typeof value === 'string' ? value : null,
+            });
+          }
+        }
+
+        cursor += segmentLength;
+      }
+
+      return { known, ambiguous, issues };
+    };
+
+    const rangeKey = (range: SimpleRange) => `${range.start}-${range.end}`;
+    const issueRangeKey = (range: IssueRange) => `${range.start}-${range.end}-${range.type}`;
+
+    const diffSimpleFormat = (
+      current: SimpleRange[],
+      desired: SimpleRange[],
+      queue: (range: SimpleRange, shouldExist: boolean) => void
+    ) => {
+      const currentMap = new Map(current.map(range => [rangeKey(range), range]));
+      const desiredMap = new Map(desired.map(range => [rangeKey(range), range]));
+
+      currentMap.forEach((range, key) => {
+        if (!desiredMap.has(key)) {
+          queue(range, false);
+        }
+      });
+
+      desiredMap.forEach((range, key) => {
+        if (!currentMap.has(key)) {
+          queue(range, true);
+        }
+      });
+    };
+
+    const knownOperations: FormatOperation[] = [];
+    const ambiguousOperations: FormatOperation[] = [];
+    const issueOperations: Record<IssueFormatName, FormatOperation[]> = {
+      'issue-needs-help': [],
+      'issue-indexing': [],
+      'issue-new-word': [],
+    };
+
+    const diffIssueFormats = (current: IssueRange[], desired: IssueRange[]) => {
+      const currentMap = new Map(current.map(range => [issueRangeKey(range), range]));
+      const desiredMap = new Map(desired.map(range => [issueRangeKey(range), range]));
+
+      currentMap.forEach((range, key) => {
+        if (!desiredMap.has(key)) {
+          const formatName = `issue-${range.type}` as IssueFormatName;
+          queueFormatOperation(
+            issueOperations[formatName],
+            range.start,
+            range.end - range.start,
+            false,
+            'remove',
+            'issue',
+            formatName
+          );
+        }
+      });
+
+      desiredMap.forEach((range, key) => {
+        const formatName = `issue-${range.type}` as IssueFormatName;
+        const existing = currentMap.get(key);
+
+        if (!existing || existing.id !== range.id) {
+          queueFormatOperation(
+            issueOperations[formatName],
+            range.start,
+            range.end - range.start,
+            range.id ?? true,
+            'add',
+            'issue',
+            formatName
+          );
+        }
+      });
+    };
+
+    const currentRanges = collectCurrentRanges();
+    diffSimpleFormat(currentRanges.known, desiredKnownRanges, (range, shouldExist) => {
+      queueFormatOperation(
+        knownOperations,
+        range.start,
+        range.end - range.start,
+        shouldExist ? true : false,
+        shouldExist ? 'add' : 'remove',
+        'known',
+        'known-word'
+      );
+    });
+    diffSimpleFormat(currentRanges.ambiguous, desiredAmbiguousRanges, (range, shouldExist) => {
+      queueFormatOperation(
+        ambiguousOperations,
+        range.start,
+        range.end - range.start,
+        shouldExist ? true : false,
+        shouldExist ? 'add' : 'remove',
+        'ambiguous',
+        'ambiguous-word'
+      );
+    });
+    diffIssueFormats(currentRanges.issues, desiredIssueRanges);
+
+    // Consolidate ALL operations into a single array
+    const allOperations: FormatOperation[] = [
+      ...knownOperations,
+      ...ambiguousOperations,
+      ...ISSUE_FORMATS.flatMap(formatName => issueOperations[formatName])
+    ];
+
+    // Apply all removals in ONE delta, then all additions in ONE delta
+    // This ensures Quill only runs batchEnd/optimize twice total instead of 10+ times
+    applyConsolidatedDelta(allOperations, 'remove');
+    applyConsolidatedDelta(allOperations, 'add');
+
+    const issueOpsCount = ISSUE_FORMATS.reduce(
+      (sum, formatName) => sum + issueOperations[formatName].length,
+      0
+    );
+
+    this.updateDebugInfo(key, 'highlight-apply-finish', {
+      operationId,
+      knownOps: knownOperations.length,
+      ambiguousOps: ambiguousOperations.length,
+      issueOps: issueOpsCount,
+    });
 
     // Restore selection after formatting (Safari fix)
     if (currentSelection) {
@@ -726,9 +1224,7 @@ class RTEServiceImpl {
     const formats = instance.quill.getFormat(index);
     
     // Check each issue format type
-    const issueFormats = ['issue-needs-help', 'issue-indexing', 'issue-new-word'] as const;
-    
-    for (const formatName of issueFormats) {
+    for (const formatName of ISSUE_FORMATS) {
       const formatValue = formats[formatName];
       if (formatValue) {
         // Extract type from format name
@@ -780,6 +1276,16 @@ class RTEServiceImpl {
       this.destroy(key);
     }
     
+    // Clean up store subscription
+    if (this.storeUnsubscribe) {
+      this.storeUnsubscribe();
+      this.storeUnsubscribe = null;
+    }
+
+    // Clean up tracking
+    this.previousRegionAnalysisState.clear();
+    this.highlightingQueues.clear();
+    
     // Clean up off-screen parent
     if (this.offScreenParent && this.offScreenParent.parentNode) {
       this.offScreenParent.parentNode.removeChild(this.offScreenParent);
@@ -788,83 +1294,45 @@ class RTEServiceImpl {
   }
 
   /**
-   * Apply a batch of format updates safely with error handling
+   * Update issue highlighting for a specific region's editor
+   * Uses requestAnimationFrame to defer until after React finishes reconciliation
    */
-  private applyFormatBatch(
-    instance: RTEInstance, 
-    key: EditorKey, 
-    updates: Array<{ index: number; length: number; format: string; value: boolean | string }>
-  ): void {
-    if (updates.length === 0) return;
-
-    // Final validation before applying batch
-    if (!instance.quill || !instance.quill.container || !instance.quill.container.isConnected) {
-      console.warn(`🚫 Skipping format batch for ${key} - editor disconnected`);
+  updateIssueHighlighting(regionId: string): void {
+    const editorKey = `${regionId}:main` as EditorKey;
+    const instance = this.registry.get(editorKey);
+    if (!instance) {
       return;
     }
 
-    // Get current text length for bounds checking
-    const currentTextLength = instance.quill.getText().length;
-    let corruptionDetected = false;
+    // Capture the current editor version
+    const expectedVersion = this.editorVersions.get(editorKey) ?? 0;
 
-    // Apply updates one by one with individual error handling
-    for (const update of updates) {
-      try {
-        // Validate bounds for this specific update
-        if (update.index < 0 || update.index >= currentTextLength || 
-            update.index + update.length > currentTextLength) {
-          console.warn(`🚫 Skipping format update - invalid bounds:`, update);
-          continue;
+    // Use double RAF to ensure React has fully committed and browser has painted
+    // This is the proper way to defer DOM mutations until the UI is stable
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        // Check if editor version changed (detach/reattach happened)
+        const currentVersion = this.editorVersions.get(editorKey) ?? 0;
+        if (currentVersion !== expectedVersion) {
+          console.debug(`🚫 Skipping highlighting for ${regionId} - editor version changed (${expectedVersion} → ${currentVersion})`);
+          return;
         }
 
-        instance.quill.formatText(update.index, update.length, update.format, update.value, 'api');
-      } catch (error) {
-        // Check if this is the React-Quill corruption error
-        const isCorruption = error instanceof Error && 
-          error.message.includes("Cannot read properties of undefined (reading 'mutations')");
-        
-        if (isCorruption) {
-          corruptionDetected = true;
-          console.warn(`🔄 React-Quill corruption detected in batch for ${key}:`, error, update);
-          break; // Stop processing this batch
-        } else {
-          console.warn(`🚫 Failed to apply single format update:`, error, update);
-          // Continue with other updates for non-corruption errors
+        // Check if editor is still mounted
+        if (!this.isEditorConnected(instance)) {
+          console.debug(`🚫 Skipping highlighting for ${regionId} - editor no longer connected`);
+          return;
         }
-      }
-    }
 
-    // If corruption was detected, throw an error to trigger the reset
-    if (corruptionDetected) {
-      throw new Error('React-Quill corruption detected - needs reset');
-    }
-  }
-
-  private highlightingTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
-
-  /**
-   * Update issue highlighting for a specific region's editor with debouncing
-   */
-  updateIssueHighlighting(regionId: string): void {
-    // Clear any existing timeout for this region
-    const existingTimeout = this.highlightingTimeouts.get(regionId);
-    if (existingTimeout) {
-      clearTimeout(existingTimeout);
-    }
-
-    // Debounce highlighting updates to prevent React-Quill corruption
-    const timeout = setTimeout(() => {
-      this.performIssueHighlighting(regionId);
-      this.highlightingTimeouts.delete(regionId);
-    }, 50); // 50ms debounce
-
-    this.highlightingTimeouts.set(regionId, timeout);
+        this.performIssueHighlighting(regionId);
+      });
+    });
   }
 
   /**
    * Perform the actual issue highlighting (called after debounce)
    */
-  private performIssueHighlighting(regionId: string): void {
+  private async performIssueHighlighting(regionId: string): Promise<void> {
     const editorKey = `${regionId}:main` as EditorKey;
     const instance = this.registry.get(editorKey);
     if (!instance) {
@@ -890,6 +1358,11 @@ class RTEServiceImpl {
     const regionAnalysis = region?.regionAnalysis || [];
     const knownWords: string[] = regionAnalysis.map(item => item.word);
     
+    // Identify ambiguous words (multiple analyses + not user-selected)
+    const ambiguousWords: string[] = regionAnalysis
+      .filter(item => item.allAnalysis.length > 1 && item.source !== 'user')
+      .map(item => item.word);
+    
     const issues = state.getIssuesForRegion(regionId);
 
     // Get current text from editor
@@ -913,15 +1386,16 @@ class RTEServiceImpl {
     const matchedIssues = issues.filter(issue => matchResult.matched.has(issue.id));
     const issueHighlights = issueHighlightService.convertIssuesToHighlights(matchedIssues);
 
-    // Try to apply highlighting, but if React-Quill is corrupted, reset the editor
+    // Use queued highlighting to prevent race conditions
     try {
-      this.applyHighlighting(editorKey, {
+      await this.queueHighlightingUpdate(editorKey, {
         knownWords,
+        ambiguousWords,
         issues: issueHighlights
       });
     } catch (error) {
       console.warn(`🔄 React-Quill corrupted for ${regionId}, resetting editor:`, error);
-      this.resetCorruptedEditor(editorKey, regionText, knownWords, issueHighlights);
+      this.resetCorruptedEditor(editorKey, regionText, knownWords, issueHighlights, ambiguousWords);
     }
   }
 
@@ -932,13 +1406,17 @@ class RTEServiceImpl {
     key: EditorKey, 
     text: string, 
     knownWords: string[], 
-    issueHighlights: IssueHighlight[]
+    issueHighlights: IssueHighlight[],
+    ambiguousWords: string[] = []
   ): void {
     try {
       const instance = this.registry.get(key);
       if (!instance) return;
 
       console.debug(`🔄 Resetting corrupted editor: ${key}`);
+
+      // Capture current cursor position before reset
+      const savedSelection = instance.quill.getSelection();
 
       // Clear all formatting and reset content
       instance.quill.setText('', 'api');
@@ -952,7 +1430,16 @@ class RTEServiceImpl {
           // Reapply highlighting after another tick
           setTimeout(() => {
             try {
-              this.applyHighlighting(key, { knownWords, issues: issueHighlights });
+              this.applyHighlighting(key, { knownWords, ambiguousWords, issues: issueHighlights });
+              
+              // Restore cursor position if it was saved
+              if (savedSelection) {
+                try {
+                  instance.quill.setSelection(savedSelection, 'api');
+                } catch (error) {
+                  console.warn(`🚫 Failed to restore cursor position for ${key}:`, error);
+                }
+              }
             } catch (error) {
               console.warn(`🚫 Failed to reapply highlighting after reset for ${key}:`, error);
               // If it still fails, just leave it as plain text

@@ -5,6 +5,39 @@ const mockRoot = {
   removeChild: jest.fn()
 };
 
+const mockFormatText = jest.fn();
+
+class MockInline {
+  static blotName = 'mock-inline';
+  static tagName = 'span';
+  static create() {
+    return document.createElement('span');
+  }
+  static formats() {
+    return true;
+  }
+  format() {}
+}
+
+class MockDelta {
+  ops: Array<Record<string, unknown>>;
+
+  constructor() {
+    this.ops = [];
+  }
+
+  retain(count: number, attributes?: Record<string, unknown>) {
+    const op: Record<string, unknown> = { retain: count };
+    if (attributes) {
+      op.attributes = attributes;
+    }
+    this.ops.push(op);
+    return this;
+  }
+}
+
+const mockUpdateContents = jest.fn();
+
 const mockQuill = {
   enable: jest.fn(),
   disable: jest.fn(),
@@ -14,8 +47,10 @@ const mockQuill = {
   getText: jest.fn().mockReturnValue('mock text content'),
   getSelection: jest.fn().mockReturnValue(null),
   setSelection: jest.fn(),
-  formatText: jest.fn(),
+  formatText: mockFormatText,
   getFormat: jest.fn().mockReturnValue({}),
+  getContents: jest.fn().mockReturnValue({ ops: [{ insert: 'mock text content' }] }),
+  updateContents: mockUpdateContents,
   blur: jest.fn(),
   focus: jest.fn(),
   root: mockRoot,
@@ -27,15 +62,16 @@ const mockQuillConstructor = jest.fn(() => mockQuill) as jest.MockedFunction<any
   import: jest.MockedFunction<any>;
 };
 mockQuillConstructor.register = jest.fn();
-mockQuillConstructor.import = jest.fn(() => {
-  // Mock the Inline blot class
-  return class MockInline {
-    static blotName = 'mock-inline';
-    static tagName = 'span';
-    static create() { return document.createElement('span'); }
-    static formats() { return true; }
-    format() {}
-  };
+mockQuillConstructor.import = jest.fn((path: string) => {
+  if (path === 'blots/inline') {
+    return MockInline;
+  }
+
+  if (path === 'delta') {
+    return MockDelta;
+  }
+
+  return class {};
 });
 
 // Mock react-quill
@@ -98,7 +134,7 @@ describe('rteService', () => {
             toolbar: false,
             cursors: expect.any(Object)
           }),
-          formats: ['bold', 'italic', 'underline', 'color', 'background', 'known-word', 'issue-needs-help', 'issue-indexing', 'issue-new-word'],
+          formats: ['bold', 'italic', 'underline', 'color', 'background', 'known-word', 'ambiguous-word', 'issue-needs-help', 'issue-indexing', 'issue-new-word'],
           readonly: false,
           placeholder: 'Test'
         })
@@ -127,7 +163,7 @@ describe('rteService', () => {
       expect(mockQuillConstructor).toHaveBeenNthCalledWith(1, 
         expect.any(HTMLElement),
         expect.objectContaining({
-          formats: ['bold', 'italic', 'underline', 'color', 'background', 'known-word', 'issue-needs-help', 'issue-indexing', 'issue-new-word']
+          formats: ['bold', 'italic', 'underline', 'color', 'background', 'known-word', 'ambiguous-word', 'issue-needs-help', 'issue-indexing', 'issue-new-word']
         })
       );
       
@@ -466,20 +502,15 @@ describe('rteService', () => {
   });
 
   describe('applyKnownWordsFormatting', () => {
-    let mockFormatText: jest.Mock;
     let mockGetText: jest.Mock;
-    let mockGetFormat: jest.Mock;
 
     beforeEach(() => {
-      mockFormatText = jest.fn();
+      mockFormatText.mockReset();
       mockGetText = jest.fn();
-      mockGetFormat = jest.fn().mockReturnValue({}); // Default: no existing formatting
       
       // Extend the mock quill with formatting methods
       Object.assign(mockQuill, {
-        formatText: mockFormatText,
-        getText: mockGetText,
-        getFormat: mockGetFormat
+        getText: mockGetText
       });
       
       rteService.createOrGet('test-region:main', {});
@@ -647,59 +678,60 @@ describe('rteService', () => {
   });
 
   describe('applyHighlighting (selective approach)', () => {
-    let mockFormatText: jest.Mock;
     let mockGetText: jest.Mock;
-    let mockGetFormat: jest.Mock;
     let mockGetSelection: jest.Mock;
     let mockSetSelection: jest.Mock;
+    let mockGetContents: jest.Mock;
 
     beforeEach(() => {
-      mockFormatText = jest.fn();
       mockGetText = jest.fn();
-      mockGetFormat = jest.fn().mockReturnValue({}); // Default: no existing formatting
       mockGetSelection = jest.fn().mockReturnValue(null); // Default: no selection
       mockSetSelection = jest.fn();
+      mockGetContents = jest.fn().mockReturnValue({ ops: [{ insert: 'mock text content' }] });
+      mockFormatText.mockReset();
+      mockUpdateContents.mockReset();
       
-      // Extend the mock quill with formatting methods
       Object.assign(mockQuill, {
-        formatText: mockFormatText,
         getText: mockGetText,
-        getFormat: mockGetFormat,
         getSelection: mockGetSelection,
-        setSelection: mockSetSelection
+        setSelection: mockSetSelection,
+        getContents: mockGetContents,
+        updateContents: mockUpdateContents,
       });
       
       rteService.createOrGet('test-region:main', {});
     });
 
     it('should only format positions that need highlighting (no existing formatting)', () => {
-      mockGetText.mockReturnValue('hello world');
-      mockGetFormat.mockReturnValue({}); // No existing formatting
+      const text = 'hello world';
+      mockGetText.mockReturnValue(text);
+      mockGetContents.mockReturnValue({ ops: [{ insert: text }] }); // No formatted segments
       
       rteService.applyHighlighting('test-region:main', {
         knownWords: ['hello'],
         issues: []
       });
       
-      // Should format positions 0-4 for 'hello'
-      for (let i = 0; i < 5; i++) {
-        expect(mockFormatText).toHaveBeenCalledWith(i, 1, 'known-word', true, 'api');
-      }
-      
-      // Should not format positions 5-10 (space and 'world')
-      for (let i = 5; i < 11; i++) {
-        expect(mockFormatText).not.toHaveBeenCalledWith(i, 1, 'known-word', true, 'api');
-      }
+      expect(mockUpdateContents).toHaveBeenCalledTimes(1);
+      const [delta, source] = mockUpdateContents.mock.calls[0];
+      expect(delta.ops).toEqual([
+        { retain: 5, attributes: { 'known-word': true } }
+      ]);
+      expect(source).toBe('silent');
     });
 
     it('should remove stale formatting (word splitting scenario)', () => {
-      mockGetText.mockReturnValue('hel lo world'); // 'hello' was split into 'hel lo'
+      const text = 'hel lo world'; // 'hello' was split into 'hel lo'
+      mockGetText.mockReturnValue(text);
       
-      // Mock that 'hel' and 'lo' are currently highlighted (stale)
-      mockGetFormat.mockImplementation((index: number) => {
-        if (index >= 0 && index < 3) return { 'known-word': true }; // 'hel'
-        if (index >= 4 && index < 6) return { 'known-word': true }; // 'lo'
-        return {};
+      mockGetContents.mockReturnValue({
+        ops: [
+          { insert: 'hel', attributes: { 'known-word': true } },
+          { insert: ' ' },
+          { insert: 'lo', attributes: { 'known-word': true } },
+          { insert: ' ' },
+          { insert: 'world' }
+        ]
       });
       
       rteService.applyHighlighting('test-region:main', {
@@ -707,20 +739,22 @@ describe('rteService', () => {
         issues: []
       });
       
-      // Should remove formatting from positions 0-2 ('hel')
-      for (let i = 0; i < 3; i++) {
-        expect(mockFormatText).toHaveBeenCalledWith(i, 1, 'known-word', false, 'api');
-      }
-      
-      // Should remove formatting from positions 4-5 ('lo')
-      for (let i = 4; i < 6; i++) {
-        expect(mockFormatText).toHaveBeenCalledWith(i, 1, 'known-word', false, 'api');
-      }
-      
-      // Should add formatting to positions 7-11 ('world')
-      for (let i = 7; i < 12; i++) {
-        expect(mockFormatText).toHaveBeenCalledWith(i, 1, 'known-word', true, 'api');
-      }
+      expect(mockUpdateContents).toHaveBeenCalledTimes(2);
+
+      const [removalDelta, removalSource] = mockUpdateContents.mock.calls[0];
+      expect(removalDelta.ops).toEqual([
+        { retain: 3, attributes: { 'known-word': null } },
+        { retain: 1 },
+        { retain: 2, attributes: { 'known-word': null } }
+      ]);
+      expect(removalSource).toBe('silent');
+
+      const [additionDelta, additionSource] = mockUpdateContents.mock.calls[1];
+      expect(additionDelta.ops).toEqual([
+        { retain: 7 },
+        { retain: 5, attributes: { 'known-word': true } }
+      ]);
+      expect(additionSource).toBe('silent');
     });
 
     it('should preserve selection during formatting', () => {
@@ -745,8 +779,7 @@ describe('rteService', () => {
         issues: []
       });
       
-      // Should not call formatText for empty text
-      expect(mockFormatText).not.toHaveBeenCalled();
+      expect(mockUpdateContents).not.toHaveBeenCalled();
     });
 
     it('should handle non-existent editor gracefully', () => {
@@ -757,7 +790,7 @@ describe('rteService', () => {
         });
       }).not.toThrow();
       
-      expect(mockFormatText).not.toHaveBeenCalled();
+      expect(mockUpdateContents).not.toHaveBeenCalled();
     });
   });
 

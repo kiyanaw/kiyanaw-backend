@@ -90,9 +90,10 @@ describe('RegionItem', () => {
 
     // Should use ONLY the region's own analysis, not global cache
     const expectedKnownWords = new Set(['Test', 'words']);
+    const expectedAmbiguousWords = new Set();
     expect(mockTextHighlightService.generateHTMLWithOptions).toHaveBeenCalledWith(
       'Test region text with some words',
-      { knownWords: expectedKnownWords, issues: [] }
+      { knownWords: expectedKnownWords, ambiguousWords: expectedAmbiguousWords, issues: [] }
     );
   });
 
@@ -137,10 +138,11 @@ describe('RegionItem', () => {
 
     // Should call generateHTMLWithOptions again with updated analysis
     const expectedKnownWords = new Set(['Test', 'words', 'region']);
+    const expectedAmbiguousWords = new Set();
     expect(mockTextHighlightService.generateHTMLWithOptions).toHaveBeenCalledTimes(2);
     expect(mockTextHighlightService.generateHTMLWithOptions).toHaveBeenLastCalledWith(
       'Test region text with some words',
-      { knownWords: expectedKnownWords, issues: [] }
+      { knownWords: expectedKnownWords, ambiguousWords: expectedAmbiguousWords, issues: [] }
     );
   });
 
@@ -182,10 +184,11 @@ describe('RegionItem', () => {
 
     // Should call generateHTMLWithOptions again with updated text
     const expectedKnownWords = new Set(['Test', 'words']);
+    const expectedAmbiguousWords = new Set();
     expect(mockTextHighlightService.generateHTMLWithOptions).toHaveBeenCalledTimes(2);
     expect(mockTextHighlightService.generateHTMLWithOptions).toHaveBeenLastCalledWith(
       'Updated region text',
-      { knownWords: expectedKnownWords, issues: [] }
+      { knownWords: expectedKnownWords, ambiguousWords: expectedAmbiguousWords, issues: [] }
     );
   });
 
@@ -378,9 +381,10 @@ describe('RegionItem', () => {
 
     // Should call with empty knownWords set when no analysis exists
     const expectedKnownWords = new Set();
+    const expectedAmbiguousWords = new Set();
     expect(mockTextHighlightService.generateHTMLWithOptions).toHaveBeenCalledWith(
       'Test region text with some words',
-      { knownWords: expectedKnownWords, issues: [] }
+      { knownWords: expectedKnownWords, ambiguousWords: expectedAmbiguousWords, issues: [] }
     );
   });
 
@@ -407,11 +411,12 @@ describe('RegionItem', () => {
       />
     );
 
-    // Should call with empty knownWords set
+    // Should call with empty knownWords and ambiguousWords sets
     const expectedKnownWords = new Set();
+    const expectedAmbiguousWords = new Set();
     expect(mockTextHighlightService.generateHTMLWithOptions).toHaveBeenCalledWith(
       'Test region text with some words',
-      { knownWords: expectedKnownWords, issues: [] }
+      { knownWords: expectedKnownWords, ambiguousWords: expectedAmbiguousWords, issues: [] }
     );
   });
 }); 

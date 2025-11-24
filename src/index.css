@@ -73,7 +73,13 @@
     color: #3b82f6;
   }
   
-
+  .ql-editor .ambiguous-word {
+    color: #3b82f6;
+    text-decoration: underline;
+    text-decoration-color: #93c5fd;
+    text-decoration-style: solid;
+    text-decoration-thickness: 2px;
+  }
   
   .ql-editor .ignore-word {
     color: #777;

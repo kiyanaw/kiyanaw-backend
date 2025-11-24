@@ -1,21 +1,27 @@
 import { render, screen } from '@testing-library/react';
 import { RegionContextBar } from './RegionContextBar';
-import { type WordAnalysis } from '../../services/adt';
+import { useRegionContextBar } from '../../hooks/useRegionContextBar';
+
+jest.mock('../../hooks/useRegionContextBar');
+
+const mockUseRegionContextBar = useRegionContextBar as jest.MockedFunction<typeof useRegionContextBar>;
 
 describe('RegionContextBar', () => {
   it('renders empty state when no analysis is provided', () => {
-    const { container } = render(
-      <RegionContextBar 
-        cursorWordAnalysis={null}
-        cursorWord={undefined}
-      />
-    );
+    mockUseRegionContextBar.mockReturnValue({
+      cursorWord: null,
+      cursorWordAnalysis: null,
+      wordIndex: null,
+      handleSelectAnalysis: jest.fn(),
+    });
+
+    const { container } = render(<RegionContextBar regionId="region-1" canEdit={false} />);
     
     expect(container.querySelector('.bg-gray-100')).toBeInTheDocument();
   });
 
   it('renders analysis pills when analysis is provided', () => {
-    const mockAnalysis: WordAnalysis = {
+    const mockAnalysis = {
       word: 'anihi',
       analysis: 'anihi+Pron+Dem+Med+I+Pl',
       allAnalysis: [
@@ -25,12 +31,14 @@ describe('RegionContextBar', () => {
       ],
     };
 
-    const { container } = render(
-      <RegionContextBar 
-        cursorWordAnalysis={mockAnalysis}
-        cursorWord="anihi"
-      />
-    );
+    mockUseRegionContextBar.mockReturnValue({
+      cursorWord: 'anihi',
+      cursorWordAnalysis: mockAnalysis,
+      wordIndex: 0,
+      handleSelectAnalysis: jest.fn(),
+    });
+
+    const { container } = render(<RegionContextBar regionId="region-1" canEdit={true} />);
     
     // Check that all analysis options are rendered
     expect(screen.getByText('anihi+Pron+Dem+Med+I+Pl')).toBeInTheDocument();
@@ -39,46 +47,50 @@ describe('RegionContextBar', () => {
     
     // Check that the selected analysis has the bold styling
     const selectedPill = screen.getByText('anihi+Pron+Dem+Med+I+Pl');
-    expect(selectedPill).toHaveClass('font-bold');
+    expect(selectedPill).toHaveStyle({ fontWeight: 'bold' });
     
     // Check that non-selected pills don't have bold styling
     const nonSelectedPill = screen.getByText('anihi+Pron+Dem+Med+A+Obv');
-    expect(nonSelectedPill).not.toHaveClass('font-bold');
+    expect(nonSelectedPill).toHaveStyle({ fontWeight: 'normal' });
     
     // Check that scrollable container exists
     expect(container.querySelector('.scrollbar-hide')).toBeInTheDocument();
   });
 
   it('renders single analysis when only one option is available', () => {
-    const mockAnalysis: WordAnalysis = {
+    const mockAnalysis = {
       word: 'test',
       analysis: 'test+Ipc',
       allAnalysis: ['test+Ipc'],
     };
 
-    render(
-      <RegionContextBar 
-        cursorWordAnalysis={mockAnalysis}
-        cursorWord="test"
-      />
-    );
+    mockUseRegionContextBar.mockReturnValue({
+      cursorWord: 'test',
+      cursorWordAnalysis: mockAnalysis,
+      wordIndex: 0,
+      handleSelectAnalysis: jest.fn(),
+    });
+
+    render(<RegionContextBar regionId="region-1" canEdit={true} />);
     
     expect(screen.getByText('test+Ipc')).toBeInTheDocument();
   });
 
   it('handles undefined cursorWord gracefully', () => {
-    const mockAnalysis: WordAnalysis = {
+    const mockAnalysis = {
       word: 'test',
       analysis: 'test+Ipc',
       allAnalysis: ['test+Ipc'],
     };
 
-    const { container } = render(
-      <RegionContextBar 
-        cursorWordAnalysis={mockAnalysis}
-        cursorWord={undefined}
-      />
-    );
+    mockUseRegionContextBar.mockReturnValue({
+      cursorWord: null,
+      cursorWordAnalysis: mockAnalysis,
+      wordIndex: 0,
+      handleSelectAnalysis: jest.fn(),
+    });
+
+    const { container } = render(<RegionContextBar regionId="region-1" canEdit={true} />);
     
     expect(screen.getByText('test+Ipc')).toBeInTheDocument();
     expect(container.querySelector('.bg-gray-100')).toBeInTheDocument();

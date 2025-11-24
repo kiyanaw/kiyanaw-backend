@@ -1,15 +1,16 @@
 import { useRef, useEffect, useState } from 'react';
-import { type WordAnalysis } from '../../services/adt';
+import { useRegionContextBar } from '../../hooks/useRegionContextBar';
 
 interface RegionContextBarProps {
-  cursorWordAnalysis: WordAnalysis | null;
-  cursorWord?: string;
+  regionId: string;
+  canEdit: boolean;
 }
 
-export const RegionContextBar = ({
-  cursorWordAnalysis,
-  cursorWord,
-}: RegionContextBarProps) => {
+export const RegionContextBar = ({ regionId, canEdit }: RegionContextBarProps) => {
+  const { cursorWord, cursorWordAnalysis, wordIndex, handleSelectAnalysis } = useRegionContextBar(
+    regionId,
+    canEdit
+  );
   const [showLeftFade, setShowLeftFade] = useState(false);
   const [showRightFade, setShowRightFade] = useState(true);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -47,7 +48,7 @@ export const RegionContextBar = ({
   }, [cursorWord]);
 
   return (
-    <div className="py-1.5 px-4 bg-gray-100 border-b border-gray-50 h-[32px] flex items-center">
+    <div className="py-5 px-4 bg-gray-100 border-b border-gray-50 h-[20px] flex items-center">
       <div className="relative flex-1 min-w-0">
         {cursorWordAnalysis && cursorWordAnalysis.allAnalysis && cursorWordAnalysis.allAnalysis.length > 0 ? (
           <>
@@ -62,21 +63,52 @@ export const RegionContextBar = ({
             {/* Scrollable container */}
             <div 
               ref={scrollContainerRef}
-              className="flex items-center gap-2 overflow-x-auto scrollbar-hide"
+              className="flex items-center gap-0.5 overflow-x-auto scrollbar-hide"
             >
               {cursorWordAnalysis.allAnalysis.map((analysisOption, index) => {
                 const isSelected = analysisOption === cursorWordAnalysis.analysis;
+                const isUserSelected = cursorWordAnalysis.source === 'user';
+                const isClickable =
+                  canEdit &&
+                  cursorWordAnalysis.allAnalysis.length > 1 &&
+                  wordIndex !== null;
+                const canClickSelected = isSelected && !isUserSelected; // Can confirm auto-selected analysis
+                
+                const handleClick = () => {
+                  if (isClickable && (!isSelected || canClickSelected)) {
+                    handleSelectAnalysis(analysisOption);
+                  }
+                };
+                
+                // Prevent focus loss when clicking the button
+                const handleMouseDown = (e: React.MouseEvent) => {
+                  e.preventDefault(); // Prevents focus from leaving the editor
+                };
+                
                 return (
-                  <span
+                  <button
                     key={index}
-                    className={`px-2 py-0.5 text-xs rounded-full border whitespace-nowrap flex-shrink-0 ${
-                      isSelected
-                        ? 'bg-white border-gray-400 font-bold text-gray-800'
-                        : 'bg-gray-50 border-gray-300 text-gray-600'
+                    onClick={handleClick}
+                    onMouseDown={handleMouseDown}
+                    disabled={!isClickable || (isSelected && isUserSelected)}
+                    style={{ 
+                      fontSize: '13px', 
+                      padding: '2px 4px', 
+                      margin: '2px',
+                      fontWeight: isSelected ? 'bold' : 'normal'
+                    }}
+                    className={`leading-none rounded-full border whitespace-nowrap flex-shrink-0 transition-colors ${
+                      isSelected && isUserSelected
+                        ? 'bg-white border-gray-400 text-gray-800 cursor-default'
+                        : isSelected && !isUserSelected
+                          ? 'bg-white border-gray-400 text-gray-800 hover:bg-gray-50 cursor-pointer'
+                          : isClickable
+                            ? 'bg-gray-50 border-gray-300 text-gray-600 hover:bg-gray-100 hover:border-gray-400 cursor-pointer'
+                            : 'bg-gray-50 border-gray-300 text-gray-600'
                     }`}
                   >
                     {analysisOption}
-                  </span>
+                  </button>
                 );
               })}
             </div>

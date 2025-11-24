@@ -26,15 +26,8 @@ export const RegionEditor = memo(({
   const setSelectedRegion = useEditorStore((state) => state.setSelectedRegion);
   const regions = useEditorStore((state) => state.regions);
   const regionSelection = useEditorStore((state) => state.regionSelections[region.id]);
-  const regionCursorWord = useEditorStore((state) => state.regionCursorWords?.[region.id]);
-  
   // Check if there's a text selection in the current region
   const hasSelection = regionSelection && regionSelection.length > 0 && regionSelection.text.trim().length > 0;
-  
-  // Find analysis for the word under cursor
-  const cursorWordAnalysis = regionCursorWord && region.regionAnalysis
-    ? region.regionAnalysis.find(wa => wa.word.toLowerCase() === regionCursorWord.word.toLowerCase())
-    : null;
   
   // Get the region number (1-based index)
   const regionNumber = regions.findIndex(r => r.id === region.id) + 1;
@@ -194,10 +187,7 @@ export const RegionEditor = memo(({
       </div>
 
       {/* Contextual Info Bar */}
-      <RegionContextBar 
-        cursorWordAnalysis={cursorWordAnalysis || null}
-        cursorWord={regionCursorWord?.word}
-      />
+      <RegionContextBar regionId={region.id} canEdit={canEdit} />
 
       {/* Editor Content */}
       <div className="flex-1 overflow-hidden">

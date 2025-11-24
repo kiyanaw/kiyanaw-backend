@@ -16,6 +16,7 @@ export interface IssueHighlight {
 
 export interface HighlightOptions {
   knownWords?: Set<string>;
+  ambiguousWords?: Set<string>;
   issues?: IssueHighlight[];
 }
 
@@ -52,9 +53,9 @@ class TextHighlightServiceImpl implements TextHighlightService {
       return '';
     }
 
-    const { knownWords = new Set(), issues = [] } = options;
+    const { knownWords = new Set(), ambiguousWords = new Set(), issues = [] } = options;
     
-    if (knownWords.size === 0 && issues.length === 0) {
+    if (knownWords.size === 0 && ambiguousWords.size === 0 && issues.length === 0) {
       return text;
     }
 
@@ -85,13 +86,16 @@ class TextHighlightServiceImpl implements TextHighlightService {
       if (REGION_TEXT_MATCH_PATTERN.test(token)) {
         const lowerToken = token.trim().toLowerCase();
         
-        // Issues take priority over known words
+        // Issues take priority over everything
         const issueInfo = issueTextMap.get(lowerToken);
         if (issueInfo) {
           const commentIcon = issueInfo.commentCount > 0 
             ? `<span class="issue-comment-icon"><svg class="w-3 h-3 inline ml-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg><span class="text-xs ml-0.5">${issueInfo.commentCount}</span></span>` 
             : '';
           return `<span class="issue-${issueInfo.type}">${token}${commentIcon}</span>`;
+        } else if (ambiguousWords.has(lowerToken)) {
+          // Ambiguous words get both blue color and light underline
+          return `<span class="ambiguous-word">${token}</span>`;
         } else if (knownWords.has(lowerToken)) {
           return `<span class="known-word">${token}</span>`;
         }
