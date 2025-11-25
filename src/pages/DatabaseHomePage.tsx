@@ -8,6 +8,7 @@ import { useDatabaseSearch } from '../hooks/useDatabaseSearch';
 import type { DatabaseStats, Attestation, WordTypeCount, LemmaCount } from '../services/adt';
 import { formatTimestamp } from '../utils/timeFormat';
 import { LANGUAGES } from '../config/languages';
+import { isMobileViewport } from '../config/ui';
 
 const DATABASE_TERMS_ACCEPTED_KEY = 'database-terms-accepted';
 
@@ -175,7 +176,12 @@ export const DatabaseHomePage = () => {
 
   // Handle attestation click - navigate to transcription
   const handleAttestationClick = (attestation: Attestation) => {
-    navigate(`/transcribe-edit/${attestation.transcriptionId}/${attestation.regionId}`);
+    const url = `/transcribe-edit/${attestation.transcriptionId}/${attestation.regionId}`;
+    if (isMobileViewport()) {
+      navigate(url);
+    } else {
+      window.open(url, '_blank');
+    }
   };
 
   // Handle lemma click from tables

@@ -6,6 +6,8 @@ interface VideoPreferences {
   speed: number;
 }
 
+import { isMobileViewport } from '../config/ui';
+
 class BrowserService {
   private static instance: BrowserService;
   private readonly DYNAMIC_STYLES_STYLESHEET_ID = 'dynamic-styles';
@@ -324,10 +326,9 @@ class BrowserService {
     element.scrollIntoView({ ...defaultOptions, ...options });
     
     // For mobile: also try manual scroll on the correct container
-    const isMobile = window.innerWidth < 1024;
     let scrollContainer;
     
-    if (isMobile) {
+    if (isMobileViewport()) {
       const mobileContainer = document.getElementById('mobile-regions-container');
       scrollContainer = mobileContainer?.querySelector('.overflow-y-auto');
     } else {
