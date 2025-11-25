@@ -12,6 +12,7 @@ dist
 dist-ssr
 *.local
 .eslintignore
+scripts/fsts-to-upload/*.hfstol
 
 # Editor directories and files
 .vscode/*
