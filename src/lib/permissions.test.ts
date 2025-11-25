@@ -34,7 +34,8 @@ describe('permissions', () => {
     length: 120,
     editors: ['user-789'],
     viewers: ['user-999'],
-    isPrivate: false
+    isPrivate: false,
+    publicIssues: false
   };
 
   describe('canEdit', () => {
@@ -151,9 +152,22 @@ describe('permissions', () => {
       expect(canComment(transcription, editorUser)).toBe(true);
     });
 
-    it('should return true for viewer', () => {
+    it('should return true for viewer when publicIssues is enabled', () => {
+      const transcriptionWithPublicIssues = { ...transcription, publicIssues: true };
       const viewerUser: User = { username: 'viewer', userId: 'user-999' };
-      expect(canComment(transcription, viewerUser)).toBe(true);
+      expect(canComment(transcriptionWithPublicIssues, viewerUser)).toBe(true);
+    });
+
+    it('should return false for viewer when publicIssues is disabled', () => {
+      const transcriptionWithoutPublicIssues = { ...transcription, publicIssues: false };
+      const viewerUser: User = { username: 'viewer', userId: 'user-999' };
+      expect(canComment(transcriptionWithoutPublicIssues, viewerUser)).toBe(false);
+    });
+
+    it('should return false for viewer when publicIssues is undefined', () => {
+      const transcriptionWithoutPublicIssues = { ...transcription, publicIssues: undefined };
+      const viewerUser: User = { username: 'viewer', userId: 'user-999' };
+      expect(canComment(transcriptionWithoutPublicIssues, viewerUser)).toBe(false);
     });
 
     it('should return false for other users', () => {

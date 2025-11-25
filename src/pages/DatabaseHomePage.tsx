@@ -2,15 +2,23 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Database, Loader2, AlertCircle, Search, ExternalLink } from 'lucide-react';
 import { StatsTable } from '../components/database/StatsTable';
+import { DatabaseTermsDialog } from '../components/database/DatabaseTermsDialog';
 import { useDatabaseStats } from '../hooks/useDatabaseStats';
 import { useDatabaseSearch } from '../hooks/useDatabaseSearch';
 import type { DatabaseStats, Attestation, WordTypeCount, LemmaCount } from '../services/adt';
 import { formatTimestamp } from '../utils/timeFormat';
 import { LANGUAGES } from '../config/languages';
 
+const DATABASE_TERMS_ACCEPTED_KEY = 'database-terms-accepted';
+
 export const DatabaseHomePage = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  
+  // Terms dialog state
+  const [showTermsDialog, setShowTermsDialog] = useState(() => {
+    return !localStorage.getItem(DATABASE_TERMS_ACCEPTED_KEY);
+  });
   
   // State - initialize from localStorage
   const [selectedLang, setSelectedLang] = useState<string>(() => {
@@ -175,6 +183,12 @@ export const DatabaseHomePage = () => {
     navigate(`/database/lemma/${encodeURIComponent(lemma.lemma)}`);
   };
   
+  // Handle terms acceptance
+  const handleAcceptTerms = () => {
+    localStorage.setItem(DATABASE_TERMS_ACCEPTED_KEY, 'true');
+    setShowTermsDialog(false);
+  };
+
   // Highlight search term in text
   const highlightText = (text: string, query: string) => {
     if (!query.trim()) return text;
@@ -217,8 +231,12 @@ export const DatabaseHomePage = () => {
   ];
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50">
-      {/* Page Header */}
+    <>
+      {/* Terms Dialog */}
+      {showTermsDialog && <DatabaseTermsDialog onAccept={handleAcceptTerms} />}
+      
+      <div className="h-screen flex flex-col bg-gray-50">
+        {/* Page Header */}
       <div className="bg-white border-b border-gray-200 shadow-sm flex-shrink-0">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 gap-4">
@@ -286,8 +304,6 @@ export const DatabaseHomePage = () => {
                 <code className="bg-gray-100 px-1 rounded mx-1">foo*</code> starts with, 
                 <code className="bg-gray-100 px-1 rounded mx-1">*foo</code> ends with, 
                 <code className="bg-gray-100 px-1 rounded mx-1">*foo*</code> contains. 
-                Use <code className="bg-gray-100 px-1 rounded">"quotes"</code> for exact phrases: 
-                <code className="bg-gray-100 px-1 rounded mx-1">"wa ay"</code>
               </p>
             </div>
 
@@ -311,13 +327,15 @@ export const DatabaseHomePage = () => {
                       </div>
                       <div className="flex items-center gap-2 text-sm text-gray-600">
                         <ExternalLink size={14} />
-                        <a
-                          href={`/transcribe-edit/${attestation.transcriptionId}/${attestation.regionId}`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="hover:text-blue-600 underline"
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAttestationClick(attestation);
+                          }}
+                          className="hover:text-blue-600 underline text-left"
                         >
                           {attestation.transcriptionName}
-                        </a>
+                        </button>
                         <span className="text-gray-400">({formatTimestamp(attestation.timestamp)})</span>
                       </div>
                     </div>
@@ -429,6 +447,7 @@ export const DatabaseHomePage = () => {
         )}
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 };

@@ -34,7 +34,7 @@ export const TranscriptionSettingsPage = ({
   // Extract values from transcription object
   const initialTitle = transcription.title;
   const initialComments = transcription.comments;
-  const author = transcription.authorFriendly || 'Unknown';
+  const author = transcription.getOwnerDisplay();
   const dateLastUpdated = transcription.dateLastUpdated || '0';
   const transcriptionId = transcription.id;
   const initialIsPrivate = transcription.isPrivate;
@@ -526,14 +526,16 @@ export const TranscriptionSettingsPage = ({
                     <label className="block text-sm font-medium text-gray-600">Total Regions</label>
                     <div className="mt-1 flex items-center gap-2">
                       <span className="text-base text-gray-900">{regionCount}</span>
-                      <button
-                        onClick={() => setShowExportDialog(true)}
-                        className="ml-auto inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-purple-600 bg-purple-50 border border-purple-200 rounded hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-1 transition-colors"
-                        title="Export transcription"
-                      >
-                        <Download size={12} />
-                        Export transcription
-                      </button>
+                      {isOwner && (
+                        <button
+                          onClick={() => setShowExportDialog(true)}
+                          className="ml-auto inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-purple-600 bg-purple-50 border border-purple-200 rounded hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-1 transition-colors"
+                          title="Export transcription"
+                        >
+                          <Download size={12} />
+                          Export transcription
+                        </button>
+                      )}
                     </div>
                     {exportError && (
                       <p className="mt-2 text-xs text-red-600">{exportError}</p>
@@ -548,24 +550,26 @@ export const TranscriptionSettingsPage = ({
                     {transcription.source ? (
                       <div className="flex flex-wrap items-center gap-2 mt-1">
                         <span className="text-base text-gray-900 break-all flex-1">{transcription.getSourceFilename()}</span>
-                        <button
-                          onClick={handleDownloadSource}
-                          disabled={isDownloadingSource}
-                          className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                          title="Download original file"
-                        >
-                          {isDownloadingSource ? (
-                            <>
-                              <Loader2 size={12} className="animate-spin" />
-                              Downloading...
-                            </>
-                          ) : (
-                            <>
-                              <Download size={12} />
-                              Download
-                            </>
-                          )}
-                        </button>
+                        {isOwner && (
+                          <button
+                            onClick={handleDownloadSource}
+                            disabled={isDownloadingSource}
+                            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            title="Download original file"
+                          >
+                            {isDownloadingSource ? (
+                              <>
+                                <Loader2 size={12} className="animate-spin" />
+                                Downloading...
+                              </>
+                            ) : (
+                              <>
+                                <Download size={12} />
+                                Download
+                              </>
+                            )}
+                          </button>
+                        )}
                       </div>
                     ) : (
                       <p className="text-base text-gray-900 mt-1 break-all">Unknown</p>

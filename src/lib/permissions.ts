@@ -59,11 +59,18 @@ export const canComment = (
 ): boolean => {
   if (!transcription || !user) return false;
 
-  return (
+  // Authors and editors can always comment
+  const isOwnerOrEditor = (
     transcription.author === user.userId ||
-    (transcription.editors?.includes(user.userId) ?? false) ||
-    (transcription.viewers?.includes(user.userId) ?? false)
+    (transcription.editors?.includes(user.userId) ?? false)
   );
+  
+  if (isOwnerOrEditor) return true;
+
+  // Viewers can only comment if publicIssues is enabled
+  const isViewer = transcription.viewers?.includes(user.userId) ?? false;
+  
+  return isViewer && (transcription.publicIssues ?? false);
 };
 
 export const canDeleteComment = (

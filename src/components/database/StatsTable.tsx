@@ -1,3 +1,6 @@
+import { useState } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+
 interface StatsTableProps<T extends Record<string, unknown>> {
   title: string;
   data: T[];
@@ -11,6 +14,8 @@ interface StatsTableProps<T extends Record<string, unknown>> {
   className?: string;
 }
 
+const ROWS_PER_PAGE = 10;
+
 export const StatsTable = <T extends Record<string, unknown>>({
   title,
   data,
@@ -19,6 +24,18 @@ export const StatsTable = <T extends Record<string, unknown>>({
   loading = false,
   className = ""
 }: StatsTableProps<T>) => {
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Calculate pagination
+  const totalRows = data.length;
+  const totalPages = Math.ceil(totalRows / ROWS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ROWS_PER_PAGE;
+  const endIndex = Math.min(startIndex + ROWS_PER_PAGE, totalRows);
+  const currentData = data.slice(startIndex, endIndex);
+
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+  };
   if (loading) {
     return (
       <div className={`bg-white border border-gray-200 rounded-lg ${className}`}>
@@ -69,9 +86,9 @@ export const StatsTable = <T extends Record<string, unknown>>({
                 </td>
               </tr>
             ) : (
-              data.map((item, index) => (
+              currentData.map((item, index) => (
                 <tr
-                  key={index}
+                  key={startIndex + index}
                   onClick={() => onRowClick?.(item)}
                   className={`${
                     onRowClick ? 'hover:bg-gray-50 cursor-pointer' : ''
@@ -94,6 +111,36 @@ export const StatsTable = <T extends Record<string, unknown>>({
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
+          <div className="text-sm text-gray-700">
+            Showing {startIndex + 1} to {endIndex} of {totalRows}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="p-1 rounded border border-gray-300 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Previous page"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <span className="text-sm text-gray-700">
+              Page {currentPage} of {totalPages}
+            </span>
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="p-1 rounded border border-gray-300 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Next page"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

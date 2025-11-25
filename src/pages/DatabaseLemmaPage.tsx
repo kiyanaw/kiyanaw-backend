@@ -1,22 +1,31 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
 import { SurfaceFormTable } from '../components/database/SurfaceFormTable';
 import { AttestationTable } from '../components/database/AttestationTable';
+import { DatabaseTermsDialog } from '../components/database/DatabaseTermsDialog';
 import { useLemmaDetails } from '../hooks/useLemmaDetails';
 import { useAttestations } from '../hooks/useAttestations';
 import type { LemmaDetails, Attestation } from '../services/adt';
 import { getLanguageName } from '../config/languages';
 
+const DATABASE_TERMS_ACCEPTED_KEY = 'database-terms-accepted';
+
 export const DatabaseLemmaPage = () => {
   const { lemma } = useParams<{ lemma: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  // Terms dialog state
+  const [showTermsDialog, setShowTermsDialog] = useState(() => {
+    return !localStorage.getItem(DATABASE_TERMS_ACCEPTED_KEY);
+  });
   
   // State
   const [selectedLang, setSelectedLang] = useState<string>('');
   const [lemmaDetails, setLemmaDetails] = useState<LemmaDetails | null>(null);
   const [attestations, setAttestations] = useState<Attestation[]>([]);
-  const [selectedSurface, setSelectedSurface] = useState<string>('');
+  const [selectedSurface, setSelectedSurface] = useState<string>(() => searchParams.get('surface') || '');
   const [loading, setLoading] = useState(true);
   const [attestationsLoading, setAttestationsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,12 +50,38 @@ export const DatabaseLemmaPage = () => {
     
     setLoading(true);
     setError(null);
-    setSelectedSurface(''); // Reset selected surface form
-    setAttestations([]); // Clear attestations
+    
+    // Check if there's a surface form in URL
+    const surfaceFromUrl = searchParams.get('surface');
+    
+    // Only reset selected surface if there's no URL param
+    if (!surfaceFromUrl) {
+      setSelectedSurface('');
+      setAttestations([]);
+    }
     
     try {
       const details = await loadLemmaDetails(decodedLemma, selectedLang || undefined);
       setLemmaDetails(details);
+      
+      // After loading lemma details, load attestations if surface is in URL
+      if (surfaceFromUrl) {
+        setSelectedSurface(surfaceFromUrl);
+        setAttestationsLoading(true);
+        try {
+          const attestationData = await loadAttestations(
+            decodedLemma, 
+            surfaceFromUrl, 
+            selectedLang || undefined
+          );
+          setAttestations(attestationData);
+        } catch (err) {
+          console.error('Failed to load attestations:', err);
+          setAttestations([]);
+        } finally {
+          setAttestationsLoading(false);
+        }
+      }
     } catch (err) {
       console.error('Failed to load lemma details:', err);
       setError(err instanceof Error ? err.message : 'Failed to load lemma details');
@@ -59,6 +94,8 @@ export const DatabaseLemmaPage = () => {
   const handleSurfaceFormClick = async (surface: string) => {
     if (!decodedLemma) return;
     
+    // Update URL with selected surface
+    setSearchParams({ surface }, { replace: true });
     setSelectedSurface(surface);
     setAttestationsLoading(true);
     
@@ -76,6 +113,12 @@ export const DatabaseLemmaPage = () => {
     } finally {
       setAttestationsLoading(false);
     }
+  };
+
+  // Handle terms acceptance
+  const handleAcceptTerms = () => {
+    localStorage.setItem(DATABASE_TERMS_ACCEPTED_KEY, 'true');
+    setShowTermsDialog(false);
   };
 
   // Handle back navigation
@@ -104,8 +147,12 @@ export const DatabaseLemmaPage = () => {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50">
-      {/* Page Header */}
+    <>
+      {/* Terms Dialog */}
+      {showTermsDialog && <DatabaseTermsDialog onAccept={handleAcceptTerms} />}
+      
+      <div className="h-screen flex flex-col bg-gray-50">
+        {/* Page Header */}
       <div className="bg-white border-b border-gray-200 shadow-sm flex-shrink-0">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center h-16">
@@ -200,6 +247,7 @@ export const DatabaseLemmaPage = () => {
         )}
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 };

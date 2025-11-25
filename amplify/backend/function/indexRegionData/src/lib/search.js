@@ -13,18 +13,48 @@ const clearKnownWordsForRegion = async (regionId) => {
   }
 
   const indexName = `knownwords-${process.env.ENV}`
-  console.log('Clearing out region items for ', regionId, 'in index', indexName)
+  console.log('Clearing out region items for', regionId, 'in index', indexName)
   
   try {
-    const deleted = await client.deleteByQuery({
+    // Step 1: Search for existing document IDs (fast - only returns IDs, not full documents)
+    const searchResponse = await client.search({
       index: indexName,
       body: {
         query: {
-          term: { regionId: regionId }, // Use 'term' for exact match on keyword field
+          term: { regionId: regionId }
         },
-      },
+        _source: false,  // Don't return document content, just IDs
+        size: 1000,      // Adjust based on max words per region
+      }
     })
-    return deleted
+    
+    const hits = searchResponse.body?.hits?.hits || []
+    
+    if (hits.length === 0) {
+      console.log('No existing documents to delete for region:', regionId)
+      return { deleted: 0 }
+    }
+    
+    console.log(`Found ${hits.length} existing documents to delete`)
+    
+    // Step 2: Bulk delete by ID (very fast - direct deletes)
+    const bulkBody = hits.flatMap(hit => [
+      { delete: { _index: indexName, _id: hit._id } }
+    ])
+    
+    const bulkResponse = await client.bulk({
+      body: bulkBody,
+      refresh: false,  // Don't force refresh
+    })
+    
+    // Count successful deletions
+    const deleted = bulkResponse.body.items.filter(item => 
+      item.delete && (item.delete.result === 'deleted' || item.delete.status === 200)
+    ).length
+    
+    console.log(`Successfully deleted ${deleted} documents`)
+    return { deleted }
+    
   } catch (error) {
     // Handle index not found error gracefully - this happens on first run
     if (error.meta?.statusCode === 404 && error.meta?.body?.error?.type === 'index_not_found_exception') {
@@ -190,15 +220,45 @@ const clearIssuesForRegion = async (regionId) => {
   console.log('Clearing out issue items for region', regionId, 'in index', indexName)
   
   try {
-    const deleted = await client.deleteByQuery({
+    // Step 1: Search for existing issue IDs for this region
+    const searchResponse = await client.search({
       index: indexName,
       body: {
         query: {
-          term: { regionId: regionId }, // Use 'term' for exact match on keyword field
+          term: { regionId: regionId }
         },
-      },
+        _source: false,  // Don't return document content, just IDs
+        size: 1000,      // Adjust based on max issues per region
+      }
     })
-    return deleted
+    
+    const hits = searchResponse.body?.hits?.hits || []
+    
+    if (hits.length === 0) {
+      console.log('No existing issues to delete for region:', regionId)
+      return { deleted: 0 }
+    }
+    
+    console.log(`Found ${hits.length} existing issues to delete`)
+    
+    // Step 2: Bulk delete by ID (very fast - direct deletes)
+    const bulkBody = hits.flatMap(hit => [
+      { delete: { _index: indexName, _id: hit._id } }
+    ])
+    
+    const bulkResponse = await client.bulk({
+      body: bulkBody,
+      refresh: false,  // Don't force refresh
+    })
+    
+    // Count successful deletions
+    const deleted = bulkResponse.body.items.filter(item => 
+      item.delete && (item.delete.result === 'deleted' || item.delete.status === 200)
+    ).length
+    
+    console.log(`Successfully deleted ${deleted} issues`)
+    return { deleted }
+    
   } catch (error) {
     // Handle index not found error gracefully - this happens on first run
     if (error.meta?.statusCode === 404 && error.meta?.body?.error?.type === 'index_not_found_exception') {

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
-import { Download, LogOut, HelpCircle, BookOpen } from 'lucide-react';
+import { Download, LogOut, HelpCircle, BookOpen, Database } from 'lucide-react';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { useLoadMyInvites } from '../../hooks/useLoadMyInvites';
 import { GuardedLink } from './GuardedLink';
@@ -93,6 +93,12 @@ export const AppLayout = () => {
                   {pendingCount}
                 </span>
               )}
+            </GuardedLink>
+            <GuardedLink
+              to="/database"
+              className="text-white hover:text-white/80 transition-colors duration-200 text-base font-medium"
+            >
+              Database
             </GuardedLink>
             <a
               href="https://docs.kiyanaw.net/"
@@ -261,6 +267,14 @@ export const AppLayout = () => {
                     {pendingCount}
                   </span>
                 )}
+              </GuardedLink>
+              <GuardedLink
+                to="/database"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center px-6 py-3 text-gray-900 hover:bg-gray-50 active:bg-gray-100 transition-colors duration-150"
+              >
+                <Database className="w-5 h-5 text-gray-600 mr-4" />
+                <span className="font-medium">Database</span>
               </GuardedLink>
 
               <GuardedLink

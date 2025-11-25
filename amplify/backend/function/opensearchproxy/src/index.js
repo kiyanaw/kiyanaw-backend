@@ -103,6 +103,16 @@ async function getDatabaseStats(lang) {
   // Build the query filter for language
   const langFilter = lang && lang !== 'all' ? { term: { lang } } : { match_all: {} };
   
+  // Use count API for efficient document counting
+  const countResponse = await client.count({
+    index: indexName,
+    body: {
+      query: langFilter
+    }
+  });
+  const totalWords = countResponse.body.count || 0;
+  
+  // Get aggregations for statistics
   const searchBody = {
     size: 0,
     query: langFilter,
@@ -133,7 +143,7 @@ async function getDatabaseStats(lang) {
           verbs: {
             terms: {
               field: 'lemma.keyword',
-              size: 5
+              size: 500
             }
           }
         }
@@ -146,7 +156,7 @@ async function getDatabaseStats(lang) {
           nouns: {
             terms: {
               field: 'lemma.keyword',
-              size: 5
+              size: 500
             }
           }
         }
@@ -160,9 +170,6 @@ async function getDatabaseStats(lang) {
   });
   
   const aggs = response.body.aggregations;
-  // Safely extract total count (handles both old and new OpenSearch formats)
-  const totalHits = response.body.hits.total;
-  const totalWords = (typeof totalHits === 'object' ? totalHits.value : totalHits) || 0;
   
   return {
     totalWords,
