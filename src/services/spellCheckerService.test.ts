@@ -68,8 +68,11 @@ describe('SpellCheckerService', () => {
       expect(mockPost).toHaveBeenCalledTimes(1);
       const callArgs = mockPost.mock.calls[0][0];
       expect(callArgs.apiName).toBe('spellcheck');
-      expect(callArgs.path).toBe('/crk/bulk-lookup');
-      expect(callArgs.options.body).toEqual(expect.arrayContaining(['itwêw', 'hello', 'êkwa']));
+      expect(callArgs.path).toBe('/bulk-lookup');
+      expect(callArgs.options.body).toEqual({
+        languageCode: 'crk',
+        words: expect.arrayContaining(['itwêw', 'hello', 'êkwa'])
+      });
       expect(result.known).toEqual(expect.arrayContaining([
         expect.objectContaining({ word: 'itwêw' }),
         expect.objectContaining({ word: 'êkwa' })
@@ -98,9 +101,12 @@ describe('SpellCheckerService', () => {
       expect(mockPost).toHaveBeenCalledTimes(1);
       expect(mockPost).toHaveBeenCalledWith({
         apiName: 'spellcheck',
-        path: '/fra/bulk-lookup',
+        path: '/bulk-lookup',
         options: {
-          body: ['bonjour', 'monde']
+          body: {
+            languageCode: 'fra',
+            words: ['bonjour', 'monde']
+          }
         }
       });
       expect(result.known).toEqual(expect.arrayContaining([
@@ -175,8 +181,11 @@ describe('SpellCheckerService', () => {
       expect(mockPost).toHaveBeenCalledTimes(2);
       const lastCallArgs = mockPost.mock.calls[1][0];
       expect(lastCallArgs.apiName).toBe('spellcheck');
-      expect(lastCallArgs.path).toBe('/crk/bulk-lookup');
-      expect(lastCallArgs.options.body).toEqual(expect.arrayContaining(['êkwa', 'world']));
+      expect(lastCallArgs.path).toBe('/bulk-lookup');
+      expect(lastCallArgs.options.body).toEqual({
+        languageCode: 'crk',
+        words: expect.arrayContaining(['êkwa', 'world'])
+      });
 
       expect(result.known).toEqual(expect.arrayContaining([
         expect.objectContaining({ word: 'itwêw', analysis: '', allAnalysis: [] }), // From cache - no analysis
@@ -248,9 +257,12 @@ describe('SpellCheckerService', () => {
       // Should only request 'hello' from API
       expect(mockPost).toHaveBeenCalledWith({
         apiName: 'spellcheck',
-        path: '/crk/bulk-lookup',
+        path: '/bulk-lookup',
         options: {
-          body: ['hello']
+          body: {
+            languageCode: 'crk',
+            words: ['hello']
+          }
         }
       });
     });

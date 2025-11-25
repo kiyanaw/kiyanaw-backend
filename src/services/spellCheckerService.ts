@@ -63,11 +63,15 @@ class SpellCheckerServiceImpl {
   private async makeApiRequest(words: string[], languageCode: string): Promise<SpellCheckResult> {
     try {
       // Use Amplify's REST API client with the spellcheck API
+      // New endpoint format: /bulk-lookup with languageCode in body
       const { response } = await post({
         apiName: 'spellcheck',
-        path: `/${languageCode}/bulk-lookup`,
+        path: '/bulk-lookup',
         options: {
-          body: words
+          body: {
+            languageCode,
+            words
+          }
         }
       });
       const res = await response;

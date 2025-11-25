@@ -111,5 +111,22 @@ export default {
         '/node_modules/',
       ],
     },
+    // Lambda function tests - spellcheck
+    {
+      displayName: 'Lambda Functions - Spellcheck',
+      testEnvironment: 'node',
+      rootDir: 'amplify/backend/function/spellcheck/src',
+      testMatch: [
+        '<rootDir>/test/test-*.(js|ts)',
+      ],
+      collectCoverageFrom: [
+        'lib/**/*.(js|ts)',
+        'index.js',
+        '!test/**/*.(js|ts)',
+      ],
+      testPathIgnorePatterns: [
+        '/node_modules/',
+      ],
+    },
   ],
 }; 

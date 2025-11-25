@@ -46,6 +46,32 @@
           "delete"
         ]
       }
+    },
+    "/bulk-lookup": {
+      "name": "/bulk-lookup",
+      "lambdaFunction": "spellcheck",
+      "permissions": {
+        "setting": "private",
+        "auth": [
+          "create",
+          "read",
+          "update",
+          "delete"
+        ]
+      }
+    },
+    "/suggest": {
+      "name": "/suggest",
+      "lambdaFunction": "spellcheck",
+      "permissions": {
+        "setting": "private",
+        "auth": [
+          "create",
+          "read",
+          "update",
+          "delete"
+        ]
+      }
     }
   }
 }

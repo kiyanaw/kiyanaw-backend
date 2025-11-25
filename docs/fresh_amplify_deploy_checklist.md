@@ -124,3 +124,66 @@ The `indexRegionData` Lambda function requires manual permission configuration i
      - **Permissions**: `crud` (create, read, update, delete)
    - Add **Backend roles**: `arn:aws:iam::{account-id}:role/{lambda-execution-role-name}`
    - Save the role
+
+### 4. `spellcheck` Lambda Configuration
+
+The `spellcheck` lambda requires VPC and EFS configuration to cache FST (Finite State Transducer) files downloaded from S3.
+
+#### A. VPC Configuration
+
+1. **Navigate to Lambda Function**
+   - Go to AWS Lambda service
+   - Find the `spellcheck-{env}` function
+
+2. **Configure VPC**
+   - Click on the function name
+   - Go to **Configuration** tab
+   - Click **VPC** in the left sidebar
+   - Click **Edit**
+
+3. **Select VPC Settings**
+   - Choose **Default VPC** from the dropdown
+   - Select the following subnets:
+     - `us-east-1a` subnet
+     - `us-east-1b` subnet
+   - Select **Default security group**
+   - Click **Save**
+
+4. **Configure VPC S3 Endpoint** (if not already created in step 2.A.4)
+   - Go to AWS VPC service
+   - Click **Endpoints** in the left sidebar
+   - If an S3 Gateway Endpoint for the Default VPC already exists, skip this step
+   - Otherwise, click **Create endpoint** and follow steps 2.A.4-2.A.5
+
+#### B. EFS File System Configuration
+
+1. **Create EFS File System**
+   - Go to AWS EFS service
+   - Click **Create file system**
+   - Choose **Customize** for advanced settings
+
+2. **Configure File System**
+   - **Name**: `spellcheckFSTS-{env}`
+   - **VPC**: Select the same VPC as the Lambda function (Default VPC)
+   - **Availability and durability**: Regional
+   - **Performance mode**: General Purpose
+   - **Throughput mode**: Bursting
+
+3. **Configure Mount Targets**
+   - Select the same subnets as your Lambda function (`us-east-1a` and `us-east-1b`)
+   - Use the default security group
+   - Click **Next** and complete the creation
+
+4. **Add EFS to Lambda Function**
+   - Go back to the `spellcheck-{env}` Lambda function
+   - Go to **Configuration** tab
+   - Click **File system** in the left sidebar
+   - Click **Add file system**
+
+5. **Configure File System Access**
+   - **EFS file system**: Select the EFS file system you created (`spellcheckFSTS-{env}`)
+   - **Local mount path**: `/mnt/fsts` (This mount path is hardcoded in the lambda)
+   - **Access point**: Create a new access point
+   - Click **Save**
+
+**Note**: The spellcheck function will automatically download FST files from S3 to the EFS mount on first use. The files are cached on EFS to avoid repeated downloads.

@@ -65,6 +65,14 @@
           ],
           "category": "function",
           "resourceName": "crkSpellCheck"
+        },
+        {
+          "attributes": [
+            "Name",
+            "Arn"
+          ],
+          "category": "function",
+          "resourceName": "spellcheck"
         }
       ],
       "providerPlugin": "awscloudformation",
@@ -297,6 +305,27 @@
       "dependsOn": [],
       "providerPlugin": "awscloudformation",
       "service": "Lambda"
+    },
+    "spellcheck": {
+      "build": true,
+      "dependsOn": [
+        {
+          "attributes": [
+            "BucketName"
+          ],
+          "category": "storage",
+          "resourceName": "transcriptions"
+        },
+        {
+          "attributes": [
+            "Arn"
+          ],
+          "category": "function",
+          "resourceName": "kiyanawlibHfstol"
+        }
+      ],
+      "providerPlugin": "awscloudformation",
+      "service": "Lambda"
     }
   },
   "hosting": {
@@ -495,6 +524,22 @@
         {
           "category": "function",
           "resourceName": "opensearchproxy"
+        }
+      ]
+    },
+    "AMPLIFY_function_spellcheck_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "spellcheck"
+        }
+      ]
+    },
+    "AMPLIFY_function_spellcheck_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "spellcheck"
         }
       ]
     }
