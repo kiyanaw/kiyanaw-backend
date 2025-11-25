@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
 import type { Attestation } from '../../services/adt';
 import { formatTimestamp } from '../../utils/timeFormat';
+import { isMobileViewport } from '../../config/ui';
 
 interface AttestationTableProps {
   attestations: Attestation[];
@@ -119,7 +120,13 @@ export const AttestationTable = ({
                 <tr key={`${attestation.regionId}-${index}`} className="hover:bg-gray-50">
                   <td className="px-4 py-3 text-sm">
                     <button
-                      onClick={() => navigate(getTranscriptionLink(attestation))}
+                      onClick={() => {
+                        if (isMobileViewport()) {
+                          navigate(getTranscriptionLink(attestation));
+                        } else {
+                          window.open(getTranscriptionLink(attestation), '_blank');
+                        }
+                      }}
                       className="text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1 text-left"
                       title={`Go to transcription at ${formatTimestamp(attestation.timestamp)}`}
                     >
