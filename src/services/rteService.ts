@@ -4,15 +4,16 @@ import 'react-quill/dist/quill.snow.css';
 // Import quill-cursors for collaborative editing
 import QuillCursors from 'quill-cursors';
 import { textHighlightService, type IssueHighlight } from './textHighlightService';
-import { type IssueType } from './adt';
+import { type IssueType, ISSUE_TYPES } from './adt';
 import { useEditorStore } from '../stores/useEditorStore';
 import { issueHighlightService } from './issueHighlightService';
 import { issueMatchingService } from './issueMatchingService';
 import { REGION_TEXT_MATCH_PATTERN } from '../constants/text-patterns';
 import { type WordAnalysis } from './adt';
 
-const ISSUE_FORMATS = ['issue-needs-help', 'issue-indexing', 'issue-new-word'] as const;
-type IssueFormatName = typeof ISSUE_FORMATS[number];
+// Derive issue format names from centralized ISSUE_TYPES
+const ISSUE_FORMATS = ISSUE_TYPES.map(type => `issue-${type}` as const);
+type IssueFormatName = `issue-${IssueType}`;
 
 interface DeltaInstance {
   ops: Array<Record<string, unknown>>;
@@ -758,71 +759,51 @@ class RTEServiceImpl {
     this.applyHighlightingInternal(key, options);
   }
 
-  // Apply both known words and issue formatting (issues take priority)
-  // Uses selective formatting removal to avoid cursor jumping
-  private applyHighlightingInternal(
-    key: EditorKey,
-    options: { knownWords?: string[]; issues?: IssueHighlight[]; ambiguousIndices?: Set<number>; regionAnalysis?: WordAnalysis[] },
-    debugContext: { operationId?: number; editorVersion?: number } = {}
-  ): void {
-    const instance = this.registry.get(key);
-    if (!instance) {
-      return;
+  /**
+   * Find ambiguous word matches by position using regionAnalysis indices
+   */
+  private findAmbiguousWordMatches(
+    text: string,
+    ambiguousIndices: Set<number>,
+    regionAnalysis: WordAnalysis[]
+  ): Array<{ word: string; index: number; length: number }> {
+    const matches: Array<{ word: string; index: number; length: number }> = [];
+    
+    if (ambiguousIndices.size === 0 || regionAnalysis.length === 0) {
+      return matches;
     }
 
-    if (!this.isEditorConnected(instance)) {
-      console.debug(`🚫 Skipping highlighting for ${key} - editor no longer mounted`);
-      return;
-    }
-
-    const text = instance.quill.getText();
-    if (!text) return;
-
-    const { knownWords = [], issues = [], ambiguousIndices = new Set(), regionAnalysis = [] } = options;
-
-    // Capture current selection to restore after formatting (Safari fix)
-    const currentSelection = instance.quill.getSelection();
-
-    const textLength = text.length;
-
-    const knownWordsSet = new Set(knownWords);
-
-    const desiredKnownWordMatches = knownWords.length > 0
-      ? textHighlightService.findMatches(text, knownWordsSet)
-      : [];
-
-    // For ambiguous words, match by position using regionAnalysis indices
-    const desiredAmbiguousWordMatches: Array<{ word: string; index: number; length: number }> = [];
-    if (ambiguousIndices.size > 0 && regionAnalysis.length > 0) {
-      // Tokenize text to find word positions
-      const tokens = text.split(REGION_TEXT_MATCH_PATTERN);
-      let charPos = 0;
-      let knownWordIdx = 0; // Counter for known words only
-      
-      for (const token of tokens) {
-        if (REGION_TEXT_MATCH_PATTERN.test(token)) {
-          const lowerToken = token.toLowerCase();
-          // Check if this word exists in regionAnalysis at the current known word index
-          if (knownWordIdx < regionAnalysis.length && regionAnalysis[knownWordIdx].word.toLowerCase() === lowerToken) {
-            // This is a known word - check if it's ambiguous
-            if (ambiguousIndices.has(knownWordIdx)) {
-              desiredAmbiguousWordMatches.push({
-                word: token,
-                index: charPos,
-                length: token.length
-              });
-            }
-            knownWordIdx++;
+    const tokens = text.split(REGION_TEXT_MATCH_PATTERN);
+    let charPos = 0;
+    let knownWordIdx = 0;
+    
+    for (const token of tokens) {
+      if (REGION_TEXT_MATCH_PATTERN.test(token)) {
+        const lowerToken = token.toLowerCase();
+        if (knownWordIdx < regionAnalysis.length && regionAnalysis[knownWordIdx].word.toLowerCase() === lowerToken) {
+          if (ambiguousIndices.has(knownWordIdx)) {
+            matches.push({ word: token, index: charPos, length: token.length });
           }
+          knownWordIdx++;
         }
-        charPos += token.length;
       }
+      charPos += token.length;
     }
+    
+    return matches;
+  }
 
-    const desiredIssueMatches = issues.length > 0
-      ? this.findIssueMatches(text, issues)
-      : [];
-
+  /**
+   * Filter matches to avoid overlaps (issues take priority over ambiguous, both take priority over known)
+   */
+  private filterMatchesByPriority(
+    knownMatches: Array<{ index: number; length: number }>,
+    ambiguousMatches: Array<{ index: number; length: number }>,
+    issueMatches: Array<{ index: number; length: number }>
+  ): {
+    filteredKnown: Array<{ index: number; length: number }>;
+    filteredAmbiguous: Array<{ index: number; length: number }>;
+  } {
     const toRange = (match: { index: number; length: number }) => ({
       start: match.index,
       end: match.index + match.length,
@@ -834,23 +815,166 @@ class RTEServiceImpl {
       ranges: Array<{ start: number; end: number }>
     ): boolean => ranges.some(range => start < range.end && end > range.start);
 
-    const issueRanges = desiredIssueMatches.map(toRange);
-    const ambiguousRanges = desiredAmbiguousWordMatches.map(toRange);
+    const issueRanges = issueMatches.map(toRange);
+    const ambiguousRanges = ambiguousMatches.map(toRange);
 
-    const filteredKnownMatches = desiredKnownWordMatches.filter(match => {
+    const filteredKnown = knownMatches.filter(match => {
       const start = match.index;
       const end = match.index + match.length;
       return !rangesOverlap(start, end, issueRanges) && !rangesOverlap(start, end, ambiguousRanges);
     });
 
-    const filteredAmbiguousMatches = desiredAmbiguousWordMatches.filter(match => {
+    const filteredAmbiguous = ambiguousMatches.filter(match => {
       const start = match.index;
       const end = match.index + match.length;
       return !rangesOverlap(start, end, issueRanges);
     });
 
-    type SimpleRange = { start: number; end: number };
-    type IssueRange = SimpleRange & { type: IssueType; id: string | null };
+    return { filteredKnown, filteredAmbiguous };
+  }
+
+  /**
+   * Collect current format ranges from the editor
+   */
+  private collectCurrentRanges(instance: RTEInstance): {
+    known: Array<{ start: number; end: number }>;
+    ambiguous: Array<{ start: number; end: number }>;
+    issues: Array<{ start: number; end: number; type: IssueType; id: string | null }>;
+  } {
+    if (!this.isEditorConnected(instance)) {
+      return { known: [], ambiguous: [], issues: [] };
+    }
+
+    const contents = instance.quill.getContents();
+    const known: Array<{ start: number; end: number }> = [];
+    const ambiguous: Array<{ start: number; end: number }> = [];
+    const issues: Array<{ start: number; end: number; type: IssueType; id: string | null }> = [];
+
+    let cursor = 0;
+    for (const op of contents.ops ?? []) {
+      const insert = op.insert;
+      const segment = typeof insert === 'string' ? insert : '\uFFFC';
+      const segmentLength = segment.length;
+      if (segmentLength === 0) continue;
+
+      const attrs = op.attributes || {};
+
+      if (attrs['known-word']) {
+        known.push({ start: cursor, end: cursor + segmentLength });
+      }
+
+      if (attrs['ambiguous-word']) {
+        ambiguous.push({ start: cursor, end: cursor + segmentLength });
+      }
+
+      for (const formatName of ISSUE_FORMATS) {
+        const value = attrs[formatName];
+        if (value) {
+          const type = formatName.replace('issue-', '') as IssueType;
+          issues.push({
+            start: cursor,
+            end: cursor + segmentLength,
+            type,
+            id: typeof value === 'string' ? value : null,
+          });
+        }
+      }
+
+      cursor += segmentLength;
+    }
+
+    return { known, ambiguous, issues };
+  }
+
+  /**
+   * Apply a consolidated delta to the editor
+   */
+  private applyConsolidatedDelta(
+    instance: RTEInstance,
+    key: EditorKey,
+    operations: Array<{
+      index: number;
+      length: number;
+      value: boolean | string | null;
+      phase: 'remove' | 'add';
+      formatName: string;
+    }>,
+    phase: 'remove' | 'add',
+    operationId: number | null
+  ): void {
+    const subset = operations
+      .filter(op => op.phase === phase)
+      .sort((a, b) => a.index - b.index);
+
+    if (subset.length === 0 || !this.isEditorConnected(instance)) {
+      return;
+    }
+
+    const delta = new Delta();
+    let cursor = 0;
+
+    for (const op of subset) {
+      if (!this.isEditorConnected(instance)) return;
+
+      if (op.index > cursor) {
+        delta.retain(op.index - cursor);
+        cursor = op.index;
+      }
+
+      const attrValue = phase === 'remove' ? null : (op.value === null ? true : op.value);
+      delta.retain(op.length, { [op.formatName]: attrValue });
+      cursor = op.index + op.length;
+    }
+
+    if (delta.ops.length === 0) return;
+
+    try {
+      this.updateDebugInfo(key, 'highlight-delta-apply', {
+        operationId,
+        phase,
+        operations: subset.length,
+        formats: [...new Set(subset.map(op => op.formatName))].join(', '),
+      });
+      instance.quill.updateContents(delta as Parameters<QuillInstance['updateContents']>[0], 'silent');
+    } catch (error) {
+      const isCorruption = error instanceof Error && error.message.includes('mutations');
+      if (isCorruption) {
+        const snapshot = this.getDebugSnapshot(key);
+        console.warn(`🔄 Highlight delta corruption for ${key}`, {
+          operationId,
+          phase,
+          operations: subset.length,
+          snapshot,
+        });
+        throw error;
+      }
+      console.warn(`🚫 Failed to apply consolidated delta for ${key}:`, error);
+    }
+  }
+
+  /**
+   * Compute format operations by diffing current and desired ranges
+   */
+  private computeFormatOperations(
+    currentRanges: {
+      known: Array<{ start: number; end: number }>;
+      ambiguous: Array<{ start: number; end: number }>;
+      issues: Array<{ start: number; end: number; type: IssueType; id: string | null }>;
+    },
+    desiredRanges: {
+      known: Array<{ start: number; end: number }>;
+      ambiguous: Array<{ start: number; end: number }>;
+      issues: Array<{ start: number; end: number; type: IssueType; id: string | null }>;
+    },
+    textLength: number
+  ): Array<{
+    index: number;
+    length: number;
+    value: boolean | string | null;
+    phase: 'remove' | 'add';
+    origin: 'known' | 'ambiguous' | 'issue';
+    formatName: string;
+  }> {
     type FormatOperation = {
       index: number;
       length: number;
@@ -860,14 +984,133 @@ class RTEServiceImpl {
       formatName: string;
     };
 
-    const desiredKnownRanges: SimpleRange[] = filteredKnownMatches.map(toRange);
-    const desiredAmbiguousRanges: SimpleRange[] = filteredAmbiguousMatches.map(toRange);
-    const desiredIssueRanges: IssueRange[] = desiredIssueMatches.map(match => ({
-      ...toRange(match),
-      type: match.type,
-      id: match.id,
-    }));
+    const operations: FormatOperation[] = [];
 
+    const queueOperation = (
+      index: number,
+      length: number,
+      value: boolean | string | null,
+      phase: 'remove' | 'add',
+      origin: 'known' | 'ambiguous' | 'issue',
+      formatName: string
+    ): void => {
+      if (length <= 0 || index < 0 || index >= textLength) return;
+      const safeLength = Math.min(length, textLength - index);
+      if (safeLength <= 0) return;
+      operations.push({ index, length: safeLength, value, phase, origin, formatName });
+    };
+
+    const rangeKey = (range: { start: number; end: number }) => `${range.start}-${range.end}`;
+    const issueRangeKey = (range: { start: number; end: number; type: IssueType }) => 
+      `${range.start}-${range.end}-${range.type}`;
+
+    // Diff simple formats (known, ambiguous)
+    const diffSimple = (
+      current: Array<{ start: number; end: number }>,
+      desired: Array<{ start: number; end: number }>,
+      origin: 'known' | 'ambiguous',
+      formatName: string
+    ) => {
+      const currentMap = new Map(current.map(r => [rangeKey(r), r]));
+      const desiredMap = new Map(desired.map(r => [rangeKey(r), r]));
+
+      currentMap.forEach((range, key) => {
+        if (!desiredMap.has(key)) {
+          queueOperation(range.start, range.end - range.start, false, 'remove', origin, formatName);
+        }
+      });
+
+      desiredMap.forEach((range, key) => {
+        if (!currentMap.has(key)) {
+          queueOperation(range.start, range.end - range.start, true, 'add', origin, formatName);
+        }
+      });
+    };
+
+    // Diff issue formats
+    const diffIssues = (
+      current: Array<{ start: number; end: number; type: IssueType; id: string | null }>,
+      desired: Array<{ start: number; end: number; type: IssueType; id: string | null }>
+    ) => {
+      const currentMap = new Map(current.map(r => [issueRangeKey(r), r]));
+      const desiredMap = new Map(desired.map(r => [issueRangeKey(r), r]));
+
+      currentMap.forEach((range, key) => {
+        if (!desiredMap.has(key)) {
+          const formatName = `issue-${range.type}`;
+          queueOperation(range.start, range.end - range.start, false, 'remove', 'issue', formatName);
+        }
+      });
+
+      desiredMap.forEach((range, key) => {
+        const existing = currentMap.get(key);
+        if (!existing || existing.id !== range.id) {
+          const formatName = `issue-${range.type}`;
+          queueOperation(range.start, range.end - range.start, range.id ?? true, 'add', 'issue', formatName);
+        }
+      });
+    };
+
+    diffSimple(currentRanges.known, desiredRanges.known, 'known', 'known-word');
+    diffSimple(currentRanges.ambiguous, desiredRanges.ambiguous, 'ambiguous', 'ambiguous-word');
+    diffIssues(currentRanges.issues, desiredRanges.issues);
+
+    return operations;
+  }
+
+  /**
+   * Restore cursor selection after formatting (with Safari fix)
+   */
+  private restoreSelection(
+    instance: RTEInstance,
+    key: EditorKey,
+    selection: { index: number; length: number } | null
+  ): void {
+    if (!selection) return;
+
+    try {
+      if (instance.quill && instance.quill.container && instance.quill.container.isConnected) {
+        instance.quill.setSelection(selection, 'api');
+        
+        // Safari-specific visual cursor refresh
+        if (typeof window !== 'undefined' && /^((?!chrome|android).)*safari/i.test(navigator.userAgent)) {
+          setTimeout(() => {
+            if (instance.quill && instance.quill.container && instance.quill.container.isConnected) {
+              instance.quill.blur();
+              instance.quill.focus();
+              instance.quill.setSelection(selection, 'api');
+            }
+          }, 10);
+        }
+      }
+    } catch (error) {
+      console.warn(`🚫 Failed to restore selection for ${key}:`, error);
+    }
+  }
+
+  // Apply both known words and issue formatting (issues take priority)
+  // Uses selective formatting removal to avoid cursor jumping
+  private applyHighlightingInternal(
+    key: EditorKey,
+    options: { knownWords?: string[]; issues?: IssueHighlight[]; ambiguousIndices?: Set<number>; regionAnalysis?: WordAnalysis[] },
+    debugContext: { operationId?: number; editorVersion?: number } = {}
+  ): void {
+    const instance = this.registry.get(key);
+    if (!instance) return;
+
+    if (!this.isEditorConnected(instance)) {
+      console.debug(`🚫 Skipping highlighting for ${key} - editor no longer mounted`);
+      return;
+    }
+
+    const text = instance.quill.getText();
+    if (!text) return;
+
+    const { knownWords = [], issues = [], ambiguousIndices = new Set(), regionAnalysis = [] } = options;
+    const currentSelection = instance.quill.getSelection();
+    const textLength = text.length;
+
+    // Check version to avoid stale operations
     const operationId = debugContext.operationId ?? null;
     const expectedVersion = debugContext.editorVersion ?? null;
     const currentVersion = this.editorVersions.get(key) ?? 0;
@@ -887,288 +1130,59 @@ class RTEServiceImpl {
       issues: issues.length,
     });
 
-    const queueFormatOperation = (
-      target: FormatOperation[],
-      index: number,
-      length: number,
-      value: boolean | string | null,
-      phase: 'remove' | 'add',
-      origin: 'known' | 'ambiguous' | 'issue',
-      formatName: string
-    ): void => {
-      if (length <= 0 || index < 0 || index >= textLength) {
-        return;
-      }
+    // Find all desired matches
+    const knownWordsSet = new Set(knownWords);
+    const desiredKnownWordMatches = knownWords.length > 0
+      ? textHighlightService.findMatches(text, knownWordsSet)
+      : [];
+    const desiredAmbiguousWordMatches = this.findAmbiguousWordMatches(text, ambiguousIndices, regionAnalysis);
+    const desiredIssueMatches = issues.length > 0 ? this.findIssueMatches(text, issues) : [];
 
-      const safeLength = Math.min(length, textLength - index);
-      if (safeLength <= 0) {
-        return;
-      }
-      target.push({ index, length: safeLength, value, phase, origin, formatName });
-    };
-
-    const applyConsolidatedDelta = (
-      operations: FormatOperation[],
-      phase: 'remove' | 'add'
-    ): void => {
-      const subset = operations
-        .filter(op => op.phase === phase)
-        .sort((a, b) => a.index - b.index);
-
-      if (subset.length === 0 || !this.isEditorConnected(instance)) {
-        return;
-      }
-
-      // Build a single delta that applies ALL format changes at once
-      // This groups changes by position to minimize Quill's optimization cycles
-      const delta = new Delta();
-      let cursor = 0;
-
-      for (const op of subset) {
-        if (!this.isEditorConnected(instance)) {
-          return;
-        }
-
-        if (op.index > cursor) {
-          delta.retain(op.index - cursor);
-          cursor = op.index;
-        }
-
-        const attrValue =
-          phase === 'remove'
-            ? null
-            : op.value === null
-              ? true
-              : op.value;
-
-        delta.retain(op.length, { [op.formatName]: attrValue });
-        cursor = op.index + op.length;
-      }
-
-      if (delta.ops.length === 0) {
-        return;
-      }
-
-      try {
-        this.updateDebugInfo(key, 'highlight-delta-apply', {
-          operationId,
-          phase,
-          operations: subset.length,
-          formats: [...new Set(subset.map(op => op.formatName))].join(', '),
-        });
-        instance.quill.updateContents(delta as Parameters<QuillInstance['updateContents']>[0], 'silent');
-      } catch (error) {
-        const isCorruption =
-          error instanceof Error && error.message.includes('mutations');
-
-        if (isCorruption) {
-          const snapshot = this.getDebugSnapshot(key);
-          console.warn(`🔄 Highlight delta corruption for ${key}`, {
-            operationId,
-            phase,
-            operations: subset.length,
-            snapshot,
-          });
-          throw error;
-        }
-
-        console.warn(`🚫 Failed to apply consolidated delta for ${key}:`, error);
-      }
-    };
-
-    const collectCurrentRanges = (): {
-      known: SimpleRange[];
-      ambiguous: SimpleRange[];
-      issues: IssueRange[];
-    } => {
-      if (!this.isEditorConnected(instance)) {
-        return { known: [], ambiguous: [], issues: [] };
-      }
-
-      const contents = instance.quill.getContents();
-      const known: SimpleRange[] = [];
-      const ambiguous: SimpleRange[] = [];
-      const issues: IssueRange[] = [];
-
-      let cursor = 0;
-      for (const op of contents.ops ?? []) {
-        const insert = op.insert;
-        const segment = typeof insert === 'string' ? insert : '\uFFFC';
-        const segmentLength = segment.length;
-        if (segmentLength === 0) {
-          continue;
-        }
-
-        const attrs = op.attributes || {};
-
-        if (attrs['known-word']) {
-          known.push({ start: cursor, end: cursor + segmentLength });
-        }
-
-        if (attrs['ambiguous-word']) {
-          ambiguous.push({ start: cursor, end: cursor + segmentLength });
-        }
-
-        for (const formatName of ISSUE_FORMATS) {
-          const value = attrs[formatName];
-          if (value) {
-            const type = formatName.replace('issue-', '') as IssueType;
-            issues.push({
-              start: cursor,
-              end: cursor + segmentLength,
-              type,
-              id: typeof value === 'string' ? value : null,
-            });
-          }
-        }
-
-        cursor += segmentLength;
-      }
-
-      return { known, ambiguous, issues };
-    };
-
-    const rangeKey = (range: SimpleRange) => `${range.start}-${range.end}`;
-    const issueRangeKey = (range: IssueRange) => `${range.start}-${range.end}-${range.type}`;
-
-    const diffSimpleFormat = (
-      current: SimpleRange[],
-      desired: SimpleRange[],
-      queue: (range: SimpleRange, shouldExist: boolean) => void
-    ) => {
-      const currentMap = new Map(current.map(range => [rangeKey(range), range]));
-      const desiredMap = new Map(desired.map(range => [rangeKey(range), range]));
-
-      currentMap.forEach((range, key) => {
-        if (!desiredMap.has(key)) {
-          queue(range, false);
-        }
-      });
-
-      desiredMap.forEach((range, key) => {
-        if (!currentMap.has(key)) {
-          queue(range, true);
-        }
-      });
-    };
-
-    const knownOperations: FormatOperation[] = [];
-    const ambiguousOperations: FormatOperation[] = [];
-    const issueOperations: Record<IssueFormatName, FormatOperation[]> = {
-      'issue-needs-help': [],
-      'issue-indexing': [],
-      'issue-new-word': [],
-    };
-
-    const diffIssueFormats = (current: IssueRange[], desired: IssueRange[]) => {
-      const currentMap = new Map(current.map(range => [issueRangeKey(range), range]));
-      const desiredMap = new Map(desired.map(range => [issueRangeKey(range), range]));
-
-      currentMap.forEach((range, key) => {
-        if (!desiredMap.has(key)) {
-          const formatName = `issue-${range.type}` as IssueFormatName;
-          queueFormatOperation(
-            issueOperations[formatName],
-            range.start,
-            range.end - range.start,
-            false,
-            'remove',
-            'issue',
-            formatName
-          );
-        }
-      });
-
-      desiredMap.forEach((range, key) => {
-        const formatName = `issue-${range.type}` as IssueFormatName;
-        const existing = currentMap.get(key);
-
-        if (!existing || existing.id !== range.id) {
-          queueFormatOperation(
-            issueOperations[formatName],
-            range.start,
-            range.end - range.start,
-            range.id ?? true,
-            'add',
-            'issue',
-            formatName
-          );
-        }
-      });
-    };
-
-    const currentRanges = collectCurrentRanges();
-    diffSimpleFormat(currentRanges.known, desiredKnownRanges, (range, shouldExist) => {
-      queueFormatOperation(
-        knownOperations,
-        range.start,
-        range.end - range.start,
-        shouldExist ? true : false,
-        shouldExist ? 'add' : 'remove',
-        'known',
-        'known-word'
-      );
-    });
-    diffSimpleFormat(currentRanges.ambiguous, desiredAmbiguousRanges, (range, shouldExist) => {
-      queueFormatOperation(
-        ambiguousOperations,
-        range.start,
-        range.end - range.start,
-        shouldExist ? true : false,
-        shouldExist ? 'add' : 'remove',
-        'ambiguous',
-        'ambiguous-word'
-      );
-    });
-    diffIssueFormats(currentRanges.issues, desiredIssueRanges);
-
-    // Consolidate ALL operations into a single array
-    const allOperations: FormatOperation[] = [
-      ...knownOperations,
-      ...ambiguousOperations,
-      ...ISSUE_FORMATS.flatMap(formatName => issueOperations[formatName])
-    ];
-
-    // Apply all removals in ONE delta, then all additions in ONE delta
-    // This ensures Quill only runs batchEnd/optimize twice total instead of 10+ times
-    applyConsolidatedDelta(allOperations, 'remove');
-    applyConsolidatedDelta(allOperations, 'add');
-
-    const issueOpsCount = ISSUE_FORMATS.reduce(
-      (sum, formatName) => sum + issueOperations[formatName].length,
-      0
+    // Filter matches by priority (issues > ambiguous > known)
+    const { filteredKnown, filteredAmbiguous } = this.filterMatchesByPriority(
+      desiredKnownWordMatches,
+      desiredAmbiguousWordMatches,
+      desiredIssueMatches
     );
+
+    // Convert to ranges
+    const toRange = (match: { index: number; length: number }) => ({
+      start: match.index,
+      end: match.index + match.length,
+    });
+
+    const desiredRanges = {
+      known: filteredKnown.map(toRange),
+      ambiguous: filteredAmbiguous.map(toRange),
+      issues: desiredIssueMatches.map(match => ({
+        ...toRange(match),
+        type: match.type,
+        id: match.id,
+      })),
+    };
+
+    // Collect current ranges and compute diff
+    const currentRanges = this.collectCurrentRanges(instance);
+    const operations = this.computeFormatOperations(currentRanges, desiredRanges, textLength);
+
+    // Apply all format changes in two batches (remove, then add)
+    this.applyConsolidatedDelta(instance, key, operations, 'remove', operationId);
+    this.applyConsolidatedDelta(instance, key, operations, 'add', operationId);
+
+    // Log completion
+    const knownOps = operations.filter(op => op.origin === 'known').length;
+    const ambiguousOps = operations.filter(op => op.origin === 'ambiguous').length;
+    const issueOps = operations.filter(op => op.origin === 'issue').length;
 
     this.updateDebugInfo(key, 'highlight-apply-finish', {
       operationId,
-      knownOps: knownOperations.length,
-      ambiguousOps: ambiguousOperations.length,
-      issueOps: issueOpsCount,
+      knownOps,
+      ambiguousOps,
+      issueOps,
     });
 
-    // Restore selection after formatting (Safari fix)
-    if (currentSelection) {
-      try {
-        // Validate editor is still connected before restoring selection
-        if (instance.quill && instance.quill.container && instance.quill.container.isConnected) {
-          instance.quill.setSelection(currentSelection, 'api');
-          
-          // Safari-specific visual cursor refresh
-          if (typeof window !== 'undefined' && /^((?!chrome|android).)*safari/i.test(navigator.userAgent)) {
-            setTimeout(() => {
-              // Double-check editor is still valid in the timeout
-              if (instance.quill && instance.quill.container && instance.quill.container.isConnected) {
-                instance.quill.blur();
-                instance.quill.focus();
-                instance.quill.setSelection(currentSelection, 'api');
-              }
-            }, 10);
-          }
-        }
-      } catch (error) {
-        console.warn(`🚫 Failed to restore selection for ${key}:`, error);
-      }
-    }
+    // Restore cursor position
+    this.restoreSelection(instance, key, currentSelection);
   }
 
   // Get current selection index (caret position)
