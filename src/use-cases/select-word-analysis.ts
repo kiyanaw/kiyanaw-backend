@@ -65,10 +65,8 @@ export async function selectWordAnalysis(
 
   await updateRegionUseCase.execute();
   
-  // DO NOT call highlighting update here - it causes React-Quill corruption
-  // The highlighting will update automatically on the next user interaction:
-  // - Next keystroke triggers spell check → highlighting update
-  // - Moving cursor to another word updates the context bar
-  // This is the most stable approach - no manual Quill manipulation during React updates
+  // Trigger highlighting update after save completes
+  // Now safe because we use consolidated deltas and double RAF deferral
+  rteService.updateIssueHighlighting(regionId);
 }
 

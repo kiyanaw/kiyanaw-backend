@@ -167,5 +167,196 @@ describe('selectWordAnalysis', () => {
       selectWordAnalysis('region-1', 0, 'invalid+Analysis')
     ).rejects.toThrow('Selected analysis "invalid+Analysis" not found in available analyses');
   });
+
+  it('should update only the specific occurrence of a duplicate word', async () => {
+    const mockRegion = {
+      id: 'region-1',
+      text: 'isi foo isi',
+      transcriptionId: 'transcription-1',
+      start: 0,
+      end: 1,
+      regionAnalysis: [
+        {
+          word: 'isi',
+          analysis: 'isi+Ipc',
+          allAnalysis: ['itêw+V+TA+Imp+Imm+2Sg+3SgO', 'isi+Ipc'],
+          source: 'auto' as const,
+          index: 0,
+        },
+        {
+          word: 'foo',
+          analysis: 'foo+N',
+          allAnalysis: ['foo+N'],
+          source: 'auto' as const,
+          index: 1,
+        },
+        {
+          word: 'isi',
+          analysis: 'isi+Ipc',
+          allAnalysis: ['itêw+V+TA+Imp+Imm+2Sg+3SgO', 'isi+Ipc'],
+          source: 'auto' as const,
+          index: 2,
+        },
+      ],
+    };
+
+    useEditorStore.setState({
+      regions: [mockRegion],
+      regionMap: {
+        'region-1': mockRegion,
+      },
+    });
+
+    // Select analysis for the FIRST 'isi' (index 0)
+    await selectWordAnalysis('region-1', 0, 'itêw+V+TA+Imp+Imm+2Sg+3SgO');
+
+    // Verify only the first 'isi' was updated
+    expect(UpdateRegionUseCase).toHaveBeenCalledWith(
+      expect.objectContaining({
+        regionId: 'region-1',
+        changes: expect.objectContaining({
+          regionAnalysis: [
+            {
+              word: 'isi',
+              analysis: 'itêw+V+TA+Imp+Imm+2Sg+3SgO',
+              allAnalysis: ['itêw+V+TA+Imp+Imm+2Sg+3SgO', 'isi+Ipc'],
+              source: 'user',
+              index: 0,
+            },
+            {
+              word: 'foo',
+              analysis: 'foo+N',
+              allAnalysis: ['foo+N'],
+              source: 'auto',
+              index: 1,
+            },
+            {
+              word: 'isi',
+              analysis: 'isi+Ipc',
+              allAnalysis: ['itêw+V+TA+Imp+Imm+2Sg+3SgO', 'isi+Ipc'],
+              source: 'auto',
+              index: 2,
+            },
+          ],
+        }),
+      })
+    );
+  });
+
+  it('should handle selecting different analyses for different occurrences of the same word', async () => {
+    const mockRegion = {
+      id: 'region-1',
+      text: 'isi isi isi',
+      transcriptionId: 'transcription-1',
+      start: 0,
+      end: 1,
+      regionAnalysis: [
+        {
+          word: 'isi',
+          analysis: 'isi+Ipc',
+          allAnalysis: ['itêw+V+TA+Imp+Imm+2Sg+3SgO', 'isi+Ipc'],
+          source: 'auto' as const,
+          index: 0,
+        },
+        {
+          word: 'isi',
+          analysis: 'isi+Ipc',
+          allAnalysis: ['itêw+V+TA+Imp+Imm+2Sg+3SgO', 'isi+Ipc'],
+          source: 'auto' as const,
+          index: 1,
+        },
+        {
+          word: 'isi',
+          analysis: 'isi+Ipc',
+          allAnalysis: ['itêw+V+TA+Imp+Imm+2Sg+3SgO', 'isi+Ipc'],
+          source: 'auto' as const,
+          index: 2,
+        },
+      ],
+    };
+
+    useEditorStore.setState({
+      regions: [mockRegion],
+      regionMap: {
+        'region-1': mockRegion,
+      },
+    });
+
+    // Select first analysis for the first 'isi'
+    await selectWordAnalysis('region-1', 0, 'itêw+V+TA+Imp+Imm+2Sg+3SgO');
+
+    // Clear mock to check next call
+    jest.clearAllMocks();
+
+    // Update store with the new state after first selection
+    const updatedRegion = {
+      ...mockRegion,
+      regionAnalysis: [
+        {
+          word: 'isi',
+          analysis: 'itêw+V+TA+Imp+Imm+2Sg+3SgO',
+          allAnalysis: ['itêw+V+TA+Imp+Imm+2Sg+3SgO', 'isi+Ipc'],
+          source: 'user' as const,
+          index: 0,
+        },
+        {
+          word: 'isi',
+          analysis: 'isi+Ipc',
+          allAnalysis: ['itêw+V+TA+Imp+Imm+2Sg+3SgO', 'isi+Ipc'],
+          source: 'auto' as const,
+          index: 1,
+        },
+        {
+          word: 'isi',
+          analysis: 'isi+Ipc',
+          allAnalysis: ['itêw+V+TA+Imp+Imm+2Sg+3SgO', 'isi+Ipc'],
+          source: 'auto' as const,
+          index: 2,
+        },
+      ],
+    };
+
+    useEditorStore.setState({
+      regions: [updatedRegion],
+      regionMap: {
+        'region-1': updatedRegion,
+      },
+    });
+
+    // Select second analysis for the third 'isi' (index 2)
+    await selectWordAnalysis('region-1', 2, 'isi+Ipc');
+
+    // Verify the third 'isi' was updated and others remain unchanged
+    expect(UpdateRegionUseCase).toHaveBeenCalledWith(
+      expect.objectContaining({
+        regionId: 'region-1',
+        changes: expect.objectContaining({
+          regionAnalysis: [
+            {
+              word: 'isi',
+              analysis: 'itêw+V+TA+Imp+Imm+2Sg+3SgO',
+              allAnalysis: ['itêw+V+TA+Imp+Imm+2Sg+3SgO', 'isi+Ipc'],
+              source: 'user',
+              index: 0,
+            },
+            {
+              word: 'isi',
+              analysis: 'isi+Ipc',
+              allAnalysis: ['itêw+V+TA+Imp+Imm+2Sg+3SgO', 'isi+Ipc'],
+              source: 'auto',
+              index: 1,
+            },
+            {
+              word: 'isi',
+              analysis: 'isi+Ipc',
+              allAnalysis: ['itêw+V+TA+Imp+Imm+2Sg+3SgO', 'isi+Ipc'],
+              source: 'user',
+              index: 2,
+            },
+          ],
+        }),
+      })
+    );
+  });
 });
 

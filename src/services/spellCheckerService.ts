@@ -244,35 +244,53 @@ class SpellCheckerServiceImpl {
     // 1. Fresh analysis from API (highest priority)
     // 2. Global cache (has full WordAnalysis objects)
     // 3. Existing region analysis (fallback)
+    //
+    // IMPORTANT: Create ONE entry per occurrence (not per unique word)
+    // This allows each instance of a duplicate word to have its own user selection
     const mergedAnalysis: WordAnalysis[] = [];
     const freshAnalysisMap = new Map(freshAnalysis.map(item => [item.word, item]));
     
-    uniqueWords.forEach(word => {
+    // Build map of existing analysis by word AND index for duplicate word handling
+    const existingByWordAndIndex = new Map<string, WordAnalysis>();
+    if (Array.isArray(existingAnalysis)) {
+      existingAnalysis.forEach((item, idx) => {
+        if (typeof item === 'object' && item !== null && 'word' in item) {
+          const analysis = item as WordAnalysis;
+          if (analysis.word && analysis.analysis && analysis.allAnalysis?.length > 0) {
+            existingByWordAndIndex.set(`${analysis.word}-${idx}`, analysis);
+          }
+        }
+      });
+    }
+    
+    // Iterate over ALL words (including duplicates) to create one entry per occurrence
+    words.forEach((word, index) => {
+      const existingKey = `${word}-${index}`;
+      const existingEntry = existingByWordAndIndex.get(existingKey);
+      
       if (freshAnalysisMap.has(word)) {
         // 1. Fresh analysis from API takes highest priority
         // Always mark as 'auto' since this is fresh from the API
         const fresh = freshAnalysisMap.get(word)!;
         mergedAnalysis.push({
           ...fresh,
-          source: 'auto'
+          source: 'auto',
+          index
+        });
+      } else if (existingEntry) {
+        // 2. Preserve existing analysis for this specific occurrence (including user selections)
+        mergedAnalysis.push({
+          ...existingEntry,
+          index
         });
       } else if (globalKnownWords.has(word)) {
-        // 2. Get full analysis from global cache
-        // Check if we have existing analysis for this word in THIS region
-        if (existingAnalysisMap.has(word)) {
-          // Preserve existing analysis (including source) from this region
-          mergedAnalysis.push(existingAnalysisMap.get(word)!);
-        } else {
-          // New word in this region - use cache but reset source to 'auto'
-          const cachedAnalysis = globalKnownWords.get(word)!;
-          mergedAnalysis.push({
-            ...cachedAnalysis,
-            source: 'auto'
-          });
-        }
-      } else if (existingAnalysisMap.has(word)) {
-        // 3. Fallback to existing region analysis (preserve source)
-        mergedAnalysis.push(existingAnalysisMap.get(word)!);
+        // 3. Get full analysis from global cache (new occurrence of a known word)
+        const cachedAnalysis = globalKnownWords.get(word)!;
+        mergedAnalysis.push({
+          ...cachedAnalysis,
+          source: 'auto',
+          index
+        });
       }
       // If none of the above, skip (unknown word with no analysis)
     });

@@ -9,6 +9,7 @@ import { useEditorStore } from '../stores/useEditorStore';
 import { issueHighlightService } from './issueHighlightService';
 import { issueMatchingService } from './issueMatchingService';
 import { REGION_TEXT_MATCH_PATTERN } from '../constants/text-patterns';
+import { type WordAnalysis } from './adt';
 
 const ISSUE_FORMATS = ['issue-needs-help', 'issue-indexing', 'issue-new-word'] as const;
 type IssueFormatName = typeof ISSUE_FORMATS[number];
@@ -298,12 +299,7 @@ class RTEServiceImpl {
     };
 
     this.editorDebugInfo.set(key, nextInfo);
-    // eslint-disable-next-line no-console
-    console.debug(`[RTE][${key}] ${event}`, {
-      version: nextInfo.version,
-      timestamp: nextInfo.lastTimestamp,
-      details: { incrementVersion, ...restDetails },
-    });
+
   }
 
   private getDebugSnapshot(key: EditorKey): EditorDebugInfo | null {
@@ -672,13 +668,13 @@ class RTEServiceImpl {
       try {
         // Validate editor is still connected
         if (!instance.quill || !instance.quill.container || !instance.quill.container.isConnected) {
-          console.warn(`🚫 Skipping format clear for ${key} - editor disconnected`);
+          console.debug(`🚫 Skipping format clear for ${key} - editor disconnected`);
           return;
         }
         
         instance.quill.formatText(0, text.length, format, false, 'api');
       } catch (error) {
-        console.warn(`🚫 Failed to clear format ${format} for ${key}:`, error);
+        console.debug(`🚫 Failed to clear format ${format} for ${key}:`, error);
       }
     });
 
@@ -690,14 +686,14 @@ class RTEServiceImpl {
       try {
         // Validate editor is still connected
         if (!instance.quill || !instance.quill.container || !instance.quill.container.isConnected) {
-          console.warn(`🚫 Skipping issue format for ${key} - editor disconnected`);
+          console.debug(`🚫 Skipping issue format for ${key} - editor disconnected`);
           return;
         }
         
         const formatName = `issue-${type}`;
         instance.quill.formatText(index, length, formatName, id, 'api');
       } catch (error) {
-        console.warn(`🚫 Failed to apply issue format for ${key}:`, error, { index, length, type, id });
+        console.debug(`🚫 Failed to apply issue format for ${key}:`, error, { index, length, type, id });
       }
     });
   }
@@ -708,7 +704,7 @@ class RTEServiceImpl {
    */
   queueHighlightingUpdate(
     key: EditorKey,
-    options: { knownWords?: string[]; issues?: IssueHighlight[]; ambiguousWords?: string[] }
+    options: { knownWords?: string[]; issues?: IssueHighlight[]; ambiguousIndices?: Set<number>; regionAnalysis?: WordAnalysis[] }
   ): Promise<void> {
     const editorVersion = this.editorVersions.get(key) ?? 0;
     const hasExistingQueue = this.highlightingQueues.has(key);
@@ -719,7 +715,7 @@ class RTEServiceImpl {
       operationId,
       hasExistingQueue,
       knownWords: options.knownWords?.length ?? 0,
-      ambiguousWords: options.ambiguousWords?.length ?? 0,
+      ambiguousIndices: options.ambiguousIndices?.size ?? 0,
       issues: options.issues?.length ?? 0,
       editorVersion,
     });
@@ -733,7 +729,7 @@ class RTEServiceImpl {
       })
       .catch((error) => {
         const snapshot = this.getDebugSnapshot(key);
-        console.warn(`Highlighting queue error for ${key}:`, error, {
+        console.debug(`Highlighting queue error for ${key}:`, error, {
           operationId,
           snapshot,
         });
@@ -756,7 +752,7 @@ class RTEServiceImpl {
   /**
    * @deprecated Use queueHighlightingUpdate instead to prevent race conditions
    */
-  applyHighlighting(key: EditorKey, options: { knownWords?: string[]; issues?: IssueHighlight[]; ambiguousWords?: string[] }): void {
+  applyHighlighting(key: EditorKey, options: { knownWords?: string[]; issues?: IssueHighlight[]; ambiguousIndices?: Set<number>; regionAnalysis?: WordAnalysis[] }): void {
     // For backwards compatibility, synchronously call the internal method
     // New code should use queueHighlightingUpdate
     this.applyHighlightingInternal(key, options);
@@ -766,7 +762,7 @@ class RTEServiceImpl {
   // Uses selective formatting removal to avoid cursor jumping
   private applyHighlightingInternal(
     key: EditorKey,
-    options: { knownWords?: string[]; issues?: IssueHighlight[]; ambiguousWords?: string[] },
+    options: { knownWords?: string[]; issues?: IssueHighlight[]; ambiguousIndices?: Set<number>; regionAnalysis?: WordAnalysis[] },
     debugContext: { operationId?: number; editorVersion?: number } = {}
   ): void {
     const instance = this.registry.get(key);
@@ -775,14 +771,14 @@ class RTEServiceImpl {
     }
 
     if (!this.isEditorConnected(instance)) {
-      console.warn(`🚫 Skipping highlighting for ${key} - editor no longer mounted`);
+      console.debug(`🚫 Skipping highlighting for ${key} - editor no longer mounted`);
       return;
     }
 
     const text = instance.quill.getText();
     if (!text) return;
 
-    const { knownWords = [], issues = [], ambiguousWords = [] } = options;
+    const { knownWords = [], issues = [], ambiguousIndices = new Set(), regionAnalysis = [] } = options;
 
     // Capture current selection to restore after formatting (Safari fix)
     const currentSelection = instance.quill.getSelection();
@@ -790,15 +786,44 @@ class RTEServiceImpl {
     const textLength = text.length;
 
     const knownWordsSet = new Set(knownWords);
-    const ambiguousWordsSet = new Set(ambiguousWords);
 
     const desiredKnownWordMatches = knownWords.length > 0
       ? textHighlightService.findMatches(text, knownWordsSet)
       : [];
 
-    const desiredAmbiguousWordMatches = ambiguousWords.length > 0
-      ? textHighlightService.findMatches(text, ambiguousWordsSet)
-      : [];
+    // For ambiguous words, match by position using regionAnalysis indices
+    const desiredAmbiguousWordMatches: Array<{ word: string; index: number; length: number }> = [];
+    if (ambiguousIndices.size > 0 && regionAnalysis.length > 0) {
+      // Build a map of word occurrences from regionAnalysis
+      // The index in regionAnalysis represents the Nth known word, not the Nth word in text
+      const ambiguousWords = regionAnalysis
+        .map((item, idx) => ({ word: item.word.toLowerCase(), analysisIndex: idx, isAmbiguous: ambiguousIndices.has(idx) }))
+        .filter(item => item.isAmbiguous);
+      
+      // Tokenize text to find word positions
+      const tokens = text.split(REGION_TEXT_MATCH_PATTERN);
+      let charPos = 0;
+      let knownWordIdx = 0; // Counter for known words only
+      
+      for (const token of tokens) {
+        if (REGION_TEXT_MATCH_PATTERN.test(token)) {
+          const lowerToken = token.toLowerCase();
+          // Check if this word exists in regionAnalysis at the current known word index
+          if (knownWordIdx < regionAnalysis.length && regionAnalysis[knownWordIdx].word.toLowerCase() === lowerToken) {
+            // This is a known word - check if it's ambiguous
+            if (ambiguousIndices.has(knownWordIdx)) {
+              desiredAmbiguousWordMatches.push({
+                word: token,
+                index: charPos,
+                length: token.length
+              });
+            }
+            knownWordIdx++;
+          }
+        }
+        charPos += token.length;
+      }
+    }
 
     const desiredIssueMatches = issues.length > 0
       ? this.findIssueMatches(text, issues)
@@ -864,7 +889,7 @@ class RTEServiceImpl {
     this.updateDebugInfo(key, 'highlight-apply-start', {
       operationId,
       knownWords: knownWords.length,
-      ambiguousWords: ambiguousWords.length,
+      ambiguousIndices: ambiguousIndices.size,
       issues: issues.length,
     });
 
@@ -1324,7 +1349,7 @@ class RTEServiceImpl {
           return;
         }
 
-        this.performIssueHighlighting(regionId);
+      this.performIssueHighlighting(regionId);
       });
     });
   }
@@ -1358,10 +1383,14 @@ class RTEServiceImpl {
     const regionAnalysis = region?.regionAnalysis || [];
     const knownWords: string[] = regionAnalysis.map(item => item.word);
     
-    // Identify ambiguous words (multiple analyses + not user-selected)
-    const ambiguousWords: string[] = regionAnalysis
-      .filter(item => item.allAnalysis.length > 1 && item.source !== 'user')
-      .map(item => item.word);
+    // Identify ambiguous word OCCURRENCES (multiple analyses + not user-selected)
+    // Pass the indices of ambiguous entries in the regionAnalysis array
+    const ambiguousIndices = new Set<number>();
+    regionAnalysis.forEach((item, idx) => {
+      if (item.allAnalysis.length > 1 && item.source !== 'user') {
+        ambiguousIndices.add(idx);
+      }
+    });
     
     const issues = state.getIssuesForRegion(regionId);
 
@@ -1390,12 +1419,13 @@ class RTEServiceImpl {
     try {
       await this.queueHighlightingUpdate(editorKey, {
         knownWords,
-        ambiguousWords,
+        ambiguousIndices,
+        regionAnalysis, // Pass full analysis array for position-based matching
         issues: issueHighlights
       });
     } catch (error) {
       console.warn(`🔄 React-Quill corrupted for ${regionId}, resetting editor:`, error);
-      this.resetCorruptedEditor(editorKey, regionText, knownWords, issueHighlights, ambiguousWords);
+      this.resetCorruptedEditor(editorKey, regionText, knownWords, issueHighlights, ambiguousIndices, regionAnalysis);
     }
   }
 
@@ -1407,7 +1437,8 @@ class RTEServiceImpl {
     text: string, 
     knownWords: string[], 
     issueHighlights: IssueHighlight[],
-    ambiguousWords: string[] = []
+    ambiguousIndices: Set<number> = new Set(),
+    regionAnalysis: WordAnalysis[] = []
   ): void {
     try {
       const instance = this.registry.get(key);
@@ -1430,7 +1461,7 @@ class RTEServiceImpl {
           // Reapply highlighting after another tick
           setTimeout(() => {
             try {
-              this.applyHighlighting(key, { knownWords, ambiguousWords, issues: issueHighlights });
+              this.applyHighlighting(key, { knownWords, ambiguousIndices, regionAnalysis, issues: issueHighlights });
               
               // Restore cursor position if it was saved
               if (savedSelection) {

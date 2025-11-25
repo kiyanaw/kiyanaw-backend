@@ -794,4 +794,141 @@ describe('rteService', () => {
     });
   });
 
+  describe('position-based ambiguous word highlighting', () => {
+    let mockGetText: jest.Mock;
+    let mockGetSelection: jest.Mock;
+    let mockSetSelection: jest.Mock;
+    let mockGetContents: jest.Mock;
+
+    beforeEach(() => {
+      mockGetText = jest.fn();
+      mockGetSelection = jest.fn().mockReturnValue(null);
+      mockSetSelection = jest.fn();
+      mockGetContents = jest.fn().mockReturnValue({ ops: [{ insert: 'mock text content' }] });
+      mockFormatText.mockReset();
+      mockUpdateContents.mockReset();
+      
+      Object.assign(mockQuill, {
+        getText: mockGetText,
+        getSelection: mockGetSelection,
+        setSelection: mockSetSelection,
+        getContents: mockGetContents,
+        updateContents: mockUpdateContents,
+      });
+      
+      rteService.createOrGet('test-region:main', {});
+    });
+
+    it('should highlight only ambiguous occurrences based on index', () => {
+      const text = 'isi foo isi';
+      mockGetText.mockReturnValue(text);
+      mockGetContents.mockReturnValue({ ops: [{ insert: text }] });
+      
+      const regionAnalysis = [
+        { word: 'isi', analysis: 'isi+Ipc', allAnalysis: ['itêw+V+TA+Imp+Imm+2Sg+3SgO', 'isi+Ipc'], source: 'auto' as const, index: 0 },
+        { word: 'foo', analysis: 'foo+N', allAnalysis: ['foo+N'], source: 'auto' as const, index: 1 },
+        { word: 'isi', analysis: 'isi+Ipc', allAnalysis: ['itêw+V+TA+Imp+Imm+2Sg+3SgO', 'isi+Ipc'], source: 'auto' as const, index: 2 },
+      ];
+      
+      // Both 'isi' occurrences are ambiguous (indices 0 and 2)
+      const ambiguousIndices = new Set([0, 2]);
+      
+      rteService.applyHighlighting('test-region:main', {
+        knownWords: ['isi', 'foo'],
+        ambiguousIndices,
+        regionAnalysis,
+        issues: []
+      });
+      
+      expect(mockUpdateContents).toHaveBeenCalled();
+      const [delta] = mockUpdateContents.mock.calls[0];
+      
+      // Should highlight both 'isi' occurrences as ambiguous
+      expect(delta.ops).toContainEqual({ retain: 3, attributes: { 'ambiguous-word': true } }); // First 'isi'
+      expect(delta.ops).toContainEqual({ retain: 3, attributes: { 'ambiguous-word': true } }); // Second 'isi'
+    });
+
+    it('should not highlight user-selected occurrence of duplicate word', () => {
+      const text = 'isi foo isi';
+      mockGetText.mockReturnValue(text);
+      mockGetContents.mockReturnValue({ ops: [{ insert: text }] });
+      
+      const regionAnalysis = [
+        { word: 'isi', analysis: 'itêw+V+TA+Imp+Imm+2Sg+3SgO', allAnalysis: ['itêw+V+TA+Imp+Imm+2Sg+3SgO', 'isi+Ipc'], source: 'user' as const, index: 0 },
+        { word: 'foo', analysis: 'foo+N', allAnalysis: ['foo+N'], source: 'auto' as const, index: 1 },
+        { word: 'isi', analysis: 'isi+Ipc', allAnalysis: ['itêw+V+TA+Imp+Imm+2Sg+3SgO', 'isi+Ipc'], source: 'auto' as const, index: 2 },
+      ];
+      
+      // Only the second 'isi' is ambiguous (index 2)
+      const ambiguousIndices = new Set([2]);
+      
+      rteService.applyHighlighting('test-region:main', {
+        knownWords: ['isi', 'foo'],
+        ambiguousIndices,
+        regionAnalysis,
+        issues: []
+      });
+      
+      expect(mockUpdateContents).toHaveBeenCalled();
+      const calls = mockUpdateContents.mock.calls;
+      
+      // Should only highlight the second 'isi' (at position 8)
+      const allOps = calls.flatMap(call => call[0].ops);
+      const ambiguousOps = allOps.filter(op => op.attributes?.['ambiguous-word']);
+      expect(ambiguousOps.length).toBeGreaterThan(0);
+    });
+
+    it('should handle three occurrences with mixed user/auto selections', () => {
+      const text = 'isi isi isi';
+      mockGetText.mockReturnValue(text);
+      mockGetContents.mockReturnValue({ ops: [{ insert: text }] });
+      
+      const regionAnalysis = [
+        { word: 'isi', analysis: 'itêw+V+TA+Imp+Imm+2Sg+3SgO', allAnalysis: ['itêw+V+TA+Imp+Imm+2Sg+3SgO', 'isi+Ipc'], source: 'user' as const, index: 0 },
+        { word: 'isi', analysis: 'isi+Ipc', allAnalysis: ['itêw+V+TA+Imp+Imm+2Sg+3SgO', 'isi+Ipc'], source: 'auto' as const, index: 1 },
+        { word: 'isi', analysis: 'isi+Ipc', allAnalysis: ['itêw+V+TA+Imp+Imm+2Sg+3SgO', 'isi+Ipc'], source: 'user' as const, index: 2 },
+      ];
+      
+      // Only the middle 'isi' is ambiguous (index 1)
+      const ambiguousIndices = new Set([1]);
+      
+      rteService.applyHighlighting('test-region:main', {
+        knownWords: ['isi'],
+        ambiguousIndices,
+        regionAnalysis,
+        issues: []
+      });
+      
+      expect(mockUpdateContents).toHaveBeenCalled();
+      // The middle 'isi' should be highlighted as ambiguous
+      // First and third should only have known-word highlighting
+    });
+
+    it('should handle empty ambiguousIndices set', () => {
+      const text = 'isi foo';
+      mockGetText.mockReturnValue(text);
+      mockGetContents.mockReturnValue({ ops: [{ insert: text }] });
+      
+      const regionAnalysis = [
+        { word: 'isi', analysis: 'isi+Ipc', allAnalysis: ['isi+Ipc'], source: 'user' as const, index: 0 },
+        { word: 'foo', analysis: 'foo+N', allAnalysis: ['foo+N'], source: 'auto' as const, index: 1 },
+      ];
+      
+      rteService.applyHighlighting('test-region:main', {
+        knownWords: ['isi', 'foo'],
+        ambiguousIndices: new Set(),
+        regionAnalysis,
+        issues: []
+      });
+      
+      expect(mockUpdateContents).toHaveBeenCalled();
+      const calls = mockUpdateContents.mock.calls;
+      const allOps = calls.flatMap(call => call[0].ops);
+      
+      // Should not have any ambiguous-word formatting
+      const ambiguousOps = allOps.filter(op => op.attributes?.['ambiguous-word']);
+      expect(ambiguousOps.length).toBe(0);
+    });
+  });
+
 });
