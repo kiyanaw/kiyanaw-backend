@@ -16,13 +16,22 @@ jest.mock('../../hooks/useSelectAndPlayRegion', () => ({
 
 // Provide canEdit and setSelectedRegion in store
 const mockSetSelectedRegion = jest.fn();
+const mockRegion = { 
+  id: 'r1', 
+  start: 0, 
+  end: 1, 
+  transcriptionId: 't1',
+  regionAnalysis: []
+};
 jest.mock('../../stores/useEditorStore', () => ({
   useEditorStore: (selector: (s: any) => any) =>
     selector({
       canEdit: true,
-      regions: [{ id: 'r1' }],
+      regions: [mockRegion],
       regionSelections: { r1: { text: '', length: 0 } },
+      regionCursorWords: {},
       setSelectedRegion: mockSetSelectedRegion,
+      regionById: (id: string) => id === 'r1' ? mockRegion : undefined,
     }),
 }));
 

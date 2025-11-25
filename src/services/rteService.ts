@@ -794,12 +794,6 @@ class RTEServiceImpl {
     // For ambiguous words, match by position using regionAnalysis indices
     const desiredAmbiguousWordMatches: Array<{ word: string; index: number; length: number }> = [];
     if (ambiguousIndices.size > 0 && regionAnalysis.length > 0) {
-      // Build a map of word occurrences from regionAnalysis
-      // The index in regionAnalysis represents the Nth known word, not the Nth word in text
-      const ambiguousWords = regionAnalysis
-        .map((item, idx) => ({ word: item.word.toLowerCase(), analysisIndex: idx, isAmbiguous: ambiguousIndices.has(idx) }))
-        .filter(item => item.isAmbiguous);
-      
       // Tokenize text to find word positions
       const tokens = text.split(REGION_TEXT_MATCH_PATTERN);
       let charPos = 0;

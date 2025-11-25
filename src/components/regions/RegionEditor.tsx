@@ -1,5 +1,5 @@
 import { useState, memo } from 'react';
-import { Pause, Trash2, X, AlertTriangle, Repeat1 } from 'lucide-react';
+import { Pause, Trash2, X, AlertTriangle, Repeat1, Database } from 'lucide-react';
 import { type RegionData as Region } from '../../services/adt';
 import { useTextEditors } from '../../hooks/useTextEditors';
 import { useDeleteRegion } from '../../hooks/useDeleteRegion';
@@ -7,6 +7,7 @@ import { useSelectAndPlayRegion } from '../../hooks/useSelectAndPlayRegion';
 import { useCreateIssueFromSelection } from '../../hooks/useCreateIssueFromSelection';
 import { useEditorStore } from '../../stores/useEditorStore';
 import { RegionContextBar } from './RegionContextBar';
+import { useRegionContextBar } from '../../hooks/useRegionContextBar';
 
 interface RegionEditorProps {
   region: Region;
@@ -32,6 +33,9 @@ export const RegionEditor = memo(({
   // Get the region number (1-based index)
   const regionNumber = regions.findIndex(r => r.id === region.id) + 1;
 
+  // Get word under cursor for dictionary lookup
+  const { cursorWord } = useRegionContextBar(region.id, canEdit);
+
   // Toolbar actions - simplified for now
   const handlePlay = () => {
     playRegion(region.id);
@@ -52,6 +56,12 @@ export const RegionEditor = memo(({
       setRegionSelection(region.id, null);
     } catch (error) {
       console.error('Failed to create issue from selection:', error);
+    }
+  };
+
+  const handleDictionaryLookup = () => {
+    if (cursorWord) {
+      window.open(`/database/lemma/${cursorWord}`, '_blank');
     }
   };
 
@@ -102,6 +112,20 @@ export const RegionEditor = memo(({
             title={hasSelection ? "Create issue from selected text" : "Select text to create an issue"}
           >
             <AlertTriangle size={14} />
+          </button>
+
+          {/* Dictionary Lookup Button - Third position, enabled when cursor is on an analyzed word */}
+          <button
+            className={`flex items-center justify-center w-7 h-7 border rounded-md transition-all duration-200 text-sm ${
+              cursorWord
+                ? 'border-blue-300 bg-blue-50 text-blue-600 cursor-pointer hover:bg-blue-100 hover:border-blue-400'
+                : 'border-gray-300 bg-gray-50 text-gray-400 cursor-not-allowed opacity-50'
+            }`}
+            onClick={cursorWord ? handleDictionaryLookup : undefined}
+            disabled={!cursorWord}
+            title={cursorWord ? `Look up "${cursorWord}" in dictionary` : "Place cursor on a word to look it up"}
+          >
+            <Database size={14} />
           </button>
 
           {/* Divider */}
