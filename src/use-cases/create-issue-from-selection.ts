@@ -2,6 +2,7 @@ import { useEditorStore } from '../stores/useEditorStore';
 import { currentUser, currentUserFriendly } from '../services/userService';
 import { CreateIssueUseCase } from './create-issue';
 import type { IssueData } from '../services/adt';
+import { ISSUE_TYPES } from '../services/adt';
 
 export class CreateIssueFromSelectionUseCase {
   constructor() {}
@@ -45,7 +46,7 @@ export class CreateIssueFromSelectionUseCase {
     // Create the issue using the existing CreateIssueUseCase
     const createIssueUseCase = new CreateIssueUseCase({
       text: selectedText,
-      type: 'needs-help',
+      type: ISSUE_TYPES.NEEDS_HELP,
       owner: user.userId,
       ownerFriendly: userFriendly,
       regionId: selectedRegionId,

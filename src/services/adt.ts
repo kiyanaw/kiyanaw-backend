@@ -53,9 +53,22 @@ export interface IssueComment {
 export type IssueType = 'needs-help' | 'indexing' | 'new-word';
 
 /**
- * Array of all issue types - useful for iteration and validation
+ * Issue type constants - use these instead of hard-coded strings
  */
-export const ISSUE_TYPES: readonly IssueType[] = ['needs-help', 'indexing', 'new-word'] as const;
+export const ISSUE_TYPES = {
+  NEEDS_HELP: 'needs-help' as const,
+  INDEXING: 'indexing' as const,
+  NEW_WORD: 'new-word' as const,
+} as const;
+
+/**
+ * Array of all issue type values - useful for iteration and validation
+ */
+export const ISSUE_TYPE_VALUES: readonly IssueType[] = [
+  ISSUE_TYPES.NEEDS_HELP,
+  ISSUE_TYPES.INDEXING,
+  ISSUE_TYPES.NEW_WORD,
+] as const;
 
 export interface IssueData {
   id: string;

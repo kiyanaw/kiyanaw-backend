@@ -10,7 +10,7 @@ import { useNavigateIssueRegions } from '../../hooks/useNavigateIssueRegions';
 import { useIssueFlashIndicator } from '../../hooks/useIssueFlashIndicator';
 import { FLASH_CONFIG } from '../../services/flashIndicatorService';
 import { useSelectAndPlayRegion } from '../../hooks/useSelectAndPlayRegion';
-import { type IssueType } from '../../services/adt';
+import { type IssueType, ISSUE_TYPES } from '../../services/adt';
 
 // Suggestion Popover Component
 interface SuggestionPopoverProps {
@@ -413,9 +413,9 @@ interface IssuesPanelProps {
 }
 
 const issueTypes = [
-  { value: 'needs-help', label: 'Needs Help', color: '#dc2626', bgColor: '#ffe6e6' },
-  { value: 'indexing', label: 'Indexing', color: '#d97706', bgColor: '#fff9e6' },
-  { value: 'new-word', label: 'New Word', color: '#166534', bgColor: '#f0fdf4' },
+  { value: ISSUE_TYPES.NEEDS_HELP, label: 'Needs Help', color: '#dc2626', bgColor: '#ffe6e6' },
+  { value: ISSUE_TYPES.INDEXING, label: 'Indexing', color: '#d97706', bgColor: '#fff9e6' },
+  { value: ISSUE_TYPES.NEW_WORD, label: 'New Word', color: '#166534', bgColor: '#f0fdf4' },
 ] as const;
 
 export const IssuesPanel = ({

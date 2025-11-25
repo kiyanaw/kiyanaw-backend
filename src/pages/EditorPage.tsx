@@ -12,7 +12,7 @@ import { useNavigationGuard } from '../hooks/useNavigationGuard';
 import { useUpdateIssue } from '../hooks/useUpdateIssue';
 import { useDeleteIssue } from '../hooks/useDeleteIssue';
 import { canEdit, isAuthor } from '../lib/permissions';
-import { TranscriptionModel, type IssueType } from '../services/adt';
+import { TranscriptionModel, type IssueType, ISSUE_TYPE_VALUES } from '../services/adt';
 
 import { browserService } from '../services/browserService';
 import { wavesurferService } from '../services/wavesurferService';
@@ -38,7 +38,7 @@ export const EditorPage = () => {
   
   // Issue type filter state (all enabled by default)
   const [enabledIssueTypes, setEnabledIssueTypes] = useState<Set<IssueType>>(
-    new Set(['needs-help', 'indexing', 'new-word'])
+    new Set(ISSUE_TYPE_VALUES)
   );
   
   // Issue search state
@@ -154,7 +154,7 @@ export const EditorPage = () => {
   };
   
   const resetFilters = () => {
-    setEnabledIssueTypes(new Set(['needs-help', 'indexing', 'new-word']));
+    setEnabledIssueTypes(new Set(ISSUE_TYPE_VALUES));
     setIssueSearchText('');
   };
 

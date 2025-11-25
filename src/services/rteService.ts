@@ -4,16 +4,15 @@ import 'react-quill/dist/quill.snow.css';
 // Import quill-cursors for collaborative editing
 import QuillCursors from 'quill-cursors';
 import { textHighlightService, type IssueHighlight } from './textHighlightService';
-import { type IssueType, ISSUE_TYPES } from './adt';
+import { type IssueType, ISSUE_TYPE_VALUES } from './adt';
 import { useEditorStore } from '../stores/useEditorStore';
 import { issueHighlightService } from './issueHighlightService';
 import { issueMatchingService } from './issueMatchingService';
 import { REGION_TEXT_MATCH_PATTERN } from '../constants/text-patterns';
 import { type WordAnalysis } from './adt';
 
-// Derive issue format names from centralized ISSUE_TYPES
-const ISSUE_FORMATS = ISSUE_TYPES.map(type => `issue-${type}` as const);
-type IssueFormatName = `issue-${IssueType}`;
+// Derive issue format names from centralized ISSUE_TYPE_VALUES
+const ISSUE_FORMATS = ISSUE_TYPE_VALUES.map(type => `issue-${type}` as const);
 
 interface DeltaInstance {
   ops: Array<Record<string, unknown>>;
@@ -24,7 +23,6 @@ type DeltaConstructor = {
   new (): DeltaInstance;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const Delta = Quill.import('delta') as DeltaConstructor;
 
 // Quill-related interfaces
