@@ -11,7 +11,7 @@ describe('IssueHighlightService', () => {
           owner: 'user-1',
           ownerFriendly: 'user@example.com',
           index: 1,
-          type: 'needs-help',
+          type: 'needs-help' as const,
           regionId: 'region-1',
           transcriptionId: 'transcription-1',
           dateLastUpdated: '2023-01-01T00:00:00Z',
@@ -27,7 +27,7 @@ describe('IssueHighlightService', () => {
           owner: 'user-2',
           ownerFriendly: 'user2@example.com',
           index: 2,
-          type: 'new-word',
+          type: 'needs-help' as const,
           regionId: 'region-1',
           transcriptionId: 'transcription-1',
           dateLastUpdated: '2023-01-01T00:00:00Z',
@@ -42,8 +42,8 @@ describe('IssueHighlightService', () => {
       const result = issueHighlightService.convertIssuesToHighlights(issues);
 
       expect(result).toEqual([
-        { text: 'problematic word', id: 'issue-1', type: 'needs-help', commentCount: 0 },
-        { text: 'another issue', id: 'issue-2', type: 'new-word', commentCount: 0 }
+        { text: 'problematic word', id: 'issue-1', type: 'needs-help' as const, commentCount: 0 },
+        { text: 'another issue', id: 'issue-2', type: 'needs-help' as const, commentCount: 0 }
       ]);
     });
 
@@ -68,7 +68,7 @@ describe('IssueHighlightService', () => {
         {
           id: 'issue-with-comments',
           text: 'commented word',
-          type: 'new-word',
+          type: 'needs-help' as const,
           owner: 'user1',
           ownerFriendly: 'User One',
           resolved: false,
@@ -85,7 +85,7 @@ describe('IssueHighlightService', () => {
         {
           id: 'issue-no-comments',
           text: 'uncommented word',
-          type: 'indexing',
+          type: 'needs-help' as const,
           owner: 'user1',
           ownerFriendly: 'User One', 
           resolved: false,
@@ -104,8 +104,8 @@ describe('IssueHighlightService', () => {
       const result = issueHighlightService.convertIssuesToHighlights(issues);
 
       expect(result).toEqual([
-        { text: 'commented word', id: 'issue-with-comments', type: 'new-word', commentCount: 3 },
-        { text: 'uncommented word', id: 'issue-no-comments', type: 'indexing', commentCount: 0 }
+        { text: 'commented word', id: 'issue-with-comments', type: 'needs-help' as const, commentCount: 3 },
+        { text: 'uncommented word', id: 'issue-no-comments', type: 'needs-help' as const, commentCount: 0 }
       ]);
     });
   });

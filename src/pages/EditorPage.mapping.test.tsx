@@ -71,7 +71,7 @@ const mockStore = {
         {
           id: 'i1',
           text: 'ka-caciwihtat',
-          type: 'new-word',
+          type: 'new-word' as const,
           owner: 'owner-1',
           ownerFriendly: 'Owner',
           regionId: 'r1',

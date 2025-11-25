@@ -35,8 +35,8 @@ describe('TextHighlightService', () => {
     it('should highlight issues with red background', () => {
       const text = 'hello world test';
       const issues: IssueHighlight[] = [
-        { text: 'hello', id: 'issue-1', type: 'needs-help' },
-        { text: 'test', id: 'issue-2', type: 'indexing' }
+        { text: 'hello', id: 'issue-1', type: 'needs-help' as const },
+        { text: 'test', id: 'issue-2', type: 'indexing' as const }
       ];
       const options: HighlightOptions = { issues };
       
@@ -48,7 +48,7 @@ describe('TextHighlightService', () => {
     it('should highlight both known words and issues', () => {
       const text = 'hello world test';
       const knownWords = new Set(['world']);
-      const issues: IssueHighlight[] = [{ text: 'hello', id: 'issue-1', type: 'needs-help' }];
+      const issues: IssueHighlight[] = [{ text: 'hello', id: 'issue-1', type: 'needs-help' as const }];
       const options: HighlightOptions = { knownWords, issues };
       
       const result = textHighlightService.generateHTMLWithOptions(text, options);
@@ -59,7 +59,7 @@ describe('TextHighlightService', () => {
     it('should prioritize issues over known words for overlapping text', () => {
       const text = 'hello world';
       const knownWords = new Set(['hello']);
-      const issues: IssueHighlight[] = [{ text: 'hello', id: 'issue-1', type: 'new-word' }];
+      const issues: IssueHighlight[] = [{ text: 'hello', id: 'issue-1', type: 'new-word' as const }];
       const options: HighlightOptions = { knownWords, issues };
       
       const result = textHighlightService.generateHTMLWithOptions(text, options);
@@ -70,7 +70,7 @@ describe('TextHighlightService', () => {
     it('should handle case insensitive matching', () => {
       const text = 'Hello WORLD';
       const knownWords = new Set(['hello']);
-      const issues: IssueHighlight[] = [{ text: 'world', id: 'issue-1', type: 'indexing' }];
+      const issues: IssueHighlight[] = [{ text: 'world', id: 'issue-1', type: 'indexing' as const }];
       const options: HighlightOptions = { knownWords, issues };
       
       const result = textHighlightService.generateHTMLWithOptions(text, options);
@@ -90,7 +90,7 @@ describe('TextHighlightService', () => {
     it('should preserve text structure with punctuation', () => {
       const text = 'Hello, world! This is a test.';
       const knownWords = new Set(['hello']);
-      const issues: IssueHighlight[] = [{ text: 'test', id: 'issue-1', type: 'needs-help' }];
+      const issues: IssueHighlight[] = [{ text: 'test', id: 'issue-1', type: 'needs-help' as const }];
       const options: HighlightOptions = { knownWords, issues };
       
       const result = textHighlightService.generateHTMLWithOptions(text, options);
@@ -101,8 +101,8 @@ describe('TextHighlightService', () => {
     it('should include comment icons for issues with comments', () => {
       const text = 'hello commented word test';
       const issues: IssueHighlight[] = [
-        { text: 'commented', id: 'issue-1', type: 'new-word', commentCount: 2 },
-        { text: 'test', id: 'issue-2', type: 'needs-help', commentCount: 0 }
+        { text: 'commented', id: 'issue-1', type: 'new-word' as const, commentCount: 2 },
+        { text: 'test', id: 'issue-2', type: 'needs-help' as const, commentCount: 0 }
       ];
       const options: HighlightOptions = { issues };
       
@@ -114,7 +114,7 @@ describe('TextHighlightService', () => {
     it('should not include comment icons when commentCount is 0', () => {
       const text = 'hello uncommented word';
       const issues: IssueHighlight[] = [
-        { text: 'uncommented', id: 'issue-1', type: 'indexing', commentCount: 0 }
+        { text: 'uncommented', id: 'issue-1', type: 'indexing' as const, commentCount: 0 }
       ];
       const options: HighlightOptions = { issues };
       
@@ -126,7 +126,7 @@ describe('TextHighlightService', () => {
     it('should highlight longest token when issue text contains affix in parentheses', () => {
       const text = 'nitawāpēnākēw awa (ē-)tipinikāsowiht âhpinohk ohtāwiya - ohtāwīpana ēkwa.';
       const issues: IssueHighlight[] = [
-        { text: '(ē-)tipinikāsowiht', id: 'i1', type: 'new-word', commentCount: 0 },
+        { text: '(ē-)tipinikāsowiht', id: 'i1', type: 'new-word' as const, commentCount: 0 },
       ];
       const options: HighlightOptions = { issues };
 

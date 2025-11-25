@@ -68,7 +68,7 @@ describe('SubscribeToCommentChangesUseCase', () => {
     ownerFriendly: 'Test User',
     index: 1,
     resolved: false,
-    type: 'needs-help',
+    type: 'needs-help' as const,
     regionId: 'region-456',
     transcriptionId: 'transcription-789',
     dateLastUpdated: '2023-01-01T00:00:00Z',

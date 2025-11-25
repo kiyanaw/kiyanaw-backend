@@ -49,6 +49,9 @@ export interface IssueComment {
   text: string;
 }
 
+// Issue Types
+export type IssueType = 'needs-help' | 'indexing' | 'new-word';
+
 export interface IssueData {
   id: string;
   text: string;
@@ -56,7 +59,7 @@ export interface IssueData {
   ownerFriendly: string;
   index: number;
   resolved?: boolean;
-  type: string;
+  type: IssueType;
   dateLastUpdated: string;
   userLastUpdated: string;
   comments?: string; // AWSJSON - deprecated field, comments moving to Comment field

@@ -21,7 +21,7 @@ describe('UpdateIssueUseCase', () => {
   const mockIssue: IssueData = {
     id: 'issue-123',
     text: 'Original issue text',
-    type: 'new-word',
+    type: 'new-word' as const,
     owner: 'user-123',
     ownerFriendly: 'Test User',
     regionId: 'region-456',

@@ -180,7 +180,7 @@ describe('IssueMatchingService', () => {
       id,
       text,
       resolved,
-      type: 'new-word',
+      type: 'new-word' as const,
       owner: 'user1',
       ownerFriendly: 'User One',
       regionId: 'region1',
