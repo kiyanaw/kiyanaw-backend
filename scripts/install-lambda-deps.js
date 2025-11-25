@@ -11,7 +11,8 @@ const lambdaFunctions = [
   'createPeaksFile',
   'indexRegionData', 
   'inviteHandler',
-  'onTranscriptionChange'
+  'onTranscriptionChange',
+  'spellcheck'
 ];
 
 console.log('Installing lambda function dependencies...');
