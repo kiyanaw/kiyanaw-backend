@@ -395,7 +395,7 @@ class RTEServiceImpl {
           matchVisual: false,
         },
       },
-      formats: ['bold', 'italic', 'underline', 'color', 'background', 'known-word', 'ambiguous-word', 'issue-needs-help', 'issue-indexing', 'issue-new-word']
+      formats: ['known-word', 'ambiguous-word', 'issue-needs-help', 'issue-indexing', 'issue-new-word']
     };
 
     const defaultTranslationConfig = {
