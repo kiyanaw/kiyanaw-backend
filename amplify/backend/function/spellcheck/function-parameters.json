@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "storage": {
+      "transcriptions": [
+        "read"
+      ]
+    }
+  },
+  "lambdaLayers": [
+    {
+      "type": "ProjectLayer",
+      "resourceName": "kiyanawlibHfstol",
+      "version": "Always choose latest version",
+      "isLatestVersionSelected": true,
+      "env": "staging"
+    }
+  ]
+}
