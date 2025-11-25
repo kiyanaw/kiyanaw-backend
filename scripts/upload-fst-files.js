@@ -4,12 +4,17 @@
  * Script to upload hfstol files to S3 fsts folder
  * 
  * Usage:
- *   node scripts/upload-fst-files.js <environment> [aws-profile] [--verbose]
+ *   node scripts/upload-fst-files.js <environment> [aws-profile] [--verbose] [--update]
  * 
  * Examples:
  *   node scripts/upload-fst-files.js staging
  *   node scripts/upload-fst-files.js staging kiyanaw-staging
  *   node scripts/upload-fst-files.js staging kiyanaw-staging --verbose
+ *   node scripts/upload-fst-files.js staging kiyanaw-staging --update
+ * 
+ * Flags:
+ *   --verbose  Show detailed logging
+ *   --update   Re-upload existing files (by default, existing files are skipped)
  */
 
 import { S3Client, ListObjectsV2Command, PutObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
@@ -28,11 +33,14 @@ const CLI_ARGS = process.argv.slice(2);
 const environment = CLI_ARGS[0];
 let awsProfile = undefined;
 let isVerbose = false;
+let shouldUpdate = false;
 
 for (let i = 1; i < CLI_ARGS.length; i++) {
   const arg = CLI_ARGS[i];
   if (arg === '--verbose') {
     isVerbose = true;
+  } else if (arg === '--update') {
+    shouldUpdate = true;
   } else if (!awsProfile) {
     awsProfile = arg;
   }
@@ -40,7 +48,7 @@ for (let i = 1; i < CLI_ARGS.length; i++) {
 
 if (!environment) {
   console.error('Error: Please provide an environment (staging, production)');
-  console.error('Usage: node scripts/upload-fst-files.js <environment> [aws-profile] [--verbose]');
+  console.error('Usage: node scripts/upload-fst-files.js <environment> [aws-profile] [--verbose] [--update]');
   process.exit(1);
 }
 
@@ -182,12 +190,21 @@ async function getLocalHfstolFiles(folderPath) {
 /**
  * Process a single file (check if exists, then upload or replace)
  */
-async function processFile(fileInfo, bucketName) {
+async function processFile(fileInfo, bucketName, shouldUpdate) {
   const { filename, localPath, s3Key } = fileInfo;
 
   const exists = await fileExistsInS3(bucketName, s3Key);
-  const action = exists ? 'Replacing' : 'Uploading';
+  
+  // Skip existing files unless --update flag is provided
+  if (exists && !shouldUpdate) {
+    return {
+      filename,
+      action: 'skipped',
+      success: true
+    };
+  }
 
+  const action = exists ? 'Replacing' : 'Uploading';
   console.log(`${action} ${filename}...`);
 
   await uploadFileToS3(bucketName, s3Key, localPath);
@@ -208,6 +225,11 @@ async function main() {
   logVerbose(`Local folder: ${LOCAL_FST_FOLDER}`);
   if (awsProfile) {
     logVerbose(`AWS Profile: ${awsProfile}`);
+  }
+  if (shouldUpdate) {
+    logVerbose(`Update mode: ON (will replace existing files)`);
+  } else {
+    logVerbose(`Update mode: OFF (will skip existing files)`);
   }
   logVerbose('');
 
@@ -241,9 +263,13 @@ async function main() {
     const results = [];
     for (const fileInfo of localFiles) {
       try {
-        const result = await processFile(fileInfo, BUCKET_NAME);
+        const result = await processFile(fileInfo, BUCKET_NAME, shouldUpdate);
         results.push(result);
-        console.log(`✅ ${result.filename}: ${result.action}`);
+        if (result.action === 'skipped') {
+          console.log(`⏭️  ${result.filename}: skipped (already exists, use --update to replace)`);
+        } else {
+          console.log(`✅ ${result.filename}: ${result.action}`);
+        }
       } catch (error) {
         results.push({
           filename: fileInfo.filename,
@@ -262,14 +288,18 @@ async function main() {
     const successCount = results.filter(r => r.success).length;
     const replacedCount = results.filter(r => r.success && r.action === 'replaced').length;
     const uploadedCount = results.filter(r => r.success && r.action === 'uploaded').length;
+    const skippedCount = results.filter(r => r.success && r.action === 'skipped').length;
     const errorCount = results.filter(r => !r.success).length;
 
     console.log(`✅ Successfully processed: ${successCount} file(s)`);
+    if (uploadedCount > 0) {
+      console.log(`   - Uploaded: ${uploadedCount} file(s)`);
+    }
     if (replacedCount > 0) {
       console.log(`   - Replaced: ${replacedCount} file(s)`);
     }
-    if (uploadedCount > 0) {
-      console.log(`   - Uploaded: ${uploadedCount} file(s)`);
+    if (skippedCount > 0) {
+      console.log(`   - Skipped: ${skippedCount} file(s) (already exist, use --update to replace)`);
     }
     if (errorCount > 0) {
       console.log(`❌ Errors: ${errorCount} file(s)`);

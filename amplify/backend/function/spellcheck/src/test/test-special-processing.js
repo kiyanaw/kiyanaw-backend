@@ -16,6 +16,20 @@ describe('special-processing', () => {
       expect(processor.FST_FILES).toBeDefined()
     })
 
+    it('returns processor for otwc', () => {
+      const processor = getLanguageProcessor('otwc')
+      expect(processor).toBeDefined()
+      expect(processor.processCharacters).toBeDefined()
+      expect(processor.FST_FILES).toBeDefined()
+    })
+
+    it('returns processor for otwr', () => {
+      const processor = getLanguageProcessor('otwr')
+      expect(processor).toBeDefined()
+      expect(processor.processCharacters).toBeDefined()
+      expect(processor.FST_FILES).toBeDefined()
+    })
+
     it('returns null for unsupported language', () => {
       expect(getLanguageProcessor('xyz')).toBeNull()
       expect(getLanguageProcessor('en')).toBeNull()
@@ -33,6 +47,8 @@ describe('special-processing', () => {
     it('returns true for supported languages', () => {
       expect(hasSpecialProcessing('crk')).toBe(true)
       expect(hasSpecialProcessing('crgn')).toBe(true)
+      expect(hasSpecialProcessing('otwc')).toBe(true)
+      expect(hasSpecialProcessing('otwr')).toBe(true)
     })
 
     it('returns false for unsupported languages', () => {
@@ -47,9 +63,11 @@ describe('special-processing', () => {
       expect(typeof languages).toBe('object')
     })
 
-    it('includes crk and crgn', () => {
+    it('includes all supported languages', () => {
       expect(languages).toHaveProperty('crk')
       expect(languages).toHaveProperty('crgn')
+      expect(languages).toHaveProperty('otwc')
+      expect(languages).toHaveProperty('otwr')
     })
   })
 })
