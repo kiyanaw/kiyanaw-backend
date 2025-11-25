@@ -150,9 +150,12 @@ async function spellcheckWords(words, languageCode = 'crk', credentials) {
     throw new Error(`Unknown environment: ${environment}`);
   }
   
-  const url = new URL(`${endpoint}/${languageCode}/bulk-lookup`);
+  const url = new URL(`${endpoint}/bulk-lookup`);
   
-  const body = JSON.stringify(words);
+  const body = JSON.stringify({
+    languageCode,
+    words
+  });
   
   // Create signed request
   const signer = new SignatureV4({

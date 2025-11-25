@@ -526,6 +526,22 @@
           "resourceName": "opensearchproxy"
         }
       ]
+    },
+    "AMPLIFY_function_spellcheck_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "spellcheck"
+        }
+      ]
+    },
+    "AMPLIFY_function_spellcheck_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "spellcheck"
+        }
+      ]
     }
   },
   "storage": {

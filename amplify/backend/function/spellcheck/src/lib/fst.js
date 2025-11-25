@@ -9,7 +9,7 @@ const { join } = require('path');
 const { pipeline } = require('stream/promises');
 
 const FSTS_FOLDER = 'fsts';
-const EFS_MOUNT_DIR = '/fsts';
+const EFS_MOUNT_DIR = '/mnt/fsts';
 const BUCKET_NAME = process.env.STORAGE_TRANSCRIPTIONS_BUCKETNAME;
 const REGION = process.env.REGION || 'us-east-1';
 

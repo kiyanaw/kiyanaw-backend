@@ -120,6 +120,7 @@ export type AmplifyDependentResourcesAttributes = {
     "spellcheck": {
       "Arn": "string",
       "LambdaExecutionRole": "string",
+      "LambdaExecutionRoleArn": "string",
       "Name": "string",
       "Region": "string"
     }
