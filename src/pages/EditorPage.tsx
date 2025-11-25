@@ -12,7 +12,7 @@ import { useNavigationGuard } from '../hooks/useNavigationGuard';
 import { useUpdateIssue } from '../hooks/useUpdateIssue';
 import { useDeleteIssue } from '../hooks/useDeleteIssue';
 import { canEdit, isAuthor } from '../lib/permissions';
-import { TranscriptionModel } from '../services/adt';
+import { TranscriptionModel, type IssueType } from '../services/adt';
 
 import { browserService } from '../services/browserService';
 import { wavesurferService } from '../services/wavesurferService';
@@ -37,7 +37,7 @@ export const EditorPage = () => {
   const [mobileTab, setMobileTab] = useState<'editor' | 'regions' | 'issues'>('regions');
   
   // Issue type filter state (all enabled by default)
-  const [enabledIssueTypes, setEnabledIssueTypes] = useState<Set<'needs-help' | 'indexing' | 'new-word'>>(
+  const [enabledIssueTypes, setEnabledIssueTypes] = useState<Set<IssueType>>(
     new Set(['needs-help', 'indexing', 'new-word'])
   );
   
@@ -138,7 +138,7 @@ export const EditorPage = () => {
   };
   
   // Issue type filter handlers
-  const toggleIssueType = (type: 'needs-help' | 'indexing' | 'new-word') => {
+  const toggleIssueType = (type: IssueType) => {
     setEnabledIssueTypes(prev => {
       const next = new Set(prev);
       if (next.has(type)) {
@@ -177,7 +177,7 @@ export const EditorPage = () => {
     return issues
       .filter(issue => {
         // Filter by type
-        if (!enabledIssueTypes.has(issue.type as 'needs-help' | 'indexing' | 'new-word')) {
+        if (!enabledIssueTypes.has(issue.type as IssueType)) {
           return false;
         }
         
@@ -200,7 +200,7 @@ export const EditorPage = () => {
         return {
           id: issue.id,
           text: issue.text,
-          type: issue.type as 'needs-help' | 'indexing' | 'new-word',
+          type: issue.type as IssueType,
           owner: issue.owner,
           ownerFriendly: issue.ownerFriendly,
           regionId: issue.regionId,
@@ -215,7 +215,7 @@ export const EditorPage = () => {
   };
   
   // Issue management handlers
-  const handleUpdateIssue = async (issueId: string, updates: { resolved?: boolean; text?: string; type?: string }) => {
+  const handleUpdateIssue = async (issueId: string, updates: { resolved?: boolean; text?: string; type?: IssueType }) => {
     try {
       await updateIssue({
         issueId,

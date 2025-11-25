@@ -1,5 +1,5 @@
-import type { IssueData } from './adt';
-import type { IssueHighlight, IssueType } from './textHighlightService';
+import type { IssueData, IssueType } from './adt';
+import type { IssueHighlight } from './textHighlightService';
 
 export interface IssueHighlightService {
   /**

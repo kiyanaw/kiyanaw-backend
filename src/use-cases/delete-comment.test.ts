@@ -51,7 +51,7 @@ describe('DeleteCommentUseCase', () => {
   const mockIssue: IssueData = {
     id: 'issue-789',
     text: 'Test issue',
-    type: 'new-word',
+    type: 'new-word' as const,
     owner: 'user-123',
     ownerFriendly: 'Test User',
     regionId: 'region-123',

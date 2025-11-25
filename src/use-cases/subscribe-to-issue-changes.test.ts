@@ -6,7 +6,7 @@ import type { RegionData } from '../types/shared';
 const mockIssue: IssueData = {
   id: 'issue-1',
   text: 'Test issue',
-  type: 'spelling',
+  type: 'needs-help' as const,
   owner: 'user-123',
   ownerFriendly: 'Test User',
   resolved: false,
@@ -212,7 +212,7 @@ describe('SubscribeToIssueChangesUseCase', () => {
 
         expect(mockServices.storeService.updateIssue).toHaveBeenCalledWith('issue-1', {
           text: 'Updated text',
-          type: 'spelling',
+          type: 'needs-help' as const,
           resolved: true,
           commentCount: 5,
           ownerFriendly: 'Test User',

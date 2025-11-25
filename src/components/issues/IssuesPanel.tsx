@@ -10,6 +10,7 @@ import { useNavigateIssueRegions } from '../../hooks/useNavigateIssueRegions';
 import { useIssueFlashIndicator } from '../../hooks/useIssueFlashIndicator';
 import { FLASH_CONFIG } from '../../services/flashIndicatorService';
 import { useSelectAndPlayRegion } from '../../hooks/useSelectAndPlayRegion';
+import { type IssueType } from '../../services/adt';
 
 // Suggestion Popover Component
 interface SuggestionPopoverProps {
@@ -82,7 +83,7 @@ const SuggestionPopover: React.FC<SuggestionPopoverProps> = ({
 interface Issue {
   id: string;
   text: string;
-  type: 'needs-help' | 'indexing' | 'new-word';
+  type: IssueType;
   owner: string; // UUID for permission checking
   ownerFriendly: string; // Friendly name for display
   regionId?: string;
@@ -201,7 +202,7 @@ const IssueListItem: React.FC<IssueListItemProps> = ({
                           key={type.value}
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleTypeChange(issue.id, type.value as Issue['type']);
+                            handleTypeChange(issue.id, type.value as IssueType);
                           }}
                           className="inline-block py-0.5 px-2 rounded-xl text-xs font-medium uppercase cursor-pointer hover:opacity-90 transition-all duration-300 ease-out whitespace-nowrap shadow-lg"
                           style={{ 
@@ -404,8 +405,8 @@ interface IssuesPanelProps {
   onDeleteIssue: (issueId: string) => void;
   variant?: 'modal' | 'bottom-sheet';
   onJumpToRegion?: (regionId: string) => void;
-  enabledIssueTypes?: Set<'needs-help' | 'indexing' | 'new-word'>;
-  onToggleIssueType?: (type: 'needs-help' | 'indexing' | 'new-word') => void;
+  enabledIssueTypes?: Set<IssueType>;
+  onToggleIssueType?: (type: IssueType) => void;
   searchText?: string;
   onSearchChange?: (text: string) => void;
   onResetFilters?: () => void;
@@ -547,7 +548,7 @@ export const IssuesPanel = ({
     }
   };
 
-  const getIssueTypeInfo = (type: Issue['type']) => {
+  const getIssueTypeInfo = (type: IssueType) => {
     return issueTypes.find((t) => t.value === type) || issueTypes[0];
   };
 
@@ -632,11 +633,11 @@ export const IssuesPanel = ({
         <div className="px-4 py-2 bg-gray-100 border-b border-gray-200">
           <div className="flex gap-2 justify-start items-center">
             {issueTypes.map((type) => {
-              const isEnabled = enabledIssueTypes.has(type.value as 'needs-help' | 'indexing' | 'new-word');
+              const isEnabled = enabledIssueTypes.has(type.value as IssueType);
               return (
                 <button
                   key={type.value}
-                  onClick={() => onToggleIssueType(type.value as 'needs-help' | 'indexing' | 'new-word')}
+                  onClick={() => onToggleIssueType(type.value as IssueType)}
                   className={`px-1.5 py-0.5 text-[10px] font-medium uppercase rounded border transition-all hover:bg-gray-100 flex items-center gap-0.5 ${
                     isEnabled 
                       ? 'bg-white border-gray-300' 

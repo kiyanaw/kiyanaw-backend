@@ -22,7 +22,7 @@ describe('CreateIssueUseCase', () => {
   const mockCreatedIssue: IssueData = {
     id: 'new-issue-id',
     text: 'Test issue text',
-    type: 'new-word',
+    type: 'new-word' as const,
     owner: 'user-123',
     ownerFriendly: 'Test User',
     regionId: 'region-456',
@@ -93,37 +93,37 @@ describe('CreateIssueUseCase', () => {
 
   describe('validate', () => {
     it('should throw error for missing text', () => {
-      const config = { text: '', type: 'new-word', owner: 'user-123', ownerFriendly: 'Test User', transcriptionId: 'trans-789' };
+      const config = { text: '', type: 'new-word' as const, owner: 'user-123', ownerFriendly: 'Test User', transcriptionId: 'trans-789' };
       const useCase = new CreateIssueUseCase(config);
       expect(() => useCase.validate()).toThrow('Issue text is required');
     });
 
     it('should throw error for whitespace-only text', () => {
-      const config = { text: '   ', type: 'new-word', owner: 'user-123', ownerFriendly: 'Test User', transcriptionId: 'trans-789' };
+      const config = { text: '   ', type: 'new-word' as const, owner: 'user-123', ownerFriendly: 'Test User', transcriptionId: 'trans-789' };
       const useCase = new CreateIssueUseCase(config);
       expect(() => useCase.validate()).toThrow('Issue text is required');
     });
 
     it('should throw error for missing type', () => {
-      const config = { text: 'Test issue', type: '', owner: 'user-123', ownerFriendly: 'Test User', transcriptionId: 'trans-789' };
+      const config = { text: 'Test issue', type: '' as any, owner: 'user-123', ownerFriendly: 'Test User', transcriptionId: 'trans-789' };
       const useCase = new CreateIssueUseCase(config);
       expect(() => useCase.validate()).toThrow('Issue type is required');
     });
 
     it('should throw error for missing owner', () => {
-      const config = { text: 'Test issue', type: 'new-word', owner: '', ownerFriendly: 'Test User', transcriptionId: 'trans-789' };
+      const config = { text: 'Test issue', type: 'new-word' as const, owner: '', ownerFriendly: 'Test User', transcriptionId: 'trans-789' };
       const useCase = new CreateIssueUseCase(config);
       expect(() => useCase.validate()).toThrow('Issue owner is required');
     });
 
     it('should throw error for missing ownerFriendly', () => {
-      const config = { text: 'Test issue', type: 'new-word', owner: 'user-123', ownerFriendly: '', transcriptionId: 'trans-789' };
+      const config = { text: 'Test issue', type: 'new-word' as const, owner: 'user-123', ownerFriendly: '', transcriptionId: 'trans-789' };
       const useCase = new CreateIssueUseCase(config);
       expect(() => useCase.validate()).toThrow('Issue owner friendly name is required');
     });
 
     it('should throw error for missing transcriptionId', () => {
-      const config = { text: 'Test issue', type: 'new-word', owner: 'user-123', ownerFriendly: 'Test User', transcriptionId: '' };
+      const config = { text: 'Test issue', type: 'new-word' as const, owner: 'user-123', ownerFriendly: 'Test User', transcriptionId: '' };
       const useCase = new CreateIssueUseCase(config);
       expect(() => useCase.validate()).toThrow('Transcription ID is required');
     });
@@ -131,7 +131,7 @@ describe('CreateIssueUseCase', () => {
     it('should pass validation for valid input', () => {
       const config = { 
         text: 'Test issue', 
-        type: 'new-word', 
+        type: 'new-word' as const, 
         owner: 'user-123', 
         ownerFriendly: 'Test User',
         transcriptionId: 'trans-789' 
@@ -143,7 +143,7 @@ describe('CreateIssueUseCase', () => {
     it('should pass validation with optional regionId', () => {
       const config = { 
         text: 'Test issue', 
-        type: 'new-word', 
+        type: 'new-word' as const, 
         owner: 'user-123', 
         ownerFriendly: 'Test User',
         regionId: 'region-456',
@@ -157,7 +157,7 @@ describe('CreateIssueUseCase', () => {
   describe('execute', () => {
     const validConfig: CreateIssueConfig = {
       text: 'Test issue text',
-      type: 'new-word',
+      type: 'new-word' as const,
       owner: 'user-123',
       ownerFriendly: 'Test User',
       regionId: 'region-456',
@@ -173,7 +173,7 @@ describe('CreateIssueUseCase', () => {
       // Verify service call
       expect(mockCreateIssueForRegion).toHaveBeenCalledWith({
         text: 'Test issue text',
-        type: 'new-word',
+        type: 'new-word' as const,
         owner: 'user-123',
         ownerFriendly: 'Test User',
         regionId: 'region-456',
@@ -200,7 +200,7 @@ describe('CreateIssueUseCase', () => {
 
       expect(mockCreateIssueForRegion).toHaveBeenCalledWith({
         text: 'Test issue text',
-        type: 'new-word',
+        type: 'new-word' as const,
         owner: 'user-123',
         ownerFriendly: 'Test User',
         regionId: '',
@@ -220,7 +220,7 @@ describe('CreateIssueUseCase', () => {
 
       expect(mockCreateIssueForRegion).toHaveBeenCalledWith({
         text: 'Test issue text',
-        type: 'new-word',
+        type: 'new-word' as const,
         owner: 'user-123',
         ownerFriendly: 'Test User',
         regionId: 'region-456',
@@ -238,7 +238,7 @@ describe('CreateIssueUseCase', () => {
 
       expect(mockCreateIssueForRegion).toHaveBeenCalledWith({
         text: 'ē-mânokâkēcik issue',
-        type: 'new-word',
+        type: 'new-word' as const,
         owner: 'user-123',
         ownerFriendly: 'Test User',
         regionId: 'region-456',
@@ -249,8 +249,8 @@ describe('CreateIssueUseCase', () => {
     });
 
     it('should handle different issue types', async () => {
-      const needsHelpConfig = { ...validConfig, type: 'needs-help' };
-      const needsHelpIssue = { ...mockCreatedIssue, type: 'needs-help' };
+      const needsHelpConfig = { ...validConfig, type: 'needs-help' as const };
+      const needsHelpIssue = { ...mockCreatedIssue, type: 'needs-help' as const };
       mockCreateIssueForRegion.mockResolvedValue(needsHelpIssue);
 
       const useCase = new CreateIssueUseCase(needsHelpConfig);
@@ -258,7 +258,7 @@ describe('CreateIssueUseCase', () => {
 
       expect(mockCreateIssueForRegion).toHaveBeenCalledWith({
         text: 'Test issue text',
-        type: 'needs-help',
+        type: 'needs-help' as const,
         owner: 'user-123',
         ownerFriendly: 'Test User',
         regionId: 'region-456',
@@ -304,7 +304,7 @@ describe('CreateIssueUseCase', () => {
 
       expect(mockCreateIssueForRegion).toHaveBeenCalledWith({
         text: longText,
-        type: 'new-word',
+        type: 'new-word' as const,
         owner: 'user-123',
         ownerFriendly: 'Test User',
         regionId: 'region-456',
@@ -324,7 +324,7 @@ describe('CreateIssueUseCase', () => {
 
       expect(mockCreateIssueForRegion).toHaveBeenCalledWith({
         text: 'Text with \n newlines \t and tabs',
-        type: 'new-word',
+        type: 'new-word' as const,
         owner: 'user-123',
         ownerFriendly: 'Test User',
         regionId: 'region-456',
@@ -344,7 +344,7 @@ describe('CreateIssueUseCase', () => {
 
       expect(mockCreateIssueForRegion).toHaveBeenCalledWith({
         text: 'Test issue text',
-        type: 'new-word',
+        type: 'new-word' as const,
         owner: 'user-123',
         ownerFriendly: 'Test User',
         regionId: '',

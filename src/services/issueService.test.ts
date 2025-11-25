@@ -49,7 +49,7 @@ describe('issueService', () => {
       {
         id: 'issue-1',
         text: 'First issue',
-        type: 'new-word',
+        type: 'new-word' as const,
         owner: 'user-1',
         ownerFriendly: 'User One',
         regionId: 'region-1',
@@ -65,7 +65,7 @@ describe('issueService', () => {
       {
         id: 'issue-2',
         text: 'Second issue',
-        type: 'needs-help',
+        type: 'new-word' as const,
         owner: 'user-2',
         ownerFriendly: 'User Two',
         regionId: 'region-2',
@@ -171,7 +171,7 @@ describe('issueService', () => {
   describe('createIssueForRegion', () => {
     const issueData = {
       text: 'New test issue',
-      type: 'new-word',
+      type: 'new-word' as const,
       owner: 'user-123',
       ownerFriendly: 'Test User',
       regionId: 'region-456',
@@ -233,7 +233,7 @@ describe('issueService', () => {
     const updates = {
       text: 'Updated issue text',
       resolved: true,
-      type: 'needs-help',
+      type: 'new-word' as const,
       // Read-only fields that should be filtered out
       createdAt: '2023-01-01T00:00:00Z',
       updatedAt: '2023-01-02T00:00:00Z',
@@ -243,7 +243,7 @@ describe('issueService', () => {
     const mockUpdatedIssue: IssueData = {
       id: issueId,
       text: 'Updated issue text',
-      type: 'needs-help',
+      type: 'new-word' as const,
       owner: 'user-1',
       ownerFriendly: 'User One',
       regionId: 'region-1',
@@ -274,7 +274,7 @@ describe('issueService', () => {
             _version: version,
             text: 'Updated issue text',
             resolved: true,
-            type: 'needs-help',
+            type: 'new-word' as const,
             dateLastUpdated: expect.any(String),
             userLastUpdated: 'test-user'
             // createdAt, updatedAt, __typename should be filtered out

@@ -1,12 +1,11 @@
 import { REGION_TEXT_MATCH_PATTERN, REGION_TEXT_MATCH_PATTERN_GLOBAL } from '../constants/text-patterns';
+import { type IssueType } from './adt';
 
 export interface HighlightMatch {
   word: string;
   index: number;
   length: number;
 }
-
-export type IssueType = 'needs-help' | 'indexing' | 'new-word';
 
 export interface IssueHighlight {
   text: string;

@@ -4,11 +4,11 @@ import { rteService } from '../services/rteService';
 import { currentUser } from '../services/userService';
 import { services } from '../services';
 import { UpdateTranscriptionUseCase } from './update-transcription';
-import type { IssueData } from '../services/adt';
+import type { IssueData, IssueType } from '../services/adt';
 
 export interface CreateIssueConfig {
   text: string;
-  type: string;
+  type: IssueType;
   owner: string;
   ownerFriendly: string;
   regionId?: string;

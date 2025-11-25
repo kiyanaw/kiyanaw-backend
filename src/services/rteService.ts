@@ -3,7 +3,8 @@ import 'react-quill/dist/quill.snow.css';
 
 // Import quill-cursors for collaborative editing
 import QuillCursors from 'quill-cursors';
-import { textHighlightService, type IssueHighlight, type IssueType } from './textHighlightService';
+import { textHighlightService, type IssueHighlight } from './textHighlightService';
+import { type IssueType } from './adt';
 import { useEditorStore } from '../stores/useEditorStore';
 import { issueHighlightService } from './issueHighlightService';
 import { issueMatchingService } from './issueMatchingService';
