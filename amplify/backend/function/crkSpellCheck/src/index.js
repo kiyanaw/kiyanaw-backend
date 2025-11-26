@@ -222,14 +222,46 @@ async function checkUnknowns(items) {
     const suggested = await generateStrict(toLookup);
     console.log('suggested:', suggested);
     
-    for (const key of Object.keys(suggested)) {
-      if (suggested[key] && suggested[key].length > 0) {
-        final[originalLookup[key]] = suggested[key][0];
+    for (const [analysis, surfaceForms] of Object.entries(suggested)) {
+      if (surfaceForms && surfaceForms.length > 0) {
+        const originalWord = originalLookup[analysis];
+        // Return array of suggestions with both word and analysis
+        final[originalWord] = surfaceForms.map(word => ({
+          word: word,
+          analysis: analysis
+        }));
       }
     }
   }
 
   return final;
+}
+
+/**
+ * Sorts analyses to prioritize particles (Ipc) over verbs (V) and nouns (N)
+ * For CRK, particles are often the most common/simple interpretation
+ * 
+ * @param {string[]} analyses - Array of analysis strings
+ * @returns {string[]} - Sorted array with Ipc first
+ */
+function sortAnalysesByType(analyses) {
+  if (!analyses || analyses.length <= 1) {
+    return analyses;
+  }
+  
+  return analyses.sort((a, b) => {
+    const aHasIpc = a.includes('+Ipc');
+    const bHasIpc = b.includes('+Ipc');
+    const aHasVorN = a.includes('+V+') || a.includes('+N+');
+    const bHasVorN = b.includes('+V+') || b.includes('+N+');
+    
+    // If one has Ipc and the other has V or N, prioritize Ipc
+    if (aHasIpc && bHasVorN) return -1;
+    if (bHasIpc && aHasVorN) return 1;
+    
+    // Otherwise maintain original order
+    return 0;
+  });
 }
 
 async function analyzeStrict(lookup) {
@@ -241,7 +273,9 @@ async function analyzeStrict(lookup) {
       const rawAnalyses = fst.lookup(word);
       // Filter out error analyses (anything containing +Err/)
       // These are fragments or orthographic errors that shouldn't be shown to users
-      result[word] = rawAnalyses.filter(analysis => !analysis.includes('+Err/'));
+      const filtered = rawAnalyses.filter(analysis => !analysis.includes('+Err/'));
+      // Sort to prioritize particles over verbs/nouns
+      result[word] = sortAnalysesByType(filtered);
     } catch (e) {
       console.error(`Error looking up word "${word}":`, e);
       result[word] = [];
