@@ -2,30 +2,53 @@ import { useMemo, useCallback } from 'react';
 import { REGION_TEXT_MATCH_PATTERN } from '../constants/text-patterns';
 import { useEditorStore } from '../stores/useEditorStore';
 import { selectWordAnalysis } from '../use-cases/select-word-analysis';
-import { type WordAnalysis } from '../services/adt';
+import { type WordAnalysis, type SpellingSuggestion } from '../services/adt';
 
 interface CursorAnalysisResult {
   cursorWord: string | null;
   cursorWordAnalysis: WordAnalysis | null;
   wordIndex: number | null;
+  spellingSuggestions: SpellingSuggestion[];
 }
 
 const computeCursorAnalysis = (
   regionText: string,
   analyses: WordAnalysis[] | undefined,
+  suggestions: SpellingSuggestion[] | undefined,
   cursorWord: { word: string; index: number } | null
 ): CursorAnalysisResult => {
-  if (!cursorWord || !analyses || analyses.length === 0) {
-    return { cursorWord: null, cursorWordAnalysis: null, wordIndex: null };
+  if (!cursorWord) {
+    return { cursorWord: null, cursorWordAnalysis: null, wordIndex: null, spellingSuggestions: [] };
   }
 
+  // Normalize cursor word once for all comparisons
   const normalizedCursorWord = cursorWord.word.toLowerCase();
+
+  // Check if this word has spelling suggestions (misspelled word)
+  const wordSuggestions = (suggestions || []).filter(
+    s => s.word.toLowerCase() === normalizedCursorWord
+  );
+  
+  if (wordSuggestions.length > 0) {
+    // This is a misspelled word - return suggestions instead of analysis
+    return {
+      cursorWord: cursorWord.word,
+      cursorWordAnalysis: null,
+      wordIndex: null,
+      spellingSuggestions: wordSuggestions,
+    };
+  }
+
+  // No suggestions - check for analysis
+  if (!analyses || analyses.length === 0) {
+    return { cursorWord: null, cursorWordAnalysis: null, wordIndex: null, spellingSuggestions: [] };
+  }
   const matchingAnalyses = analyses
     .map((analysis, index) => ({ analysis, index }))
     .filter(({ analysis }) => analysis.word.toLowerCase() === normalizedCursorWord);
 
   if (matchingAnalyses.length === 0) {
-    return { cursorWord: null, cursorWordAnalysis: null, wordIndex: null };
+    return { cursorWord: null, cursorWordAnalysis: null, wordIndex: null, spellingSuggestions: [] };
   }
 
   if (matchingAnalyses.length === 1) {
@@ -33,6 +56,7 @@ const computeCursorAnalysis = (
       cursorWord: cursorWord.word,
       cursorWordAnalysis: matchingAnalyses[0].analysis,
       wordIndex: matchingAnalyses[0].index,
+      spellingSuggestions: [],
     };
   }
 
@@ -68,6 +92,7 @@ const computeCursorAnalysis = (
     cursorWord: cursorWord.word,
     cursorWordAnalysis: matchedAnalysis.analysis,
     wordIndex: matchedAnalysis.index,
+    spellingSuggestions: [],
   };
 };
 
@@ -77,14 +102,15 @@ export const useRegionContextBar = (regionId: string, canEdit: boolean) => {
     (state) => state.regionCursorWords?.[regionId] ?? null
   );
 
-  const { cursorWord, cursorWordAnalysis, wordIndex } = useMemo(
+  const { cursorWord, cursorWordAnalysis, wordIndex, spellingSuggestions } = useMemo(
     () =>
       computeCursorAnalysis(
         region?.text || region?.regionText || '',
         region?.regionAnalysis,
+        region?.regionSuggestions,
         cursorWordInfo
       ),
-    [region?.regionAnalysis, region?.regionText, region?.text, cursorWordInfo]
+    [region?.regionAnalysis, region?.regionSuggestions, region?.regionText, region?.text, cursorWordInfo]
   );
 
   const handleSelectAnalysis = useCallback(
@@ -102,6 +128,7 @@ export const useRegionContextBar = (regionId: string, canEdit: boolean) => {
     cursorWord,
     cursorWordAnalysis,
     wordIndex,
+    spellingSuggestions,
     handleSelectAnalysis,
   };
 };

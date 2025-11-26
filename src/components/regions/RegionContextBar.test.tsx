@@ -12,6 +12,7 @@ describe('RegionContextBar', () => {
       cursorWord: null,
       cursorWordAnalysis: null,
       wordIndex: null,
+      spellingSuggestions: [],
       handleSelectAnalysis: jest.fn(),
     });
 
@@ -35,6 +36,7 @@ describe('RegionContextBar', () => {
       cursorWord: 'anihi',
       cursorWordAnalysis: mockAnalysis,
       wordIndex: 0,
+      spellingSuggestions: [],
       handleSelectAnalysis: jest.fn(),
     });
 
@@ -68,6 +70,7 @@ describe('RegionContextBar', () => {
       cursorWord: 'test',
       cursorWordAnalysis: mockAnalysis,
       wordIndex: 0,
+      spellingSuggestions: [],
       handleSelectAnalysis: jest.fn(),
     });
 
@@ -87,6 +90,7 @@ describe('RegionContextBar', () => {
       cursorWord: null,
       cursorWordAnalysis: mockAnalysis,
       wordIndex: 0,
+      spellingSuggestions: [],
       handleSelectAnalysis: jest.fn(),
     });
 

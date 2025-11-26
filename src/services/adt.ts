@@ -38,6 +38,7 @@ export interface RegionData {
   userLastUpdated?: string;
   index?: number;
   regionAnalysis?: WordAnalysis[]; // Array of detailed word analysis
+  regionSuggestions?: SpellingSuggestion[]; // Array of spelling suggestions for misspelled words
   updatedAt?: string; // Additional property needed for tests
   _version?: number; // Version tracking for conflict resolution
 }
@@ -184,9 +185,15 @@ export interface WordAnalysis {
   index?: number;             // Position/index in the text (for handling duplicates)
 }
 
+export interface SpellingSuggestion {
+  word: string;               // The suggested/corrected word
+  analysis: string;           // The analysis of the suggested word
+}
+
 export interface SpellCheckResult {
   known: WordAnalysis[];
   unknown: string[];
+  suggestions?: Map<string, SpellingSuggestion[]>; // Map of misspelled word -> suggestions
 }
 
 

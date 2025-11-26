@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState } from 'react';
 import { useRegionContextBar } from '../../hooks/useRegionContextBar';
+import { correctSpelling } from '../../use-cases/correct-spelling';
 
 interface RegionContextBarProps {
   regionId: string;
@@ -7,7 +8,7 @@ interface RegionContextBarProps {
 }
 
 export const RegionContextBar = ({ regionId, canEdit }: RegionContextBarProps) => {
-  const { cursorWord, cursorWordAnalysis, wordIndex, handleSelectAnalysis } = useRegionContextBar(
+  const { cursorWord, cursorWordAnalysis, wordIndex, spellingSuggestions, handleSelectAnalysis } = useRegionContextBar(
     regionId,
     canEdit
   );
@@ -47,10 +48,73 @@ export const RegionContextBar = ({ regionId, canEdit }: RegionContextBarProps) =
     }
   }, [cursorWord]);
 
+  const handleCorrectSpelling = async (suggestion: { word: string; analysis: string }) => {
+    if (!canEdit || !cursorWord) {
+      return;
+    }
+    
+    try {
+      await correctSpelling(regionId, cursorWord, suggestion.word);
+    } catch (error) {
+      console.error('Failed to correct spelling:', error);
+    }
+  };
+
   return (
     <div className="py-5 px-4 bg-gray-100 border-b border-gray-50 h-[20px] flex items-center">
       <div className="relative flex-1 min-w-0">
-        {cursorWordAnalysis && cursorWordAnalysis.allAnalysis && cursorWordAnalysis.allAnalysis.length > 0 ? (
+        {spellingSuggestions.length > 0 ? (
+          <>
+            {/* Fade gradients on edges */}
+            {showLeftFade && (
+              <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-gray-100 to-transparent pointer-events-none z-10"></div>
+            )}
+            {showRightFade && (
+              <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-gray-100 to-transparent pointer-events-none z-10"></div>
+            )}
+            
+            {/* Scrollable container for spelling suggestions */}
+            <div 
+              ref={scrollContainerRef}
+              className="flex items-center gap-0.5 overflow-x-auto scrollbar-hide"
+            >
+              <span className="text-xs text-gray-500 mr-2 flex-shrink-0">Suggestions:</span>
+              {spellingSuggestions.map((suggestion, index) => {
+                const handleClick = () => {
+                  if (canEdit) {
+                    handleCorrectSpelling(suggestion);
+                  }
+                };
+                
+                // Prevent focus loss when clicking the button
+                const handleMouseDown = (e: React.MouseEvent) => {
+                  e.preventDefault();
+                };
+                
+                return (
+                  <button
+                    key={index}
+                    onClick={handleClick}
+                    onMouseDown={handleMouseDown}
+                    disabled={!canEdit}
+                    style={{ 
+                      fontSize: '13px', 
+                      padding: '2px 4px', 
+                      margin: '2px',
+                    }}
+                    className={`leading-none rounded-full border whitespace-nowrap flex-shrink-0 transition-colors ${
+                      canEdit
+                        ? 'bg-orange-50 border-orange-300 text-orange-700 hover:bg-orange-100 hover:border-orange-400 cursor-pointer'
+                        : 'bg-gray-50 border-gray-300 text-gray-600'
+                    }`}
+                  >
+                    {suggestion.word}
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        ) : cursorWordAnalysis && cursorWordAnalysis.allAnalysis && cursorWordAnalysis.allAnalysis.length > 0 ? (
           <>
             {/* Fade gradients on edges */}
             {showLeftFade && (

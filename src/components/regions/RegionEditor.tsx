@@ -34,7 +34,25 @@ export const RegionEditor = memo(({
   const regionNumber = regions.findIndex(r => r.id === region.id) + 1;
 
   // Get word under cursor for dictionary lookup
-  const { cursorWord } = useRegionContextBar(region.id, canEdit);
+  const { cursorWordAnalysis } = useRegionContextBar(region.id, canEdit);
+  
+  // Extract lemma from analysis, skipping prefixes like PV/, IC+, RdplW+, RdplS+
+  // e.g., "PV/e+PV/ki+ohcîw+V+AI+Cnj+3Sg" -> "ohcîw"
+  const extractLemma = (analysis: string): string | null => {
+    if (!analysis) return null;
+    const parts = analysis.split('+');
+    const prefixes = ['PV/', 'IC', 'RdplW', 'RdplS'];
+    
+    for (const part of parts) {
+      const hasPrefix = prefixes.some(prefix => part.startsWith(prefix));
+      if (!hasPrefix) {
+        return part;
+      }
+    }
+    return parts[0] || null; // Fallback to first part if no match
+  };
+  
+  const lemma = cursorWordAnalysis ? extractLemma(cursorWordAnalysis.analysis) : null;
 
   // Toolbar actions - simplified for now
   const handlePlay = () => {
@@ -60,8 +78,10 @@ export const RegionEditor = memo(({
   };
 
   const handleDictionaryLookup = () => {
-    if (cursorWord) {
-      window.open(`/database/lemma/${cursorWord}`, '_blank');
+    if (lemma && cursorWordAnalysis) {
+      const surface = cursorWordAnalysis.word;
+      const url = `/database/lemma/${lemma}?surface=${encodeURIComponent(surface)}`;
+      window.open(url, '_blank');
     }
   };
 
@@ -117,13 +137,13 @@ export const RegionEditor = memo(({
           {/* Dictionary Lookup Button - Third position, enabled when cursor is on an analyzed word */}
           <button
             className={`flex items-center justify-center w-7 h-7 border rounded-md transition-all duration-200 text-sm ${
-              cursorWord
+              lemma
                 ? 'border-blue-300 bg-blue-50 text-blue-600 cursor-pointer hover:bg-blue-100 hover:border-blue-400'
                 : 'border-gray-300 bg-gray-50 text-gray-400 cursor-not-allowed opacity-50'
             }`}
-            onClick={cursorWord ? handleDictionaryLookup : undefined}
-            disabled={!cursorWord}
-            title={cursorWord ? `Look up "${cursorWord}" in dictionary` : "Place cursor on a word to look it up"}
+            onClick={lemma ? handleDictionaryLookup : undefined}
+            disabled={!lemma}
+            title={lemma ? `Look up "${lemma}" in dictionary` : "Place cursor on a word to look it up"}
           >
             <Database size={14} />
           </button>

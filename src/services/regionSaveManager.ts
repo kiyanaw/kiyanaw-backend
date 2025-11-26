@@ -153,9 +153,19 @@ class RegionSaveManagerImpl {
       // The rteService will automatically update highlighting via its store subscription
       store.setRegionAnalysis(regionId, result.analysis);
       
+      // Save spelling suggestions
+      if (result.suggestions && result.suggestions.length > 0) {
+        console.debug(`🔤 SAVE-MANAGER: Found ${result.suggestions.length} spelling suggestions:`, result.suggestions);
+        store.setRegionSuggestions(regionId, result.suggestions);
+      } else {
+        console.debug(`🔤 SAVE-MANAGER: No spelling suggestions found`);
+        store.setRegionSuggestions(regionId, []);
+      }
+      
       console.debug(`📊 SAVE-MANAGER: Spell check results for ${regionId}:`, {
         newlyKnown: result.newlyKnown.length,
         totalSaved: result.analysis.length,
+        suggestions: result.suggestions.length,
       });
       
       return result.analysis;

@@ -81,6 +81,12 @@
     text-decoration-thickness: 2px;
   }
   
+  .ql-editor .spelling-suggestion {
+    text-decoration: underline wavy;
+    text-decoration-color: #fb923c; /* orange-400 */
+    text-decoration-thickness: 2px;
+  }
+  
   .ql-editor .ignore-word {
     color: #777;
   }

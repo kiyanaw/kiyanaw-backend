@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import type { TranscriptionData, RegionData } from '../types/shared';
 import type { IssueData, CommentData } from '../services/adt';
-import type { WordAnalysis } from '../services/adt';
+import type { WordAnalysis, SpellingSuggestion } from '../services/adt';
 
 const isWordAnalysis = (value: unknown): value is WordAnalysis => {
   return (
@@ -125,6 +125,7 @@ interface EditorState {
   // Spell checking actions
   addKnownWords: (words: WordAnalysis[]) => void;
   setRegionAnalysis: (regionId: string, analysis: WordAnalysis[]) => void;
+  setRegionSuggestions: (regionId: string, suggestions: SpellingSuggestion[]) => void;
 
   // Pending edits actions moved below
 
@@ -1102,6 +1103,39 @@ export const useEditorStore = create<EditorState>()(
         set(updateObj);
         
         console.debug(`✅ STORE: regionAnalysis set successfully for ${regionId}`);
+      },
+
+      setRegionSuggestions: (regionId, suggestions) => {
+        const { regionMap, regions, selectedRegionId } = get();
+        const existingRegion = regionMap[regionId];
+        
+        if (!existingRegion) {
+          console.warn(`⚠️ STORE: Region ${regionId} not found, cannot set suggestions`);
+          return;
+        }
+
+        console.debug(`📝 STORE: Setting regionSuggestions for ${regionId}:`, {
+          suggestionsLength: suggestions.length,
+          suggestions: suggestions
+        });
+
+        // Create updated region with new suggestions
+        const updatedRegion = { ...existingRegion, regionSuggestions: suggestions };
+        
+        // Prepare the update object
+        const updateObj: Partial<EditorState> = {
+          regionMap: { ...regionMap, [regionId]: updatedRegion },
+          regions: regions.map(r => r.id === regionId ? updatedRegion : r)
+        };
+        
+        // If this is the currently selected region, update selectedRegion too
+        if (selectedRegionId === regionId) {
+          updateObj.selectedRegion = updatedRegion;
+        }
+        
+        set(updateObj);
+        
+        console.debug(`✅ STORE: regionSuggestions set successfully for ${regionId}`);
       },
 
       // Transcription metadata helpers

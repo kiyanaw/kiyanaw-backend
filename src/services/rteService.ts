@@ -9,7 +9,7 @@ import { useEditorStore } from '../stores/useEditorStore';
 import { issueHighlightService } from './issueHighlightService';
 import { issueMatchingService } from './issueMatchingService';
 import { REGION_TEXT_MATCH_PATTERN } from '../constants/text-patterns';
-import { type WordAnalysis } from './adt';
+import { type WordAnalysis, type SpellingSuggestion } from './adt';
 
 // Derive issue format names from centralized ISSUE_TYPE_VALUES
 const ISSUE_FORMATS = ISSUE_TYPE_VALUES.map(type => `issue-${type}` as const);
@@ -223,11 +223,38 @@ class AmbiguousWordBlot extends Inline implements BlotInstance {
   }
 }
 
+class SpellingSuggestionBlot extends Inline implements BlotInstance {
+  declare domNode: HTMLElement;
+  
+  static blotName = 'spelling-suggestion';
+  static tagName = 'span';
+  static className = 'spelling-suggestion';
+  
+  static create() {
+    const node = super.create();
+    node.setAttribute('class', 'spelling-suggestion');
+    return node;
+  }
+  
+  static formats(node: HTMLElement) {
+    return node.getAttribute('class') === 'spelling-suggestion';
+  }
+  
+  format(name: string, value: boolean | string) {
+    if (name !== 'spelling-suggestion' || !value) {
+      super.format(name, value);
+    } else {
+      this.domNode.setAttribute('class', 'spelling-suggestion');
+    }
+  }
+}
+
 Quill.register('formats/known-word', KnownWordBlot);
 Quill.register('formats/issue-needs-help', IssueNeedsHelpBlot);
 Quill.register('formats/issue-indexing', IssueIndexingBlot);
 Quill.register('formats/issue-new-word', IssueNewWordBlot);
 Quill.register('formats/ambiguous-word', AmbiguousWordBlot);
+Quill.register('formats/spelling-suggestion', SpellingSuggestionBlot);
 
 // Custom formats are now defined in src/index.css
 
@@ -394,7 +421,7 @@ class RTEServiceImpl {
           matchVisual: false,
         },
       },
-      formats: ['known-word', 'ambiguous-word', 'issue-needs-help', 'issue-indexing', 'issue-new-word']
+      formats: ['known-word', 'ambiguous-word', 'spelling-suggestion', 'issue-needs-help', 'issue-indexing', 'issue-new-word']
     };
 
     const defaultTranslationConfig = {
@@ -703,7 +730,7 @@ class RTEServiceImpl {
    */
   queueHighlightingUpdate(
     key: EditorKey,
-    options: { knownWords?: string[]; issues?: IssueHighlight[]; ambiguousIndices?: Set<number>; regionAnalysis?: WordAnalysis[] }
+    options: { knownWords?: string[]; issues?: IssueHighlight[]; ambiguousIndices?: Set<number>; regionAnalysis?: WordAnalysis[]; spellingSuggestions?: SpellingSuggestion[] }
   ): Promise<void> {
     const editorVersion = this.editorVersions.get(key) ?? 0;
     const hasExistingQueue = this.highlightingQueues.has(key);
@@ -751,7 +778,7 @@ class RTEServiceImpl {
   /**
    * @deprecated Use queueHighlightingUpdate instead to prevent race conditions
    */
-  applyHighlighting(key: EditorKey, options: { knownWords?: string[]; issues?: IssueHighlight[]; ambiguousIndices?: Set<number>; regionAnalysis?: WordAnalysis[] }): void {
+  applyHighlighting(key: EditorKey, options: { knownWords?: string[]; issues?: IssueHighlight[]; ambiguousIndices?: Set<number>; regionAnalysis?: WordAnalysis[]; spellingSuggestions?: SpellingSuggestion[] }): void {
     // For backwards compatibility, synchronously call the internal method
     // New code should use queueHighlightingUpdate
     this.applyHighlightingInternal(key, options);
@@ -792,15 +819,50 @@ class RTEServiceImpl {
   }
 
   /**
-   * Filter matches to avoid overlaps (issues take priority over ambiguous, both take priority over known)
+   * Find spelling suggestion matches in text
+   */
+  private findSpellingSuggestionMatches(
+    text: string,
+    spellingSuggestions: SpellingSuggestion[]
+  ): Array<{ word: string; index: number; length: number }> {
+    const matches: Array<{ word: string; index: number; length: number }> = [];
+    
+    if (spellingSuggestions.length === 0) {
+      return matches;
+    }
+
+    // Build a set of misspelled words from suggestions
+    const misspelledWords = new Set(spellingSuggestions.map(s => s.word.toLowerCase()));
+    
+    // Find all occurrences of misspelled words in the text
+    const tokens = text.split(REGION_TEXT_MATCH_PATTERN);
+    let charPos = 0;
+    
+    for (const token of tokens) {
+      if (REGION_TEXT_MATCH_PATTERN.test(token)) {
+        const lowerToken = token.toLowerCase();
+        if (misspelledWords.has(lowerToken)) {
+          matches.push({ word: token, index: charPos, length: token.length });
+        }
+      }
+      charPos += token.length;
+    }
+    
+    return matches;
+  }
+
+  /**
+   * Filter matches to avoid overlaps (issues take priority over spelling, spelling over ambiguous, ambiguous over known)
    */
   private filterMatchesByPriority(
     knownMatches: Array<{ index: number; length: number }>,
     ambiguousMatches: Array<{ index: number; length: number }>,
+    spellingMatches: Array<{ index: number; length: number }>,
     issueMatches: Array<{ index: number; length: number }>
   ): {
     filteredKnown: Array<{ index: number; length: number }>;
     filteredAmbiguous: Array<{ index: number; length: number }>;
+    filteredSpelling: Array<{ index: number; length: number }>;
   } {
     const toRange = (match: { index: number; length: number }) => ({
       start: match.index,
@@ -814,21 +876,33 @@ class RTEServiceImpl {
     ): boolean => ranges.some(range => start < range.end && end > range.start);
 
     const issueRanges = issueMatches.map(toRange);
+    const spellingRanges = spellingMatches.map(toRange);
     const ambiguousRanges = ambiguousMatches.map(toRange);
 
-    const filteredKnown = knownMatches.filter(match => {
-      const start = match.index;
-      const end = match.index + match.length;
-      return !rangesOverlap(start, end, issueRanges) && !rangesOverlap(start, end, ambiguousRanges);
-    });
-
-    const filteredAmbiguous = ambiguousMatches.filter(match => {
+    // Issues take priority over everything
+    const filteredSpelling = spellingMatches.filter(match => {
       const start = match.index;
       const end = match.index + match.length;
       return !rangesOverlap(start, end, issueRanges);
     });
 
-    return { filteredKnown, filteredAmbiguous };
+    // Ambiguous takes priority over known, but not over issues or spelling
+    const filteredAmbiguous = ambiguousMatches.filter(match => {
+      const start = match.index;
+      const end = match.index + match.length;
+      return !rangesOverlap(start, end, issueRanges) && !rangesOverlap(start, end, spellingRanges);
+    });
+
+    // Known words have lowest priority
+    const filteredKnown = knownMatches.filter(match => {
+      const start = match.index;
+      const end = match.index + match.length;
+      return !rangesOverlap(start, end, issueRanges) && 
+             !rangesOverlap(start, end, spellingRanges) && 
+             !rangesOverlap(start, end, ambiguousRanges);
+    });
+
+    return { filteredKnown, filteredAmbiguous, filteredSpelling };
   }
 
   /**
@@ -837,15 +911,17 @@ class RTEServiceImpl {
   private collectCurrentRanges(instance: RTEInstance): {
     known: Array<{ start: number; end: number }>;
     ambiguous: Array<{ start: number; end: number }>;
+    spelling: Array<{ start: number; end: number }>;
     issues: Array<{ start: number; end: number; type: IssueType; id: string | null }>;
   } {
     if (!this.isEditorConnected(instance)) {
-      return { known: [], ambiguous: [], issues: [] };
+      return { known: [], ambiguous: [], spelling: [], issues: [] };
     }
 
     const contents = instance.quill.getContents();
     const known: Array<{ start: number; end: number }> = [];
     const ambiguous: Array<{ start: number; end: number }> = [];
+    const spelling: Array<{ start: number; end: number }> = [];
     const issues: Array<{ start: number; end: number; type: IssueType; id: string | null }> = [];
 
     let cursor = 0;
@@ -865,6 +941,10 @@ class RTEServiceImpl {
         ambiguous.push({ start: cursor, end: cursor + segmentLength });
       }
 
+      if (attrs['spelling-suggestion']) {
+        spelling.push({ start: cursor, end: cursor + segmentLength });
+      }
+
       for (const formatName of ISSUE_FORMATS) {
         const value = attrs[formatName];
         if (value) {
@@ -881,7 +961,7 @@ class RTEServiceImpl {
       cursor += segmentLength;
     }
 
-    return { known, ambiguous, issues };
+    return { known, ambiguous, spelling, issues };
   }
 
   /**
@@ -957,11 +1037,13 @@ class RTEServiceImpl {
     currentRanges: {
       known: Array<{ start: number; end: number }>;
       ambiguous: Array<{ start: number; end: number }>;
+      spelling: Array<{ start: number; end: number }>;
       issues: Array<{ start: number; end: number; type: IssueType; id: string | null }>;
     },
     desiredRanges: {
       known: Array<{ start: number; end: number }>;
       ambiguous: Array<{ start: number; end: number }>;
+      spelling: Array<{ start: number; end: number }>;
       issues: Array<{ start: number; end: number; type: IssueType; id: string | null }>;
     },
     textLength: number
@@ -970,7 +1052,7 @@ class RTEServiceImpl {
     length: number;
     value: boolean | string | null;
     phase: 'remove' | 'add';
-    origin: 'known' | 'ambiguous' | 'issue';
+    origin: 'known' | 'ambiguous' | 'spelling' | 'issue';
     formatName: string;
   }> {
     type FormatOperation = {
@@ -978,7 +1060,7 @@ class RTEServiceImpl {
       length: number;
       value: boolean | string | null;
       phase: 'remove' | 'add';
-      origin: 'known' | 'ambiguous' | 'issue';
+      origin: 'known' | 'ambiguous' | 'spelling' | 'issue';
       formatName: string;
     };
 
@@ -989,7 +1071,7 @@ class RTEServiceImpl {
       length: number,
       value: boolean | string | null,
       phase: 'remove' | 'add',
-      origin: 'known' | 'ambiguous' | 'issue',
+      origin: 'known' | 'ambiguous' | 'spelling' | 'issue',
       formatName: string
     ): void => {
       if (length <= 0 || index < 0 || index >= textLength) return;
@@ -1002,11 +1084,11 @@ class RTEServiceImpl {
     const issueRangeKey = (range: { start: number; end: number; type: IssueType }) => 
       `${range.start}-${range.end}-${range.type}`;
 
-    // Diff simple formats (known, ambiguous)
+    // Diff simple formats (known, ambiguous, spelling)
     const diffSimple = (
       current: Array<{ start: number; end: number }>,
       desired: Array<{ start: number; end: number }>,
-      origin: 'known' | 'ambiguous',
+      origin: 'known' | 'ambiguous' | 'spelling',
       formatName: string
     ) => {
       const currentMap = new Map(current.map(r => [rangeKey(r), r]));
@@ -1051,6 +1133,7 @@ class RTEServiceImpl {
 
     diffSimple(currentRanges.known, desiredRanges.known, 'known', 'known-word');
     diffSimple(currentRanges.ambiguous, desiredRanges.ambiguous, 'ambiguous', 'ambiguous-word');
+    diffSimple(currentRanges.spelling, desiredRanges.spelling, 'spelling', 'spelling-suggestion');
     diffIssues(currentRanges.issues, desiredRanges.issues);
 
     return operations;
@@ -1090,7 +1173,7 @@ class RTEServiceImpl {
   // Uses selective formatting removal to avoid cursor jumping
   private applyHighlightingInternal(
     key: EditorKey,
-    options: { knownWords?: string[]; issues?: IssueHighlight[]; ambiguousIndices?: Set<number>; regionAnalysis?: WordAnalysis[] },
+    options: { knownWords?: string[]; issues?: IssueHighlight[]; ambiguousIndices?: Set<number>; regionAnalysis?: WordAnalysis[]; spellingSuggestions?: SpellingSuggestion[] },
     debugContext: { operationId?: number; editorVersion?: number } = {}
   ): void {
     const instance = this.registry.get(key);
@@ -1104,7 +1187,7 @@ class RTEServiceImpl {
     const text = instance.quill.getText();
     if (!text) return;
 
-    const { knownWords = [], issues = [], ambiguousIndices = new Set(), regionAnalysis = [] } = options;
+    const { knownWords = [], issues = [], ambiguousIndices = new Set(), regionAnalysis = [], spellingSuggestions = [] } = options;
     const currentSelection = instance.quill.getSelection();
     const textLength = text.length;
 
@@ -1134,12 +1217,16 @@ class RTEServiceImpl {
       ? textHighlightService.findMatches(text, knownWordsSet)
       : [];
     const desiredAmbiguousWordMatches = this.findAmbiguousWordMatches(text, ambiguousIndices, regionAnalysis);
+    const desiredSpellingSuggestionMatches = spellingSuggestions.length > 0 
+      ? this.findSpellingSuggestionMatches(text, spellingSuggestions)
+      : [];
     const desiredIssueMatches = issues.length > 0 ? this.findIssueMatches(text, issues) : [];
 
-    // Filter matches by priority (issues > ambiguous > known)
-    const { filteredKnown, filteredAmbiguous } = this.filterMatchesByPriority(
+    // Filter matches by priority (issues > spelling > ambiguous > known)
+    const { filteredKnown, filteredAmbiguous, filteredSpelling } = this.filterMatchesByPriority(
       desiredKnownWordMatches,
       desiredAmbiguousWordMatches,
+      desiredSpellingSuggestionMatches,
       desiredIssueMatches
     );
 
@@ -1152,6 +1239,7 @@ class RTEServiceImpl {
     const desiredRanges = {
       known: filteredKnown.map(toRange),
       ambiguous: filteredAmbiguous.map(toRange),
+      spelling: filteredSpelling.map(toRange),
       issues: desiredIssueMatches.map(match => ({
         ...toRange(match),
         type: match.type,
@@ -1170,12 +1258,14 @@ class RTEServiceImpl {
     // Log completion
     const knownOps = operations.filter(op => op.origin === 'known').length;
     const ambiguousOps = operations.filter(op => op.origin === 'ambiguous').length;
+    const spellingOps = operations.filter(op => op.origin === 'spelling').length;
     const issueOps = operations.filter(op => op.origin === 'issue').length;
 
     this.updateDebugInfo(key, 'highlight-apply-finish', {
       operationId,
       knownOps,
       ambiguousOps,
+      spellingOps,
       issueOps,
     });
 
@@ -1388,6 +1478,7 @@ class RTEServiceImpl {
     const region = state.regionById(regionId);
     const regionAnalysis = region?.regionAnalysis || [];
     const knownWords: string[] = regionAnalysis.map(item => item.word);
+    const spellingSuggestions = region?.regionSuggestions || [];
     
     // Identify ambiguous word OCCURRENCES (multiple analyses + not user-selected)
     // Pass the indices of ambiguous entries in the regionAnalysis array
@@ -1427,6 +1518,7 @@ class RTEServiceImpl {
         knownWords,
         ambiguousIndices,
         regionAnalysis, // Pass full analysis array for position-based matching
+        spellingSuggestions, // Pass spelling suggestions for orange underline
         issues: issueHighlights
       });
     } catch (error) {

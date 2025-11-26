@@ -42,7 +42,7 @@ describe('SpellCheckerService', () => {
   describe('check', () => {
     it('should return empty arrays for empty input', async () => {
       const result = await spellCheckerService.check([]);
-      expect(result).toEqual({ known: [], unknown: [] });
+      expect(result).toEqual({ known: [], unknown: [], suggestions: new Map() });
       expect(mockPost).not.toHaveBeenCalled();
     });
 
@@ -197,7 +197,7 @@ describe('SpellCheckerService', () => {
     it('should handle API errors gracefully', async () => {
       mockPost.mockImplementationOnce(() => Promise.reject(new Error('Network error')));
 
-      await expect(spellCheckerService.check(['itwêw', 'hello'])).resolves.toEqual({ known: [], unknown: ['itwêw', 'hello'] });
+      await expect(spellCheckerService.check(['itwêw', 'hello'])).resolves.toEqual({ known: [], unknown: ['itwêw', 'hello'], suggestions: new Map() });
     });
 
     it('should deduplicate identical concurrent requests', async () => {

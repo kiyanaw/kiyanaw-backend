@@ -134,7 +134,7 @@ describe('rteService', () => {
             toolbar: false,
             cursors: expect.any(Object)
           }),
-          formats: ['known-word', 'ambiguous-word', 'issue-needs-help', 'issue-indexing', 'issue-new-word'],
+          formats: ['known-word', 'ambiguous-word', 'spelling-suggestion', 'issue-needs-help', 'issue-indexing', 'issue-new-word'],
           readonly: false,
           placeholder: 'Test'
         })
@@ -163,7 +163,7 @@ describe('rteService', () => {
       expect(mockQuillConstructor).toHaveBeenNthCalledWith(1, 
         expect.any(HTMLElement),
         expect.objectContaining({
-          formats: ['known-word', 'ambiguous-word', 'issue-needs-help', 'issue-indexing', 'issue-new-word']
+          formats: ['known-word', 'ambiguous-word', 'spelling-suggestion', 'issue-needs-help', 'issue-indexing', 'issue-new-word']
         })
       );
       
