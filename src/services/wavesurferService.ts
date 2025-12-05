@@ -427,7 +427,8 @@ class WaveSurferService {
         }
       }
     } catch (error) {
-      // Ignore fetch errors
+      // Log fetch errors but don't fail - this is diagnostic only
+      console.warn('Failed to fetch S3 error details:', error);
     }
     
     // Log error details
