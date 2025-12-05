@@ -11,6 +11,7 @@ import { services } from '../../services';
 import { SaveIndicator } from './SaveIndicator';
 import { browserService } from '../../services/browserService';
 import { formatTime } from '../../utils/timeFormat';
+import { ExpiredUrlDialog } from './ExpiredUrlDialog';
 
 interface Region {
   id: string;
@@ -57,6 +58,7 @@ export const WaveformPlayer = ({
 
   const [showZoomDialog, setShowZoomDialog] = useState(false);
   const [showSpeedDialog, setShowSpeedDialog] = useState(false);
+  const [showExpiredUrlDialog, setShowExpiredUrlDialog] = useState(false);
   // Mobile region creation state
   const [isSparkleActive, setIsSparkleActive] = useState(false);
   const [regionStartTime, setRegionStartTime] = useState<number | null>(null);
@@ -100,6 +102,17 @@ export const WaveformPlayer = ({
       wavesurferService.setRegionEditingEnabled(false);
     }
   }, [loadedAndReady]);
+
+  // Set up expired URL dialog callback
+  useEffect(() => {
+    wavesurferService.setExpiredUrlDialogCallback(() => {
+      setShowExpiredUrlDialog(true);
+    });
+    
+    return () => {
+      wavesurferService.setExpiredUrlDialogCallback(() => {});
+    };
+  }, []);
 
   // Initialize WaveSurfer when container is ready
   const initializeWaveSurfer = useCallback(() => {
@@ -633,6 +646,12 @@ export const WaveformPlayer = ({
         </div>
       )}
 
+      {/* Expired URL Dialog */}
+      <ExpiredUrlDialog
+        isOpen={showExpiredUrlDialog}
+        onClose={() => setShowExpiredUrlDialog(false)}
+        onRefresh={() => window.location.reload()}
+      />
     </>
   );
 };

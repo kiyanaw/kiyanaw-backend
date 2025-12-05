@@ -13,6 +13,7 @@ jest.mock('../services', () => ({
     },
     transcriptionService: {
       loadInFull: jest.fn(),
+      forceFreshCredentials: jest.fn().mockResolvedValue(undefined),
     },
     wavesurferService: {
       load: jest.fn(),

@@ -18,6 +18,7 @@ jest.mock('../../services/wavesurferService', () => {
     load: jest.fn(),
     on: jest.fn(),
     off: jest.fn(),
+    setExpiredUrlDialogCallback: jest.fn(),
   };
   
   return {

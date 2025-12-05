@@ -1500,4 +1500,131 @@ describe('WaveSurferService', () => {
       expect(wavesurferService['_delayedLoad']).toBeNull();
     });
   });
+
+  describe('Error handling and dialog callback', () => {
+    let transcriptionService: any;
+    
+    beforeEach(async () => {
+      transcriptionService = require('./transcriptionService');
+      transcriptionService.generateSignedUrl = jest.fn().mockResolvedValue('https://fake.s3.amazonaws.com/public/test.mp3');
+      
+      wavesurferService.initialize(mockContainer, mockTimelineContainer);
+      
+      // Load initial media
+      const source = 'https://bucket.s3.amazonaws.com/public/test.mp3';
+      const peaks = [0.1, 0.2, 0.3];
+      await wavesurferService.load(source, peaks);
+    });
+
+    it('should call dialog callback on MediaError code 2 with 403-like message', async () => {
+      const dialogCallback = jest.fn();
+      wavesurferService.setExpiredUrlDialogCallback(dialogCallback);
+      
+      // Mock fetch to return 403
+      global.fetch = jest.fn().mockResolvedValue({
+        status: 403,
+        text: jest.fn().mockResolvedValue('<Error><Code>ExpiredToken</Code><Message>Token expired</Message></Error>')
+      });
+      
+      // Mock getCredentialSetupTime to return a recent time (within 1 hour)
+      const transcriptionService = require('./transcriptionService');
+      jest.spyOn(transcriptionService, 'getCredentialSetupTime').mockReturnValue(Date.now() - 30 * 60 * 1000); // 30 minutes ago
+      
+      // Get the error handler registered for 'error' event
+      const errorHandler = mockWaveSurferInstance.on.mock.calls.find(
+        (call: string[]) => call[0] === 'error'
+      )?.[1];
+      
+      expect(errorHandler).toBeDefined();
+      
+      // Simulate a MediaError with code 2 and 403-like message
+      const mediaError = {
+        code: 2,
+        message: 'PipelineStatus::PIPELINE_ERROR_READ: FFmpegDemuxer: data source error'
+      };
+      
+      await errorHandler(mediaError);
+      
+      // Should call dialog callback
+      expect(dialogCallback).toHaveBeenCalled();
+    });
+
+    it('should not retry on non-network errors', async () => {
+      transcriptionService.generateSignedUrl = jest.fn();
+      
+      const emitSpy = jest.spyOn(wavesurferService as any, 'emitEvent');
+      
+      // Get the error handler
+      const errorHandler = mockWaveSurferInstance.on.mock.calls.find(
+        (call: string[]) => call[0] === 'error'
+      )?.[1];
+      
+      // Simulate a non-network error (code 1 = MEDIA_ERR_ABORTED)
+      const mediaError = {
+        code: 1,
+        message: 'Media playback aborted'
+      };
+      
+      await errorHandler(mediaError);
+      
+      // Should not attempt to reload
+      expect(transcriptionService.generateSignedUrl).not.toHaveBeenCalled();
+      // Should emit error normally
+      expect(emitSpy).toHaveBeenCalledWith('error', mediaError);
+      
+      emitSpy.mockRestore();
+    });
+  });
+
+  describe('Play race condition protection', () => {
+    beforeEach(() => {
+      wavesurferService.initialize(mockContainer, mockTimelineContainer);
+    });
+
+    it('should prevent multiple simultaneous play attempts', async () => {
+      // Mock a slow play operation
+      mockWaveSurferInstance.play.mockImplementation(() => 
+        new Promise(resolve => setTimeout(resolve, 100))
+      );
+      
+      // Attempt to play multiple times rapidly
+      const play1 = wavesurferService.play();
+      const play2 = wavesurferService.play();
+      const play3 = wavesurferService.play();
+      
+      await Promise.all([play1, play2, play3]);
+      
+      // Should only call wavesurfer.play() once
+      expect(mockWaveSurferInstance.play).toHaveBeenCalledTimes(1);
+    });
+
+    it('should handle AbortError gracefully', async () => {
+      const abortError = new Error('The play() request was interrupted');
+      abortError.name = 'AbortError';
+      
+      mockWaveSurferInstance.play.mockRejectedValue(abortError);
+      
+      // Should not throw
+      await expect(wavesurferService.play()).resolves.toBeUndefined();
+    });
+
+    it('should re-throw non-AbortError errors', async () => {
+      const networkError = new Error('Network error');
+      mockWaveSurferInstance.play.mockRejectedValue(networkError);
+      
+      await expect(wavesurferService.play()).rejects.toThrow('Network error');
+    });
+
+    it('should allow play after previous attempt completes', async () => {
+      // First play succeeds
+      mockWaveSurferInstance.play.mockResolvedValue(undefined);
+      await wavesurferService.play();
+      
+      expect(mockWaveSurferInstance.play).toHaveBeenCalledTimes(1);
+      
+      // Second play should also work
+      await wavesurferService.play();
+      expect(mockWaveSurferInstance.play).toHaveBeenCalledTimes(2);
+    });
+  });
 }); 

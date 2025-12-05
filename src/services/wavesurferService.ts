@@ -120,7 +120,30 @@ class WaveSurferService {
     this.currentMediaElement = mediaElement || null;
     this._canEdit = canEdit;
 
-
+    // Add direct error listeners to media element for immediate error detection
+    if (this.currentMediaElement) {
+        this.currentMediaElement.addEventListener('error', (e) => {
+        console.error('🚨 Media element error event (immediate):', e);
+        // Clear load timeout since we got an error
+        if (this._loadTimeout) {
+          clearTimeout(this._loadTimeout);
+          this._loadTimeout = null;
+        }
+        // Check for 403 and show dialog
+        this.checkFor403Error();
+      });
+      
+      this.currentMediaElement.addEventListener('stalled', () => {
+        console.warn('⚠️ Media element stalled');
+        // If we've been stalled for more than 2 seconds, check for errors
+        setTimeout(() => {
+          if (this.currentMediaElement && this.currentMediaElement.readyState === 0) {
+            console.warn('⚠️ Media element stalled too long, checking for errors');
+            this.checkFor403Error();
+          }
+        }, 2000);
+      });
+    }
 
     // Create plugins
     this.regionsPlugin = Regions.create();
@@ -164,6 +187,19 @@ class WaveSurferService {
     this.wavesurfer?.on('ready', () => {
       this.ready = true
       
+      const loadTime = Date.now() - this._loadStartTime;
+      console.debug(`✅ Media ready in ${loadTime}ms`);
+      
+      // Clear load timeout and interval on successful ready
+      if (this._loadTimeout) {
+        clearTimeout(this._loadTimeout);
+        this._loadTimeout = null;
+      }
+      if (this._loadCheckInterval) {
+        clearInterval(this._loadCheckInterval);
+        this._loadCheckInterval = null;
+      }
+      
       if (this._delayedLoad !== null) {
         this.load(this._delayedLoad.source, this._delayedLoad.peaks);
         this._delayedLoad = null;
@@ -192,10 +228,37 @@ class WaveSurferService {
       this.emitEvent('pause');
     })
 
-    this.wavesurfer?.on('error', (_event) => {
-      console.error('Wavesurfer error event', _event)
+    this.wavesurfer?.on('error', async (_event) => {
+      const mediaError = _event as unknown as MediaError;
+      console.error('Wavesurfer error event', mediaError);
+      
+      // Clear load timeout since we got an error
+      if (this._loadTimeout) {
+        clearTimeout(this._loadTimeout);
+        this._loadTimeout = null;
+      }
+      
+      // Try to fetch the S3 XML error body for better diagnostics
+      await this.captureS3ErrorDetails();
+      
+      // Check if this is a media load/network error (code 2 or 4)
+      // Code 2: MEDIA_ERR_NETWORK - A network error occurred
+      // Code 4: MEDIA_ERR_SRC_NOT_SUPPORTED - Media source not supported (could be 403)
+      const isNetworkError = mediaError.code === 2 || mediaError.code === 4;
+      const errorMessage = mediaError.message || '';
+      const looksLike403 = errorMessage.includes('403') || errorMessage.includes('Forbidden') || 
+                            errorMessage.includes('PIPELINE_ERROR_READ') ||
+                            errorMessage.includes('ORB') || errorMessage.includes('blocked') ||
+                            errorMessage.includes('ExpiredToken') || errorMessage.includes('SignatureDoesNotMatch');
+      
+      if (isNetworkError && looksLike403 && this._currentSource) {
+        console.warn('🚨 Detected 403/network error');
+        await this.handleLoadFailure();
+        return;
+      }
+      
       // Emit error event so UI can handle it
-      this.emitEvent('error', _event)
+      this.emitEvent('error', _event);
     })
 
     // Listen for timeupdate to enforce region-bounded playback AND emit time updates
@@ -336,12 +399,37 @@ class WaveSurferService {
     return this.regionsPlugin;
   }
 
+  // Store the current source and peaks for reload operations
+  private _currentSource: string | null = null;
+  private _currentPeaks: unknown = null;
+  private _loadTimeout: ReturnType<typeof setTimeout> | null = null;
+  private _loadCheckInterval: ReturnType<typeof setInterval> | null = null;
+  private _loadStartTime: number = 0;
+  // Callback to show expired URL dialog
+  private _showExpiredUrlDialog: (() => void) | null = null;
+
   // Set a new source URL and peaks data
   async load(source: string, peaks: unknown): Promise<void> {
     if (!this.wavesurfer) {
       this._delayedLoad = { source, peaks };
       return;
     }
+    
+    // Store source and peaks for potential reload
+    this._currentSource = source;
+    this._currentPeaks = peaks;
+    
+    // Clear any existing load timeout and interval
+    if (this._loadTimeout) {
+      clearTimeout(this._loadTimeout);
+      this._loadTimeout = null;
+    }
+    if (this._loadCheckInterval) {
+      clearInterval(this._loadCheckInterval);
+      this._loadCheckInterval = null;
+    }
+    
+    this._loadStartTime = Date.now();
     
     try {
       let signedMediaUrl: string;
@@ -352,10 +440,49 @@ class WaveSurferService {
         signedMediaUrl = await generateSignedUrl(source);
         this.currentMediaElement.src = signedMediaUrl;
         this.wavesurfer?.load(signedMediaUrl, peaks as (Float32Array)[]);
+        
+        // Check loading progress every 500ms
+        this._loadCheckInterval = setInterval(() => {
+          const elapsed = Date.now() - this._loadStartTime;
+          const readyState = this.currentMediaElement?.readyState || 0;
+          
+          console.debug(`📊 Load check: readyState=${readyState}, elapsed=${elapsed}ms`);
+          
+          // If still at readyState 0 after 3 seconds, something is wrong
+          if (readyState === 0 && elapsed > 3000) {
+            console.warn('⏱️ Media stuck at readyState 0 for >3s - checking for errors');
+            if (this._loadCheckInterval) {
+              clearInterval(this._loadCheckInterval);
+              this._loadCheckInterval = null;
+            }
+            // Don't auto-retry, just check for 403 and show dialog
+            this.checkFor403Error();
+          }
+        }, 500);
+        
+        // Final timeout at 5 seconds as backup
+        this._loadTimeout = setTimeout(() => {
+          if (this._loadCheckInterval) {
+            clearInterval(this._loadCheckInterval);
+            this._loadCheckInterval = null;
+          }
+          if (this.currentMediaElement && this.currentMediaElement.readyState === 0) {
+            console.warn('⏱️ Media load timeout (5s) - checking for errors');
+            this.checkFor403Error();
+          }
+        }, 5000);
       } else {
         // For audio-only, load the signed media source directly.
         signedMediaUrl = await generateSignedUrl(source);
         this.wavesurfer?.load(signedMediaUrl, peaks as (Float32Array)[]);
+        
+        // Set timeout for audio as well
+        this._loadTimeout = setTimeout(() => {
+          if (this.wavesurfer && !this.ready) {
+            console.warn('⏱️ Media load timeout - checking for errors');
+            this.checkFor403Error();
+          }
+        }, 5000);
       }
     } catch (error) {
       console.error('Failed to load media with signed URL:', error);
@@ -365,6 +492,149 @@ class WaveSurferService {
         this.wavesurfer?.load(source, peaks as (Float32Array)[]);
       } else {
         this.wavesurfer?.load(source, peaks as (Float32Array)[]);
+      }
+    }
+  }
+
+  /**
+   * Set callback to show expired URL dialog
+   */
+  setExpiredUrlDialogCallback(callback: () => void): void {
+    this._showExpiredUrlDialog = callback;
+  }
+
+  /**
+   * Capture S3 XML error details for diagnostics
+   * This helps identify if errors are ExpiredToken, SignatureDoesNotMatch, AccessDenied, etc.
+   */
+  private async captureS3ErrorDetails(): Promise<{ code?: string; message?: string; requestId?: string }> {
+    try {
+      // Get the current media source URL
+      const currentUrl = this.currentMediaElement?.src || 
+                        (this.wavesurfer?.getMediaElement() as HTMLMediaElement)?.src;
+      
+      if (!currentUrl || !currentUrl.includes('s3.amazonaws.com')) {
+        return {}; // Not an S3 URL
+      }
+      
+      // Try to fetch the URL directly to get the XML error body
+      const response = await fetch(currentUrl, { method: 'HEAD' });
+      
+      if (!response.ok) {
+        const text = await response.text();
+        
+        // Try to parse XML error
+        if (text.includes('<Error>')) {
+          const codeMatch = text.match(/<Code>([^<]+)<\/Code>/);
+          const messageMatch = text.match(/<Message>([^<]+)<\/Message>/);
+          const requestIdMatch = text.match(/<RequestId>([^<]+)<\/RequestId>/);
+          
+          return {
+            code: codeMatch?.[1],
+            message: messageMatch?.[1],
+            requestId: requestIdMatch?.[1]
+          };
+        }
+      }
+    } catch (error) {
+      // Silently fail - this is diagnostic only
+      console.debug('Could not capture S3 error details:', error);
+    }
+    
+    return {};
+  }
+
+  /**
+   * Handle media load failures by showing dialog to user
+   */
+  private async handleLoadFailure(): Promise<void> {
+    // Import credential tracking
+    const { getCredentialSetupTime } = await import('./transcriptionService');
+    const credentialSetupTime = getCredentialSetupTime();
+    
+    // Capture S3 error details
+    const errorDetails = await this.captureS3ErrorDetails();
+    
+    // Log detailed diagnostics
+    console.group('🚨 Media Load Failure - 403 Error');
+    console.log('Current URL:', this.currentMediaElement?.src?.substring(0, 100) + '...');
+    
+    if (errorDetails.code) {
+      console.error('S3 Error Code:', errorDetails.code);
+      if (errorDetails.message) console.error('S3 Error Message:', errorDetails.message);
+      if (errorDetails.requestId) console.log('Request ID:', errorDetails.requestId);
+    }
+    
+    // Check if this happened within 1 hour of credential setup
+    if (credentialSetupTime) {
+      const timeSinceSetup = Date.now() - credentialSetupTime;
+      const hoursSinceSetup = timeSinceSetup / (1000 * 60 * 60);
+      const minutesSinceSetup = timeSinceSetup / (1000 * 60);
+      
+      console.log('Credential Setup Time:', new Date(credentialSetupTime).toISOString());
+      console.log('Time Since Credential Setup:', `${Math.floor(minutesSinceSetup)}m ${Math.floor((minutesSinceSetup % 1) * 60)}s`);
+      
+      if (hoursSinceSetup < 1) {
+        console.error('⚠️ CRITICAL: 403 error occurred within 1 hour of fresh credentials!');
+        console.error('This suggests:');
+        console.error('  - S3 rate limiting/throttling');
+        console.error('  - URL modification/signature mismatch');
+        console.error('  - Bucket/IAM policy issue');
+        console.error('  - CORS configuration problem');
+        console.error('  - OR credentials are expiring faster than expected');
+        
+        // Log full credential details
+        const { fetchAuthSession } = await import('aws-amplify/auth');
+        const session = await fetchAuthSession();
+        if (session.credentials) {
+          console.log('Current Credentials:');
+          console.log('  Access Key ID:', session.credentials.accessKeyId?.substring(0, 20) + '...');
+          console.log('  Expiration:', session.credentials.expiration ? new Date(session.credentials.expiration).toISOString() : 'None');
+        }
+      } else {
+        console.log('✅ This is expected - credentials expired after 1 hour');
+      }
+    } else {
+      console.warn('⚠️ No credential setup time tracked - credentials may not have been refreshed');
+    }
+    
+    console.groupEnd();
+    
+    // Show dialog to user
+    if (this._showExpiredUrlDialog) {
+      this._showExpiredUrlDialog();
+    } else {
+      // Fallback: emit error event
+      this.emitEvent('error', {
+        code: 2,
+        message: 'The pre-signed URL has expired. Please refresh the page.'
+      });
+    }
+  }
+
+  /**
+   * Check if the current error is a 403 and handle it appropriately
+   */
+  private async checkFor403Error(): Promise<void> {
+    const currentUrl = this.currentMediaElement?.src || 
+                      (this.wavesurfer?.getMediaElement() as HTMLMediaElement)?.src;
+    
+    if (!currentUrl) {
+      return;
+    }
+    
+    // Try to fetch the URL to see if it's a 403
+    try {
+      const response = await fetch(currentUrl, { method: 'HEAD' });
+      if (response.status === 403) {
+        await this.handleLoadFailure();
+      }
+    } catch (error) {
+      // If fetch fails, it might be a CORS issue or network error
+      // Check if it looks like a 403 from the error message
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('403') || errorMessage.includes('Forbidden')) {
+        await this.handleLoadFailure();
       }
     }
   }
@@ -467,12 +737,36 @@ class WaveSurferService {
     }
   }
 
+  // Track if we're currently in the middle of a play attempt to prevent race conditions
+  private _playAttemptInProgress: boolean = false;
+
   async play(options: { playInFull?: boolean } = {}): Promise<void> {
-    if (options.playInFull) {
-      // Clear any region-bounded playback restrictions for full playback
-      this.clearRegionBoundedPlayback();
+    // Prevent multiple simultaneous play attempts
+    if (this._playAttemptInProgress) {
+      console.debug('⏭️ Skipping play() - another play attempt in progress');
+      return;
     }
-    await this.wavesurfer?.play();
+
+    try {
+      this._playAttemptInProgress = true;
+      
+      if (options.playInFull) {
+        // Clear any region-bounded playback restrictions for full playback
+        this.clearRegionBoundedPlayback();
+      }
+      
+      await this.wavesurfer?.play();
+    } catch (error) {
+      // Handle AbortError gracefully (this is expected when rapidly switching regions)
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.debug('⏸️ Play request was aborted (expected during rapid region switching)');
+        return;
+      }
+      // Re-throw other errors
+      throw error;
+    } finally {
+      this._playAttemptInProgress = false;
+    }
   }
 
   pause(): void {
@@ -676,6 +970,16 @@ class WaveSurferService {
   }
   
   destroy(): void {
+    // Clear any pending timeouts and intervals
+    if (this._loadTimeout) {
+      clearTimeout(this._loadTimeout);
+      this._loadTimeout = null;
+    }
+    if (this._loadCheckInterval) {
+      clearInterval(this._loadCheckInterval);
+      this._loadCheckInterval = null;
+    }
+    
     if (this.wavesurfer) {
       this.wavesurfer.destroy();
       this.wavesurfer = null;
@@ -694,6 +998,11 @@ class WaveSurferService {
     this._inboundRegionCurrentHighlighted = null;
     this._playbackBoundRegion = null;
     this._disableDragSelection = null;
+    this._playAttemptInProgress = false;
+    this._currentSource = null;
+    this._currentPeaks = null;
+    this._loadStartTime = 0;
+    this._showExpiredUrlDialog = null;
     this.muteEvents = false;
     this.clearAllListeners();
   }
