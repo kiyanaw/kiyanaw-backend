@@ -2,7 +2,7 @@ import WaveSurfer from 'wavesurfer.js';
 import Regions from 'wavesurfer.js/dist/plugins/regions.esm.js';
 import Timeline from 'wavesurfer.js/dist/plugins/timeline.esm.js';
 import mitt from 'mitt';
-import { generateSignedUrl } from './transcriptionService';
+import { generateSignedUrl, getCredentialSetupTime } from './transcriptionService';
 import { FLASH_CONFIG } from './flashIndicatorService';
 
 // Type definitions for WaveSurfer service
@@ -396,7 +396,6 @@ class WaveSurferService {
    * Log detailed error information for 403/waveform errors
    */
   private async logErrorDetails(): Promise<void> {
-    const { getCredentialSetupTime } = await import('./transcriptionService');
     const credentialSetupTime = getCredentialSetupTime();
     
     // Get the current media source URL

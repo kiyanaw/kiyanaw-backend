@@ -1,5 +1,6 @@
 import { generateClient } from 'aws-amplify/api';
 import { getUrl } from 'aws-amplify/storage';
+import { fetchAuthSession } from 'aws-amplify/auth';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - GraphQL queries are generated as JS files
 import { getTranscription, transcriptionsByAuthor } from '../graphql/queries.js';
@@ -130,8 +131,6 @@ let credentialSetupTime: number | null = null;
  */
 export async function forceFreshCredentials(): Promise<void> {
   try {
-    const { fetchAuthSession } = await import('aws-amplify/auth');
-    
     console.log('🔄 Forcing fresh credentials...');
     const refreshStart = Date.now();
     
