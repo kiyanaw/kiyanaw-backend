@@ -100,9 +100,6 @@ export const generateSignedUrl = async (sourceUrl: string, fileSuffix: string = 
     const fileKey = extractS3KeyFromUrl(sourceUrl);
     const targetKey = `${fileKey}${fileSuffix}`;
     
-    // Check and refresh credentials if needed BEFORE generating the signed URL
-    await ensureFreshCredentials();
-    
     console.debug(`Generating signed URL for file: ${targetKey}`);
     
     // Determine the path - if the key already starts with 'public/', use it as is
@@ -174,46 +171,6 @@ export function getCredentialSetupTime(): number | null {
   return credentialSetupTime;
 }
 
-/**
- * Ensures AWS credentials are fresh before generating signed URLs.
- * This is called automatically before generating URLs, but you should also
- * call forceFreshCredentials() when loading a transcription.
- */
-async function ensureFreshCredentials(): Promise<void> {
-  try {
-    const { fetchAuthSession } = await import('aws-amplify/auth');
-    const session = await fetchAuthSession();
-    
-    if (!session.credentials) {
-      console.warn('⚠️ No credentials found in session');
-      return;
-    }
-    
-    // Check if credentials have an expiration time
-    const expiration = session.credentials.expiration;
-    if (!expiration) {
-      console.debug('📋 Credentials have no expiration (permanent credentials?)');
-      return;
-    }
-    
-    const now = Date.now();
-    const expirationDate = new Date(expiration).getTime();
-    const timeUntilExpiry = expirationDate - now;
-    const minutesUntilExpiry = Math.floor(timeUntilExpiry / 1000 / 60);
-    
-    console.debug(`🔑 Credentials expire in ${minutesUntilExpiry}m`);
-    
-    // If credentials expire in less than 2 minutes, force refresh
-    const REFRESH_BUFFER_MS = 2 * 60 * 1000; // 2 minutes
-    if (timeUntilExpiry < REFRESH_BUFFER_MS) {
-      console.warn(`⚠️ Credentials expiring soon (${minutesUntilExpiry}m), forcing refresh...`);
-      await forceFreshCredentials();
-    }
-  } catch (error) {
-    console.error('❌ Failed to check/refresh credentials:', error);
-    // Don't throw - let the signed URL generation attempt proceed
-  }
-}
 
 /**
  * Generates a signed URL for a peaks file using Amplify Storage

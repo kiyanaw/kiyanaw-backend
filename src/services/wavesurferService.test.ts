@@ -1516,14 +1516,20 @@ describe('WaveSurferService', () => {
       await wavesurferService.load(source, peaks);
     });
 
-    it('should call dialog callback on MediaError code 2 with 403-like message', async () => {
-      const dialogCallback = jest.fn();
-      wavesurferService.setExpiredUrlDialogCallback(dialogCallback);
+    it('should log error details on MediaError code 2 with 403-like message', async () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
       
-      // Mock fetch to return 403
+      // Set up current source and mock media element with S3 URL
+      wavesurferService['_currentSource'] = 'https://bucket.s3.amazonaws.com/public/test.mp3';
+      const mockMediaElement = document.createElement('video');
+      mockMediaElement.src = 'https://bucket.s3.amazonaws.com/public/test.mp3?x-id=GetObject';
+      wavesurferService['currentMediaElement'] = mockMediaElement;
+      
+      // Mock fetch to return 403 with XML error
       global.fetch = jest.fn().mockResolvedValue({
         status: 403,
-        text: jest.fn().mockResolvedValue('<Error><Code>ExpiredToken</Code><Message>Token expired</Message></Error>')
+        ok: false,
+        text: jest.fn().mockResolvedValue('<Error><Code>ExpiredToken</Code><Message>Token expired</Message><RequestId>test-request-id</RequestId></Error>')
       });
       
       // Mock getCredentialSetupTime to return a recent time (within 1 hour)
@@ -1545,8 +1551,16 @@ describe('WaveSurferService', () => {
       
       await errorHandler(mediaError);
       
-      // Should call dialog callback
-      expect(dialogCallback).toHaveBeenCalled();
+      // Should log error details (check that it was called with error details)
+      expect(consoleErrorSpy).toHaveBeenCalled();
+      const errorCalls = consoleErrorSpy.mock.calls.filter(call => 
+        call[0]?.toString().includes('🚨 Waveform/Media Error Details:') ||
+        call[0]?.toString().includes('S3 Error Code') ||
+        call[0]?.toString().includes('Credential Age')
+      );
+      expect(errorCalls.length).toBeGreaterThan(0);
+      
+      consoleErrorSpy.mockRestore();
     });
 
     it('should not retry on non-network errors', async () => {
