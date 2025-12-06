@@ -10,8 +10,8 @@
  * Note: OTWC does not have a generator file, so suggestions will not be available
  */
 const FST_FILES = {
-  'strict-analyzer': 'otwc_syncopated_analyzer_mcor.hfstol',
-  'relaxed-analyzer': 'otwc_syncopated_analyzer_mcor_relaxed.hfstol'
+  'strict-analyzer': 'otwc_syncopated_analyzer_mcor_uw.hfstol',
+  'relaxed-analyzer': 'otwc_syncopated_analyzer_mcor_relaxed_uw.hfstol'
 }
 
 /**
