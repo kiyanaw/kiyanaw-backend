@@ -632,6 +632,7 @@ export const WaveformPlayer = ({
           </div>
         </div>
       )}
+
     </>
   );
 };

@@ -30,10 +30,8 @@ export class LoadTranscription {
     const spellCheckerService = this.config.services.spellCheckerService
     const userService = this.config.services.userService
     
-    // Force fresh credentials when loading a transcription to ensure we have a full hour
-    // Import forceFreshCredentials from transcriptionService module
-    const transcriptionServiceModule = await import('../services/transcriptionService');
-    await transcriptionServiceModule.forceFreshCredentials();
+    // Force fresh credentials when loading a transcription
+    await transcriptionService.forceFreshCredentials();
     
     const data = await transcriptionService.loadInFull(this.config.transcriptionId);
 

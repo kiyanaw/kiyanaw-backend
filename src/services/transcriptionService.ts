@@ -110,7 +110,7 @@ export const generateSignedUrl = async (sourceUrl: string, fileSuffix: string = 
     const { url } = await getUrl({
       path,
       options: {
-        expiresIn: 3600, // 1 hour - will be constrained by credential expiration
+        expiresIn: 86400, // 24 hours
         useAccelerateEndpoint: false
       }
     });
@@ -122,12 +122,9 @@ export const generateSignedUrl = async (sourceUrl: string, fileSuffix: string = 
   }
 };
 
-// Track when credentials were last refreshed
-let credentialSetupTime: number | null = null;
-
 /**
  * Forces fresh credentials to be obtained.
- * Call this when loading a transcription to ensure we have a full hour of valid credentials.
+ * Call this when loading a transcription to ensure we have valid credentials.
  */
 export async function forceFreshCredentials(): Promise<void> {
   try {
@@ -139,18 +136,14 @@ export async function forceFreshCredentials(): Promise<void> {
     const refreshDuration = Date.now() - refreshStart;
     
     if (session.credentials) {
-      credentialSetupTime = Date.now();
-      
       if (session.credentials.expiration) {
         const expirationDate = new Date(session.credentials.expiration);
         const timeUntilExpiry = expirationDate.getTime() - Date.now();
         const minutesUntilExpiry = Math.floor(timeUntilExpiry / 1000 / 60);
         
         console.log(`✅ Fresh credentials obtained in ${refreshDuration}ms`);
-        console.log('Credential Setup Time:', new Date(credentialSetupTime).toISOString());
         console.log('Expiration Time:', expirationDate.toISOString());
         console.log('Time Until Expiry:', `${minutesUntilExpiry}m`);
-        console.log('Access Key ID:', session.credentials.accessKeyId?.substring(0, 20) + '...');
       } else {
         console.log('✅ Fresh credentials obtained (no expiration)');
       }
@@ -163,12 +156,6 @@ export async function forceFreshCredentials(): Promise<void> {
   }
 }
 
-/**
- * Gets the time when credentials were last set up (in milliseconds since epoch)
- */
-export function getCredentialSetupTime(): number | null {
-  return credentialSetupTime;
-}
 
 
 /**

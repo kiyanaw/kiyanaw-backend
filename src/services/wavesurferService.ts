@@ -2,7 +2,7 @@ import WaveSurfer from 'wavesurfer.js';
 import Regions from 'wavesurfer.js/dist/plugins/regions.esm.js';
 import Timeline from 'wavesurfer.js/dist/plugins/timeline.esm.js';
 import mitt from 'mitt';
-import { generateSignedUrl, getCredentialSetupTime } from './transcriptionService';
+import { generateSignedUrl } from './transcriptionService';
 import { FLASH_CONFIG } from './flashIndicatorService';
 
 // Type definitions for WaveSurfer service
@@ -121,6 +121,7 @@ class WaveSurferService {
     this._canEdit = canEdit;
 
 
+
     // Create plugins
     this.regionsPlugin = Regions.create();
     this.timelinePlugin = Timeline.create({
@@ -191,26 +192,10 @@ class WaveSurferService {
       this.emitEvent('pause');
     })
 
-    this.wavesurfer?.on('error', async (_event) => {
-      const mediaError = _event as unknown as MediaError;
-      console.error('Wavesurfer error event', mediaError);
-      
-      // Check if this is a media load/network error (code 2 or 4) that looks like 403
-      // Code 2: MEDIA_ERR_NETWORK - A network error occurred
-      // Code 4: MEDIA_ERR_SRC_NOT_SUPPORTED - Media source not supported (could be 403)
-      const isNetworkError = mediaError.code === 2 || mediaError.code === 4;
-      const errorMessage = mediaError.message || '';
-      const looksLike403 = errorMessage.includes('403') || errorMessage.includes('Forbidden') || 
-                            errorMessage.includes('PIPELINE_ERROR_READ') ||
-                            errorMessage.includes('ORB') || errorMessage.includes('blocked') ||
-                            errorMessage.includes('ExpiredToken') || errorMessage.includes('SignatureDoesNotMatch');
-      
-      if (isNetworkError && looksLike403 && this._currentSource) {
-        await this.logErrorDetails();
-      }
-      
+    this.wavesurfer?.on('error', (_event) => {
+      console.error('Wavesurfer error event', _event)
       // Emit error event so UI can handle it
-      this.emitEvent('error', _event);
+      this.emitEvent('error', _event)
     })
 
     // Listen for timeupdate to enforce region-bounded playback AND emit time updates
@@ -351,20 +336,12 @@ class WaveSurferService {
     return this.regionsPlugin;
   }
 
-  // Store the current source and peaks
-  private _currentSource: string | null = null;
-  private _currentPeaks: unknown = null;
-
   // Set a new source URL and peaks data
   async load(source: string, peaks: unknown): Promise<void> {
     if (!this.wavesurfer) {
       this._delayedLoad = { source, peaks };
       return;
     }
-    
-    // Store source and peaks
-    this._currentSource = source;
-    this._currentPeaks = peaks;
     
     try {
       let signedMediaUrl: string;
@@ -389,72 +366,6 @@ class WaveSurferService {
       } else {
         this.wavesurfer?.load(source, peaks as (Float32Array)[]);
       }
-    }
-  }
-
-  /**
-   * Log detailed error information for 403/waveform errors
-   */
-  private async logErrorDetails(): Promise<void> {
-    const credentialSetupTime = getCredentialSetupTime();
-    
-    // Get the current media source URL
-    const currentUrl = this.currentMediaElement?.src || 
-                      (this.wavesurfer?.getMediaElement() as HTMLMediaElement)?.src;
-    
-    if (!currentUrl) {
-      return;
-    }
-    
-    // Try to fetch S3 XML error details
-    let errorDetails: { code?: string; message?: string; requestId?: string } = {};
-    try {
-      if (currentUrl.includes('s3.amazonaws.com')) {
-        const response = await fetch(currentUrl, { method: 'HEAD' });
-        if (!response.ok) {
-          const text = await response.text();
-          if (text.includes('<Error>')) {
-            const codeMatch = text.match(/<Code>([^<]+)<\/Code>/);
-            const messageMatch = text.match(/<Message>([^<]+)<\/Message>/);
-            const requestIdMatch = text.match(/<RequestId>([^<]+)<\/RequestId>/);
-            
-            errorDetails = {
-              code: codeMatch?.[1],
-              message: messageMatch?.[1],
-              requestId: requestIdMatch?.[1]
-            };
-          }
-        }
-      }
-    } catch (error) {
-      // Log fetch errors but don't fail - this is diagnostic only
-      console.warn('Failed to fetch S3 error details:', error);
-    }
-    
-    // Log error details
-    console.error('🚨 Waveform/Media Error Details:');
-    console.error('URL:', currentUrl.substring(0, 100) + '...');
-    
-    if (errorDetails.code) {
-      console.error('S3 Error Code:', errorDetails.code);
-      if (errorDetails.message) console.error('S3 Error Message:', errorDetails.message);
-      if (errorDetails.requestId) console.error('Request ID:', errorDetails.requestId);
-    }
-    
-    // Log credential age
-    if (credentialSetupTime) {
-      const timeSinceSetup = Date.now() - credentialSetupTime;
-      const hoursSinceSetup = timeSinceSetup / (1000 * 60 * 60);
-      const minutesSinceSetup = timeSinceSetup / (1000 * 60);
-      
-      console.error('Credential Setup Time:', new Date(credentialSetupTime).toISOString());
-      console.error('Credential Age:', `${Math.floor(minutesSinceSetup)}m ${Math.floor((minutesSinceSetup % 1) * 60)}s`);
-      
-      if (hoursSinceSetup < 1) {
-        console.error('⚠️ CRITICAL: Error occurred within 1 hour of fresh credentials!');
-      }
-    } else {
-      console.error('⚠️ No credential setup time tracked');
     }
   }
 
@@ -556,36 +467,12 @@ class WaveSurferService {
     }
   }
 
-  // Track if we're currently in the middle of a play attempt to prevent race conditions
-  private _playAttemptInProgress: boolean = false;
-
   async play(options: { playInFull?: boolean } = {}): Promise<void> {
-    // Prevent multiple simultaneous play attempts
-    if (this._playAttemptInProgress) {
-      console.debug('⏭️ Skipping play() - another play attempt in progress');
-      return;
+    if (options.playInFull) {
+      // Clear any region-bounded playback restrictions for full playback
+      this.clearRegionBoundedPlayback();
     }
-
-    try {
-      this._playAttemptInProgress = true;
-      
-      if (options.playInFull) {
-        // Clear any region-bounded playback restrictions for full playback
-        this.clearRegionBoundedPlayback();
-      }
-      
-      await this.wavesurfer?.play();
-    } catch (error) {
-      // Handle AbortError gracefully (this is expected when rapidly switching regions)
-      if (error instanceof Error && error.name === 'AbortError') {
-        console.debug('⏸️ Play request was aborted (expected during rapid region switching)');
-        return;
-      }
-      // Re-throw other errors
-      throw error;
-    } finally {
-      this._playAttemptInProgress = false;
-    }
+    await this.wavesurfer?.play();
   }
 
   pause(): void {
@@ -789,7 +676,6 @@ class WaveSurferService {
   }
   
   destroy(): void {
-    
     if (this.wavesurfer) {
       this.wavesurfer.destroy();
       this.wavesurfer = null;
@@ -808,9 +694,6 @@ class WaveSurferService {
     this._inboundRegionCurrentHighlighted = null;
     this._playbackBoundRegion = null;
     this._disableDragSelection = null;
-    this._playAttemptInProgress = false;
-    this._currentSource = null;
-    this._currentPeaks = null;
     this.muteEvents = false;
     this.clearAllListeners();
   }
