@@ -9,4 +9,4 @@ export const useSelectAndPlayRegion = () => {
     const store = useEditorStore.getState();
     new SelectAndPlayRegion({ regionId, services, store }).execute();
   }, []);
-}; 
+};

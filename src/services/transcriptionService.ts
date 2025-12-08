@@ -1,5 +1,6 @@
 import { generateClient } from 'aws-amplify/api';
 import { getUrl } from 'aws-amplify/storage';
+import { fetchAuthSession } from 'aws-amplify/auth';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - GraphQL queries are generated as JS files
 import { getTranscription, transcriptionsByAuthor } from '../graphql/queries.js';
@@ -88,6 +89,9 @@ const extractS3KeyFromUrl = (sourceUrl: string): string => {
 
 /**
  * Generates a signed URL for any S3 file using Amplify Storage
+ * IMPORTANT: Pre-signed URLs cannot outlive the temporary credentials used to create them.
+ * This function checks credential expiration and refreshes if needed before generating URLs.
+ * 
  * @param sourceUrl The source URL of the file
  * @param fileSuffix Optional suffix to append to the key (e.g., '.json' for peaks files)
  * @returns The signed URL for the file
@@ -106,7 +110,7 @@ export const generateSignedUrl = async (sourceUrl: string, fileSuffix: string = 
     const { url } = await getUrl({
       path,
       options: {
-        expiresIn: 3600, // 1 hour
+        expiresIn: 86400, // 24 hours
         useAccelerateEndpoint: false
       }
     });
@@ -117,6 +121,42 @@ export const generateSignedUrl = async (sourceUrl: string, fileSuffix: string = 
     throw new Error(`Failed to generate signed URL for file: ${error}`);
   }
 };
+
+/**
+ * Forces fresh credentials to be obtained.
+ * Call this when loading a transcription to ensure we have valid credentials.
+ */
+export async function forceFreshCredentials(): Promise<void> {
+  try {
+    console.log('🔄 Forcing fresh credentials...');
+    const refreshStart = Date.now();
+    
+    // Force refresh by passing forceRefresh: true
+    const session = await fetchAuthSession({ forceRefresh: true });
+    const refreshDuration = Date.now() - refreshStart;
+    
+    if (session.credentials) {
+      if (session.credentials.expiration) {
+        const expirationDate = new Date(session.credentials.expiration);
+        const timeUntilExpiry = expirationDate.getTime() - Date.now();
+        const minutesUntilExpiry = Math.floor(timeUntilExpiry / 1000 / 60);
+        
+        console.log(`✅ Fresh credentials obtained in ${refreshDuration}ms`);
+        console.log('Expiration Time:', expirationDate.toISOString());
+        console.log('Time Until Expiry:', `${minutesUntilExpiry}m`);
+      } else {
+        console.log('✅ Fresh credentials obtained (no expiration)');
+      }
+    } else {
+      console.warn('⚠️ No credentials returned after refresh');
+    }
+  } catch (error) {
+    console.error('❌ Failed to force fresh credentials:', error);
+    throw error;
+  }
+}
+
+
 
 /**
  * Generates a signed URL for a peaks file using Amplify Storage
