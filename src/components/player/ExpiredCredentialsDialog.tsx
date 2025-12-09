@@ -39,10 +39,17 @@ export const ExpiredCredentialsDialog = ({ isOpen, onRefresh, onClose }: Expired
   }
 
   const isExpired = minutesRemaining !== null && minutesRemaining <= 0;
-  const title = isExpired ? 'Media Access Expired' : 'Media Access Expiring Soon';
+  const isSoon = minutesRemaining !== null && minutesRemaining > 0 && minutesRemaining <= 5;
+  const title = isExpired 
+    ? 'Media Access Expired' 
+    : isSoon 
+      ? 'Media Access Expiring Soon'
+      : 'Media Access Expiry';
   const message = isExpired 
     ? 'Media access credentials have expired. Refresh now to continue.'
-    : `${minutesRemaining} minute${minutesRemaining !== 1 ? 's' : ''} until media access credentials expire. Refresh now.`;
+    : isSoon
+      ? `${minutesRemaining} minute${minutesRemaining !== 1 ? 's' : ''} until media access credentials expire. Refresh now.`
+      : `${minutesRemaining} minute${minutesRemaining !== 1 ? 's' : ''} until media access credentials expire.`;
 
   return (
     <div 
@@ -61,8 +68,12 @@ export const ExpiredCredentialsDialog = ({ isOpen, onRefresh, onClose }: Expired
           </h2>
         </div>
         
-        <p className="text-gray-700 mb-6">
+        <p className="text-gray-700 mb-3">
           {message}
+        </p>
+        
+        <p className="text-sm text-gray-600 mb-6">
+          Temporary credentials are used to access your media files stored within the platform. Once credentials expire, please refresh the page to obtain fresh credentials.
         </p>
         
         <div className="flex gap-3">
