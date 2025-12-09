@@ -33,6 +33,7 @@ interface EditorState {
   saveStatus: 'saved' | 'saving' | 'pending' | 'error';
   peaks: number[] | null;
   wavesurferError: string | null;
+  showExpiredCredentialsDialog: boolean;
   accessDenied: boolean;
   canEdit: boolean;
 
@@ -80,6 +81,7 @@ interface EditorState {
   setFullTranscriptionData: (data: EditorDataPayload, selectedRegionId?: string | null) => void;
   setAccessDenied: (denied: boolean) => void;
   setWavesurferError: (error: string | null) => void;
+  setShowExpiredCredentialsDialog: (show: boolean) => void;
   cleanup: () => void;
   
   // Transcription actions
@@ -168,6 +170,7 @@ export const useEditorStore = create<EditorState>()(
       saveStatus: 'saved',
       peaks: null,
       wavesurferError: null,
+      showExpiredCredentialsDialog: false,
       accessDenied: false,
       canEdit: false,
       regions: [],
@@ -320,6 +323,10 @@ export const useEditorStore = create<EditorState>()(
 
       setWavesurferError: (error: string | null) => {
         set({ wavesurferError: error });
+      },
+
+      setShowExpiredCredentialsDialog: (show: boolean) => {
+        set({ showExpiredCredentialsDialog: show });
       },
 
       setCanEdit: (canEdit: boolean) => {
