@@ -499,7 +499,7 @@ describe('TranscriptionService', () => {
       expect(mockGetUrl).toHaveBeenCalledWith({
         path: 'public/test.mp3',
         options: {
-          expiresIn: 86400, // 24 hours
+          expiresIn: 3600, // 60 minutes
           useAccelerateEndpoint: false
         }
       });

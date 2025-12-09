@@ -67,6 +67,8 @@ export function createMockStore(options: MockStoreOptions = {}) {
     saved: options.saved !== undefined ? options.saved : false,
     accessDenied: options.accessDenied !== undefined ? options.accessDenied : false,
     peaks: null,
+    wavesurferError: null,
+    showExpiredCredentialsDialog: false,
     playbackWithinRegion: null,
     knownWords: new Set<string>(),
     issues: options.issues || [],
@@ -78,6 +80,8 @@ export function createMockStore(options: MockStoreOptions = {}) {
     // Methods
     setFullTranscriptionData: jest.fn(),
     setAccessDenied: jest.fn(),
+    setWavesurferError: jest.fn(),
+    setShowExpiredCredentialsDialog: jest.fn(),
     setCanEdit: jest.fn(),
     cleanup: jest.fn(),
     updateTranscription: jest.fn(),

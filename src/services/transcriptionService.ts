@@ -110,10 +110,13 @@ export const generateSignedUrl = async (sourceUrl: string, fileSuffix: string = 
     const { url } = await getUrl({
       path,
       options: {
-        expiresIn: 86400, // 24 hours
+        expiresIn: 3600, // 60 minutes
         useAccelerateEndpoint: false
       }
     });
+    
+    // Track when this signed URL will expire (60 minutes from now)
+    signedUrlExpirationTime = Date.now() + (3600 * 1000);
     
     return url.toString();
   } catch (error) {
@@ -121,6 +124,12 @@ export const generateSignedUrl = async (sourceUrl: string, fileSuffix: string = 
     throw new Error(`Failed to generate signed URL for file: ${error}`);
   }
 };
+
+// Track credential expiration time
+let credentialExpirationTime: number | null = null;
+
+// Track signed URL expiration time (3 minutes from generation)
+let signedUrlExpirationTime: number | null = null;
 
 /**
  * Forces fresh credentials to be obtained.
@@ -138,6 +147,7 @@ export async function forceFreshCredentials(): Promise<void> {
     if (session.credentials) {
       if (session.credentials.expiration) {
         const expirationDate = new Date(session.credentials.expiration);
+        credentialExpirationTime = expirationDate.getTime();
         const timeUntilExpiry = expirationDate.getTime() - Date.now();
         const minutesUntilExpiry = Math.floor(timeUntilExpiry / 1000 / 60);
         
@@ -145,15 +155,33 @@ export async function forceFreshCredentials(): Promise<void> {
         console.log('Expiration Time:', expirationDate.toISOString());
         console.log('Time Until Expiry:', `${minutesUntilExpiry}m`);
       } else {
+        credentialExpirationTime = null;
         console.log('✅ Fresh credentials obtained (no expiration)');
       }
     } else {
+      credentialExpirationTime = null;
       console.warn('⚠️ No credentials returned after refresh');
     }
   } catch (error) {
     console.error('❌ Failed to force fresh credentials:', error);
     throw error;
   }
+}
+
+/**
+ * Gets the credential expiration time in milliseconds since epoch
+ * Returns null if credentials have no expiration or haven't been refreshed yet
+ */
+export function getCredentialExpirationTime(): number | null {
+  return credentialExpirationTime;
+}
+
+/**
+ * Gets the signed URL expiration time in milliseconds since epoch
+ * Returns null if no signed URL has been generated yet
+ */
+export function getSignedUrlExpirationTime(): number | null {
+  return signedUrlExpirationTime;
 }
 
 
