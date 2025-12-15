@@ -76,6 +76,12 @@ describe('missing FST files handling', () => {
       expect(specialProcessing.hasFstFile('crk', 'relaxed-analyzer')).toBe(true);
       expect(specialProcessing.hasFstFile('crk', 'strict-generator')).toBe(true);
     });
+
+    it('ciw has only strict-analyzer', () => {
+      expect(specialProcessing.hasFstFile('ciw', 'strict-analyzer')).toBe(true);
+      expect(specialProcessing.hasFstFile('ciw', 'relaxed-analyzer')).toBe(false);
+      expect(specialProcessing.hasFstFile('ciw', 'strict-generator')).toBe(false);
+    });
   });
 });
 

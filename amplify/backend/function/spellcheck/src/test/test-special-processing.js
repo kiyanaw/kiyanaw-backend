@@ -30,6 +30,13 @@ describe('special-processing', () => {
       expect(processor.FST_FILES).toBeDefined()
     })
 
+    it('returns processor for ciw', () => {
+      const processor = getLanguageProcessor('ciw')
+      expect(processor).toBeDefined()
+      expect(processor.processCharacters).toBeDefined()
+      expect(processor.FST_FILES).toBeDefined()
+    })
+
     it('returns null for unsupported language', () => {
       expect(getLanguageProcessor('xyz')).toBeNull()
       expect(getLanguageProcessor('en')).toBeNull()
@@ -49,6 +56,7 @@ describe('special-processing', () => {
       expect(hasSpecialProcessing('crgn')).toBe(true)
       expect(hasSpecialProcessing('otwc')).toBe(true)
       expect(hasSpecialProcessing('otwr')).toBe(true)
+      expect(hasSpecialProcessing('ciw')).toBe(true)
     })
 
     it('returns false for unsupported languages', () => {
@@ -68,6 +76,7 @@ describe('special-processing', () => {
       expect(languages).toHaveProperty('crgn')
       expect(languages).toHaveProperty('otwc')
       expect(languages).toHaveProperty('otwr')
+      expect(languages).toHaveProperty('ciw')
     })
   })
 })
