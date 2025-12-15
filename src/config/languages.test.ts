@@ -35,10 +35,10 @@ describe('languages config', () => {
 
   describe('getLanguageName', () => {
     it('returns the correct language name for valid code', () => {
-      expect(getLanguageName('crk')).toBe('Plains Cree Y-dialect');
-      expect(getLanguageName('crgn')).toBe('Northern Michif');
-      expect(getLanguageName('otwc')).toBe('Nishnaabemwin (Corbiere-style)');
-      expect(getLanguageName('otwr')).toBe('Nishnaabemwin (Rhodes-style)');
+      expect(getLanguageName('crk')).toBe('Nêhiyawêwin (Plains Cree Y-dialect)');
+      expect(getLanguageName('crgn')).toBe('Michif (Northern)');
+      expect(getLanguageName('otwc')).toBe('Nishnaabemowin (Odawa - Corbiere)');
+      expect(getLanguageName('otwr')).toBe('Nishnaabemowin (Odawa - Rhodes)');
     });
 
     it('returns the code itself for unknown language', () => {
