@@ -8,12 +8,17 @@ export interface LanguageConfig {
   name: string;
 }
 
-export const LANGUAGES: readonly LanguageConfig[] = [
-  { code: 'crk', name: 'Nêhiyawêwin (Plains Cree Y-dialect)' },
+const LANGUAGES_UNSORTED: readonly LanguageConfig[] = [
+  { code: 'ciw', name: 'Anishnaabemowin (Ojibwe)' },
   { code: 'crgn', name: 'Michif (Northern)' },
+  { code: 'crk', name: 'Nêhiyawêwin (Plains Cree Y-dialect)' },
   { code: 'otwc', name: 'Nishnaabemowin (Odawa - Corbiere)' },
   { code: 'otwr', name: 'Nishnaabemowin (Odawa - Rhodes)' },
 ] as const;
+
+export const LANGUAGES: readonly LanguageConfig[] = [...LANGUAGES_UNSORTED].sort((a, b) => 
+  a.name.localeCompare(b.name)
+) as readonly LanguageConfig[];
 
 /**
  * Helper to get all language codes

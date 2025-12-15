@@ -17,6 +17,7 @@ const languages = {
   crgn: require('./special-processing-crgn'),
   otwc: require('./special-processing-otwc'),
   otwr: require('./special-processing-otwr'),
+  ciw: require('./special-processing-ciw'),
 }
 
 /**

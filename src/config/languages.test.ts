@@ -30,6 +30,7 @@ describe('languages config', () => {
       expect(LANGUAGE_CODES).toContain('crgn');
       expect(LANGUAGE_CODES).toContain('otwc');
       expect(LANGUAGE_CODES).toContain('otwr');
+      expect(LANGUAGE_CODES).toContain('ciw');
     });
   });
 
@@ -39,6 +40,7 @@ describe('languages config', () => {
       expect(getLanguageName('crgn')).toBe('Michif (Northern)');
       expect(getLanguageName('otwc')).toBe('Nishnaabemowin (Odawa - Corbiere)');
       expect(getLanguageName('otwr')).toBe('Nishnaabemowin (Odawa - Rhodes)');
+      expect(getLanguageName('ciw')).toBe('Anishnaabemowin (Ojibwe)');
     });
 
     it('returns the code itself for unknown language', () => {
@@ -53,6 +55,7 @@ describe('languages config', () => {
       expect(isValidLanguageCode('crgn')).toBe(true);
       expect(isValidLanguageCode('otwc')).toBe(true);
       expect(isValidLanguageCode('otwr')).toBe(true);
+      expect(isValidLanguageCode('ciw')).toBe(true);
     });
 
     it('returns false for invalid language codes', () => {
