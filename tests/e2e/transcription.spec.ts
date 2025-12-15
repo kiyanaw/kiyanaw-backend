@@ -119,9 +119,19 @@ testWithAccount('owner').describe('Owner Transcription Management', () => {
     await page.waitForTimeout(1000);
     
     // Set the language to Plains Cree Y-dialect
-    const languageSelect = page.locator('select#lang');
-    await expect(languageSelect).toBeVisible();
-    await languageSelect.selectOption('crk'); // Plains Cree Y-dialect
+    const languageSelector = page.locator('#lang');
+    await expect(languageSelector).toBeVisible();
+    await languageSelector.click();
+    
+    // Wait for dropdown to open and type to search
+    const searchInput = page.locator('input[placeholder="Search languages..."]');
+    await expect(searchInput).toBeVisible();
+    await searchInput.fill('Plains Cree');
+    
+    // Click on the Plains Cree Y-dialect option
+    const plainsCreeOption = page.locator('button:has-text("Plains Cree Y-dialect")');
+    await expect(plainsCreeOption).toBeVisible();
+    await plainsCreeOption.click();
     
     // Save the settings
     const saveButton = page.locator('button:has-text("Save Changes"), button:has-text("Save")').first();

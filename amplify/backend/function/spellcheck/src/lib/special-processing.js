@@ -15,6 +15,8 @@
 const languages = {
   crk: require('./special-processing-crk'),
   crgn: require('./special-processing-crgn'),
+  otwc: require('./special-processing-otwc'),
+  otwr: require('./special-processing-otwr'),
 }
 
 /**
@@ -41,9 +43,22 @@ const hasSpecialProcessing = (languageCode) => {
   return !!languages[languageCode]
 }
 
+/**
+ * Check if a language has a specific FST file type
+ * 
+ * @param {string} languageCode - ISO 639-3 language code
+ * @param {string} fstType - FST file type ('strict-analyzer', 'relaxed-analyzer', 'strict-generator')
+ * @returns {boolean} - True if the language has the specified FST file type
+ */
+const hasFstFile = (languageCode, fstType) => {
+  const processor = getLanguageProcessor(languageCode);
+  return !!(processor && processor.FST_FILES && processor.FST_FILES[fstType]);
+}
+
 module.exports = {
   getLanguageProcessor,
   hasSpecialProcessing,
+  hasFstFile,
   languages, // Export for testing purposes
 }
 

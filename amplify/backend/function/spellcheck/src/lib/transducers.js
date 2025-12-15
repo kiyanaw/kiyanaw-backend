@@ -16,11 +16,18 @@ const specialProcessing = require('./special-processing');
  * 
  * @param {string} languageCode - Language code (e.g., 'crk')
  * @returns {Promise<Transducer>} - The strict analyzer transducer
+ * @throws {Error} - If the language doesn't have a strict analyzer FST file
  */
 async function getStrictAnalyzer(languageCode) {
   try {
     const processor = specialProcessing.getLanguageProcessor(languageCode);
-    if (!processor || !processor.FST_FILES || !processor.FST_FILES['strict-analyzer']) {
+    if (!processor) {
+      throw new Error(`No language processor found for language: ${languageCode}`);
+    }
+    if (!processor.FST_FILES) {
+      throw new Error(`No FST_FILES defined for language: ${languageCode}`);
+    }
+    if (!processor.FST_FILES['strict-analyzer']) {
       throw new Error(`No strict-analyzer FST file defined for language: ${languageCode}`);
     }
     
@@ -37,13 +44,13 @@ async function getStrictAnalyzer(languageCode) {
  * Load relaxed analyzer for a language from EFS
  * 
  * @param {string} languageCode - Language code (e.g., 'crk')
- * @returns {Promise<Transducer>} - The relaxed analyzer transducer
+ * @returns {Promise<Transducer|null>} - The relaxed analyzer transducer, or null if not available
  */
 async function getRelaxedAnalyzer(languageCode) {
   try {
     const processor = specialProcessing.getLanguageProcessor(languageCode);
     if (!processor || !processor.FST_FILES || !processor.FST_FILES['relaxed-analyzer']) {
-      throw new Error(`No relaxed-analyzer FST file defined for language: ${languageCode}`);
+      return null; // Relaxed analyzer is optional - some languages may not have it
     }
     
     const fileName = processor.FST_FILES['relaxed-analyzer'];
@@ -51,7 +58,7 @@ async function getRelaxedAnalyzer(languageCode) {
     return new Transducer(fstPath);
   } catch (e) {
     console.error(`Failed to load relaxed analyzer for ${languageCode}:`, e);
-    throw e;
+    return null; // Return null if relaxed analyzer fails to load
   }
 }
 
@@ -59,13 +66,13 @@ async function getRelaxedAnalyzer(languageCode) {
  * Load strict generator for a language from EFS
  * 
  * @param {string} languageCode - Language code (e.g., 'crk')
- * @returns {Promise<Transducer>} - The strict generator transducer
+ * @returns {Promise<Transducer|null>} - The strict generator transducer, or null if not available
  */
 async function getStrictGenerator(languageCode) {
   try {
     const processor = specialProcessing.getLanguageProcessor(languageCode);
     if (!processor || !processor.FST_FILES || !processor.FST_FILES['strict-generator']) {
-      throw new Error(`No strict-generator FST file defined for language: ${languageCode}`);
+      return null; // Generator is optional - some languages don't have generators
     }
     
     const fileName = processor.FST_FILES['strict-generator'];
@@ -73,7 +80,7 @@ async function getStrictGenerator(languageCode) {
     return new Transducer(fstPath);
   } catch (e) {
     console.error(`Failed to load strict generator for ${languageCode}:`, e);
-    throw e;
+    return null; // Return null if generator fails to load
   }
 }
 
@@ -112,7 +119,16 @@ async function analyzeStrict(lookup, languageCode) {
  */
 async function analyzeRelaxed(lookup, languageCode) {
   const fstTransducer = await getRelaxedAnalyzer(languageCode);
+  
   const result = {};
+  
+  // If no relaxed analyzer available for this language, return empty arrays for each word
+  if (!fstTransducer) {
+    for (const word of lookup) {
+      result[word] = [];
+    }
+    return result;
+  }
   
   for (const word of lookup) {
     try {
@@ -138,7 +154,16 @@ async function analyzeRelaxed(lookup, languageCode) {
  */
 async function generateStrict(lookup, languageCode) {
   const fstTransducer = await getStrictGenerator(languageCode);
+  
   const result = {};
+  
+  // If no generator available for this language, return empty arrays for each word
+  if (!fstTransducer) {
+    for (const word of lookup) {
+      result[word] = [];
+    }
+    return result;
+  }
   
   for (const word of lookup) {
     try {

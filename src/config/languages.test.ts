@@ -28,13 +28,17 @@ describe('languages config', () => {
     it('includes expected languages', () => {
       expect(LANGUAGE_CODES).toContain('crk');
       expect(LANGUAGE_CODES).toContain('crgn');
+      expect(LANGUAGE_CODES).toContain('otwc');
+      expect(LANGUAGE_CODES).toContain('otwr');
     });
   });
 
   describe('getLanguageName', () => {
     it('returns the correct language name for valid code', () => {
-      expect(getLanguageName('crk')).toBe('Plains Cree Y-dialect');
-      expect(getLanguageName('crgn')).toBe('Northern Michif');
+      expect(getLanguageName('crk')).toBe('Nêhiyawêwin (Plains Cree Y-dialect)');
+      expect(getLanguageName('crgn')).toBe('Michif (Northern)');
+      expect(getLanguageName('otwc')).toBe('Nishnaabemowin (Odawa - Corbiere)');
+      expect(getLanguageName('otwr')).toBe('Nishnaabemowin (Odawa - Rhodes)');
     });
 
     it('returns the code itself for unknown language', () => {
@@ -47,6 +51,8 @@ describe('languages config', () => {
     it('returns true for valid language codes', () => {
       expect(isValidLanguageCode('crk')).toBe(true);
       expect(isValidLanguageCode('crgn')).toBe(true);
+      expect(isValidLanguageCode('otwc')).toBe(true);
+      expect(isValidLanguageCode('otwr')).toBe(true);
     });
 
     it('returns false for invalid language codes', () => {
