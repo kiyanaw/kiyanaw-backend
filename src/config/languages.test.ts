@@ -40,6 +40,7 @@ describe('languages config', () => {
       expect(getLanguageName('crgn')).toBe('Michif (Northern)');
       expect(getLanguageName('otwc')).toBe('Nishnaabemowin (Odawa - Corbiere)');
       expect(getLanguageName('otwr')).toBe('Nishnaabemowin (Odawa - Rhodes)');
+      expect(getLanguageName('ciw')).toBe('Anishnaabemowin (Ojibwe)');
     });
 
     it('returns the code itself for unknown language', () => {

@@ -13,6 +13,7 @@ export const LANGUAGES: readonly LanguageConfig[] = [
   { code: 'crgn', name: 'Michif (Northern)' },
   { code: 'otwc', name: 'Nishnaabemowin (Odawa - Corbiere)' },
   { code: 'otwr', name: 'Nishnaabemowin (Odawa - Rhodes)' },
+  { code: 'ciw', name: 'Anishnaabemowin (Ojibwe)' },
 ] as const;
 
 /**
