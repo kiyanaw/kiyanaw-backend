@@ -9,10 +9,10 @@ export interface LanguageConfig {
 }
 
 export const LANGUAGES: readonly LanguageConfig[] = [
-  { code: 'crk', name: 'Plains Cree Y-dialect' },
-  { code: 'crgn', name: 'Northern Michif' },
-  { code: 'otwc', name: 'Nishnaabemwin (Corbiere-style)' },
-  { code: 'otwr', name: 'Nishnaabemwin (Rhodes-style)' },
+  { code: 'crk', name: 'Nêhiyawêwin (Plains Cree Y-dialect)' },
+  { code: 'crgn', name: 'Michif (Northern)' },
+  { code: 'otwc', name: 'Nishnaabemowin (Odawa - Corbiere)' },
+  { code: 'otwr', name: 'Nishnaabemowin (Odawa - Rhodes)' },
 ] as const;
 
 /**
