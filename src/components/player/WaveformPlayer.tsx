@@ -11,6 +11,8 @@ import { services } from '../../services';
 import { SaveIndicator } from './SaveIndicator';
 import { browserService } from '../../services/browserService';
 import { formatTime } from '../../utils/timeFormat';
+import { CredentialTimer } from './CredentialTimer';
+import { ExpiredCredentialsDialog } from './ExpiredCredentialsDialog';
 
 interface Region {
   id: string;
@@ -68,6 +70,8 @@ export const WaveformPlayer = ({
   const canEdit = useEditorStore((state) => state.canEdit);
   const wavesurferError = useEditorStore((state) => state.wavesurferError);
   const saveStatus = useEditorStore((state) => state.saveStatus);
+  const showExpiredCredentialsDialog = useEditorStore((state) => state.showExpiredCredentialsDialog);
+  const setShowExpiredCredentialsDialog = useEditorStore((state) => state.setShowExpiredCredentialsDialog);
   
   const play = usePlay()
   const pause = usePause()
@@ -312,6 +316,7 @@ export const WaveformPlayer = ({
             </button>
           </div>
           <div className="flex items-center gap-2 font-bold text-sm">
+                  <CredentialTimer onOpenDialog={() => setShowExpiredCredentialsDialog(true)} />
             <span>{formatTime(currentTime)}/{formatTime(duration)}</span>
             <SaveIndicator status={saveStatus} />
           </div>
@@ -633,6 +638,15 @@ export const WaveformPlayer = ({
         </div>
       )}
 
+      {/* Expired Credentials Dialog */}
+      <ExpiredCredentialsDialog
+        isOpen={showExpiredCredentialsDialog}
+        onRefresh={() => {
+          setShowExpiredCredentialsDialog(false);
+          window.location.reload();
+        }}
+        onClose={() => setShowExpiredCredentialsDialog(false)}
+      />
     </>
   );
 };

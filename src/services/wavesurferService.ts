@@ -192,10 +192,32 @@ class WaveSurferService {
       this.emitEvent('pause');
     })
 
-    this.wavesurfer?.on('error', (_event) => {
-      console.error('Wavesurfer error event', _event)
+    this.wavesurfer?.on('error', async (_event) => {
+      const mediaError = _event as unknown as MediaError;
+      console.error('Wavesurfer error event', mediaError);
+      
+      // Check if this is a 403/credential expiration error
+      const isNetworkError = mediaError.code === 2 || mediaError.code === 4;
+      const errorMessage = mediaError.message || '';
+      const looksLike403 = errorMessage.includes('403') || errorMessage.includes('Forbidden') || 
+                            errorMessage.includes('PIPELINE_ERROR_READ') ||
+                            errorMessage.includes('ORB') || errorMessage.includes('blocked') ||
+                            errorMessage.includes('ExpiredToken') || errorMessage.includes('SignatureDoesNotMatch');
+      
+      if (isNetworkError && looksLike403) {
+        // Check if signed URL has expired
+        const { getSignedUrlExpirationTime } = await import('./transcriptionService');
+        const expirationTime = getSignedUrlExpirationTime();
+        
+        if (expirationTime && Date.now() >= expirationTime) {
+          // Signed URL has expired - show dialog
+          const { useEditorStore } = await import('../stores/useEditorStore');
+          useEditorStore.getState().setShowExpiredCredentialsDialog(true);
+        }
+      }
+      
       // Emit error event so UI can handle it
-      this.emitEvent('error', _event)
+      this.emitEvent('error', _event);
     })
 
     // Listen for timeupdate to enforce region-bounded playback AND emit time updates

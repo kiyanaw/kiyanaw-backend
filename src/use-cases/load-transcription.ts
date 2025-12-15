@@ -30,6 +30,9 @@ export class LoadTranscription {
     const spellCheckerService = this.config.services.spellCheckerService
     const userService = this.config.services.userService
     
+    // Force fresh credentials when loading a transcription
+    await transcriptionService.forceFreshCredentials();
+    
     const data = await transcriptionService.loadInFull(this.config.transcriptionId);
 
     // Check if access was denied
