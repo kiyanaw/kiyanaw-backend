@@ -14,6 +14,7 @@
 
 const languages = {
   crk: require('./special-processing-crk'),
+  ciw: require('./special-processing-ciw'),
 }
 
 /**

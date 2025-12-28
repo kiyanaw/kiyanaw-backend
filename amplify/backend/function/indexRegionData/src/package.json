@@ -5,7 +5,7 @@
   "main": "index.js",
   "license": "Apache-2.0",
   "scripts": {
-    "test": "mocha test/test-handler.js test/test-search.js test/test-special-processing-crk.js"
+    "test": "mocha test/test-handler.js test/test-search.js test/test-special-processing-crk.js test/test-special-processing-ciw.js"
   },
   "dependencies": {
     "@opensearch-project/opensearch": "^2.8.0",

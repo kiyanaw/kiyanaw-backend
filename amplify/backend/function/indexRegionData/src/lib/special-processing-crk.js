@@ -54,6 +54,9 @@ const processCharacters = (text) => {
  * 
  * analyze("êkây+Ipc")
  * // Returns: { lemma: "êkây", wordType: "Ipc", wordClass: "IPC" }
+ * 
+ * @note This function logs warnings (console.warn) when analysis strings cannot be fully parsed.
+ *       These warnings help identify FST analysis formats that need to be added to the parser.
  */
 const analyze = (analysis) => {
   // Handle null, undefined, or empty strings
@@ -88,6 +91,7 @@ const analyze = (analysis) => {
   if (lemma === null && parts.length > 0) {
     lemma = parts[0]
     lemmaIndex = 0
+    console.warn(`⚠️ [CRK] Could not find lemma (all parts appear to be prefixes). Using first part as lemma. Analysis: "${analysis}" | Parts: [${parts.join(', ')}]`)
   }
   
   // Find the part of speech (comes after the lemma)
@@ -133,6 +137,11 @@ const analyze = (analysis) => {
       wordClass = 'PRON'
       break
     }
+  }
+  
+  // Log warning if we found a lemma but couldn't determine wordType/wordClass
+  if (lemma && (!wordType || !wordClass)) {
+    console.warn(`⚠️ [CRK] Analysis parsing incomplete - found lemma "${lemma}" but missing wordType/wordClass. Analysis: "${analysis}" | Parts: [${parts.join(', ')}]`)
   }
   
   return {
