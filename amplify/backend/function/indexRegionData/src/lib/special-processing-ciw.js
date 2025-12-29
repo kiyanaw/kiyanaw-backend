@@ -5,24 +5,17 @@
  */
 
 /**
- * Converts macron diacritics to circumflex diacritics and strips punctuation
- * This is standard normalization for Ojibwe orthography
+ * Process characters for CIW normalization
  * 
  * @param {string} text - The text to process
- * @returns {string} - Normalized text with circumflex diacritics and no punctuation
+ * @returns {string} - Normalized text
  */
 const processCharacters = (text) => {
   if (!text || typeof text !== 'string') {
     return text
   }
   
-  return text
-    .replace(/ā/g, 'â')
-    .replace(/ī/g, 'î')
-    .replace(/ō/g, 'ô')
-    .replace(/ē/g, 'ê')
-    .replace(/[.,\/#!$%\^&\*;:{}=_`~()]/g, '')
-    .trim()
+  return text.trim()
 }
 
 /**
