@@ -19,6 +19,12 @@ const buildTime = new Date().toISOString();
 
 // https://vite.dev/config/
 export default defineConfig({
+  server: {
+    watch: {
+      // Ignore claude-flow directory to prevent reload when metrics are written
+      ignored: ['**/.claude-flow/**']
+    }
+  },
   define: {
     __BUILD_HASH__: JSON.stringify(buildHash),
     __BUILD_TIME__: JSON.stringify(buildTime),
