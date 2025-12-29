@@ -391,6 +391,56 @@ class WaveSurferService {
     }
   }
 
+
+  /**
+   * Reloads media with fresh signed URL while preserving playback position.
+   * Used when credentials expire to refresh without page reload.
+   */
+  async reloadWithFreshUrl(source: string, peaks: unknown): Promise<void> {
+    if (!this.wavesurfer) {
+      throw new Error('WaveSurfer not initialized');
+    }
+
+    // Save current playback position
+    const currentTime = this.wavesurfer.getCurrentTime();
+    const wasPlaying = this.wavesurfer.isPlaying();
+    
+    if (wasPlaying) {
+      this.wavesurfer.pause();
+    }
+
+    try {
+      // Generate fresh signed URL
+      const signedMediaUrl = await generateSignedUrl(source);
+      
+      if (this.currentMediaElement) {
+        this.currentMediaElement.src = signedMediaUrl;
+        this.wavesurfer.load(signedMediaUrl, peaks as (Float32Array)[]);
+      } else {
+        this.wavesurfer.load(signedMediaUrl, peaks as (Float32Array)[]);
+      }
+
+      // Wait for ready event before seeking
+      await new Promise<void>((resolve) => {
+        const onReady = () => {
+          this.wavesurfer?.un('ready', onReady);
+          resolve();
+        };
+        this.wavesurfer?.on('ready', onReady);
+      });
+
+      // Restore playback position
+      this.wavesurfer.setTime(currentTime);
+      
+      if (wasPlaying) {
+        this.wavesurfer.play();
+      }
+    } catch (error) {
+      console.error('Failed to reload media with fresh URL:', error);
+      throw error;
+    }
+  }
+
   setRegions(regions: RegionEvent[]) {
     if (this.wavesurfer) {
       if (this.ready) {
