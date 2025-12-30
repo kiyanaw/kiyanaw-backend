@@ -590,13 +590,92 @@ class RTEServiceImpl {
     instance.textChangeCallback = callback;
 
     // Set up Quill text-change listener that only responds to user changes
-    instance.quill.on('text-change', (_delta: QuillDelta, _oldDelta: QuillDelta, source: string) => {
+    instance.quill.on('text-change', (delta: QuillDelta, _oldDelta: QuillDelta, source: string) => {
       // Only trigger callback for user-initiated changes, not API changes
       if (source === 'user') {
+        // Immediately strip inherited word-level formats from inserted text
+        // This prevents the "blue flash" when typing at end of formatted words
+        this.stripInheritedFormats(instance, delta);
+        
         const plainText = instance.quill.getText().trim();
         callback(plainText);
       }
     });
+  }
+
+
+  /**
+   * Strips inherited word-level formats from newly inserted text.
+   * 
+   * Quill's Inline blots are "sticky" - when typing at the end of a formatted word,
+   * new characters inherit the format. This causes bad UX where newly typed text
+   * appears blue (known-word format) until spell-check runs ~500ms later.
+   * 
+   * This method immediately strips word-level formats from inserted characters,
+   * so they appear as plain text until proper highlighting runs.
+   * 
+   * Note: Issue formats are NOT stripped - they should persist across edits.
+   */
+  private stripInheritedFormats(instance: RTEInstance, delta: QuillDelta): void {
+    if (!delta.ops) return;
+    
+    const text = instance.quill.getText();
+    let position = 0;
+    
+    for (const op of delta.ops) {
+      if (op.retain !== undefined) {
+        position += op.retain;
+      } else if (op.insert !== undefined && typeof op.insert === 'string') {
+        const insertLength = op.insert.length;
+        
+        // Find the word boundaries around the insertion point
+        // This ensures the ENTIRE word gets its formatting stripped, not just the inserted chars
+        const wordBounds = this.findWordBoundsAt(text, position, insertLength);
+        
+        // Strip word-level formats from the entire word (not issue formats - those persist)
+        instance.quill.formatText(wordBounds.start, wordBounds.length, {
+          'known-word': false,
+          'ambiguous-word': false,
+          'spelling-suggestion': false,
+        }, 'silent');
+        
+        position += insertLength;
+      } else if (op.delete !== undefined) {
+        // Deletions don't change position for subsequent ops
+      }
+    }
+  }
+
+
+  /**
+   * Finds the word boundaries around a given position in the text.
+   * Used to determine the full extent of a word when stripping inherited formats.
+   * 
+   * @param text - The full text content
+   * @param insertPos - Position where text was inserted
+   * @param insertLength - Length of inserted text
+   * @returns Object with start position and length of the word
+   */
+  private findWordBoundsAt(text: string, insertPos: number, insertLength: number): { start: number; length: number } {
+    // Word boundary pattern (matches word characters including Unicode letters)
+    const isWordChar = (char: string): boolean => {
+      return /[\p{L}\p{N}]/u.test(char);
+    };
+    
+    // Find start of word (scan backwards from insert position)
+    let start = insertPos;
+    while (start > 0 && isWordChar(text[start - 1])) {
+      start--;
+    }
+    
+    // Find end of word (scan forwards from end of inserted text)
+    // Note: text already includes the inserted characters
+    let end = insertPos + insertLength;
+    while (end < text.length && isWordChar(text[end])) {
+      end++;
+    }
+    
+    return { start, length: end - start };
   }
 
   offTextChange(key: EditorKey): void {

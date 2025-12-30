@@ -931,4 +931,346 @@ describe('rteService', () => {
     });
   });
 
+  describe('stripInheritedFormats (via onTextChange)', () => {
+    beforeEach(() => {
+      mockFormatText.mockReset();
+      rteService.createOrGet('test-region:main', {});
+    });
+
+    it('strips inherited word-level formats from entire word containing insertion', () => {
+      const callback = jest.fn();
+      rteService.onTextChange('test-region:main', callback);
+
+      // Mock text AFTER insertion: "foo txesting bar"
+      // Original was "foo testing bar", inserted 'x' at position 5
+      // Position: f=0, o=1, o=2, space=3, t=4, x=5, e=6, s=7, t=8, i=9, n=10, g=11, space=12, b=13...
+      mockQuill.getText.mockReturnValue('foo txesting bar');
+
+      // Get the text-change listener
+      const textChangeListener = mockQuill.on.mock.calls[0][1];
+
+      // Simulate user typing 'x' at position 5 (into "testing" -> "txesting")
+      const delta = {
+        ops: [
+          { retain: 5 },
+          { insert: 'x' }
+        ]
+      };
+
+      textChangeListener(delta, {}, 'user');
+
+      // Word "txesting" starts at position 4, has length 8
+      expect(mockFormatText).toHaveBeenCalledWith(4, 8, {
+        'known-word': false,
+        'ambiguous-word': false,
+        'spelling-suggestion': false,
+      }, 'silent');
+    });
+
+    it('strips formats from multiple insert operations in separate words', () => {
+      const callback = jest.fn();
+      rteService.onTextChange('test-region:main', callback);
+
+      // Two separate inserts into separate words
+      // After both inserts: "abx cd yzef"
+      // Position: a=0, b=1, x=2, space=3, c=4, d=5, space=6, y=7, z=8, e=9, f=10
+      mockQuill.getText.mockReturnValue('abx cd yzef');
+
+      const textChangeListener = mockQuill.on.mock.calls[0][1];
+
+      // Delta: retain 2 (past "ab"), insert "x", retain 4 (past " cd "), insert "yz"
+      // Position tracking: 0 -> 2 -> 3 -> 7
+      const delta = {
+        ops: [
+          { retain: 2 },
+          { insert: 'x' },
+          { retain: 4 },    // Skip over " cd " (4 chars after insert)
+          { insert: 'yz' }
+        ]
+      };
+
+      textChangeListener(delta, {}, 'user');
+
+      // First insert at position 2: word "abx" is at 0-2, length 3
+      expect(mockFormatText).toHaveBeenCalledWith(0, 3, {
+        'known-word': false,
+        'ambiguous-word': false,
+        'spelling-suggestion': false,
+      }, 'silent');
+
+      // Second insert at position 7 (2+1+4=7): word "yzef" is at 7-10, length 4
+      expect(mockFormatText).toHaveBeenCalledWith(7, 4, {
+        'known-word': false,
+        'ambiguous-word': false,
+        'spelling-suggestion': false,
+      }, 'silent');
+    });
+
+    it('handles insert at beginning of document (no retain)', () => {
+      const callback = jest.fn();
+      rteService.onTextChange('test-region:main', callback);
+
+      // Text after insert: "hello world" - inserted "hello" at position 0
+      mockQuill.getText.mockReturnValue('hello world');
+
+      const textChangeListener = mockQuill.on.mock.calls[0][1];
+
+      // Insert at position 0
+      const delta = {
+        ops: [
+          { insert: 'hello' }
+        ]
+      };
+
+      textChangeListener(delta, {}, 'user');
+
+      // Word "hello" is at position 0, length 5 (no adjacent word chars after the space)
+      expect(mockFormatText).toHaveBeenCalledWith(0, 5, {
+        'known-word': false,
+        'ambiguous-word': false,
+        'spelling-suggestion': false,
+      }, 'silent');
+    });
+
+    it('handles empty delta ops gracefully', () => {
+      const callback = jest.fn();
+      rteService.onTextChange('test-region:main', callback);
+
+      const textChangeListener = mockQuill.on.mock.calls[0][1];
+
+      // Empty ops array
+      const delta = { ops: [] };
+
+      textChangeListener(delta, {}, 'user');
+
+      // Should not call formatText
+      expect(mockFormatText).not.toHaveBeenCalled();
+    });
+
+    it('handles undefined ops gracefully', () => {
+      const callback = jest.fn();
+      rteService.onTextChange('test-region:main', callback);
+
+      const textChangeListener = mockQuill.on.mock.calls[0][1];
+
+      // No ops property
+      const delta = {};
+
+      textChangeListener(delta, {}, 'user');
+
+      // Should not call formatText
+      expect(mockFormatText).not.toHaveBeenCalled();
+    });
+
+    it('ignores delete operations for position tracking', () => {
+      const callback = jest.fn();
+      rteService.onTextChange('test-region:main', callback);
+
+      // Text after the delete+insert: "foo newbar"
+      // Original was "foo oldbar", deleted "old" at position 5, inserted "new"
+      mockQuill.getText.mockReturnValue('foo newbar');
+
+      const textChangeListener = mockQuill.on.mock.calls[0][1];
+
+      // Simulate delete followed by insert
+      const delta = {
+        ops: [
+          { retain: 4 },
+          { delete: 3 },
+          { insert: 'new' }
+        ]
+      };
+
+      textChangeListener(delta, {}, 'user');
+
+      // Insert at position 4, word "newbar" is at position 4, length 6
+      expect(mockFormatText).toHaveBeenCalledWith(4, 6, {
+        'known-word': false,
+        'ambiguous-word': false,
+        'spelling-suggestion': false,
+      }, 'silent');
+    });
+
+    it('does not strip formats for API-initiated changes', () => {
+      const callback = jest.fn();
+      rteService.onTextChange('test-region:main', callback);
+
+      const textChangeListener = mockQuill.on.mock.calls[0][1];
+
+      const delta = {
+        ops: [
+          { insert: 'api text' }
+        ]
+      };
+
+      // API source, not user
+      textChangeListener(delta, {}, 'api');
+
+      // Should not strip formats for API changes
+      expect(mockFormatText).not.toHaveBeenCalled();
+    });
+
+    it('uses silent source to prevent triggering further events', () => {
+      const callback = jest.fn();
+      rteService.onTextChange('test-region:main', callback);
+
+      // Text after insert: "xtest"
+      mockQuill.getText.mockReturnValue('xtest');
+
+      const textChangeListener = mockQuill.on.mock.calls[0][1];
+
+      const delta = {
+        ops: [
+          { insert: 'x' }
+        ]
+      };
+
+      textChangeListener(delta, {}, 'user');
+
+      // Verify 'silent' source is used
+      expect(mockFormatText).toHaveBeenCalledWith(
+        expect.any(Number),
+        expect.any(Number),
+        expect.any(Object),
+        'silent'
+      );
+    });
+
+    it('strips formatting from entire word when typing into middle of formatted word', () => {
+      const callback = jest.fn();
+      rteService.onTextChange('test-region:main', callback);
+
+      // Simulate text is already "helo world" and we insert 'l' at position 3 to make "hello"
+      // After insert, text becomes "hello world"
+      mockQuill.getText.mockReturnValue('hello world');
+
+      const textChangeListener = mockQuill.on.mock.calls[0][1];
+
+      // Insert 'l' at position 3 (into "helo" -> "hello")
+      const delta = {
+        ops: [
+          { retain: 3 },
+          { insert: 'l' }
+        ]
+      };
+
+      textChangeListener(delta, {}, 'user');
+
+      // Should strip formatting from entire word "hello" (position 0, length 5)
+      expect(mockFormatText).toHaveBeenCalledWith(0, 5, {
+        'known-word': false,
+        'ambiguous-word': false,
+        'spelling-suggestion': false,
+      }, 'silent');
+    });
+
+    it('strips formatting from entire word when typing at end of formatted word', () => {
+      const callback = jest.fn();
+      rteService.onTextChange('test-region:main', callback);
+
+      // Text after insert is "âha" (typing 'a' at end of "âh")
+      mockQuill.getText.mockReturnValue('âha');
+
+      const textChangeListener = mockQuill.on.mock.calls[0][1];
+
+      // Insert 'a' at position 2 (end of "âh")
+      const delta = {
+        ops: [
+          { retain: 2 },
+          { insert: 'a' }
+        ]
+      };
+
+      textChangeListener(delta, {}, 'user');
+
+      // Should strip formatting from entire word "âha" (position 0, length 3)
+      expect(mockFormatText).toHaveBeenCalledWith(0, 3, {
+        'known-word': false,
+        'ambiguous-word': false,
+        'spelling-suggestion': false,
+      }, 'silent');
+    });
+
+    it('only strips formatting from affected word, not adjacent words', () => {
+      const callback = jest.fn();
+      rteService.onTextChange('test-region:main', callback);
+
+      // Text after insert: "hello worldx test"
+      mockQuill.getText.mockReturnValue('hello worldx test');
+
+      const textChangeListener = mockQuill.on.mock.calls[0][1];
+
+      // Insert 'x' at position 11 (end of "world")
+      const delta = {
+        ops: [
+          { retain: 11 },
+          { insert: 'x' }
+        ]
+      };
+
+      textChangeListener(delta, {}, 'user');
+
+      // Should only strip formatting from "worldx" (position 6, length 6), not "hello" or "test"
+      expect(mockFormatText).toHaveBeenCalledWith(6, 6, {
+        'known-word': false,
+        'ambiguous-word': false,
+        'spelling-suggestion': false,
+      }, 'silent');
+    });
+
+    it('handles Unicode characters in word boundary detection', () => {
+      const callback = jest.fn();
+      rteService.onTextChange('test-region:main', callback);
+
+      // Text after insert: "êkwax" (typing 'x' at end of "êkwa")
+      mockQuill.getText.mockReturnValue('êkwax');
+
+      const textChangeListener = mockQuill.on.mock.calls[0][1];
+
+      // Insert 'x' at position 4 (end of "êkwa")
+      const delta = {
+        ops: [
+          { retain: 4 },
+          { insert: 'x' }
+        ]
+      };
+
+      textChangeListener(delta, {}, 'user');
+
+      // Should strip formatting from entire word "êkwax" (position 0, length 5)
+      expect(mockFormatText).toHaveBeenCalledWith(0, 5, {
+        'known-word': false,
+        'ambiguous-word': false,
+        'spelling-suggestion': false,
+      }, 'silent');
+    });
+
+    it('handles word at start of text', () => {
+      const callback = jest.fn();
+      rteService.onTextChange('test-region:main', callback);
+
+      // Text after insert: "ax test"
+      mockQuill.getText.mockReturnValue('ax test');
+
+      const textChangeListener = mockQuill.on.mock.calls[0][1];
+
+      // Insert 'x' at position 1 (into word at start)
+      const delta = {
+        ops: [
+          { retain: 1 },
+          { insert: 'x' }
+        ]
+      };
+
+      textChangeListener(delta, {}, 'user');
+
+      // Should strip formatting from "ax" (position 0, length 2)
+      expect(mockFormatText).toHaveBeenCalledWith(0, 2, {
+        'known-word': false,
+        'ambiguous-word': false,
+        'spelling-suggestion': false,
+      }, 'silent');
+    });
+  });
+
 });
