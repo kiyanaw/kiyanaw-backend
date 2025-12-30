@@ -13,6 +13,8 @@ import { browserService } from '../../services/browserService';
 import { formatTime } from '../../utils/timeFormat';
 import { CredentialTimer } from './CredentialTimer';
 import { ExpiredCredentialsDialog } from './ExpiredCredentialsDialog';
+import { useRefreshMediaCredentials } from '../../hooks/useRefreshMediaCredentials';
+import { useHasPendingSaves } from '../../hooks/useHasPendingSaves';
 
 interface Region {
   id: string;
@@ -72,6 +74,10 @@ export const WaveformPlayer = ({
   const saveStatus = useEditorStore((state) => state.saveStatus);
   const showExpiredCredentialsDialog = useEditorStore((state) => state.showExpiredCredentialsDialog);
   const setShowExpiredCredentialsDialog = useEditorStore((state) => state.setShowExpiredCredentialsDialog);
+  const peaks = useEditorStore((state) => state.peaks);
+
+  const { refreshCredentials, isRefreshing } = useRefreshMediaCredentials();
+  const hasPendingSaves = useHasPendingSaves(showExpiredCredentialsDialog);
   
   const play = usePlay()
   const pause = usePause()
@@ -641,9 +647,17 @@ export const WaveformPlayer = ({
       {/* Expired Credentials Dialog */}
       <ExpiredCredentialsDialog
         isOpen={showExpiredCredentialsDialog}
-        onRefresh={() => {
-          setShowExpiredCredentialsDialog(false);
-          window.location.reload();
+        isRefreshing={isRefreshing}
+        isSaving={hasPendingSaves}
+        onRefresh={async () => {
+          try {
+            await refreshCredentials(source, peaks);
+            setShowExpiredCredentialsDialog(false);
+          } catch (error) {
+            console.error('Failed to refresh credentials:', error);
+            // On error, fall back to page reload
+            window.location.reload();
+          }
         }}
         onClose={() => setShowExpiredCredentialsDialog(false)}
       />

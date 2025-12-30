@@ -115,7 +115,7 @@ export const generateSignedUrl = async (sourceUrl: string, fileSuffix: string = 
       }
     });
     
-    // Track when this signed URL will expire (60 minutes from now)
+    // Track when this signed URL will expire (60 minutes)
     signedUrlExpirationTime = Date.now() + (3600 * 1000);
     
     return url.toString();

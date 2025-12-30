@@ -4,11 +4,13 @@ import { getSignedUrlExpirationTime } from '../../services/transcriptionService'
 
 interface ExpiredCredentialsDialogProps {
   isOpen: boolean;
+  isRefreshing?: boolean;
+  isSaving?: boolean;
   onRefresh: () => void;
   onClose: () => void;
 }
 
-export const ExpiredCredentialsDialog = ({ isOpen, onRefresh, onClose }: ExpiredCredentialsDialogProps) => {
+export const ExpiredCredentialsDialog = ({ isOpen, isRefreshing = false, isSaving = false, onRefresh, onClose }: ExpiredCredentialsDialogProps) => {
   const [minutesRemaining, setMinutesRemaining] = useState<number | null>(null);
 
   useEffect(() => {
@@ -51,11 +53,18 @@ export const ExpiredCredentialsDialog = ({ isOpen, onRefresh, onClose }: Expired
       ? `${minutesRemaining} minute${minutesRemaining !== 1 ? 's' : ''} until media access credentials expire. Refresh now.`
       : `${minutesRemaining} minute${minutesRemaining !== 1 ? 's' : ''} until media access credentials expire.`;
 
+  const handleBackdropClick = () => {
+    // Only allow closing via backdrop if not expired and not in a loading state
+    if (!isExpired && !isRefreshing && !isSaving) {
+      onClose();
+    }
+  };
+
   return (
-    <div 
+    <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
-      onClick={onClose}
+      onClick={handleBackdropClick}
     >
       <div 
         className="bg-white rounded-lg shadow-xl max-w-md w-full p-6"
@@ -73,21 +82,25 @@ export const ExpiredCredentialsDialog = ({ isOpen, onRefresh, onClose }: Expired
         </p>
         
         <p className="text-sm text-gray-600 mb-6">
-          Temporary credentials are used to access your media files stored within the platform. Once credentials expire, please refresh the page to obtain fresh credentials.
+          Temporary credentials are used to access your media files stored within the platform. Once credentials expire, click Refresh to obtain fresh credentials.
         </p>
         
         <div className="flex gap-3">
-          <button
-            onClick={onClose}
-            className="flex-1 bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300 transition-colors font-medium"
-          >
-            Cancel
-          </button>
+          {!isExpired && (
+            <button
+              onClick={onClose}
+              disabled={isRefreshing || isSaving}
+              className="flex-1 bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Cancel
+            </button>
+          )}
           <button
             onClick={onRefresh}
-            className="flex-1 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors font-medium"
+            disabled={isRefreshing || isSaving}
+            className="flex-1 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Refresh Page
+            {isSaving ? 'Saving...' : isRefreshing ? 'Refreshing...' : 'Refresh'}
           </button>
         </div>
       </div>
