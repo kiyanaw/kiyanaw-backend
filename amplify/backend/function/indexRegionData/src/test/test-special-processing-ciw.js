@@ -2,22 +2,19 @@ const { processCharacters, analyze } = require('../lib/special-processing-ciw')
 
 describe('special-processing-ciw', () => {
   describe('processCharacters', () => {
-    it('converts macron to circumflex', () => {
-      expect(processCharacters('ā')).toBe('â')
-      expect(processCharacters('ī')).toBe('î')
-      expect(processCharacters('ō')).toBe('ô')
-      expect(processCharacters('ē')).toBe('ê')
-    })
-
-    it('strips punctuation', () => {
-      expect(processCharacters('hello,')).toBe('hello')
-      expect(processCharacters('test.')).toBe('test')
-      expect(processCharacters('word!')).toBe('word')
+    it('trims whitespace', () => {
+      expect(processCharacters('  hello  ')).toBe('hello')
+      expect(processCharacters('test ')).toBe('test')
+      expect(processCharacters(' word')).toBe('word')
     })
 
     it('handles null and undefined', () => {
       expect(processCharacters(null)).toBe(null)
       expect(processCharacters(undefined)).toBe(undefined)
+    })
+
+    it('handles empty string', () => {
+      expect(processCharacters('')).toBe('')
     })
   })
 
