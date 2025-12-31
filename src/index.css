@@ -82,9 +82,9 @@
   }
   
   .ql-editor .spelling-suggestion {
-    text-decoration: underline wavy;
-    text-decoration-color: #fb923c; /* orange-400 */
-    text-decoration-thickness: 2px;
+    text-decoration: underline solid;
+    text-decoration-color: #9ca3af; /* gray-400 - muted */
+    text-decoration-thickness: 1px;
   }
   
   .ql-editor .ignore-word {

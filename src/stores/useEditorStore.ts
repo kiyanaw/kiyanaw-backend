@@ -1073,21 +1073,8 @@ export const useEditorStore = create<EditorState>()(
           return; // Region not found
         }
 
-        console.debug(`📝 STORE: Setting regionAnalysis for ${regionId}:`, {
-          analysisType: Array.isArray(analysis) ? 'array' : typeof analysis,
-          analysisLength: Array.isArray(analysis) ? analysis.length : 'N/A',
-          firstItem: Array.isArray(analysis) && analysis.length > 0 ? analysis[0] : undefined,
-          fullAnalysis: analysis
-        });
-
         // Create updated region with new analysis
         const updatedRegion = { ...existingRegion, regionAnalysis: analysis };
-        
-        console.debug(`📝 STORE: Updated region object:`, {
-          id: updatedRegion.id,
-          regionAnalysisType: typeof updatedRegion.regionAnalysis,
-          regionAnalysis: updatedRegion.regionAnalysis
-        });
         
         // Prepare the update object
         const updateObj: Partial<EditorState> = {
@@ -1101,8 +1088,6 @@ export const useEditorStore = create<EditorState>()(
         }
         
         set(updateObj);
-        
-        console.debug(`✅ STORE: regionAnalysis set successfully for ${regionId}`);
       },
 
       setRegionSuggestions: (regionId, suggestions) => {
@@ -1113,11 +1098,6 @@ export const useEditorStore = create<EditorState>()(
           console.warn(`⚠️ STORE: Region ${regionId} not found, cannot set suggestions`);
           return;
         }
-
-        console.debug(`📝 STORE: Setting regionSuggestions for ${regionId}:`, {
-          suggestionsLength: suggestions.length,
-          suggestions: suggestions
-        });
 
         // Create updated region with new suggestions
         const updatedRegion = { ...existingRegion, regionSuggestions: suggestions };
@@ -1134,8 +1114,6 @@ export const useEditorStore = create<EditorState>()(
         }
         
         set(updateObj);
-        
-        console.debug(`✅ STORE: regionSuggestions set successfully for ${regionId}`);
       },
 
       // Transcription metadata helpers

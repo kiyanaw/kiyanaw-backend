@@ -176,8 +176,17 @@ export interface SearchResult {
   wordType?: string;
 }
 
+// Cursor Matching Types
+/**
+ * Interface for data that can be matched against the word under the cursor.
+ * Implemented by WordAnalysis, SpellingSuggestion, and future cursor-context features.
+ */
+export interface CursorMatchable {
+  word: string;  // The word to match against cursor position
+}
+
 // Word Analysis Types
-export interface WordAnalysis {
+export interface WordAnalysis extends CursorMatchable {
   word: string;
   analysis: string;           // The primary analysis to use
   allAnalysis: string[];      // All available analyses
@@ -185,15 +194,17 @@ export interface WordAnalysis {
   index?: number;             // Position/index in the text (for handling duplicates)
 }
 
-export interface SpellingSuggestion {
-  word: string;               // The suggested/corrected word
-  analysis: string;           // The analysis of the suggested word
+// Spelling Suggestion Types
+export interface SpellingSuggestion extends CursorMatchable {
+  word: string;               // The misspelled word (matches cursor)
+  allSuggestions: string[];   // All suggested corrections
+  index?: number;             // Position/index in text (for handling duplicates)
 }
 
 export interface SpellCheckResult {
   known: WordAnalysis[];
   unknown: string[];
-  suggestions?: Map<string, SpellingSuggestion[]>; // Map of misspelled word -> suggestions
+  suggestions?: SpellingSuggestion[];  // Array of misspelled words with their suggestions
 }
 
 

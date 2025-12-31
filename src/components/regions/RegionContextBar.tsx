@@ -48,13 +48,13 @@ export const RegionContextBar = ({ regionId, canEdit }: RegionContextBarProps) =
     }
   }, [cursorWord]);
 
-  const handleCorrectSpelling = async (suggestion: { word: string; analysis: string }) => {
+  const handleCorrectSpelling = async (suggestedWord: string) => {
     if (!canEdit || !cursorWord) {
       return;
     }
-    
+
     try {
-      await correctSpelling(regionId, cursorWord, suggestion.word);
+      await correctSpelling(regionId, cursorWord, suggestedWord);
     } catch (error) {
       console.error('Failed to correct spelling:', error);
     }
@@ -74,32 +74,31 @@ export const RegionContextBar = ({ regionId, canEdit }: RegionContextBarProps) =
             )}
             
             {/* Scrollable container for spelling suggestions */}
-            <div 
+            <div
               ref={scrollContainerRef}
               className="flex items-center gap-0.5 overflow-x-auto scrollbar-hide"
             >
-              <span className="text-xs text-gray-500 mr-2 flex-shrink-0">Suggestions:</span>
-              {spellingSuggestions.map((suggestion, index) => {
+              {spellingSuggestions.map((suggestedWord, index) => {
                 const handleClick = () => {
                   if (canEdit) {
-                    handleCorrectSpelling(suggestion);
+                    handleCorrectSpelling(suggestedWord);
                   }
                 };
-                
+
                 // Prevent focus loss when clicking the button
                 const handleMouseDown = (e: React.MouseEvent) => {
                   e.preventDefault();
                 };
-                
+
                 return (
                   <button
                     key={index}
                     onClick={handleClick}
                     onMouseDown={handleMouseDown}
                     disabled={!canEdit}
-                    style={{ 
-                      fontSize: '13px', 
-                      padding: '2px 4px', 
+                    style={{
+                      fontSize: '13px',
+                      padding: '2px 4px',
                       margin: '2px',
                     }}
                     className={`leading-none rounded-full border whitespace-nowrap flex-shrink-0 transition-colors ${
@@ -108,7 +107,7 @@ export const RegionContextBar = ({ regionId, canEdit }: RegionContextBarProps) =
                         : 'bg-gray-50 border-gray-300 text-gray-600'
                     }`}
                   >
-                    {suggestion.word}
+                    {suggestedWord}
                   </button>
                 );
               })}

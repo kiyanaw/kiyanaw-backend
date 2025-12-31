@@ -1449,7 +1449,24 @@ class RTEServiceImpl {
       return null;
     }
 
-    // Use the same tokenization pattern as our text highlighting
+    // Only return a word if cursor is actually inside a word character
+    // This prevents showing analysis/suggestions when cursor is in whitespace
+    const charAtCursor = text[index];
+    const charBeforeCursor = index > 0 ? text[index - 1] : '';
+    
+    // Cursor must be on a word char OR between word chars (for mid-word positions)
+    const isOnWordChar = REGION_TEXT_MATCH_PATTERN.test(charAtCursor);
+    const isAfterWordChar = REGION_TEXT_MATCH_PATTERN.test(charBeforeCursor);
+    
+    // If cursor is not on or immediately after a word char, return null
+    if (!isOnWordChar && !isAfterWordChar) {
+      return null;
+    }
+    
+    // If cursor is after a word but on whitespace/punctuation, return null
+    if (!isOnWordChar && isAfterWordChar && (charAtCursor === ' ' || charAtCursor === '\n')) {
+      return null;
+    }
     
     // Find word boundaries around the index
     let start = index;

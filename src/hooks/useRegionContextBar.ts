@@ -2,16 +2,33 @@ import { useMemo, useCallback } from 'react';
 import { REGION_TEXT_MATCH_PATTERN } from '../constants/text-patterns';
 import { useEditorStore } from '../stores/useEditorStore';
 import { selectWordAnalysis } from '../use-cases/select-word-analysis';
-import { type WordAnalysis, type SpellingSuggestion } from '../services/adt';
+import { type WordAnalysis, type SpellingSuggestion, type CursorMatchable } from '../services/adt';
+
+/**
+ * Generic filter for any CursorMatchable data.
+ * Works with WordAnalysis, SpellingSuggestion, and future types.
+ * @internal Exported for testing
+ */
+export function findMatchingItems<T extends CursorMatchable>(
+  items: T[] | undefined,
+  cursorWord: string | null
+): T[] {
+  if (!items || !cursorWord) return [];
+  const normalized = cursorWord.toLowerCase();
+  return items.filter(item => item.word.toLowerCase() === normalized);
+}
 
 interface CursorAnalysisResult {
   cursorWord: string | null;
   cursorWordAnalysis: WordAnalysis | null;
   wordIndex: number | null;
-  spellingSuggestions: SpellingSuggestion[];
+  spellingSuggestions: string[];  // The actual suggestion strings for display
 }
 
-const computeCursorAnalysis = (
+/**
+ * @internal Exported for testing
+ */
+export const computeCursorAnalysis = (
   regionText: string,
   analyses: WordAnalysis[] | undefined,
   suggestions: SpellingSuggestion[] | undefined,
@@ -21,31 +38,31 @@ const computeCursorAnalysis = (
     return { cursorWord: null, cursorWordAnalysis: null, wordIndex: null, spellingSuggestions: [] };
   }
 
-  // Normalize cursor word once for all comparisons
-  const normalizedCursorWord = cursorWord.word.toLowerCase();
+  // Use generic matching for suggestions
+  const matchingSuggestions = findMatchingItems(suggestions, cursorWord.word);
 
-  // Check if this word has spelling suggestions (misspelled word)
-  const wordSuggestions = (suggestions || []).filter(
-    s => s.word.toLowerCase() === normalizedCursorWord
-  );
-  
-  if (wordSuggestions.length > 0) {
-    // This is a misspelled word - return suggestions instead of analysis
+  if (matchingSuggestions.length > 0) {
+    // This is a misspelled word - return the suggestion strings for display
+    // Take allSuggestions from the first matching SpellingSuggestion
     return {
       cursorWord: cursorWord.word,
       cursorWordAnalysis: null,
       wordIndex: null,
-      spellingSuggestions: wordSuggestions,
+      spellingSuggestions: matchingSuggestions[0].allSuggestions,
     };
   }
 
-  // No suggestions - check for analysis
-  if (!analyses || analyses.length === 0) {
+  // No suggestions - check for analysis using generic matching
+  const matchingAnalysisItems = findMatchingItems(analyses, cursorWord.word);
+
+  if (matchingAnalysisItems.length === 0) {
     return { cursorWord: null, cursorWordAnalysis: null, wordIndex: null, spellingSuggestions: [] };
   }
-  const matchingAnalyses = analyses
+
+  // Map to include original indices for selection
+  const matchingAnalyses = (analyses || [])
     .map((analysis, index) => ({ analysis, index }))
-    .filter(({ analysis }) => analysis.word.toLowerCase() === normalizedCursorWord);
+    .filter(({ analysis }) => analysis.word.toLowerCase() === cursorWord.word.toLowerCase());
 
   if (matchingAnalyses.length === 0) {
     return { cursorWord: null, cursorWordAnalysis: null, wordIndex: null, spellingSuggestions: [] };
@@ -77,7 +94,7 @@ const computeCursorAnalysis = (
   }
 
   const matchingWordPositions = wordPositions.filter(
-    (position) => position.word === normalizedCursorWord
+    (position) => position.word === cursorWord.word.toLowerCase()
   );
   const cursorOccurrenceIndex = matchingWordPositions.findIndex(
     (position) => cursorWord.index >= position.start && cursorWord.index < position.end

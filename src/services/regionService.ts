@@ -125,32 +125,17 @@ export const createRegion = async (
  */
 export const updateRegion = async (regionId: string, updates: Partial<RegionData>, username: string, version: number) => {
   try {
-    console.debug(`🔧 REGION-SERVICE: updateRegion called for ${regionId}`, {
-      updatesKeys: Object.keys(updates),
-      hasRegionAnalysis: !!updates.regionAnalysis,
-      regionAnalysisType: updates.regionAnalysis ? typeof updates.regionAnalysis : 'undefined',
-      regionAnalysisLength: Array.isArray(updates.regionAnalysis) ? updates.regionAnalysis.length : 'N/A',
-      regionAnalysis: updates.regionAnalysis
-    });
-    
     // Serialize regionAnalysis for AWSJSON storage BEFORE creating input
     let serializedUpdates = { ...updates };
     if (serializedUpdates.regionAnalysis && Array.isArray(serializedUpdates.regionAnalysis)) {
       // serialize to JSON for AWSJSON
       const jsonString = JSON.stringify(serializedUpdates.regionAnalysis);
-      console.debug(`📦 REGION-SERVICE: Serializing regionAnalysis to JSON:`, {
-        originalLength: serializedUpdates.regionAnalysis.length,
-        jsonStringLength: jsonString.length,
-        jsonString: jsonString.substring(0, 200) + '...'
-      });
       
       serializedUpdates = {
         ...serializedUpdates,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         regionAnalysis: jsonString as any
       };
-      
-      console.debug(`✅ REGION-SERVICE: Serialized regionAnalysis:`, serializedUpdates.regionAnalysis);
     }
 
     // Create input for GraphQL using provided version (no pre-save fetch needed)
@@ -171,7 +156,7 @@ export const updateRegion = async (regionId: string, updates: Partial<RegionData
     });
 
   } catch (error) {
-    console.error(`❌ Failed to save region ${regionId}:`, error);
+    console.error(`Failed to save region ${regionId}:`, error);
     
     // Log detailed error information for debugging
     if (error && typeof error === 'object') {
@@ -187,7 +172,7 @@ export const updateRegion = async (regionId: string, updates: Partial<RegionData
     
     throw error;
   }
-};
+};;
 
 /**
  * Gets a region by ID using GraphQL API.

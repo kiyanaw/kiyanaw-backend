@@ -105,7 +105,6 @@ export const useTextEditors = (regionId: string, activeTab: 'main' | 'translatio
         if (!services.storeService.isPendingEdit(regionId, 'regionText')) {
           // Start new pending edit
           services.storeService.startPendingEdit(regionId, 'regionText');
-          console.log('🟡 Started pending edit for region:', regionId, 'field: regionText');
         } else {
           // Update existing pending edit activity
           services.storeService.updatePendingEditActivity(regionId, 'regionText');
@@ -160,7 +159,6 @@ export const useTextEditors = (regionId: string, activeTab: 'main' | 'translatio
         if (!services.storeService.isPendingEdit(regionId, 'translation')) {
           // Start new pending edit
           services.storeService.startPendingEdit(regionId, 'translation');
-          console.log('🟡 Started pending edit for region:', regionId, 'field: translation');
         } else {
           // Update existing pending edit activity
           services.storeService.updatePendingEditActivity(regionId, 'translation');

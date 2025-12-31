@@ -4,6 +4,7 @@ import type { WordAnalysis, SpellCheckResult, SpellingSuggestion } from './adt';
 class SpellCheckerServiceImpl {
   private knownWordsCache = new Set<string>();
   private unknownWordsCache = new Set<string>();
+  private suggestionsCache = new Map<string, string[]>(); // Cache suggestions by misspelled word
   private pendingRequests = new Map<string, Promise<SpellCheckResult>>();
 
   /**
@@ -12,7 +13,7 @@ class SpellCheckerServiceImpl {
    */
   async check(words: string[], languageCode: string = 'crk'): Promise<SpellCheckResult> {
     if (words.length === 0) {
-      return { known: [], unknown: [], suggestions: new Map() };
+      return { known: [], unknown: [], suggestions: [] };
     }
 
     // Filter out words we already know about
@@ -77,27 +78,41 @@ class SpellCheckerServiceImpl {
       const res = await response;
       const result = await res.body.json() as Record<string, string[] | { word: string; analysis: string }[]>;
       
-      console.debug('🔍 SPELL-CHECK: API Response:', result);
+      console.log('SPELL-CHECK response:', result);
       
       // Parse API response - keys are words, values are arrays of analyses
       const known: WordAnalysis[] = [];
       const unknown: string[] = [];
-      const suggestions = new Map<string, SpellingSuggestion[]>();
+      const suggestions: SpellingSuggestion[] = [];
 
-      // Extract _suggestions if present
+      // Extract _suggestions if present and cache them
+      // Format can be either:
+      // - { misspelledWord: "suggestion" } (single string)
+      // - { misspelledWord: ["suggestion1", "suggestion2"] } (array)
       if ('_suggestions' in result && result._suggestions) {
-        console.debug('🔍 SPELL-CHECK: Found _suggestions field:', result._suggestions);
         const suggestionsData = result._suggestions;
         if (typeof suggestionsData === 'object' && suggestionsData !== null && !Array.isArray(suggestionsData)) {
-          for (const [misspelledWord, suggestionList] of Object.entries(suggestionsData)) {
-            if (Array.isArray(suggestionList)) {
-              console.debug(`🔍 SPELL-CHECK: Adding suggestions for "${misspelledWord}":`, suggestionList);
-              suggestions.set(misspelledWord, suggestionList as SpellingSuggestion[]);
+          for (const [misspelledWord, suggestionValue] of Object.entries(suggestionsData)) {
+            // Handle both string and array formats
+            if (typeof suggestionValue === 'string' && suggestionValue.length > 0) {
+              const allSuggestions = [suggestionValue];
+              suggestions.push({
+                word: misspelledWord,
+                allSuggestions,
+              });
+              // Cache the suggestions for this word
+              this.suggestionsCache.set(misspelledWord, allSuggestions);
+            } else if (Array.isArray(suggestionValue) && suggestionValue.length > 0) {
+              const allSuggestions = suggestionValue as string[];
+              suggestions.push({
+                word: misspelledWord,
+                allSuggestions,
+              });
+              // Cache the suggestions for this word
+              this.suggestionsCache.set(misspelledWord, allSuggestions);
             }
           }
         }
-      } else {
-        console.debug('🔍 SPELL-CHECK: No _suggestions field in response');
       }
 
       for (const word of words) {
@@ -119,8 +134,8 @@ class SpellCheckerServiceImpl {
       return { known, unknown, suggestions };
     } catch (error) {
       console.error('Spell check API error:', error);
-      // On error, treat all words as unknown to avoid false positives
-      return { known: [], unknown: words, suggestions: new Map() };
+      // On error, treat all words as unknown to avoid false substitution
+      return { known: [], unknown: words, suggestions: [] };
     }
   }
 
@@ -178,6 +193,7 @@ class SpellCheckerServiceImpl {
   clearCache(): void {
     this.knownWordsCache.clear();
     this.unknownWordsCache.clear();
+    this.suggestionsCache.clear();
     this.pendingRequests.clear();
   }
 
@@ -255,19 +271,32 @@ class SpellCheckerServiceImpl {
     if (unknownUniqueWords.length > 0) {
       try {
         const result = await this.check(unknownUniqueWords, languageCode);
-        
+
         if (result.known.length > 0) {
           freshAnalysis.push(...result.known);
         }
-        
+
         // Extract suggestions for unknown words
-        if (result.suggestions) {
-          for (const [word, suggestionList] of result.suggestions.entries()) {
-            suggestions.push(...suggestionList);
-          }
+        if (result.suggestions && result.suggestions.length > 0) {
+          suggestions.push(...result.suggestions);
         }
       } catch (error) {
         console.error('Spell check API error during region analysis:', error);
+      }
+    }
+
+    // Also include cached suggestions for ALL unknown words in current text
+    // This preserves suggestions for words that were checked in previous calls
+    const wordsWithSuggestions = new Set(suggestions.map(s => s.word));
+    for (const word of uniqueWords) {
+      // If word is unknown and has cached suggestions we haven't already included
+      if (this.unknownWordsCache.has(word) &&
+          this.suggestionsCache.has(word) &&
+          !wordsWithSuggestions.has(word)) {
+        suggestions.push({
+          word,
+          allSuggestions: this.suggestionsCache.get(word)!
+        });
       }
     }
     

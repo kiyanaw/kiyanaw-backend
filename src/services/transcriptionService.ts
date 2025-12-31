@@ -984,23 +984,21 @@ export const updateTranscription = async (
     // Invalidate cache and update optimistically
     const user = currentUser();
     if (user?.userId) {
-      console.debug('🔄 Invalidating cache after transcription update');
       await transcriptionStorage.setLastSyncedAt(user.userId, new Date().toISOString());
-      
+
       // Optimistically update cache if it exists
       try {
         const model = new TranscriptionModel(updated as unknown as ADTTranscriptionData);
         model.setAccessLevel(user.userId);
         await transcriptionStorage.storeTranscriptions([model]);
-        console.debug('✅ Optimistically updated transcription in cache');
       } catch (cacheError) {
-        console.warn('⚠️ Failed to update cache optimistically:', cacheError);
+        console.warn('Failed to update cache optimistically:', cacheError);
       }
     }
 
     return updated;
   } catch (error) {
-    console.error('❌ Failed to update transcription via API:', error);
+    console.error('Failed to update transcription via API:', error);
     throw error;
   }
 };
