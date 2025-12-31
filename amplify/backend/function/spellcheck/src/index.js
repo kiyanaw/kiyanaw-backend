@@ -185,7 +185,8 @@ async function checkUnknowns(items, languageCode) {
     
     for (const key of Object.keys(suggested)) {
       if (suggested[key] && suggested[key].length > 0) {
-        final[originalLookup[key]] = suggested[key][0];
+        // Return all suggestions, not just the first one
+        final[originalLookup[key]] = suggested[key];
       }
     }
   }
