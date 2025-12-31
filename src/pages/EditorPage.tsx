@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 
 import { useEditorStore } from '../stores/useEditorStore';
 import { useLoadTranscription } from '../hooks/useLoadTranscription';
@@ -43,7 +43,12 @@ export const EditorPage = () => {
   
   // Issue search state
   const [issueSearchText, setIssueSearchText] = useState('');
-  
+
+  // Issues panel resize state (percentage of left container height)
+  const [issuesPanelHeight, setIssuesPanelHeight] = useState(50); // Default 50%
+  const [isResizing, setIsResizing] = useState(false);
+  const leftContainerRef = useRef<HTMLDivElement>(null);
+
   // Mobile swipe handling
   const handleTouchStart = useRef<{ x: number; y: number } | null>(null);
   const handleTouchMove = useRef<{ x: number; y: number } | null>(null);
@@ -105,7 +110,62 @@ export const EditorPage = () => {
     handleTouchStart.current = null;
     handleTouchMove.current = null;
   };
-  
+
+  // Issues panel resize handlers
+  const MIN_ISSUES_PANEL_HEIGHT_PX = 44; // Minimum pixels to show full header bar
+  const MAX_ISSUES_PANEL_HEIGHT = 85; // Maximum 85% to keep some inspector visible
+
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+  }, []);
+
+  const handleResizeMove = useCallback((e: MouseEvent) => {
+    if (!isResizing || !leftContainerRef.current) return;
+
+    const containerRect = leftContainerRef.current.getBoundingClientRect();
+    const containerHeight = containerRect.height;
+    const mouseY = e.clientY - containerRect.top;
+
+    // Calculate issues panel height as percentage (inverted because issues is at bottom)
+    const inspectorHeight = mouseY;
+    const issuesHeight = containerHeight - inspectorHeight;
+    const issuesPercent = (issuesHeight / containerHeight) * 100;
+
+    // Calculate minimum percentage based on pixel minimum
+    const minPercent = (MIN_ISSUES_PANEL_HEIGHT_PX / containerHeight) * 100;
+
+    // Clamp to min/max
+    const clampedPercent = Math.min(
+      MAX_ISSUES_PANEL_HEIGHT,
+      Math.max(minPercent, issuesPercent)
+    );
+
+    setIssuesPanelHeight(clampedPercent);
+  }, [isResizing]);
+
+  const handleResizeEnd = useCallback(() => {
+    setIsResizing(false);
+  }, []);
+
+  // Add/remove global mouse listeners when resizing
+  useEffect(() => {
+    if (isResizing) {
+      document.addEventListener('mousemove', handleResizeMove);
+      document.addEventListener('mouseup', handleResizeEnd);
+      // Prevent text selection while dragging
+      document.body.style.userSelect = 'none';
+      document.body.style.cursor = 'row-resize';
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleResizeMove);
+      document.removeEventListener('mouseup', handleResizeEnd);
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+    };
+  }, [isResizing, handleResizeMove, handleResizeEnd]);
+
   useLoadTranscription(transcriptionId!);
   useSubscriptions(transcriptionId!);
   useNavigationGuard(); // Warns on browser close/refresh if pending saves
@@ -292,16 +352,31 @@ export const EditorPage = () => {
       {/* Desktop Layout - Hidden on Mobile */}
       <div className="hidden lg:flex flex-1 overflow-hidden min-h-0">
         {/* Left Side Container */}
-        <div className="flex-1 min-w-0 bg-white border-r border-gray-300 flex flex-col">
-          {/* Stationary Inspector - 50% height */}
-          <div className="h-1/2 overflow-hidden flex flex-col border-b border-gray-300">
+        <div ref={leftContainerRef} className="flex-1 min-w-0 bg-white border-r border-gray-300 flex flex-col">
+          {/* Stationary Inspector - dynamic height */}
+          <div
+            className="overflow-hidden flex flex-col"
+            style={{ height: `${100 - issuesPanelHeight}%` }}
+          >
             <StationaryInspector
               selectedRegion={selectedRegion}
             />
           </div>
-          
-          {/* Issues Panel Area - 50% height */}
-          <div className="h-1/2 overflow-hidden flex flex-col">
+
+          {/* Resize Handle */}
+          <div
+            className={`h-1 bg-gray-200 cursor-row-resize hover:bg-ki-blue transition-colors flex-shrink-0 ${
+              isResizing ? 'bg-ki-blue' : ''
+            }`}
+            onMouseDown={handleResizeStart}
+            title="Drag to resize"
+          />
+
+          {/* Issues Panel Area - dynamic height */}
+          <div
+            className="overflow-hidden flex flex-col"
+            style={{ height: `calc(${issuesPanelHeight}% - 4px)` }}
+          >
             {transcription && (
               <>
                 <IssuesPanel
