@@ -8,6 +8,7 @@ import { useCreateIssueFromSelection } from '../../hooks/useCreateIssueFromSelec
 import { useEditorStore } from '../../stores/useEditorStore';
 import { RegionContextBar } from './RegionContextBar';
 import { useRegionContextBar } from '../../hooks/useRegionContextBar';
+import { getLemma } from '../../shared/languageProcessing';
 
 interface RegionEditorProps {
   region: Region;
@@ -27,6 +28,7 @@ export const RegionEditor = memo(({
   const setSelectedRegion = useEditorStore((state) => state.setSelectedRegion);
   const regions = useEditorStore((state) => state.regions);
   const regionSelection = useEditorStore((state) => state.regionSelections[region.id]);
+  const transcriptionLang = useEditorStore((state) => state.transcription?.lang);
   // Check if there's a text selection in the current region
   const hasSelection = regionSelection && regionSelection.length > 0 && regionSelection.text.trim().length > 0;
   
@@ -35,24 +37,23 @@ export const RegionEditor = memo(({
 
   // Get word under cursor for dictionary lookup
   const { cursorWordAnalysis } = useRegionContextBar(region.id, canEdit);
-  
-  // Extract lemma from analysis, skipping prefixes like PV/, IC+, RdplW+, RdplS+
-  // e.g., "PV/e+PV/ki+ohcîw+V+AI+Cnj+3Sg" -> "ohcîw"
-  const extractLemma = (analysis: string): string | null => {
-    if (!analysis) return null;
-    const parts = analysis.split('+');
-    const prefixes = ['PV/', 'IC', 'RdplW', 'RdplS'];
-    
-    for (const part of parts) {
-      const hasPrefix = prefixes.some(prefix => part.startsWith(prefix));
-      if (!hasPrefix) {
-        return part;
-      }
-    }
-    return parts[0] || null; // Fallback to first part if no match
-  };
-  
-  const lemma = cursorWordAnalysis ? extractLemma(cursorWordAnalysis.analysis) : null;
+
+  // Extract lemma using shared language processing module
+  // Supports all language-specific prefix patterns (crk, ciw, otw, etc.)
+  const lemma = cursorWordAnalysis?.analysis && transcriptionLang
+    ? getLemma(transcriptionLang, cursorWordAnalysis.analysis)
+    : null;
+
+  // Track if lemma extraction failed (has analysis but no lemma extracted)
+  const lemmaExtractionFailed = !!(cursorWordAnalysis?.analysis && transcriptionLang && !lemma);
+
+  // Log warning when lemma extraction fails
+  if (lemmaExtractionFailed) {
+    console.warn(
+      `⚠️ Lemma extraction failed for language "${transcriptionLang}":`,
+      cursorWordAnalysis?.analysis
+    );
+  }
 
   // Toolbar actions - simplified for now
   const handlePlay = () => {
@@ -139,11 +140,19 @@ export const RegionEditor = memo(({
             className={`flex items-center justify-center w-7 h-7 border rounded-md transition-all duration-200 text-sm ${
               lemma
                 ? 'border-blue-300 bg-blue-50 text-blue-600 cursor-pointer hover:bg-blue-100 hover:border-blue-400'
-                : 'border-gray-300 bg-gray-50 text-gray-400 cursor-not-allowed opacity-50'
+                : lemmaExtractionFailed
+                  ? 'border-orange-300 bg-orange-50 text-orange-500 cursor-not-allowed'
+                  : 'border-gray-300 bg-gray-50 text-gray-400 cursor-not-allowed opacity-50'
             }`}
             onClick={lemma ? handleDictionaryLookup : undefined}
             disabled={!lemma}
-            title={lemma ? `Look up "${lemma}" in dictionary` : "Place cursor on a word to look it up"}
+            title={
+              lemma
+                ? `Look up "${lemma}" in dictionary`
+                : lemmaExtractionFailed
+                  ? `Could not extract lemma from "${cursorWordAnalysis?.analysis}"`
+                  : "Place cursor on a word to look it up"
+            }
           >
             <Database size={14} />
           </button>

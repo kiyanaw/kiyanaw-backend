@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import commonjs from 'vite-plugin-commonjs'
 
 // Generate a short build hash (7 characters, like git commit)
 const generateBuildHash = () => {
@@ -19,6 +20,10 @@ const buildTime = new Date().toISOString();
 
 // https://vite.dev/config/
 export default defineConfig({
+  resolve: {
+    // Enable symlink resolution for shared code from Lambda
+    preserveSymlinks: true,
+  },
   server: {
     watch: {
       // Ignore claude-flow directory to prevent reload when metrics are written
@@ -30,6 +35,7 @@ export default defineConfig({
     __BUILD_TIME__: JSON.stringify(buildTime),
   },
   plugins: [
+    commonjs(),
     react(),
     VitePWA({
       registerType: 'autoUpdate',
