@@ -32,7 +32,7 @@ const mockServices = {
   },
   rteService: {
     hasEditor: jest.fn(),
-    applyHighlighting: jest.fn(),
+    queueHighlightingUpdate: jest.fn(),
   },
 };
 
@@ -349,7 +349,7 @@ describe('SubscribeToCommentChangesUseCase', () => {
 
       expect(mockServices.rteService.hasEditor).toHaveBeenCalledWith('region-456:main');
       expect(mockServices.rteService.hasEditor).toHaveBeenCalledWith('region-456:translation');
-      expect(mockServices.rteService.applyHighlighting).toHaveBeenCalledWith(
+      expect(mockServices.rteService.queueHighlightingUpdate).toHaveBeenCalledWith(
         'region-456:main',
         {
           knownWords: ['test', 'region'],

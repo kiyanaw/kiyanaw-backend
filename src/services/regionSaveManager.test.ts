@@ -31,7 +31,7 @@ jest.mock('./index', () => ({
     },
     rteService: {
       hasEditor: jest.fn(() => false),
-      applyHighlighting: jest.fn(),
+      queueHighlightingUpdate: jest.fn(),
     },
     authService: {
       currentUser: jest.fn(() => ({ username: 'testuser' })),
@@ -686,7 +686,7 @@ describe('RegionSaveManager', () => {
       it('should apply highlighting with known words', async () => {
         await regionSaveManager.__reapplyHighlighting('region-1', 'region-1:main');
         
-        expect(services.rteService.applyHighlighting).toHaveBeenCalledWith(
+        expect(services.rteService.queueHighlightingUpdate).toHaveBeenCalledWith(
           'region-1:main',
           expect.objectContaining({
             knownWords: ['test'],
@@ -702,7 +702,7 @@ describe('RegionSaveManager', () => {
         
         await regionSaveManager.__reapplyHighlighting('region-1', 'region-1:main');
         
-        expect(services.rteService.applyHighlighting).toHaveBeenCalledWith(
+        expect(services.rteService.queueHighlightingUpdate).toHaveBeenCalledWith(
           'region-1:main',
           expect.objectContaining({
             knownWords: [],
@@ -714,7 +714,7 @@ describe('RegionSaveManager', () => {
       it('should work for translation editor', async () => {
         await regionSaveManager.__reapplyHighlighting('region-1', 'region-1:translation');
         
-        expect(services.rteService.applyHighlighting).toHaveBeenCalledWith(
+        expect(services.rteService.queueHighlightingUpdate).toHaveBeenCalledWith(
           'region-1:translation',
           expect.objectContaining({
             knownWords: ['test']

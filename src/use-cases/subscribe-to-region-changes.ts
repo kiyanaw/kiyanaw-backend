@@ -282,7 +282,7 @@ export class SubscribeToRegionChangesUseCase {
           const issueHighlights = issueHighlightService.convertIssuesToHighlights(issues);
           
           // Reapply highlighting with updated analysis
-          rteService.applyHighlighting(mainEditorKey, {
+          rteService.queueHighlightingUpdate(mainEditorKey, {
             knownWords,
             issues: issueHighlights
           });
@@ -356,13 +356,13 @@ export class SubscribeToRegionChangesUseCase {
         const issueHighlights = issueHighlightService.convertIssuesToHighlights(issues);
         
         // Reapply highlighting with updated analysis
-        rteService.applyHighlighting(mainEditorKey, {
+        rteService.queueHighlightingUpdate(mainEditorKey, {
           knownWords,
           issues: issueHighlights
         });
       }
     }
-    
+
     if (updatedRegion._version !== undefined) {
       store.setRegionVersion(updatedRegion.id, updatedRegion._version);
     }
@@ -393,7 +393,7 @@ export class SubscribeToRegionChangesUseCase {
       const issueHighlights = issueHighlightService.convertIssuesToHighlights(issues);
       
       // Apply highlighting using ONLY this region's analysis
-      rteService.applyHighlighting(editorKey, {
+      rteService.queueHighlightingUpdate(editorKey, {
         knownWords,
         issues: issueHighlights
       });

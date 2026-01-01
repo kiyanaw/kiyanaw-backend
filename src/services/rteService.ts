@@ -786,15 +786,6 @@ class RTEServiceImpl {
   }
 
   /**
-   * @deprecated Use queueHighlightingUpdate instead to prevent race conditions
-   */
-  applyHighlighting(key: EditorKey, options: { knownWords?: string[]; issues?: IssueHighlight[]; ambiguousIndices?: Set<number>; regionAnalysis?: WordAnalysis[]; spellingSuggestions?: SpellingSuggestion[] }): void {
-    // For backwards compatibility, synchronously call the internal method
-    // New code should use queueHighlightingUpdate
-    this.applyHighlightingInternal(key, options);
-  }
-
-  /**
    * Find ambiguous word matches by position using regionAnalysis indices
    */
   private findAmbiguousWordMatches(
@@ -1586,7 +1577,7 @@ class RTEServiceImpl {
           // Reapply highlighting after another tick
           setTimeout(() => {
             try {
-              this.applyHighlighting(key, { knownWords, ambiguousIndices, regionAnalysis, issues: issueHighlights });
+              this.applyHighlightingInternal(key, { knownWords, ambiguousIndices, regionAnalysis, issues: issueHighlights });
               
               // Restore cursor position if it was saved
               if (savedSelection) {

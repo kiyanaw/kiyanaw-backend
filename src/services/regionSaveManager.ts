@@ -453,7 +453,7 @@ class RegionSaveManagerImpl {
     const issues = store.getIssuesForRegion(regionId);
     const issueHighlights = issueHighlightService.convertIssuesToHighlights(issues);
     
-    services.rteService.applyHighlighting(editorKey, {
+    services.rteService.queueHighlightingUpdate(editorKey, {
       knownWords,
       issues: issueHighlights
     });

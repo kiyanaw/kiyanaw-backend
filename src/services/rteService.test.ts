@@ -501,7 +501,7 @@ describe('rteService', () => {
     });
   });
 
-  describe('applyHighlighting (selective approach)', () => {
+  describe('queueHighlightingUpdate (selective approach)', () => {
     let mockGetText: jest.Mock;
     let mockGetSelection: jest.Mock;
     let mockSetSelection: jest.Mock;
@@ -526,12 +526,12 @@ describe('rteService', () => {
       rteService.createOrGet('test-region:main', {});
     });
 
-    it('should only format positions that need highlighting (no existing formatting)', () => {
+    it('should only format positions that need highlighting (no existing formatting)', async () => {
       const text = 'hello world';
       mockGetText.mockReturnValue(text);
       mockGetContents.mockReturnValue({ ops: [{ insert: text }] }); // No formatted segments
       
-      rteService.applyHighlighting('test-region:main', {
+      await rteService.queueHighlightingUpdate('test-region:main', {
         knownWords: ['hello'],
         issues: []
       });
@@ -544,7 +544,7 @@ describe('rteService', () => {
       expect(source).toBe('silent');
     });
 
-    it('should remove stale formatting (word splitting scenario)', () => {
+    it('should remove stale formatting (word splitting scenario)', async () => {
       const text = 'hel lo world'; // 'hello' was split into 'hel lo'
       mockGetText.mockReturnValue(text);
       
@@ -558,7 +558,7 @@ describe('rteService', () => {
         ]
       });
       
-      rteService.applyHighlighting('test-region:main', {
+      await rteService.queueHighlightingUpdate('test-region:main', {
         knownWords: ['world'], // Only 'world' should be highlighted now
         issues: []
       });
@@ -581,12 +581,12 @@ describe('rteService', () => {
       expect(additionSource).toBe('silent');
     });
 
-    it('should preserve selection during formatting', () => {
+    it('should preserve selection during formatting', async () => {
       const mockSelection = { index: 5, length: 0 };
       mockGetSelection.mockReturnValue(mockSelection);
       mockGetText.mockReturnValue('hello world');
       
-      rteService.applyHighlighting('test-region:main', {
+      await rteService.queueHighlightingUpdate('test-region:main', {
         knownWords: ['hello'],
         issues: []
       });
@@ -595,10 +595,10 @@ describe('rteService', () => {
       expect(mockSetSelection).toHaveBeenCalledWith(mockSelection, 'api');
     });
 
-    it('should handle empty text gracefully', () => {
+    it('should handle empty text gracefully', async () => {
       mockGetText.mockReturnValue('');
       
-      rteService.applyHighlighting('test-region:main', {
+      await rteService.queueHighlightingUpdate('test-region:main', {
         knownWords: ['hello'],
         issues: []
       });
@@ -606,14 +606,13 @@ describe('rteService', () => {
       expect(mockUpdateContents).not.toHaveBeenCalled();
     });
 
-    it('should handle non-existent editor gracefully', () => {
-      expect(() => {
-        rteService.applyHighlighting('non-existent:main', {
-          knownWords: ['hello'],
-          issues: []
-        });
-      }).not.toThrow();
-      
+    it('should handle non-existent editor gracefully', async () => {
+      // Should resolve without throwing
+      await rteService.queueHighlightingUpdate('non-existent:main', {
+        knownWords: ['hello'],
+        issues: []
+      });
+
       expect(mockUpdateContents).not.toHaveBeenCalled();
     });
   });
@@ -643,7 +642,7 @@ describe('rteService', () => {
       rteService.createOrGet('test-region:main', {});
     });
 
-    it('should highlight only ambiguous occurrences based on index', () => {
+    it('should highlight only ambiguous occurrences based on index', async () => {
       const text = 'isi foo isi';
       mockGetText.mockReturnValue(text);
       mockGetContents.mockReturnValue({ ops: [{ insert: text }] });
@@ -657,7 +656,7 @@ describe('rteService', () => {
       // Both 'isi' occurrences are ambiguous (indices 0 and 2)
       const ambiguousIndices = new Set([0, 2]);
       
-      rteService.applyHighlighting('test-region:main', {
+      await rteService.queueHighlightingUpdate('test-region:main', {
         knownWords: ['isi', 'foo'],
         ambiguousIndices,
         regionAnalysis,
@@ -672,7 +671,7 @@ describe('rteService', () => {
       expect(delta.ops).toContainEqual({ retain: 3, attributes: { 'ambiguous-word': true } }); // Second 'isi'
     });
 
-    it('should not highlight user-selected occurrence of duplicate word', () => {
+    it('should not highlight user-selected occurrence of duplicate word', async () => {
       const text = 'isi foo isi';
       mockGetText.mockReturnValue(text);
       mockGetContents.mockReturnValue({ ops: [{ insert: text }] });
@@ -686,7 +685,7 @@ describe('rteService', () => {
       // Only the second 'isi' is ambiguous (index 2)
       const ambiguousIndices = new Set([2]);
       
-      rteService.applyHighlighting('test-region:main', {
+      await rteService.queueHighlightingUpdate('test-region:main', {
         knownWords: ['isi', 'foo'],
         ambiguousIndices,
         regionAnalysis,
@@ -702,7 +701,7 @@ describe('rteService', () => {
       expect(ambiguousOps.length).toBeGreaterThan(0);
     });
 
-    it('should handle three occurrences with mixed user/auto selections', () => {
+    it('should handle three occurrences with mixed user/auto selections', async () => {
       const text = 'isi isi isi';
       mockGetText.mockReturnValue(text);
       mockGetContents.mockReturnValue({ ops: [{ insert: text }] });
@@ -716,7 +715,7 @@ describe('rteService', () => {
       // Only the middle 'isi' is ambiguous (index 1)
       const ambiguousIndices = new Set([1]);
       
-      rteService.applyHighlighting('test-region:main', {
+      await rteService.queueHighlightingUpdate('test-region:main', {
         knownWords: ['isi'],
         ambiguousIndices,
         regionAnalysis,
@@ -728,7 +727,7 @@ describe('rteService', () => {
       // First and third should only have known-word highlighting
     });
 
-    it('should handle empty ambiguousIndices set', () => {
+    it('should handle empty ambiguousIndices set', async () => {
       const text = 'isi foo';
       mockGetText.mockReturnValue(text);
       mockGetContents.mockReturnValue({ ops: [{ insert: text }] });
@@ -738,7 +737,7 @@ describe('rteService', () => {
         { word: 'foo', analysis: 'foo+N', allAnalysis: ['foo+N'], source: 'auto' as const, index: 1 },
       ];
       
-      rteService.applyHighlighting('test-region:main', {
+      await rteService.queueHighlightingUpdate('test-region:main', {
         knownWords: ['isi', 'foo'],
         ambiguousIndices: new Set(),
         regionAnalysis,
