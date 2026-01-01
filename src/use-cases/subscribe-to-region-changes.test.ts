@@ -60,7 +60,6 @@ const mockServices = {
   rteService: {
     hasEditor: jest.fn(),
     setContent: jest.fn(),
-    applyKnownWordsFormatting: jest.fn(),
     applyHighlighting: jest.fn()
   },
   conflictDetectionService: {
@@ -1364,7 +1363,6 @@ describe('SubscribeToRegionChangesUseCase', () => {
           
           // RTE should not be updated
           expect(mockServices.rteService.setContent).not.toHaveBeenCalled();
-          expect(mockServices.rteService.applyKnownWordsFormatting).not.toHaveBeenCalled();
         });
       });
     });

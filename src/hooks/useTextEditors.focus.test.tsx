@@ -22,7 +22,6 @@ jest.mock('../services/rteService', () => ({
     setContent: jest.fn(),
     getInstance: jest.fn(),
     hasEditor: jest.fn().mockReturnValue(true),
-    applyKnownWordsFormatting: jest.fn(),
     updateIssueHighlighting: jest.fn(),
     onSelectionChange: jest.fn(),
     offSelectionChange: jest.fn(),
@@ -67,7 +66,6 @@ describe('useTextEditors - Focus Preservation', () => {
     mockRteService.setContent.mockImplementation(() => {});
     mockRteService.onTextChange.mockImplementation(() => {});
     mockRteService.offTextChange.mockImplementation(() => {});
-    mockRteService.applyKnownWordsFormatting.mockImplementation(() => {});
   });
 
   it('should not detach and reattach editor when region text changes', () => {

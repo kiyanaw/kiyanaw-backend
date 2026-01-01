@@ -33,7 +33,6 @@ const mockServices = {
   rteService: {
     hasEditor: jest.fn(),
     applyHighlighting: jest.fn(),
-    applyKnownWordsFormatting: jest.fn(),
   },
 };
 

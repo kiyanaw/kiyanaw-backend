@@ -55,7 +55,6 @@ const mockServices = {
   rteService: {
     hasEditor: jest.fn(),
     applyHighlighting: jest.fn(),
-    applyKnownWordsFormatting: jest.fn()
   },
   userService: {
     currentUser: jest.fn()
@@ -412,7 +411,6 @@ describe('SubscribeToIssueChangesUseCase', () => {
 
         // Should not call any highlighting methods
         expect(mockServices.rteService.applyHighlighting).not.toHaveBeenCalled();
-        expect(mockServices.rteService.applyKnownWordsFormatting).not.toHaveBeenCalled();
       });
 
       it('should handle missing region gracefully', async () => {
