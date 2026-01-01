@@ -10,6 +10,7 @@
 const { Transducer } = require('hfstol');
 const fst = require('./fst');
 const specialProcessing = require('./special-processing');
+const { prioritizeParticles } = require('./utils');
 
 /**
  * Load strict analyzer for a language from EFS
@@ -100,13 +101,15 @@ async function analyzeStrict(lookup, languageCode) {
       const rawAnalyses = fstTransducer.lookup(word);
       // Filter out error analyses (anything containing +Err/ or Err/Frag)
       // These are fragments or orthographic errors that shouldn't be shown to users
-      result[word] = rawAnalyses.filter(analysis => !analysis.includes('+Err/') && !analysis.includes('Err/Frag'));
+      const filtered = rawAnalyses.filter(analysis => !analysis.includes('+Err/') && !analysis.includes('Err/Frag'));
+      // Prioritize particles (Ipc) first - they're almost always the intended reading
+      result[word] = prioritizeParticles(filtered);
     } catch (e) {
       console.error(`Error looking up word "${word}":`, e);
       result[word] = [];
     }
   }
-  
+
   return result;
 }
 
@@ -135,13 +138,15 @@ async function analyzeRelaxed(lookup, languageCode) {
       const rawAnalyses = fstTransducer.lookup(word);
       // Filter out error analyses (anything containing +Err/ or Err/Frag)
       // These are fragments or orthographic errors that shouldn't be shown to users
-      result[word] = rawAnalyses.filter(analysis => !analysis.includes('+Err/') && !analysis.includes('Err/Frag'));
+      const filtered = rawAnalyses.filter(analysis => !analysis.includes('+Err/') && !analysis.includes('Err/Frag'));
+      // Prioritize particles (Ipc) first - they're almost always the intended reading
+      result[word] = prioritizeParticles(filtered);
     } catch (e) {
       console.error(`Error looking up word "${word}":`, e);
       result[word] = [];
     }
   }
-  
+
   return result;
 }
 
