@@ -78,8 +78,6 @@ class SpellCheckerServiceImpl {
       const res = await response;
       const result = await res.body.json() as Record<string, string[] | { word: string; analysis: string }[]>;
       
-      console.log('SPELL-CHECK response:', result);
-      
       // Parse API response - keys are words, values are arrays of analyses
       const known: WordAnalysis[] = [];
       const unknown: string[] = [];

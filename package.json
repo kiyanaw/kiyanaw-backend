@@ -19,7 +19,9 @@
     "test:e2e": "playwright test",
     "test:e2e:production": "PLAYWRIGHT_BASE_URL=https://bundle.kiyanaw.net playwright test",
     "test:e2e:staging": "PLAYWRIGHT_BASE_URL=https://transcribe.kiyanaw.dev playwright test",
-    "setup:e2e": "node scripts/setup-e2e-env.js"
+    "setup:e2e": "node scripts/setup-e2e-env.js",
+    "logs:spellcheck": "node scripts/tail-spellcheck-logs.js",
+    "logs:indexing": "node scripts/tail-index-region-data-logs.js"
   },
   "dependencies": {
     "@aws-amplify/auth": "^6.12.4",
@@ -28,6 +30,7 @@
     "@aws-amplify/ui-react": "^6.11.2",
     "@aws-crypto/sha256-browser": "^5.2.0",
     "@aws-crypto/sha256-js": "^5.2.0",
+    "@aws-sdk/client-cloudwatch-logs": "^3.958.0",
     "@aws-sdk/client-dynamodb": "^3.908.0",
     "@aws-sdk/client-s3": "^3.908.0",
     "@aws-sdk/credential-provider-cognito-identity": "^3.899.0",
