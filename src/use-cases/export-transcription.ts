@@ -3,6 +3,7 @@ import type { RegionData, TranscriptionModel } from '../services/adt';
 export interface ExportTranscriptionOptions {
   includeRegionNumbers: boolean;
   includeTimestamps: boolean;
+  includeOriginalLanguage: boolean;
   includeTranslation: boolean;
 }
 
@@ -62,9 +63,11 @@ export class ExportTranscriptionUseCase {
       .map((region, index) => {
         const lines: string[] = [];
 
-        const primaryText = region.regionText?.trim();
-        if (primaryText) {
-          lines.push(sanitizeLine(primaryText));
+        if (this.options.includeOriginalLanguage) {
+          const primaryText = region.regionText?.trim();
+          if (primaryText) {
+            lines.push(sanitizeLine(primaryText));
+          }
         }
 
         if (this.options.includeTranslation) {
@@ -100,16 +103,19 @@ export class ExportTranscriptionUseCase {
   }
 
   private deriveFilename(): string {
+    // Use .srt extension only when format is valid SRT (has both region numbers and timestamps)
+    const extension = (this.options.includeRegionNumbers && this.options.includeTimestamps) ? 'srt' : 'txt';
+    
     const fallbackBase = this.transcription.title?.trim() || this.transcription.id || 'transcription';
     const sourceFilename = this.transcription.getSourceFilename();
 
     if (!sourceFilename || sourceFilename === 'Unknown') {
-      return `${fallbackBase}.txt`;
+      return `${fallbackBase}.${extension}`;
     }
 
     const lastDotIndex = sourceFilename.lastIndexOf('.');
     const baseName = lastDotIndex > 0 ? sourceFilename.slice(0, lastDotIndex) : sourceFilename;
-    return `${baseName}.txt`;
+    return `${baseName}.${extension}`;
   }
 }
 

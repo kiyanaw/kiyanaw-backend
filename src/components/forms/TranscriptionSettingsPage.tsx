@@ -68,6 +68,7 @@ export const TranscriptionSettingsPage = ({
   const [isExporting, setIsExporting] = useState(false);
   const [includeRegionNumbers, setIncludeRegionNumbers] = useState(true);
   const [includeTimestamps, setIncludeTimestamps] = useState(true);
+  const [includeOriginalLanguage, setIncludeOriginalLanguage] = useState(true);
   const [includeTranslation, setIncludeTranslation] = useState(true);
   const [exportError, setExportError] = useState<string | null>(null);
   
@@ -287,9 +288,10 @@ export const TranscriptionSettingsPage = ({
         transcription,
         regions,
         options: {
-          includeTranslation,
-          includeTimestamps,
           includeRegionNumbers,
+          includeTimestamps,
+          includeOriginalLanguage,
+          includeTranslation,
         },
       });
       setShowExportDialog(false);
@@ -392,11 +394,64 @@ export const TranscriptionSettingsPage = ({
                     placeholder="Add any comments about this transcription..."
                   />
                 </div>
+              </div>
 
+              {!isOwner && (
+                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-sm text-yellow-800">
+                    Only the transcription owner can edit these settings.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Information Section */}
+            <div className="space-y-4 md:space-y-6">
+              <div className="flex items-center gap-2 md:gap-3 pb-2 md:pb-3 border-b border-gray-200">
+                <FileText className="text-green-600" size={18} />
+                <h2 className="text-base md:text-lg font-semibold text-gray-900">Information</h2>
+              </div>
+
+              <div className="bg-gray-50 p-3 md:p-4 rounded-lg">
+                <div className="grid grid-cols-1 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600">Author</label>
+                    <p className="text-base text-gray-900 mt-1">{author}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600">Last Updated</label>
+                    <p className="text-base text-gray-900 mt-1">{formatDate(dateLastUpdated)}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600">Total Regions</label>
+                    <p className="text-base text-gray-900 mt-1">{regionCount}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600">Total Issues</label>
+                    <p className="text-base text-gray-900 mt-1">{issueCount}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600">Source File</label>
+                    <p className="text-base text-gray-900 mt-1 break-all">
+                      {transcription.source ? transcription.getSourceFilename() : 'Unknown'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Language & Actions Row */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
+            {/* Language Section */}
+            <div className="space-y-4 md:space-y-6">
+              <div className="flex items-center gap-2 md:gap-3 pb-2 md:pb-3 border-b border-gray-200">
+                <Settings className="text-orange-600" size={18} />
+                <h2 className="text-base md:text-lg font-semibold text-gray-900">Language</h2>
+              </div>
+
+              <div className="space-y-4">
                 <div>
-                  <label htmlFor="lang" className="block text-md font-medium text-gray-700 mb-2">
-                    Language
-                  </label>
                   <SearchableLanguageSelector
                     id="lang"
                     value={lang}
@@ -404,7 +459,7 @@ export const TranscriptionSettingsPage = ({
                     disabled={!isOwner}
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    Select the spell checker to use for this transctiption. If "Is Discoverable?" is enabled, will determine the index of the Language Database used.
+                    Select the spell checker to use for this transcription. If "Is Discoverable?" is enabled, will determine the index of the Language Database used.
                   </p>
                 </div>
 
@@ -427,7 +482,7 @@ export const TranscriptionSettingsPage = ({
                           onClick={() => {
                             const newIsPrivate = !isPrivate;
                             setIsPrivate(newIsPrivate);
-                            
+
                             // If toggles are "in sync", toggle publicIssues with isPrivate
                             const isDiscoverable = !isPrivate;
                             const areInSync = isDiscoverable === publicIssues;
@@ -485,91 +540,50 @@ export const TranscriptionSettingsPage = ({
                     </div>
                   </div>
                 )}
-
               </div>
-
-              {!isOwner && (
-                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <p className="text-sm text-yellow-800">
-                    Only the transcription owner can edit these settings.
-                  </p>
-                </div>
-              )}
             </div>
 
-            {/* Information Section */}
-            <div className="space-y-4 md:space-y-6">
-              <div className="flex items-center gap-2 md:gap-3 pb-2 md:pb-3 border-b border-gray-200">
-                <FileText className="text-green-600" size={18} />
-                <h2 className="text-base md:text-lg font-semibold text-gray-900">Information</h2>
-              </div>
+            {/* Actions Section (Owners Only) */}
+            {isOwner && (
+              <div className="space-y-4 md:space-y-6">
+                <div className="flex items-center gap-2 md:gap-3 pb-2 md:pb-3 border-b border-gray-200">
+                  <Download className="text-blue-600" size={18} />
+                  <h2 className="text-base md:text-lg font-semibold text-gray-900">Actions</h2>
+                </div>
 
-              <div className="bg-gray-50 p-3 md:p-4 rounded-lg">
-                <div className="grid grid-cols-1 gap-3">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-600">Author</label>
-                    <p className="text-base text-gray-900 mt-1">{author}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-600">Last Updated</label>
-                    <p className="text-base text-gray-900 mt-1">{formatDate(dateLastUpdated)}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-600">Total Regions</label>
-                    <div className="mt-1 flex items-center gap-2">
-                      <span className="text-base text-gray-900">{regionCount}</span>
-                      {isOwner && (
-                        <button
-                          onClick={() => setShowExportDialog(true)}
-                          className="ml-auto inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-purple-600 bg-purple-50 border border-purple-200 rounded hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-1 transition-colors"
-                          title="Export transcription"
-                        >
-                          <Download size={12} />
-                          Export transcription
-                        </button>
+                <div className="flex flex-wrap gap-3">
+                  {transcription.source && (
+                    <button
+                      onClick={handleDownloadSource}
+                      disabled={isDownloadingSource}
+                      className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {isDownloadingSource ? (
+                        <>
+                          <Loader2 size={16} className="animate-spin" />
+                          Downloading...
+                        </>
+                      ) : (
+                        <>
+                          <Download size={16} />
+                          Download media
+                        </>
                       )}
-                    </div>
-                    {exportError && (
-                      <p className="mt-2 text-xs text-red-600">{exportError}</p>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-600">Total Issues</label>
-                    <p className="text-base text-gray-900 mt-1">{issueCount}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-600">Source File</label>
-                    {transcription.source ? (
-                      <div className="flex flex-wrap items-center gap-2 mt-1">
-                        <span className="text-base text-gray-900 break-all flex-1">{transcription.getSourceFilename()}</span>
-                        {isOwner && (
-                          <button
-                            onClick={handleDownloadSource}
-                            disabled={isDownloadingSource}
-                            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                            title="Download original file"
-                          >
-                            {isDownloadingSource ? (
-                              <>
-                                <Loader2 size={12} className="animate-spin" />
-                                Downloading...
-                              </>
-                            ) : (
-                              <>
-                                <Download size={12} />
-                                Download
-                              </>
-                            )}
-                          </button>
-                        )}
-                      </div>
-                    ) : (
-                      <p className="text-base text-gray-900 mt-1 break-all">Unknown</p>
-                    )}
-                  </div>
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setShowExportDialog(true)}
+                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-purple-600 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-colors"
+                  >
+                    <FileText size={16} />
+                    Export transcription
+                  </button>
                 </div>
+                {exportError && (
+                  <p className="text-sm text-red-600">{exportError}</p>
+                )}
               </div>
-            </div>
+            )}
           </div>
 
           {/* Sharing & Collaboration Section - Full Width (Owners Only) */}
@@ -887,6 +901,31 @@ export const TranscriptionSettingsPage = ({
                           className={`
                             pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out
                             ${includeTimestamps ? 'translate-x-5' : 'translate-x-0'}
+                          `}
+                        />
+                      </button>
+                    </label>
+
+                    <label className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                      <div>
+                        <span className="text-sm font-medium text-gray-900">Include original language</span>
+                        <p className="text-xs text-gray-500">Includes the primary text for each region.</p>
+                      </div>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={includeOriginalLanguage}
+                        onClick={() => setIncludeOriginalLanguage(!includeOriginalLanguage)}
+                        className={`
+                          relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2
+                          ${includeOriginalLanguage ? 'bg-purple-600' : 'bg-gray-200'}
+                        `}
+                      >
+                        <span
+                          aria-hidden="true"
+                          className={`
+                            pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out
+                            ${includeOriginalLanguage ? 'translate-x-5' : 'translate-x-0'}
                           `}
                         />
                       </button>

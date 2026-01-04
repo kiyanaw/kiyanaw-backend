@@ -19,7 +19,7 @@ const buildRegion = (overrides: Partial<ExportRegion> = {}) =>
   }) as import('../services/adt').RegionModel;
 
 describe('ExportTranscriptionUseCase', () => {
-  it('includes numbering, timestamps, and translation when options enabled', () => {
+  it('includes numbering, timestamps, original language and translation when all options enabled', () => {
     const useCase = new ExportTranscriptionUseCase({
       transcription: buildTranscription(),
       regions: [
@@ -29,13 +29,15 @@ describe('ExportTranscriptionUseCase', () => {
       options: {
         includeRegionNumbers: true,
         includeTimestamps: true,
+        includeOriginalLanguage: true,
         includeTranslation: true,
       },
     });
 
     const { content, filename } = useCase.execute();
 
-    expect(filename).toBe('original-file.txt');
+    // .srt extension when both region numbers and timestamps are enabled
+    expect(filename).toBe('original-file.srt');
     expect(content).toMatchInlineSnapshot(`
 "1
 00:00:00,000 --> 00:00:01,200
@@ -49,7 +51,7 @@ Deuxième région"
 `);
   });
 
-  it('omits timestamps and translation when disabled', () => {
+  it('omits timestamps and translation when disabled, uses .txt extension', () => {
     const useCase = new ExportTranscriptionUseCase({
       transcription: buildTranscription(),
       regions: [
@@ -58,12 +60,15 @@ Deuxième région"
       options: {
         includeRegionNumbers: true,
         includeTimestamps: false,
+        includeOriginalLanguage: true,
         includeTranslation: false,
       },
     });
 
-    const { content } = useCase.execute();
+    const { content, filename } = useCase.execute();
 
+    // .txt extension when timestamps are disabled (not valid SRT)
+    expect(filename).toBe('original-file.txt');
     expect(content).toBe(`1
 Only text`);
   });
@@ -81,11 +86,13 @@ Only text`);
       options: {
         includeRegionNumbers: false,
         includeTimestamps: false,
+        includeOriginalLanguage: true,
         includeTranslation: false,
       },
     });
 
     const { filename } = useCase.execute();
+    // .txt because region numbers are disabled
     expect(filename).toBe('Sample Title.txt');
   });
 
@@ -96,6 +103,7 @@ Only text`);
       options: {
         includeRegionNumbers: true,
         includeTimestamps: true,
+        includeOriginalLanguage: true,
         includeTranslation: true,
       },
     });
@@ -113,6 +121,7 @@ Only text`);
       options: {
         includeRegionNumbers: true,
         includeTimestamps: true,
+        includeOriginalLanguage: true,
         includeTranslation: true,
       },
     });
@@ -125,6 +134,86 @@ Only text`);
 2
 00:00:03,000 --> 00:00:04,000
 Content`);
+  });
+
+  it('exports only translation when original language is disabled', () => {
+    const useCase = new ExportTranscriptionUseCase({
+      transcription: buildTranscription(),
+      regions: [
+        buildRegion({ regionText: 'Original text', translation: 'Translated text', start: 0, end: 1 }),
+      ],
+      options: {
+        includeRegionNumbers: true,
+        includeTimestamps: true,
+        includeOriginalLanguage: false,
+        includeTranslation: true,
+      },
+    });
+
+    const { content, filename } = useCase.execute();
+
+    expect(filename).toBe('original-file.srt');
+    expect(content).toBe(`1
+00:00:00,000 --> 00:00:01,000
+Translated text`);
+  });
+
+  it('exports only original language when translation is disabled', () => {
+    const useCase = new ExportTranscriptionUseCase({
+      transcription: buildTranscription(),
+      regions: [
+        buildRegion({ regionText: 'Original text', translation: 'Translated text', start: 0, end: 1 }),
+      ],
+      options: {
+        includeRegionNumbers: true,
+        includeTimestamps: true,
+        includeOriginalLanguage: true,
+        includeTranslation: false,
+      },
+    });
+
+    const { content, filename } = useCase.execute();
+
+    expect(filename).toBe('original-file.srt');
+    expect(content).toBe(`1
+00:00:00,000 --> 00:00:01,000
+Original text`);
+  });
+
+  it('uses .txt extension when region numbers are disabled', () => {
+    const useCase = new ExportTranscriptionUseCase({
+      transcription: buildTranscription(),
+      regions: [buildRegion({ regionText: 'Test', start: 0, end: 1 })],
+      options: {
+        includeRegionNumbers: false,
+        includeTimestamps: true,
+        includeOriginalLanguage: true,
+        includeTranslation: false,
+      },
+    });
+
+    const { filename, content } = useCase.execute();
+
+    expect(filename).toBe('original-file.txt');
+    expect(content).toBe(`00:00:00,000 --> 00:00:01,000
+Test`);
+  });
+
+  it('uses .srt extension when both region numbers and timestamps are enabled', () => {
+    const useCase = new ExportTranscriptionUseCase({
+      transcription: buildTranscription(),
+      regions: [buildRegion({ regionText: 'Test', start: 0, end: 1 })],
+      options: {
+        includeRegionNumbers: true,
+        includeTimestamps: true,
+        includeOriginalLanguage: true,
+        includeTranslation: false,
+      },
+    });
+
+    const { filename } = useCase.execute();
+
+    expect(filename).toBe('original-file.srt');
   });
 });
 
