@@ -42,7 +42,7 @@ describe('SpellCheckerService', () => {
   describe('check', () => {
     it('should return empty arrays for empty input', async () => {
       const result = await spellCheckerService.check([]);
-      expect(result).toEqual({ known: [], unknown: [] });
+      expect(result).toEqual({ known: [], unknown: [], suggestions: [] });
       expect(mockPost).not.toHaveBeenCalled();
     });
 
@@ -188,16 +188,51 @@ describe('SpellCheckerService', () => {
       });
 
       expect(result.known).toEqual(expect.arrayContaining([
-        expect.objectContaining({ word: 'itwêw', analysis: '', allAnalysis: [] }), // From cache - no analysis
+        expect.objectContaining({ word: 'itwêw', analysis: 'data', allAnalysis: ['data'] }), // From cache - preserves full analysis
         expect.objectContaining({ word: 'êkwa', analysis: 'data', allAnalysis: ['data'] }) // Fresh from API
       ]));
       expect(result.unknown).toEqual(['hello', 'world']);
     });
 
+    it('should preserve full analysis data in cache for subsequent requests', async () => {
+      const mockResponse = {
+        'ôma': ['ôma+Ipc', 'ôma+Pron+Dem+Prox+I+Sg'],
+        'pitamâ': ['pitamâ+Ipc']
+      };
+
+      const mockRestOperation = {
+        response: {
+          body: {
+            json: () => Promise.resolve(mockResponse)
+          }
+        }
+      };
+
+      mockPost.mockReturnValueOnce(mockRestOperation);
+
+      // First call - should hit API
+      const result1 = await spellCheckerService.check(['ôma', 'pitamâ']);
+      expect(mockPost).toHaveBeenCalledTimes(1);
+      expect(result1.known).toEqual([
+        { word: 'ôma', analysis: 'ôma+Ipc', allAnalysis: ['ôma+Ipc', 'ôma+Pron+Dem+Prox+I+Sg'] },
+        { word: 'pitamâ', analysis: 'pitamâ+Ipc', allAnalysis: ['pitamâ+Ipc'] }
+      ]);
+
+      // Second call with same words - should use cache and PRESERVE full analysis
+      const result2 = await spellCheckerService.check(['ôma', 'pitamâ']);
+      expect(mockPost).toHaveBeenCalledTimes(1); // No additional API call
+
+      // CRITICAL: Cached words should retain their full analysis data
+      expect(result2.known).toEqual([
+        { word: 'ôma', analysis: 'ôma+Ipc', allAnalysis: ['ôma+Ipc', 'ôma+Pron+Dem+Prox+I+Sg'] },
+        { word: 'pitamâ', analysis: 'pitamâ+Ipc', allAnalysis: ['pitamâ+Ipc'] }
+      ]);
+    });
+
     it('should handle API errors gracefully', async () => {
       mockPost.mockImplementationOnce(() => Promise.reject(new Error('Network error')));
 
-      await expect(spellCheckerService.check(['itwêw', 'hello'])).resolves.toEqual({ known: [], unknown: ['itwêw', 'hello'] });
+      await expect(spellCheckerService.check(['itwêw', 'hello'])).resolves.toEqual({ known: [], unknown: ['itwêw', 'hello'], suggestions: [] });
     });
 
     it('should deduplicate identical concurrent requests', async () => {
@@ -277,6 +312,157 @@ describe('SpellCheckerService', () => {
       const knownWords = spellCheckerService.getKnownWords();
       expect(knownWords).toContain('itwêw');
       expect(knownWords).toContain('êkwa');
+    });
+  });
+
+  describe('analyzeRegionText', () => {
+    let globalKnownWords: Map<string, any>;
+
+    beforeEach(() => {
+      // Create a global known words map
+      globalKnownWords = new Map();
+      globalKnownWords.set('isi', { 
+        word: 'isi', 
+        analysis: 'isi+Ipc', 
+        allAnalysis: ['itêw+V+TA+Imp+Imm+2Sg+3SgO', 'isi+Ipc'] 
+      });
+      globalKnownWords.set('foo', { 
+        word: 'foo', 
+        analysis: 'foo+N', 
+        allAnalysis: ['foo+N'] 
+      });
+    });
+
+    it('should create one WordAnalysis entry per word occurrence', async () => {
+      const regionText = 'foo isi and another isi';
+      const existingAnalysis: any[] = [];
+
+      const result = await spellCheckerService.analyzeRegionText(regionText, 'crk', globalKnownWords, existingAnalysis);
+
+      // Should have 3 entries for known words: foo, isi, isi
+      // ('and' and 'another' are not in globalKnownWords)
+      expect(result.analysis).toHaveLength(3);
+      
+      // Check that we have two separate 'isi' entries with different indices
+      const isiEntries = result.analysis.filter(item => item.word === 'isi');
+      expect(isiEntries).toHaveLength(2);
+      expect(isiEntries[0].index).toBe(1); // First 'isi' is at word index 1
+      expect(isiEntries[1].index).toBe(4); // Second 'isi' is at word index 4
+    });
+
+    it('should set source to "auto" for new words from global cache', async () => {
+      const regionText = 'isi foo';
+      const existingAnalysis: any[] = [];
+
+      const result = await spellCheckerService.analyzeRegionText(regionText, 'crk', globalKnownWords, existingAnalysis);
+
+      expect(result.analysis).toHaveLength(2);
+      expect(result.analysis[0]).toMatchObject({
+        word: 'isi',
+        source: 'auto',
+        index: 0
+      });
+      expect(result.analysis[1]).toMatchObject({
+        word: 'foo',
+        source: 'auto',
+        index: 1
+      });
+    });
+
+    it('should preserve source "user" from existing analysis', async () => {
+      const regionText = 'isi foo isi';
+      const existingAnalysis = [
+        { word: 'isi', analysis: 'itêw+V+TA+Imp+Imm+2Sg+3SgO', allAnalysis: ['itêw+V+TA+Imp+Imm+2Sg+3SgO', 'isi+Ipc'], source: 'user' as const, index: 0 },
+        { word: 'foo', analysis: 'foo+N', allAnalysis: ['foo+N'], source: 'auto' as const, index: 1 },
+        { word: 'isi', analysis: 'isi+Ipc', allAnalysis: ['itêw+V+TA+Imp+Imm+2Sg+3SgO', 'isi+Ipc'], source: 'auto' as const, index: 2 }
+      ];
+
+      const result = await spellCheckerService.analyzeRegionText(regionText, 'crk', globalKnownWords, existingAnalysis);
+
+      expect(result.analysis).toHaveLength(3);
+      
+      // First 'isi' should preserve 'user' source
+      expect(result.analysis[0]).toMatchObject({
+        word: 'isi',
+        source: 'user',
+        analysis: 'itêw+V+TA+Imp+Imm+2Sg+3SgO',
+        index: 0
+      });
+      
+      // Second 'foo' should preserve 'auto' source
+      expect(result.analysis[1]).toMatchObject({
+        word: 'foo',
+        source: 'auto',
+        index: 1
+      });
+      
+      // Third 'isi' should preserve 'auto' source
+      expect(result.analysis[2]).toMatchObject({
+        word: 'isi',
+        source: 'auto',
+        index: 2
+      });
+    });
+
+    it('should handle duplicate words with different user selections', async () => {
+      const regionText = 'isi isi isi';
+      const existingAnalysis = [
+        { word: 'isi', analysis: 'itêw+V+TA+Imp+Imm+2Sg+3SgO', allAnalysis: ['itêw+V+TA+Imp+Imm+2Sg+3SgO', 'isi+Ipc'], source: 'user' as const, index: 0 },
+        { word: 'isi', analysis: 'isi+Ipc', allAnalysis: ['itêw+V+TA+Imp+Imm+2Sg+3SgO', 'isi+Ipc'], source: 'auto' as const, index: 1 },
+        { word: 'isi', analysis: 'isi+Ipc', allAnalysis: ['itêw+V+TA+Imp+Imm+2Sg+3SgO', 'isi+Ipc'], source: 'user' as const, index: 2 }
+      ];
+
+      const result = await spellCheckerService.analyzeRegionText(regionText, 'crk', globalKnownWords, existingAnalysis);
+
+      expect(result.analysis).toHaveLength(3);
+      
+      // First 'isi' - user selected first analysis
+      expect(result.analysis[0]).toMatchObject({
+        word: 'isi',
+        source: 'user',
+        analysis: 'itêw+V+TA+Imp+Imm+2Sg+3SgO',
+        index: 0
+      });
+      
+      // Second 'isi' - auto selected
+      expect(result.analysis[1]).toMatchObject({
+        word: 'isi',
+        source: 'auto',
+        analysis: 'isi+Ipc',
+        index: 1
+      });
+      
+      // Third 'isi' - user selected second analysis
+      expect(result.analysis[2]).toMatchObject({
+        word: 'isi',
+        source: 'user',
+        analysis: 'isi+Ipc',
+        index: 2
+      });
+    });
+
+    it('should not carry over source from one region to another', async () => {
+      // Create a global cache with a user-selected word
+      const globalWithUserSelection = new Map(globalKnownWords);
+      globalWithUserSelection.set('test', {
+        word: 'test',
+        analysis: 'test+N',
+        allAnalysis: ['test+N', 'test+V'],
+        source: 'user'
+      });
+
+      const regionText = 'test';
+      const existingAnalysis: any[] = [];
+
+      const result = await spellCheckerService.analyzeRegionText(regionText, 'crk', globalWithUserSelection, existingAnalysis);
+
+      expect(result.analysis).toHaveLength(1);
+      // Should be 'auto' in new region, not 'user'
+      expect(result.analysis[0]).toMatchObject({
+        word: 'test',
+        source: 'auto',
+        index: 0
+      });
     });
   });
 }); 

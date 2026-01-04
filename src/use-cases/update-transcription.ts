@@ -121,14 +121,7 @@ export class UpdateTranscriptionUseCase {
     
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        console.debug(`📝 Attempting to save transcription (attempt ${attempt}/${maxRetries})`);
-        
         const result = await services.transcriptionService.updateTranscription(transcriptionId, apiUpdate);
-        
-        if (attempt > 1) {
-          console.debug(`✅ Transcription saved successfully on attempt ${attempt}`);
-        }
-        
         return result;
       } catch (error) {
         lastError = error as Error;
@@ -145,13 +138,13 @@ export class UpdateTranscriptionUseCase {
         
         if (isConflict && attempt < maxRetries) {
           const waitTime = attempt * 100; // 100ms, 200ms, 300ms
-          console.warn(`⚠️ Transcription version conflict on attempt ${attempt}, retrying in ${waitTime}ms...`);
+          console.warn(`Transcription version conflict on attempt ${attempt}, retrying in ${waitTime}ms...`);
           await new Promise(resolve => setTimeout(resolve, waitTime));
           continue;
         }
         
         // If not a conflict or we've exhausted retries, throw the error
-        console.error(`❌ Failed to save transcription after ${attempt} attempts:`, error);
+        console.error(`Failed to save transcription after ${attempt} attempts:`, error);
         throw error;
       }
     }

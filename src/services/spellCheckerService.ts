@@ -1,9 +1,10 @@
 import { post } from 'aws-amplify/api';
-import type { WordAnalysis, SpellCheckResult } from './adt';
+import type { WordAnalysis, SpellCheckResult, SpellingSuggestion } from './adt';
 
 class SpellCheckerServiceImpl {
-  private knownWordsCache = new Set<string>();
+  private knownWordsCache = new Map<string, WordAnalysis>(); // Cache full analysis by word
   private unknownWordsCache = new Set<string>();
+  private suggestionsCache = new Map<string, string[]>(); // Cache suggestions by misspelled word
   private pendingRequests = new Map<string, Promise<SpellCheckResult>>();
 
   /**
@@ -12,7 +13,7 @@ class SpellCheckerServiceImpl {
    */
   async check(words: string[], languageCode: string = 'crk'): Promise<SpellCheckResult> {
     if (words.length === 0) {
-      return { known: [], unknown: [] };
+      return { known: [], unknown: [], suggestions: [] };
     }
 
     // Filter out words we already know about
@@ -21,15 +22,11 @@ class SpellCheckerServiceImpl {
     );
 
     if (unknownWords.length === 0) {
-      // Return cached results - words in cache get empty analysis
+      // Return cached results with full analysis data
       return {
         known: words
           .filter(word => this.knownWordsCache.has(word))
-          .map(word => ({
-            word,
-            analysis: '',
-            allAnalysis: []
-          })),
+          .map(word => this.knownWordsCache.get(word)!),
         unknown: words.filter(word => this.unknownWordsCache.has(word))
       };
     }
@@ -50,8 +47,8 @@ class SpellCheckerServiceImpl {
     try {
       const result = await promise;
       
-      // Update caches
-      result.known.forEach(item => this.knownWordsCache.add(item.word));
+      // Update caches with full analysis data
+      result.known.forEach(item => this.knownWordsCache.set(item.word, item));
       result.unknown.forEach(word => this.unknownWordsCache.add(word));
 
       return this.combineWithCached(words, result);
@@ -75,30 +72,64 @@ class SpellCheckerServiceImpl {
         }
       });
       const res = await response;
-      const result = await res.body.json() as Record<string, string[]>;
+      const result = await res.body.json() as Record<string, string[] | { word: string; analysis: string }[]>;
       
       // Parse API response - keys are words, values are arrays of analyses
       const known: WordAnalysis[] = [];
       const unknown: string[] = [];
+      const suggestions: SpellingSuggestion[] = [];
+
+      // Extract _suggestions if present and cache them
+      // Format can be either:
+      // - { misspelledWord: "suggestion" } (single string)
+      // - { misspelledWord: ["suggestion1", "suggestion2"] } (array)
+      if ('_suggestions' in result && result._suggestions) {
+        const suggestionsData = result._suggestions;
+        if (typeof suggestionsData === 'object' && suggestionsData !== null && !Array.isArray(suggestionsData)) {
+          for (const [misspelledWord, suggestionValue] of Object.entries(suggestionsData)) {
+            // Handle both string and array formats
+            if (typeof suggestionValue === 'string' && suggestionValue.length > 0) {
+              const allSuggestions = [suggestionValue];
+              suggestions.push({
+                word: misspelledWord,
+                allSuggestions,
+              });
+              // Cache the suggestions for this word
+              this.suggestionsCache.set(misspelledWord, allSuggestions);
+            } else if (Array.isArray(suggestionValue) && suggestionValue.length > 0) {
+              const allSuggestions = suggestionValue as string[];
+              suggestions.push({
+                word: misspelledWord,
+                allSuggestions,
+              });
+              // Cache the suggestions for this word
+              this.suggestionsCache.set(misspelledWord, allSuggestions);
+            }
+          }
+        }
+      }
 
       for (const word of words) {
         const analyses = result[word];
         if (analyses && Array.isArray(analyses) && analyses.length > 0) {
-          known.push({
-            word,
-            analysis: analyses[0],  // Use first analysis as primary
-            allAnalysis: analyses   // Keep all for potential user selection
-          });
+          // Check if this is an array of strings (analyses) or objects (shouldn't happen for word keys)
+          if (typeof analyses[0] === 'string') {
+            known.push({
+              word,
+              analysis: analyses[0] as string,  // Use first analysis as primary
+              allAnalysis: analyses as string[]   // Keep all for potential user selection
+            });
+          }
         } else {
           unknown.push(word);
         }
       }
 
-      return { known, unknown };
+      return { known, unknown, suggestions };
     } catch (error) {
       console.error('Spell check API error:', error);
-      // On error, treat all words as unknown to avoid false positives
-      return { known: [], unknown: words };
+      // On error, treat all words as unknown to avoid false substitution
+      return { known: [], unknown: words, suggestions: [] };
     }
   }
 
@@ -114,13 +145,9 @@ class SpellCheckerServiceImpl {
         continue;
       }
       
-      // Check if in known cache
+      // Check if in known cache - return full analysis data
       if (this.knownWordsCache.has(word)) {
-        known.push({
-          word,
-          analysis: '',
-          allAnalysis: []
-        });
+        known.push(this.knownWordsCache.get(word)!);
         continue;
       }
       
@@ -130,15 +157,19 @@ class SpellCheckerServiceImpl {
       }
     }
 
-    return { known, unknown };
+    // Preserve suggestions from API result
+    return { known, unknown, suggestions: apiResult.suggestions };
   }
 
   /**
    * Add words to known cache (useful for loading saved analysis)
    */
   addKnownWords(words: WordAnalysis[]): void {
-    words.forEach(word => {
-      this.knownWordsCache.add(word.word);
+    words.forEach(wordAnalysis => {
+      // Only cache complete analysis (with non-empty analysis field)
+      if (wordAnalysis.word && wordAnalysis.analysis && wordAnalysis.allAnalysis?.length > 0) {
+        this.knownWordsCache.set(wordAnalysis.word, wordAnalysis);
+      }
     });
   }
 
@@ -146,7 +177,7 @@ class SpellCheckerServiceImpl {
    * Get current known words (for debugging)
    */
   getKnownWords(): string[] {
-    return Array.from(this.knownWordsCache);
+    return Array.from(this.knownWordsCache.keys());
   }
 
   /**
@@ -155,6 +186,7 @@ class SpellCheckerServiceImpl {
   clearCache(): void {
     this.knownWordsCache.clear();
     this.unknownWordsCache.clear();
+    this.suggestionsCache.clear();
     this.pendingRequests.clear();
   }
 
@@ -191,11 +223,11 @@ class SpellCheckerServiceImpl {
     languageCode: string,
     globalKnownWords: Map<string, WordAnalysis>,
     existingAnalysis: WordAnalysis[] = []
-  ): Promise<{ analysis: WordAnalysis[]; newlyKnown: WordAnalysis[] }> {
+  ): Promise<{ analysis: WordAnalysis[]; newlyKnown: WordAnalysis[]; suggestions: SpellingSuggestion[] }> {
     // Tokenize
     const words = this.tokenize(text);
     if (words.length === 0) {
-      return { analysis: [], newlyKnown: [] };
+      return { analysis: [], newlyKnown: [], suggestions: [] };
     }
     
     // Build a map of existing analysis by word for fast lookup
@@ -228,15 +260,36 @@ class SpellCheckerServiceImpl {
     
     // Get fresh analysis from API for unknown words only
     const freshAnalysis: WordAnalysis[] = [];
+    const suggestions: SpellingSuggestion[] = [];
     if (unknownUniqueWords.length > 0) {
       try {
         const result = await this.check(unknownUniqueWords, languageCode);
-        
+
         if (result.known.length > 0) {
           freshAnalysis.push(...result.known);
         }
+
+        // Extract suggestions for unknown words
+        if (result.suggestions && result.suggestions.length > 0) {
+          suggestions.push(...result.suggestions);
+        }
       } catch (error) {
         console.error('Spell check API error during region analysis:', error);
+      }
+    }
+
+    // Also include cached suggestions for ALL unknown words in current text
+    // This preserves suggestions for words that were checked in previous calls
+    const wordsWithSuggestions = new Set(suggestions.map(s => s.word));
+    for (const word of uniqueWords) {
+      // If word is unknown and has cached suggestions we haven't already included
+      if (this.unknownWordsCache.has(word) &&
+          this.suggestionsCache.has(word) &&
+          !wordsWithSuggestions.has(word)) {
+        suggestions.push({
+          word,
+          allSuggestions: this.suggestionsCache.get(word)!
+        });
       }
     }
     
@@ -244,27 +297,61 @@ class SpellCheckerServiceImpl {
     // 1. Fresh analysis from API (highest priority)
     // 2. Global cache (has full WordAnalysis objects)
     // 3. Existing region analysis (fallback)
+    //
+    // IMPORTANT: Create ONE entry per occurrence (not per unique word)
+    // This allows each instance of a duplicate word to have its own user selection
     const mergedAnalysis: WordAnalysis[] = [];
     const freshAnalysisMap = new Map(freshAnalysis.map(item => [item.word, item]));
     
-    uniqueWords.forEach(word => {
+    // Build map of existing analysis by word AND index for duplicate word handling
+    const existingByWordAndIndex = new Map<string, WordAnalysis>();
+    if (Array.isArray(existingAnalysis)) {
+      existingAnalysis.forEach((item, idx) => {
+        if (typeof item === 'object' && item !== null && 'word' in item) {
+          const analysis = item as WordAnalysis;
+          if (analysis.word && analysis.analysis && analysis.allAnalysis?.length > 0) {
+            existingByWordAndIndex.set(`${analysis.word}-${idx}`, analysis);
+          }
+        }
+      });
+    }
+    
+    // Iterate over ALL words (including duplicates) to create one entry per occurrence
+    words.forEach((word, index) => {
+      const existingKey = `${word}-${index}`;
+      const existingEntry = existingByWordAndIndex.get(existingKey);
+      
       if (freshAnalysisMap.has(word)) {
         // 1. Fresh analysis from API takes highest priority
-        mergedAnalysis.push(freshAnalysisMap.get(word)!);
+        // Always mark as 'auto' since this is fresh from the API
+        const fresh = freshAnalysisMap.get(word)!;
+        mergedAnalysis.push({
+          ...fresh,
+          source: 'auto',
+          index
+        });
+      } else if (existingEntry) {
+        // 2. Preserve existing analysis for this specific occurrence (including user selections)
+        mergedAnalysis.push({
+          ...existingEntry,
+          index
+        });
       } else if (globalKnownWords.has(word)) {
-        // 2. Get full analysis from global cache
+        // 3. Get full analysis from global cache (new occurrence of a known word)
         const cachedAnalysis = globalKnownWords.get(word)!;
-        mergedAnalysis.push(cachedAnalysis);
-      } else if (existingAnalysisMap.has(word)) {
-        // 3. Fallback to existing region analysis
-        mergedAnalysis.push(existingAnalysisMap.get(word)!);
+        mergedAnalysis.push({
+          ...cachedAnalysis,
+          source: 'auto',
+          index
+        });
       }
       // If none of the above, skip (unknown word with no analysis)
     });
     
     return {
       analysis: mergedAnalysis,
-      newlyKnown: freshAnalysis
+      newlyKnown: freshAnalysis,
+      suggestions: suggestions
     };
   }
 }

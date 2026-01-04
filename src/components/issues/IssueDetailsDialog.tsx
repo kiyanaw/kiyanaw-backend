@@ -6,6 +6,7 @@ import { useCreateComment } from '../../hooks/useCreateComment';
 import { useDeleteComment } from '../../hooks/useDeleteComment';
 import { canComment, canDeleteComment, canDeleteIssue, canResolveIssue } from '../../lib/permissions';
 import type { CommentData } from '../../services/adt';
+import { ISSUE_TYPES } from '../../services/adt';
 
 interface IssueDetailsDialogProps {
   issueId: string;
@@ -17,9 +18,9 @@ interface IssueDetailsDialogProps {
 }
 
 const issueTypes = [
-  { value: 'needs-help', label: 'Needs Help', color: '#dc2626', bgColor: '#ffe6e6' },
-  { value: 'indexing', label: 'Indexing', color: '#d97706', bgColor: '#fff9e6' },
-  { value: 'new-word', label: 'New Word', color: '#166534', bgColor: '#f0fdf4' },
+  { value: ISSUE_TYPES.NEEDS_HELP, label: 'Needs Help', color: '#dc2626', bgColor: '#ffe6e6' },
+  { value: ISSUE_TYPES.INDEXING, label: 'Indexing', color: '#d97706', bgColor: '#fff9e6' },
+  { value: ISSUE_TYPES.NEW_WORD, label: 'New Word', color: '#166534', bgColor: '#f0fdf4' },
 ] as const;
 
 export const IssueDetailsDialog = ({

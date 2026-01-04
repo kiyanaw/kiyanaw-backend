@@ -95,6 +95,7 @@ describe('useExportTranscription', () => {
         options: {
           includeRegionNumbers: true,
           includeTimestamps: true,
+          includeOriginalLanguage: true,
           includeTranslation: true,
         },
       });
@@ -106,6 +107,7 @@ describe('useExportTranscription', () => {
       options: {
         includeRegionNumbers: true,
         includeTimestamps: true,
+        includeOriginalLanguage: true,
         includeTranslation: true,
       },
     });
@@ -143,6 +145,7 @@ describe('useExportTranscription', () => {
           options: {
             includeRegionNumbers: false,
             includeTimestamps: false,
+            includeOriginalLanguage: false,
             includeTranslation: false,
           },
         });

@@ -54,8 +54,7 @@ const mockServices = {
   },
   rteService: {
     hasEditor: jest.fn(),
-    applyHighlighting: jest.fn(),
-    applyKnownWordsFormatting: jest.fn()
+    queueHighlightingUpdate: jest.fn(),
   },
   userService: {
     currentUser: jest.fn()
@@ -377,7 +376,7 @@ describe('SubscribeToIssueChangesUseCase', () => {
     });
 
     describe('RTE highlighting refresh', () => {
-      it('should use applyHighlighting when available', async () => {
+      it('should use queueHighlightingUpdate when available', async () => {
         const mockIssues = [mockIssue];
         mockServices.storeService.getIssuesForRegion.mockReturnValue(mockIssues);
 
@@ -388,11 +387,11 @@ describe('SubscribeToIssueChangesUseCase', () => {
 
         await subscriptionCallback(event);
 
-        expect(mockServices.rteService.applyHighlighting).toHaveBeenCalledWith('region-1:main', {
+        expect(mockServices.rteService.queueHighlightingUpdate).toHaveBeenCalledWith('region-1:main', {
           knownWords: ['test', 'text'],
           issues: expect.any(Array)
         });
-        expect(mockServices.rteService.applyHighlighting).toHaveBeenCalledWith('region-1:translation', {
+        expect(mockServices.rteService.queueHighlightingUpdate).toHaveBeenCalledWith('region-1:translation', {
           knownWords: ['test', 'text'],
           issues: expect.any(Array)
         });
@@ -411,8 +410,7 @@ describe('SubscribeToIssueChangesUseCase', () => {
         await subscriptionCallback(event);
 
         // Should not call any highlighting methods
-        expect(mockServices.rteService.applyHighlighting).not.toHaveBeenCalled();
-        expect(mockServices.rteService.applyKnownWordsFormatting).not.toHaveBeenCalled();
+        expect(mockServices.rteService.queueHighlightingUpdate).not.toHaveBeenCalled();
       });
 
       it('should handle missing region gracefully', async () => {
@@ -427,7 +425,7 @@ describe('SubscribeToIssueChangesUseCase', () => {
 
         // Should still call addNewIssue but skip highlighting
         expect(mockServices.storeService.addNewIssue).toHaveBeenCalledWith(mockIssue);
-        expect(mockServices.rteService.applyHighlighting).not.toHaveBeenCalled();
+        expect(mockServices.rteService.queueHighlightingUpdate).not.toHaveBeenCalled();
       });
     });
 
@@ -472,7 +470,7 @@ describe('SubscribeToIssueChangesUseCase', () => {
 
         await subscriptionCallback(event);
 
-        expect(mockServices.rteService.applyHighlighting).toHaveBeenCalledWith('region-1:main', {
+        expect(mockServices.rteService.queueHighlightingUpdate).toHaveBeenCalledWith('region-1:main', {
           knownWords: [],
           issues: expect.any(Array)
         });

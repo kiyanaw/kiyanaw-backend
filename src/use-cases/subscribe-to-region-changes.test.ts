@@ -60,8 +60,7 @@ const mockServices = {
   rteService: {
     hasEditor: jest.fn(),
     setContent: jest.fn(),
-    applyKnownWordsFormatting: jest.fn(),
-    applyHighlighting: jest.fn()
+    queueHighlightingUpdate: jest.fn()
   },
   conflictDetectionService: {
     detectConflict: jest.fn()
@@ -411,7 +410,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
         expect(mockServices.storeService.setRegionText).toHaveBeenCalledWith('region-1', 'new text');
         expect(mockServices.rteService.hasEditor).toHaveBeenCalledWith('region-1:main');
         expect(mockServices.rteService.setContent).toHaveBeenCalledWith('region-1:main', 'new text');
-        expect(mockServices.rteService.applyHighlighting).toHaveBeenCalledWith('region-1:main', {
+        expect(mockServices.rteService.queueHighlightingUpdate).toHaveBeenCalledWith('region-1:main', {
           knownWords: ['word1'], // From region's own analysis
           issues: []
         });
@@ -442,7 +441,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
 
         // Should highlight ONLY word1 from regionAnalysis, NOT all words from cache
         // This makes it visually clear which words have been analyzed for this specific region
-        expect(mockServices.rteService.applyHighlighting).toHaveBeenCalledWith('region-1:main', {
+        expect(mockServices.rteService.queueHighlightingUpdate).toHaveBeenCalledWith('region-1:main', {
           knownWords: ['word1'], // Only from region's own analysis
           issues: []
         });
@@ -1255,8 +1254,8 @@ describe('SubscribeToRegionChangesUseCase', () => {
           expect(mockServices.rteService.hasEditor).toHaveBeenCalledWith('region-1:main');
           expect(mockServices.rteService.setContent).toHaveBeenCalledWith('region-1:main', 'remote text with known words');
           
-          // Known words formatting should be reapplied via applyHighlighting (from region's own analysis)
-          expect(mockServices.rteService.applyHighlighting).toHaveBeenCalledWith('region-1:main', {
+          // Known words formatting should be reapplied via queueHighlightingUpdate (from region's own analysis)
+          expect(mockServices.rteService.queueHighlightingUpdate).toHaveBeenCalledWith('region-1:main', {
             knownWords: ['known', 'words'], // Only from region's own analysis
             issues: []
           });
@@ -1282,8 +1281,8 @@ describe('SubscribeToRegionChangesUseCase', () => {
           expect(mockServices.rteService.hasEditor).toHaveBeenCalledWith('region-1:translation');
           expect(mockServices.rteService.setContent).toHaveBeenCalledWith('region-1:translation', 'remote translation with known words');
           
-          // Known words formatting should be reapplied via applyHighlighting (from region's own analysis)
-          expect(mockServices.rteService.applyHighlighting).toHaveBeenCalledWith('region-1:translation', {
+          // Known words formatting should be reapplied via queueHighlightingUpdate (from region's own analysis)
+          expect(mockServices.rteService.queueHighlightingUpdate).toHaveBeenCalledWith('region-1:translation', {
             knownWords: ['known', 'words'], // Only from region's own analysis
             issues: []
           });
@@ -1307,7 +1306,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
           
           // Should show NO highlighting since region has no analysis
           // This makes it visually clear that this region needs to be analyzed
-          expect(mockServices.rteService.applyHighlighting).toHaveBeenCalledWith('region-1:main', {
+          expect(mockServices.rteService.queueHighlightingUpdate).toHaveBeenCalledWith('region-1:main', {
             knownWords: [], // No analysis in region
             issues: []
           });
@@ -1340,8 +1339,8 @@ describe('SubscribeToRegionChangesUseCase', () => {
           expect(mockServices.rteService.hasEditor).toHaveBeenCalledWith('region-1:translation');
           expect(mockServices.rteService.setContent).toHaveBeenCalledWith('region-1:translation', 'remote translation change');
           
-          // Known words formatting should be reapplied to translation RTE via applyHighlighting
-          expect(mockServices.rteService.applyHighlighting).toHaveBeenCalledWith('region-1:translation', {
+          // Known words formatting should be reapplied to translation RTE via queueHighlightingUpdate
+          expect(mockServices.rteService.queueHighlightingUpdate).toHaveBeenCalledWith('region-1:translation', {
             knownWords: ['test', 'words'], // Only from region's own analysis
             issues: []
           });
@@ -1364,7 +1363,6 @@ describe('SubscribeToRegionChangesUseCase', () => {
           
           // RTE should not be updated
           expect(mockServices.rteService.setContent).not.toHaveBeenCalled();
-          expect(mockServices.rteService.applyKnownWordsFormatting).not.toHaveBeenCalled();
         });
       });
     });

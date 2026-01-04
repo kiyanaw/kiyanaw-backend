@@ -1,5 +1,5 @@
 import { useEditorStore } from '../stores/useEditorStore';
-import type { RegionData, IssueData, CommentData, WordAnalysis } from './adt';
+import type { RegionData, IssueData, CommentData, WordAnalysis, SpellingSuggestion } from './adt';
 import type { ConflictDetail } from './conflictDetectionService';
 import type { LazyRegion } from '../models';
 
@@ -13,6 +13,10 @@ export const storeService = {
   // Region analysis operations
   setRegionAnalysis: (regionId: string, analysis: WordAnalysis[]): void => {
     useEditorStore.getState().setRegionAnalysis(regionId, analysis);
+  },
+  
+  setRegionSuggestions: (regionId: string, suggestions: SpellingSuggestion[]): void => {
+    useEditorStore.getState().setRegionSuggestions(regionId, suggestions);
   },
 
   // Transcription access

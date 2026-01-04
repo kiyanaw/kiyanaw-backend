@@ -2,7 +2,8 @@ import WaveSurfer from 'wavesurfer.js';
 import Regions from 'wavesurfer.js/dist/plugins/regions.esm.js';
 import Timeline from 'wavesurfer.js/dist/plugins/timeline.esm.js';
 import mitt from 'mitt';
-import { generateSignedUrl } from './transcriptionService';
+import { generateSignedUrl, getSignedUrlExpirationTime } from './transcriptionService';
+import { useEditorStore } from '../stores/useEditorStore';
 import { FLASH_CONFIG } from './flashIndicatorService';
 
 // Type definitions for WaveSurfer service
@@ -206,12 +207,10 @@ class WaveSurferService {
       
       if (isNetworkError && looksLike403) {
         // Check if signed URL has expired
-        const { getSignedUrlExpirationTime } = await import('./transcriptionService');
         const expirationTime = getSignedUrlExpirationTime();
-        
+
         if (expirationTime && Date.now() >= expirationTime) {
           // Signed URL has expired - show dialog
-          const { useEditorStore } = await import('../stores/useEditorStore');
           useEditorStore.getState().setShowExpiredCredentialsDialog(true);
         }
       }

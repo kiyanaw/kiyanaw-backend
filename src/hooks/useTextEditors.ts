@@ -40,14 +40,16 @@ export const useTextEditors = (regionId: string, activeTab: 'main' | 'translatio
       rteService.setContent(mainEditorKey, currentRegion.regionText);
     }
 
-    // Always run matching/highlighting on attach to compute link statuses
-    rteService.updateIssueHighlighting(regionId);
+    // Note: highlighting is now automatic via rteService's store subscription
+    // attach() method triggers initial highlighting
 
     // Set up text change listener only if user can edit
     if (canEdit) {
       // Track text selection changes
       rteService.onSelectionChange(mainEditorKey, (range) => {
         const store = useEditorStore.getState();
+        
+        // Handle text selection for creating issues
         if (range && range.length > 0) {
           const selectedText = rteService.getSelectedText(mainEditorKey);
           if (selectedText && selectedText.trim().length > 0) {
@@ -61,6 +63,21 @@ export const useTextEditors = (regionId: string, activeTab: 'main' | 'translatio
           }
         } else {
           store.setRegionSelection(regionId, null);
+        }
+        
+        // Handle cursor position for showing analysis
+        if (range) {
+          const wordAtCursor = rteService.getWordAt(mainEditorKey, range.index);
+          if (wordAtCursor && wordAtCursor.trim().length > 0) {
+            store.setRegionCursorWord(regionId, {
+              word: wordAtCursor.trim(),
+              index: range.index
+            });
+          } else {
+            store.setRegionCursorWord(regionId, null);
+          }
+        } else {
+          store.setRegionCursorWord(regionId, null);
         }
       });
 
@@ -88,7 +105,6 @@ export const useTextEditors = (regionId: string, activeTab: 'main' | 'translatio
         if (!services.storeService.isPendingEdit(regionId, 'regionText')) {
           // Start new pending edit
           services.storeService.startPendingEdit(regionId, 'regionText');
-          console.log('🟡 Started pending edit for region:', regionId, 'field: regionText');
         } else {
           // Update existing pending edit activity
           services.storeService.updatePendingEditActivity(regionId, 'regionText');
@@ -97,11 +113,9 @@ export const useTextEditors = (regionId: string, activeTab: 'main' | 'translatio
         // Update store immediately for UI responsiveness
         services.storeService.setRegionText(regionId, text);
 
-        // IMMEDIATELY apply highlighting and run issue matching detection
-        // This solves format inheritance and word splitting issues
-        rteService.updateIssueHighlighting(regionId);
-
-        // Queue through save manager (handles spell check + save)
+        // Queue through save manager (handles spell check + save + highlighting)
+        // The save manager will handle all highlighting updates (known words, ambiguous words, issues)
+        // after spell check completes to avoid race conditions
         regionSaveManager.queueTextChange(regionId, text);
       });
     }
@@ -145,7 +159,6 @@ export const useTextEditors = (regionId: string, activeTab: 'main' | 'translatio
         if (!services.storeService.isPendingEdit(regionId, 'translation')) {
           // Start new pending edit
           services.storeService.startPendingEdit(regionId, 'translation');
-          console.log('🟡 Started pending edit for region:', regionId, 'field: translation');
         } else {
           // Update existing pending edit activity
           services.storeService.updatePendingEditActivity(regionId, 'translation');

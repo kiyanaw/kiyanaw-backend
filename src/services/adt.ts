@@ -38,6 +38,7 @@ export interface RegionData {
   userLastUpdated?: string;
   index?: number;
   regionAnalysis?: WordAnalysis[]; // Array of detailed word analysis
+  regionSuggestions?: SpellingSuggestion[]; // Array of spelling suggestions for misspelled words
   updatedAt?: string; // Additional property needed for tests
   _version?: number; // Version tracking for conflict resolution
 }
@@ -51,6 +52,24 @@ export interface IssueComment {
 
 // Issue Types
 export type IssueType = 'needs-help' | 'indexing' | 'new-word';
+
+/**
+ * Issue type constants - use these instead of hard-coded strings
+ */
+export const ISSUE_TYPES = {
+  NEEDS_HELP: 'needs-help' as const,
+  INDEXING: 'indexing' as const,
+  NEW_WORD: 'new-word' as const,
+} as const;
+
+/**
+ * Array of all issue type values - useful for iteration and validation
+ */
+export const ISSUE_TYPE_VALUES: readonly IssueType[] = [
+  ISSUE_TYPES.NEEDS_HELP,
+  ISSUE_TYPES.INDEXING,
+  ISSUE_TYPES.NEW_WORD,
+] as const;
 
 export interface IssueData {
   id: string;
@@ -157,16 +176,35 @@ export interface SearchResult {
   wordType?: string;
 }
 
+// Cursor Matching Types
+/**
+ * Interface for data that can be matched against the word under the cursor.
+ * Implemented by WordAnalysis, SpellingSuggestion, and future cursor-context features.
+ */
+export interface CursorMatchable {
+  word: string;  // The word to match against cursor position
+}
+
 // Word Analysis Types
-export interface WordAnalysis {
+export interface WordAnalysis extends CursorMatchable {
   word: string;
   analysis: string;           // The primary analysis to use
   allAnalysis: string[];      // All available analyses
+  source?: 'auto' | 'user';   // Source of the analysis selection (default: 'auto')
+  index?: number;             // Position/index in the text (for handling duplicates)
+}
+
+// Spelling Suggestion Types
+export interface SpellingSuggestion extends CursorMatchable {
+  word: string;               // The misspelled word (matches cursor)
+  allSuggestions: string[];   // All suggested corrections
+  index?: number;             // Position/index in text (for handling duplicates)
 }
 
 export interface SpellCheckResult {
   known: WordAnalysis[];
   unknown: string[];
+  suggestions?: SpellingSuggestion[];  // Array of misspelled words with their suggestions
 }
 
 

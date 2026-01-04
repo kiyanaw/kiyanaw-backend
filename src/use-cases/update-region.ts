@@ -188,6 +188,11 @@ export class UpdateRegionUseCase {
     // Get current version for optimistic concurrency control
     const currentVersion = store.getRegionVersion(regionId);
 
+    console.log(`🔢 UPDATE-REGION: Version check for ${regionId}`, {
+      localVersion: currentVersion,
+      user: user.username
+    });
+
     try {
       // Save to database
       console.log(`🚀 UPDATE-REGION: Calling regionService.updateRegion for ${regionId}`);
@@ -297,7 +302,7 @@ export class UpdateRegionUseCase {
 
   private applyRemoteChangesToStore(remoteRegion: Partial<RegionData & LazyRegion>, store: typeof services.storeService): void {
     if (!remoteRegion.id) return;
-    
+
     // Apply each field from the remote region
     if (remoteRegion.regionText !== undefined) {
       store.setRegionText(remoteRegion.id, remoteRegion.regionText);
@@ -309,7 +314,25 @@ export class UpdateRegionUseCase {
       store.updateRegionBounds(remoteRegion.id, remoteRegion.start, remoteRegion.end);
     }
     if (remoteRegion.regionAnalysis !== undefined) {
-      store.setRegionAnalysis(remoteRegion.id, remoteRegion.regionAnalysis as WordAnalysis[]);
+      // Normalize regionAnalysis: AWSJSON from GraphQL may come as string or object
+      let normalizedAnalysis: WordAnalysis[] = [];
+      const rawAnalysis = remoteRegion.regionAnalysis;
+
+      if (Array.isArray(rawAnalysis)) {
+        normalizedAnalysis = rawAnalysis;
+      } else if (typeof rawAnalysis === 'string') {
+        try {
+          const parsed = JSON.parse(rawAnalysis);
+          normalizedAnalysis = Array.isArray(parsed) ? parsed : [];
+        } catch {
+          console.warn('Failed to parse regionAnalysis JSON string:', rawAnalysis);
+        }
+      } else if (rawAnalysis && typeof rawAnalysis === 'object') {
+        // Object but not array - invalid, use empty array
+        console.warn('regionAnalysis is object but not array, resetting to []:', rawAnalysis);
+      }
+
+      store.setRegionAnalysis(remoteRegion.id, normalizedAnalysis);
     }
   }
 }

@@ -173,6 +173,7 @@ describe('WaveformPlayer', () => {
         updateRegionBounds: jest.fn(),
         addKnownWords: jest.fn(),
         setRegionAnalysis: jest.fn(),
+        setRegionSuggestions: jest.fn(),
         startPendingEdit: jest.fn(),
         endPendingEdit: jest.fn(),
         updatePendingEditActivity: jest.fn(),
@@ -207,6 +208,8 @@ describe('WaveformPlayer', () => {
         processConflictQueue: jest.fn(),
         regionSelections: {},
         setRegionSelection: jest.fn(),
+        regionCursorWords: {},
+        setRegionCursorWord: jest.fn(),
       };
       return selector(state);
     });
@@ -610,6 +613,7 @@ describe('WaveformPlayer', () => {
         updateRegionBounds: jest.fn(),
         addKnownWords: jest.fn(),
         setRegionAnalysis: jest.fn(),
+        setRegionSuggestions: jest.fn(),
         startPendingEdit: jest.fn(),
         endPendingEdit: jest.fn(),
         updatePendingEditActivity: jest.fn(),
@@ -643,6 +647,8 @@ describe('WaveformPlayer', () => {
         processConflictQueue: jest.fn(),
         regionSelections: {},
         setRegionSelection: jest.fn(),
+        regionCursorWords: {},
+        setRegionCursorWord: jest.fn(),
       };
       
       mockUseEditorStore.mockImplementation((selector) => selector(mockStateWithNoEdit));
@@ -736,6 +742,7 @@ describe('WaveformPlayer', () => {
           updateRegionBounds: jest.fn(),
           addKnownWords: jest.fn(),
           setRegionAnalysis: jest.fn(),
+        setRegionSuggestions: jest.fn(),
           startPendingEdit: jest.fn(),
           endPendingEdit: jest.fn(),
           updatePendingEditActivity: jest.fn(),
@@ -769,6 +776,8 @@ describe('WaveformPlayer', () => {
           processConflictQueue: jest.fn(),
         regionSelections: {},
         setRegionSelection: jest.fn(),
+        regionCursorWords: {},
+        setRegionCursorWord: jest.fn(),
         };
         return selector(state);
       });

@@ -42,7 +42,6 @@ export class SubscribeToRegionChangesUseCase {
     
     if (isSelfTriggered) {
       // Skip version update for self-triggered events - we already incremented it correctly
-      console.debug('🔌 Self-triggered region event, skipping version update:', region.id);
       return;
     }
 
@@ -283,12 +282,10 @@ export class SubscribeToRegionChangesUseCase {
           const issueHighlights = issueHighlightService.convertIssuesToHighlights(issues);
           
           // Reapply highlighting with updated analysis
-          rteService.applyHighlighting(mainEditorKey, {
+          rteService.queueHighlightingUpdate(mainEditorKey, {
             knownWords,
             issues: issueHighlights
           });
-          
-          console.debug(`🎨 SUBSCRIBE: Applied highlighting for analysis-only update to ${updatedRegion.id}`);
         }
       }
     }
@@ -359,15 +356,13 @@ export class SubscribeToRegionChangesUseCase {
         const issueHighlights = issueHighlightService.convertIssuesToHighlights(issues);
         
         // Reapply highlighting with updated analysis
-        rteService.applyHighlighting(mainEditorKey, {
+        rteService.queueHighlightingUpdate(mainEditorKey, {
           knownWords,
           issues: issueHighlights
         });
-        
-        console.debug(`🎨 SUBSCRIBE: Reapplied highlighting after analysis update for ${updatedRegion.id}`);
       }
     }
-    
+
     if (updatedRegion._version !== undefined) {
       store.setRegionVersion(updatedRegion.id, updatedRegion._version);
     }
@@ -398,7 +393,7 @@ export class SubscribeToRegionChangesUseCase {
       const issueHighlights = issueHighlightService.convertIssuesToHighlights(issues);
       
       // Apply highlighting using ONLY this region's analysis
-      rteService.applyHighlighting(editorKey, {
+      rteService.queueHighlightingUpdate(editorKey, {
         knownWords,
         issues: issueHighlights
       });
@@ -426,8 +421,6 @@ export class SubscribeToRegionChangesUseCase {
       return;
     }
 
-    console.debug('🔄 Active conflict detected for region, checking for updates:', updatedRegion.id);
-
     // Get all active conflicts for this region
     const activeConflicts = conflictResolutionService.getActiveConflictsForRegion(updatedRegion.id);
     
@@ -440,14 +433,6 @@ export class SubscribeToRegionChangesUseCase {
       const newRemoteValue = updatedRegion[field];
 
       if (currentRemoteValue !== newRemoteValue) {
-        console.debug('🔄 Remote value changed for active conflict:', {
-          regionId: updatedRegion.id,
-          field,
-          oldRemote: currentRemoteValue,
-          newRemote: newRemoteValue,
-          newVersion: updatedRegion._version
-        });
-
         // Create updated conflict data with new remote values
         const updatedConflictData = {
           ...activeConflict,

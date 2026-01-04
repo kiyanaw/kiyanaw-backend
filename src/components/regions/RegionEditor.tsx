@@ -1,11 +1,14 @@
 import { useState, memo } from 'react';
-import { Pause, Trash2, X, AlertTriangle, Repeat1 } from 'lucide-react';
+import { Pause, Trash2, X, AlertTriangle, Repeat1, Database } from 'lucide-react';
 import { type RegionData as Region } from '../../services/adt';
 import { useTextEditors } from '../../hooks/useTextEditors';
 import { useDeleteRegion } from '../../hooks/useDeleteRegion';
 import { useSelectAndPlayRegion } from '../../hooks/useSelectAndPlayRegion';
 import { useCreateIssueFromSelection } from '../../hooks/useCreateIssueFromSelection';
 import { useEditorStore } from '../../stores/useEditorStore';
+import { RegionContextBar } from './RegionContextBar';
+import { useRegionContextBar } from '../../hooks/useRegionContextBar';
+import { getLemma } from '../../shared/languageProcessing';
 
 interface RegionEditorProps {
   region: Region;
@@ -25,12 +28,32 @@ export const RegionEditor = memo(({
   const setSelectedRegion = useEditorStore((state) => state.setSelectedRegion);
   const regions = useEditorStore((state) => state.regions);
   const regionSelection = useEditorStore((state) => state.regionSelections[region.id]);
-  
+  const transcriptionLang = useEditorStore((state) => state.transcription?.lang);
   // Check if there's a text selection in the current region
   const hasSelection = regionSelection && regionSelection.length > 0 && regionSelection.text.trim().length > 0;
   
   // Get the region number (1-based index)
   const regionNumber = regions.findIndex(r => r.id === region.id) + 1;
+
+  // Get word under cursor for dictionary lookup
+  const { cursorWordAnalysis } = useRegionContextBar(region.id, canEdit);
+
+  // Extract lemma using shared language processing module
+  // Supports all language-specific prefix patterns (crk, ciw, otw, etc.)
+  const lemma = cursorWordAnalysis?.analysis && transcriptionLang
+    ? getLemma(transcriptionLang, cursorWordAnalysis.analysis)
+    : null;
+
+  // Track if lemma extraction failed (has analysis but no lemma extracted)
+  const lemmaExtractionFailed = !!(cursorWordAnalysis?.analysis && transcriptionLang && !lemma);
+
+  // Log warning when lemma extraction fails
+  if (lemmaExtractionFailed) {
+    console.warn(
+      `⚠️ Lemma extraction failed for language "${transcriptionLang}":`,
+      cursorWordAnalysis?.analysis
+    );
+  }
 
   // Toolbar actions - simplified for now
   const handlePlay = () => {
@@ -55,10 +78,20 @@ export const RegionEditor = memo(({
     }
   };
 
-  const formatTime = (seconds: number) => {
+  const handleDictionaryLookup = () => {
+    if (lemma && cursorWordAnalysis) {
+      const surface = cursorWordAnalysis.word;
+      const url = `/database/lemma/${lemma}?surface=${encodeURIComponent(surface)}`;
+      window.open(url, '_blank');
+    }
+  };
+
+  const formatTime = (seconds: number, includeDecimals = true) => {
     const mins = Math.floor(seconds / 60);
-    const secs = (seconds % 60).toFixed(2);
-    return `${mins}:${secs.padStart(5, '0')}`;
+    const secs = includeDecimals 
+      ? (seconds % 60).toFixed(2)
+      : Math.floor(seconds % 60).toString();
+    return `${mins}:${secs.padStart(includeDecimals ? 5 : 2, '0')}`;
   };
 
   if (!region) {
@@ -73,7 +106,7 @@ export const RegionEditor = memo(({
   }
 
   return (
-    <div className="flex flex-col h-full bg-white rounded-lg overflow-hidden">
+    <div className="flex flex-col h-full min-w-0 bg-white rounded-lg overflow-hidden">
       {/* Header with region info and toolbar */}
       <div className="flex justify-between items-center p-1.5 bg-gray-50 border-b border-gray-200">
         {/* Custom Toolbar */}
@@ -101,6 +134,68 @@ export const RegionEditor = memo(({
           >
             <AlertTriangle size={14} />
           </button>
+
+          {/* Dictionary Lookup Button - Third position, enabled when cursor is on an analyzed word */}
+          <button
+            className={`flex items-center justify-center w-7 h-7 border rounded-md transition-all duration-200 text-sm ${
+              lemma
+                ? 'border-blue-300 bg-blue-50 text-blue-600 cursor-pointer hover:bg-blue-100 hover:border-blue-400'
+                : lemmaExtractionFailed
+                  ? 'border-orange-300 bg-orange-50 text-orange-500 cursor-not-allowed'
+                  : 'border-gray-300 bg-gray-50 text-gray-400 cursor-not-allowed opacity-50'
+            }`}
+            onClick={lemma ? handleDictionaryLookup : undefined}
+            disabled={!lemma}
+            title={
+              lemma
+                ? `Look up "${lemma}" in dictionary`
+                : lemmaExtractionFailed
+                  ? `Could not extract lemma from "${cursorWordAnalysis?.analysis}"`
+                  : "Place cursor on a word to look it up"
+            }
+          >
+            <Database size={14} />
+          </button>
+
+          {/* Divider */}
+          <div className="w-px h-7 bg-gray-300"></div>
+
+          {/* Tab Toggle Button Group */}
+          <div className="flex border border-gray-300 rounded overflow-hidden" style={{ fontSize: '12px' }}>
+            <button
+              className={`px-1.5 py-0.5 font-medium uppercase transition-all duration-200 ${
+                activeTab === 'main'
+                  ? 'bg-gray-300 text-gray-800 shadow-inner border-t border-gray-400'
+                  : canEdit 
+                    ? 'bg-white text-gray-600 hover:bg-gray-100 cursor-pointer' 
+                    : 'bg-gray-50 text-gray-400 cursor-not-allowed'
+              }`}
+              onClick={canEdit ? () => setActiveTab('main') : undefined}
+              disabled={!canEdit}
+              title="Original Text"
+            >
+              <span className="lg:hidden">OL</span>
+              <span className="hidden lg:inline">ORIG</span>
+            </button>
+            <button
+              className={`px-1.5 py-0.5 font-medium uppercase transition-all duration-200 border-l border-gray-300 ${
+                activeTab === 'translation'
+                  ? 'bg-gray-300 text-gray-800 shadow-inner border-t border-gray-400'
+                  : canEdit 
+                    ? 'bg-white text-gray-600 hover:bg-gray-100 cursor-pointer' 
+                    : 'bg-gray-50 text-gray-400 cursor-not-allowed'
+              }`}
+              onClick={canEdit ? () => setActiveTab('translation') : undefined}
+              disabled={!canEdit}
+              title="Translation"
+            >
+              <span className="lg:hidden">TR</span>
+              <span className="hidden lg:inline">TRAN</span>
+            </button>
+          </div>
+
+          {/* Divider */}
+          <div className="w-px h-7 bg-gray-300"></div>
 
           <button
             className={`flex items-center justify-center w-7 h-7 border border-gray-300 rounded-md bg-white transition-all duration-200 text-sm ${
@@ -132,42 +227,20 @@ export const RegionEditor = memo(({
 
         <div className="flex items-center gap-2">
           <h3 className="m-0 text-sm font-semibold text-gray-800">Region {regionNumber}</h3>
-          <span className="text-xs text-gray-500 font-mono">
+          {/* Mobile: no decimals */}
+          <span className="lg:hidden text-xs text-gray-500 font-mono">
+            {formatTime(region.start, false)} - {formatTime(region.end, false)}
+          </span>
+          {/* Desktop: with decimals */}
+          <span className="hidden lg:inline text-xs text-gray-500 font-mono">
             {formatTime(region.start)} - {formatTime(region.end)}
           </span>
           {region.isNote && <span className="py-0.5 px-1.5 bg-yellow-400 text-gray-800 rounded-lg text-xs font-medium">Note</span>}
         </div>
       </div>
 
-      {/* Tab Navigation */}
-      <div className="flex bg-gray-100 border-b border-gray-300">
-        <button
-          className={`flex-1 py-2 px-3 text-sm font-medium transition-all duration-200 ${
-            activeTab === 'main'
-              ? 'bg-white text-blue-600 border-b-2 border-blue-600'
-              : canEdit 
-                ? 'text-gray-600 hover:text-gray-800 hover:bg-gray-200 cursor-pointer' 
-                : 'text-gray-400 cursor-not-allowed'
-          }`}
-          onClick={canEdit ? () => setActiveTab('main') : undefined}
-          disabled={!canEdit}
-        >
-          Original Text
-        </button>
-        <button
-          className={`flex-1 py-2 px-3 text-sm font-medium transition-all duration-200 ${
-            activeTab === 'translation'
-              ? 'bg-white text-blue-600 border-b-2 border-blue-600'
-              : canEdit 
-                ? 'text-gray-600 hover:text-gray-800 hover:bg-gray-200 cursor-pointer' 
-                : 'text-gray-400 cursor-not-allowed'
-          }`}
-          onClick={canEdit ? () => setActiveTab('translation') : undefined}
-          disabled={!canEdit}
-        >
-          Translation
-        </button>
-      </div>
+      {/* Contextual Info Bar */}
+      <RegionContextBar regionId={region.id} canEdit={canEdit} />
 
       {/* Editor Content */}
       <div className="flex-1 overflow-hidden">

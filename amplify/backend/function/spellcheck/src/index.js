@@ -170,10 +170,14 @@ async function checkUnknowns(items, languageCode) {
   const result = await transducers.analyzeRelaxed(items, languageCode);
   console.log('result:', result);
 
+  // Map ALL analyses back to their original words (not just the first one)
   const originalLookup = {};
   for (const [key, value] of Object.entries(result)) {
     if (value && value.length > 0) {
-      originalLookup[value[0]] = key;
+      // Include all analyses, not just value[0]
+      for (const analysis of value) {
+        originalLookup[analysis] = key;
+      }
     }
   }
   console.log('original:', originalLookup);
@@ -182,10 +186,20 @@ async function checkUnknowns(items, languageCode) {
   if (toLookup.length > 0) {
     const suggested = await transducers.generateStrict(toLookup, languageCode);
     console.log('suggested:', suggested);
-    
+
     for (const key of Object.keys(suggested)) {
       if (suggested[key] && suggested[key].length > 0) {
-        final[originalLookup[key]] = suggested[key][0];
+        const originalWord = originalLookup[key];
+        // Accumulate suggestions from all analyses for this word
+        if (!final[originalWord]) {
+          final[originalWord] = [];
+        }
+        // Add unique suggestions only
+        for (const suggestion of suggested[key]) {
+          if (!final[originalWord].includes(suggestion)) {
+            final[originalWord].push(suggestion);
+          }
+        }
       }
     }
   }
@@ -196,8 +210,8 @@ async function checkUnknowns(items, languageCode) {
 /**
  * Main Lambda handler
  */
-exports.handler = async (event, context) => {
-  console.log('received event:', event);
+exports.handler = async (event) => {
+  // console.log('received event:', event);
 
   let response;
   if (event.path === '/bulk-lookup') {

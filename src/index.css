@@ -73,7 +73,19 @@
     color: #3b82f6;
   }
   
-
+  .ql-editor .ambiguous-word {
+    color: #3b82f6;
+    text-decoration: underline;
+    text-decoration-color: #93c5fd;
+    text-decoration-style: solid;
+    text-decoration-thickness: 2px;
+  }
+  
+  .ql-editor .spelling-suggestion {
+    text-decoration: underline solid;
+    text-decoration-color: #fb923c; /* orange-400 - matches suggestion pill */
+    text-decoration-thickness: 1px;
+  }
   
   .ql-editor .ignore-word {
     color: #777;
@@ -100,5 +112,15 @@
   .ql-editor .suggestion-known {
     text-decoration: underline;
     text-decoration-color: #3b82f6;
+  }
+  
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari and Opera */
   }
 }

@@ -134,14 +134,14 @@ export class SubscribeToIssueChangesUseCase {
     const translationEditorKey = `${regionId}:translation` as const;
 
     if (rteService.hasEditor(mainEditorKey)) {
-      rteService.applyHighlighting(mainEditorKey, {
+      rteService.queueHighlightingUpdate(mainEditorKey, {
         knownWords,
         issues: issueHighlights
       });
     }
 
     if (rteService.hasEditor(translationEditorKey)) {
-      rteService.applyHighlighting(translationEditorKey, {
+      rteService.queueHighlightingUpdate(translationEditorKey, {
         knownWords,
         issues: issueHighlights
       });

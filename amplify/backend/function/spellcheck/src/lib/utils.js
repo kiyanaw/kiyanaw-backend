@@ -2,6 +2,26 @@
  * Utility functions for the spellcheck Lambda
  */
 
+/**
+ * Prioritize particles (Ipc) first in analysis results
+ *
+ * When a word has multiple analyses (e.g., both Ipc and V/N), particles
+ * are almost always (99%+) the intended reading. This function sorts
+ * analyses to place Ipc analyses first.
+ *
+ * @param {string[]} analyses - Array of FST analysis strings
+ * @returns {string[]} - Sorted array with Ipc analyses first
+ */
+function prioritizeParticles(analyses) {
+  return analyses.sort((a, b) => {
+    const aIsIpc = a.includes('+Ipc');
+    const bIsIpc = b.includes('+Ipc');
+    if (aIsIpc && !bIsIpc) return -1;
+    if (!aIsIpc && bIsIpc) return 1;
+    return 0; // preserve relative order otherwise
+  });
+}
+
 const HEADERS = {
   'Access-Control-Allow-Headers': '*',
   'Access-Control-Allow-Origin': '*',
@@ -79,5 +99,6 @@ module.exports = {
   parseRequestBody,
   errorResponse,
   successResponse,
+  prioritizeParticles,
 }
 

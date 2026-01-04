@@ -64,9 +64,8 @@ class RegionSaveManagerImpl {
         try {
           const analysis = await queue.spellCheckPromise;
           queue.pendingChanges.regionAnalysis = analysis;
-          console.debug(`✅ SAVE-MANAGER: Spell check completed for ${regionId}, found ${analysis.length} known words`);
         } catch (error) {
-          console.error(`❌ SAVE-MANAGER: Spell check failed for ${regionId}:`, error);
+          console.error(`SAVE-MANAGER: Spell check failed for ${regionId}:`, error);
           queue.spellCheckPromise = null;
         }
       },
@@ -124,7 +123,6 @@ class RegionSaveManagerImpl {
     
     // Check if transcription has language set
     if (!transcription?.lang) {
-      console.debug('⚠️ SAVE-MANAGER: No language set, skipping spell check');
       return [];
     }
     
@@ -150,23 +148,11 @@ class RegionSaveManagerImpl {
       }
       
       // Save merged analysis
+      // The rteService will automatically update highlighting via its store subscription
       store.setRegionAnalysis(regionId, result.analysis);
       
-      // Update RTE highlighting using ONLY this region's saved analysis
-      const mainEditorKey = `${regionId}:main` as const;
-      if (services.rteService.hasEditor(mainEditorKey)) {
-        const issues = store.getIssuesForRegion(regionId);
-        const issueHighlights = issueHighlightService.convertIssuesToHighlights(issues);
-        services.rteService.applyHighlighting(mainEditorKey, {
-          knownWords: result.analysis.map(item => item.word),
-          issues: issueHighlights
-        });
-      }
-      
-      console.debug(`📊 SAVE-MANAGER: Spell check results for ${regionId}:`, {
-        newlyKnown: result.newlyKnown.length,
-        totalSaved: result.analysis.length,
-      });
+      // Save spelling suggestions
+      store.setRegionSuggestions(regionId, result.suggestions || []);
       
       return result.analysis;
     } catch (error) {
@@ -204,11 +190,6 @@ class RegionSaveManagerImpl {
     const queue = this.queues.get(regionId);
     if (!queue) return;
     
-    console.debug(`💾 SAVE-MANAGER: Flushing saves for ${regionId}`, {
-      pendingChanges: Object.keys(queue.pendingChanges),
-      hasSpellCheckPromise: !!queue.spellCheckPromise
-    });
-    
     // Set status to saving
     services.storeService.setSaveStatus('saving');
     
@@ -240,7 +221,6 @@ class RegionSaveManagerImpl {
     if (!queue.spellCheckPromise) return;
     
     try {
-      console.debug(`⏳ SAVE-MANAGER: Waiting for spell check to complete...`);
       const analysis = await Promise.race([
         queue.spellCheckPromise,
         this.timeout(5000, 'Spell check timeout')
@@ -248,13 +228,12 @@ class RegionSaveManagerImpl {
       
       if (analysis && analysis.length > 0) {
         queue.pendingChanges.regionAnalysis = analysis;
-        console.debug(`✅ SAVE-MANAGER: Spell check complete, including ${analysis.length} words`);
       }
     } catch (error) {
       if (error instanceof Error && error.message === 'Spell check timeout') {
-        console.warn(`⚠️ SAVE-MANAGER: Spell check took >5s, saving without analysis`);
+        console.warn('SAVE-MANAGER: Spell check took >5s, saving without analysis');
       } else {
-        console.error(`❌ SAVE-MANAGER: Spell check error:`, error);
+        console.error('SAVE-MANAGER: Spell check error:', error);
       }
     }
   }
@@ -277,12 +256,6 @@ class RegionSaveManagerImpl {
     
     const currentVersion = store.getRegionVersion(regionId);
     
-    console.debug(`💾 SAVE-MANAGER: Saving region ${regionId}`, {
-      changes: Object.keys(changes),
-      hasRegionAnalysis: 'regionAnalysis' in changes,
-      version: currentVersion
-    });
-    
     // Save to database
     await services.regionService.updateRegion(
       regionId,
@@ -301,8 +274,6 @@ class RegionSaveManagerImpl {
     if (pendingEditField) {
       services.storeService.endPendingEdit(regionId, pendingEditField);
     }
-    
-    console.info(`✅ SAVE-MANAGER: Save completed for ${regionId}`);
   }
   
   /**
@@ -482,7 +453,7 @@ class RegionSaveManagerImpl {
     const issues = store.getIssuesForRegion(regionId);
     const issueHighlights = issueHighlightService.convertIssuesToHighlights(issues);
     
-    services.rteService.applyHighlighting(editorKey, {
+    services.rteService.queueHighlightingUpdate(editorKey, {
       knownWords,
       issues: issueHighlights
     });

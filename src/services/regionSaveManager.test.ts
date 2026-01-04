@@ -11,6 +11,7 @@ jest.mock('./index', () => ({
       getKnownWords: jest.fn(() => new Map()),
       regionById: jest.fn(() => ({ transcriptionId: 'trans-1' })),
       setRegionAnalysis: jest.fn(),
+      setRegionSuggestions: jest.fn(),
       addKnownWords: jest.fn(),
       getIssuesForRegion: jest.fn(() => []),
       startPendingEdit: jest.fn(),
@@ -30,7 +31,7 @@ jest.mock('./index', () => ({
     },
     rteService: {
       hasEditor: jest.fn(() => false),
-      applyHighlighting: jest.fn(),
+      queueHighlightingUpdate: jest.fn(),
     },
     authService: {
       currentUser: jest.fn(() => ({ username: 'testuser' })),
@@ -178,7 +179,8 @@ describe('RegionSaveManager', () => {
       
       (services.spellCheckerService.analyzeRegionText as jest.Mock).mockResolvedValue({
         analysis: mockAnalysis,
-        newlyKnown: mockAnalysis
+        newlyKnown: mockAnalysis,
+        suggestions: []
       });
       
       regionSaveManager.queueTextChange('region-1', 'test');
@@ -204,7 +206,8 @@ describe('RegionSaveManager', () => {
       
       (services.spellCheckerService.analyzeRegionText as jest.Mock).mockResolvedValue({
         analysis: mockAnalysis,
-        newlyKnown: mockAnalysis
+        newlyKnown: mockAnalysis,
+        suggestions: []
       });
       
       regionSaveManager.queueTextChange('region-1', 'test');
@@ -308,7 +311,8 @@ describe('RegionSaveManager', () => {
       
       (services.spellCheckerService.analyzeRegionText as jest.Mock).mockResolvedValue({
         analysis: mockAnalysis,
-        newlyKnown: mockAnalysis
+        newlyKnown: mockAnalysis,
+        suggestions: []
       });
       
       regionSaveManager.queueTextChange('region-1', 'test');
@@ -437,7 +441,8 @@ describe('RegionSaveManager', () => {
         newlyKnown: [
           { word: 'êkwa', analysis: 'êkwa+Ipc+Updated', allAnalysis: ['êkwa+Ipc+Updated'] },
           { word: 'new', analysis: 'new+N', allAnalysis: ['new+N'] }
-        ]
+        ],
+        suggestions: []
       });
       
       // Queue text change with all words
@@ -485,7 +490,8 @@ describe('RegionSaveManager', () => {
           { word: 'awa', analysis: 'awa+Ipc', allAnalysis: ['awa+Ipc'] },
           { word: 'ana', analysis: 'ana+Pron', allAnalysis: ['ana+Pron'] }
         ],
-        newlyKnown: []
+        newlyKnown: [],
+        suggestions: []
       });
       
       // Queue text change
@@ -533,7 +539,8 @@ describe('RegionSaveManager', () => {
         analysis: [
           { word: 'awa', analysis: 'awa+Ipc', allAnalysis: ['awa+Ipc'] }
         ],
-        newlyKnown: []
+        newlyKnown: [],
+        suggestions: []
       });
       
       // Queue text change
@@ -679,7 +686,7 @@ describe('RegionSaveManager', () => {
       it('should apply highlighting with known words', async () => {
         await regionSaveManager.__reapplyHighlighting('region-1', 'region-1:main');
         
-        expect(services.rteService.applyHighlighting).toHaveBeenCalledWith(
+        expect(services.rteService.queueHighlightingUpdate).toHaveBeenCalledWith(
           'region-1:main',
           expect.objectContaining({
             knownWords: ['test'],
@@ -695,7 +702,7 @@ describe('RegionSaveManager', () => {
         
         await regionSaveManager.__reapplyHighlighting('region-1', 'region-1:main');
         
-        expect(services.rteService.applyHighlighting).toHaveBeenCalledWith(
+        expect(services.rteService.queueHighlightingUpdate).toHaveBeenCalledWith(
           'region-1:main',
           expect.objectContaining({
             knownWords: [],
@@ -707,7 +714,7 @@ describe('RegionSaveManager', () => {
       it('should work for translation editor', async () => {
         await regionSaveManager.__reapplyHighlighting('region-1', 'region-1:translation');
         
-        expect(services.rteService.applyHighlighting).toHaveBeenCalledWith(
+        expect(services.rteService.queueHighlightingUpdate).toHaveBeenCalledWith(
           'region-1:translation',
           expect.objectContaining({
             knownWords: ['test']
