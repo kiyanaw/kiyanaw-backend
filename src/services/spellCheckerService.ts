@@ -2,7 +2,7 @@ import { post } from 'aws-amplify/api';
 import type { WordAnalysis, SpellCheckResult, SpellingSuggestion } from './adt';
 
 class SpellCheckerServiceImpl {
-  private knownWordsCache = new Set<string>();
+  private knownWordsCache = new Map<string, WordAnalysis>(); // Cache full analysis by word
   private unknownWordsCache = new Set<string>();
   private suggestionsCache = new Map<string, string[]>(); // Cache suggestions by misspelled word
   private pendingRequests = new Map<string, Promise<SpellCheckResult>>();
@@ -22,15 +22,11 @@ class SpellCheckerServiceImpl {
     );
 
     if (unknownWords.length === 0) {
-      // Return cached results - words in cache get empty analysis
+      // Return cached results with full analysis data
       return {
         known: words
           .filter(word => this.knownWordsCache.has(word))
-          .map(word => ({
-            word,
-            analysis: '',
-            allAnalysis: []
-          })),
+          .map(word => this.knownWordsCache.get(word)!),
         unknown: words.filter(word => this.unknownWordsCache.has(word))
       };
     }
@@ -51,8 +47,8 @@ class SpellCheckerServiceImpl {
     try {
       const result = await promise;
       
-      // Update caches
-      result.known.forEach(item => this.knownWordsCache.add(item.word));
+      // Update caches with full analysis data
+      result.known.forEach(item => this.knownWordsCache.set(item.word, item));
       result.unknown.forEach(word => this.unknownWordsCache.add(word));
 
       return this.combineWithCached(words, result);
@@ -149,13 +145,9 @@ class SpellCheckerServiceImpl {
         continue;
       }
       
-      // Check if in known cache
+      // Check if in known cache - return full analysis data
       if (this.knownWordsCache.has(word)) {
-        known.push({
-          word,
-          analysis: '',
-          allAnalysis: []
-        });
+        known.push(this.knownWordsCache.get(word)!);
         continue;
       }
       
@@ -173,8 +165,11 @@ class SpellCheckerServiceImpl {
    * Add words to known cache (useful for loading saved analysis)
    */
   addKnownWords(words: WordAnalysis[]): void {
-    words.forEach(word => {
-      this.knownWordsCache.add(word.word);
+    words.forEach(wordAnalysis => {
+      // Only cache complete analysis (with non-empty analysis field)
+      if (wordAnalysis.word && wordAnalysis.analysis && wordAnalysis.allAnalysis?.length > 0) {
+        this.knownWordsCache.set(wordAnalysis.word, wordAnalysis);
+      }
     });
   }
 
@@ -182,7 +177,7 @@ class SpellCheckerServiceImpl {
    * Get current known words (for debugging)
    */
   getKnownWords(): string[] {
-    return Array.from(this.knownWordsCache);
+    return Array.from(this.knownWordsCache.keys());
   }
 
   /**

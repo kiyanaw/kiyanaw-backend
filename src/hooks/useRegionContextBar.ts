@@ -13,7 +13,8 @@ export function findMatchingItems<T extends CursorMatchable>(
   items: T[] | undefined,
   cursorWord: string | null
 ): T[] {
-  if (!items || !cursorWord) return [];
+  // Defensive: ensure items is actually an array (can be corrupted by conflict resolution)
+  if (!items || !cursorWord || !Array.isArray(items)) return [];
   const normalized = cursorWord.toLowerCase();
   return items.filter(item => item.word.toLowerCase() === normalized);
 }

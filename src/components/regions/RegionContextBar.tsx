@@ -61,7 +61,7 @@ export const RegionContextBar = ({ regionId, canEdit }: RegionContextBarProps) =
   };
 
   return (
-    <div className="py-5 px-4 bg-gray-100 border-b border-gray-50 h-[20px] flex items-center">
+    <div className="px-4 bg-gray-100 border-b border-gray-50 flex items-center h-[30px]">
       <div className="relative flex-1 min-w-0">
         {spellingSuggestions.length > 0 ? (
           <>
@@ -97,11 +97,11 @@ export const RegionContextBar = ({ regionId, canEdit }: RegionContextBarProps) =
                     onMouseDown={handleMouseDown}
                     disabled={!canEdit}
                     style={{
-                      fontSize: '13px',
-                      padding: '2px 4px',
-                      margin: '2px',
+                      fontSize: '12px',
+                      padding: '2px 6px',
+                      margin: '2px 1px',
                     }}
-                    className={`leading-none rounded-full border whitespace-nowrap flex-shrink-0 transition-colors ${
+                    className={`leading-tight rounded-full border whitespace-nowrap flex-shrink-0 transition-colors ${
                       canEdit
                         ? 'bg-orange-50 border-orange-300 text-orange-700 hover:bg-orange-100 hover:border-orange-400 cursor-pointer'
                         : 'bg-gray-50 border-gray-300 text-gray-600'
@@ -154,13 +154,13 @@ export const RegionContextBar = ({ regionId, canEdit }: RegionContextBarProps) =
                     onClick={handleClick}
                     onMouseDown={handleMouseDown}
                     disabled={!isClickable || (isSelected && isUserSelected)}
-                    style={{ 
-                      fontSize: '13px', 
-                      padding: '2px 4px', 
-                      margin: '2px',
+                    style={{
+                      fontSize: '12px',
+                      padding: '2px 6px',
+                      margin: '2px 1px',
                       fontWeight: isSelected ? 'bold' : 'normal'
                     }}
-                    className={`leading-none rounded-full border whitespace-nowrap flex-shrink-0 transition-colors ${
+                    className={`leading-tight rounded-full border whitespace-nowrap flex-shrink-0 transition-colors ${
                       isSelected && isUserSelected
                         ? 'bg-white border-gray-400 text-gray-800 cursor-default'
                         : isSelected && !isUserSelected

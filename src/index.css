@@ -83,7 +83,7 @@
   
   .ql-editor .spelling-suggestion {
     text-decoration: underline solid;
-    text-decoration-color: #9ca3af; /* gray-400 - muted */
+    text-decoration-color: #fb923c; /* orange-400 - matches suggestion pill */
     text-decoration-thickness: 1px;
   }
   

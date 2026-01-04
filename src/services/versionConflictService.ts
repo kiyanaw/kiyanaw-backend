@@ -95,7 +95,9 @@ export async function analyzeRegionConflict(
       regionId,
       localVersion,
       remoteVersion: remoteRegion._version,
-      attemptedChanges: Object.keys(attemptedChanges)
+      attemptedChanges: Object.keys(attemptedChanges),
+      remoteUser: remoteRegion.userLastUpdated,
+      versionDiff: (remoteRegion._version ?? 0) - localVersion
     });
 
     // Build local region data with the attempted changes

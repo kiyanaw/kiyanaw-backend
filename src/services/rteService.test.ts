@@ -760,7 +760,7 @@ describe('rteService', () => {
       rteService.createOrGet('test-region:main', {});
     });
 
-    it('strips inherited word-level formats from entire word containing insertion', () => {
+    it('strips inherited word-level formats from only the inserted text', () => {
       const callback = jest.fn();
       rteService.onTextChange('test-region:main', callback);
 
@@ -782,15 +782,16 @@ describe('rteService', () => {
 
       textChangeListener(delta, {}, 'user');
 
-      // Word "txesting" starts at position 4, has length 8
-      expect(mockFormatText).toHaveBeenCalledWith(4, 8, {
+      // Only strip formatting from the inserted 'x' at position 5, length 1
+      // (not the entire word "txesting")
+      expect(mockFormatText).toHaveBeenCalledWith(5, 1, {
         'known-word': false,
         'ambiguous-word': false,
         'spelling-suggestion': false,
       }, 'silent');
     });
 
-    it('strips formats from multiple insert operations in separate words', () => {
+    it('strips formats from multiple insert operations (only inserted text)', () => {
       const callback = jest.fn();
       rteService.onTextChange('test-region:main', callback);
 
@@ -814,15 +815,15 @@ describe('rteService', () => {
 
       textChangeListener(delta, {}, 'user');
 
-      // First insert at position 2: word "abx" is at 0-2, length 3
-      expect(mockFormatText).toHaveBeenCalledWith(0, 3, {
+      // First insert: only 'x' at position 2, length 1 (not the entire word "abx")
+      expect(mockFormatText).toHaveBeenCalledWith(2, 1, {
         'known-word': false,
         'ambiguous-word': false,
         'spelling-suggestion': false,
       }, 'silent');
 
-      // Second insert at position 7 (2+1+4=7): word "yzef" is at 7-10, length 4
-      expect(mockFormatText).toHaveBeenCalledWith(7, 4, {
+      // Second insert: only 'yz' at position 7, length 2 (not the entire word "yzef")
+      expect(mockFormatText).toHaveBeenCalledWith(7, 2, {
         'known-word': false,
         'ambiguous-word': false,
         'spelling-suggestion': false,
@@ -906,8 +907,9 @@ describe('rteService', () => {
 
       textChangeListener(delta, {}, 'user');
 
-      // Insert at position 4, word "newbar" is at position 4, length 6
-      expect(mockFormatText).toHaveBeenCalledWith(4, 6, {
+      // Only strip formatting from inserted 'new' at position 4, length 3
+      // (not the entire word "newbar")
+      expect(mockFormatText).toHaveBeenCalledWith(4, 3, {
         'known-word': false,
         'ambiguous-word': false,
         'spelling-suggestion': false,
@@ -959,7 +961,7 @@ describe('rteService', () => {
       );
     });
 
-    it('strips formatting from entire word when typing into middle of formatted word', () => {
+    it('strips formatting only from inserted char when typing into middle of formatted word', () => {
       const callback = jest.fn();
       rteService.onTextChange('test-region:main', callback);
 
@@ -979,15 +981,16 @@ describe('rteService', () => {
 
       textChangeListener(delta, {}, 'user');
 
-      // Should strip formatting from entire word "hello" (position 0, length 5)
-      expect(mockFormatText).toHaveBeenCalledWith(0, 5, {
+      // Only strip formatting from inserted 'l' at position 3, length 1
+      // (not the entire word "hello")
+      expect(mockFormatText).toHaveBeenCalledWith(3, 1, {
         'known-word': false,
         'ambiguous-word': false,
         'spelling-suggestion': false,
       }, 'silent');
     });
 
-    it('strips formatting from entire word when typing at end of formatted word', () => {
+    it('strips formatting only from inserted char when typing at end of formatted word', () => {
       const callback = jest.fn();
       rteService.onTextChange('test-region:main', callback);
 
@@ -1006,15 +1009,16 @@ describe('rteService', () => {
 
       textChangeListener(delta, {}, 'user');
 
-      // Should strip formatting from entire word "âha" (position 0, length 3)
-      expect(mockFormatText).toHaveBeenCalledWith(0, 3, {
+      // Only strip formatting from inserted 'a' at position 2, length 1
+      // (not the entire word "âha")
+      expect(mockFormatText).toHaveBeenCalledWith(2, 1, {
         'known-word': false,
         'ambiguous-word': false,
         'spelling-suggestion': false,
       }, 'silent');
     });
 
-    it('only strips formatting from affected word, not adjacent words', () => {
+    it('only strips formatting from inserted char, not adjacent words or parent word', () => {
       const callback = jest.fn();
       rteService.onTextChange('test-region:main', callback);
 
@@ -1033,15 +1037,16 @@ describe('rteService', () => {
 
       textChangeListener(delta, {}, 'user');
 
-      // Should only strip formatting from "worldx" (position 6, length 6), not "hello" or "test"
-      expect(mockFormatText).toHaveBeenCalledWith(6, 6, {
+      // Only strip formatting from inserted 'x' at position 11, length 1
+      // (not "worldx", "hello", or "test")
+      expect(mockFormatText).toHaveBeenCalledWith(11, 1, {
         'known-word': false,
         'ambiguous-word': false,
         'spelling-suggestion': false,
       }, 'silent');
     });
 
-    it('handles Unicode characters in word boundary detection', () => {
+    it('handles Unicode characters - strips only inserted char', () => {
       const callback = jest.fn();
       rteService.onTextChange('test-region:main', callback);
 
@@ -1060,15 +1065,16 @@ describe('rteService', () => {
 
       textChangeListener(delta, {}, 'user');
 
-      // Should strip formatting from entire word "êkwax" (position 0, length 5)
-      expect(mockFormatText).toHaveBeenCalledWith(0, 5, {
+      // Only strip formatting from inserted 'x' at position 4, length 1
+      // (not the entire word "êkwax")
+      expect(mockFormatText).toHaveBeenCalledWith(4, 1, {
         'known-word': false,
         'ambiguous-word': false,
         'spelling-suggestion': false,
       }, 'silent');
     });
 
-    it('handles word at start of text', () => {
+    it('handles word at start of text - strips only inserted char', () => {
       const callback = jest.fn();
       rteService.onTextChange('test-region:main', callback);
 
@@ -1087,8 +1093,68 @@ describe('rteService', () => {
 
       textChangeListener(delta, {}, 'user');
 
-      // Should strip formatting from "ax" (position 0, length 2)
-      expect(mockFormatText).toHaveBeenCalledWith(0, 2, {
+      // Only strip formatting from inserted 'x' at position 1, length 1
+      // (not the entire word "ax")
+      expect(mockFormatText).toHaveBeenCalledWith(1, 1, {
+        'known-word': false,
+        'ambiguous-word': false,
+        'spelling-suggestion': false,
+      }, 'silent');
+    });
+
+    it('only strips formatting from inserted text, not the entire preceding word', () => {
+      // BUG FIX: When adding a space after a formatted word like "ka-itweyahk",
+      // only the space should lose formatting, not the preceding word.
+      // Previously, formatting would briefly flash off from "itweyahk" (back to hyphen).
+      const callback = jest.fn();
+      rteService.onTextChange('test-region:main', callback);
+
+      // Text AFTER inserting space: "hello " (was "hello", added space at end)
+      mockQuill.getText.mockReturnValue('hello ');
+
+      const textChangeListener = mockQuill.on.mock.calls[0][1];
+
+      // Insert space at position 5 (after "hello")
+      const delta = {
+        ops: [
+          { retain: 5 },
+          { insert: ' ' }
+        ]
+      };
+
+      textChangeListener(delta, {}, 'user');
+
+      // Should ONLY strip formatting from the inserted space (position 5, length 1)
+      // NOT from the entire word "hello" (which would be position 0, length 6)
+      expect(mockFormatText).toHaveBeenCalledWith(5, 1, {
+        'known-word': false,
+        'ambiguous-word': false,
+        'spelling-suggestion': false,
+      }, 'silent');
+    });
+
+    it('only strips formatting from inserted characters when typing into middle of word', () => {
+      // When typing 'x' into "testing" -> "txesting", only strip the 'x'
+      const callback = jest.fn();
+      rteService.onTextChange('test-region:main', callback);
+
+      mockQuill.getText.mockReturnValue('txesting');
+
+      const textChangeListener = mockQuill.on.mock.calls[0][1];
+
+      // Insert 'x' at position 1 (into "testing" -> "txesting")
+      const delta = {
+        ops: [
+          { retain: 1 },
+          { insert: 'x' }
+        ]
+      };
+
+      textChangeListener(delta, {}, 'user');
+
+      // Should ONLY strip formatting from the inserted 'x' (position 1, length 1)
+      // NOT from the entire word "txesting"
+      expect(mockFormatText).toHaveBeenCalledWith(1, 1, {
         'known-word': false,
         'ambiguous-word': false,
         'spelling-suggestion': false,

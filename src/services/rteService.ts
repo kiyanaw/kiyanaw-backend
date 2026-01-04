@@ -816,7 +816,8 @@ class RTEServiceImpl {
 
     // ONLY use this region's own analysis for highlighting, not the global cache
     const region = state.regionById(regionId);
-    const regionAnalysis = region?.regionAnalysis || [];
+    // Defensive: ensure regionAnalysis is an array (can be corrupted by conflict resolution)
+    const regionAnalysis = Array.isArray(region?.regionAnalysis) ? region.regionAnalysis : [];
     const knownWords: string[] = regionAnalysis.map(item => item.word);
     const spellingSuggestions = region?.regionSuggestions || [];
 
@@ -1236,7 +1237,6 @@ class RTEServiceImpl {
   private stripInheritedFormats(instance: RTEInstance, delta: QuillDelta): void {
     if (!delta.ops) return;
 
-    const text = instance.quill.getText();
     let position = 0;
 
     for (const op of delta.ops) {
@@ -1245,12 +1245,10 @@ class RTEServiceImpl {
       } else if (op.insert !== undefined && typeof op.insert === 'string') {
         const insertLength = op.insert.length;
 
-        // Find the word boundaries around the insertion point
-        // This ensures the ENTIRE word gets its formatting stripped, not just the inserted chars
-        const wordBounds = this.findWordBoundsAt(text, position, insertLength);
-
-        // Strip word-level formats from the entire word (not issue formats - those persist)
-        instance.quill.formatText(wordBounds.start, wordBounds.length, {
+        // Strip word-level formats from inserted text only (not the entire word)
+        // This prevents the "flashing" effect where existing formatted text briefly loses formatting
+        // when typing at word boundaries
+        instance.quill.formatText(position, insertLength, {
           'known-word': false,
           'ambiguous-word': false,
           'spelling-suggestion': false,

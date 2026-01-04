@@ -188,10 +188,45 @@ describe('SpellCheckerService', () => {
       });
 
       expect(result.known).toEqual(expect.arrayContaining([
-        expect.objectContaining({ word: 'itwêw', analysis: '', allAnalysis: [] }), // From cache - no analysis
+        expect.objectContaining({ word: 'itwêw', analysis: 'data', allAnalysis: ['data'] }), // From cache - preserves full analysis
         expect.objectContaining({ word: 'êkwa', analysis: 'data', allAnalysis: ['data'] }) // Fresh from API
       ]));
       expect(result.unknown).toEqual(['hello', 'world']);
+    });
+
+    it('should preserve full analysis data in cache for subsequent requests', async () => {
+      const mockResponse = {
+        'ôma': ['ôma+Ipc', 'ôma+Pron+Dem+Prox+I+Sg'],
+        'pitamâ': ['pitamâ+Ipc']
+      };
+
+      const mockRestOperation = {
+        response: {
+          body: {
+            json: () => Promise.resolve(mockResponse)
+          }
+        }
+      };
+
+      mockPost.mockReturnValueOnce(mockRestOperation);
+
+      // First call - should hit API
+      const result1 = await spellCheckerService.check(['ôma', 'pitamâ']);
+      expect(mockPost).toHaveBeenCalledTimes(1);
+      expect(result1.known).toEqual([
+        { word: 'ôma', analysis: 'ôma+Ipc', allAnalysis: ['ôma+Ipc', 'ôma+Pron+Dem+Prox+I+Sg'] },
+        { word: 'pitamâ', analysis: 'pitamâ+Ipc', allAnalysis: ['pitamâ+Ipc'] }
+      ]);
+
+      // Second call with same words - should use cache and PRESERVE full analysis
+      const result2 = await spellCheckerService.check(['ôma', 'pitamâ']);
+      expect(mockPost).toHaveBeenCalledTimes(1); // No additional API call
+
+      // CRITICAL: Cached words should retain their full analysis data
+      expect(result2.known).toEqual([
+        { word: 'ôma', analysis: 'ôma+Ipc', allAnalysis: ['ôma+Ipc', 'ôma+Pron+Dem+Prox+I+Sg'] },
+        { word: 'pitamâ', analysis: 'pitamâ+Ipc', allAnalysis: ['pitamâ+Ipc'] }
+      ]);
     });
 
     it('should handle API errors gracefully', async () => {
