@@ -64,10 +64,28 @@ npm run lint
 npx amplify push
 ```
 
+**Note:** Custom Serverless infrastructure will be deployed automatically after `amplify push` via Amplify hooks.
+
 ### Deploy Frontend
 ```
 npx amplify publish
 ```
+
+**Note:** Custom Serverless infrastructure will be deployed automatically after `amplify publish` via Amplify hooks.
+
+### Deploy Custom Infrastructure (Manual)
+If needed, you can deploy Serverless infrastructure manually:
+```
+npm run serverless:deploy
+```
+
+**To skip automatic Serverless deployment**, use the `--no-hooks` flag:
+```
+npx amplify push --no-hooks
+npx amplify publish --no-hooks
+```
+
+See [Serverless Integration Guide](docs/serverless-integration.md) for more details.
 
 ## Building Lambda C Bindings
 
