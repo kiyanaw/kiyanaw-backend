@@ -24,6 +24,7 @@ const projectRoot = path.join(__dirname, '..', '..');
 const localEnvInfoPath = path.join(projectRoot, 'amplify', '.config', 'local-env-info.json');
 const localAwsInfoPath = path.join(projectRoot, 'amplify', '.config', 'local-aws-info.json');
 const teamProviderInfoPath = path.join(projectRoot, 'amplify', 'team-provider-info.json');
+const amplifyMetaPath = path.join(projectRoot, 'amplify', 'backend', 'amplify-meta.json');
 
 function readJsonFile(filePath) {
   try {
@@ -58,6 +59,17 @@ if (!envInfo) {
 
 const awsCloudFormation = envInfo.awscloudformation;
 
+// Get deployed resource information from amplify-meta.json
+let amplifyMeta = null;
+try {
+  amplifyMeta = readJsonFile(amplifyMetaPath);
+} catch (error) {
+  console.warn('Warning: Could not read amplify-meta.json - some values may be unavailable');
+}
+
+// Extract transcriptions bucket name from storage outputs
+const transcriptionsBucketName = amplifyMeta?.storage?.transcriptions?.output?.BucketName || '';
+
 // Build the output object
 const amplifyEnv = {
   envName: currentEnv,
@@ -68,6 +80,7 @@ const amplifyEnv = {
   stackName: awsCloudFormation.StackName,
   authRoleName: awsCloudFormation.AuthRoleName,
   unauthRoleName: awsCloudFormation.UnauthRoleName,
+  transcriptionsBucketName: transcriptionsBucketName,
 };
 
 // Write to amplify-env.json in the same directory as this script
@@ -79,3 +92,4 @@ console.log(`  Environment: ${amplifyEnv.envName}`);
 console.log(`  Region: ${amplifyEnv.region}`);
 console.log(`  AWS Profile: ${amplifyEnv.awsProfile}`);
 console.log(`  Deployment Bucket: ${amplifyEnv.deploymentBucket}`);
+console.log(`  Transcriptions Bucket: ${amplifyEnv.transcriptionsBucketName || '(not available)'}`);

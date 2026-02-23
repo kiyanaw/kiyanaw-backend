@@ -33,6 +33,23 @@ custom:
     securityGroupId: ${file(./scripts/serverless/vpc-info.json):securityGroupId}
     routeTableId: ${file(./scripts/serverless/vpc-info.json):routeTableId}
 
+  # CloudFront CDN configuration for media streaming
+  cloudfront:
+    # Domain mapping by environment
+    domain:
+      staging: cdn.kiyanaw.dev
+      production: cdn.kiyanaw.net
+    # Parent hosted zone for DNS records
+    hostedZone:
+      staging: kiyanaw.dev
+      production: kiyanaw.net
+    # ACM certificate ARNs (stored in SSM Parameter Store after manual creation)
+    certificateArn:
+      staging: ${ssm:/kiyanaw/cloudfront/staging/certificate-arn, ''}
+      production: ${ssm:/kiyanaw/cloudfront/production/certificate-arn, ''}
+    # S3 bucket name (from Amplify outputs via amplify-env.json)
+    s3BucketName: ${file(./scripts/serverless/amplify-env.json):transcriptionsBucketName, ''}
+
 # No functions defined - this stack only manages infrastructure
 functions: {}
 
@@ -154,6 +171,126 @@ resources:
             Permissions: '777'
           Path: '/fsts'
 
+    # ==========================================
+    # CloudFront CDN for Media Streaming
+    # Provides low-latency media delivery with signed URLs
+    # Custom domains: cdn.kiyanaw.dev (staging), cdn.kiyanaw.net (production)
+    # ==========================================
+
+    # Origin Access Control for S3 (preferred over OAI)
+    CloudFrontOAC:
+      Type: AWS::CloudFront::OriginAccessControl
+      Properties:
+        OriginAccessControlConfig:
+          Name: kiyanaw-transcriptions-oac-${self:custom.amplify.envName}
+          Description: OAC for Kiyanaw transcriptions S3 bucket
+          OriginAccessControlOriginType: s3
+          SigningBehavior: always
+          SigningProtocol: sigv4
+
+    # CloudFront Public Key for Signed URLs (environment-specific)
+    CloudFrontPublicKey:
+      Type: AWS::CloudFront::PublicKey
+      Properties:
+        PublicKeyConfig:
+          Name: kiyanaw-signing-key-${self:custom.amplify.envName}
+          CallerReference: kiyanaw-${self:custom.amplify.envName}-v1
+          EncodedKey: ${file(./scripts/serverless/cloudfront-public-key-${self:custom.amplify.envName}.pem)}
+
+    # CloudFront Key Group for Trusted Signers
+    CloudFrontKeyGroup:
+      Type: AWS::CloudFront::KeyGroup
+      DependsOn: CloudFrontPublicKey
+      Properties:
+        KeyGroupConfig:
+          Name: kiyanaw-signers-${self:custom.amplify.envName}
+          Items:
+            - !Ref CloudFrontPublicKey
+
+    # CloudFront Distribution for Media CDN
+    MediaCDNDistribution:
+      Type: AWS::CloudFront::Distribution
+      DependsOn:
+        - CloudFrontOAC
+        - CloudFrontKeyGroup
+      Properties:
+        DistributionConfig:
+          Enabled: true
+          Comment: Kiyanaw Media CDN - ${self:custom.amplify.envName}
+
+          # Custom domain configuration
+          Aliases:
+            - ${self:custom.cloudfront.domain.${self:custom.amplify.envName}}
+          ViewerCertificate:
+            AcmCertificateArn: ${self:custom.cloudfront.certificateArn.${self:custom.amplify.envName}}
+            SslSupportMethod: sni-only
+            MinimumProtocolVersion: TLSv1.2_2021
+
+          # S3 Origin configuration
+          Origins:
+            - Id: S3TranscriptionsBucket
+              DomainName: ${self:custom.cloudfront.s3BucketName}.s3.${self:custom.amplify.region}.amazonaws.com
+              S3OriginConfig:
+                OriginAccessIdentity: ''
+              OriginAccessControlId: !GetAtt CloudFrontOAC.Id
+
+          DefaultCacheBehavior:
+            TargetOriginId: S3TranscriptionsBucket
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods:
+              - GET
+              - HEAD
+              - OPTIONS
+            CachedMethods:
+              - GET
+              - HEAD
+            Compress: true
+
+            # Signed URL requirement
+            TrustedKeyGroups:
+              - !Ref CloudFrontKeyGroup
+
+            # Cache policy - CachingOptimized
+            CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+
+            # Origin request policy - CORS-S3Origin
+            OriginRequestPolicyId: 88a5eaf4-2fd4-4709-b370-b4c650ea3fcf
+
+          # Performance settings
+          PriceClass: PriceClass_100
+          HttpVersion: http2and3
+
+    # Route53 A Record for CDN Domain (alias to CloudFront)
+    CDNDomainRecord:
+      Type: AWS::Route53::RecordSet
+      DependsOn: MediaCDNDistribution
+      Properties:
+        HostedZoneName: ${self:custom.cloudfront.hostedZone.${self:custom.amplify.envName}}.
+        Name: ${self:custom.cloudfront.domain.${self:custom.amplify.envName}}.
+        Type: A
+        AliasTarget:
+          DNSName: !GetAtt MediaCDNDistribution.DomainName
+          HostedZoneId: Z2FDTNDATAQYW2
+
+    # S3 Bucket Policy for CloudFront OAC Access
+    TranscriptionsBucketPolicyForCloudFront:
+      Type: AWS::S3::BucketPolicy
+      DependsOn: MediaCDNDistribution
+      Properties:
+        Bucket: ${self:custom.cloudfront.s3BucketName}
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Sid: AllowCloudFrontServicePrincipalReadOnly
+              Effect: Allow
+              Principal:
+                Service: cloudfront.amazonaws.com
+              Action: s3:GetObject
+              Resource: !Sub 'arn:aws:s3:::${self:custom.cloudfront.s3BucketName}/*'
+              Condition:
+                StringEquals:
+                  AWS:SourceArn: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${MediaCDNDistribution}'
+
   Outputs:
     # VPC Information
     DefaultVpcId:
@@ -224,3 +361,34 @@ resources:
       Value: !Ref SpellcheckAccessPoint
       Export:
         Name: ${self:service}-${self:custom.amplify.envName}-SpellcheckEFSAccessPointId
+
+    # CloudFront CDN Outputs
+    CloudFrontDistributionId:
+      Description: CloudFront Distribution ID for media CDN
+      Value: !Ref MediaCDNDistribution
+      Export:
+        Name: ${self:service}-${self:custom.amplify.envName}-CloudFrontDistributionId
+
+    CloudFrontDomainName:
+      Description: CloudFront Distribution Domain Name
+      Value: !GetAtt MediaCDNDistribution.DomainName
+      Export:
+        Name: ${self:service}-${self:custom.amplify.envName}-CloudFrontDomainName
+
+    CloudFrontPublicKeyId:
+      Description: CloudFront Public Key ID for signing
+      Value: !Ref CloudFrontPublicKey
+      Export:
+        Name: ${self:service}-${self:custom.amplify.envName}-CloudFrontPublicKeyId
+
+    CloudFrontKeyGroupId:
+      Description: CloudFront Key Group ID
+      Value: !Ref CloudFrontKeyGroup
+      Export:
+        Name: ${self:service}-${self:custom.amplify.envName}-CloudFrontKeyGroupId
+
+    CDNCustomDomain:
+      Description: Custom CDN domain for media
+      Value: ${self:custom.cloudfront.domain.${self:custom.amplify.envName}}
+      Export:
+        Name: ${self:service}-${self:custom.amplify.envName}-CDNCustomDomain

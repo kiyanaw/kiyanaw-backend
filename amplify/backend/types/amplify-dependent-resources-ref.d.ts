@@ -9,6 +9,11 @@ export type AmplifyDependentResourcesAttributes = {
       "GraphQLAPIEndpointOutput": "string",
       "GraphQLAPIIdOutput": "string"
     },
+    "media": {
+      "ApiId": "string",
+      "ApiName": "string",
+      "RootUrl": "string"
+    },
     "opensearchproxy": {
       "ApiId": "string",
       "ApiName": "string",
@@ -95,6 +100,13 @@ export type AmplifyDependentResourcesAttributes = {
     },
     "kiyanawlibHfstol": {
       "Arn": "string"
+    },
+    "mediaAccess": {
+      "Arn": "string",
+      "LambdaExecutionRole": "string",
+      "LambdaExecutionRoleArn": "string",
+      "Name": "string",
+      "Region": "string"
     },
     "notifyRegionChanges": {
       "Arn": "string",

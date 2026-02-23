@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "paths": {
+    "/cloudfront/sign": {
+      "name": "/cloudfront/sign",
+      "lambdaFunction": "mediaAccess",
+      "permissions": {
+        "setting": "private",
+        "auth": [
+          "create",
+          "read",
+          "update"
+        ]
+      }
+    }
+  }
+}

@@ -6,46 +6,67 @@ interface CredentialTimerProps {
   onOpenDialog: () => void;
 }
 
+interface TimeRemaining {
+  hours: number;
+  minutes: number;
+  totalMinutes: number;
+}
+
 export const CredentialTimer = ({ onOpenDialog }: CredentialTimerProps) => {
-  const [minutesRemaining, setMinutesRemaining] = useState<number | null>(null);
+  const [timeRemaining, setTimeRemaining] = useState<TimeRemaining | null>(null);
 
   useEffect(() => {
     const updateTimer = () => {
       const expirationTime = getSignedUrlExpirationTime();
-      
+
       if (!expirationTime) {
-        setMinutesRemaining(null);
+        setTimeRemaining(null);
         return;
       }
 
       const now = Date.now();
-      const timeRemaining = expirationTime - now;
-      const minutes = Math.floor(timeRemaining / (1000 * 60));
-      
-      setMinutesRemaining(minutes >= 0 ? minutes : 0);
+      const remaining = expirationTime - now;
 
-      // Automatically open dialog when credentials expire (0 or negative minutes)
-      if (minutes <= 0) {
+      if (remaining <= 0) {
+        setTimeRemaining({ hours: 0, minutes: 0, totalMinutes: 0 });
         onOpenDialog();
+        return;
       }
+
+      const totalMinutes = Math.floor(remaining / (1000 * 60));
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = totalMinutes % 60;
+
+      setTimeRemaining({ hours, minutes, totalMinutes });
     };
 
     // Update immediately
     updateTimer();
 
-    // Update every second to catch expiration immediately
-    const interval = setInterval(updateTimer, 1000);
+    // Update every 60 seconds for 24-hour timer (less CPU than every second)
+    const interval = setInterval(updateTimer, 60000);
 
     return () => clearInterval(interval);
   }, [onOpenDialog]);
 
-  // Don't render if no expiration time or already expired
-  if (minutesRemaining === null || minutesRemaining < 0) {
+  // Don't render if no expiration time
+  if (timeRemaining === null) {
     return null;
   }
 
-  const isWarning = minutesRemaining <= 5;
-  const displayText = `${minutesRemaining}m`;
+  const { hours, minutes, totalMinutes } = timeRemaining;
+
+  // Show warning when less than 30 minutes remaining
+  const isWarning = totalMinutes <= 30;
+
+  // Format display: "23h 45m" or "45m" if less than an hour
+  const displayText = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+
+  // Format title text
+  const titleText =
+    hours > 0
+      ? `Media access expires in ${hours} hour${hours !== 1 ? 's' : ''} and ${minutes} minute${minutes !== 1 ? 's' : ''}.`
+      : `Media access expires in ${minutes} minute${minutes !== 1 ? 's' : ''}.`;
 
   return (
     <button
@@ -55,11 +76,10 @@ export const CredentialTimer = ({ onOpenDialog }: CredentialTimerProps) => {
           ? 'bg-orange-100 text-orange-700 hover:bg-orange-200'
           : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
       }`}
-      title={`Credentials expire in ${minutesRemaining} minute${minutesRemaining !== 1 ? 's' : ''}. Click to view details.`}
+      title={`${titleText} Click to refresh.`}
     >
       <ShieldCheck size={12} />
       <span>{displayText}</span>
     </button>
   );
 };
-

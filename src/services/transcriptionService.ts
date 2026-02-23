@@ -1,4 +1,4 @@
-import { generateClient } from 'aws-amplify/api';
+import { generateClient, post } from 'aws-amplify/api';
 import { getUrl } from 'aws-amplify/storage';
 import { fetchAuthSession } from 'aws-amplify/auth';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -57,6 +57,46 @@ export interface CreateTranscriptionData {
 }
 
 /**
+ * Response type from CloudFront signing Lambda
+ */
+interface CloudFrontSignedUrlResponse {
+  signedUrl: string;
+  expiresAt: number;
+}
+
+/**
+ * Generates a CloudFront signed URL by calling the mediaAccess Lambda
+ * @param s3Key The S3 object key
+ * @returns Object containing the signed URL and expiration timestamp
+ */
+const generateCloudFrontSignedUrl = async (s3Key: string): Promise<CloudFrontSignedUrlResponse> => {
+  try {
+    console.debug(`Requesting CloudFront signed URL for: ${s3Key}`);
+
+    const restOperation = post({
+      apiName: 'media',
+      path: '/cloudfront/sign',
+      options: {
+        body: {
+          s3Key,
+          expiresInSeconds: 86400 // 24 hours
+        }
+      }
+    });
+
+    const response = await restOperation.response;
+    const body = await response.body.json() as unknown as CloudFrontSignedUrlResponse;
+
+    console.debug(`CloudFront signed URL generated, expires at: ${new Date(body.expiresAt).toISOString()}`);
+
+    return body;
+  } catch (error) {
+    console.error('Failed to generate CloudFront signed URL:', error);
+    throw error;
+  }
+};
+
+/**
  * Extracts the S3 key from a source URL
  * @param sourceUrl The full S3 URL (e.g., https://bucket.s3.amazonaws.com/public/key.mp3)
  * @returns The S3 key (e.g., key.mp3)
@@ -88,10 +128,10 @@ const extractS3KeyFromUrl = (sourceUrl: string): string => {
 };
 
 /**
- * Generates a signed URL for any S3 file using Amplify Storage
- * IMPORTANT: Pre-signed URLs cannot outlive the temporary credentials used to create them.
- * This function checks credential expiration and refreshes if needed before generating URLs.
- * 
+ * Generates a signed URL for S3 files using CloudFront CDN (preferred) with S3 fallback.
+ * CloudFront URLs are valid for 24 hours, providing better caching and lower latency.
+ * Falls back to direct S3 signed URLs if CloudFront signing fails.
+ *
  * @param sourceUrl The source URL of the file
  * @param fileSuffix Optional suffix to append to the key (e.g., '.json' for peaks files)
  * @returns The signed URL for the file
@@ -100,29 +140,58 @@ export const generateSignedUrl = async (sourceUrl: string, fileSuffix: string = 
   try {
     const fileKey = extractS3KeyFromUrl(sourceUrl);
     const targetKey = `${fileKey}${fileSuffix}`;
-    
+
     console.debug(`Generating signed URL for file: ${targetKey}`);
-    
-    // Determine the path - if the key already starts with 'public/', use it as is
-    // Otherwise, prepend 'public/'
-    const path = targetKey.startsWith('public/') ? targetKey : `public/${targetKey}`;
-    
-    const { url } = await getUrl({
-      path,
-      options: {
-        expiresIn: 3600, // 60 minutes
-        useAccelerateEndpoint: false
-      }
-    });
-    
-    // Track when this signed URL will expire (60 minutes)
-    signedUrlExpirationTime = Date.now() + (3600 * 1000);
-    
-    return url.toString();
+
+    // Try CloudFront signing first (24-hour URLs via CDN)
+    try {
+      const result = await generateCloudFrontSignedUrl(targetKey);
+
+      // Track when this signed URL will expire (24 hours)
+      signedUrlExpirationTime = result.expiresAt;
+
+      return result.signedUrl;
+    } catch (cloudFrontError) {
+      console.warn('CloudFront signing failed, falling back to S3:', cloudFrontError);
+    }
+
+    // Fallback to direct S3 signed URL (60 minutes)
+    return await generateS3SignedUrlFallback(sourceUrl, fileSuffix);
   } catch (error) {
     console.error(`Failed to generate signed URL for file: ${sourceUrl}${fileSuffix}`, error);
     throw new Error(`Failed to generate signed URL for file: ${error}`);
   }
+};
+
+/**
+ * Fallback function to generate S3 signed URLs directly via Amplify Storage
+ * Used when CloudFront signing is unavailable
+ *
+ * @param sourceUrl The source URL of the file
+ * @param fileSuffix Optional suffix to append to the key
+ * @returns The signed S3 URL
+ */
+const generateS3SignedUrlFallback = async (sourceUrl: string, fileSuffix: string = ''): Promise<string> => {
+  const fileKey = extractS3KeyFromUrl(sourceUrl);
+  const targetKey = `${fileKey}${fileSuffix}`;
+
+  // Determine the path - if the key already starts with 'public/', use it as is
+  // Otherwise, prepend 'public/'
+  const path = targetKey.startsWith('public/') ? targetKey : `public/${targetKey}`;
+
+  const { url } = await getUrl({
+    path,
+    options: {
+      expiresIn: 3600, // 60 minutes
+      useAccelerateEndpoint: false
+    }
+  });
+
+  // Track when this signed URL will expire (60 minutes)
+  signedUrlExpirationTime = Date.now() + (3600 * 1000);
+
+  console.debug(`Generated S3 fallback signed URL for: ${targetKey}`);
+  return url.toString();
 };
 
 // Track credential expiration time
