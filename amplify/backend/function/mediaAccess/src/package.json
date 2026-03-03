@@ -1,0 +1,14 @@
+{
+  "name": "mediaaccess",
+  "version": "2.0.0",
+  "description": "CloudFront URL signing service for media access",
+  "main": "index.js",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@aws-sdk/client-secrets-manager": "^3.700.0",
+    "@aws-sdk/cloudfront-signer": "^3.700.0"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.92"
+  }
+}

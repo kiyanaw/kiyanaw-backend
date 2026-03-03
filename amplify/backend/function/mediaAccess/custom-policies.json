@@ -1,0 +1,8 @@
+[
+  {
+    "Action": ["secretsmanager:GetSecretValue"],
+    "Resource": [
+      "arn:aws:secretsmanager:*:*:secret:kiyanaw/cloudfront/*/private-key*"
+    ]
+  }
+]

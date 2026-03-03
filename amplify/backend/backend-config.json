@@ -42,6 +42,20 @@
       "providerPlugin": "awscloudformation",
       "service": "AppSync"
     },
+    "media": {
+      "dependsOn": [
+        {
+          "attributes": [
+            "Name",
+            "Arn"
+          ],
+          "category": "function",
+          "resourceName": "mediaAccess"
+        }
+      ],
+      "providerPlugin": "awscloudformation",
+      "service": "API Gateway"
+    },
     "opensearchproxy": {
       "dependsOn": [
         {
@@ -274,6 +288,11 @@
       "providerPlugin": "awscloudformation",
       "service": "LambdaLayer"
     },
+    "mediaAccess": {
+      "build": true,
+      "providerPlugin": "awscloudformation",
+      "service": "Lambda"
+    },
     "notifyRegionChanges": {
       "build": true,
       "providerPlugin": "awscloudformation",
@@ -476,6 +495,22 @@
         {
           "category": "function",
           "resourceName": "kiyanawlibHfstol"
+        }
+      ]
+    },
+    "AMPLIFY_function_mediaAccess_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "mediaAccess"
+        }
+      ]
+    },
+    "AMPLIFY_function_mediaAccess_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "mediaAccess"
         }
       ]
     },
