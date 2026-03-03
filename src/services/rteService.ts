@@ -1262,37 +1262,6 @@ class RTEServiceImpl {
   }
 
   /**
-   * Finds the word boundaries around a given position in the text.
-   * Used to determine the full extent of a word when stripping inherited formats.
-   *
-   * @param text - The full text content
-   * @param insertPos - Position where text was inserted
-   * @param insertLength - Length of inserted text
-   * @returns Object with start position and length of the word
-   */
-  private findWordBoundsAt(text: string, insertPos: number, insertLength: number): { start: number; length: number } {
-    // Word boundary pattern (matches word characters including Unicode letters)
-    const isWordChar = (char: string): boolean => {
-      return /[\p{L}\p{N}]/u.test(char);
-    };
-
-    // Find start of word (scan backwards from insert position)
-    let start = insertPos;
-    while (start > 0 && isWordChar(text[start - 1])) {
-      start--;
-    }
-
-    // Find end of word (scan forwards from end of inserted text)
-    // Note: text already includes the inserted characters
-    let end = insertPos + insertLength;
-    while (end < text.length && isWordChar(text[end])) {
-      end++;
-    }
-
-    return { start, length: end - start };
-  }
-
-  /**
    * Updates debug information for an editor.
    * Used for tracking editor lifecycle and highlighting operations.
    *

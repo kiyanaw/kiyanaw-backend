@@ -1,0 +1,226 @@
+service: kiyanaw-serverless
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  region: ${self:custom.amplify.region}
+  stage: ${self:custom.amplify.envName}
+  profile: ${self:custom.amplify.awsProfile}
+  stackName: ${self:service}-${self:custom.amplify.envName}
+
+  # Use Amplify's deployment bucket for consistency
+  deploymentBucket:
+    name: ${self:custom.amplify.deploymentBucket}
+
+custom:
+  # Amplify environment context (populated by scripts/serverless/get-amplify-env.js)
+  amplify:
+    envName: ${file(./scripts/serverless/amplify-env.json):envName, 'staging'}
+    region: ${file(./scripts/serverless/amplify-env.json):region, 'us-east-1'}
+    awsProfile: ${file(./scripts/serverless/amplify-env.json):awsProfile, 'default'}
+    deploymentBucket: ${file(./scripts/serverless/amplify-env.json):deploymentBucket, ''}
+    amplifyAppId: ${file(./scripts/serverless/amplify-env.json):amplifyAppId, ''}
+    stackName: ${file(./scripts/serverless/amplify-env.json):stackName, ''}
+
+  # VPC information (populated by scripts/serverless/get-vpc-info.js)
+  vpc:
+    vpcId: ${file(./scripts/serverless/vpc-info.json):vpcId}
+    subnetIds: ${file(./scripts/serverless/vpc-info.json):subnetIds}
+    subnet1: ${file(./scripts/serverless/vpc-info.json):subnet1}
+    subnet2: ${file(./scripts/serverless/vpc-info.json):subnet2}
+    securityGroupId: ${file(./scripts/serverless/vpc-info.json):securityGroupId}
+    routeTableId: ${file(./scripts/serverless/vpc-info.json):routeTableId}
+
+# No functions defined - this stack only manages infrastructure
+functions: {}
+
+resources:
+  Description: |
+    Serverless infrastructure for Kiyanaw Backend
+    This stack creates VPC, EFS, and other infrastructure resources needed by Amplify Lambda functions.
+    
+  Resources:
+    # ==========================================
+    # VPC S3 Endpoint
+    # Required for Lambda functions in VPC to access S3 without going through NAT Gateway
+    # Used by: createPeaksFile, spellcheck
+    # ==========================================
+    VpcS3Endpoint:
+      Type: AWS::EC2::VPCEndpoint
+      Properties:
+        VpcId: ${self:custom.vpc.vpcId}
+        ServiceName: !Sub 'com.amazonaws.${AWS::Region}.s3'
+        RouteTableIds:
+          - ${self:custom.vpc.routeTableId}
+        VpcEndpointType: Gateway
+
+    # ==========================================
+    # EFS File System for createPeaksFile Lambda
+    # Used for temporary storage when processing audio/video files
+    # Mount path: /mnt/temp
+    # ==========================================
+    CreatePeaksFileEFS:
+      Type: AWS::EFS::FileSystem
+      Properties:
+        FileSystemTags:
+          - Key: Name
+            Value: createPeaksFileFS-${self:custom.amplify.envName}
+          - Key: Environment
+            Value: ${self:custom.amplify.envName}
+        PerformanceMode: generalPurpose
+        ThroughputMode: bursting
+        Encrypted: true
+
+    # EFS Mount Targets (one per subnet - using first 2)
+    CreatePeaksFileMountTarget1:
+      Type: AWS::EFS::MountTarget
+      Properties:
+        FileSystemId: !Ref CreatePeaksFileEFS
+        SubnetId: ${self:custom.vpc.subnet1}
+        SecurityGroups:
+          - ${self:custom.vpc.securityGroupId}
+
+    CreatePeaksFileMountTarget2:
+      Type: AWS::EFS::MountTarget
+      Properties:
+        FileSystemId: !Ref CreatePeaksFileEFS
+        SubnetId: ${self:custom.vpc.subnet2}
+        SecurityGroups:
+          - ${self:custom.vpc.securityGroupId}
+
+    # EFS Access Point for Lambda
+    CreatePeaksFileAccessPoint:
+      Type: AWS::EFS::AccessPoint
+      Properties:
+        FileSystemId: !Ref CreatePeaksFileEFS
+        PosixUser:
+          Uid: '1000'
+          Gid: '1000'
+        RootDirectory:
+          CreationInfo:
+            OwnerGid: '1000'
+            OwnerUid: '1000'
+            Permissions: '777'
+          Path: '/temp'
+
+    # ==========================================
+    # EFS File System for spellcheck Lambda
+    # Used for caching FST (Finite State Transducer) files from S3
+    # Mount path: /mnt/fsts
+    # ==========================================
+    SpellcheckEFS:
+      Type: AWS::EFS::FileSystem
+      Properties:
+        FileSystemTags:
+          - Key: Name
+            Value: spellcheckFSTS-${self:custom.amplify.envName}
+          - Key: Environment
+            Value: ${self:custom.amplify.envName}
+        PerformanceMode: generalPurpose
+        ThroughputMode: bursting
+        Encrypted: true
+
+    # EFS Mount Targets (one per subnet - using first 2)
+    SpellcheckMountTarget1:
+      Type: AWS::EFS::MountTarget
+      Properties:
+        FileSystemId: !Ref SpellcheckEFS
+        SubnetId: ${self:custom.vpc.subnet1}
+        SecurityGroups:
+          - ${self:custom.vpc.securityGroupId}
+
+    SpellcheckMountTarget2:
+      Type: AWS::EFS::MountTarget
+      Properties:
+        FileSystemId: !Ref SpellcheckEFS
+        SubnetId: ${self:custom.vpc.subnet2}
+        SecurityGroups:
+          - ${self:custom.vpc.securityGroupId}
+
+    # EFS Access Point for Lambda
+    SpellcheckAccessPoint:
+      Type: AWS::EFS::AccessPoint
+      Properties:
+        FileSystemId: !Ref SpellcheckEFS
+        PosixUser:
+          Uid: '1000'
+          Gid: '1000'
+        RootDirectory:
+          CreationInfo:
+            OwnerGid: '1000'
+            OwnerUid: '1000'
+            Permissions: '777'
+          Path: '/fsts'
+
+  Outputs:
+    # VPC Information
+    DefaultVpcId:
+      Description: Default VPC ID
+      Value: ${self:custom.vpc.vpcId}
+      Export:
+        Name: ${self:service}-${self:custom.amplify.envName}-VpcId
+
+    DefaultSecurityGroupId:
+      Description: Default Security Group ID
+      Value: ${self:custom.vpc.securityGroupId}
+      Export:
+        Name: ${self:service}-${self:custom.amplify.envName}-SecurityGroupId
+
+    DefaultSubnet1:
+      Description: Default VPC Subnet 1
+      Value: ${self:custom.vpc.subnet1}
+      Export:
+        Name: ${self:service}-${self:custom.amplify.envName}-Subnet1
+
+    DefaultSubnet2:
+      Description: Default VPC Subnet 2
+      Value: ${self:custom.vpc.subnet2}
+      Export:
+        Name: ${self:service}-${self:custom.amplify.envName}-Subnet2
+
+    # S3 VPC Endpoint
+    VpcS3EndpointId:
+      Description: VPC S3 Gateway Endpoint ID
+      Value: !Ref VpcS3Endpoint
+      Export:
+        Name: ${self:service}-${self:custom.amplify.envName}-S3EndpointId
+
+    # createPeaksFile EFS Resources
+    CreatePeaksFileEFSId:
+      Description: EFS File System ID for createPeaksFile Lambda
+      Value: !Ref CreatePeaksFileEFS
+      Export:
+        Name: ${self:service}-${self:custom.amplify.envName}-CreatePeaksFileEFSId
+
+    CreatePeaksFileEFSAccessPointArn:
+      Description: EFS Access Point ARN for createPeaksFile Lambda (mount at /mnt/temp)
+      Value: !GetAtt CreatePeaksFileAccessPoint.Arn
+      Export:
+        Name: ${self:service}-${self:custom.amplify.envName}-CreatePeaksFileEFSAccessPointArn
+
+    CreatePeaksFileEFSAccessPointId:
+      Description: EFS Access Point ID for createPeaksFile Lambda
+      Value: !Ref CreatePeaksFileAccessPoint
+      Export:
+        Name: ${self:service}-${self:custom.amplify.envName}-CreatePeaksFileEFSAccessPointId
+
+    # spellcheck EFS Resources
+    SpellcheckEFSId:
+      Description: EFS File System ID for spellcheck Lambda
+      Value: !Ref SpellcheckEFS
+      Export:
+        Name: ${self:service}-${self:custom.amplify.envName}-SpellcheckEFSId
+
+    SpellcheckEFSAccessPointArn:
+      Description: EFS Access Point ARN for spellcheck Lambda (mount at /mnt/fsts)
+      Value: !GetAtt SpellcheckAccessPoint.Arn
+      Export:
+        Name: ${self:service}-${self:custom.amplify.envName}-SpellcheckEFSAccessPointArn
+
+    SpellcheckEFSAccessPointId:
+      Description: EFS Access Point ID for spellcheck Lambda
+      Value: !Ref SpellcheckAccessPoint
+      Export:
+        Name: ${self:service}-${self:custom.amplify.envName}-SpellcheckEFSAccessPointId

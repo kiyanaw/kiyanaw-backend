@@ -28,6 +28,11 @@ scripts/fsts-to-upload/*.hfstol
 # amplify
 amplify/team-provider-info.json
 
+# serverless
+.serverless/
+scripts/serverless/amplify-env.json
+scripts/serverless/vpc-info.json
+
 #amplify-do-not-edit-begin
 amplify/\#current-cloud-backend
 amplify/.config/local-*
