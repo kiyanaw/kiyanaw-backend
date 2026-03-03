@@ -57,7 +57,13 @@ resources:
   Description: |
     Serverless infrastructure for Kiyanaw Backend
     This stack creates VPC, EFS, and other infrastructure resources needed by Amplify Lambda functions.
-    
+
+  Conditions:
+    # Route53 hosted zone for kiyanaw.net is in a different AWS account,
+    # so we skip creating the DNS record for production and add it manually
+    CreateRoute53Record:
+      !Not [!Equals ['${self:custom.amplify.envName}', 'production']]
+
   Resources:
     # ==========================================
     # VPC S3 Endpoint
@@ -261,8 +267,10 @@ resources:
           HttpVersion: http2and3
 
     # Route53 A Record for CDN Domain (alias to CloudFront)
+    # Skipped for production - see Conditions above
     CDNDomainRecord:
       Type: AWS::Route53::RecordSet
+      Condition: CreateRoute53Record
       DependsOn: MediaCDNDistribution
       Properties:
         HostedZoneName: ${self:custom.cloudfront.hostedZone.${self:custom.amplify.envName}}.
