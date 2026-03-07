@@ -78,14 +78,6 @@
             "Arn"
           ],
           "category": "function",
-          "resourceName": "crkSpellCheck"
-        },
-        {
-          "attributes": [
-            "Name",
-            "Arn"
-          ],
-          "category": "function",
           "resourceName": "spellcheck"
         }
       ],

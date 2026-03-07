@@ -69,7 +69,20 @@ function generateCloudFrontSignedUrl(s3Key, privateKey, expiresInSeconds) {
   // Ensure key starts with correct prefix for S3 bucket structure
   const normalizedKey = s3Key.startsWith('public/') ? s3Key : `public/${s3Key}`;
 
-  const url = `https://${cdnDomain}/${normalizedKey}`;
+  // Encode each path segment to handle filenames with spaces or special characters.
+  // Decode first to avoid double-encoding keys that are already percent-encoded.
+  const encodedKey = normalizedKey
+    .split('/')
+    .map(segment => {
+      try {
+        return encodeURIComponent(decodeURIComponent(segment));
+      } catch {
+        return encodeURIComponent(segment);
+      }
+    })
+    .join('/');
+
+  const url = `https://${cdnDomain}/${encodedKey}`;
   const expiresAt = Math.floor(Date.now() / 1000) + expiresInSeconds;
 
   const signedUrl = getSignedUrl({
