@@ -450,22 +450,6 @@
         }
       ]
     },
-    "AMPLIFY_function_kiyanawcrkFSTs_deploymentBucketName": {
-      "usedBy": [
-        {
-          "category": "function",
-          "resourceName": "kiyanawcrkFSTs"
-        }
-      ]
-    },
-    "AMPLIFY_function_kiyanawcrkFSTs_s3Key": {
-      "usedBy": [
-        {
-          "category": "function",
-          "resourceName": "kiyanawcrkFSTs"
-        }
-      ]
-    },
     "AMPLIFY_function_kiyanawffmpeg_deploymentBucketName": {
       "usedBy": [
         {
