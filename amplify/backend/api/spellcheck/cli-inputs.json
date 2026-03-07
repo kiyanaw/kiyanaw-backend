@@ -1,52 +1,6 @@
 {
   "version": 1,
   "paths": {
-    "/crk/bulk-lookup": {
-      "name": "/crk/bulk-lookup",
-      "lambdaFunction": "crkSpellCheck",
-      "permissions": {
-        "setting": "private",
-        "auth": [
-          "create"
-        ]
-      }
-    },
-    "/crk/suggest": {
-      "name": "/crk/suggest",
-      "lambdaFunction": "crkSpellCheck",
-      "permissions": {
-        "setting": "private",
-        "auth": [
-          "create"
-        ]
-      }
-    },
-    "/crgn/bulk-lookup": {
-      "name": "/crgn/bulk-lookup",
-      "lambdaFunction": "crkSpellCheck",
-      "permissions": {
-        "setting": "private",
-        "auth": [
-          "create",
-          "read",
-          "update",
-          "delete"
-        ]
-      }
-    },
-    "/crgn/suggest": {
-      "name": "/crgn/suggest",
-      "lambdaFunction": "crkSpellCheck",
-      "permissions": {
-        "setting": "private",
-        "auth": [
-          "create",
-          "read",
-          "update",
-          "delete"
-        ]
-      }
-    },
     "/bulk-lookup": {
       "name": "/bulk-lookup",
       "lambdaFunction": "spellcheck",

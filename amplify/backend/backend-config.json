@@ -78,14 +78,6 @@
             "Arn"
           ],
           "category": "function",
-          "resourceName": "crkSpellCheck"
-        },
-        {
-          "attributes": [
-            "Name",
-            "Arn"
-          ],
-          "category": "function",
           "resourceName": "spellcheck"
         }
       ],
@@ -447,6 +439,22 @@
         {
           "category": "function",
           "resourceName": "kiyanawaudiowaveform"
+        }
+      ]
+    },
+    "AMPLIFY_function_kiyanawcrkFSTs_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "kiyanawcrkFSTs"
+        }
+      ]
+    },
+    "AMPLIFY_function_kiyanawcrkFSTs_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "kiyanawcrkFSTs"
         }
       ]
     },
