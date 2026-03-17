@@ -22,6 +22,16 @@ A docker image is provided to build C bindings if needed. Currently needed when 
 brew install --cask docker
 ```
 
+## Setup Spellcheck API Credentials
+
+The spellcheck API requires a key that is environment-specific. After pulling an environment, run:
+
+```
+npx amplify env checkout <env>
+```
+
+This fetches the `transcribe-<env>` API key from API Gateway and writes `VITE_SPELLCHECK_API_BASE_URL` and `VITE_SPELLCHECK_API_KEY` to `.env.local`. This also runs automatically before `amplify publish`.
+
 ## Setup Amplify and Pull `staging`
 ```
 npx amplify pull

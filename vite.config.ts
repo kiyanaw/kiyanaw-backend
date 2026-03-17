@@ -33,6 +33,8 @@ export default defineConfig({
   define: {
     __BUILD_HASH__: JSON.stringify(buildHash),
     __BUILD_TIME__: JSON.stringify(buildTime),
+    __SPELLCHECK_BASE_URL__: JSON.stringify(process.env.VITE_SPELLCHECK_API_BASE_URL ?? ''),
+    __SPELLCHECK_API_KEY__: JSON.stringify(process.env.VITE_SPELLCHECK_API_KEY ?? ''),
   },
   plugins: [
     commonjs(),

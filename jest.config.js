@@ -5,6 +5,7 @@ export default {
       displayName: 'Main App',
       preset: 'ts-jest',
       testEnvironment: 'jsdom',
+      setupFiles: ['<rootDir>/src/setupTestGlobals.ts'],
       setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts'],
       moduleNameMapper: {
         '^@/(.*)$': '<rootDir>/src/$1',

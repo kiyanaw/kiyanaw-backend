@@ -1,5 +1,7 @@
-import { post } from 'aws-amplify/api';
 import type { WordAnalysis, SpellCheckResult, SpellingSuggestion } from './adt';
+
+declare const __SPELLCHECK_BASE_URL__: string;
+declare const __SPELLCHECK_API_KEY__: string;
 
 class SpellCheckerServiceImpl {
   private knownWordsCache = new Map<string, WordAnalysis>(); // Cache full analysis by word
@@ -59,20 +61,20 @@ class SpellCheckerServiceImpl {
 
   private async makeApiRequest(words: string[], languageCode: string): Promise<SpellCheckResult> {
     try {
-      // Use Amplify's REST API client with the spellcheck API
-      // New endpoint format: /bulk-lookup with languageCode in body
-      const { response } = await post({
-        apiName: 'spellcheck',
-        path: '/bulk-lookup',
-        options: {
-          body: {
-            languageCode,
-            words
-          }
-        }
+      const response = await fetch(`${__SPELLCHECK_BASE_URL__}/spellcheck/bulk-lookup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': __SPELLCHECK_API_KEY__,
+        },
+        body: JSON.stringify({ languageCode, words }),
       });
-      const res = await response;
-      const result = await res.body.json() as Record<string, string[] | { word: string; analysis: string }[]>;
+
+      if (!response.ok) {
+        throw new Error(`Spellcheck API error: ${response.status}`);
+      }
+
+      const result = await response.json() as Record<string, string[] | { word: string; analysis: string }[]>;
       
       // Parse API response - keys are words, values are arrays of analyses
       const known: WordAnalysis[] = [];
