@@ -68,6 +68,7 @@ playwright/.auth/
 playwright-report/
 test-results/
 .env
+.env.local
 debug-*.png
 
 # Claude Flow generated files

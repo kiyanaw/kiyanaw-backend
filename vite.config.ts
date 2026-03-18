@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import commonjs from 'vite-plugin-commonjs'
@@ -19,7 +19,9 @@ const buildHash = generateBuildHash();
 const buildTime = new Date().toISOString();
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '');
+  return {
   resolve: {
     // Enable symlink resolution for shared code from Lambda
     preserveSymlinks: true,
@@ -33,6 +35,8 @@ export default defineConfig({
   define: {
     __BUILD_HASH__: JSON.stringify(buildHash),
     __BUILD_TIME__: JSON.stringify(buildTime),
+    __SPELLCHECK_BASE_URL__: JSON.stringify(env.VITE_SPELLCHECK_API_BASE_URL ?? ''),
+    __SPELLCHECK_API_KEY__: JSON.stringify(env.VITE_SPELLCHECK_API_KEY ?? ''),
   },
   plugins: [
     commonjs(),
@@ -109,4 +113,5 @@ export default defineConfig({
       }
     })
   ],
+  };
 })
