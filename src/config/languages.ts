@@ -9,9 +9,12 @@ export interface LanguageConfig {
 }
 
 const LANGUAGES_UNSORTED: readonly LanguageConfig[] = [
+  { code: 'bla', name: 'Siksika (Blackfoot)' },
   { code: 'ciw', name: 'Anishnaabemowin (Ojibwe)' },
   { code: 'crgn', name: 'Michif (Northern)' },
   { code: 'crk', name: 'Nêhiyawêwin (Plains Cree Y-dialect)' },
+  { code: 'cwd', name: 'Nīhithawīwin (Woods Cree TH-dialect)' },
+  { code: 'gle', name: 'Gaeilge (Irish)' },
   { code: 'otwc', name: 'Nishnaabemowin (Odawa - Corbiere)' },
   { code: 'otwr', name: 'Nishnaabemowin (Odawa - Rhodes)' },
 ] as const;

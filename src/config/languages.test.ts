@@ -26,21 +26,27 @@ describe('languages config', () => {
     });
 
     it('includes expected languages', () => {
-      expect(LANGUAGE_CODES).toContain('crk');
+      expect(LANGUAGE_CODES).toContain('bla');
+      expect(LANGUAGE_CODES).toContain('ciw');
       expect(LANGUAGE_CODES).toContain('crgn');
+      expect(LANGUAGE_CODES).toContain('crk');
+      expect(LANGUAGE_CODES).toContain('cwd');
+      expect(LANGUAGE_CODES).toContain('gle');
       expect(LANGUAGE_CODES).toContain('otwc');
       expect(LANGUAGE_CODES).toContain('otwr');
-      expect(LANGUAGE_CODES).toContain('ciw');
     });
   });
 
   describe('getLanguageName', () => {
     it('returns the correct language name for valid code', () => {
-      expect(getLanguageName('crk')).toBe('Nêhiyawêwin (Plains Cree Y-dialect)');
+      expect(getLanguageName('bla')).toBe('Siksika (Blackfoot)');
+      expect(getLanguageName('ciw')).toBe('Anishnaabemowin (Ojibwe)');
       expect(getLanguageName('crgn')).toBe('Michif (Northern)');
+      expect(getLanguageName('crk')).toBe('Nêhiyawêwin (Plains Cree Y-dialect)');
+      expect(getLanguageName('cwd')).toBe('Nīhithawīwin (Woods Cree TH-dialect)');
+      expect(getLanguageName('gle')).toBe('Gaeilge (Irish)');
       expect(getLanguageName('otwc')).toBe('Nishnaabemowin (Odawa - Corbiere)');
       expect(getLanguageName('otwr')).toBe('Nishnaabemowin (Odawa - Rhodes)');
-      expect(getLanguageName('ciw')).toBe('Anishnaabemowin (Ojibwe)');
     });
 
     it('returns the code itself for unknown language', () => {
@@ -51,11 +57,14 @@ describe('languages config', () => {
 
   describe('isValidLanguageCode', () => {
     it('returns true for valid language codes', () => {
-      expect(isValidLanguageCode('crk')).toBe(true);
+      expect(isValidLanguageCode('bla')).toBe(true);
+      expect(isValidLanguageCode('ciw')).toBe(true);
       expect(isValidLanguageCode('crgn')).toBe(true);
+      expect(isValidLanguageCode('crk')).toBe(true);
+      expect(isValidLanguageCode('cwd')).toBe(true);
+      expect(isValidLanguageCode('gle')).toBe(true);
       expect(isValidLanguageCode('otwc')).toBe(true);
       expect(isValidLanguageCode('otwr')).toBe(true);
-      expect(isValidLanguageCode('ciw')).toBe(true);
     });
 
     it('returns false for invalid language codes', () => {
