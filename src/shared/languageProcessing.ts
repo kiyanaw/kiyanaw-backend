@@ -51,7 +51,7 @@ export interface LanguageProcessor {
 /**
  * Supported language codes
  */
-export type LanguageCode = 'crk' | 'ciw' | 'otwr' | 'otwc';
+export type LanguageCode = 'bla' | 'ciw' | 'crk' | 'cwd' | 'gle' | 'otwr' | 'otwc';
 
 /**
  * Get the special processor for a given language code
