@@ -13,8 +13,11 @@
  */
 
 const languages = {
-  crk: require('./special-processing-crk'),
+  bla: require('./special-processing-bla'),
   ciw: require('./special-processing-ciw'),
+  crk: require('./special-processing-crk'),
+  cwd: require('./special-processing-cwd'),
+  gle: require('./special-processing-gle'),
   otwr: require('./special-processing-otw'), // Same as otw, different spelling style
   otwc: require('./special-processing-otw'), // Same as otw, different spelling style
 }
