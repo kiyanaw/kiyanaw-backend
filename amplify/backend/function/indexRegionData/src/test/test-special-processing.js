@@ -8,8 +8,11 @@ const {
 describe('special-processing registry', () => {
   describe('getLanguageProcessor', () => {
     it('returns processor for supported languages', () => {
-      expect(getLanguageProcessor('crk')).not.toBeNull()
+      expect(getLanguageProcessor('bla')).not.toBeNull()
       expect(getLanguageProcessor('ciw')).not.toBeNull()
+      expect(getLanguageProcessor('crk')).not.toBeNull()
+      expect(getLanguageProcessor('cwd')).not.toBeNull()
+      expect(getLanguageProcessor('gle')).not.toBeNull()
       expect(getLanguageProcessor('otwr')).not.toBeNull()
       expect(getLanguageProcessor('otwc')).not.toBeNull()
     })
@@ -35,8 +38,11 @@ describe('special-processing registry', () => {
 
   describe('hasSpecialProcessing', () => {
     it('returns true for supported languages', () => {
-      expect(hasSpecialProcessing('crk')).toBe(true)
+      expect(hasSpecialProcessing('bla')).toBe(true)
       expect(hasSpecialProcessing('ciw')).toBe(true)
+      expect(hasSpecialProcessing('crk')).toBe(true)
+      expect(hasSpecialProcessing('cwd')).toBe(true)
+      expect(hasSpecialProcessing('gle')).toBe(true)
       expect(hasSpecialProcessing('otwr')).toBe(true)
       expect(hasSpecialProcessing('otwc')).toBe(true)
     })
@@ -76,6 +82,44 @@ describe('special-processing registry', () => {
       })
     })
 
+    describe('Siksika (bla)', () => {
+      it('extracts lemma from verb analysis', () => {
+        expect(getLemma('bla', 'Fut+waahkayi+VAI+Ind+3Sg')).toBe('waahkayi')
+        expect(getLemma('bla', 'ino+VTA+Ind+1Sg+2SgO')).toBe('ino')
+      })
+
+      it('extracts lemma from noun analysis', () => {
+        expect(getLemma('bla', 'ninaawa+NA+Sg')).toBe('ninaawa')
+        expect(getLemma('bla', 'miiini+NI+Sg')).toBe('miiini')
+      })
+    })
+
+    describe('Woods Cree (cwd)', () => {
+      it('extracts lemma from verb analysis', () => {
+        expect(getLemma('cwd', 'nipaw+V+AI+Ind+3Sg')).toBe('nipaw')
+        expect(getLemma('cwd', 'PV/i+nipaw+V+AI+Cnj+1Sg')).toBe('nipaw')
+      })
+
+      it('extracts lemma from noun analysis', () => {
+        expect(getLemma('cwd', 'pahkwisikan+N+A+Sg')).toBe('pahkwisikan')
+        expect(getLemma('cwd', 'ciman+N+I+Sg')).toBe('ciman')
+      })
+    })
+
+    describe('Irish (gle)', () => {
+      it('extracts lemma from noun analysis', () => {
+        expect(getLemma('gle', 'cuid+Noun+Fem+Gen+Sg')).toBe('cuid')
+      })
+
+      it('extracts lemma from verb analysis', () => {
+        expect(getLemma('gle', 'ceangail+Verb+VT+FutInd')).toBe('ceangail')
+      })
+
+      it('extracts lemma from verbal noun analysis', () => {
+        expect(getLemma('gle', 'feadail+Verbal+Noun+VI+Gen')).toBe('feadail')
+      })
+    })
+
     describe('Odawa (otwr/otwc)', () => {
       it('extracts lemma from verb analysis', () => {
         expect(getLemma('otwr', 'gwekshin+VAI+3')).toBe('gwekshin')
@@ -109,8 +153,11 @@ describe('special-processing registry', () => {
   describe('languages export', () => {
     it('exports language map for testing', () => {
       expect(languages).toBeDefined()
-      expect(Object.keys(languages)).toContain('crk')
+      expect(Object.keys(languages)).toContain('bla')
       expect(Object.keys(languages)).toContain('ciw')
+      expect(Object.keys(languages)).toContain('crk')
+      expect(Object.keys(languages)).toContain('cwd')
+      expect(Object.keys(languages)).toContain('gle')
       expect(Object.keys(languages)).toContain('otwr')
       expect(Object.keys(languages)).toContain('otwc')
     })
