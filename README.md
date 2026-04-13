@@ -66,10 +66,15 @@ npm run test:watch
 
 ### Run E2E tests
 
-E2E tests use Playwright against a real AWS backend. They require three dedicated test accounts (owner, editor, viewer) and the following environment variables in `.env`:
+E2E tests use Playwright against a real AWS backend. They require three dedicated test accounts (owner, editor, viewer).
 
+**First-time setup** — run this to create the `.env` file with the required credentials:
 ```
-PLAYWRIGHT_BASE_URL=https://bundle.kiyanaw.dev
+npm run setup:e2e
+```
+
+This populates `.env` with:
+```
 PLAYWRIGHT_TEST_EMAIL=owner@example.com
 PLAYWRIGHT_TEST_PASSWORD=...
 PLAYWRIGHT_TEST_EMAIL_EDITOR=editor@example.com
@@ -78,19 +83,14 @@ PLAYWRIGHT_TEST_EMAIL_VIEWER=viewer@example.com
 PLAYWRIGHT_TEST_PASSWORD_VIEWER=...
 ```
 
-**Run against the currently checked-out Amplify environment (recommended for local dev):**
+The base URL is resolved automatically from `amplify/.config/local-env-info.json` (the currently checked-out Amplify environment) via `playwright/env-config.json`. No `PLAYWRIGHT_BASE_URL` needed.
+
+**Run tests:**
 ```
 npm run test:e2e
 ```
-This reads `amplify/.config/local-env-info.json` to determine which environment is active, then looks up the base URL from `playwright/env-config.json`. No `.env` configuration needed.
 
-**Run against a specific environment regardless of which one is checked out:**
-```
-npm run test:e2e:staging
-npm run test:e2e:production
-```
-
-**Run with 1 worker (for CI):**
+**Run with 1 worker (for CI or subscription tests):**
 ```
 npm run test:e2e:ci
 ```
