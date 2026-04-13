@@ -38,6 +38,20 @@ export default defineConfig(({ mode }) => {
     __SPELLCHECK_BASE_URL__: JSON.stringify(env.VITE_SPELLCHECK_API_BASE_URL ?? ''),
     __SPELLCHECK_API_KEY__: JSON.stringify(env.VITE_SPELLCHECK_API_KEY ?? ''),
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return;
+          if (id.includes('@aws-amplify') || id.includes('aws-amplify')) return 'vendor-amplify';
+          if (id.includes('wavesurfer')) return 'vendor-wavesurfer';
+          if (id.includes('quill')) return 'vendor-quill';
+          if (id.includes('/react/') || id.includes('/react-dom/') || id.includes('react-router')) return 'vendor-react';
+          return 'vendor';
+        },
+      },
+    },
+  },
   plugins: [
     commonjs(),
     react(),
