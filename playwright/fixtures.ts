@@ -1,6 +1,7 @@
 import { test as base, expect } from '@playwright/test';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { getEnvName } from './auth-utils.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -26,7 +27,7 @@ if (missingVars.length > 0) {
  * browser process, so there is no cross-account session leakage.
  */
 function authFilePath(accountName: 'owner' | 'viewer' | 'editor' | 'admin'): string {
-  return path.join(__dirname, '.auth', `user-${accountName}.json`);
+  return path.join(__dirname, '.auth', `user-${accountName}-${getEnvName()}.json`);
 }
 
 /**

@@ -377,6 +377,7 @@ export const TranscriptionsList = () => {
               </span>
             </button>
             <button
+              data-testid="shared-with-me-tab"
               onClick={() => handleTabSwitch('shared')}
               className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
                 activeTab === 'shared'
@@ -551,6 +552,7 @@ export const TranscriptionsList = () => {
                     <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-2 min-w-0 flex-1">
                       <Link
+                        data-testid="transcription-list-item-title"
                         to={`/transcribe-edit/${transcription.id}`}
                         className="text-lg font-medium text-ki-blue hover:text-blue-800 hover:underline truncate"
                       >

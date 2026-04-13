@@ -1,0 +1,11 @@
+{
+  "staging": {
+    "baseURL": "https://bundle.kiyanaw.dev"
+  },
+  "production": {
+    "baseURL": "https://bundle.kiyanaw.net"
+  },
+  "local": {
+    "baseURL": "http://localhost:5173"
+  }
+}

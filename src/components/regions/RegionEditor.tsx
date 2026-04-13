@@ -123,6 +123,7 @@ export const RegionEditor = memo(({
 
           {/* Create Issue Button - Second position, always visible but disabled when no selection */}
           <button
+            data-testid="create-issue-button"
             className={`flex items-center justify-center w-7 h-7 border rounded-md transition-all duration-200 text-sm ${
               canEdit && hasSelection
                 ? 'border-orange-300 bg-orange-50 text-orange-600 cursor-pointer hover:bg-orange-100 hover:border-orange-400'
@@ -246,8 +247,9 @@ export const RegionEditor = memo(({
       <div className="flex-1 overflow-hidden">
         {activeTab === 'main' && !region.isNote && (
           <div className="h-full">
-            <div 
+            <div
               ref={mainEditorRef}
+              data-testid="region-editor-main"
               className="h-full"
               style={{ backgroundColor: 'white' }}
             />

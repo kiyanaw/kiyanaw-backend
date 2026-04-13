@@ -236,7 +236,8 @@ const IssueListItem: React.FC<IssueListItemProps> = ({
           </span>
         )}
 
-        <div 
+        <div
+          data-testid="issue-item-open-dialog"
           className="flex-1 min-w-0 flex items-center gap-2 relative cursor-pointer hover:bg-gray-50 rounded p-2 -m-2 transition-colors"
           onClick={() => onOpenDialog(issue.id)}
           title="Click to view issue details and comments"

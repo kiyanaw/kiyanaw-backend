@@ -12,11 +12,12 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
 import dotenv from 'dotenv';
+import { extractAuth, getBaseURL, getEnvName, isTokenExpired, refreshIdToken, updateIdTokenInFile } from './auth-utils.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-dotenv.config({ path: path.resolve(__dirname, '../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../.env'), quiet: true });
 
 type AccountSetup = {
   name: string;
@@ -35,18 +36,36 @@ const accounts: AccountSetup[] = [
   }] : []),
 ];
 
-async function authenticateAccount(config: FullConfig, account: AccountSetup): Promise<void> {
+async function authenticateAccount(_config: FullConfig, account: AccountSetup): Promise<void> {
   const authDir = path.join(__dirname, '.auth');
   fs.mkdirSync(authDir, { recursive: true });
-  const authFile = path.join(authDir, `user-${account.name}.json`);
+  const authFile = path.join(authDir, `user-${account.name}-${getEnvName()}.json`);
 
-  // Skip if already authenticated (delete files to force re-auth)
+  // If an auth file exists, check whether the tokens are still usable.
   if (fs.existsSync(authFile)) {
-    console.log(`[global-setup] Skipping ${account.name} — auth file already exists`);
-    return;
+    const stored = extractAuth(authFile);
+    if (stored && isTokenExpired(stored.idToken)) {
+      // idToken expired — try to refresh silently with the refreshToken.
+      // If the refreshToken itself has expired, fall through to full re-login.
+      try {
+        const region = process.env.PLAYWRIGHT_AWS_REGION ?? 'us-east-1';
+        console.log(`[global-setup] ${account.name}: idToken expired — refreshing…`);
+        const newIdToken = await refreshIdToken(stored.clientId, stored.refreshToken, region);
+        updateIdTokenInFile(authFile, newIdToken);
+        console.log(`[global-setup] ${account.name}: token refreshed`);
+        return;
+      } catch {
+        console.log(`[global-setup] ${account.name}: refresh failed — re-authenticating`);
+        fs.unlinkSync(authFile);
+        // fall through to full login below
+      }
+    } else {
+      console.log(`[global-setup] Skipping ${account.name} — auth file already exists`);
+      return;
+    }
   }
 
-  const baseURL = process.env.PLAYWRIGHT_BASE_URL!;
+  const baseURL = getBaseURL();
   console.log(`[global-setup] Authenticating ${account.name} (${account.email})...`);
 
   // Launch a completely fresh browser with no shared state
@@ -80,9 +99,7 @@ async function authenticateAccount(config: FullConfig, account: AccountSetup): P
       await passwordInput.fill(account.password);
       await signInButton.click();
 
-      // Capture what the page looks like 3s after submit to diagnose failures
       await page.waitForTimeout(3000);
-      await page.screenshot({ path: path.join(authDir, `debug-${account.name}-after-submit.png`), fullPage: true });
 
       // Wait for the login form to disappear
       await emailInput.waitFor({ state: 'hidden', timeout: 30000 });
@@ -104,7 +121,7 @@ async function authenticateAccount(config: FullConfig, account: AccountSetup): P
 }
 
 export default async function globalSetup(config: FullConfig): Promise<void> {
-  const missing = ['PLAYWRIGHT_BASE_URL', 'PLAYWRIGHT_TEST_EMAIL', 'PLAYWRIGHT_TEST_PASSWORD',
+  const missing = ['PLAYWRIGHT_TEST_EMAIL', 'PLAYWRIGHT_TEST_PASSWORD',
     'PLAYWRIGHT_TEST_EMAIL_EDITOR', 'PLAYWRIGHT_TEST_PASSWORD_EDITOR',
     'PLAYWRIGHT_TEST_EMAIL_VIEWER', 'PLAYWRIGHT_TEST_PASSWORD_VIEWER',
   ].filter(v => !process.env[v]);
@@ -112,6 +129,8 @@ export default async function globalSetup(config: FullConfig): Promise<void> {
   if (missing.length > 0) {
     throw new Error(`[global-setup] Missing env vars: ${missing.join(', ')}`);
   }
+
+  console.log(`[global-setup] env=${getEnvName()}  baseURL=${getBaseURL()}`);
 
   // Authenticate each account sequentially (avoid any chance of shared browser state)
   for (const account of accounts) {

@@ -276,7 +276,7 @@ export const IssueDetailsDialog = ({
                   const canDeleteThisComment = canDeleteComment(comment.author, transcription, user);
                   
                   return (
-                    <div key={comment.id} className="flex gap-3 p-3 md:p-4 bg-gray-50 rounded-lg">
+                    <div key={comment.id} data-testid="comment-item" className="flex gap-3 p-3 md:p-4 bg-gray-50 rounded-lg">
                       {/* Comment content */}
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
@@ -312,6 +312,7 @@ export const IssueDetailsDialog = ({
             <div className="p-4 md:p-6 border-t border-gray-200 bg-gray-50">
               <div className="relative">
                 <textarea
+                  data-testid="comment-input"
                   ref={textareaRef}
                   value={newCommentText}
                   onChange={(e) => setNewCommentText(e.target.value)}
@@ -330,6 +331,7 @@ export const IssueDetailsDialog = ({
                   }}
                 />
                 <button
+                  data-testid="submit-comment"
                   onClick={handleAddComment}
                   disabled={!newCommentText.trim() || isSubmittingComment}
                   className="absolute right-3 top-1/2 w-8 h-8 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
