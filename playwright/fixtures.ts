@@ -41,9 +41,10 @@ function ensureAuthFile(accountName: 'owner' | 'viewer' | 'editor' | 'admin'): s
 
 // Main test fixture — assigns accounts round-robin by worker index
 const test = base.extend<{ workerStorageState: string }, { workerStorageState: string }>({
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   storageState: ({ workerStorageState }, use) => use(workerStorageState),
 
-  workerStorageState: [async ({}, use: (value: string) => Promise<void>) => {
+  workerStorageState: [async (_: object, use: (value: string) => Promise<void>) => {
     const accountNames = ['owner', 'viewer', 'editor'] as const;
     const workerIndex = process.env.TEST_PARALLEL_INDEX ? parseInt(process.env.TEST_PARALLEL_INDEX) : 0;
     const accountName = accountNames[workerIndex % accountNames.length];
@@ -55,9 +56,10 @@ const test = base.extend<{ workerStorageState: string }, { workerStorageState: s
 // Custom fixture for tests that require a specific account
 const testWithAccount = (accountName: 'owner' | 'viewer' | 'editor' | 'admin') => {
   return base.extend<{ workerStorageState: string }, { workerStorageState: string }>({
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     storageState: ({ workerStorageState }, use) => use(workerStorageState),
 
-    workerStorageState: [async ({}, use: (value: string) => Promise<void>) => {
+    workerStorageState: [async (_: object, use: (value: string) => Promise<void>) => {
       await use(authFilePath(accountName));
     // @ts-expect-error - Playwright scope type issue
     }, { scope: 'worker' }],
