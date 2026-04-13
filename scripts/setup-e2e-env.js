@@ -113,11 +113,11 @@ try {
 }
 
 content = setEnvVar(content, 'PLAYWRIGHT_TEST_EMAIL',          'owner@kiyanaw.dev');
-content = setEnvVar(content, 'PLAYWRIGHT_TEST_PASSWORD',        passwords.owner);
+content = setEnvVar(content, 'PLAYWRIGHT_TEST_PASSWORD',        `"${passwords.owner}"`);
 content = setEnvVar(content, 'PLAYWRIGHT_TEST_EMAIL_EDITOR',    'editor@kiyanaw.dev');
-content = setEnvVar(content, 'PLAYWRIGHT_TEST_PASSWORD_EDITOR', passwords.editor);
+content = setEnvVar(content, 'PLAYWRIGHT_TEST_PASSWORD_EDITOR', `"${passwords.editor}"`);
 content = setEnvVar(content, 'PLAYWRIGHT_TEST_EMAIL_VIEWER',    'viewer@kiyanaw.dev');
-content = setEnvVar(content, 'PLAYWRIGHT_TEST_PASSWORD_VIEWER', passwords.viewer);
+content = setEnvVar(content, 'PLAYWRIGHT_TEST_PASSWORD_VIEWER', `"${passwords.viewer}"`);
 
 // Only set PLAYWRIGHT_BASE_URL if it isn't already in the file (preserve overrides)
 if (!/^PLAYWRIGHT_BASE_URL=/m.test(content)) {

@@ -39,7 +39,7 @@ function generatePassword() {
   const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
   const lower = 'abcdefghjkmnpqrstuvwxyz';
   const digits = '23456789';
-  const symbols = '!@#%^&*()-_=+';
+  const symbols = '!@%^&*()-_=+';  // # excluded: it is the comment char in .env files
   const all = upper + lower + digits + symbols;
 
   // Guarantee at least one of each required class
