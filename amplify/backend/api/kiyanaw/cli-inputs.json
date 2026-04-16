@@ -12,10 +12,6 @@
         "type": "OPTIMISTIC_CONCURRENCY"
       }
     },
-    "additionalAuthTypes": [
-      {
-        "mode": "AWS_IAM"
-      }
-    ]
+    "additionalAuthTypes": []
   }
 }

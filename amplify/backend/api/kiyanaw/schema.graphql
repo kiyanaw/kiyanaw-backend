@@ -1,10 +1,7 @@
 type Transcription
   @model
   @auth(rules: [
-    # 1) Allow IAM callers full CRUD (e.g. DataStore sync, Lambda functions)
-    { allow: private, provider: identityPool, operations: [create, read, update, delete] }
-
-    # 2) Owners (by author) via User Pools
+    # 1) Owners (by author) via User Pools
     { allow: owner, ownerField: "author", operations: [create, read, update, delete] }
 
     # 3) List-based owners via User Pools
@@ -49,10 +46,7 @@ type Transcription
 type Region
   @model
   @auth(rules: [
-    # 1) Allow IAM callers full CRUD (e.g. DataStore sync, Lambda functions)
-    { allow: private, provider: identityPool, operations: [create, read, update, delete] }
-    
-    # 2) Regions inherit access from parent Transcription
+    # 1) Regions inherit access from parent Transcription
     # Users can only read regions - create/update requires explicit parent transcription access
     { allow: private, operations: [read] }
   ]) {
@@ -73,10 +67,7 @@ type Region
 type Issue
   @model
   @auth(rules: [
-    # 1) Allow IAM callers full CRUD (e.g. DataStore sync, Lambda functions)
-    { allow: private, provider: identityPool, operations: [create, read, update, delete] }
-    
-    # 2) Owners (issue creators) can manage their own issues
+    # 1) Owners (issue creators) can manage their own issues
     { allow: owner, ownerField: "owner", operations: [create, read, update, delete] }
     
     # 3) Inherit access from parent transcription - users with transcription access can read/update issues
@@ -104,10 +95,7 @@ type Issue
 type Invite
   @model
   @auth(rules: [
-    # 1) Allow IAM callers full CRUD (e.g. DataStore sync, Lambda functions)
-    { allow: private, provider: identityPool, operations: [create, read, update, delete] }
-    
-    # 2) Owners (who sent the invite) can manage their invites
+    # 1) Owners (who sent the invite) can manage their invites
     { allow: owner, ownerField: "invitedBy", operations: [create, read, update, delete] }
     
     # 3) Allow invited user to read their own invites by email
@@ -132,10 +120,7 @@ type Invite
 type Comment
   @model
   @auth(rules: [
-    # 1) Allow IAM callers full CRUD (e.g. DataStore sync, Lambda functions)
-    { allow: private, provider: identityPool, operations: [create, read, update, delete] }
-    
-    # 2) Owners (comment authors) can manage their comments
+    # 1) Owners (comment authors) can manage their comments
     { allow: owner, ownerField: "author", operations: [create, read, update, delete] }
     
     # 3) Inherit access from parent transcription - users with access can read comments
