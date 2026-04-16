@@ -1,36 +1,18 @@
-// Global test setup - mocks AWS services before any modules are required
+// Global test setup - stubs AWS service wrappers before any modules are required
 const sinon = require('sinon')
-const AWS = require('aws-sdk')
+const sqs = require('../lib/sqs')
+const s3 = require('../lib/s3')
 
-// Mock SQS
-const mockSendMessageBatch = sinon.stub().returns({
-  promise: sinon.stub().resolves({
-    Successful: [{ Id: '0' }],
-    Failed: []
-  })
+// Stub SQS sendMessageBatch so handler tests can assert on call count/args
+const mockSendMessageBatch = sinon.stub(sqs, 'sendMessageBatch').resolves({
+  Successful: [{ Id: '0' }],
+  Failed: []
 })
 
-const mockSQS = {
-  sendMessageBatch: mockSendMessageBatch
-}
+// Stub S3 deleteObject so s3 lib tests can assert on call params
+const mockDeleteObject = sinon.stub(s3, 'deleteObject').resolves({ VersionId: 'version123' })
 
-// Mock S3
-const mockDeleteObject = sinon.stub().returns({
-  promise: sinon.stub().resolves({ VersionId: 'version123' })
-})
-
-const mockS3 = {
-  deleteObject: mockDeleteObject
-}
-
-// Apply mocks globally
-sinon.stub(AWS, 'SQS').returns(mockSQS)
-sinon.stub(AWS, 'S3').returns(mockS3)
-
-// Export mocks for use in individual tests
 module.exports = {
   mockSendMessageBatch,
   mockDeleteObject,
-  mockSQS,
-  mockS3
 }

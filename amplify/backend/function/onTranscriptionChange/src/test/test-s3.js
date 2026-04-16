@@ -3,7 +3,6 @@ const sinon = require('sinon')
 
 // Set up global AWS mocks
 const { mockDeleteObject } = require('./setup')
-const AWS = require('aws-sdk')
 
 const s3 = require('../lib/s3')
 
@@ -14,9 +13,7 @@ describe('s3 utilities', function () {
     
     // Reset mock
     mockDeleteObject.resetHistory()
-    mockDeleteObject.returns({
-      promise: sinon.stub().resolves({ VersionId: 'version123' })
-    })
+    mockDeleteObject.resolves({ VersionId: 'version123' })
   })
   
   afterEach(function () {
@@ -61,9 +58,7 @@ describe('s3 utilities', function () {
     })
 
     it('should throw error when deletion fails', async function () {
-      mockDeleteObject.returns({
-        promise: sinon.stub().rejects(new Error('S3 deletion failed'))
-      })
+      mockDeleteObject.rejects(new Error('S3 deletion failed'))
 
       try {
         await s3.deleteFile('test-bucket', 'path/file.mp4')
@@ -122,12 +117,8 @@ describe('s3 utilities', function () {
     it('should handle partial failures gracefully', async function () {
       // First call succeeds, second call fails
       mockDeleteObject
-        .onFirstCall().returns({
-          promise: sinon.stub().resolves({ VersionId: 'version123' })
-        })
-        .onSecondCall().returns({
-          promise: sinon.stub().rejects(new Error('JSON file not found'))
-        })
+        .onFirstCall().resolves({ VersionId: 'version123' })
+        .onSecondCall().rejects(new Error('JSON file not found'))
 
       const sourceUrl = 'https://test-bucket.s3.amazonaws.com/public/video.mp4'
       const results = await s3.deleteTranscriptionFiles(sourceUrl)

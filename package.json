@@ -26,7 +26,8 @@
     "serverless:deploy": "npm run serverless:sync-env && npx serverless deploy && node scripts/serverless/attach-lambda-vpc-efs.js",
     "serverless:remove": "npm run serverless:sync-env && npx serverless remove",
     "serverless:info": "npm run serverless:sync-env && npx serverless info",
-    "deploy:all": "npx amplify push && npx amplify publish && npm run serverless:deploy"
+    "deploy": "npx amplify publish -y",
+    "deploy:backend": "npx amplify push -y"
   },
   "dependencies": {
     "@aws-amplify/auth": "^6.12.4",

@@ -3,7 +3,7 @@ const sinon = require('sinon')
 
 // Set up global AWS mocks
 const { mockSendMessageBatch } = require('./setup')
-const AWS = require('aws-sdk')
+const { marshall } = require('@aws-sdk/util-dynamodb')
 
 const handler = require('../index').handler
 const dynamo = require('../lib/dynamo')
@@ -64,12 +64,12 @@ describe('onTranscriptionChange handler()', function () {
         eventID: 'test-event-id',
         eventName: 'MODIFY',
         dynamodb: {
-          OldImage: AWS.DynamoDB.Converter.marshall({
+          OldImage: marshall({
             id: 'transcription-123',
             title: 'Test Transcription',
             source: 'https://test-bucket.s3.amazonaws.com/public/video.mp4'
           }),
-          NewImage: AWS.DynamoDB.Converter.marshall({
+          NewImage: marshall({
             id: 'transcription-123',
             title: 'Test Transcription',
             source: 'https://test-bucket.s3.amazonaws.com/public/video.mp4',
@@ -121,12 +121,12 @@ describe('onTranscriptionChange handler()', function () {
         eventID: 'test-event-id',
         eventName: 'MODIFY',
         dynamodb: {
-          OldImage: AWS.DynamoDB.Converter.marshall({
+          OldImage: marshall({
             id: 'transcription-123',
             title: 'Test Transcription'
             // No source field
           }),
-          NewImage: AWS.DynamoDB.Converter.marshall({
+          NewImage: marshall({
             id: 'transcription-123',
             title: 'Test Transcription',
             _deleted: true,
@@ -166,12 +166,12 @@ describe('onTranscriptionChange handler()', function () {
         eventID: 'test-event-id',
         eventName: 'MODIFY',
         dynamodb: {
-          OldImage: AWS.DynamoDB.Converter.marshall({
+          OldImage: marshall({
             id: 'transcription-123',
             isPrivate: false,
             lang: 'crk'
           }),
-          NewImage: AWS.DynamoDB.Converter.marshall({
+          NewImage: marshall({
             id: 'transcription-123',
             isPrivate: true,
             lang: 'crk'
@@ -197,12 +197,12 @@ describe('onTranscriptionChange handler()', function () {
         eventID: 'test-event-id',
         eventName: 'MODIFY',
         dynamodb: {
-          OldImage: AWS.DynamoDB.Converter.marshall({
+          OldImage: marshall({
             id: 'transcription-123',
             isPrivate: false,
             lang: 'crk'
           }),
-          NewImage: AWS.DynamoDB.Converter.marshall({
+          NewImage: marshall({
             id: 'transcription-123',
             isPrivate: false,
             lang: null
@@ -232,12 +232,12 @@ describe('onTranscriptionChange handler()', function () {
         eventID: 'test-event-id',
         eventName: 'MODIFY',
         dynamodb: {
-          OldImage: AWS.DynamoDB.Converter.marshall({
+          OldImage: marshall({
             id: 'transcription-123',
             isPrivate: false,
             lang: null
           }),
-          NewImage: AWS.DynamoDB.Converter.marshall({
+          NewImage: marshall({
             id: 'transcription-123',
             isPrivate: false,
             lang: 'crk'
@@ -271,12 +271,12 @@ describe('onTranscriptionChange handler()', function () {
         eventID: 'test-event-id',
         eventName: 'MODIFY',
         dynamodb: {
-          OldImage: AWS.DynamoDB.Converter.marshall({
+          OldImage: marshall({
             id: 'transcription-123',
             isPrivate: true,
             lang: null
           }),
-          NewImage: AWS.DynamoDB.Converter.marshall({
+          NewImage: marshall({
             id: 'transcription-123',
             isPrivate: true,
             lang: 'crk'
@@ -305,12 +305,12 @@ describe('onTranscriptionChange handler()', function () {
         eventID: 'test-event-id',
         eventName: 'MODIFY',
         dynamodb: {
-          OldImage: AWS.DynamoDB.Converter.marshall({
+          OldImage: marshall({
             id: 'transcription-123',
             isPrivate: true,
             lang: 'crk'
           }),
-          NewImage: AWS.DynamoDB.Converter.marshall({
+          NewImage: marshall({
             id: 'transcription-123',
             isPrivate: false,
             lang: 'crk'
@@ -335,7 +335,7 @@ describe('onTranscriptionChange handler()', function () {
         eventID: 'test-event-id',
         eventName: 'INSERT',
         dynamodb: {
-          NewImage: AWS.DynamoDB.Converter.marshall({
+          NewImage: marshall({
             id: 'transcription-123',
             isPrivate: false,
             lang: 'crk'
@@ -360,13 +360,13 @@ describe('onTranscriptionChange handler()', function () {
         eventID: 'test-event-id',
         eventName: 'MODIFY',
         dynamodb: {
-          OldImage: AWS.DynamoDB.Converter.marshall({
+          OldImage: marshall({
             id: 'transcription-123',
             isPrivate: false,
             lang: 'crk',
             title: 'Old Title'
           }),
-          NewImage: AWS.DynamoDB.Converter.marshall({
+          NewImage: marshall({
             id: 'transcription-123',
             isPrivate: false,
             lang: 'crk',
@@ -398,12 +398,12 @@ describe('onTranscriptionChange handler()', function () {
         eventID: 'test-event-id',
         eventName: 'MODIFY',
         dynamodb: {
-          OldImage: AWS.DynamoDB.Converter.marshall({
+          OldImage: marshall({
             id: 'transcription-123',
             isPrivate: true,
             lang: 'crk'
           }),
-          NewImage: AWS.DynamoDB.Converter.marshall({
+          NewImage: marshall({
             id: 'transcription-123',
             isPrivate: false,
             lang: 'crk'
@@ -431,13 +431,13 @@ describe('onTranscriptionChange handler()', function () {
         eventID: 'test-event-id',
         eventName: 'MODIFY',
         dynamodb: {
-          OldImage: AWS.DynamoDB.Converter.marshall({
+          OldImage: marshall({
             id: 'transcription-123',
             isPrivate: false,
             lang: 'crk',
             publicIssues: true
           }),
-          NewImage: AWS.DynamoDB.Converter.marshall({
+          NewImage: marshall({
             id: 'transcription-123',
             isPrivate: false,
             lang: 'crk',
@@ -471,13 +471,13 @@ describe('onTranscriptionChange handler()', function () {
         eventID: 'test-event-id',
         eventName: 'MODIFY',
         dynamodb: {
-          OldImage: AWS.DynamoDB.Converter.marshall({
+          OldImage: marshall({
             id: 'transcription-123',
             isPrivate: false,
             lang: 'crk',
             publicIssues: false
           }),
-          NewImage: AWS.DynamoDB.Converter.marshall({
+          NewImage: marshall({
             id: 'transcription-123',
             isPrivate: false,
             lang: 'crk',

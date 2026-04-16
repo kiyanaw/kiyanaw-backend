@@ -111,22 +111,42 @@ To force a fresh login, delete `playwright/.auth/`.
 
 Each test cleans up its own data in `afterEach`. A global teardown also runs after every suite to catch any orphans left by aborted runs — it deletes all transcriptions matching `Test Transcription *` for the three test accounts, cascading to regions, issues, comments, and S3 media via the `onTranscriptionChange` Lambda.
 
+### Format code
+```
+npm run format
+```
+
 ### Run linter
 ```
 npm run lint
 ```
 
+### Rotate E2E test account passwords
+```
+npm run rotate:e2e-passwords
+```
+
+### Tail Lambda logs
+```
+npm run logs:spellcheck
+npm run logs:indexing
+```
+
 ### Deploy Backend
 ```
-npx amplify push
+npm run deploy:backend
 ```
+
+This runs `npx amplify push -y` (auto-confirms). For the interactive version: `npx amplify push`.
 
 **Note:** Custom Serverless infrastructure will be deployed automatically after `amplify push` via Amplify hooks.
 
-### Deploy Frontend
+### Deploy Frontend + Backend
 ```
-npx amplify publish
+npm run deploy
 ```
+
+This runs `npx amplify publish -y` (auto-confirms). For the interactive version: `npx amplify publish`.
 
 **Note:** Custom Serverless infrastructure will be deployed automatically after `amplify publish` via Amplify hooks.
 
@@ -141,8 +161,6 @@ npm run serverless:deploy
 npx amplify push --no-hooks
 npx amplify publish --no-hooks
 ```
-
-See [Serverless Integration Guide](docs/serverless-integration.md) for more details.
 
 ## Building Lambda C Bindings
 

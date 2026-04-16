@@ -1,11 +1,13 @@
 const { Client } = require('@opensearch-project/opensearch')
-const AWS = require('aws-sdk')
-const createAwsOpensearchConnector = require('aws-opensearch-connector')
+const { AwsSigv4Signer } = require('@opensearch-project/opensearch/aws-v3')
+const { defaultProvider } = require('@aws-sdk/credential-provider-node')
 
-// Create OpenSearch client with AWS IAM authentication using global AWS config
-// The Lambda execution role will provide the necessary credentials
 const client = new Client({
-  ...createAwsOpensearchConnector(AWS.config),
+  ...AwsSigv4Signer({
+    region: process.env.REGION || process.env.AWS_REGION || 'us-east-1',
+    service: 'es',
+    getCredentials: () => defaultProvider()(),
+  }),
   node: 'https://' + process.env.OPENSEARCH_ENDPOINT
 })
 

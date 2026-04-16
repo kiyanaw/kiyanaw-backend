@@ -1,11 +1,6 @@
-const AWS = require('aws-sdk')
+const { S3Client, DeleteObjectCommand } = require('@aws-sdk/client-s3')
 
-AWS.config.update({
-  credentials: new AWS.EnvironmentCredentials('AWS'),
-  region: process.env.REGION,
-})
-
-const s3 = new AWS.S3({ apiVersion: '2006-03-01' })
+const s3Client = new S3Client({ region: process.env.REGION })
 
 /**
  * Extract S3 key from full S3 URL
@@ -16,7 +11,7 @@ const extractS3Key = (s3Url) => {
   if (!s3Url || typeof s3Url !== 'string') {
     return null
   }
-  
+
   try {
     const url = new URL(s3Url)
     // Remove leading slash from pathname
@@ -25,6 +20,15 @@ const extractS3Key = (s3Url) => {
     console.error('Invalid S3 URL:', s3Url, error)
     return null
   }
+}
+
+/**
+ * Delete an S3 object. Exported separately so tests can stub it at the module level.
+ * @param {{ Bucket: string, Key: string }} params
+ * @returns {Promise<object>}
+ */
+const deleteObject = async (params) => {
+  return s3Client.send(new DeleteObjectCommand(params))
 }
 
 /**
@@ -38,11 +42,12 @@ const deleteFile = async (bucketName, key) => {
     Bucket: bucketName,
     Key: key
   }
-  
+
   console.log(`Deleting S3 object: s3://${bucketName}/${key}`)
-  
+
   try {
-    const result = await s3.deleteObject(params).promise()
+    // Call through module.exports so sinon stubs applied to the export are honoured
+    const result = await module.exports.deleteObject(params)
     console.log(`Successfully deleted: s3://${bucketName}/${key}`)
     return result
   } catch (error) {
@@ -58,34 +63,34 @@ const deleteFile = async (bucketName, key) => {
  */
 const deleteTranscriptionFiles = async (sourceUrl) => {
   const bucketName = process.env.STORAGE_TRANSCRIPTIONS_BUCKETNAME
-  
+
   if (!bucketName) {
     throw new Error('STORAGE_TRANSCRIPTIONS_BUCKETNAME environment variable not set')
   }
-  
+
   if (!sourceUrl) {
     console.log('No source URL provided, skipping S3 deletion')
     return []
   }
-  
+
   const key = extractS3Key(sourceUrl)
   if (!key) {
     console.warn('Could not extract S3 key from source URL:', sourceUrl)
     return []
   }
-  
+
   const deletionPromises = []
-  
+
   // Delete the main media file
   deletionPromises.push(deleteFile(bucketName, key))
-  
+
   // Delete the associated JSON file (e.g., foo.mp4 -> foo.mp4.json)
   const jsonKey = `${key}.json`
   deletionPromises.push(deleteFile(bucketName, jsonKey))
-  
+
   try {
     const results = await Promise.allSettled(deletionPromises)
-    
+
     // Log results
     results.forEach((result, index) => {
       const fileType = index === 0 ? 'media' : 'JSON'
@@ -95,7 +100,7 @@ const deleteTranscriptionFiles = async (sourceUrl) => {
         console.error(`${fileType} file deletion failed:`, result.reason.message)
       }
     })
-    
+
     return results
   } catch (error) {
     console.error('Unexpected error during S3 deletion:', error)
@@ -106,5 +111,6 @@ const deleteTranscriptionFiles = async (sourceUrl) => {
 module.exports = {
   deleteTranscriptionFiles,
   deleteFile,
+  deleteObject,
   extractS3Key
 }
