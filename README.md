@@ -64,6 +64,53 @@ npm run test
 npm run test:watch
 ```
 
+### Run E2E tests
+
+E2E tests use Playwright against a real AWS backend. They require three dedicated test accounts (owner, editor, viewer).
+
+**First-time setup** — run this to create the `.env` file with the required credentials:
+```
+npm run setup:e2e
+```
+
+This populates `.env` with:
+```
+PLAYWRIGHT_TEST_EMAIL=owner@example.com
+PLAYWRIGHT_TEST_PASSWORD=...
+PLAYWRIGHT_TEST_EMAIL_EDITOR=editor@example.com
+PLAYWRIGHT_TEST_PASSWORD_EDITOR=...
+PLAYWRIGHT_TEST_EMAIL_VIEWER=viewer@example.com
+PLAYWRIGHT_TEST_PASSWORD_VIEWER=...
+```
+
+The base URL is resolved automatically from `amplify/.config/local-env-info.json` (the currently checked-out Amplify environment) via `playwright/env-config.json`. No `PLAYWRIGHT_BASE_URL` needed.
+
+**Run tests:**
+```
+npm run test:e2e
+```
+
+**Run with 1 worker (for CI or subscription tests):**
+```
+npm run test:e2e:ci
+```
+
+The default is 2 parallel workers. Override with `PLAYWRIGHT_WORKERS=N npm run test:e2e`.
+
+If you need to add a new environment, add it to `playwright/env-config.json`.
+
+#### Auth files
+
+On the first run, Playwright logs in as each test account and saves auth state to `playwright/.auth/user-{account}-{env}.json`. Auth files are namespaced by environment so staging and production sessions never interfere with each other.
+
+Subsequent runs reuse the stored files. If the idToken has expired (Cognito default: 1 hour), it is refreshed silently using the stored refresh token. If the refresh token has expired (Cognito default: 30 days), the auth file is deleted and a full re-login is performed automatically.
+
+To force a fresh login, delete `playwright/.auth/`.
+
+#### Cleanup
+
+Each test cleans up its own data in `afterEach`. A global teardown also runs after every suite to catch any orphans left by aborted runs — it deletes all transcriptions matching `Test Transcription *` for the three test accounts, cascading to regions, issues, comments, and S3 media via the `onTranscriptionChange` Lambda.
+
 ### Run linter
 ```
 npm run lint

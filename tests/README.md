@@ -4,48 +4,36 @@ This directory contains end-to-end tests for the Kiyânaw application using Play
 
 ## Quick Setup
 
-Run the setup script to get started:
+Test-user credentials are stored in AWS SSM Parameter Store. You need the `kiyanaw-staging` AWS profile configured locally.
+
+**First time only** (or whenever passwords need to be rotated):
+
+```bash
+npm run rotate:e2e-passwords
+```
+
+This generates strong random passwords for the 3 test users, sets them in the staging Cognito User Pool, and stores them in SSM at `/kiyanaw/e2e/staging/<role>-password`.
+
+**Every developer, every machine:**
 
 ```bash
 npm run setup:e2e
 ```
 
-This will:
-- Create a `.env` file template with the required environment variables
-- Create the `playwright/.auth/` directory for authentication state
-- Provide instructions for the next steps
+This pulls the passwords from SSM and writes a populated `.env` file — no manual credential hunting needed. Safe to re-run at any time.
 
-## Manual Setup
-
-If you prefer to set up manually or need to update your configuration:
-
-1. **Create test user accounts**: Create 3 dedicated test users in your AWS Cognito User Pool:
-   - **Owner user** (`owner@kiyanaw.dev`): Full permissions for testing owner functionality
-   - **Viewer user** (`viewer@kiyanaw.dev`): Read-only permissions for testing viewer functionality  
-   - **Editor user** (`editor@kiyanaw.dev`): Edit permissions for testing editor functionality
-
-2. **Set up environment variables**: Create a `.env` file in the project root with your test credentials:
+## Running Tests
 
 ```bash
-# Owner user account
-PLAYWRIGHT_TEST_EMAIL=owner@kiyanaw.dev
-PLAYWRIGHT_TEST_PASSWORD=your-owner-password
+# Run tests against staging environment
+npm run test:e2e:staging
 
-# Editor user account
-PLAYWRIGHT_TEST_EMAIL_EDITOR=editor@kiyanaw.dev
-PLAYWRIGHT_TEST_PASSWORD_EDITOR=your-editor-password
+# Run tests against local development server
+npm run test:e2e
 
-# Viewer user account
-PLAYWRIGHT_TEST_EMAIL_VIEWER=viewer@kiyanaw.dev
-PLAYWRIGHT_TEST_PASSWORD_VIEWER=your-viewer-password
-
-# Base URL for testing
-PLAYWRIGHT_BASE_URL=http://localhost:5173
+# Run tests against production environment
+npm run test:e2e:production
 ```
-
-**Important**: All 6 environment variables are required. The tests will fail with a clear error message if any are missing.
-
-3. **Run the tests**:
 
 ```bash
 # Run tests against local development server
@@ -134,11 +122,9 @@ Available account names: `owner`, `viewer`, `editor`
 
 - The `playwright/.auth/` directory and `.env` file are gitignored for security
 - Never commit test credentials to version control
-- Use dedicated test user accounts, not your personal account
 - **All 3 accounts are required** - tests will fail if any environment variables are missing
 - Authentication state is automatically saved and reused across test runs
-- Tests run for all 3 accounts by default (6 tests total: 2 tests × 3 accounts)
-- The setup script (`npm run setup:e2e`) helps create the initial configuration
+- Tests run for all 3 accounts by default
 - Authentication uses simple, reliable selectors that work with AWS Amplify UI
 - Tests verify authentication by navigating to protected routes
-- Account names are: `owner`, `viewer`, `editor` (not `main` anymore)
+- Account names are: `owner`, `viewer`, `editor`

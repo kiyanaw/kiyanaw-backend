@@ -217,9 +217,11 @@ export const InvitationsPage = () => {
                   {invites.map((inviteWithValidation) => {
                     const { invite } = inviteWithValidation;
                     return (
-                      <tr 
-                        key={invite.id} 
-                        className="hover:bg-gray-50 cursor-pointer"
+                      <tr
+                        key={invite.id}
+                        data-testid="invite-row"
+                        data-transcription-title={invite.transcriptionTitle}
+className="hover:bg-gray-50 cursor-pointer"
                         onClick={() => openInvite(invite.id)}
                       >
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -248,6 +250,7 @@ export const InvitationsPage = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <button
+                            data-testid="view-details-button"
                             onClick={(e) => {
                               e.stopPropagation();
                               openInvite(invite.id);
@@ -525,6 +528,7 @@ const InviteDialog = ({ inviteId, onClose, onAccepted }: InviteDialogProps) => {
         <div className="flex gap-3 p-6 border-t border-gray-200">
           {validation?.canAccept && !acceptSuccess && (
             <button
+              data-testid="accept-invitation-button"
               onClick={handleAcceptInvite}
               disabled={accepting}
               className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-2 px-4 rounded-md transition-colors flex items-center justify-center"

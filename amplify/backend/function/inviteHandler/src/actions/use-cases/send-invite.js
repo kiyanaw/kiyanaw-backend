@@ -151,19 +151,16 @@ class SendInviteUseCase {
         inviteRecord: inviteRecord,
       };
     } catch (emailError) {
-      // If email fails to send, update invite status to 'failed'
-      console.error(`Failed to send invite email to ${email}:`, emailError);
-      
-      try {
-        await inviteService.updateInviteStatus(inviteRecord.id, 'failed');
-        console.log(`Updated invite ${inviteRecord.id} status to 'failed' after email failure`);
-      } catch (updateError) {
-        console.error(`Failed to update invite status after email failure:`, updateError);
-        // Continue to throw original email error
-      }
-      
-      // Re-throw as a service error
-      throw new ServiceError(`Failed to send invitation email: ${emailError.message}`, emailError);
+      // Email failure is non-fatal — the invite record is already in DynamoDB with
+      // status 'pending' and the invitee can still accept it via the Invitations page.
+      // Log the failure but return success so the invite remains valid.
+      console.error(`Failed to send invite email to ${email} (invite still valid):`, emailError);
+      return {
+        messageId: '',
+        email: email,
+        inviteId: inviteRecord.id,
+        inviteRecord: inviteRecord,
+      };
     }
   }
 }
