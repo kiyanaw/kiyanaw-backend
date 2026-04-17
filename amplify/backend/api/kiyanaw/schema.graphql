@@ -46,9 +46,11 @@ type Transcription
 type Region
   @model
   @auth(rules: [
-    # 1) Regions inherit access from parent Transcription
-    # Users can only read regions - create/update requires explicit parent transcription access
-    { allow: private, operations: [read] }
+    # Any authenticated User Pool user can read regions.                                                                                                                
+    # Mutations are allowed for authenticated users — the UI restricts access to editor/owner                                                                           
+    # roles, and Phase 5 of the security plan will add parent-ACL enforcement via custom                                                                                
+    # VTL resolvers to restrict mutations to the parent transcription's author/editors.                                                                                 
+    { allow: private, operations: [create, read, update, delete] }
   ]) {
   id: ID! @primaryKey
   start: Float!

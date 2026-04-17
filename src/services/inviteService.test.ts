@@ -455,7 +455,7 @@ describe('InviteService', () => {
       expect(mockGraphQLClient.graphql).toHaveBeenCalledWith({
         query: 'mockDeleteInviteMutation',
         variables: { input: { id: inviteId } },
-        authMode: 'iam'
+        authMode: 'userPool'
       });
     });
 

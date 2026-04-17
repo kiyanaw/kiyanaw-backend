@@ -44,7 +44,8 @@ const test = base.extend<{ workerStorageState: string }, { workerStorageState: s
   // eslint-disable-next-line react-hooks/rules-of-hooks
   storageState: ({ workerStorageState }, use) => use(workerStorageState),
 
-  workerStorageState: [async (_: object, use: (value: string) => Promise<void>) => {
+  // eslint-disable-next-line no-empty-pattern
+  workerStorageState: [async ({}: object, use: (value: string) => Promise<void>) => {
     const accountNames = ['owner', 'viewer', 'editor'] as const;
     const workerIndex = process.env.TEST_PARALLEL_INDEX ? parseInt(process.env.TEST_PARALLEL_INDEX) : 0;
     const accountName = accountNames[workerIndex % accountNames.length];
@@ -59,7 +60,8 @@ const testWithAccount = (accountName: 'owner' | 'viewer' | 'editor' | 'admin') =
     // eslint-disable-next-line react-hooks/rules-of-hooks
     storageState: ({ workerStorageState }, use) => use(workerStorageState),
 
-    workerStorageState: [async (_: object, use: (value: string) => Promise<void>) => {
+    // eslint-disable-next-line no-empty-pattern
+    workerStorageState: [async ({}: object, use: (value: string) => Promise<void>) => {
       await use(authFilePath(accountName));
     // @ts-expect-error - Playwright scope type issue
     }, { scope: 'worker' }],

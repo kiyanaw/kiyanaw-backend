@@ -299,16 +299,6 @@ export const schema = {
                     "properties": {
                         "rules": [
                             {
-                                "allow": "private",
-                                "provider": "identityPool",
-                                "operations": [
-                                    "create",
-                                    "read",
-                                    "update",
-                                    "delete"
-                                ]
-                            },
-                            {
                                 "provider": "userPools",
                                 "ownerField": "author",
                                 "allow": "owner",
@@ -492,18 +482,11 @@ export const schema = {
                         "rules": [
                             {
                                 "allow": "private",
-                                "provider": "identityPool",
                                 "operations": [
                                     "create",
                                     "read",
                                     "update",
                                     "delete"
-                                ]
-                            },
-                            {
-                                "allow": "private",
-                                "operations": [
-                                    "read"
                                 ]
                             }
                         ]
@@ -688,16 +671,6 @@ export const schema = {
                     "properties": {
                         "rules": [
                             {
-                                "allow": "private",
-                                "provider": "identityPool",
-                                "operations": [
-                                    "create",
-                                    "read",
-                                    "update",
-                                    "delete"
-                                ]
-                            },
-                            {
                                 "provider": "userPools",
                                 "ownerField": "owner",
                                 "allow": "owner",
@@ -874,16 +847,6 @@ export const schema = {
                     "type": "auth",
                     "properties": {
                         "rules": [
-                            {
-                                "allow": "private",
-                                "provider": "identityPool",
-                                "operations": [
-                                    "create",
-                                    "read",
-                                    "update",
-                                    "delete"
-                                ]
-                            },
                             {
                                 "provider": "userPools",
                                 "ownerField": "invitedBy",
@@ -1082,16 +1045,6 @@ export const schema = {
                     "type": "auth",
                     "properties": {
                         "rules": [
-                            {
-                                "allow": "private",
-                                "provider": "identityPool",
-                                "operations": [
-                                    "create",
-                                    "read",
-                                    "update",
-                                    "delete"
-                                ]
-                            },
                             {
                                 "provider": "userPools",
                                 "ownerField": "author",

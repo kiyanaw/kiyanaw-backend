@@ -33,7 +33,12 @@ dotenv.config({ path: path.resolve(__dirname, '../.env'), quiet: true });
 
 const LIST_BY_AUTHOR = /* GraphQL */ `
   query TranscriptionsByAuthor($author: String!, $nextToken: String) {
-    transcriptionsByAuthor(author: $author, limit: 100, nextToken: $nextToken) {
+    transcriptionsByAuthor(
+      author: $author
+      filter: { _deleted: { ne: true } }
+      limit: 100
+      nextToken: $nextToken
+    ) {
       items { id title _version }
       nextToken
     }
@@ -53,8 +58,12 @@ const DELETE_TRANSCRIPTION = /* GraphQL */ `
 `;
 
 const LIST_INVITES = /* GraphQL */ `
-  query ListInvites($nextToken: String) {
-    listInvites(limit: 100, nextToken: $nextToken) {
+  query ListInvites($invitedBy: String!, $nextToken: String) {
+    listInvites(
+      filter: { invitedBy: { eq: $invitedBy }, _deleted: { ne: true } }
+      limit: 100
+      nextToken: $nextToken
+    ) {
       items { id transcriptionTitle _version }
       nextToken
     }
@@ -165,6 +174,7 @@ async function cleanupAccount(
 
   do {
     const data = await gql(endpoint, idToken, LIST_INVITES, {
+      invitedBy: auth.sub,
       ...(inviteNextToken ? { nextToken: inviteNextToken } : {}),
     }) as {
       listInvites?: {
