@@ -1,9 +1,0 @@
-{
-  "httpMethod": "POST",
-  "path": "/crk/bulk-lookup",
-  "queryStringParameters": {},
-  "headers": {
-    "Content-Type": "application/json"
-  },
-  "body": "[\"itwêw\", \"hello\", \"êkwa\"]"
-}
