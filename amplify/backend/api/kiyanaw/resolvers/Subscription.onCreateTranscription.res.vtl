@@ -1,0 +1,27 @@
+## Shared subscription data resolver used by ALL model subscriptions.
+## Registers AppSync enhanced subscription filters when provided.
+##
+## For Region subscriptions (onCreateRegion, onUpdateRegion, onDeleteRegion):
+## a `filter.transcriptionId.eq` argument is REQUIRED. Subscriptions without
+## this filter are rejected to prevent unauthenticated data fan-out.
+##
+## The fieldName in the stash is set by each resolver's before-template and is
+## used here to apply tighter rules to region subscriptions only.
+
+#set($fieldName = $ctx.stash.get("fieldName"))
+#set($isRegionSub = ($fieldName == "onCreateRegion" || $fieldName == "onUpdateRegion" || $fieldName == "onDeleteRegion"))
+
+#if($isRegionSub)
+  ## Region subscriptions must include a transcriptionId filter.
+  #if($util.isNull($ctx.args.filter) || $util.isNull($ctx.args.filter.transcriptionId) || $util.isNull($ctx.args.filter.transcriptionId.eq))
+    $util.unauthorized()
+  #else
+    $extensions.setSubscriptionFilter($util.transform.toSubscriptionFilter($ctx.args.filter))
+  #end
+#else
+  ## All other subscriptions: register filter if provided, otherwise allow unfiltered.
+  #if( !$util.isNullOrEmpty($ctx.args.filter) )
+    $extensions.setSubscriptionFilter($util.transform.toSubscriptionFilter($ctx.args.filter))
+  #end
+#end
+$util.toJson(null)
