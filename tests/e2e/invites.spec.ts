@@ -1,11 +1,8 @@
 /**
  * Invite flow regression guard
  *
- * The remediation plan (Phase 4) explicitly states that Invite does NOT need
- * custom VTLs — owner rules on `invitedBy`/`email` are sufficient once the IAM
- * bypass is removed. However, Phase 1 (removing `provider: identityPool` from Invite)
- * does touch the model. This test ensures the invite flow still works end-to-end
- * after the identityPool rules are removed.
+ * Invite does not need custom VTL ACL — owner rules on `invitedBy`/`email` are
+ * sufficient. This test ensures the invite flow works end-to-end.
  *
  * Flow: owner creates transcription → sends invite to editor → editor accepts via
  * InvitationsPage → transcription appears in editor's /transcribe-list.

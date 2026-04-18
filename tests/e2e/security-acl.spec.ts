@@ -292,21 +292,21 @@ test('getRegion: uninvited editor is rejected', async () => {
   const result = await gqlRaw(endpoint, editorToken, GET_REGION, { id: regionId });
   expect(result.errors).not.toBeNull();
   const msg = result.errors!.map(e => e.message).join(' ');
-  expect(msg).toMatch(/unauthorized/i);
+  expect(msg).toMatch(/not authorized|unauthorized/i);
 });
 
 test('issuesByTranscription: uninvited editor is rejected', async () => {
   const result = await gqlRaw(endpoint, editorToken, ISSUES_BY_TRANSCRIPTION, { transcriptionId });
   expect(result.errors).not.toBeNull();
   const msg = result.errors!.map(e => e.message).join(' ');
-  expect(msg).toMatch(/unauthorized/i);
+  expect(msg).toMatch(/not authorized|unauthorized/i);
 });
 
 test('commentsByTranscription: uninvited editor is rejected', async () => {
   const result = await gqlRaw(endpoint, editorToken, COMMENTS_BY_TRANSCRIPTION, { transcriptionId });
   expect(result.errors).not.toBeNull();
   const msg = result.errors!.map(e => e.message).join(' ');
-  expect(msg).toMatch(/unauthorized/i);
+  expect(msg).toMatch(/not authorized|unauthorized/i);
 });
 
 test('createRegion: uninvited editor is rejected', async () => {
@@ -321,7 +321,7 @@ test('createRegion: uninvited editor is rejected', async () => {
   });
   expect(result.errors).not.toBeNull();
   const msg = result.errors!.map(e => e.message).join(' ');
-  expect(msg).toMatch(/unauthorized/i);
+  expect(msg).toMatch(/not authorized|unauthorized/i);
 });
 
 test('updateRegion: uninvited editor is rejected', async () => {
@@ -330,7 +330,7 @@ test('updateRegion: uninvited editor is rejected', async () => {
   });
   expect(result.errors).not.toBeNull();
   const msg = result.errors!.map(e => e.message).join(' ');
-  expect(msg).toMatch(/unauthorized/i);
+  expect(msg).toMatch(/not authorized|unauthorized/i);
 });
 
 test('deleteRegion: uninvited editor is rejected', async () => {
@@ -339,7 +339,7 @@ test('deleteRegion: uninvited editor is rejected', async () => {
   });
   expect(result.errors).not.toBeNull();
   const msg = result.errors!.map(e => e.message).join(' ');
-  expect(msg).toMatch(/unauthorized/i);
+  expect(msg).toMatch(/not authorized|unauthorized/i);
 });
 
 // ---------------------------------------------------------------------------

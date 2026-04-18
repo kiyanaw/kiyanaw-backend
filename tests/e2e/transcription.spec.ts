@@ -173,6 +173,10 @@ testWithAccount('owner').describe('Owner Transcription Management', () => {
     await expect(regionsHeader).toBeVisible();
     console.log('✅ Region created successfully');
 
+    // Wait for audio to finish loading before interacting with region items.
+    // Region items are disabled (and clicks ignored) while the "Loading audio..." overlay is visible.
+    await page.locator('text=Loading audio...').waitFor({ state: 'hidden', timeout: 15000 });
+
     const regionItem = page.locator('[data-testid*="regionitem"], .region-item, [id*="regionitem"]').first();
     await expect(regionItem).toBeVisible();
     await regionItem.click();
@@ -249,8 +253,8 @@ testWithAccount('owner').describe('Owner Transcription Management', () => {
 
 // ---------------------------------------------------------------------------
 // Admin group smoke (scaffolded, skipped until Admins group + seeded user exist)
-// Security fix Phase 2 creates the Admins Cognito group. When the group is created
-// and admin@kiyanaw.dev is seeded, remove test.skip and set PLAYWRIGHT_TEST_EMAIL_ADMIN.
+// When the Admins Cognito group is created and admin@kiyanaw.dev is seeded,
+// remove test.skip and set PLAYWRIGHT_TEST_EMAIL_ADMIN.
 // ---------------------------------------------------------------------------
 testWithAccount('owner').describe.skip('Admin Group Smoke (Phase 2 — requires Admins group + admin account)', () => {
   // TODO: swap testWithAccount('owner') for testWithAccount('admin') once

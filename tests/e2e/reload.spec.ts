@@ -1,12 +1,9 @@
 /**
  * Page-reload / generateClient coverage
  *
- * Verifies that `generateClient` queries (listTranscriptions, getTranscription,
- * listRegions) still return data after Phase 1d removes DataStore sync endpoints
- * and strips _version / _deleted / _lastChangedAt from the generated schema.
- *
- * If these tests go red after Phase 1d, look for client code reading `_version`
- * or `_deleted` off query results — those fields will be absent post-fix.
+ * Verifies that generateClient queries (listTranscriptions, getTranscription,
+ * listRegions) return data after navigation and hard page reloads, and that
+ * shared transcriptions appear in an editor's list after accepting an invite.
  */
 import { testWithAccount, expect } from '../../playwright/fixtures';
 import { createTestTranscription, deleteTestTranscription, dragRegion, sendInvite, acceptInviteForTranscription, ensureAuthFile } from './helpers';

@@ -1,7 +1,6 @@
 /**
  * Issues + Comments coverage
  *
- * Validates Phase 4 of the security remediation:
  *  - Owner creates issue on a region → visible in IssuesPanel after reload
  *  - Issue visible to shared editor in IssuesPanel
  *  - Comment round-trip on an issue via IssueDetailsDialog
@@ -15,10 +14,6 @@
  *   3. Type text in the Quill editor (data-testid="region-editor-main" .ql-editor)
  *   4. Select all text (Ctrl+A)
  *   5. Click data-testid="create-issue-button" (enabled when text is selected)
- *
- * IMPORTANT: The app currently filters with `_deleted: { ne: true }` in issueService.ts.
- * After Phase 1d this field is removed — if these tests go red after that phase, check for
- * `_deleted` references in issueService.ts / commentService.ts first.
  */
 import { testWithAccount, expect } from '../../playwright/fixtures';
 import { createTestTranscription, deleteTestTranscription, dragRegion, sendInvite, acceptInviteForTranscription, ensureAuthFile } from './helpers';
