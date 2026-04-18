@@ -1,0 +1,25 @@
+## [Start] Authorization Steps. **
+$util.qr($ctx.stash.put("hasAuth", true))
+## Stash the parent transcriptionId from the fetched Region for the downstream ACL function.
+#if(!$util.isNull($ctx.result) && !$util.isNull($ctx.result.transcriptionId))
+  $util.qr($ctx.stash.put("transcriptionId", $ctx.result.transcriptionId))
+#end
+#set( $isAuthorized = false )
+#if( $util.authType() == "User Pool Authorization" )
+  #set( $isAuthorized = true )
+  #if( !$isAuthorized )
+    #set( $staticGroupRoles = [{}] )
+    #foreach( $groupRole in $staticGroupRoles )
+      #set( $groupsInToken = $util.defaultIfNull($ctx.identity.claims.get($groupRole.claim), []) )
+      #if( $groupsInToken.contains($groupRole.entity) )
+        #set( $isAuthorized = true )
+        #break
+      #end
+    #end
+  #end
+#end
+#if( !$isAuthorized )
+$util.unauthorized()
+#end
+$util.toJson({"version":"2018-05-29","payload":{}})
+## [End] Authorization Steps. **

@@ -1,3 +1,4 @@
+# Parent-transcription ACL enforcement is wired via override.ts (see that file for details).
 type Transcription
   @model
   @auth(rules: [

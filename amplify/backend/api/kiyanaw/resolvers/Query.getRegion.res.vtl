@@ -1,17 +1,13 @@
-## Response mapping template for Query.getRegion
-## Note: This is a simplified version. For full parent Transcription ACL checking,
-## a pipeline resolver would be needed which requires additional CloudFormation setup.
+## Response mapping template for Query.getRegion (data function slot)
+## Stashes the fetched Region so the subsequent GetRegionTranscriptionACLFn can use it.
+## ACL enforcement (parent Transcription isPrivate check) is handled by that pipeline function.
 
 #set($region = $ctx.result)
 #if($util.isNull($region))
-  $util.toJson(null)
+  $util.qr($ctx.stash.put("regionNull", true))
+  $util.qr($ctx.stash.put("fetchedItem", null))
 #else
-  ## For now, return the region if it exists and user is authenticated
-  ## TODO: Implement parent Transcription ACL checking via pipeline resolver
-  #set($userSub = $ctx.identity.claims.get("sub"))
-  #if($util.isNullOrEmpty($userSub))
-    $util.unauthorized()
-  #end
-  
-  $util.toJson($region)
-#end 
+  $util.qr($ctx.stash.put("regionNull", false))
+  $util.qr($ctx.stash.put("fetchedItem", $region))
+#end
+$util.toJson($region)
