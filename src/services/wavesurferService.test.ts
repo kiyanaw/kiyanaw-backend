@@ -28,6 +28,7 @@ import WaveSurfer from 'wavesurfer.js';
 import Regions from 'wavesurfer.js/dist/plugins/regions.esm.js';
 import Timeline from 'wavesurfer.js/dist/plugins/timeline.esm.js';
 import { wavesurferService } from './wavesurferService';
+import * as transcriptionService from './transcriptionService';
 
 // Get the mocked modules
 const mockWaveSurfer = jest.mocked(WaveSurfer);
@@ -750,45 +751,37 @@ describe('WaveSurferService', () => {
     });
 
     it('should handle signed URL generation errors gracefully', async () => {
-      // Mock the generateSignedUrl function to throw an error
-      const transcriptionService = require('../services/transcriptionService');
-      const originalGenerateSignedUrl = transcriptionService.generateSignedUrl;
-      transcriptionService.generateSignedUrl = jest.fn().mockRejectedValueOnce(new Error('S3 access denied'));
-      
+      const spy = jest.spyOn(transcriptionService, 'generateSignedUrl').mockRejectedValueOnce(new Error('S3 access denied'));
+
       wavesurferService.initialize(mockContainer, mockTimelineContainer);
-      
+
       const source = 'https://bucket.s3.amazonaws.com/public/test-source.mp3';
       const peaks = [1, 2, 3, 4];
-      
+
       await wavesurferService.load(source, peaks);
-      
+
       // Should fallback to original URL
       expect(mockWaveSurferInstance.load).toHaveBeenCalledWith(source, peaks);
-      
-      // Restore original function
-      transcriptionService.generateSignedUrl = originalGenerateSignedUrl;
+
+      spy.mockRestore();
     });
 
     it('should handle signed URL generation errors gracefully for video', async () => {
-      // Mock the generateSignedUrl function to throw an error
-      const transcriptionService = require('../services/transcriptionService');
-      const originalGenerateSignedUrl = transcriptionService.generateSignedUrl;
-      transcriptionService.generateSignedUrl = jest.fn().mockRejectedValueOnce(new Error('S3 access denied'));
-      
+      const spy = jest.spyOn(transcriptionService, 'generateSignedUrl').mockRejectedValueOnce(new Error('S3 access denied'));
+
       const mockVideoElement = document.createElement('video');
       wavesurferService.initialize(mockContainer, mockTimelineContainer, mockVideoElement);
-      
+
       const source = 'https://bucket.s3.amazonaws.com/public/test-video.mp4';
       const peaks = [1, 2, 3, 4];
-      
+
       await wavesurferService.load(source, peaks);
-      
+
       // Should fallback to original URL
       expect(mockVideoElement.src).toBe(source);
       expect(mockWaveSurferInstance.load).toHaveBeenCalledWith(source, peaks);
-      
-      // Restore original function
-      transcriptionService.generateSignedUrl = originalGenerateSignedUrl;
+
+      spy.mockRestore();
     });
 
     it('should delay load when wavesurfer instance does not exist', async () => {
