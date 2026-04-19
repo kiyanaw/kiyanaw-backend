@@ -111,11 +111,6 @@ To force a fresh login, delete `playwright/.auth/`.
 
 Each test cleans up its own data in `afterEach`. A global teardown also runs after every suite to catch any orphans left by aborted runs — it deletes all transcriptions matching `Test Transcription *` for the three test accounts, cascading to regions, issues, comments, and S3 media via the `onTranscriptionChange` Lambda.
 
-### Format code
-```
-npm run format
-```
-
 ### Run linter
 ```
 npm run lint
