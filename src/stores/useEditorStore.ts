@@ -1029,9 +1029,8 @@ export const useEditorStore = create<EditorState>()(
 
       processConflictQueue: () => {
         const { conflictQueue } = get();
-        // For now, just log the conflicts - actual processing will be implemented in Phase 4
+        // TODO: Implement actual conflict processing logic
         console.debug('Processing conflict queue:', conflictQueue);
-        // TODO: Implement actual conflict processing logic in Phase 4
       },
 
       // Spell checking actions

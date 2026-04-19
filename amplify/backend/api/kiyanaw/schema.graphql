@@ -49,8 +49,7 @@ type Region
   @auth(rules: [
     # Any authenticated User Pool user can read regions.                                                                                                                
     # Mutations are allowed for authenticated users — the UI restricts access to editor/owner                                                                           
-    # roles, and Phase 5 of the security plan will add parent-ACL enforcement via custom                                                                                
-    # VTL resolvers to restrict mutations to the parent transcription's author/editors.                                                                                 
+    # roles, and parent-ACL enforcement via custom VTL resolvers restricts mutations to the parent transcription's author/editors.
     { allow: private, operations: [create, read, update, delete] }
   ]) {
   id: ID! @primaryKey

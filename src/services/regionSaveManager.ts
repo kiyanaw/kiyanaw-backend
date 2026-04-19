@@ -95,7 +95,7 @@ class RegionSaveManagerImpl {
   }
   
   /**
-   * Queue bounds change (for Phase 2)
+   * Queue bounds change
    */
   queueBoundsChange(regionId: string, start: number, end: number): void {
     console.debug(`💾 SAVE-MANAGER: Queuing bounds change for ${regionId}`);

@@ -38,7 +38,7 @@ async function setupSharedTranscription(
 }
 
 // ---------------------------------------------------------------------------
-// Editor can read regions on a shared transcription (Phase 3a)
+// Editor can read regions on a shared transcription
 // ---------------------------------------------------------------------------
 testWithAccount('owner').describe('Editor reads regions on shared transcription', () => {
   let transcriptionId: string;
@@ -76,9 +76,9 @@ testWithAccount('owner').describe('Editor reads regions on shared transcription'
 });
 
 // ---------------------------------------------------------------------------
-// Editor can create + delete a region on shared transcription (Phase 5 canary)
+// Editor can create + delete a region on shared transcription
 // ---------------------------------------------------------------------------
-testWithAccount('owner').describe('Editor can mutate regions on shared transcription (Phase 5 canary)', () => {
+testWithAccount('owner').describe('Editor can mutate regions on shared transcription', () => {
   let transcriptionId: string;
   let title: string;
   let editorContext: Awaited<ReturnType<Browser['newContext']>>;
@@ -153,9 +153,9 @@ testWithAccount('owner').describe('Editor can mutate regions on shared transcrip
 });
 
 // ---------------------------------------------------------------------------
-// Region subscription delivers cross-user update (Phase 3b)
+// Region subscription delivers cross-user update
 // ---------------------------------------------------------------------------
-testWithAccount('owner').describe('Region subscription fires across users (Phase 3b)', () => {
+testWithAccount('owner').describe('Region subscription fires across users', () => {
   let transcriptionId: string;
   let title: string;
   let editorContext: Awaited<ReturnType<Browser['newContext']>>;

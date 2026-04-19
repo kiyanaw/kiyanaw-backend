@@ -628,7 +628,7 @@ describe('useEditorStore known words functionality', () => {
 
       store.addConflictToQueue(conflict);
       
-      // For now, processConflictQueue just logs - this will be implemented in Phase 4
+      // processConflictQueue currently just logs
       const consoleSpy = jest.spyOn(console, 'debug').mockImplementation();
       
       store.processConflictQueue();

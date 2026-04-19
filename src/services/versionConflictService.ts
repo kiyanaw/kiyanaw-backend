@@ -263,7 +263,7 @@ export async function handleVersionConflict(
                              localVersion;
       await onKeepLocal(latestDbVersion);
     }
-    // manual_merge action will be handled in Phase 5
+    // manual_merge action is not yet handled
   } catch (conflictError) {
     console.error('Failed to resolve version conflict:', conflictError);
     throw conflictError;

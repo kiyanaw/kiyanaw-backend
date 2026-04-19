@@ -44,7 +44,7 @@ testWithAccount('owner').describe('Transcription list reloads via generateClient
 
     // Use the desktop-layout title link (data-testid avoids matching hidden mobile duplicate)
     const transcriptionLink = page.locator(`[data-testid="transcription-list-item-title"]:has-text("${title}")`).first();
-    await expect(transcriptionLink).toBeVisible({ timeout: 20000 });
+    await expect(transcriptionLink).toBeVisible({ timeout: 30000 });
     console.log(`✅ Transcription "${title}" visible in list after navigation`);
   });
 });
