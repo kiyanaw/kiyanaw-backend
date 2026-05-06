@@ -120,7 +120,7 @@ export async function dragRegion(page: Page): Promise<void> {
  * finished decoding audio and region items are interactive (not disabled).
  */
 export async function waitForAudioReady(page: Page, timeout = 20000): Promise<void> {
-  await page.locator('text=Loading audio...').waitFor({ state: 'hidden', timeout });
+  await page.locator('text=Loading audio...').first().waitFor({ state: 'hidden', timeout });
 }
 
 // ---------------------------------------------------------------------------

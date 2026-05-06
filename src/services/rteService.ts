@@ -143,6 +143,66 @@ class RTEServiceImpl {
     editor.setAttribute('autocorrect', 'off');
     editor.setAttribute('autocapitalize', 'off');
 
+    // Keyboard debug logging — enable in browser console with: window.debugKeyboard = true
+    // Captures the exact event sequence fired by compose/dead-key input (e.g. RCLakota Shift+6)
+    // so the event log can be used to diagnose bug #245.
+    const kbLog = (label: string, detail: Record<string, unknown>) => {
+      if (!(window as any).debugKeyboard) return;
+      const sel = quill.getSelection();
+      console.log(`[kb:${key}] ${label}`, {
+        ...detail,
+        quillSel: sel ? { index: sel.index, length: sel.length } : null,
+        quillText: JSON.stringify(quill.getText()),
+      });
+    };
+
+    editor.addEventListener('keydown', (e: KeyboardEvent) => {
+      kbLog('keydown', {
+        key: e.key, code: e.code, keyCode: e.keyCode,
+        shift: e.shiftKey, ctrl: e.ctrlKey, meta: e.metaKey, alt: e.altKey,
+        isComposing: e.isComposing,
+      });
+    });
+
+    editor.addEventListener('compositionstart', (e: CompositionEvent) => {
+      kbLog('compositionstart', {
+        data: e.data,
+        targetTag: (e.target as Element)?.tagName,
+        targetClass: (e.target as Element)?.className,
+      });
+    });
+
+    editor.addEventListener('compositionupdate', (e: CompositionEvent) => {
+      kbLog('compositionupdate', { data: e.data });
+    });
+
+    editor.addEventListener('compositionend', (e: CompositionEvent) => {
+      kbLog('compositionend', { data: e.data });
+    });
+
+    editor.addEventListener('beforeinput', (e: InputEvent) => {
+      const ranges = e.getTargetRanges?.() ?? [];
+      kbLog('beforeinput', {
+        inputType: e.inputType,
+        data: e.data,
+        ranges: ranges.map(r => ({
+          collapsed: r.collapsed,
+          startOffset: r.startOffset,
+          endOffset: r.endOffset,
+          startContainer: (r.startContainer as Element)?.tagName ?? r.startContainer.nodeType,
+        })),
+      });
+    });
+
+    editor.addEventListener('input', (e: Event) => {
+      const ie = e as InputEvent;
+      kbLog('input', { inputType: ie.inputType, data: ie.data });
+    });
+
+    quill.on('text-change', (delta: QuillDelta, _old: QuillDelta, source: string) => {
+      kbLog('quill:text-change', { source, ops: delta.ops });
+    });
+
     // Store in registry
     const rteInstance: RTEInstance = {
       quill,
