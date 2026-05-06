@@ -147,7 +147,7 @@ class RTEServiceImpl {
     // Captures the exact event sequence fired by compose/dead-key input (e.g. RCLakota Shift+6)
     // so the event log can be used to diagnose bug #245.
     const kbLog = (label: string, detail: Record<string, unknown>) => {
-      if (!(window as any).debugKeyboard) return;
+      if (!(window as unknown as { debugKeyboard?: boolean }).debugKeyboard) return;
       const sel = quill.getSelection();
       console.log(`[kb:${key}] ${label}`, {
         ...detail,
@@ -197,10 +197,6 @@ class RTEServiceImpl {
     editor.addEventListener('input', (e: Event) => {
       const ie = e as InputEvent;
       kbLog('input', { inputType: ie.inputType, data: ie.data });
-    });
-
-    quill.on('text-change', (delta: QuillDelta, _old: QuillDelta, source: string) => {
-      kbLog('quill:text-change', { source, ops: delta.ops });
     });
 
     // Store in registry

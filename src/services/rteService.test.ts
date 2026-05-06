@@ -2,7 +2,8 @@
 const mockRoot = {
   setAttribute: jest.fn(),
   appendChild: jest.fn(),
-  removeChild: jest.fn()
+  removeChild: jest.fn(),
+  addEventListener: jest.fn(),
 };
 
 const mockFormatText = jest.fn();
