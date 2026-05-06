@@ -8,13 +8,16 @@
     "test": "jest"
   },
   "jest": {
-    "testMatch": ["**/test/test-*.js"]
+    "testMatch": [
+      "**/test/test-*.js"
+    ]
   },
   "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.0.0",
+    "@aws-sdk/credential-provider-node": "^3.0.0",
+    "@aws-sdk/lib-dynamodb": "^3.0.0",
     "@opensearch-project/opensearch": "^2.8.0",
-    "aws-opensearch-connector": "^1.2.0",
-    "aws-sdk": "^2.1001.0",
-    "axios": "^0.24.0",
+    "axios": "^1.15.0",
     "sinon": "^12.0.1"
   },
   "devDependencies": {

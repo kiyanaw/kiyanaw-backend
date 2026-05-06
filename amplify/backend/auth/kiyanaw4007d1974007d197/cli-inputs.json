@@ -45,8 +45,28 @@
     "adminQueries": false,
     "triggers": {},
     "hostedUI": false,
-    "userPoolGroupList": [],
+    "userPoolGroupList": [
+      "Admins"
+    ],
     "serviceName": "Cognito",
-    "useEnabledMfas": false
+    "useEnabledMfas": false,
+    "authRoleArn": {
+      "Fn::GetAtt": [
+        "AuthRole",
+        "Arn"
+      ]
+    },
+    "unauthRoleArn": {
+      "Fn::GetAtt": [
+        "UnauthRole",
+        "Arn"
+      ]
+    },
+    "breakCircularDependency": true,
+    "dependsOn": [],
+    "parentStack": {
+      "Ref": "AWS::StackId"
+    },
+    "permissions": []
   }
 }

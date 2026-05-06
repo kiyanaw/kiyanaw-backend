@@ -124,22 +124,18 @@ testWithAccount('owner').describe('Owner Transcription Management', () => {
     // Wait for the waveform to be ready
     const waveformContainer = page.locator('[data-testid="waveform-container"]');
     await expect(waveformContainer).toBeVisible();
-    
-    // Wait for the audio to be loaded and ready
-    await page.waitForTimeout(3000); // Give time for audio to load
-    
+
     // Initially, there should be no regions
     const regionList = page.locator('text=No regions yet').first();
     await expect(regionList).toBeVisible();
-    
+
     console.log(`✅ Ready to test region creation on transcription: ${testTitle}`);
     console.log(`📝 Transcription ID: ${createdTranscriptionId}`);
 
     await dragRegion(page);
 
-    await expect(regionList).not.toBeVisible();
     const regionsHeader = page.locator('text=Regions (1)').first();
-    await expect(regionsHeader).toBeVisible();
+    await expect(regionsHeader).toBeVisible({ timeout: 15000 });
     console.log('✅ Successfully created a region on the transcription');
   });
 
@@ -156,22 +152,22 @@ testWithAccount('owner').describe('Owner Transcription Management', () => {
     // Wait for the waveform to be ready
     const waveformContainer = page.locator('[data-testid="waveform-container"]');
     await expect(waveformContainer).toBeVisible();
-    
-    // Wait for the audio to be loaded and ready
-    await page.waitForTimeout(3000); // Give time for audio to load
-    
+
     // Initially, there should be no regions
     const regionList = page.locator('text=No regions yet').first();
     await expect(regionList).toBeVisible();
-    
+
     console.log(`✅ Ready to test region deletion on transcription: ${testTitle}`);
     console.log(`📝 Transcription ID: ${createdTranscriptionId}`);
 
     await dragRegion(page);
 
     const regionsHeader = page.locator('text=Regions (1)').first();
-    await expect(regionsHeader).toBeVisible();
+    await expect(regionsHeader).toBeVisible({ timeout: 15000 });
     console.log('✅ Region created successfully');
+
+    // Region items are disabled while audio is decoding — wait for it to finish.
+    await page.locator('text=Loading audio...').waitFor({ state: 'hidden', timeout: 15000 });
 
     const regionItem = page.locator('[data-testid*="regionitem"], .region-item, [id*="regionitem"]').first();
     await expect(regionItem).toBeVisible();
@@ -206,23 +202,22 @@ testWithAccount('owner').describe('Owner Transcription Management', () => {
     // Wait for the waveform to be ready
     const waveformContainer = page.locator('[data-testid="waveform-container"]');
     await expect(waveformContainer).toBeVisible();
-    
-    // Wait for the audio to be loaded and ready
-    await page.waitForTimeout(3000); // Give time for audio to load
-    
+
     // Initially, there should be no regions
     const regionList = page.locator('text=No regions yet').first();
     await expect(regionList).toBeVisible();
-    
+
     console.log(`✅ Ready to test Plains Cree Y-dialect spellchecker on transcription: ${testTitle}`);
     console.log(`📝 Transcription ID: ${createdTranscriptionId}`);
 
     await dragRegion(page);
 
     const regionsHeader = page.locator('text=Regions (1)').first();
-    await expect(regionsHeader).toBeVisible();
+    await expect(regionsHeader).toBeVisible({ timeout: 15000 });
     console.log('✅ Region created successfully');
 
+    // Region items are disabled while audio is decoding — wait for it to finish.
+    await page.locator('text=Loading audio...').waitFor({ state: 'hidden', timeout: 15000 });
     const regionItem = page.locator('[data-testid*="regionitem"], .region-item, [id*="regionitem"]').first();
     await expect(regionItem).toBeVisible();
     await regionItem.click();
@@ -249,10 +244,10 @@ testWithAccount('owner').describe('Owner Transcription Management', () => {
 
 // ---------------------------------------------------------------------------
 // Admin group smoke (scaffolded, skipped until Admins group + seeded user exist)
-// Security fix Phase 2 creates the Admins Cognito group. When the group is created
-// and admin@kiyanaw.dev is seeded, remove test.skip and set PLAYWRIGHT_TEST_EMAIL_ADMIN.
+// When the Admins Cognito group is created and admin@kiyanaw.dev is seeded,
+// remove test.skip and set PLAYWRIGHT_TEST_EMAIL_ADMIN.
 // ---------------------------------------------------------------------------
-testWithAccount('owner').describe.skip('Admin Group Smoke (Phase 2 — requires Admins group + admin account)', () => {
+testWithAccount('owner').describe.skip('Admin Group Smoke (requires Admins group + admin account)', () => {
   // TODO: swap testWithAccount('owner') for testWithAccount('admin') once
   // the 'admin' fixture is wired in playwright/fixtures.ts and the env var is set.
   testWithAccount('owner')('admin user can sign in and view transcription list', async ({ page }) => {

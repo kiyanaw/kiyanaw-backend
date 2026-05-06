@@ -97,6 +97,22 @@
       },
       "providerPlugin": "awscloudformation",
       "service": "Cognito"
+    },
+    "userPoolGroups": {
+      "dependsOn": [
+        {
+          "attributes": [
+            "UserPoolId",
+            "AppClientIDWeb",
+            "AppClientID",
+            "IdentityPoolId"
+          ],
+          "category": "auth",
+          "resourceName": "kiyanaw4007d1974007d197"
+        }
+      ],
+      "providerPlugin": "awscloudformation",
+      "service": "Cognito-UserPool-Groups"
     }
   },
   "custom": {
@@ -167,27 +183,6 @@
       "providerPlugin": "awscloudformation",
       "service": "Lambda"
     },
-    "crkSpellCheck": {
-      "build": true,
-      "dependsOn": [
-        {
-          "attributes": [
-            "Arn"
-          ],
-          "category": "function",
-          "resourceName": "kiyanawcrkFSTs"
-        },
-        {
-          "attributes": [
-            "Arn"
-          ],
-          "category": "function",
-          "resourceName": "kiyanawlibHfstol"
-        }
-      ],
-      "providerPlugin": "awscloudformation",
-      "service": "Lambda"
-    },
     "enqueueRegionChange": {
       "build": true,
       "dependsOn": [
@@ -251,17 +246,7 @@
       "providerPlugin": "awscloudformation",
       "service": "LambdaLayer"
     },
-    "kiyanawcrkFSTs": {
-      "build": true,
-      "providerPlugin": "awscloudformation",
-      "service": "LambdaLayer"
-    },
     "kiyanawffmpeg": {
-      "build": true,
-      "providerPlugin": "awscloudformation",
-      "service": "LambdaLayer"
-    },
-    "kiyanawlibHfstol": {
       "build": true,
       "providerPlugin": "awscloudformation",
       "service": "LambdaLayer"
@@ -302,27 +287,6 @@
       "dependsOn": [],
       "providerPlugin": "awscloudformation",
       "service": "Lambda"
-    },
-    "spellcheck": {
-      "build": true,
-      "dependsOn": [
-        {
-          "attributes": [
-            "BucketName"
-          ],
-          "category": "storage",
-          "resourceName": "transcriptions"
-        },
-        {
-          "attributes": [
-            "Arn"
-          ],
-          "category": "function",
-          "resourceName": "kiyanawlibHfstol"
-        }
-      ],
-      "providerPlugin": "awscloudformation",
-      "service": "Lambda"
     }
   },
   "hosting": {
@@ -345,22 +309,6 @@
         {
           "category": "function",
           "resourceName": "createPeaksFile"
-        }
-      ]
-    },
-    "AMPLIFY_function_crkSpellCheck_deploymentBucketName": {
-      "usedBy": [
-        {
-          "category": "function",
-          "resourceName": "crkSpellCheck"
-        }
-      ]
-    },
-    "AMPLIFY_function_crkSpellCheck_s3Key": {
-      "usedBy": [
-        {
-          "category": "function",
-          "resourceName": "crkSpellCheck"
         }
       ]
     },
@@ -428,22 +376,6 @@
         }
       ]
     },
-    "AMPLIFY_function_kiyanawcrkFSTs_deploymentBucketName": {
-      "usedBy": [
-        {
-          "category": "function",
-          "resourceName": "kiyanawcrkFSTs"
-        }
-      ]
-    },
-    "AMPLIFY_function_kiyanawcrkFSTs_s3Key": {
-      "usedBy": [
-        {
-          "category": "function",
-          "resourceName": "kiyanawcrkFSTs"
-        }
-      ]
-    },
     "AMPLIFY_function_kiyanawffmpeg_deploymentBucketName": {
       "usedBy": [
         {
@@ -457,22 +389,6 @@
         {
           "category": "function",
           "resourceName": "kiyanawffmpeg"
-        }
-      ]
-    },
-    "AMPLIFY_function_kiyanawlibHfstol_deploymentBucketName": {
-      "usedBy": [
-        {
-          "category": "function",
-          "resourceName": "kiyanawlibHfstol"
-        }
-      ]
-    },
-    "AMPLIFY_function_kiyanawlibHfstol_s3Key": {
-      "usedBy": [
-        {
-          "category": "function",
-          "resourceName": "kiyanawlibHfstol"
         }
       ]
     },
@@ -537,22 +453,6 @@
         {
           "category": "function",
           "resourceName": "opensearchproxy"
-        }
-      ]
-    },
-    "AMPLIFY_function_spellcheck_deploymentBucketName": {
-      "usedBy": [
-        {
-          "category": "function",
-          "resourceName": "spellcheck"
-        }
-      ]
-    },
-    "AMPLIFY_function_spellcheck_s3Key": {
-      "usedBy": [
-        {
-          "category": "function",
-          "resourceName": "spellcheck"
         }
       ]
     }

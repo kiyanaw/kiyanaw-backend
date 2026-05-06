@@ -162,6 +162,531 @@ export const syncTranscriptions = /* GraphQL */ `
     }
   }
 `;
+export const getRegion = /* GraphQL */ `
+  query GetRegion($id: ID!) {
+    getRegion(id: $id) {
+      id
+      start
+      end
+      regionText
+      regionAnalysis
+      isNote
+      commentCount
+      translation
+      dateLastUpdated
+      userLastUpdated
+      transcription {
+        id
+        author
+        authorFriendly
+        coverage
+        dateLastUpdated
+        userLastUpdated
+        length
+        issues
+        comments
+        commentCount
+        regionCount
+        issueCount
+        tags
+        source
+        index
+        lang
+        title
+        type
+        isPrivate
+        isPublished
+        publicIssues
+        disableAnalyzer
+        editors
+        viewers
+        editorGroups
+        viewerGroups
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      transcriptionId
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;
+export const listRegions = /* GraphQL */ `
+  query ListRegions(
+    $id: ID
+    $filter: ModelRegionFilterInput
+    $limit: Int
+    $nextToken: String
+    $sortDirection: ModelSortDirection
+  ) {
+    listRegions(
+      id: $id
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+      sortDirection: $sortDirection
+    ) {
+      items {
+        id
+        start
+        end
+        regionText
+        regionAnalysis
+        isNote
+        commentCount
+        translation
+        dateLastUpdated
+        userLastUpdated
+        transcriptionId
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      nextToken
+      startedAt
+      __typename
+    }
+  }
+`;
+export const syncRegions = /* GraphQL */ `
+  query SyncRegions(
+    $filter: ModelRegionFilterInput
+    $limit: Int
+    $nextToken: String
+    $lastSync: AWSTimestamp
+  ) {
+    syncRegions(
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+      lastSync: $lastSync
+    ) {
+      items {
+        id
+        start
+        end
+        regionText
+        regionAnalysis
+        isNote
+        commentCount
+        translation
+        dateLastUpdated
+        userLastUpdated
+        transcriptionId
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      nextToken
+      startedAt
+      __typename
+    }
+  }
+`;
+export const getIssue = /* GraphQL */ `
+  query GetIssue($id: ID!) {
+    getIssue(id: $id) {
+      id
+      text
+      owner
+      ownerFriendly
+      index
+      resolved
+      type
+      dateLastUpdated
+      userLastUpdated
+      comments
+      commentCount
+      regionId
+      transcription {
+        id
+        author
+        authorFriendly
+        coverage
+        dateLastUpdated
+        userLastUpdated
+        length
+        issues
+        comments
+        commentCount
+        regionCount
+        issueCount
+        tags
+        source
+        index
+        lang
+        title
+        type
+        isPrivate
+        isPublished
+        publicIssues
+        disableAnalyzer
+        editors
+        viewers
+        editorGroups
+        viewerGroups
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      transcriptionId
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;
+export const listIssues = /* GraphQL */ `
+  query ListIssues(
+    $id: ID
+    $filter: ModelIssueFilterInput
+    $limit: Int
+    $nextToken: String
+    $sortDirection: ModelSortDirection
+  ) {
+    listIssues(
+      id: $id
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+      sortDirection: $sortDirection
+    ) {
+      items {
+        id
+        text
+        owner
+        ownerFriendly
+        index
+        resolved
+        type
+        dateLastUpdated
+        userLastUpdated
+        comments
+        commentCount
+        regionId
+        transcriptionId
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      nextToken
+      startedAt
+      __typename
+    }
+  }
+`;
+export const syncIssues = /* GraphQL */ `
+  query SyncIssues(
+    $filter: ModelIssueFilterInput
+    $limit: Int
+    $nextToken: String
+    $lastSync: AWSTimestamp
+  ) {
+    syncIssues(
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+      lastSync: $lastSync
+    ) {
+      items {
+        id
+        text
+        owner
+        ownerFriendly
+        index
+        resolved
+        type
+        dateLastUpdated
+        userLastUpdated
+        comments
+        commentCount
+        regionId
+        transcriptionId
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      nextToken
+      startedAt
+      __typename
+    }
+  }
+`;
+export const getInvite = /* GraphQL */ `
+  query GetInvite($id: ID!) {
+    getInvite(id: $id) {
+      id
+      email
+      status
+      permissionLevel
+      expiresAt
+      invitedBy
+      invitedByFriendly
+      createdAt
+      acceptedAt
+      transcriptionId
+      transcriptionTitle
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;
+export const listInvites = /* GraphQL */ `
+  query ListInvites(
+    $id: ID
+    $filter: ModelInviteFilterInput
+    $limit: Int
+    $nextToken: String
+    $sortDirection: ModelSortDirection
+  ) {
+    listInvites(
+      id: $id
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+      sortDirection: $sortDirection
+    ) {
+      items {
+        id
+        email
+        status
+        permissionLevel
+        expiresAt
+        invitedBy
+        invitedByFriendly
+        createdAt
+        acceptedAt
+        transcriptionId
+        transcriptionTitle
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      nextToken
+      startedAt
+      __typename
+    }
+  }
+`;
+export const syncInvites = /* GraphQL */ `
+  query SyncInvites(
+    $filter: ModelInviteFilterInput
+    $limit: Int
+    $nextToken: String
+    $lastSync: AWSTimestamp
+  ) {
+    syncInvites(
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+      lastSync: $lastSync
+    ) {
+      items {
+        id
+        email
+        status
+        permissionLevel
+        expiresAt
+        invitedBy
+        invitedByFriendly
+        createdAt
+        acceptedAt
+        transcriptionId
+        transcriptionTitle
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      nextToken
+      startedAt
+      __typename
+    }
+  }
+`;
+export const getComment = /* GraphQL */ `
+  query GetComment($id: ID!) {
+    getComment(id: $id) {
+      id
+      text
+      author
+      authorFriendly
+      createdAt
+      updatedAt
+      transcriptionId
+      transcription {
+        id
+        author
+        authorFriendly
+        coverage
+        dateLastUpdated
+        userLastUpdated
+        length
+        issues
+        comments
+        commentCount
+        regionCount
+        issueCount
+        tags
+        source
+        index
+        lang
+        title
+        type
+        isPrivate
+        isPublished
+        publicIssues
+        disableAnalyzer
+        editors
+        viewers
+        editorGroups
+        viewerGroups
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      entityType
+      entityId
+      parentCommentId
+      parentComment {
+        id
+        text
+        author
+        authorFriendly
+        createdAt
+        updatedAt
+        transcriptionId
+        entityType
+        entityId
+        parentCommentId
+        metadata
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      replies {
+        nextToken
+        startedAt
+        __typename
+      }
+      metadata
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;
+export const listComments = /* GraphQL */ `
+  query ListComments(
+    $id: ID
+    $filter: ModelCommentFilterInput
+    $limit: Int
+    $nextToken: String
+    $sortDirection: ModelSortDirection
+  ) {
+    listComments(
+      id: $id
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+      sortDirection: $sortDirection
+    ) {
+      items {
+        id
+        text
+        author
+        authorFriendly
+        createdAt
+        updatedAt
+        transcriptionId
+        entityType
+        entityId
+        parentCommentId
+        metadata
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      nextToken
+      startedAt
+      __typename
+    }
+  }
+`;
+export const syncComments = /* GraphQL */ `
+  query SyncComments(
+    $filter: ModelCommentFilterInput
+    $limit: Int
+    $nextToken: String
+    $lastSync: AWSTimestamp
+  ) {
+    syncComments(
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+      lastSync: $lastSync
+    ) {
+      items {
+        id
+        text
+        author
+        authorFriendly
+        createdAt
+        updatedAt
+        transcriptionId
+        entityType
+        entityId
+        parentCommentId
+        metadata
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      nextToken
+      startedAt
+      __typename
+    }
+  }
+`;
 export const transcriptionsByAuthor = /* GraphQL */ `
   query TranscriptionsByAuthor(
     $author: String!
@@ -329,141 +854,6 @@ export const byTitle = /* GraphQL */ `
     }
   }
 `;
-export const getRegion = /* GraphQL */ `
-  query GetRegion($id: ID!) {
-    getRegion(id: $id) {
-      id
-      start
-      end
-      regionText
-      regionAnalysis
-      isNote
-      commentCount
-      translation
-      dateLastUpdated
-      userLastUpdated
-      transcription {
-        id
-        author
-        authorFriendly
-        coverage
-        dateLastUpdated
-        userLastUpdated
-        length
-        issues
-        comments
-        commentCount
-        regionCount
-        issueCount
-        tags
-        source
-        index
-        lang
-        title
-        type
-        isPrivate
-        isPublished
-        publicIssues
-        disableAnalyzer
-        editors
-        viewers
-        editorGroups
-        viewerGroups
-        createdAt
-        updatedAt
-        _version
-        _deleted
-        _lastChangedAt
-        __typename
-      }
-      transcriptionId
-      createdAt
-      updatedAt
-      _version
-      _deleted
-      _lastChangedAt
-      __typename
-    }
-  }
-`;
-export const listRegions = /* GraphQL */ `
-  query ListRegions(
-    $id: ID
-    $filter: ModelRegionFilterInput
-    $limit: Int
-    $nextToken: String
-    $sortDirection: ModelSortDirection
-  ) {
-    listRegions(
-      id: $id
-      filter: $filter
-      limit: $limit
-      nextToken: $nextToken
-      sortDirection: $sortDirection
-    ) {
-      items {
-        id
-        start
-        end
-        regionText
-        regionAnalysis
-        isNote
-        commentCount
-        translation
-        dateLastUpdated
-        userLastUpdated
-        transcriptionId
-        createdAt
-        updatedAt
-        _version
-        _deleted
-        _lastChangedAt
-        __typename
-      }
-      nextToken
-      startedAt
-      __typename
-    }
-  }
-`;
-export const syncRegions = /* GraphQL */ `
-  query SyncRegions(
-    $filter: ModelRegionFilterInput
-    $limit: Int
-    $nextToken: String
-    $lastSync: AWSTimestamp
-  ) {
-    syncRegions(
-      filter: $filter
-      limit: $limit
-      nextToken: $nextToken
-      lastSync: $lastSync
-    ) {
-      items {
-        id
-        start
-        end
-        regionText
-        regionAnalysis
-        isNote
-        commentCount
-        translation
-        dateLastUpdated
-        userLastUpdated
-        transcriptionId
-        createdAt
-        updatedAt
-        _version
-        _deleted
-        _lastChangedAt
-        __typename
-      }
-      nextToken
-      startedAt
-      __typename
-    }
-  }
-`;
 export const regionsByTranscription = /* GraphQL */ `
   query RegionsByTranscription(
     $transcriptionId: ID!
@@ -490,147 +880,6 @@ export const regionsByTranscription = /* GraphQL */ `
         translation
         dateLastUpdated
         userLastUpdated
-        transcriptionId
-        createdAt
-        updatedAt
-        _version
-        _deleted
-        _lastChangedAt
-        __typename
-      }
-      nextToken
-      startedAt
-      __typename
-    }
-  }
-`;
-export const getIssue = /* GraphQL */ `
-  query GetIssue($id: ID!) {
-    getIssue(id: $id) {
-      id
-      text
-      owner
-      ownerFriendly
-      index
-      resolved
-      type
-      dateLastUpdated
-      userLastUpdated
-      comments
-      commentCount
-      regionId
-      transcription {
-        id
-        author
-        authorFriendly
-        coverage
-        dateLastUpdated
-        userLastUpdated
-        length
-        issues
-        comments
-        commentCount
-        regionCount
-        issueCount
-        tags
-        source
-        index
-        lang
-        title
-        type
-        isPrivate
-        isPublished
-        publicIssues
-        disableAnalyzer
-        editors
-        viewers
-        editorGroups
-        viewerGroups
-        createdAt
-        updatedAt
-        _version
-        _deleted
-        _lastChangedAt
-        __typename
-      }
-      transcriptionId
-      createdAt
-      updatedAt
-      _version
-      _deleted
-      _lastChangedAt
-      __typename
-    }
-  }
-`;
-export const listIssues = /* GraphQL */ `
-  query ListIssues(
-    $id: ID
-    $filter: ModelIssueFilterInput
-    $limit: Int
-    $nextToken: String
-    $sortDirection: ModelSortDirection
-  ) {
-    listIssues(
-      id: $id
-      filter: $filter
-      limit: $limit
-      nextToken: $nextToken
-      sortDirection: $sortDirection
-    ) {
-      items {
-        id
-        text
-        owner
-        ownerFriendly
-        index
-        resolved
-        type
-        dateLastUpdated
-        userLastUpdated
-        comments
-        commentCount
-        regionId
-        transcriptionId
-        createdAt
-        updatedAt
-        _version
-        _deleted
-        _lastChangedAt
-        __typename
-      }
-      nextToken
-      startedAt
-      __typename
-    }
-  }
-`;
-export const syncIssues = /* GraphQL */ `
-  query SyncIssues(
-    $filter: ModelIssueFilterInput
-    $limit: Int
-    $nextToken: String
-    $lastSync: AWSTimestamp
-  ) {
-    syncIssues(
-      filter: $filter
-      limit: $limit
-      nextToken: $nextToken
-      lastSync: $lastSync
-    ) {
-      items {
-        id
-        text
-        owner
-        ownerFriendly
-        index
-        resolved
-        type
-        dateLastUpdated
-        userLastUpdated
-        comments
-        commentCount
-        regionId
         transcriptionId
         createdAt
         updatedAt
@@ -813,104 +1062,6 @@ export const issuesByTranscription = /* GraphQL */ `
     }
   }
 `;
-export const getInvite = /* GraphQL */ `
-  query GetInvite($id: ID!) {
-    getInvite(id: $id) {
-      id
-      email
-      status
-      permissionLevel
-      expiresAt
-      invitedBy
-      invitedByFriendly
-      createdAt
-      acceptedAt
-      transcriptionId
-      transcriptionTitle
-      updatedAt
-      _version
-      _deleted
-      _lastChangedAt
-      __typename
-    }
-  }
-`;
-export const listInvites = /* GraphQL */ `
-  query ListInvites(
-    $id: ID
-    $filter: ModelInviteFilterInput
-    $limit: Int
-    $nextToken: String
-    $sortDirection: ModelSortDirection
-  ) {
-    listInvites(
-      id: $id
-      filter: $filter
-      limit: $limit
-      nextToken: $nextToken
-      sortDirection: $sortDirection
-    ) {
-      items {
-        id
-        email
-        status
-        permissionLevel
-        expiresAt
-        invitedBy
-        invitedByFriendly
-        createdAt
-        acceptedAt
-        transcriptionId
-        transcriptionTitle
-        updatedAt
-        _version
-        _deleted
-        _lastChangedAt
-        __typename
-      }
-      nextToken
-      startedAt
-      __typename
-    }
-  }
-`;
-export const syncInvites = /* GraphQL */ `
-  query SyncInvites(
-    $filter: ModelInviteFilterInput
-    $limit: Int
-    $nextToken: String
-    $lastSync: AWSTimestamp
-  ) {
-    syncInvites(
-      filter: $filter
-      limit: $limit
-      nextToken: $nextToken
-      lastSync: $lastSync
-    ) {
-      items {
-        id
-        email
-        status
-        permissionLevel
-        expiresAt
-        invitedBy
-        invitedByFriendly
-        createdAt
-        acceptedAt
-        transcriptionId
-        transcriptionTitle
-        updatedAt
-        _version
-        _deleted
-        _lastChangedAt
-        __typename
-      }
-      nextToken
-      startedAt
-      __typename
-    }
-  }
-`;
 export const invitesByEmail = /* GraphQL */ `
   query InvitesByEmail(
     $email: String!
@@ -1019,157 +1170,6 @@ export const invitesByTranscription = /* GraphQL */ `
         transcriptionId
         transcriptionTitle
         updatedAt
-        _version
-        _deleted
-        _lastChangedAt
-        __typename
-      }
-      nextToken
-      startedAt
-      __typename
-    }
-  }
-`;
-export const getComment = /* GraphQL */ `
-  query GetComment($id: ID!) {
-    getComment(id: $id) {
-      id
-      text
-      author
-      authorFriendly
-      createdAt
-      updatedAt
-      transcriptionId
-      transcription {
-        id
-        author
-        authorFriendly
-        coverage
-        dateLastUpdated
-        userLastUpdated
-        length
-        issues
-        comments
-        commentCount
-        regionCount
-        issueCount
-        tags
-        source
-        index
-        lang
-        title
-        type
-        isPrivate
-        isPublished
-        publicIssues
-        disableAnalyzer
-        editors
-        viewers
-        editorGroups
-        viewerGroups
-        createdAt
-        updatedAt
-        _version
-        _deleted
-        _lastChangedAt
-        __typename
-      }
-      entityType
-      entityId
-      parentCommentId
-      parentComment {
-        id
-        text
-        author
-        authorFriendly
-        createdAt
-        updatedAt
-        transcriptionId
-        entityType
-        entityId
-        parentCommentId
-        metadata
-        _version
-        _deleted
-        _lastChangedAt
-        __typename
-      }
-      replies {
-        nextToken
-        startedAt
-        __typename
-      }
-      metadata
-      _version
-      _deleted
-      _lastChangedAt
-      __typename
-    }
-  }
-`;
-export const listComments = /* GraphQL */ `
-  query ListComments(
-    $id: ID
-    $filter: ModelCommentFilterInput
-    $limit: Int
-    $nextToken: String
-    $sortDirection: ModelSortDirection
-  ) {
-    listComments(
-      id: $id
-      filter: $filter
-      limit: $limit
-      nextToken: $nextToken
-      sortDirection: $sortDirection
-    ) {
-      items {
-        id
-        text
-        author
-        authorFriendly
-        createdAt
-        updatedAt
-        transcriptionId
-        entityType
-        entityId
-        parentCommentId
-        metadata
-        _version
-        _deleted
-        _lastChangedAt
-        __typename
-      }
-      nextToken
-      startedAt
-      __typename
-    }
-  }
-`;
-export const syncComments = /* GraphQL */ `
-  query SyncComments(
-    $filter: ModelCommentFilterInput
-    $limit: Int
-    $nextToken: String
-    $lastSync: AWSTimestamp
-  ) {
-    syncComments(
-      filter: $filter
-      limit: $limit
-      nextToken: $nextToken
-      lastSync: $lastSync
-    ) {
-      items {
-        id
-        text
-        author
-        authorFriendly
-        createdAt
-        updatedAt
-        transcriptionId
-        entityType
-        entityId
-        parentCommentId
-        metadata
         _version
         _deleted
         _lastChangedAt

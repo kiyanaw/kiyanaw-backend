@@ -39,14 +39,17 @@ export default defineConfig(({ mode }) => {
     __SPELLCHECK_API_KEY__: JSON.stringify(env.VITE_SPELLCHECK_API_KEY ?? ''),
   },
   build: {
+    chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
         manualChunks(id) {
           if (!id.includes('node_modules')) return;
           if (id.includes('@aws-amplify') || id.includes('aws-amplify')) return 'vendor-amplify';
           if (id.includes('wavesurfer')) return 'vendor-wavesurfer';
-          if (id.includes('quill')) return 'vendor-quill';
-          if (id.includes('/react/') || id.includes('/react-dom/') || id.includes('react-router')) return 'vendor-react';
+          // Everything else (react, react-quill, quill, tanstack, zustand, etc.) goes into
+          // a single vendor chunk. These packages have mutual import cycles that produce
+          // circular chunk warnings when split further, and intra-chunk cycles are invisible
+          // to Rollup.
           return 'vendor';
         },
       },

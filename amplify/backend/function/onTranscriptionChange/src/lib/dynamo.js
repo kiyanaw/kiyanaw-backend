@@ -1,70 +1,33 @@
-const AWS = require('aws-sdk')
-AWS.config.update({
-  credentials: new AWS.EnvironmentCredentials('AWS'),
-  region: process.env.REGION,
-})
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb')
+const { DynamoDBDocumentClient, GetCommand, QueryCommand, ScanCommand, BatchWriteCommand, DeleteCommand } = require('@aws-sdk/lib-dynamodb')
 
-const docClient = new AWS.DynamoDB.DocumentClient({ apiVersion: '2012-08-10' })
+const client = new DynamoDBClient({ region: process.env.REGION })
+const docClient = DynamoDBDocumentClient.from(client)
 
 async function getDoc(params) {
-  return new Promise((resolve, reject) => {
-    docClient.get(params, (err, data) => {
-      if (err) {
-        reject(err)
-      }
-      resolve(data)
-    })
-  })
+  return docClient.send(new GetCommand(params))
 }
 
 async function query(params) {
-  return new Promise((resolve, reject) => {
-    docClient.query(params, (err, data) => {
-      if (err) {
-        reject(err)
-      }
-      resolve(data)
-    })
-  })
+  return docClient.send(new QueryCommand(params))
 }
 
 async function scan(params) {
-  return new Promise((resolve, reject) => {
-    docClient.scan(params, (err, data) => {
-      if (err) {
-        reject(err)
-      }
-      resolve(data)
-    })
-  })
+  return docClient.send(new ScanCommand(params))
 }
 
 async function batchWrite(params) {
-  return new Promise((resolve, reject) => {
-    docClient.batchWrite(params, (err, data) => {
-      if (err) {
-        reject(err)
-      }
-      resolve(data)
-    })
-  })
+  return docClient.send(new BatchWriteCommand(params))
 }
 
 async function deleteItem(params) {
-  return new Promise((resolve, reject) => {
-    docClient.delete(params, (err, data) => {
-      if (err) {
-        reject(err)
-      }
-      resolve(data)
-    })
-  })
+  return docClient.send(new DeleteCommand(params))
 }
 
 /**
  * Get all regions for a specific transcription using the ByTranscription index
- * @param {string} transcriptionId 
- * @param {string} regionTable 
+ * @param {string} transcriptionId
+ * @param {string} regionTable
  * @returns {Promise<Array>} Array of regions
  */
 async function getRegionsForTranscription(transcriptionId, regionTable) {
@@ -78,7 +41,7 @@ async function getRegionsForTranscription(transcriptionId, regionTable) {
       },
       ProjectionExpression: 'id'
     }
-    
+
     const result = await query(params)
     return result.Items || []
   } catch (error) {
@@ -89,8 +52,8 @@ async function getRegionsForTranscription(transcriptionId, regionTable) {
 
 /**
  * Get all issues for a specific transcription using the ByTranscription index
- * @param {string} transcriptionId 
- * @param {string} issueTable 
+ * @param {string} transcriptionId
+ * @param {string} issueTable
  * @returns {Promise<Array>} Array of issues
  */
 async function getIssuesForTranscription(transcriptionId, issueTable) {
@@ -104,7 +67,7 @@ async function getIssuesForTranscription(transcriptionId, issueTable) {
       },
       ProjectionExpression: 'id'
     }
-    
+
     const result = await query(params)
     return result.Items || []
   } catch (error) {
@@ -115,8 +78,8 @@ async function getIssuesForTranscription(transcriptionId, issueTable) {
 
 /**
  * Get all invites for a specific transcription using the ByTranscription index
- * @param {string} transcriptionId 
- * @param {string} inviteTable 
+ * @param {string} transcriptionId
+ * @param {string} inviteTable
  * @returns {Promise<Array>} Array of invites
  */
 async function getInvitesForTranscription(transcriptionId, inviteTable) {
@@ -130,7 +93,7 @@ async function getInvitesForTranscription(transcriptionId, inviteTable) {
       },
       ProjectionExpression: 'id'
     }
-    
+
     const result = await query(params)
     return result.Items || []
   } catch (error) {
@@ -139,11 +102,11 @@ async function getInvitesForTranscription(transcriptionId, inviteTable) {
   }
 }
 
-module.exports = { 
-  getDoc, 
-  query, 
-  scan, 
-  batchWrite, 
+module.exports = {
+  getDoc,
+  query,
+  scan,
+  batchWrite,
   deleteItem,
   getRegionsForTranscription,
   getIssuesForTranscription,

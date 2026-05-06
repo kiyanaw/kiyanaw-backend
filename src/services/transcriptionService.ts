@@ -971,7 +971,7 @@ export const create = async (data: CreateTranscriptionData): Promise<SharedTrans
     const { data: result } = await getClient().graphql({
       query: createTranscriptionMutation,
       variables: { input },
-      authMode: 'iam',
+      authMode: 'userPool',
     }) as CreateTranscriptionResponse;
 
     const created = result?.createTranscription;
@@ -1042,7 +1042,7 @@ export const updateTranscription = async (
     const { data: result } = await getClient().graphql({
       query: updateTranscriptionMutation,
       variables: { input },
-      authMode: 'iam',
+      authMode: 'userPool',
     }) as UpdateTranscriptionResponse;
 
     const updated = result?.updateTranscription;
@@ -1103,7 +1103,7 @@ export const deleteTranscription = async (transcriptionId: string): Promise<Shar
     const { data: result } = await getClient().graphql({
       query: deleteTranscriptionMutation,
       variables: { input },
-      authMode: 'iam',
+      authMode: 'userPool',
     }) as DeleteTranscriptionResponse;
 
     const deleted = result?.deleteTranscription;

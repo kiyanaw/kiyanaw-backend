@@ -30,6 +30,9 @@ export type AmplifyDependentResourcesAttributes = {
       "UserPoolArn": "string",
       "UserPoolId": "string",
       "UserPoolName": "string"
+    },
+    "userPoolGroups": {
+      "AdminsGroupRole": "string"
     }
   },
   "custom": {
@@ -50,13 +53,6 @@ export type AmplifyDependentResourcesAttributes = {
   },
   "function": {
     "createPeaksFile": {
-      "Arn": "string",
-      "LambdaExecutionRole": "string",
-      "LambdaExecutionRoleArn": "string",
-      "Name": "string",
-      "Region": "string"
-    },
-    "crkSpellCheck": {
       "Arn": "string",
       "LambdaExecutionRole": "string",
       "LambdaExecutionRoleArn": "string",
@@ -87,13 +83,7 @@ export type AmplifyDependentResourcesAttributes = {
     "kiyanawaudiowaveform": {
       "Arn": "string"
     },
-    "kiyanawcrkFSTs": {
-      "Arn": "string"
-    },
     "kiyanawffmpeg": {
-      "Arn": "string"
-    },
-    "kiyanawlibHfstol": {
       "Arn": "string"
     },
     "mediaAccess": {
@@ -118,13 +108,6 @@ export type AmplifyDependentResourcesAttributes = {
       "Region": "string"
     },
     "opensearchproxy": {
-      "Arn": "string",
-      "LambdaExecutionRole": "string",
-      "LambdaExecutionRoleArn": "string",
-      "Name": "string",
-      "Region": "string"
-    },
-    "spellcheck": {
       "Arn": "string",
       "LambdaExecutionRole": "string",
       "LambdaExecutionRoleArn": "string",

@@ -128,7 +128,7 @@ describe('RegionService (Simple GraphQL Test)', () => {
             userLastUpdated: username,
           },
         },
-        authMode: 'iam',
+        authMode: 'userPool',
       });
 
       expect(MockedRegionModel).toHaveBeenCalledTimes(1);
@@ -236,7 +236,7 @@ describe('RegionService (Simple GraphQL Test)', () => {
             _version: existingRegion._version,
           },
         },
-        authMode: 'iam',
+        authMode: 'userPool',
       });
     });
 
@@ -320,7 +320,7 @@ describe('RegionService (Simple GraphQL Test)', () => {
             dateLastUpdated: expect.any(String),
           }),
         },
-        authMode: 'iam',
+        authMode: 'userPool',
       });
     });
 
@@ -469,7 +469,7 @@ describe('RegionService (Simple GraphQL Test)', () => {
             _version: 1,
           }),
         },
-        authMode: 'iam',
+        authMode: 'userPool',
       });
     });
 
@@ -494,7 +494,7 @@ describe('RegionService (Simple GraphQL Test)', () => {
             _version: 1,
           }),
         },
-        authMode: 'iam',
+        authMode: 'userPool',
       });
     });
   });

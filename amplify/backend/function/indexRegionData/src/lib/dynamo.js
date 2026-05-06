@@ -1,53 +1,29 @@
-const AWS = require('aws-sdk')
-AWS.config.update({
-  credentials: new AWS.EnvironmentCredentials('AWS'),
-  region: process.env.REGION,
-})
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb')
+const { DynamoDBDocumentClient, GetCommand, QueryCommand, ScanCommand } = require('@aws-sdk/lib-dynamodb')
 
-const docClient = new AWS.DynamoDB.DocumentClient({ apiVersion: '2012-08-10' })
+const client = new DynamoDBClient({ region: process.env.REGION })
+const docClient = DynamoDBDocumentClient.from(client)
 
 async function getDoc(params) {
-  return new Promise((resolve, reject) => {
-    docClient.get(params, (err, data) => {
-      if (err) {
-        reject(err)
-      }
-      resolve(data)
-    })
-  })
+  return docClient.send(new GetCommand(params))
 }
 
 async function query(params) {
-  return new Promise((resolve, reject) => {
-    docClient.query(params, (err, data) => {
-      if (err) {
-        reject(err)
-      }
-      resolve(data)
-    })
-  })
+  return docClient.send(new QueryCommand(params))
 }
 
 async function scan(params) {
-  return new Promise((resolve, reject) => {
-    docClient.scan(params, (err, data) => {
-      if (err) {
-        reject(err)
-      }
-      resolve(data)
-    })
-  })
+  return docClient.send(new ScanCommand(params))
 }
 
 /**
  * Get all issues for a specific region
- * @param {string} regionId 
- * @param {string} issueTable 
+ * @param {string} regionId
+ * @param {string} issueTable
  * @returns {Promise<Array>} Array of issues
  */
 async function getIssuesForRegion(regionId, issueTable) {
   try {
-    // Query issues by regionId using the ByRegion GSI
     const params = {
       TableName: issueTable,
       IndexName: 'ByRegion',
@@ -56,7 +32,7 @@ async function getIssuesForRegion(regionId, issueTable) {
         ':regionId': regionId
       }
     }
-    
+
     const result = await query(params)
     return result.Items || []
   } catch (error) {

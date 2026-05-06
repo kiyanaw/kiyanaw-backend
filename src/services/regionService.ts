@@ -104,7 +104,7 @@ export const createRegion = async (
     const { data } = await getClient().graphql({
       query: createRegionMutation,
       variables: { input },
-      authMode: 'iam',
+      authMode: 'userPool',
     }) as CreateRegionResponse;
 
     const created = data?.createRegion;
@@ -152,7 +152,7 @@ export const updateRegion = async (regionId: string, updates: Partial<RegionData
     await getClient().graphql({
       query: updateRegionMutation,
       variables: { input },
-      authMode: 'iam',
+      authMode: 'userPool',
     });
 
   } catch (error) {
@@ -214,7 +214,7 @@ export const deleteRegion = async (regionId: string) => {
     await getClient().graphql({
       query: deleteRegionMutation,
       variables: { input },
-      authMode: 'iam',
+      authMode: 'userPool',
     });
     
     console.info(`✅ Deleted region ${regionId}`);

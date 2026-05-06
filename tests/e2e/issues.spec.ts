@@ -1,7 +1,6 @@
 /**
  * Issues + Comments coverage
  *
- * Validates Phase 4 of the security remediation:
  *  - Owner creates issue on a region → visible in IssuesPanel after reload
  *  - Issue visible to shared editor in IssuesPanel
  *  - Comment round-trip on an issue via IssueDetailsDialog
@@ -15,13 +14,9 @@
  *   3. Type text in the Quill editor (data-testid="region-editor-main" .ql-editor)
  *   4. Select all text (Ctrl+A)
  *   5. Click data-testid="create-issue-button" (enabled when text is selected)
- *
- * IMPORTANT: The app currently filters with `_deleted: { ne: true }` in issueService.ts.
- * After Phase 1d this field is removed — if these tests go red after that phase, check for
- * `_deleted` references in issueService.ts / commentService.ts first.
  */
 import { testWithAccount, expect } from '../../playwright/fixtures';
-import { createTestTranscription, deleteTestTranscription, dragRegion, sendInvite, acceptInviteForTranscription, ensureAuthFile } from './helpers';
+import { createTestTranscription, deleteTestTranscription, dragRegion, waitForAudioReady, sendInvite, acceptInviteForTranscription, ensureAuthFile } from './helpers';
 import type { Browser, Page } from '@playwright/test';
 
 // ---------------------------------------------------------------------------
@@ -31,9 +26,10 @@ import type { Browser, Page } from '@playwright/test';
 async function createRegionAndIssue(page: Page): Promise<void> {
   // 1. Create region via waveform drag
   await dragRegion(page);
-  await expect(page.locator('text=Regions (1)').first()).toBeVisible();
+  await expect(page.locator('text=Regions (1)').first()).toBeVisible({ timeout: 15000 });
 
-  // 2. Click the region item to open the RegionEditor
+  // 2. Wait for audio decode to finish so region items are interactive, then click
+  await waitForAudioReady(page);
   const regionItem = page.locator('[data-testid*="regionitem"]').first();
   await expect(regionItem).toBeVisible();
   await regionItem.click();
@@ -220,6 +216,7 @@ testWithAccount('owner').describe('Comment round-trip on an issue', () => {
     await expect(editorPage.locator('[data-testid="waveform-container"]')).toBeVisible({ timeout: 30000 });
 
     await expect(editorPage.locator('text=Regions (1)').first()).toBeVisible({ timeout: 20000 });
+    await waitForAudioReady(editorPage);
     const regionItem = editorPage.locator('[data-testid*="regionitem"]').first();
     await expect(regionItem).toBeVisible();
     await regionItem.click();
@@ -227,7 +224,7 @@ testWithAccount('owner').describe('Comment round-trip on an issue', () => {
 
     await expect(editorPage.locator('text=Issues (1)').first()).toBeVisible({ timeout: 10000 });
     const issueItemEditor = editorPage.locator('[data-testid="issue-item-open-dialog"]').first();
-    await expect(issueItemEditor).toBeVisible();
+    await expect(issueItemEditor).toBeVisible({ timeout: 10000 });
     await issueItemEditor.click();
     await editorPage.waitForTimeout(1000);
 

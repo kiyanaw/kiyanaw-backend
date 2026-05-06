@@ -365,7 +365,7 @@ export const deleteInvite = async (inviteId: string): Promise<void> => {
     const { data: result } = await getClient().graphql({
       query: deleteInviteMutation,
       variables: { input: { id: inviteId } },
-      authMode: 'iam',
+      authMode: 'userPool',
     }) as DeleteInviteResponse;
 
     const deleted = result?.deleteInvite;

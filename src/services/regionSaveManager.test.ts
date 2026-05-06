@@ -389,7 +389,7 @@ describe('RegionSaveManager', () => {
     });
   });
 
-  describe('Bounds Changes (Phase 2)', () => {
+  describe('Bounds Changes', () => {
     it('should queue bounds changes', () => {
       regionSaveManager.queueBoundsChange('region-1', 10, 20);
       

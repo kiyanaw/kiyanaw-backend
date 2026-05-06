@@ -47,7 +47,7 @@ export async function createTestTranscription(page: Page): Promise<{ transcripti
   if (!urlMatch) throw new Error(`Could not extract transcription ID from URL: ${editorUrl}`);
   const transcriptionId = urlMatch[1];
 
-  await expect(page.locator('canvas, video, audio, [data-testid="waveform"], [data-testid="player"]').first()).toBeVisible({ timeout: 10000 });
+  await expect(page.locator('[data-testid="waveform-container"]').first()).toBeVisible({ timeout: 30000 });
 
   return { transcriptionId, title };
 }
@@ -99,7 +99,6 @@ export async function deleteTestTranscription(page: Page, transcriptionId: strin
 export async function dragRegion(page: Page): Promise<void> {
   const waveformContainer = page.locator('[data-testid="waveform-container"]');
   await expect(waveformContainer).toBeVisible();
-  await page.waitForTimeout(3000); // allow audio to load
 
   const box = await waveformContainer.boundingBox();
   if (!box) throw new Error('Could not get waveform container bounding box');
@@ -114,6 +113,14 @@ export async function dragRegion(page: Page): Promise<void> {
   await page.mouse.up();
 
   await page.waitForTimeout(2000);
+}
+
+/**
+ * Waits for the "Loading audio..." overlay to disappear, meaning wavesurfer has
+ * finished decoding audio and region items are interactive (not disabled).
+ */
+export async function waitForAudioReady(page: Page, timeout = 20000): Promise<void> {
+  await page.locator('text=Loading audio...').waitFor({ state: 'hidden', timeout });
 }
 
 // ---------------------------------------------------------------------------

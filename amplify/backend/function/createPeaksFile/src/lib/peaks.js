@@ -90,9 +90,9 @@ const extractUrlFromRecord = (record) => {
   if (record.dynamodb) {
     // DynamoDB record
     if (record.dynamodb.NewImage) {
-      return record.dynamodb.NewImage.source.S
+      return record.dynamodb.NewImage.source?.S ?? null
     } else if (record.dynamodb.OldImage) {
-      return record.dynamodb.OldImage.source.S
+      return record.dynamodb.OldImage.source?.S ?? null
     }
   } else {
     // SQS record

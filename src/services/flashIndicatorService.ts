@@ -36,8 +36,8 @@ class FlashIndicatorServiceImpl {
   
   // Track active flash timeouts to prevent interference
   private activeFlashTimeouts = new Map<string, {
-    restoreTimeout?: NodeJS.Timeout;
-    clearTimeout?: NodeJS.Timeout;
+    restoreTimeout?: ReturnType<typeof setTimeout>;
+    clearTimeout?: ReturnType<typeof setTimeout>;
   }>();
 
   /**

@@ -19,14 +19,14 @@ Amplify Params - DO NOT EDIT */
   OPENSEARCH_ENDPOINT
 */
 
-const AWS = require('aws-sdk')
+const { unmarshall } = require('@aws-sdk/util-dynamodb')
 const dynamo = require('./lib/dynamo')
 const search = require('./lib/search')
 const s3 = require('./lib/s3')
 const cleanup = require('./lib/cleanup')
+const sqs = require('./lib/sqs')
 const { okResponse } = require('./utils')
 
-const sqs = new AWS.SQS({ region: process.env.REGION })
 const queueUrl = `https://sqs.${process.env.REGION}.amazonaws.com/${process.env.ACCOUNT_ID}/enqueueRegionChanges-${process.env.ENV}`
 
 /**
@@ -84,7 +84,7 @@ const bulkEnqueueRegions = async (regionIds) => {
     }
     
     try {
-      const response = await sqs.sendMessageBatch(params).promise()
+      const response = await sqs.sendMessageBatch(params)
       console.log(`Batch sent: ${response.Successful.length} successful, ${response.Failed.length} failed`)
     } catch (error) {
       console.error('Error sending batch:', error)
@@ -111,8 +111,8 @@ exports.handler = async (event) => {
     console.log('Processing record:', record.eventID)
     console.log('Event name:', record.eventName)
     
-    const oldImage = record.dynamodb.OldImage ? AWS.DynamoDB.Converter.unmarshall(record.dynamodb.OldImage) : null
-    const newImage = record.dynamodb.NewImage ? AWS.DynamoDB.Converter.unmarshall(record.dynamodb.NewImage) : null
+    const oldImage = record.dynamodb.OldImage ? unmarshall(record.dynamodb.OldImage) : null
+    const newImage = record.dynamodb.NewImage ? unmarshall(record.dynamodb.NewImage) : null
     
     console.log('Old image:', oldImage)
     console.log('New image:', newImage)
