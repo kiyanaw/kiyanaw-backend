@@ -143,61 +143,78 @@ class RTEServiceImpl {
     editor.setAttribute('autocorrect', 'off');
     editor.setAttribute('autocapitalize', 'off');
 
-    // Keyboard debug logging — enable in browser console with: window.debugKeyboard = true
-    // Captures the exact event sequence fired by compose/dead-key input (e.g. RCLakota Shift+6)
-    // so the event log can be used to diagnose bug #245.
-    const kbLog = (label: string, detail: Record<string, unknown>) => {
-      if (!(window as unknown as { debugKeyboard?: boolean }).debugKeyboard) return;
-      const sel = quill.getSelection();
-      console.log(`[kb:${key}] ${label}`, {
-        ...detail,
-        quillSel: sel ? { index: sel.index, length: sel.length } : null,
-        quillText: JSON.stringify(quill.getText()),
-      });
-    };
+    // Fix for dead-key / compose-key input in Chrome and Firefox (issue #245).
+    // When a macOS keyboard layout (e.g. RCLakota) maps Shift+6 to a dead key, the OS uses
+    // the browser's composition API: first it inserts an interim character (^), then when
+    // the next key is pressed it resolves to the final composed character (e.g. á = ^ + a).
+    //
+    // Chrome fires a second insertCompositionText whose target range spans the entire editor,
+    // causing Quill to replace all content with just the composed character.
+    // Firefox appends the final character after the dead-key character rather than replacing it,
+    // leaving the dead-key character (^) in the text alongside the final character.
+    // Safari uses deleteCompositionText + insertFromComposition and is unaffected.
+    //
+    // Strategy: do not fight the browser during beforeinput (preventDefault is unreliable for
+    // composition events). Instead, let batchEnd process the broken DOM, then correct it.
+    //
+    // Quill schedules batchEnd via queueMicrotask in its compositionend bubble-phase handler.
+    // Our capture-phase compositionend listener fires first, so we can queue MT1 before Quill
+    // queues MT2 (batchEnd). MT1 queues MT3, giving us the order: MT1 → MT2 → MT3 — i.e.
+    // our correction runs after Quill has processed the composition mutations.
+    let compositionStartIndex = -1;
+    let compositionPrevText = '';
+    let compositionCurrText = '';
+    let textBeforeComposition = '';
 
-    editor.addEventListener('keydown', (e: KeyboardEvent) => {
-      kbLog('keydown', {
-        key: e.key, code: e.code, keyCode: e.keyCode,
-        shift: e.shiftKey, ctrl: e.ctrlKey, meta: e.metaKey, alt: e.altKey,
-        isComposing: e.isComposing,
-      });
-    });
-
-    editor.addEventListener('compositionstart', (e: CompositionEvent) => {
-      kbLog('compositionstart', {
-        data: e.data,
-        targetTag: (e.target as Element)?.tagName,
-        targetClass: (e.target as Element)?.className,
-      });
-    });
+    editor.addEventListener('compositionstart', () => {
+      compositionStartIndex = -1;
+      textBeforeComposition = quill.getText();
+      compositionPrevText = '';
+      compositionCurrText = '';
+    }, true);
 
     editor.addEventListener('compositionupdate', (e: CompositionEvent) => {
-      kbLog('compositionupdate', { data: e.data });
-    });
+      compositionPrevText = compositionCurrText;
+      compositionCurrText = e.data ?? '';
+      if (compositionStartIndex === -1) {
+        // Save on the first update, not compositionstart, because the selection is more
+        // reliably reported after the browser has begun the composition session.
+        compositionStartIndex = quill.getSelection()?.index ?? 0;
+      }
+    }, true);
 
     editor.addEventListener('compositionend', (e: CompositionEvent) => {
-      kbLog('compositionend', { data: e.data });
-    });
+      const finalText = e.data ?? '';
+      const startIdx = compositionStartIndex;
+      const prevCompText = compositionPrevText;
+      const beforeText = textBeforeComposition;
 
-    editor.addEventListener('beforeinput', (e: InputEvent) => {
-      const ranges = e.getTargetRanges?.() ?? [];
-      kbLog('beforeinput', {
-        inputType: e.inputType,
-        data: e.data,
-        ranges: ranges.map(r => ({
-          collapsed: r.collapsed,
-          startOffset: r.startOffset,
-          endOffset: r.endOffset,
-          startContainer: (r.startContainer as Element)?.tagName ?? r.startContainer.nodeType,
-        })),
+      compositionStartIndex = -1;
+      compositionPrevText = '';
+      compositionCurrText = '';
+
+      // Only act on dead-key sequences (two compositionupdates → prevCompText is non-empty).
+      // Single-step IME (Safari, standard IME) has prevCompText === '' and is already correct.
+      if (!finalText || prevCompText.length === 0) return;
+
+      // Expected final text: beforeText with finalText inserted at startIdx
+      const expectedText = beforeText.slice(0, startIdx) + finalText + beforeText.slice(startIdx);
+
+      queueMicrotask(() => {
+        // MT1: runs before Quill's batchEnd (MT2). Queuing MT3 here ensures MT3 runs after MT2.
+        queueMicrotask(() => {
+          // MT3: batchEnd has now run. Check and correct if needed.
+          const actualText = quill.getText();
+          if (actualText === expectedText) return;
+
+          const corrDelta = new Delta()
+            .delete(quill.getLength() - 1)
+            .insert(expectedText.slice(0, -1)); // exclude trailing \n (Quill block separator)
+          quill.updateContents(corrDelta as Parameters<QuillInstance['updateContents']>[0], 'user');
+          quill.setSelection(startIdx + finalText.length, 0);
+        });
       });
-    });
-
-    editor.addEventListener('input', (e: Event) => {
-      const ie = e as InputEvent;
-      kbLog('input', { inputType: ie.inputType, data: ie.data });
-    });
+    }, true);
 
     // Store in registry
     const rteInstance: RTEInstance = {

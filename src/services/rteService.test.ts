@@ -35,6 +35,20 @@ class MockDelta {
     this.ops.push(op);
     return this;
   }
+
+  delete(count: number) {
+    this.ops.push({ delete: count });
+    return this;
+  }
+
+  insert(text: string, attributes?: Record<string, unknown>) {
+    const op: Record<string, unknown> = { insert: text };
+    if (attributes) {
+      op.attributes = attributes;
+    }
+    this.ops.push(op);
+    return this;
+  }
 }
 
 const mockUpdateContents = jest.fn();
@@ -52,6 +66,7 @@ const mockQuill = {
   getFormat: jest.fn().mockReturnValue({}),
   getContents: jest.fn().mockReturnValue({ ops: [{ insert: 'mock text content' }] }),
   updateContents: mockUpdateContents,
+  getLength: jest.fn().mockReturnValue(1),
   blur: jest.fn(),
   focus: jest.fn(),
   root: mockRoot,
@@ -1160,6 +1175,151 @@ describe('rteService', () => {
         'ambiguous-word': false,
         'spelling-suggestion': false,
       }, 'silent');
+    });
+  });
+
+  // Helpers to extract the composition event listeners registered on quill.root
+  // by createOrGet(). Each call is [eventType, handler, captureFlag].
+  const getCompositionHandlers = () => {
+    const calls = mockRoot.addEventListener.mock.calls;
+    const start = calls.find((c: unknown[]) => c[0] === 'compositionstart')?.[1] as () => void;
+    const update = calls.find((c: unknown[]) => c[0] === 'compositionupdate')?.[1] as (e: Partial<CompositionEvent>) => void;
+    const end = calls.find((c: unknown[]) => c[0] === 'compositionend')?.[1] as (e: Partial<CompositionEvent>) => void;
+    return { start, update, end };
+  };
+
+  describe('dead-key composition fix (issue #245)', () => {
+    beforeEach(() => {
+      rteService.createOrGet('test-region:main', {});
+    });
+
+    it('corrects Chrome dead-key bug where all editor content is replaced by composed char', async () => {
+      // Chrome fires insertCompositionText with a target range spanning the entire editor,
+      // so after batchEnd the editor contains only the composed character (e.g. 'á').
+      mockQuill.getSelection.mockReturnValue({ index: 11, length: 0 });
+      mockQuill.getText
+        .mockReturnValueOnce('hello world\n')  // saved at compositionstart
+        .mockReturnValue('á\n');               // read in MT3 after Chrome's batchEnd
+      mockQuill.getLength.mockReturnValue(2);  // 'á\n'
+
+      const { start, update, end } = getCompositionHandlers();
+      start();
+      update({ data: '^' });  // first update: dead key char, saves compositionStartIndex
+      update({ data: 'á' }); // second update: resolved char, prevCompText = '^'
+      end({ data: 'á' });
+
+      // Flush two microtask levels:
+      // await 1: MT1 runs (queues MT3), Quill's MT2 (batchEnd) runs
+      // await 2: MT3 runs (our fix)
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(mockUpdateContents).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ops: [{ delete: 1 }, { insert: 'hello worldá' }],
+        }),
+        'user',
+      );
+      expect(mockQuill.setSelection).toHaveBeenCalledWith(12, 0);
+    });
+
+    it('corrects Firefox dead-key bug where composed char is appended after the dead-key char', async () => {
+      // Firefox appends the resolved character after the dead-key placeholder (^),
+      // so after batchEnd the editor contains e.g. 'hello world^á'.
+      mockQuill.getSelection.mockReturnValue({ index: 11, length: 0 });
+      mockQuill.getText
+        .mockReturnValueOnce('hello world\n')
+        .mockReturnValue('hello world^á\n');  // Firefox's broken state
+      mockQuill.getLength.mockReturnValue(14); // 'hello world^á\n'
+
+      const { start, update, end } = getCompositionHandlers();
+      start();
+      update({ data: '^' });
+      update({ data: 'á' });
+      end({ data: 'á' });
+
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(mockUpdateContents).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ops: [{ delete: 13 }, { insert: 'hello worldá' }],
+        }),
+        'user',
+      );
+      expect(mockQuill.setSelection).toHaveBeenCalledWith(12, 0);
+    });
+
+    it('does not apply a correction when text is already correct after batchEnd', async () => {
+      // If neither Chrome nor Firefox bug fires, the text is already right — no correction needed.
+      mockQuill.getSelection.mockReturnValue({ index: 11, length: 0 });
+      mockQuill.getText
+        .mockReturnValueOnce('hello world\n')
+        .mockReturnValue('hello worldá\n'); // already correct
+
+      const { start, update, end } = getCompositionHandlers();
+      start();
+      update({ data: '^' });
+      update({ data: 'á' });
+      end({ data: 'á' });
+
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(mockUpdateContents).not.toHaveBeenCalled();
+    });
+
+    it('does not correct for single-step composition (Safari / standard IME, no dead key)', async () => {
+      // Only one compositionupdate means prevCompText === '' at compositionend — skip fix.
+      mockQuill.getSelection.mockReturnValue({ index: 11, length: 0 });
+      mockQuill.getText.mockReturnValue('hello world\n');
+
+      const { start, update, end } = getCompositionHandlers();
+      start();
+      update({ data: 'á' }); // single update, no preceding dead-key step
+      end({ data: 'á' });
+
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(mockUpdateContents).not.toHaveBeenCalled();
+    });
+
+    it('resets state between compositions so a second composition is independent', async () => {
+      mockQuill.getSelection.mockReturnValue({ index: 5, length: 0 });
+      mockQuill.getText
+        .mockReturnValueOnce('hello\n')   // first compositionstart
+        .mockReturnValueOnce('helloá\n')  // first MT3 (already correct, no fix)
+        .mockReturnValueOnce('helloá\n')  // second compositionstart
+        .mockReturnValue('á\n');          // second MT3 (Chrome bug again)
+      mockQuill.getLength.mockReturnValue(2);
+
+      const { start, update, end } = getCompositionHandlers();
+
+      // First composition — correct result, no fix applied
+      start();
+      update({ data: '^' });
+      update({ data: 'á' });
+      end({ data: 'á' });
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(mockUpdateContents).not.toHaveBeenCalled();
+
+      // Second composition — Chrome bug, fix should apply
+      mockQuill.getSelection.mockReturnValue({ index: 6, length: 0 });
+      start();
+      update({ data: '^' });
+      update({ data: 'á' });
+      end({ data: 'á' });
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(mockUpdateContents).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ops: [{ delete: 1 }, { insert: 'helloáá' }],
+        }),
+        'user',
+      );
     });
   });
 

@@ -4,6 +4,8 @@ import { Quill } from 'react-quill';
 export interface DeltaInstance {
   ops: Array<Record<string, unknown>>;
   retain(count: number, attributes?: Record<string, unknown>): DeltaInstance;
+  delete(count: number): DeltaInstance;
+  insert(text: string, attributes?: Record<string, unknown>): DeltaInstance;
 }
 
 export type DeltaConstructor = {
