@@ -22,6 +22,7 @@ interface RegionEvent {
 interface DelayedLoad {
   source: string;
   peaks: unknown;
+  duration?: number;
 }
 
 // Type for regions plugin instance
@@ -55,6 +56,7 @@ class WaveSurferService {
   private _isAddingSubscriptionRegion: boolean = false
   private _canEdit: boolean = false
   private _disableDragSelection: (() => void) | null = null
+  private _peaksDuration: number | null = null
 
   private REGION_BACKGROUND_COLOR = 'rgba(0, 0, 0, 0.1)'
   private REGION_HIGHLIGHTED_COLOR = 'rgba(0, 213, 255, 0.1)'
@@ -151,7 +153,7 @@ class WaveSurferService {
 
     // If we have a delayed load waiting, process it immediately after creation
     if (this._delayedLoad) {
-      this.load(this._delayedLoad.source, this._delayedLoad.peaks);
+      this.load(this._delayedLoad.source, this._delayedLoad.peaks, this._delayedLoad.duration);
       this._delayedLoad = null;
     }
 
@@ -166,7 +168,7 @@ class WaveSurferService {
       this.ready = true
       
       if (this._delayedLoad !== null) {
-        this.load(this._delayedLoad.source, this._delayedLoad.peaks);
+        this.load(this._delayedLoad.source, this._delayedLoad.peaks, this._delayedLoad.duration);
         this._delayedLoad = null;
       }
       
@@ -358,34 +360,35 @@ class WaveSurferService {
   }
 
   // Set a new source URL and peaks data
-  async load(source: string, peaks: unknown): Promise<void> {
+  async load(source: string, peaks: unknown, duration?: number): Promise<void> {
     if (!this.wavesurfer) {
-      this._delayedLoad = { source, peaks };
+      this._delayedLoad = { source, peaks, duration };
       return;
     }
-    
+
+    if (duration != null) {
+      this._peaksDuration = duration;
+    }
+
     try {
       let signedMediaUrl: string;
-      
+
       if (this.currentMediaElement) {
-        // If we have a media element, we need to set the src attribute to the signed URL
-        // and then load peaks only in wavesurfer
         signedMediaUrl = await generateSignedUrl(source);
         this.currentMediaElement.src = signedMediaUrl;
-        this.wavesurfer?.load(signedMediaUrl, peaks as (Float32Array)[]);
+        this.wavesurfer?.load(signedMediaUrl, peaks as (Float32Array)[], duration);
       } else {
-        // For audio-only, load the signed media source directly.
         signedMediaUrl = await generateSignedUrl(source);
-        this.wavesurfer?.load(signedMediaUrl, peaks as (Float32Array)[]);
+        this.wavesurfer?.load(signedMediaUrl, peaks as (Float32Array)[], duration);
       }
     } catch (error) {
       console.error('Failed to load media with signed URL:', error);
       // Fallback to original URL if signing fails
       if (this.currentMediaElement) {
         this.currentMediaElement.src = source;
-        this.wavesurfer?.load(source, peaks as (Float32Array)[]);
+        this.wavesurfer?.load(source, peaks as (Float32Array)[], duration);
       } else {
-        this.wavesurfer?.load(source, peaks as (Float32Array)[]);
+        this.wavesurfer?.load(source, peaks as (Float32Array)[], duration);
       }
     }
   }
@@ -411,12 +414,13 @@ class WaveSurferService {
     try {
       // Generate fresh signed URL
       const signedMediaUrl = await generateSignedUrl(source);
-      
+      const duration = this._peaksDuration ?? undefined;
+
       if (this.currentMediaElement) {
         this.currentMediaElement.src = signedMediaUrl;
-        this.wavesurfer.load(signedMediaUrl, peaks as (Float32Array)[]);
+        this.wavesurfer.load(signedMediaUrl, peaks as (Float32Array)[], duration);
       } else {
-        this.wavesurfer.load(signedMediaUrl, peaks as (Float32Array)[]);
+        this.wavesurfer.load(signedMediaUrl, peaks as (Float32Array)[], duration);
       }
 
       // Wait for ready event before seeking
@@ -765,6 +769,7 @@ class WaveSurferService {
     this._inboundRegionCurrentHighlighted = null;
     this._playbackBoundRegion = null;
     this._disableDragSelection = null;
+    this._peaksDuration = null;
     this.muteEvents = false;
     this.clearAllListeners();
   }
