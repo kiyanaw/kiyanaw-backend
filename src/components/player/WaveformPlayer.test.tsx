@@ -210,6 +210,7 @@ describe('WaveformPlayer', () => {
         setRegionSelection: jest.fn(),
         regionCursorWords: {},
         setRegionCursorWord: jest.fn(),
+        setPeaks: jest.fn(),
       };
       return selector(state);
     });
@@ -649,6 +650,7 @@ describe('WaveformPlayer', () => {
         setRegionSelection: jest.fn(),
         regionCursorWords: {},
         setRegionCursorWord: jest.fn(),
+        setPeaks: jest.fn(),
       };
       
       mockUseEditorStore.mockImplementation((selector) => selector(mockStateWithNoEdit));
@@ -778,6 +780,7 @@ describe('WaveformPlayer', () => {
         setRegionSelection: jest.fn(),
         regionCursorWords: {},
         setRegionCursorWord: jest.fn(),
+        setPeaks: jest.fn(),
         };
         return selector(state);
       });
