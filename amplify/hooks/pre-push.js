@@ -10,7 +10,7 @@
  * To skip this hook, use: amplify push --no-hooks
  */
 
-import { getAmplifyEnv, getGitContext, getSystemContext, writeStartFile } from './lib/deploy-context.js';
+import { getAmplifyEnv, getGitContext, writeStartFile } from './lib/deploy-context.js';
 import { getWebhookUrl, postToSlack, buildStartMessage } from './lib/slack.js';
 
 let input = '';
@@ -28,9 +28,8 @@ process.stdin.on('end', async () => {
     const { envName, awsProfile } = getAmplifyEnv();
     const lifecycle = hookData.data?.amplify?.command ?? 'push';
     const git = getGitContext();
-    const sys = getSystemContext();
 
-    writeStartFile(envName, { startedAt: Date.now(), lifecycle, ...git, ...sys });
+    writeStartFile(envName, { startedAt: Date.now(), lifecycle, ...git });
 
     const webhookUrl = getWebhookUrl(awsProfile, envName);
     if (!webhookUrl) {
@@ -38,7 +37,7 @@ process.stdin.on('end', async () => {
       process.exit(0);
     }
 
-    await postToSlack(webhookUrl, buildStartMessage({ envName, lifecycle, ...git, ...sys }));
+    await postToSlack(webhookUrl, buildStartMessage({ envName, lifecycle, ...git }));
   } catch (err) {
     console.warn('Warning: Slack start notification failed:', err.message);
   }

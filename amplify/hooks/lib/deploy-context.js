@@ -29,10 +29,6 @@ export function getGitContext() {
   };
 }
 
-export function getSystemContext() {
-  return { gitUser: os.userInfo().username };
-}
-
 function startFilePath(envName) {
   return path.join(os.tmpdir(), `kiyanaw-deploy-start-${envName}.json`);
 }

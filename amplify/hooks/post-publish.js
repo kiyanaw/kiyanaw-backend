@@ -16,7 +16,7 @@
 import { execSync } from 'child_process';
 import { readFileSync } from 'fs';
 import path from 'path';
-import { getAmplifyEnv, getGitContext, getSystemContext, projectRoot, readStartFile, deleteStartFile } from './lib/deploy-context.js';
+import { getAmplifyEnv, getGitContext, projectRoot, readStartFile, deleteStartFile } from './lib/deploy-context.js';
 import { getWebhookUrl, postToSlack, buildFinishMessage } from './lib/slack.js';
 
 let input = '';
@@ -32,7 +32,7 @@ process.stdin.on('end', async () => {
       if (!webhookUrl) return;
       const startData = readStartFile(envName);
       const durationMs = startData ? Date.now() - startData.startedAt : null;
-      const ctx = startData ?? { lifecycle: 'publish', ...getGitContext(), ...getSystemContext() };
+      const ctx = startData ?? { lifecycle: 'publish', ...getGitContext() };
       await postToSlack(
         webhookUrl,
         buildFinishMessage({ ...ctx, envName, success, stage, error, durationMs })

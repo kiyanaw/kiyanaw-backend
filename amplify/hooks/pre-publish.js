@@ -15,7 +15,7 @@
 import { execSync } from 'child_process';
 import { readFileSync, writeFileSync } from 'fs';
 import path from 'path';
-import { getAmplifyEnv, getGitContext, getSystemContext, writeStartFile, projectRoot } from './lib/deploy-context.js';
+import { getAmplifyEnv, getGitContext, writeStartFile, projectRoot } from './lib/deploy-context.js';
 import { getWebhookUrl, postToSlack, buildStartMessage } from './lib/slack.js';
 
 function readJsonFile(filePath) {
@@ -46,12 +46,11 @@ process.stdin.on('end', async () => {
     try {
       const { envName, awsProfile } = getAmplifyEnv();
       const git = getGitContext();
-      const sys = getSystemContext();
       const lifecycle = hookData.data?.amplify?.command ?? 'publish';
-      writeStartFile(envName, { startedAt: Date.now(), lifecycle, ...git, ...sys });
+      writeStartFile(envName, { startedAt: Date.now(), lifecycle, ...git });
       const webhookUrl = getWebhookUrl(awsProfile, envName);
       if (webhookUrl) {
-        await postToSlack(webhookUrl, buildStartMessage({ envName, lifecycle, ...git, ...sys }));
+        await postToSlack(webhookUrl, buildStartMessage({ envName, lifecycle, ...git }));
       } else {
         console.log('Slack deploy-webhook not configured for this environment, skipping start notification.');
       }
