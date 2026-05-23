@@ -45,23 +45,22 @@ function formatDuration(ms) {
   return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
 }
 
-export function buildStartMessage({ envName, lifecycle, user, host, branch, sha, commitSubject }) {
+export function buildStartMessage({ envName, lifecycle, gitUser, branch, sha }) {
   return [
-    `:rocket: *Deployment started* — kiyânaw Transcribe (\`${envName}\`)`,
+    `:rocket: *Deployment started* for \`${envName}\``,
     `*Lifecycle:* ${lifecycle}`,
-    `*Triggered by:* ${user}@${host}`,
+    `*Triggered by:* ${gitUser}`,
     `*Branch:* ${branch} @ \`${sha}\``,
-    `*Commit:* ${commitSubject}`,
   ].join('\n');
 }
 
-export function buildFinishMessage({ envName, lifecycle, user, host, branch, sha, success, stage, error, durationMs }) {
+export function buildFinishMessage({ envName, lifecycle, gitUser, branch, sha, success, stage, error, durationMs }) {
   const icon = success ? ':white_check_mark:' : ':x:';
   const status = success ? 'succeeded' : 'failed';
   const lines = [
-    `${icon} *Deployment ${status}* — kiyânaw Transcribe (\`${envName}\`)`,
+    `${icon} *Deployment ${status}* for \`${envName}\``,
     `*Lifecycle:* ${lifecycle}`,
-    `*Triggered by:* ${user}@${host}`,
+    `*Triggered by:* ${gitUser}`,
     `*Branch:* ${branch} @ \`${sha}\``,
   ];
   if (durationMs != null) lines.push(`*Duration:* ${formatDuration(durationMs)}`);

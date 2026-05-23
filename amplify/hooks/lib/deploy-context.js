@@ -25,15 +25,12 @@ export function getGitContext() {
   return {
     sha: run('git rev-parse --short HEAD'),
     branch: run('git rev-parse --abbrev-ref HEAD'),
-    commitSubject: run('git log -1 --pretty=%s'),
+    gitUser: run('git config user.name'),
   };
 }
 
 export function getSystemContext() {
-  return {
-    user: os.userInfo().username,
-    host: os.hostname(),
-  };
+  return { gitUser: os.userInfo().username };
 }
 
 function startFilePath(envName) {
