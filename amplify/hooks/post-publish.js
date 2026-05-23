@@ -16,33 +16,45 @@
 import { execSync } from 'child_process';
 import { readFileSync } from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
+import { getAmplifyEnv, getGitContext, getSystemContext, projectRoot, readStartFile, deleteStartFile } from './lib/deploy-context.js';
+import { getWebhookUrl, postToSlack, buildFinishMessage } from './lib/slack.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Read hook input from stdin
 let input = '';
 process.stdin.on('data', (chunk) => {
   input += chunk;
 });
 
-process.stdin.on('end', () => {
+process.stdin.on('end', async () => {
+  const notifyFinish = async ({ success, stage = null, error = null }) => {
+    try {
+      const { envName, awsProfile } = getAmplifyEnv();
+      const webhookUrl = getWebhookUrl(awsProfile, envName);
+      if (!webhookUrl) return;
+      const startData = readStartFile(envName);
+      const durationMs = startData ? Date.now() - startData.startedAt : null;
+      const ctx = startData ?? { lifecycle: 'publish', ...getGitContext(), ...getSystemContext() };
+      await postToSlack(
+        webhookUrl,
+        buildFinishMessage({ ...ctx, envName, success, stage, error, durationMs })
+      );
+      deleteStartFile(envName);
+    } catch (notifyErr) {
+      console.warn('Warning: Slack finish notification failed:', notifyErr.message);
+    }
+  };
+
   try {
     const hookData = JSON.parse(input);
 
-    // Check if the publish was successful
     if (hookData.error) {
       console.log('Amplify publish encountered an error. Skipping Serverless deployment.');
+      await notifyFinish({ success: false, stage: 'amplify publish', error: String(hookData.error) });
       process.exit(0);
     }
 
     console.log('\n========================================');
     console.log('🚀 Post-Publish Hook: Deploying Serverless Infrastructure');
     console.log('========================================\n');
-
-    // Get the project root (two levels up from amplify/hooks/)
-    const projectRoot = path.resolve(__dirname, '..', '..');
 
     // Sync Amplify environment context
     console.log('📋 Syncing Amplify environment context...');
@@ -67,15 +79,26 @@ process.stdin.on('end', () => {
     console.log('');
 
     // Deploy Serverless stack
-    console.log('📦 Deploying Serverless stack...\n');
-    execSync('npx serverless deploy', {
-      cwd: projectRoot,
-      stdio: 'inherit',
-    });
+    let deploySuccess = true;
+    let failedStage = null;
+    let failedError = null;
 
-    console.log('\n========================================');
-    console.log('✅ Serverless deployment completed successfully!');
-    console.log('========================================\n');
+    console.log('📦 Deploying Serverless stack...\n');
+    try {
+      execSync('npx serverless deploy', {
+        cwd: projectRoot,
+        stdio: 'inherit',
+      });
+      console.log('\n========================================');
+      console.log('✅ Serverless deployment completed successfully!');
+      console.log('========================================\n');
+    } catch (slsError) {
+      deploySuccess = false;
+      failedStage = 'serverless deploy';
+      failedError = slsError.message;
+      console.error('\n❌ Serverless deployment failed:', slsError.message);
+      console.error('You may need to manually run: npm run serverless:deploy\n');
+    }
 
     // Attach VPC and EFS to Lambda functions
     console.log('🔗 Attaching VPC and EFS to Lambda functions...\n');
@@ -86,7 +109,7 @@ process.stdin.on('end', () => {
       });
     } catch (attachError) {
       console.warn('\n⚠ Warning: Could not attach VPC/EFS to Lambda functions.');
-      console.warn('This is normal if the Lambdas are being updated or don\'t exist yet.');
+      console.warn("This is normal if the Lambdas are being updated or don't exist yet.");
       console.warn('You can manually run: node scripts/serverless/attach-lambda-vpc-efs.js\n');
     }
 
@@ -98,15 +121,22 @@ process.stdin.on('end', () => {
         stdio: 'inherit',
       });
     } catch (cfError) {
+      if (deploySuccess) {
+        deploySuccess = false;
+        failedStage = 'cloudfront invalidation';
+        failedError = cfError.message;
+      }
       console.warn('\n⚠ Warning: CloudFront invalidation failed.');
       console.warn('You can manually run: node scripts/serverless/invalidate-cloudfront.js\n');
     }
 
+    await notifyFinish({ success: deploySuccess, stage: failedStage, error: failedError });
     process.exit(0);
   } catch (error) {
     console.error('\n❌ Error in post-publish hook:', error.message);
     console.error('\nServerless deployment failed. Your Amplify changes were deployed successfully,');
     console.error('but you may need to manually run: npm run serverless:deploy\n');
+    await notifyFinish({ success: false, stage: 'serverless deploy', error: error.message });
 
     // Exit with 0 to not block the Amplify CLI
     // Change to process.exit(1) if you want to fail the entire publish on Serverless errors

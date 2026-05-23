@@ -3,9 +3,10 @@
 /**
  * Amplify Pre-Publish Hook
  *
- * Before `amplify publish` builds the frontend, this hook fetches the spellcheck
- * API key from API Gateway and writes VITE_SPELLCHECK_API_BASE_URL and
- * VITE_SPELLCHECK_API_KEY to .env.local so Vite bakes them into the build.
+ * Before `amplify publish` builds the frontend, this hook:
+ *   1. Sends a deploy-start notification to Slack and records a timestamp for duration tracking.
+ *   2. Fetches the spellcheck API key from API Gateway and writes VITE_SPELLCHECK_API_BASE_URL
+ *      and VITE_SPELLCHECK_API_KEY to .env.local so Vite bakes them into the build.
  *
  * The API key is looked up by name: transcribe-<envName> (e.g. transcribe-staging)
  * Base URL is derived from the env: staging → api.kiyanaw.dev, production → api.kiyanaw.net
@@ -14,12 +15,8 @@
 import { execSync } from 'child_process';
 import { readFileSync, writeFileSync } from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const projectRoot = path.resolve(__dirname, '..', '..');
+import { getAmplifyEnv, getGitContext, getSystemContext, writeStartFile, projectRoot } from './lib/deploy-context.js';
+import { getWebhookUrl, postToSlack, buildStartMessage } from './lib/slack.js';
 
 function readJsonFile(filePath) {
   return JSON.parse(readFileSync(filePath, 'utf8'));
@@ -36,13 +33,30 @@ process.stdin.on('data', (chunk) => {
   input += chunk;
 });
 
-process.stdin.on('end', () => {
+process.stdin.on('end', async () => {
   try {
     const hookData = JSON.parse(input);
 
     if (hookData.error) {
       console.log('Amplify encountered an error before pre-publish. Skipping spellcheck env setup.');
       process.exit(0);
+    }
+
+    // Send deploy start notification and record timestamp for duration tracking
+    try {
+      const { envName, awsProfile } = getAmplifyEnv();
+      const git = getGitContext();
+      const sys = getSystemContext();
+      const lifecycle = hookData.data?.amplify?.command ?? 'publish';
+      writeStartFile(envName, { startedAt: Date.now(), lifecycle, ...git, ...sys });
+      const webhookUrl = getWebhookUrl(awsProfile, envName);
+      if (webhookUrl) {
+        await postToSlack(webhookUrl, buildStartMessage({ envName, lifecycle, ...git, ...sys }));
+      } else {
+        console.log('Slack deploy-webhook not configured for this environment, skipping start notification.');
+      }
+    } catch (notifyErr) {
+      console.warn('Warning: Slack start notification failed:', notifyErr.message);
     }
 
     console.log('\n========================================');

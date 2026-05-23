@@ -22,6 +22,27 @@ A docker image is provided to build C bindings if needed. Currently needed when 
 brew install --cask docker
 ```
 
+## Setup Slack Deploy Notifications
+
+**One-time setup per environment** :
+
+```bash
+aws ssm put-parameter \
+  --name /kiyanaw/slack/staging/deploy-webhook-url \
+  --type SecureString \
+  --value 'https://hooks.slack.com/services/YOUR/WEBHOOK/URL' \
+  --profile <your-staging-aws-profile> --region us-east-1
+
+# Repeat for production:
+aws ssm put-parameter \
+  --name /kiyanaw/slack/production/deploy-webhook-url \
+  --type SecureString \
+  --value 'https://hooks.slack.com/services/YOUR/WEBHOOK/URL' \
+  --profile <your-production-aws-profile> --region us-east-1
+```
+
+Notifications are optional and will show a warning if not configured.
+
 ## Setup Spellcheck API Credentials
 
 The spellcheck API requires a key that is environment-specific. After pulling an environment, run:
