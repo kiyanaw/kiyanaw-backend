@@ -47,7 +47,6 @@ const processPeaksFile = async (url) => {
     // Generate waveform data
     const jsonPath = await audio.generateWaveform(pathToAudio)
     filesToCleanup.push(jsonPath)
-    filesToCleanup.push(`${pathToAudio}.dat`)
     
     // Process the peaks data
     const processedPeaks = await audio.processPeaksData(jsonPath)

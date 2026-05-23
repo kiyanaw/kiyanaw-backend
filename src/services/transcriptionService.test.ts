@@ -86,10 +86,10 @@ describe('TranscriptionService', () => {
     // Setup userService mock
     (currentUser as jest.Mock).mockReturnValue({ userId: 'test-user-id' });
     
-    // Setup fetch mock for peaks data
+    // Setup fetch mock for peaks data (length=100 → duration = 100/20 = 5s)
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
-      json: jest.fn().mockResolvedValue({ data: mockPeaksData }),
+      json: jest.fn().mockResolvedValue({ data: mockPeaksData, length: 100 }),
     });
 
     // Mock getUrl from aws-amplify/storage - make it dynamic based on input
@@ -169,6 +169,7 @@ describe('TranscriptionService', () => {
       expect(result).toEqual({
         transcription: expect.objectContaining(mockRawTranscription),
         peaks: mockPeaksData,
+        peaksDuration: 5,
         regions: mockRegions,
         issues: mockIssues,
         comments: [],
@@ -375,6 +376,7 @@ describe('TranscriptionService', () => {
       expect(result).toEqual({
         transcription: expect.objectContaining(mockRawTranscription),
         peaks: mockPeaksData,
+        peaksDuration: 5,
         regions: mockRegions,
         issues: mockIssues,
         comments: [],

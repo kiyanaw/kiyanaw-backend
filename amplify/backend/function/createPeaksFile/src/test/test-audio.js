@@ -6,7 +6,8 @@ const mockExec = jest.fn()
 // Mock fs
 const mockFs = {
   readFileSync: jest.fn(),
-  existsSync: jest.fn()
+  existsSync: jest.fn(),
+  unlinkSync: jest.fn()
 }
 
 // Mock the modules
@@ -70,15 +71,18 @@ describe('audio utilities', function () {
   describe('generateWaveform()', function () {
     it('should generate waveform data', async function () {
       const result = await audio.generateWaveform('/path/audio.mp3')
-      
+
       assert.equal(mockExec.mock.calls.length, 2)
-      
-      // First call - generate dat file
-      assert.equal(mockExec.mock.calls[0][0], "audiowaveform -i '/path/audio.mp3' -o '/path/audio.mp3.dat' --pixels-per-second 20")
-      
-      // Second call - convert to JSON
-      assert.equal(mockExec.mock.calls[1][0], "audiowaveform -i '/path/audio.mp3.dat' -o '/path/audio.mp3.json'")
-      
+
+      // First call - decode to normalised WAV so audiowaveform gets correct sample rate
+      assert.equal(mockExec.mock.calls[0][0], "ffmpeg -i '/path/audio.mp3' -acodec pcm_s16le -ar 44100 -ac 1 '/path/audio.mp3.wav'")
+
+      // Second call - generate JSON directly from WAV
+      assert.equal(mockExec.mock.calls[1][0], "audiowaveform -i '/path/audio.mp3.wav' -o '/path/audio.mp3.json' --pixels-per-second 20")
+
+      // WAV temp file cleaned up
+      assert.ok(mockFs.unlinkSync.mock.calls.some(call => call[0] === '/path/audio.mp3.wav'))
+
       assert.equal(result, '/path/audio.mp3.json')
     })
   })

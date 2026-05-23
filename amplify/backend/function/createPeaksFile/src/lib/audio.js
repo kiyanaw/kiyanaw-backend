@@ -41,15 +41,22 @@ const extractAudioFromVideo = async (inputPath, outputPath) => {
  * @returns {Promise<string>} - Path to the generated JSON file
  */
 const generateWaveform = async (audioPath) => {
-  const datPath = `${audioPath}.dat`
+  const wavPath = `${audioPath}.wav`
   const jsonPath = `${audioPath}.json`
-  
-  // Generate waveform data
-  await runCommand(`audiowaveform -i ${escapeShellArg(audioPath)} -o ${escapeShellArg(datPath)} --pixels-per-second 20`)
-  
-  // Convert to JSON
-  await runCommand(`audiowaveform -i ${escapeShellArg(datPath)} -o ${escapeShellArg(jsonPath)}`)
-  
+
+  // Decode to PCM WAV at a fixed sample rate before generating peaks.
+  // audiowaveform can misdetect the sample_rate of VBR MP3s or files encoded
+  // at non-standard rates (48000, 22050 Hz, etc.), causing the waveform
+  // timeline to drift from actual playback. ffmpeg decodes reliably.
+  await runCommand(`ffmpeg -i ${escapeShellArg(audioPath)} -acodec pcm_s16le -ar 44100 -ac 1 ${escapeShellArg(wavPath)}`)
+
+  // Generate waveform JSON directly from the normalised WAV
+  await runCommand(`audiowaveform -i ${escapeShellArg(wavPath)} -o ${escapeShellArg(jsonPath)} --pixels-per-second 20`)
+
+  if (fs.existsSync(wavPath)) {
+    fs.unlinkSync(wavPath)
+  }
+
   return jsonPath
 }
 

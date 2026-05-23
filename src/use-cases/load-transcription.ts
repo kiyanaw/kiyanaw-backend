@@ -69,7 +69,7 @@ export class LoadTranscription {
     }
 
     // load wavesurfer details _outside_ the React system
-    await wavesurferService.load(data.transcription.source, data.peaks)
+    await wavesurferService.load(data.transcription.source, data.peaks, data.peaksDuration)
     wavesurferService.setRegions(data.regions)
     
     // If we have a selected region, seek to it in the wavesurfer and apply styling

@@ -1,5 +1,5 @@
 import { generateClient, post } from 'aws-amplify/api';
-import { getUrl } from 'aws-amplify/storage';
+import { getUrl, remove } from 'aws-amplify/storage';
 import { fetchAuthSession } from 'aws-amplify/auth';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - GraphQL queries are generated as JS files
@@ -265,44 +265,67 @@ const generateSignedPeaksUrl = async (sourceUrl: string): Promise<string> => {
 };
 
 /**
+ * Deletes the peaks JSON file from S3 so the lambda will regenerate it on the next
+ * DynamoDB stream event.
+ */
+export const deletePeaksFile = async (sourceUrl: string): Promise<void> => {
+  const fileKey = extractS3KeyFromUrl(sourceUrl);
+  const path = `public/${fileKey}.json`;
+  await remove({ path });
+};
+
+/**
+ * Polls S3 until a freshly-generated peaks file is available.
+ * Delegates to fetchPeaksData which uses exponential backoff.
+ */
+export const reloadPeaks = (source: string): Promise<{ data: number[]; duration: number }> => {
+  return fetchPeaksData(source);
+};
+
+const PEAKS_PER_SECOND = 20;
+
+/**
  * Fetches peaks data for a given audio/video source with retry logic.
  * @param source The source URL of the media file
  * @param maxRetries Maximum number of retry attempts
  * @param baseDelay Base delay in milliseconds between retries
- * @returns The peaks data array
+ * @returns The peaks data array and the authoritative duration derived from peak count
  */
 const fetchPeaksData = async (
-  source: string, 
-  maxRetries: number = 10, 
+  source: string,
+  maxRetries: number = 10,
   baseDelay: number = 2000
-): Promise<number[]> => {
+): Promise<{ data: number[]; duration: number }> => {
   let lastError: Error | null = null;
-  
+
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       // Generate signed URL for the peaks file
       const signedPeaksUrl = await generateSignedPeaksUrl(source);
       console.debug(`Fetching peaks data (attempt ${attempt + 1}/${maxRetries + 1}): ${signedPeaksUrl}`);
-      
+
       const peaksResponse = await fetch(signedPeaksUrl);
-      
+
       if (peaksResponse.ok) {
         const peaksObject = await peaksResponse.json();
         console.debug('✅ Peaks data loaded successfully');
-        
-        // WaveSurfer expects the raw array of peaks, not the wrapper object.
+
         if (peaksObject && peaksObject.data) {
-          return peaksObject.data;
+          const duration = peaksObject.length / PEAKS_PER_SECOND;
+          console.debug(`📊 Peaks: ${peaksObject.length} samples → duration ${duration.toFixed(3)}s`);
+          return { data: peaksObject.data, duration };
         } else {
-          return peaksObject;
+          // Fallback for unexpected format: no authoritative duration available
+          const data = peaksObject as number[];
+          return { data, duration: data.length / PEAKS_PER_SECOND };
         }
       }
-      
+
       // If we get 403/404, the file is likely still being processed
       if (peaksResponse.status === 403 || peaksResponse.status === 404) {
         lastError = new Error(`Peaks file not ready yet (${peaksResponse.status}), will retry...`);
         console.debug(`⏳ ${lastError.message}`);
-        
+
         // Don't retry on the last attempt
         if (attempt < maxRetries) {
           const delay = baseDelay * Math.pow(1.5, attempt); // Exponential backoff
@@ -315,16 +338,16 @@ const fetchPeaksData = async (
         const error = new Error(`Failed to load peaks data: ${peaksResponse.status} ${peaksResponse.statusText}`);
         throw error;
       }
-      
+
     } catch (error) {
       lastError = error as Error;
       console.error(`❌ Attempt ${attempt + 1} failed:`, lastError.message);
-      
+
       // If this is a "failed to load peaks data" error (non-retryable), re-throw immediately
       if (lastError.message.includes('Failed to load peaks data:')) {
         throw lastError;
       }
-      
+
       // Don't retry on the last attempt
       if (attempt < maxRetries) {
         const delay = baseDelay * Math.pow(1.5, attempt); // Exponential backoff
@@ -334,7 +357,7 @@ const fetchPeaksData = async (
       }
     }
   }
-  
+
   // If we've exhausted all retries
   throw new Error(`Failed to load peaks data after ${maxRetries + 1} attempts. The audio file may still be processing. Please try again in a few minutes. Last error: ${lastError?.message}`);
 };
@@ -381,7 +404,7 @@ export const loadInFull = async (transcriptionId: string): Promise<false | LoadT
     throw new Error('Transcription source is required to load peaks data');
   }
   
-  const peaks = await fetchPeaksData(transcription.source);
+  const { data: peaks, duration: peaksDuration } = await fetchPeaksData(transcription.source);
 
   const [regions, issues, comments] = await Promise.all([
     loadRegionsForTranscription(transcriptionId),
@@ -392,6 +415,7 @@ export const loadInFull = async (transcriptionId: string): Promise<false | LoadT
   return {
     transcription: transcription,
     peaks,
+    peaksDuration,
     regions,
     issues,
     comments,

@@ -1,10 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
-import { FileText, Users, Settings, Mail, Send, UserPlus, Trash2, Save, RotateCcw, Loader2, AlertTriangle, Download } from 'lucide-react';
+import { FileText, Users, Settings, Mail, Send, UserPlus, Trash2, Save, RotateCcw, Loader2, AlertTriangle, Download, RefreshCw } from 'lucide-react';
 import { useCreateInvite } from '../../hooks/useCreateInvite';
 import { useRevokeInvite } from '../../hooks/useRevokeInvite';
 import { useDeleteTranscription } from '../../hooks/useDeleteTranscription';
 import * as inviteService from '../../services/inviteService';
-import { generateSignedUrl } from '../../services/transcriptionService';
+import { generateSignedUrl, updateTranscription, deletePeaksFile, reloadPeaks } from '../../services/transcriptionService';
+import { currentUserFriendly } from '../../services/userService';
+import { useEditorStore } from '../../stores/useEditorStore';
+import { wavesurferService } from '../../services/wavesurferService';
 import type { InviteModel, TranscriptionModel } from '../../services/adt';
 import { useExportTranscription } from '../../hooks/useExportTranscription';
 import type { ExportRegion } from '../../use-cases/export-transcription';
@@ -62,6 +65,11 @@ export const TranscriptionSettingsPage = ({
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   
+  // Regenerate waveform state
+  type RegenerateStatus = 'idle' | 'working' | 'done' | 'error';
+  const [regenerateStatus, setRegenerateStatus] = useState<RegenerateStatus>('idle');
+  const [regenerateError, setRegenerateError] = useState<string | null>(null);
+
   // Download state
   const [isDownloadingSource, setIsDownloadingSource] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
@@ -274,6 +282,35 @@ export const TranscriptionSettingsPage = ({
       // Could add error state/toast here if needed
     } finally {
       setIsDownloadingSource(false);
+    }
+  };
+
+  const handleRegeneratePeaks = async () => {
+    if (!transcription.source) return;
+    setRegenerateStatus('working');
+    setRegenerateError(null);
+
+    try {
+      // Remove the existing peaks file so the lambda won't skip regeneration
+      await deletePeaksFile(transcription.source);
+
+      // Touch the record — fires the DynamoDB stream which triggers createPeaksFile
+      await updateTranscription(transcriptionId, {
+        userLastUpdated: currentUserFriendly() || 'unknown',
+      });
+
+      // Poll until the lambda finishes writing the new file
+      const { data: newPeaks, duration: newDuration } = await reloadPeaks(transcription.source);
+
+      // Update the store and reload the waveform without a page refresh
+      useEditorStore.getState().setPeaks(newPeaks);
+      await wavesurferService.load(transcription.source, newPeaks, newDuration);
+
+      setRegenerateStatus('done');
+    } catch (error) {
+      console.error('Failed to regenerate peaks:', error);
+      setRegenerateError(error instanceof Error ? error.message : 'Failed to regenerate waveform');
+      setRegenerateStatus('error');
     }
   };
 
@@ -579,6 +616,35 @@ export const TranscriptionSettingsPage = ({
                     Export transcription
                   </button>
                 </div>
+                {transcription.source && (
+                  <div className="flex flex-col gap-2">
+                    <div>
+                      <button
+                        onClick={handleRegeneratePeaks}
+                        disabled={regenerateStatus === 'working'}
+                        className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-orange-600 bg-orange-50 border border-orange-200 rounded-lg hover:bg-orange-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        {regenerateStatus === 'working' ? (
+                          <>
+                            <Loader2 size={16} className="animate-spin" />
+                            Regenerating...
+                          </>
+                        ) : (
+                          <>
+                            <RefreshCw size={16} />
+                            Regenerate waveform
+                          </>
+                        )}
+                      </button>
+                    </div>
+                    {regenerateStatus === 'done' && (
+                      <p className="text-sm text-green-600">Waveform regenerated successfully.</p>
+                    )}
+                    {regenerateStatus === 'error' && regenerateError && (
+                      <p className="text-sm text-red-600">{regenerateError}</p>
+                    )}
+                  </div>
+                )}
                 {exportError && (
                   <p className="text-sm text-red-600">{exportError}</p>
                 )}

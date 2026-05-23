@@ -114,6 +114,7 @@ export interface PendingSave<T> {
 export type LoadTranscriptionResult = {
   transcription: TranscriptionModel;
   peaks: number[];
+  peaksDuration: number;
   regions: RegionModel[];
   issues: IssueData[];
   comments: CommentData[];

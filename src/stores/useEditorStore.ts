@@ -91,6 +91,7 @@ interface EditorState {
   setTranscription: (transcription: TranscriptionData) => void;
   setSaved: (saved: boolean) => void;
   setSaveStatus: (status: 'saved' | 'saving' | 'pending' | 'error') => void;
+  setPeaks: (peaks: number[]) => void;
 
   // Region actions
   setSelectedRegion: (regionId: string | null) => void;
@@ -337,6 +338,10 @@ export const useEditorStore = create<EditorState>()(
 
       setCanEdit: (canEdit: boolean) => {
         set({ canEdit });
+      },
+
+      setPeaks: (peaks: number[]) => {
+        set({ peaks });
       },
 
       cleanup: () => {

@@ -46,6 +46,7 @@ describe('LoadTranscription', () => {
       source: 'test-audio.mp3',
     },
     peaks: [0.1, 0.2, 0.3, 0.4],
+    peaksDuration: 21.7,
     regions: [
       { id: 'region-1', start: 10, end: 20 },
       { id: 'region-2', start: 25, end: 35 },
@@ -214,7 +215,8 @@ describe('LoadTranscription', () => {
       
       expect(services.wavesurferService.load).toHaveBeenCalledWith(
         mockTranscriptionData.transcription.source,
-        mockTranscriptionData.peaks
+        mockTranscriptionData.peaks,
+        mockTranscriptionData.peaksDuration
       );
     });
 
@@ -307,7 +309,8 @@ describe('LoadTranscription', () => {
         
         expect(services.wavesurferService.load).toHaveBeenCalledWith(
           mockTranscriptionData.transcription.source,
-          undefined
+          undefined,
+          mockTranscriptionData.peaksDuration
         );
       });
 
@@ -341,7 +344,7 @@ describe('LoadTranscription', () => {
         
         await useCase.execute();
         
-        expect(services.wavesurferService.load).toHaveBeenCalledWith('test-audio.wav', mockTranscriptionData.peaks);
+        expect(services.wavesurferService.load).toHaveBeenCalledWith('test-audio.wav', mockTranscriptionData.peaks, mockTranscriptionData.peaksDuration);
       });
 
       it('should handle complete successful flow', async () => {
