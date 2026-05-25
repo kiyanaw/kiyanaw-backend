@@ -1,19 +1,32 @@
 # Custom VTL Resolvers for Fine-Grained Authorization
 
-This directory contains custom VTL (Velocity Template Language) resolvers that implement fine-grained authorization based on the `isPrivate` field in Transcription models.
+This directory contains custom VTL (Velocity Template Language) resolvers that implement fine-grained authorization for Transcription and Media models.
 
 ## Authorization Logic
 
-### For `isPrivate = false` (Public)
+### Transcription
+
+#### For `isPrivate = false` (Public)
 - Any authenticated user can read the Transcription and its Regions
 - Basic authentication check only
 
-### For `isPrivate = true` (Private)  
+#### For `isPrivate = true` (Private)
 - Only users in the following ACL lists can access:
   - `editors` array (per-document user IDs)
-  - `viewers` array (per-document user IDs) 
+  - `viewers` array (per-document user IDs)
   - `editorGroups` array (Cognito group names)
   - `viewerGroups` array (Cognito group names)
+
+### Media
+
+Media is always ACL-enforced — there is no public mode. Access is granted to:
+  - `owner` (the uploading user)
+  - `editors` array (per-record user IDs)
+  - `viewers` array (per-record user IDs)
+  - `editorGroups` array (Cognito group names)
+  - `viewerGroups` array (Cognito group names)
+
+The editors/viewers lists on a Media record should be kept in sync with the Transcription that references it whenever sharing permissions change.
 
 ## Implemented Resolvers
 
@@ -21,6 +34,8 @@ This directory contains custom VTL (Velocity Template Language) resolvers that i
 - `Query.getTranscription.req.vtl` / `Query.getTranscription.res.vtl` - Single transcription with ACL enforcement
 - `Query.listTranscriptions.req.vtl` / `Query.listTranscriptions.res.vtl` - List with filtering based on ACLs
 - `Query.getRegion.req.vtl` / `Query.getRegion.res.vtl` - Single region (simplified, needs parent lookup)
+- `Query.getMedia.req.vtl` / `Query.getMedia.res.vtl` - Single media record with ACL enforcement
+- `Query.listMedia.req.vtl` / `Query.listMedia.res.vtl` - List filtered to records the requesting user can access
 
 ### Subscription Resolvers (Response Only)
 - `Subscription.onCreateRegion.res.vtl` - Create notifications with auth check

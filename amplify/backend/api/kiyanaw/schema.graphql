@@ -25,7 +25,9 @@ type Transcription
   regionCount: Int
   issueCount: Int
   tags: String
-  source: String
+  source: String # deprecated, use mediaId
+  mediaId: ID @index(name: "ByMedia", queryField: "transcriptionsByMedia")
+  media: Media @belongsTo(fields: ["mediaId"])
   index: String # deprecated field, use `lang`
   lang: String
   title: String! @index(name: "ByTitle", queryField: "byTitle")
@@ -47,8 +49,8 @@ type Transcription
 type Region
   @model
   @auth(rules: [
-    # Any authenticated User Pool user can read regions.                                                                                                                
-    # Mutations are allowed for authenticated users — the UI restricts access to editor/owner                                                                           
+    # Any authenticated User Pool user can read regions.
+    # Mutations are allowed for authenticated users — the UI restricts access to editor/owner
     # roles, and parent-ACL enforcement via custom VTL resolvers restricts mutations to the parent transcription's author/editors.
     { allow: private, operations: [create, read, update, delete] }
   ]) {
@@ -71,10 +73,10 @@ type Issue
   @auth(rules: [
     # 1) Owners (issue creators) can manage their own issues
     { allow: owner, ownerField: "owner", operations: [create, read, update, delete] }
-    
+
     # 3) Inherit access from parent transcription - users with transcription access can read/update issues
     { allow: private, operations: [read, update] }
-    
+
     # 4) Admins can manage all issues
     { allow: groups, groups: ["Admins"], operations: [create, read, update, delete] }
   ]) {
@@ -99,10 +101,10 @@ type Invite
   @auth(rules: [
     # 1) Owners (who sent the invite) can manage their invites
     { allow: owner, ownerField: "invitedBy", operations: [create, read, update, delete] }
-    
+
     # 3) Allow invited user to read their own invites by email
     { allow: owner, ownerField: "email", operations: [read, update] }
-    
+
     # 4) Admins can manage all invites
     { allow: groups, groups: ["Admins"], operations: [create, read, update, delete] }
   ]) {
@@ -124,33 +126,33 @@ type Comment
   @auth(rules: [
     # 1) Owners (comment authors) can manage their comments
     { allow: owner, ownerField: "author", operations: [create, read, update, delete] }
-    
+
     # 3) Inherit access from parent transcription - users with access can read comments
     { allow: private, operations: [read] }
-    
+
     # 4) Admins can manage all comments
     { allow: groups, groups: ["Admins"], operations: [create, read, update, delete] }
   ]) {
   id: ID! @primaryKey
-  
+
   # Content fields
   text: String!
   # User-based indexing for "my comments" across transcriptions
   author: String! @index(name: "ByAuthor", queryField: "commentsByAuthor", sortKeyFields: ["createdAt"])
   authorFriendly: String! # Friendly identifier (email/username)
-  
+
   # Timestamp fields
   createdAt: AWSDateTime!
   updatedAt: AWSDateTime!
-  
+
   # Parent references - transcriptionId is ALWAYS present for efficient querying
   transcriptionId: ID! @index(name: "ByTranscription", queryField: "commentsByTranscription")
   transcription: Transcription! @belongsTo(fields: ["transcriptionId"])
-  
+
   # Entity reference within the transcription
   entityType: String! # "region", "issue", "transcription" (for transcription-level comments)
   entityId: String! # ID of the specific entity (regionId, issueId, or transcriptionId)
-  
+
   # Threading support for nested replies
   parentCommentId: ID @index(name: "ByParentComment", queryField: "commentsByParentComment")
   parentComment: Comment @belongsTo(fields: ["parentCommentId"])
@@ -158,4 +160,40 @@ type Comment
 
   # Optional extensible metadata
   metadata: AWSJSON
+}
+
+type Media
+  @model
+  @auth(rules: [
+    { allow: owner, ownerField: "owner", operations: [create, read, update, delete] }
+    { allow: owner, ownerField: "editors", operations: [read, update] }
+    { allow: owner, ownerField: "viewers", operations: [read] }
+    { allow: groups, groups: ["Admins"], operations: [create, read, update, delete] }
+  ]) {
+  id: ID! @primaryKey
+  pk: String! @index(name: "ByPkSk", queryField: "mediaByPkSk", sortKeyFields: ["sk"]) # e.g. "USER#<userId>"
+  sk: String! # e.g. "MEDIA#2024-03-15#<id>", or "MEDIA#0000-00-00#<id>" if recordedAt is unknown
+  owner: String! @index(name: "ByOwner", queryField: "mediaByOwner")
+
+  # Processing
+  status: String!
+  originalKey: String!
+  renditionKey: String
+  thumbnailKey: String
+
+  # Metadata
+  mimeType: String!
+  fileSize: Int!
+  duration: Float
+  tags: [String]
+  recordedAt: String
+
+  # ACL fields
+  editors: [String]
+  viewers: [String]
+  editorGroups: [String]
+  viewerGroups: [String]
+
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
 }
