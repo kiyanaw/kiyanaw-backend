@@ -547,17 +547,14 @@ class WaveSurferService {
       // Clear any region-bounded playback restrictions for full playback
       this.clearRegionBoundedPlayback();
     }
-    try {
-      await this.wavesurfer?.play();
-    } catch (error) {
-      if ((error as DOMException)?.name === 'AbortError') {
-        // Browser interrupted play() with a concurrent pause(); wait briefly and retry once
-        await new Promise<void>(resolve => setTimeout(resolve, 50));
-        await this.wavesurfer?.play();
-      } else {
-        throw error;
-      }
+    // If the media element is mid-seek, wait for it to finish before calling play().
+    // Calling media.play() while media.seeking=true causes an AbortError that WaveSurfer
+    // silently swallows (player.js catches it and returns undefined), leaving no audio playing.
+    const media = this.wavesurfer?.getMediaElement();
+    if (media?.seeking) {
+      await new Promise<void>(resolve => media.addEventListener('seeked', () => resolve(), { once: true }));
     }
+    await this.wavesurfer?.play();
   }
 
   pause(): void {
