@@ -111,6 +111,8 @@ export const useWavesurferEvents = (transcriptionId: string, source?: string): v
     const handleRegionIn = (data: unknown) => {
       const { regionId } = data as RegionEvent;
 
+      useEditorStore.getState().setSelectedRegion(regionId);
+
       if (highlightedInboundRegionRef.current) {
         const previousStyleId = styleIdRef.current.get(highlightedInboundRegionRef.current);
         if (previousStyleId) {

@@ -693,6 +693,29 @@ describe('WaveSurferService', () => {
       expect(mockWaveSurferInstance.play).toHaveBeenCalled();
     });
 
+    it('should retry play once when browser rejects with AbortError', async () => {
+      const abortError = new DOMException('The play() request was interrupted', 'AbortError');
+      mockWaveSurferInstance.play = jest.fn()
+        .mockRejectedValueOnce(abortError)
+        .mockResolvedValueOnce(undefined);
+
+      jest.useFakeTimers();
+      const playPromise = wavesurferService.play();
+      await jest.runAllTimersAsync();
+      await playPromise;
+
+      expect(mockWaveSurferInstance.play).toHaveBeenCalledTimes(2);
+      jest.useRealTimers();
+    });
+
+    it('should rethrow non-AbortError play failures', async () => {
+      const networkError = new Error('Network error');
+      mockWaveSurferInstance.play = jest.fn().mockRejectedValue(networkError);
+
+      await expect(wavesurferService.play()).rejects.toThrow('Network error');
+      expect(mockWaveSurferInstance.play).toHaveBeenCalledTimes(1);
+    });
+
     it('should not affect playback when playInFull is true but no bounded region exists', async () => {
       mockWaveSurferInstance.play = jest.fn().mockResolvedValue(undefined);
       

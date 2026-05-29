@@ -547,7 +547,17 @@ class WaveSurferService {
       // Clear any region-bounded playback restrictions for full playback
       this.clearRegionBoundedPlayback();
     }
-    await this.wavesurfer?.play();
+    try {
+      await this.wavesurfer?.play();
+    } catch (error) {
+      if ((error as DOMException)?.name === 'AbortError') {
+        // Browser interrupted play() with a concurrent pause(); wait briefly and retry once
+        await new Promise<void>(resolve => setTimeout(resolve, 50));
+        await this.wavesurfer?.play();
+      } else {
+        throw error;
+      }
+    }
   }
 
   pause(): void {
