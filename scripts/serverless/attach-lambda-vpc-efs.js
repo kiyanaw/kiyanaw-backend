@@ -162,13 +162,6 @@ async function main() {
       '/mnt/temp'
     );
 
-    // Attach VPC and EFS to spellcheck
-    await attachVpcAndEfs(
-      `spellcheck-${amplifyEnv.envName}`,
-      outputs.SpellcheckEFSAccessPointArn,
-      '/mnt/fsts'
-    );
-
     console.log('\n========================================');
     console.log('✅ Lambda VPC/EFS attachment complete!');
     console.log('========================================\n');
