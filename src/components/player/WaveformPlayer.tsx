@@ -103,6 +103,26 @@ export const WaveformPlayer = ({
     }
   }, [loadedAndReady, zoom, speed]);
 
+  // Spacebar toggles play/pause unless focus is in a text field or editor
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code !== 'Space') return;
+      const el = document.activeElement;
+      if (el) {
+        const tag = el.tagName.toLowerCase();
+        if (tag === 'input' || tag === 'textarea' || el.getAttribute('contenteditable') === 'true') return;
+      }
+      e.preventDefault();
+      if (isPlaying) {
+        pause();
+      } else if (loadedAndReady) {
+        play({ playInFull: true });
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isPlaying, loadedAndReady, play, pause]);
+
   // Set initial locked state on mobile when wavesurfer is ready
   useEffect(() => {
     if (loadedAndReady && window.innerWidth < 768) {
