@@ -531,10 +531,11 @@ export const WaveformPlayer = ({
 
             <div className="flex items-center gap-2">
               <button
-                onClick={() => window.innerWidth < 768 ? setShowSpeedDialog(true) : handleSpeedChange(100)}
+                onClick={() => window.innerWidth < 768 ? setShowSpeedDialog(true) : handleSpeedChange(speed === 100 ? 50 : 100)}
                 disabled={!loadedAndReady}
                 className="p-1 rounded transition-colors hover:bg-gray-200 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                title={window.innerWidth < 768 ? "Adjust speed" : "Reset speed to default"}
+                title={window.innerWidth < 768 ? "Adjust speed" : "Toggle speed (min/100%)"}
+                data-testid="speed-toggle-button"
               >
                 <Gauge size={16} className="text-gray-600" />
               </button>

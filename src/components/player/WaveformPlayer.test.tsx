@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import '@testing-library/jest-dom';
 import { WaveformPlayer } from './WaveformPlayer';
 import { wavesurferService } from '../../services/wavesurferService';
+import { browserService } from '../../services/browserService';
 import { usePlayerStore } from '../../stores/usePlayerStore';
 import { useEditorStore } from '../../stores/useEditorStore';
 import { usePlay } from '../../hooks/usePlay';
@@ -532,11 +533,50 @@ describe('WaveformPlayer', () => {
         });
         return selector(state);
       });
-      
+
       render(<WaveformPlayer {...defaultProps} />);
-      
+
       // Should display default speed percentage
       expect(screen.getByText('100%')).toBeInTheDocument();
+    });
+
+    it('toggles speed to minimum when gauge icon is clicked at 100%', () => {
+      Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 1024 });
+
+      mockUsePlayerStore.mockImplementation((selector) => {
+        const state = createMockPlayerState({ playing: false, loadedAndReady: true });
+        return selector(state);
+      });
+
+      render(<WaveformPlayer {...defaultProps} />);
+
+      const gaugeButton = screen.getByTestId('speed-toggle-button');
+      fireEvent.click(gaugeButton);
+
+      expect(mockWaveSurferService.setPlaybackRate).toHaveBeenCalledWith(50);
+      expect(browserService.saveVideoPreferences).toHaveBeenCalledWith({ speed: 50 });
+    });
+
+    it('toggles speed to 100% when gauge icon is clicked below 100%', () => {
+      Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 1024 });
+
+      mockUsePlayerStore.mockImplementation((selector) => {
+        const state = createMockPlayerState({ playing: false, loadedAndReady: true });
+        return selector(state);
+      });
+
+      render(<WaveformPlayer {...defaultProps} />);
+
+      const speedSlider = screen.getByDisplayValue('100');
+      fireEvent.change(speedSlider, { target: { value: '75' } });
+
+      jest.clearAllMocks();
+
+      const gaugeButton = screen.getByTestId('speed-toggle-button');
+      fireEvent.click(gaugeButton);
+
+      expect(mockWaveSurferService.setPlaybackRate).toHaveBeenCalledWith(100);
+      expect(browserService.saveVideoPreferences).toHaveBeenCalledWith({ speed: 100 });
     });
   });
 
