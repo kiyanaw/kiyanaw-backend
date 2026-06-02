@@ -448,6 +448,38 @@ describe('useWavesurferEvents', () => {
       expect(mockScrollElementIntoView).toHaveBeenCalledWith(`div#regionitem-${regionId}`);
     });
 
+    it('should update selected region in store when region-in event fires', () => {
+      const transcriptionId = 'test-transcription-1';
+      const regionId = 'test-region-1';
+
+      renderHook(() => useWavesurferEvents(transcriptionId));
+
+      const regionInHandler = mockOn.mock.calls.find(call => call[0] === 'region-in')[1];
+      regionInHandler({ regionId });
+
+      expect(mockStore.setSelectedRegion).toHaveBeenCalledWith(regionId);
+    });
+
+    it('should update selected region when audio playback enters a new region', () => {
+      const transcriptionId = 'test-transcription-1';
+      const firstRegionId = 'region-A';
+      const secondRegionId = 'region-B';
+
+      mockAddCustomStyle
+        .mockReturnValueOnce('style-A')
+        .mockReturnValueOnce('style-B');
+
+      renderHook(() => useWavesurferEvents(transcriptionId));
+
+      const regionInHandler = mockOn.mock.calls.find(call => call[0] === 'region-in')[1];
+
+      regionInHandler({ regionId: firstRegionId });
+      expect(mockStore.setSelectedRegion).toHaveBeenCalledWith(firstRegionId);
+
+      regionInHandler({ regionId: secondRegionId });
+      expect(mockStore.setSelectedRegion).toHaveBeenLastCalledWith(secondRegionId);
+    });
+
     it('should both highlight and scroll region when region-in event fires', () => {
       const transcriptionId = 'test-transcription-1';
       const regionId = 'test-region-456';

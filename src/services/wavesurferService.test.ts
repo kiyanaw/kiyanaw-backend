@@ -693,6 +693,49 @@ describe('WaveSurferService', () => {
       expect(mockWaveSurferInstance.play).toHaveBeenCalled();
     });
 
+    it('should wait for seek to complete before playing when media is seeking', async () => {
+      let seekedCallback: (() => void) | null = null;
+      const mockMediaElement = {
+        seeking: true,
+        addEventListener: jest.fn().mockImplementation((event: string, cb: () => void) => {
+          if (event === 'seeked') {
+            seekedCallback = cb;
+          }
+        }),
+      };
+      mockWaveSurferInstance.getMediaElement.mockReturnValue(mockMediaElement);
+      mockWaveSurferInstance.play = jest.fn().mockResolvedValue(undefined);
+
+      const playPromise = wavesurferService.play();
+
+      // play() should not have been called yet — still waiting for seeked
+      expect(mockWaveSurferInstance.play).not.toHaveBeenCalled();
+
+      // Resolve the seek
+      seekedCallback?.();
+      await playPromise;
+
+      expect(mockWaveSurferInstance.play).toHaveBeenCalledTimes(1);
+    });
+
+    it('should play immediately when media is not seeking', async () => {
+      const mockMediaElement = { seeking: false };
+      mockWaveSurferInstance.getMediaElement.mockReturnValue(mockMediaElement);
+      mockWaveSurferInstance.play = jest.fn().mockResolvedValue(undefined);
+
+      await wavesurferService.play();
+
+      expect(mockWaveSurferInstance.play).toHaveBeenCalledTimes(1);
+    });
+
+    it('should rethrow non-AbortError play failures', async () => {
+      const networkError = new Error('Network error');
+      mockWaveSurferInstance.play = jest.fn().mockRejectedValue(networkError);
+
+      await expect(wavesurferService.play()).rejects.toThrow('Network error');
+      expect(mockWaveSurferInstance.play).toHaveBeenCalledTimes(1);
+    });
+
     it('should not affect playback when playInFull is true but no bounded region exists', async () => {
       mockWaveSurferInstance.play = jest.fn().mockResolvedValue(undefined);
       
