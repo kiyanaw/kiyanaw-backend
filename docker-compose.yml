@@ -1,6 +1,0 @@
-services:
-  lambda-builder:
-    build: .
-    volumes:
-      - .:/var/task
-    working_dir: /var/task 

@@ -68,7 +68,7 @@ resources:
     # ==========================================
     # VPC S3 Endpoint
     # Required for Lambda functions in VPC to access S3 without going through NAT Gateway
-    # Used by: createPeaksFile, spellcheck
+    # Used by: createPeaksFile
     # ==========================================
     VpcS3Endpoint:
       Type: AWS::EC2::VPCEndpoint
@@ -127,55 +127,6 @@ resources:
             OwnerUid: '1000'
             Permissions: '777'
           Path: '/temp'
-
-    # ==========================================
-    # EFS File System for spellcheck Lambda
-    # Used for caching FST (Finite State Transducer) files from S3
-    # Mount path: /mnt/fsts
-    # ==========================================
-    SpellcheckEFS:
-      Type: AWS::EFS::FileSystem
-      Properties:
-        FileSystemTags:
-          - Key: Name
-            Value: spellcheckFSTS-${self:custom.amplify.envName}
-          - Key: Environment
-            Value: ${self:custom.amplify.envName}
-        PerformanceMode: generalPurpose
-        ThroughputMode: bursting
-        Encrypted: true
-
-    # EFS Mount Targets (one per subnet - using first 2)
-    SpellcheckMountTarget1:
-      Type: AWS::EFS::MountTarget
-      Properties:
-        FileSystemId: !Ref SpellcheckEFS
-        SubnetId: ${self:custom.vpc.subnet1}
-        SecurityGroups:
-          - ${self:custom.vpc.securityGroupId}
-
-    SpellcheckMountTarget2:
-      Type: AWS::EFS::MountTarget
-      Properties:
-        FileSystemId: !Ref SpellcheckEFS
-        SubnetId: ${self:custom.vpc.subnet2}
-        SecurityGroups:
-          - ${self:custom.vpc.securityGroupId}
-
-    # EFS Access Point for Lambda
-    SpellcheckAccessPoint:
-      Type: AWS::EFS::AccessPoint
-      Properties:
-        FileSystemId: !Ref SpellcheckEFS
-        PosixUser:
-          Uid: '1000'
-          Gid: '1000'
-        RootDirectory:
-          CreationInfo:
-            OwnerGid: '1000'
-            OwnerUid: '1000'
-            Permissions: '777'
-          Path: '/fsts'
 
     # ==========================================
     # CloudFront CDN for Media Streaming
@@ -350,25 +301,6 @@ resources:
       Value: !Ref CreatePeaksFileAccessPoint
       Export:
         Name: ${self:service}-${self:custom.amplify.envName}-CreatePeaksFileEFSAccessPointId
-
-    # spellcheck EFS Resources
-    SpellcheckEFSId:
-      Description: EFS File System ID for spellcheck Lambda
-      Value: !Ref SpellcheckEFS
-      Export:
-        Name: ${self:service}-${self:custom.amplify.envName}-SpellcheckEFSId
-
-    SpellcheckEFSAccessPointArn:
-      Description: EFS Access Point ARN for spellcheck Lambda (mount at /mnt/fsts)
-      Value: !GetAtt SpellcheckAccessPoint.Arn
-      Export:
-        Name: ${self:service}-${self:custom.amplify.envName}-SpellcheckEFSAccessPointArn
-
-    SpellcheckEFSAccessPointId:
-      Description: EFS Access Point ID for spellcheck Lambda
-      Value: !Ref SpellcheckAccessPoint
-      Export:
-        Name: ${self:service}-${self:custom.amplify.envName}-SpellcheckEFSAccessPointId
 
     # CloudFront CDN Outputs
     CloudFrontDistributionId:
