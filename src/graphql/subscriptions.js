@@ -21,6 +21,32 @@ export const onCreateTranscription = /* GraphQL */ `
       issueCount
       tags
       source
+      mediaId
+      media {
+        id
+        pk
+        sk
+        owner
+        status
+        originalKey
+        renditionKey
+        thumbnailKey
+        mimeType
+        fileSize
+        duration
+        tags
+        recordedAt
+        editors
+        viewers
+        editorGroups
+        viewerGroups
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
       index
       lang
       title
@@ -77,6 +103,32 @@ export const onUpdateTranscription = /* GraphQL */ `
       issueCount
       tags
       source
+      mediaId
+      media {
+        id
+        pk
+        sk
+        owner
+        status
+        originalKey
+        renditionKey
+        thumbnailKey
+        mimeType
+        fileSize
+        duration
+        tags
+        recordedAt
+        editors
+        viewers
+        editorGroups
+        viewerGroups
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
       index
       lang
       title
@@ -133,6 +185,32 @@ export const onDeleteTranscription = /* GraphQL */ `
       issueCount
       tags
       source
+      mediaId
+      media {
+        id
+        pk
+        sk
+        owner
+        status
+        originalKey
+        renditionKey
+        thumbnailKey
+        mimeType
+        fileSize
+        duration
+        tags
+        recordedAt
+        editors
+        viewers
+        editorGroups
+        viewerGroups
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
       index
       lang
       title
@@ -197,6 +275,7 @@ export const onCreateRegion = /* GraphQL */ `
         issueCount
         tags
         source
+        mediaId
         index
         lang
         title
@@ -254,6 +333,7 @@ export const onUpdateRegion = /* GraphQL */ `
         issueCount
         tags
         source
+        mediaId
         index
         lang
         title
@@ -311,6 +391,7 @@ export const onDeleteRegion = /* GraphQL */ `
         issueCount
         tags
         source
+        mediaId
         index
         lang
         title
@@ -373,6 +454,7 @@ export const onCreateIssue = /* GraphQL */ `
         issueCount
         tags
         source
+        mediaId
         index
         lang
         title
@@ -435,6 +517,7 @@ export const onUpdateIssue = /* GraphQL */ `
         issueCount
         tags
         source
+        mediaId
         index
         lang
         title
@@ -497,6 +580,7 @@ export const onDeleteIssue = /* GraphQL */ `
         issueCount
         tags
         source
+        mediaId
         index
         lang
         title
@@ -632,6 +716,7 @@ export const onCreateComment = /* GraphQL */ `
         issueCount
         tags
         source
+        mediaId
         index
         lang
         title
@@ -712,6 +797,7 @@ export const onUpdateComment = /* GraphQL */ `
         issueCount
         tags
         source
+        mediaId
         index
         lang
         title
@@ -792,6 +878,7 @@ export const onDeleteComment = /* GraphQL */ `
         issueCount
         tags
         source
+        mediaId
         index
         lang
         title
@@ -837,6 +924,117 @@ export const onDeleteComment = /* GraphQL */ `
         __typename
       }
       metadata
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;
+export const onCreateMedia = /* GraphQL */ `
+  subscription OnCreateMedia(
+    $filter: ModelSubscriptionMediaFilterInput
+    $owner: String
+  ) {
+    onCreateMedia(filter: $filter, owner: $owner) {
+      id
+      pk
+      sk
+      owner
+      status
+      originalKey
+      renditionKey
+      thumbnailKey
+      mimeType
+      fileSize
+      duration
+      tags
+      recordedAt
+      editors
+      viewers
+      editorGroups
+      viewerGroups
+      transcriptions {
+        nextToken
+        startedAt
+        __typename
+      }
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;
+export const onUpdateMedia = /* GraphQL */ `
+  subscription OnUpdateMedia(
+    $filter: ModelSubscriptionMediaFilterInput
+    $owner: String
+  ) {
+    onUpdateMedia(filter: $filter, owner: $owner) {
+      id
+      pk
+      sk
+      owner
+      status
+      originalKey
+      renditionKey
+      thumbnailKey
+      mimeType
+      fileSize
+      duration
+      tags
+      recordedAt
+      editors
+      viewers
+      editorGroups
+      viewerGroups
+      transcriptions {
+        nextToken
+        startedAt
+        __typename
+      }
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;
+export const onDeleteMedia = /* GraphQL */ `
+  subscription OnDeleteMedia(
+    $filter: ModelSubscriptionMediaFilterInput
+    $owner: String
+  ) {
+    onDeleteMedia(filter: $filter, owner: $owner) {
+      id
+      pk
+      sk
+      owner
+      status
+      originalKey
+      renditionKey
+      thumbnailKey
+      mimeType
+      fileSize
+      duration
+      tags
+      recordedAt
+      editors
+      viewers
+      editorGroups
+      viewerGroups
+      transcriptions {
+        nextToken
+        startedAt
+        __typename
+      }
+      createdAt
+      updatedAt
       _version
       _deleted
       _lastChangedAt

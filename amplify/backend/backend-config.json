@@ -295,6 +295,168 @@
       "service": "S3AndCloudFront"
     }
   },
+  "parameters": {
+    "AMPLIFY_function_createPeaksFile_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "createPeaksFile"
+        }
+      ]
+    },
+    "AMPLIFY_function_createPeaksFile_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "createPeaksFile"
+        }
+      ]
+    },
+    "AMPLIFY_function_enqueueRegionChange_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "enqueueRegionChange"
+        }
+      ]
+    },
+    "AMPLIFY_function_enqueueRegionChange_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "enqueueRegionChange"
+        }
+      ]
+    },
+    "AMPLIFY_function_indexRegionData_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "indexRegionData"
+        }
+      ]
+    },
+    "AMPLIFY_function_indexRegionData_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "indexRegionData"
+        }
+      ]
+    },
+    "AMPLIFY_function_inviteHandler_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "inviteHandler"
+        }
+      ]
+    },
+    "AMPLIFY_function_inviteHandler_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "inviteHandler"
+        }
+      ]
+    },
+    "AMPLIFY_function_kiyanawaudiowaveform_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "kiyanawaudiowaveform"
+        }
+      ]
+    },
+    "AMPLIFY_function_kiyanawaudiowaveform_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "kiyanawaudiowaveform"
+        }
+      ]
+    },
+    "AMPLIFY_function_kiyanawffmpeg_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "kiyanawffmpeg"
+        }
+      ]
+    },
+    "AMPLIFY_function_kiyanawffmpeg_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "kiyanawffmpeg"
+        }
+      ]
+    },
+    "AMPLIFY_function_mediaAccess_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "mediaAccess"
+        }
+      ]
+    },
+    "AMPLIFY_function_mediaAccess_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "mediaAccess"
+        }
+      ]
+    },
+    "AMPLIFY_function_notifyRegionChanges_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "notifyRegionChanges"
+        }
+      ]
+    },
+    "AMPLIFY_function_notifyRegionChanges_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "notifyRegionChanges"
+        }
+      ]
+    },
+    "AMPLIFY_function_onTranscriptionChange_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "onTranscriptionChange"
+        }
+      ]
+    },
+    "AMPLIFY_function_onTranscriptionChange_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "onTranscriptionChange"
+        }
+      ]
+    },
+    "AMPLIFY_function_opensearchproxy_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "opensearchproxy"
+        }
+      ]
+    },
+    "AMPLIFY_function_opensearchproxy_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "opensearchproxy"
+        }
+      ]
+    }
+  },
   "storage": {
     "transcriptions": {
       "providerPlugin": "awscloudformation",
