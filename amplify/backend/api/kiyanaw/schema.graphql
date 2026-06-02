@@ -194,6 +194,8 @@ type Media
   editorGroups: [String]
   viewerGroups: [String]
 
+  transcriptions: [Transcription] @hasMany(indexName: "ByMedia", fields: ["id"])
+
   createdAt: AWSDateTime!
   updatedAt: AWSDateTime!
 }
