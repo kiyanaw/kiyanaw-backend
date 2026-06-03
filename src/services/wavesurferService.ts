@@ -547,6 +547,13 @@ class WaveSurferService {
       // Clear any region-bounded playback restrictions for full playback
       this.clearRegionBoundedPlayback();
     }
+    // If the media element is mid-seek, wait for it to finish before calling play().
+    // Calling media.play() while media.seeking=true causes an AbortError that WaveSurfer
+    // silently swallows (player.js catches it and returns undefined), leaving no audio playing.
+    const media = this.wavesurfer?.getMediaElement();
+    if (media?.seeking) {
+      await new Promise<void>(resolve => media.addEventListener('seeked', () => resolve(), { once: true }));
+    }
     await this.wavesurfer?.play();
   }
 

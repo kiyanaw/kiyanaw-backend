@@ -1,0 +1,7 @@
+## Request mapping template for Query.listMedia
+{
+  "version": "2018-05-29",
+  "operation": "Scan",
+  "limit": $util.defaultIfNull($ctx.arguments.limit, 100),
+  "nextToken": $util.toJson($ctx.arguments.nextToken)
+}
