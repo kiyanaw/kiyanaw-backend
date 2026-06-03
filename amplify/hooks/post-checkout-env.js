@@ -106,19 +106,20 @@ process.stdin.on('end', () => {
     console.log(`  VITE_SPELLCHECK_API_BASE_URL=${baseUrl}`);
     console.log(`  VITE_SPELLCHECK_API_KEY=<redacted>`);
 
-    // Normalize schema.json directive ordering so env switches don't produce
-    // spurious diffs. AppSync introspection returns built-in directives in
-    // non-deterministic order across environments.
-    const schemaPath = path.join(projectRoot, 'src', 'graphql', 'schema.json');
-    try {
-      const schema = readJsonFile(schemaPath);
-      if (Array.isArray(schema.data?.__schema?.directives)) {
-        schema.data.__schema.directives.sort((a, b) => a.name.localeCompare(b.name));
-        writeFileSync(schemaPath, JSON.stringify(schema, null, 2) + '\n');
-        console.log('\nNormalized src/graphql/schema.json directive ordering.');
+    // Normalize schema.json directive ordering when returning to staging so
+    // production env switches don't produce spurious diffs on the committed file.
+    if (envName === 'staging') {
+      const schemaPath = path.join(projectRoot, 'src', 'graphql', 'schema.json');
+      try {
+        const schema = readJsonFile(schemaPath);
+        if (Array.isArray(schema.data?.__schema?.directives)) {
+          schema.data.__schema.directives.sort((a, b) => a.name.localeCompare(b.name));
+          writeFileSync(schemaPath, JSON.stringify(schema, null, 2) + '\n');
+          console.log('\nNormalized src/graphql/schema.json directive ordering.');
+        }
+      } catch (e) {
+        console.warn(`Warning: Could not normalize schema.json: ${e.message}`);
       }
-    } catch (e) {
-      console.warn(`Warning: Could not normalize schema.json: ${e.message}`);
     }
 
     console.log('\n========================================');
