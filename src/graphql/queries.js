@@ -18,6 +18,32 @@ export const getTranscription = /* GraphQL */ `
       issueCount
       tags
       source
+      mediaId
+      media {
+        id
+        pk
+        sk
+        owner
+        status
+        originalKey
+        renditionKey
+        thumbnailKey
+        mimeType
+        fileSize
+        duration
+        tags
+        recordedAt
+        editors
+        viewers
+        editorGroups
+        viewerGroups
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
       index
       lang
       title
@@ -84,6 +110,7 @@ export const listTranscriptions = /* GraphQL */ `
         issueCount
         tags
         source
+        mediaId
         index
         lang
         title
@@ -137,6 +164,7 @@ export const syncTranscriptions = /* GraphQL */ `
         issueCount
         tags
         source
+        mediaId
         index
         lang
         title
@@ -190,6 +218,7 @@ export const getRegion = /* GraphQL */ `
         issueCount
         tags
         source
+        mediaId
         index
         lang
         title
@@ -327,6 +356,7 @@ export const getIssue = /* GraphQL */ `
         issueCount
         tags
         source
+        mediaId
         index
         lang
         title
@@ -561,6 +591,7 @@ export const getComment = /* GraphQL */ `
         issueCount
         tags
         source
+        mediaId
         index
         lang
         title
@@ -687,6 +718,130 @@ export const syncComments = /* GraphQL */ `
     }
   }
 `;
+export const getMedia = /* GraphQL */ `
+  query GetMedia($id: ID!) {
+    getMedia(id: $id) {
+      id
+      pk
+      sk
+      owner
+      status
+      originalKey
+      renditionKey
+      thumbnailKey
+      mimeType
+      fileSize
+      duration
+      tags
+      recordedAt
+      editors
+      viewers
+      editorGroups
+      viewerGroups
+      transcriptions {
+        nextToken
+        startedAt
+        __typename
+      }
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;
+export const listMedia = /* GraphQL */ `
+  query ListMedia(
+    $id: ID
+    $filter: ModelMediaFilterInput
+    $limit: Int
+    $nextToken: String
+    $sortDirection: ModelSortDirection
+  ) {
+    listMedia(
+      id: $id
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+      sortDirection: $sortDirection
+    ) {
+      items {
+        id
+        pk
+        sk
+        owner
+        status
+        originalKey
+        renditionKey
+        thumbnailKey
+        mimeType
+        fileSize
+        duration
+        tags
+        recordedAt
+        editors
+        viewers
+        editorGroups
+        viewerGroups
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      nextToken
+      startedAt
+      __typename
+    }
+  }
+`;
+export const syncMedia = /* GraphQL */ `
+  query SyncMedia(
+    $filter: ModelMediaFilterInput
+    $limit: Int
+    $nextToken: String
+    $lastSync: AWSTimestamp
+  ) {
+    syncMedia(
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+      lastSync: $lastSync
+    ) {
+      items {
+        id
+        pk
+        sk
+        owner
+        status
+        originalKey
+        renditionKey
+        thumbnailKey
+        mimeType
+        fileSize
+        duration
+        tags
+        recordedAt
+        editors
+        viewers
+        editorGroups
+        viewerGroups
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      nextToken
+      startedAt
+      __typename
+    }
+  }
+`;
 export const transcriptionsByAuthor = /* GraphQL */ `
   query TranscriptionsByAuthor(
     $author: String!
@@ -717,6 +872,7 @@ export const transcriptionsByAuthor = /* GraphQL */ `
         issueCount
         tags
         source
+        mediaId
         index
         lang
         title
@@ -774,6 +930,63 @@ export const transcriptionsByAuthorDate = /* GraphQL */ `
         issueCount
         tags
         source
+        mediaId
+        index
+        lang
+        title
+        type
+        isPrivate
+        isPublished
+        publicIssues
+        disableAnalyzer
+        editors
+        viewers
+        editorGroups
+        viewerGroups
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      nextToken
+      startedAt
+      __typename
+    }
+  }
+`;
+export const transcriptionsByMedia = /* GraphQL */ `
+  query TranscriptionsByMedia(
+    $mediaId: ID!
+    $sortDirection: ModelSortDirection
+    $filter: ModelTranscriptionFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    transcriptionsByMedia(
+      mediaId: $mediaId
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        author
+        authorFriendly
+        coverage
+        dateLastUpdated
+        userLastUpdated
+        length
+        issues
+        comments
+        commentCount
+        regionCount
+        issueCount
+        tags
+        source
+        mediaId
         index
         lang
         title
@@ -829,6 +1042,7 @@ export const byTitle = /* GraphQL */ `
         issueCount
         tags
         source
+        mediaId
         index
         lang
         title
@@ -1286,6 +1500,100 @@ export const commentsByParentComment = /* GraphQL */ `
         entityId
         parentCommentId
         metadata
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      nextToken
+      startedAt
+      __typename
+    }
+  }
+`;
+export const mediaByPkSk = /* GraphQL */ `
+  query MediaByPkSk(
+    $pk: String!
+    $sk: ModelStringKeyConditionInput
+    $sortDirection: ModelSortDirection
+    $filter: ModelMediaFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    mediaByPkSk(
+      pk: $pk
+      sk: $sk
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        pk
+        sk
+        owner
+        status
+        originalKey
+        renditionKey
+        thumbnailKey
+        mimeType
+        fileSize
+        duration
+        tags
+        recordedAt
+        editors
+        viewers
+        editorGroups
+        viewerGroups
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      nextToken
+      startedAt
+      __typename
+    }
+  }
+`;
+export const mediaByOwner = /* GraphQL */ `
+  query MediaByOwner(
+    $owner: String!
+    $sortDirection: ModelSortDirection
+    $filter: ModelMediaFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    mediaByOwner(
+      owner: $owner
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        pk
+        sk
+        owner
+        status
+        originalKey
+        renditionKey
+        thumbnailKey
+        mimeType
+        fileSize
+        duration
+        tags
+        recordedAt
+        editors
+        viewers
+        editorGroups
+        viewerGroups
+        createdAt
+        updatedAt
         _version
         _deleted
         _lastChangedAt

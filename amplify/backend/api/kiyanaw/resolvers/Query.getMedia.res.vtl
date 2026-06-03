@@ -1,0 +1,50 @@
+## Response mapping template for Query.getMedia
+## Enforces owner/editor/viewer ACL on all media records
+
+#set($m = $ctx.result)
+#if($util.isNull($m))
+  $util.toJson(null)
+#else
+  #set($userSub = $ctx.identity.claims.get("sub"))
+  #set($userGroups = $ctx.identity.claims.get("cognito:groups"))
+
+  #if($util.isNull($userSub))
+    #set($userSub = "")
+  #end
+  #if($util.isNull($userGroups))
+    #set($userGroups = [])
+  #end
+
+  #set($hasAccess = false)
+
+  ## Owner
+  #if(!$util.isNull($m.owner) && $m.owner == $userSub)
+    #set($hasAccess = true)
+  #end
+
+  ## editors array
+  #if(!$util.isNull($m.editors) && $m.editors.contains($userSub))
+    #set($hasAccess = true)
+  #end
+
+  ## viewers array
+  #if(!$util.isNull($m.viewers) && $m.viewers.contains($userSub))
+    #set($hasAccess = true)
+  #end
+
+  ## editorGroups
+  #if(!$util.isNull($m.editorGroups) && $util.list.copyAndRetain($m.editorGroups, $userGroups).size() > 0)
+    #set($hasAccess = true)
+  #end
+
+  ## viewerGroups
+  #if(!$util.isNull($m.viewerGroups) && $util.list.copyAndRetain($m.viewerGroups, $userGroups).size() > 0)
+    #set($hasAccess = true)
+  #end
+
+  #if(!$hasAccess)
+    $util.unauthorized()
+  #end
+
+  $util.toJson($m)
+#end

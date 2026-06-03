@@ -13,15 +13,6 @@ nvm use
 npm install
 ```
 
-## (Optional) Install Docker (for Lambda  C Bindings)
-
-A docker image is provided to build C bindings if needed. Currently needed when pushing the kiyanawlibHfstol lambda layer.
-
-### Install Docker Desktop (for MacOS)
-```bash
-brew install --cask docker
-```
-
 ## Setup Slack Deploy Notifications
 
 **One-time setup per environment** :
@@ -144,7 +135,6 @@ npm run rotate:e2e-passwords
 
 ### Tail Lambda logs
 ```
-npm run logs:spellcheck
 npm run logs:indexing
 ```
 
@@ -177,22 +167,6 @@ npm run serverless:deploy
 npx amplify push --no-hooks
 npx amplify publish --no-hooks
 ```
-
-## Building Lambda C Bindings
-
-This project uses Docker to build lambda functions with C bindings in an Amazon Linux environment to ensure compatibility.
-
-### Build Lambda C Bindings
-```bash
-# Build the Docker image
-docker compose build
-
-# Build the C bindings (this will install hfstol with correct target architecture)
-docker compose run --rm lambda-builder
-```
-
-The container will automatically install the `hfstol` package with the correct target architecture and platform for AWS Lambda. After the build completes, you can deploy normally with `amplify push`.
-
 
 # Infrastructure
 

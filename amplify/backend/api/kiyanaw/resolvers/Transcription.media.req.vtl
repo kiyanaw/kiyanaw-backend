@@ -1,0 +1,40 @@
+## Custom override for the Transcription.media @belongsTo data resolver function.
+##
+## Why this exists: this is the request template of the SECOND pipeline function
+## (the DynamoDB query). The previous pipeline function (auth) runs against a NONE
+## datasource and leaves $ctx.prev.result = {} (an empty map). The resolver's
+## after-template is `$util.toJson($ctx.prev.result)`.
+##
+## Using `#return($util.toJson(null))` here does NOT work: a `#return` from a
+## pipeline FUNCTION request handler skips the datasource but does not overwrite
+## $ctx.prev.result, so the after-template serializes the auth function's leftover
+## {}. GraphQL then sees a non-null object for `media` and tries to resolve the
+## required child fields (id!, pk!, ...), producing null-propagation errors for
+## every legacy Transcription whose mediaId is null.
+##
+## The reliable approach: always run the Query and let the response template emit
+## the null. When mediaId is absent (or the field is denied for a mutation),
+## force the partition key to a sentinel that matches nothing. DynamoDB returns
+## zero items, and Transcription.media.res.vtl emits explicit null through the
+## normal response path, which correctly sets $ctx.prev.result.
+#set( $partitionKeyValue = $util.defaultIfNull($ctx.stash.connectionAttibutes.get("mediaId"), $ctx.source.mediaId) )
+#if( $ctx.stash.deniedField )
+  #set( $partitionKeyValue = "___xamznone____" )
+#end
+#set( $GetRequest = {
+  "version": "2018-05-29",
+  "operation": "Query"
+} )
+$util.qr($GetRequest.put("query", {
+  "expression": "#partitionKey = :partitionValue",
+  "expressionNames": {
+      "#partitionKey": "id"
+  },
+  "expressionValues": {
+      ":partitionValue": $util.parseJson($util.dynamodb.toDynamoDBJson($util.defaultIfNullOrBlank($partitionKeyValue, "___xamznone____")))
+  }
+}))
+#if( !$util.isNullOrEmpty($ctx.stash.authFilter) )
+  $util.qr($GetRequest.put("filter", $util.parseJson($util.transform.toDynamoDBFilterExpression($ctx.stash.authFilter))))
+#end
+$util.toJson($GetRequest)

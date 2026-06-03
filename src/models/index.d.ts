@@ -1,6 +1,6 @@
 import { ModelInit, MutableModel } from "@aws-amplify/datastore";
 // @ts-ignore
-import { LazyLoading, LazyLoadingDisabled, AsyncCollection, AsyncItem } from "@aws-amplify/datastore";
+import { LazyLoading, LazyLoadingDisabled, AsyncItem, AsyncCollection } from "@aws-amplify/datastore";
 
 type TranscriptionMetaData = {
   readOnlyFields: 'createdAt' | 'updatedAt';
@@ -20,6 +20,8 @@ type InviteMetaData = {
 
 
 
+
+
 type EagerTranscription = {
   readonly id: string;
   readonly author: string;
@@ -35,6 +37,7 @@ type EagerTranscription = {
   readonly issueCount?: number | null;
   readonly tags?: string | null;
   readonly source?: string | null;
+  readonly media?: Media | null;
   readonly index?: string | null;
   readonly lang?: string | null;
   readonly title: string;
@@ -69,6 +72,7 @@ type LazyTranscription = {
   readonly issueCount?: number | null;
   readonly tags?: string | null;
   readonly source?: string | null;
+  readonly media: AsyncItem<Media | undefined>;
   readonly index?: string | null;
   readonly lang?: string | null;
   readonly title: string;
@@ -244,4 +248,56 @@ export declare type Comment = LazyLoading extends LazyLoadingDisabled ? EagerCom
 
 export declare const Comment: (new (init: ModelInit<Comment>) => Comment) & {
   copyOf(source: Comment, mutator: (draft: MutableModel<Comment>) => MutableModel<Comment> | void): Comment;
+}
+
+type EagerMedia = {
+  readonly id: string;
+  readonly pk: string;
+  readonly sk: string;
+  readonly owner: string;
+  readonly status: string;
+  readonly originalKey: string;
+  readonly renditionKey?: string | null;
+  readonly thumbnailKey?: string | null;
+  readonly mimeType: string;
+  readonly fileSize: number;
+  readonly duration?: number | null;
+  readonly tags?: (string | null)[] | null;
+  readonly recordedAt?: string | null;
+  readonly editors?: (string | null)[] | null;
+  readonly viewers?: (string | null)[] | null;
+  readonly editorGroups?: (string | null)[] | null;
+  readonly viewerGroups?: (string | null)[] | null;
+  readonly transcriptions?: (Transcription | null)[] | null;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+type LazyMedia = {
+  readonly id: string;
+  readonly pk: string;
+  readonly sk: string;
+  readonly owner: string;
+  readonly status: string;
+  readonly originalKey: string;
+  readonly renditionKey?: string | null;
+  readonly thumbnailKey?: string | null;
+  readonly mimeType: string;
+  readonly fileSize: number;
+  readonly duration?: number | null;
+  readonly tags?: (string | null)[] | null;
+  readonly recordedAt?: string | null;
+  readonly editors?: (string | null)[] | null;
+  readonly viewers?: (string | null)[] | null;
+  readonly editorGroups?: (string | null)[] | null;
+  readonly viewerGroups?: (string | null)[] | null;
+  readonly transcriptions: AsyncCollection<Transcription>;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+export declare type Media = LazyLoading extends LazyLoadingDisabled ? EagerMedia : LazyMedia
+
+export declare const Media: (new (init: ModelInit<Media>) => Media) & {
+  copyOf(source: Media, mutator: (draft: MutableModel<Media>) => MutableModel<Media> | void): Media;
 }
