@@ -869,17 +869,17 @@ describe('ADT Models', () => {
         });
       });
 
-      it('should return "expired" for expired pending invites', () => {
+      it('should return "Expired" for expired pending invites', () => {
         const pastDate = new Date();
         pastDate.setDate(pastDate.getDate() - 7);
-        
-        const data = { 
-          ...mockInviteData, 
+
+        const data = {
+          ...mockInviteData,
           status: 'pending',
           expiresAt: pastDate.toISOString()
         };
         const model = new InviteModel(data);
-        expect(model.statusDisplay).toBe('expired');
+        expect(model.statusDisplay).toBe('Expired');
       });
 
       it('should return "Pending" for non-expired pending invites', () => {

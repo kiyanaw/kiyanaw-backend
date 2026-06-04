@@ -14,6 +14,8 @@ const { handleInvite } = require('./actions/handle-invite');
 const { handleAcceptInvite } = require('./actions/handle-accept-invite');
 const { handleGetMyInvites } = require('./actions/handle-get-my-invites');
 const { handleRevokeInvite } = require('./actions/handle-revoke-invite');
+const { handleRenewInvite } = require('./actions/handle-renew-invite');
+const { handleUpdateInvitePermission } = require('./actions/handle-update-invite-permission');
 const { InviteError } = require('./actions/errors/invite-errors');
 
 /**
@@ -202,6 +204,54 @@ exports.handler = async (event) => {
             }
         }
         
+        if (httpMethod === 'POST' && resource === '/invite/renew') {
+            try {
+                const result = await handleRenewInvite(requestBody);
+                return {
+                    statusCode: 200,
+                    headers: corsHeaders,
+                    body: JSON.stringify({
+                        success: true,
+                        ...result
+                    })
+                };
+            } catch (error) {
+                console.error('Renew invite handler error:', error);
+                return {
+                    statusCode: getErrorStatusCode(error),
+                    headers: corsHeaders,
+                    body: JSON.stringify({
+                        success: false,
+                        error: getSafeErrorMessage(error)
+                    })
+                };
+            }
+        }
+
+        if (httpMethod === 'POST' && resource === '/invite/update-permission') {
+            try {
+                const result = await handleUpdateInvitePermission(requestBody);
+                return {
+                    statusCode: 200,
+                    headers: corsHeaders,
+                    body: JSON.stringify({
+                        success: true,
+                        ...result
+                    })
+                };
+            } catch (error) {
+                console.error('Update invite permission handler error:', error);
+                return {
+                    statusCode: getErrorStatusCode(error),
+                    headers: corsHeaders,
+                    body: JSON.stringify({
+                        success: false,
+                        error: getSafeErrorMessage(error)
+                    })
+                };
+            }
+        }
+
         // Handle unknown routes
         return {
             statusCode: 404,

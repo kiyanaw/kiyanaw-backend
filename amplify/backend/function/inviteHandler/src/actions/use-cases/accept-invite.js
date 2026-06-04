@@ -1,4 +1,5 @@
 const inviteService = require('../services/invite-service');
+const { NotFoundError, ValidationError } = require('../errors/invite-errors');
 
 /**
  * Accept Invite Use Case
@@ -187,24 +188,24 @@ class AcceptInviteUseCase {
 
     // Find the invite
     const invite = await this.findInviteById(inviteId);
-    
+
     if (!invite) {
-      throw new Error('Invite not found or you do not have permission to access it');
+      throw new NotFoundError('Invite not found or you do not have permission to access it');
     }
 
     // Validate invite email matches user email
     if (invite.email.toLowerCase() !== userEmail.toLowerCase()) {
-      throw new Error('This invite is not for your email address');
+      throw new ValidationError('This invite is not for your email address');
     }
 
     // Check if invite is still pending
     if (invite.status !== 'pending') {
       if (invite.status === 'accepted') {
-        throw new Error('This invitation has already been accepted');
+        throw new ValidationError('This invitation has already been accepted');
       } else if (invite.status === 'expired') {
-        throw new Error('This invitation has expired');
+        throw new ValidationError('This invitation has expired');
       } else {
-        throw new Error('This invitation is no longer valid');
+        throw new ValidationError('This invitation is no longer valid');
       }
     }
 
@@ -212,7 +213,7 @@ class AcceptInviteUseCase {
     const now = new Date();
     const expiresAt = new Date(invite.expiresAt);
     if (now > expiresAt) {
-      throw new Error('This invitation has expired');
+      throw new ValidationError('This invitation has expired');
     }
 
     // Update invite status to accepted

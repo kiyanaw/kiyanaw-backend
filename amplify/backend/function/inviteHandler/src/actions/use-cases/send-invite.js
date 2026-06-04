@@ -79,15 +79,17 @@ class SendInviteUseCase {
   async execute() {
     this.validate();
 
-    const { 
-      email, 
+    const {
       transcriptionId,
-      transcriptionTitle, 
-      permissionLevel, 
+      transcriptionTitle,
+      permissionLevel,
       invitedBy,
       invitedByFriendly,
-      baseUrl 
+      baseUrl
     } = this.config;
+
+    // Normalize email to lowercase so DynamoDB GSI queries match regardless of input casing
+    const email = this.config.email.trim().toLowerCase();
 
     // Check for existing invites to prevent duplicates
     const existingInvites = await inviteService.getInvitesByEmail(email);

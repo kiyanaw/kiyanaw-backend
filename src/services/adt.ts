@@ -655,7 +655,7 @@ export class InviteModel {
 
   get statusDisplay(): string {
     if (this.isExpired && this.status === 'pending') {
-      return 'expired';
+      return 'Expired';
     }
     return this.status.charAt(0).toUpperCase() + this.status.slice(1);
   }

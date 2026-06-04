@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { FileText, Users, Settings, Mail, Send, UserPlus, Trash2, Save, RotateCcw, Loader2, AlertTriangle, Download, RefreshCw } from 'lucide-react';
 import { useCreateInvite } from '../../hooks/useCreateInvite';
 import { useRevokeInvite } from '../../hooks/useRevokeInvite';
+import { useRenewInvite } from '../../hooks/useRenewInvite';
+import { useUpdateInvitePermission } from '../../hooks/useUpdateInvitePermission';
 import { useDeleteTranscription } from '../../hooks/useDeleteTranscription';
 import * as inviteService from '../../services/inviteService';
 import { generateSignedUrl, updateTranscription, deletePeaksFile, reloadPeaks } from '../../services/transcriptionService';
@@ -58,6 +60,8 @@ export const TranscriptionSettingsPage = ({
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [inviteSuccess, setInviteSuccess] = useState<string | null>(null);
   const [deletingInviteId, setDeletingInviteId] = useState<string | null>(null);
+  const [renewingInviteId, setRenewingInviteId] = useState<string | null>(null);
+  const [updatingInviteId, setUpdatingInviteId] = useState<string | null>(null);
   
   // Delete transcription state
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -83,6 +87,8 @@ export const TranscriptionSettingsPage = ({
   // Hooks
   const createInvite = useCreateInvite();
   const revokeInvite = useRevokeInvite();
+  const renewInvite = useRenewInvite();
+  const updateInvitePermission = useUpdateInvitePermission();
   const deleteTranscription = useDeleteTranscription({
     onSuccess: () => {
       console.log('Transcription deleted successfully');
@@ -213,6 +219,35 @@ export const TranscriptionSettingsPage = ({
       console.error('Failed to revoke invite:', error);
     } finally {
       setDeletingInviteId(null);
+    }
+  };
+
+  const handleRenewInvite = async (invite: InviteModel) => {
+    setRenewingInviteId(invite.id);
+    setInviteError(null);
+    setInviteSuccess(null);
+
+    try {
+      await renewInvite(invite.id);
+      setInviteSuccess(`Invitation to ${invite.email} renewed — a new email has been sent.`);
+      await loadInvites();
+    } catch (error) {
+      setInviteError(error instanceof Error ? error.message : 'Failed to renew invitation');
+    } finally {
+      setRenewingInviteId(null);
+    }
+  };
+
+  const handleUpdatePermission = async (invite: InviteModel, newLevel: 'viewer' | 'editor') => {
+    setUpdatingInviteId(invite.id);
+
+    try {
+      await updateInvitePermission(invite.id, newLevel);
+      await loadInvites();
+    } catch (error) {
+      setInviteError(error instanceof Error ? error.message : 'Failed to update permission');
+    } finally {
+      setUpdatingInviteId(null);
     }
   };
 
@@ -755,23 +790,42 @@ export const TranscriptionSettingsPage = ({
                                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeColor(invite.statusDisplay)}`}>
                                   {invite.statusDisplay}
                                 </span>
-                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                  invite.permissionLevel === 'editor' 
-                                    ? 'bg-purple-100 text-purple-800' 
-                                    : 'bg-blue-100 text-blue-800'
-                                }`}>
-                                  {invite.permissionLevel}
-                                </span>
+                                <select
+                                  value={invite.permissionLevel}
+                                  onChange={(e) => handleUpdatePermission(invite, e.target.value as 'viewer' | 'editor')}
+                                  disabled={updatingInviteId === invite.id}
+                                  className="text-xs border border-gray-200 rounded px-1.5 py-0.5 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
+                                  data-testid={`invite-permission-${invite.id}`}
+                                >
+                                  <option value="viewer">Viewer</option>
+                                  <option value="editor">Editor</option>
+                                </select>
                               </div>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            {(invite.statusDisplay === 'Pending' || invite.statusDisplay === 'Accepted') && (
-                              <button 
+                            {invite.statusDisplay === 'Expired' && (
+                              <button
+                                onClick={() => handleRenewInvite(invite)}
+                                disabled={renewingInviteId === invite.id}
+                                className="p-1 text-gray-400 hover:text-blue-600 transition-colors disabled:opacity-50"
+                                title="Resend invite (renew for 7 more days)"
+                                data-testid={`invite-resend-button-${invite.id}`}
+                              >
+                                {renewingInviteId === invite.id ? (
+                                  <Loader2 size={16} className="animate-spin" />
+                                ) : (
+                                  <Send size={16} />
+                                )}
+                              </button>
+                            )}
+                            {(invite.statusDisplay === 'Pending' || invite.statusDisplay === 'Accepted' || invite.statusDisplay === 'Expired') && (
+                              <button
                                 onClick={() => handleRevokeInvite(invite)}
                                 disabled={deletingInviteId === invite.id}
                                 className="p-1 text-gray-400 hover:text-red-600 transition-colors disabled:opacity-50"
                                 title={invite.statusDisplay === 'Accepted' ? 'Revoke access' : 'Delete invite'}
+                                data-testid={`invite-delete-button-${invite.id}`}
                               >
                                 {deletingInviteId === invite.id ? (
                                   <Loader2 size={16} className="animate-spin" />

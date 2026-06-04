@@ -767,6 +767,46 @@ describe('InviteService', () => {
     });
   });
 
+  describe('email case normalization', () => {
+    it('should lowercase email when creating an invite', async () => {
+      const inviteData = {
+        id: 'invite-case-test',
+        email: 'Dan@Home.COM',
+        transcriptionId: 'trans-123',
+        permissionLevel: 'viewer',
+        invitedBy: 'user-123',
+        invitedByFriendly: 'Test User',
+        expiresAt: '2024-12-31T23:59:59Z',
+        createdAt: '2024-01-01T00:00:00Z'
+      };
+
+      mockSend.mockResolvedValueOnce({});
+
+      const result = await inviteService.createInvite(inviteData);
+
+      expect(result.email).toBe('dan@home.com');
+    });
+
+    it('should lowercase email before DynamoDB query in getInvitesByEmail', async () => {
+      mockSend.mockResolvedValueOnce({ Items: [] });
+
+      await inviteService.getInvitesByEmail('Mixed@CASE.com');
+
+      // QueryCommand is called with the params; inspect the constructor call
+      const queryParams = QueryCommand.mock.calls[QueryCommand.mock.calls.length - 1][0];
+      expect(queryParams.ExpressionAttributeValues[':email']).toBe('mixed@case.com');
+    });
+
+    it('should lowercase email before DynamoDB query in getInvitesByEmailSince', async () => {
+      mockSend.mockResolvedValueOnce({ Items: [] });
+
+      await inviteService.getInvitesByEmailSince('Mixed@CASE.com', '2024-01-01T00:00:00Z');
+
+      const queryParams = QueryCommand.mock.calls[QueryCommand.mock.calls.length - 1][0];
+      expect(queryParams.ExpressionAttributeValues[':email']).toBe('mixed@case.com');
+    });
+  });
+
   describe('transcriptionTitle support', () => {
     it('should include transcriptionTitle in created invites', async () => {
       const inviteData = {

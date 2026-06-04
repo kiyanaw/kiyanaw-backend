@@ -52,6 +52,32 @@
           "delete"
         ]
       }
+    },
+    "/invite/renew": {
+      "name": "/invite/renew",
+      "lambdaFunction": "inviteHandler",
+      "permissions": {
+        "setting": "private",
+        "auth": [
+          "create",
+          "read",
+          "update",
+          "delete"
+        ]
+      }
+    },
+    "/invite/update-permission": {
+      "name": "/invite/update-permission",
+      "lambdaFunction": "inviteHandler",
+      "permissions": {
+        "setting": "private",
+        "auth": [
+          "create",
+          "read",
+          "update",
+          "delete"
+        ]
+      }
     }
   }
 }
