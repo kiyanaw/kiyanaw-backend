@@ -491,6 +491,22 @@
           "resourceName": "opensearchproxy"
         }
       ]
+    },
+    "AMPLIFY_function_processMedia_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "processMedia"
+        }
+      ]
+    },
+    "AMPLIFY_function_processMedia_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "processMedia"
+        }
+      ]
     }
   },
   "storage": {
