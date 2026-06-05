@@ -112,6 +112,24 @@ export default {
         '/node_modules/',
       ],
     },
+    // Lambda function tests - processMedia
+    {
+      displayName: 'Lambda Functions - ProcessMedia',
+      testEnvironment: 'node',
+      rootDir: 'amplify/backend/function/processMedia/src',
+      testMatch: [
+        '<rootDir>/test/test-*.(js|ts)',
+      ],
+      collectCoverageFrom: [
+        'lib/**/*.(js|ts)',
+        'index.js',
+        'utils.js',
+        '!test/**/*.(js|ts)',
+      ],
+      testPathIgnorePatterns: [
+        '/node_modules/',
+      ],
+    },
     // Amplify hooks tests
     {
       displayName: 'Amplify Hooks',
