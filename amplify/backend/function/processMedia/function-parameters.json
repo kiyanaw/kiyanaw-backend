@@ -19,16 +19,16 @@
     {
       "type": "ProjectLayer",
       "resourceName": "kiyanawaudiowaveform",
-      "env": "staging",
       "version": "Always choose latest version",
-      "isLatestVersionSelected": true
+      "isLatestVersionSelected": true,
+      "env": "staging"
     },
     {
       "type": "ProjectLayer",
       "resourceName": "kiyanawffmpeg",
-      "env": "staging",
       "version": "Always choose latest version",
-      "isLatestVersionSelected": true
+      "isLatestVersionSelected": true,
+      "env": "staging"
     }
   ]
 }
