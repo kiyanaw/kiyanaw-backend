@@ -1139,4 +1139,102 @@ describe('WaveformPlayer', () => {
 
 
   });
-}); 
+
+  describe('Spacebar keyboard shortcut', () => {
+    it('calls play when space is pressed and not playing', () => {
+      mockUsePlayerStore.mockImplementation((selector) => {
+        return selector(createMockPlayerState({ playing: false, loadedAndReady: true }));
+      });
+
+      render(<WaveformPlayer {...defaultProps} />);
+      fireEvent.keyDown(window, { code: 'Space' });
+
+      expect(mockPlay).toHaveBeenCalledWith({ playInFull: true });
+    });
+
+    it('calls pause when space is pressed and playing', () => {
+      mockUsePlayerStore.mockImplementation((selector) => {
+        return selector(createMockPlayerState({ playing: true, loadedAndReady: true }));
+      });
+
+      render(<WaveformPlayer {...defaultProps} />);
+      fireEvent.keyDown(window, { code: 'Space' });
+
+      expect(mockPause).toHaveBeenCalled();
+    });
+
+    it('does nothing when space is pressed and not loaded', () => {
+      mockUsePlayerStore.mockImplementation((selector) => {
+        return selector(createMockPlayerState({ playing: false, loadedAndReady: false }));
+      });
+
+      render(<WaveformPlayer {...defaultProps} />);
+      fireEvent.keyDown(window, { code: 'Space' });
+
+      expect(mockPlay).not.toHaveBeenCalled();
+      expect(mockPause).not.toHaveBeenCalled();
+    });
+
+    it('does not trigger when focused in an input', () => {
+      mockUsePlayerStore.mockImplementation((selector) => {
+        return selector(createMockPlayerState({ playing: false, loadedAndReady: true }));
+      });
+
+      render(<WaveformPlayer {...defaultProps} />);
+
+      const input = document.createElement('input');
+      document.body.appendChild(input);
+      input.focus();
+
+      fireEvent.keyDown(window, { code: 'Space' });
+
+      expect(mockPlay).not.toHaveBeenCalled();
+      document.body.removeChild(input);
+    });
+
+    it('does not trigger when focused in a textarea', () => {
+      mockUsePlayerStore.mockImplementation((selector) => {
+        return selector(createMockPlayerState({ playing: false, loadedAndReady: true }));
+      });
+
+      render(<WaveformPlayer {...defaultProps} />);
+
+      const textarea = document.createElement('textarea');
+      document.body.appendChild(textarea);
+      textarea.focus();
+
+      fireEvent.keyDown(window, { code: 'Space' });
+
+      expect(mockPlay).not.toHaveBeenCalled();
+      document.body.removeChild(textarea);
+    });
+
+    it('does not trigger when focused in a contenteditable element', () => {
+      mockUsePlayerStore.mockImplementation((selector) => {
+        return selector(createMockPlayerState({ playing: false, loadedAndReady: true }));
+      });
+
+      render(<WaveformPlayer {...defaultProps} />);
+
+      const div = document.createElement('div');
+      div.setAttribute('contenteditable', 'true');
+      const spy = jest.spyOn(document, 'activeElement', 'get').mockReturnValue(div);
+
+      fireEvent.keyDown(window, { code: 'Space' });
+
+      expect(mockPlay).not.toHaveBeenCalled();
+      spy.mockRestore();
+    });
+
+    it('does not trigger for non-space keys', () => {
+      mockUsePlayerStore.mockImplementation((selector) => {
+        return selector(createMockPlayerState({ playing: false, loadedAndReady: true }));
+      });
+
+      render(<WaveformPlayer {...defaultProps} />);
+      fireEvent.keyDown(window, { code: 'KeyK' });
+
+      expect(mockPlay).not.toHaveBeenCalled();
+    });
+  });
+});
