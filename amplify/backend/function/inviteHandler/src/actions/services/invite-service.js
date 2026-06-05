@@ -37,7 +37,7 @@ class InviteService {
     // Prepare the invite record according to GraphQL schema
     const inviteRecord = {
       id: inviteData.id,
-      email: inviteData.email,
+      email: inviteData.email.toLowerCase(),
       status: 'pending', // Initial status
       permissionLevel: inviteData.permissionLevel,
       expiresAt: inviteData.expiresAt,
@@ -88,7 +88,7 @@ class InviteService {
         '#deleted': '_deleted'
       },
       ExpressionAttributeValues: {
-        ':email': email,
+        ':email': email.toLowerCase(),
         ':false': false
       }
     });
@@ -123,7 +123,7 @@ class InviteService {
         '#deleted': '_deleted'
       },
       ExpressionAttributeValues: {
-        ':email': email,
+        ':email': email.toLowerCase(),
         ':sinceTimestamp': sinceTimestamp,
         ':false': false
       },
@@ -252,6 +252,41 @@ class InviteService {
     };
 
     console.info(`Invite status updated: ${inviteId} -> ${status}`);
+    return updatedInvite;
+  }
+
+  /**
+   * Update arbitrary fields on an invite record
+   * @param {string} inviteId - The invite ID to update
+   * @param {Object} fields - Fields to merge into the record
+   * @returns {Object} Updated invite record
+   */
+  async updateInviteFields(inviteId, fields) {
+    if (!this.tableName) {
+      throw new InternalError('API_KIYANAW_INVITETABLE_NAME environment variable not configured');
+    }
+
+    const currentInvite = await this.getInviteById(inviteId);
+    if (!currentInvite) {
+      throw new NotFoundError(`Invite ${inviteId} not found`);
+    }
+
+    const updatedInvite = {
+      ...currentInvite,
+      ...fields,
+      updatedAt: new Date().toISOString(),
+      _version: (currentInvite._version || 0) + 1,
+      _lastChangedAt: Date.now()
+    };
+
+    const command = new PutCommand({
+      TableName: this.tableName,
+      Item: updatedInvite
+    });
+
+    await this.docClient.send(command);
+
+    console.info(`Invite fields updated: ${inviteId}`);
     return updatedInvite;
   }
 

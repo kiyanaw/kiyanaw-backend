@@ -556,6 +556,106 @@ export const getInviteById = async (inviteId: string, userEmail: string): Promis
   }
 };
 
+/**
+ * Renews an expired invite — bumps expiry to now+7 days, resets to pending, re-sends email
+ * @param inviteId The ID of the invite to renew
+ * @param requestorUserId The user ID of the person requesting the renewal (must be invite sender)
+ * @returns Renewed invite details
+ */
+export const renewInvite = async (inviteId: string, requestorUserId: string): Promise<{
+  message: string;
+  inviteId: string;
+  email: string;
+  transcriptionId: string;
+  expiresAt: string;
+  status: string;
+}> => {
+  try {
+    const response = await post({
+      apiName: 'invite',
+      path: '/invite/renew',
+      options: {
+        body: { inviteId, requestorUserId } as any // eslint-disable-line @typescript-eslint/no-explicit-any
+      }
+    }).response;
+
+    const result = (await response.body.json()) as unknown as {
+      success: boolean;
+      message?: string;
+      inviteId?: string;
+      email?: string;
+      transcriptionId?: string;
+      expiresAt?: string;
+      status?: string;
+      error?: string;
+    };
+
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to renew invite');
+    }
+
+    return {
+      message: result.message || 'Invitation renewed successfully',
+      inviteId: result.inviteId!,
+      email: result.email!,
+      transcriptionId: result.transcriptionId!,
+      expiresAt: result.expiresAt!,
+      status: result.status!,
+    };
+  } catch (error: unknown) {
+    const apiError = error as AmplifyApiError;
+    throw new Error(apiError.message || 'Failed to renew invite. Please try again.');
+  }
+};
+
+/**
+ * Changes the permission level on an invite (viewer ↔ editor)
+ * For accepted invites also moves the user between transcription ACL lists
+ * @param inviteId The ID of the invite to update
+ * @param requestorUserId The user ID making the change (must be invite sender)
+ * @param permissionLevel New permission level
+ */
+export const updateInvitePermission = async (
+  inviteId: string,
+  requestorUserId: string,
+  permissionLevel: 'viewer' | 'editor'
+): Promise<{
+  message: string;
+  inviteId: string;
+  permissionLevel: 'viewer' | 'editor';
+}> => {
+  try {
+    const response = await post({
+      apiName: 'invite',
+      path: '/invite/update-permission',
+      options: {
+        body: { inviteId, requestorUserId, permissionLevel } as any // eslint-disable-line @typescript-eslint/no-explicit-any
+      }
+    }).response;
+
+    const result = (await response.body.json()) as unknown as {
+      success: boolean;
+      message?: string;
+      inviteId?: string;
+      permissionLevel?: 'viewer' | 'editor';
+      error?: string;
+    };
+
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to update permission');
+    }
+
+    return {
+      message: result.message || 'Permission updated successfully',
+      inviteId: result.inviteId!,
+      permissionLevel: result.permissionLevel!,
+    };
+  } catch (error: unknown) {
+    const apiError = error as AmplifyApiError;
+    throw new Error(apiError.message || 'Failed to update permission. Please try again.');
+  }
+};
+
 export interface AcceptInviteData {
   inviteId: string;
   userEmail: string;

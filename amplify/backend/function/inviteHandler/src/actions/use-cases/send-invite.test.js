@@ -500,6 +500,27 @@ describe('SendInviteUseCase', () => {
     });
   });
 
+  describe('email normalization', () => {
+    it('should lowercase email before storing and querying', async () => {
+      const config = { ...validConfig, email: 'Dan@Home.COM' };
+      inviteService.createInvite.mockResolvedValue({
+        id: 'invite_123_abc456',
+        email: 'dan@home.com',
+        status: 'pending'
+      });
+
+      const useCase = new SendInviteUseCase(config);
+      await useCase.execute();
+
+      // The duplicate check query should use the lowercased email
+      expect(inviteService.getInvitesByEmail).toHaveBeenCalledWith('dan@home.com');
+      // The created record should also have the lowercased email
+      expect(inviteService.createInvite).toHaveBeenCalledWith(
+        expect.objectContaining({ email: 'dan@home.com' })
+      );
+    });
+  });
+
   describe('Use Case Architecture Compliance', () => {
     it('should be stateless - multiple instances should not interfere', async () => {
       emailService.sendEmail
