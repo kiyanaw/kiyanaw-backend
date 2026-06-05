@@ -1,5 +1,5 @@
 import { useState, memo } from 'react';
-import { Pause, Trash2, X, AlertTriangle, Repeat1, Database, ArrowUpToLine, ArrowDownToLine } from 'lucide-react';
+import { Pause, Trash2, X, AlertTriangle, Repeat1, Database, Merge } from 'lucide-react';
 import { type RegionData as Region } from '../../services/adt';
 import { useTextEditors } from '../../hooks/useTextEditors';
 import { useDeleteRegion } from '../../hooks/useDeleteRegion';
@@ -264,7 +264,7 @@ export const RegionEditor = memo(({
                     : 'Merge with previous region'
                 }
               >
-                <ArrowUpToLine size={14} />
+                <Merge size={14} style={{ transform: 'scaleX(-1)' }} />
               </button>
             );
           })()}
@@ -292,7 +292,7 @@ export const RegionEditor = memo(({
                     : 'Merge with next region'
                 }
               >
-                <ArrowDownToLine size={14} />
+                <Merge size={14} />
               </button>
             );
           })()}
