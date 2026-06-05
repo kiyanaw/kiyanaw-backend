@@ -57,6 +57,15 @@ export class MergeRegionUseCase {
     store.setRegionTranslation(survivorId, mergedTranslation);
     store.updateRegionBounds(survivorId, newStart, newEnd);
 
+    // Push merged text into the live RTE editors (useTextEditors only seeds content
+    // when empty, so we must explicitly refresh the survivor's editors here)
+    if (services.rteService.getInstance(`${survivorId}:main`)) {
+      services.rteService.setContent(`${survivorId}:main`, mergedText);
+    }
+    if (services.rteService.getInstance(`${survivorId}:translation`)) {
+      services.rteService.setContent(`${survivorId}:translation`, mergedTranslation);
+    }
+
     // Backend save for survivor (await to bump version before delete)
     const user = services.authService.currentUser();
     if (!user) throw new Error('User must be authenticated');

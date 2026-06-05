@@ -53,10 +53,16 @@ describe('MergeRegionUseCase', () => {
     setSelectedRegion: jest.fn(),
   };
 
+  const mockRteService = {
+    getInstance: jest.fn(() => ({})), // non-null = editor exists
+    setContent: jest.fn(),
+  };
+
   const mockServices = {
     authService: { currentUser: jest.fn(() => ({ username: 'testuser', userId: 'u1' })) },
     regionService: { updateRegion: jest.fn().mockResolvedValue(undefined) },
     wavesurferService: { setRegionPosition: jest.fn() },
+    rteService: mockRteService,
   };
 
   const validConfig = {
@@ -185,6 +191,18 @@ describe('MergeRegionUseCase', () => {
     it('bumps survivor version after backend save', async () => {
       await new MergeRegionUseCase(validConfig).execute();
       expect(mockStore.setRegionVersion).toHaveBeenCalledWith('survivor', 4); // 3 + 1
+    });
+
+    it('refreshes RTE editors with merged content when instances exist', async () => {
+      await new MergeRegionUseCase(validConfig).execute();
+      expect(mockRteService.setContent).toHaveBeenCalledWith('survivor:main', 'Hello world');
+      expect(mockRteService.setContent).toHaveBeenCalledWith('survivor:translation', 'Bonjour monde');
+    });
+
+    it('skips RTE refresh when editor instances do not exist', async () => {
+      mockRteService.getInstance.mockReturnValue(null);
+      await new MergeRegionUseCase(validConfig).execute();
+      expect(mockRteService.setContent).not.toHaveBeenCalled();
     });
   });
 });
