@@ -1,8 +1,9 @@
 import { useState, memo } from 'react';
-import { Pause, Trash2, X, AlertTriangle, Repeat1, Database } from 'lucide-react';
+import { Pause, Trash2, X, AlertTriangle, Repeat1, Database, ArrowUpToLine, ArrowDownToLine } from 'lucide-react';
 import { type RegionData as Region } from '../../services/adt';
 import { useTextEditors } from '../../hooks/useTextEditors';
 import { useDeleteRegion } from '../../hooks/useDeleteRegion';
+import { useMergeRegion } from '../../hooks/useMergeRegion';
 import { useSelectAndPlayRegion } from '../../hooks/useSelectAndPlayRegion';
 import { useCreateIssueFromSelection } from '../../hooks/useCreateIssueFromSelection';
 import { useEditorStore } from '../../stores/useEditorStore';
@@ -22,6 +23,7 @@ export const RegionEditor = memo(({
 
   const { mainEditorRef, translationEditorRef } = useTextEditors(region.id, activeTab);
   const { deleteRegion } = useDeleteRegion();
+  const { mergeRegion } = useMergeRegion();
   const playRegion = useSelectAndPlayRegion();
   const createIssueFromSelection = useCreateIssueFromSelection();
   const canEdit = useEditorStore((state) => state.canEdit);
@@ -33,7 +35,10 @@ export const RegionEditor = memo(({
   const hasSelection = regionSelection && regionSelection.length > 0 && regionSelection.text.trim().length > 0;
   
   // Get the region number (1-based index)
-  const regionNumber = regions.findIndex(r => r.id === region.id) + 1;
+  const idx = regions.findIndex(r => r.id === region.id);
+  const regionNumber = idx + 1;
+  const previousRegion = idx > 0 ? regions[idx - 1] : null;
+  const nextRegion = idx >= 0 && idx < regions.length - 1 ? regions[idx + 1] : null;
 
   // Get word under cursor for dictionary lookup
   const { cursorWordAnalysis } = useRegionContextBar(region.id, canEdit);
@@ -64,6 +69,14 @@ export const RegionEditor = memo(({
   };
   const handleDeleteRegion = () => {
     deleteRegion(region.id);
+  };
+  const handleMergePrevious = () => {
+    if (!previousRegion) return;
+    mergeRegion({ survivorId: previousRegion.id, absorbedId: region.id, transcriptionId: region.transcriptionId });
+  };
+  const handleMergeNext = () => {
+    if (!nextRegion) return;
+    mergeRegion({ survivorId: region.id, absorbedId: nextRegion.id, transcriptionId: region.transcriptionId });
   };
   
   const handleCreateIssue = async () => {
@@ -213,8 +226,8 @@ export const RegionEditor = memo(({
 
           <button
             className={`flex items-center justify-center w-7 h-7 border border-gray-300 rounded-md bg-white transition-all duration-200 text-sm ${
-              canEdit 
-                ? 'cursor-pointer hover:bg-red-50 hover:text-red-700 hover:border-red-300' 
+              canEdit
+                ? 'cursor-pointer hover:bg-red-50 hover:text-red-700 hover:border-red-300'
                 : 'cursor-not-allowed opacity-50 text-gray-400'
             }`}
             onClick={canEdit ? handleDeleteRegion : undefined}
@@ -224,6 +237,65 @@ export const RegionEditor = memo(({
           >
             <Trash2 size={14} />
           </button>
+
+          {/* Divider */}
+          <div className="w-px h-7 bg-gray-300"></div>
+
+          {/* Merge with previous region */}
+          {(() => {
+            const canMergePrev = canEdit && !!previousRegion && previousRegion.isNote === region.isNote;
+            return (
+              <button
+                data-testid="merge-previous-button"
+                className={`flex items-center justify-center w-7 h-7 border rounded-md transition-all duration-200 text-sm ${
+                  canMergePrev
+                    ? 'border-gray-300 bg-white cursor-pointer hover:bg-gray-50 hover:border-gray-400'
+                    : 'border-gray-300 bg-gray-50 text-gray-400 cursor-not-allowed opacity-50'
+                }`}
+                onClick={canMergePrev ? handleMergePrevious : undefined}
+                disabled={!canMergePrev}
+                title={
+                  !canEdit
+                    ? 'Editing disabled'
+                    : !previousRegion
+                    ? 'No previous region to merge with'
+                    : previousRegion.isNote !== region.isNote
+                    ? 'Cannot merge note and non-note regions'
+                    : 'Merge with previous region'
+                }
+              >
+                <ArrowUpToLine size={14} />
+              </button>
+            );
+          })()}
+
+          {/* Merge with next region */}
+          {(() => {
+            const canMergeNext = canEdit && !!nextRegion && nextRegion.isNote === region.isNote;
+            return (
+              <button
+                data-testid="merge-next-button"
+                className={`flex items-center justify-center w-7 h-7 border rounded-md transition-all duration-200 text-sm ${
+                  canMergeNext
+                    ? 'border-gray-300 bg-white cursor-pointer hover:bg-gray-50 hover:border-gray-400'
+                    : 'border-gray-300 bg-gray-50 text-gray-400 cursor-not-allowed opacity-50'
+                }`}
+                onClick={canMergeNext ? handleMergeNext : undefined}
+                disabled={!canMergeNext}
+                title={
+                  !canEdit
+                    ? 'Editing disabled'
+                    : !nextRegion
+                    ? 'No next region to merge with'
+                    : nextRegion.isNote !== region.isNote
+                    ? 'Cannot merge note and non-note regions'
+                    : 'Merge with next region'
+                }
+              >
+                <ArrowDownToLine size={14} />
+              </button>
+            );
+          })()}
         </div>
 
         <div className="flex items-center gap-2">
