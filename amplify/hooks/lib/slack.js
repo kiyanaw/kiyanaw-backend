@@ -45,6 +45,14 @@ function formatDuration(ms) {
   return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
 }
 
+export function serializeError(err) {
+  if (typeof err === 'string') return err;
+  if (err && typeof err === 'object') {
+    return typeof err.message === 'string' ? err.message : JSON.stringify(err);
+  }
+  return String(err);
+}
+
 export function buildStartMessage({ envName, lifecycle, gitUser, branch, sha }) {
   return [
     `:rocket: *Deployment started* for \`${envName}\``,

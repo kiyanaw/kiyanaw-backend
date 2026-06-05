@@ -14,7 +14,7 @@ import { execSync } from 'child_process';
 import { readFileSync } from 'fs';
 import path from 'path';
 import { getAmplifyEnv, getGitContext, projectRoot, readStartFile, deleteStartFile } from './lib/deploy-context.js';
-import { getWebhookUrl, postToSlack, buildFinishMessage } from './lib/slack.js';
+import { getWebhookUrl, postToSlack, buildFinishMessage, serializeError } from './lib/slack.js';
 
 let input = '';
 process.stdin.on('data', (chunk) => {
@@ -50,7 +50,7 @@ process.stdin.on('end', async () => {
 
     if (hookData.error) {
       console.log('Amplify push encountered an error. Skipping Serverless deployment.');
-      await notifyFinish({ success: false, stage: 'amplify push', error: String(hookData.error) });
+      await notifyFinish({ success: false, stage: 'amplify push', error: serializeError(hookData.error) });
       process.exit(0);
     }
 

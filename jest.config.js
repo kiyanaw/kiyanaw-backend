@@ -112,5 +112,26 @@ export default {
         '/node_modules/',
       ],
     },
+    // Amplify hooks tests
+    {
+      displayName: 'Amplify Hooks',
+      testEnvironment: 'node',
+      testMatch: [
+        '<rootDir>/amplify/hooks/**/*.test.js',
+      ],
+      transform: {
+        '^.+\\.js$': ['ts-jest', {
+          tsconfig: {
+            esModuleInterop: true,
+            allowSyntheticDefaultImports: true,
+            allowJs: true,
+            target: 'ES2020',
+          },
+        }],
+      },
+      testPathIgnorePatterns: [
+        '/node_modules/',
+      ],
+    },
   ],
 }; 
