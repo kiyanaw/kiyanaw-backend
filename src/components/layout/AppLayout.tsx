@@ -2,9 +2,12 @@ import { useState, useRef, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Download, LogOut, HelpCircle, BookOpen, Database } from 'lucide-react';
 import { useAuthStore } from '../../stores/useAuthStore';
+import { useTranscriptionsStore } from '../../stores/useTranscriptionsStore';
+import { useInviteStore } from '../../stores/useInviteStore';
 import { useLoadMyInvites } from '../../hooks/useLoadMyInvites';
 import { GuardedLink } from './GuardedLink';
 import { signOut } from 'aws-amplify/auth';
+import { clearTranscriptionCache } from '../../services/transcriptionService';
 import { canPromptInstall, promptInstall, shouldShowInstall, isIosDevice } from '../../services/pwaInstallService';
 
 export const AppLayout = () => {
@@ -25,6 +28,9 @@ export const AppLayout = () => {
 
   const handleSignOut = async () => {
     try {
+      await clearTranscriptionCache();
+      useTranscriptionsStore.getState().reset();
+      useInviteStore.getState().reset();
       await signOut();
       setProfileDropdownOpen(false);
     } catch (error) {

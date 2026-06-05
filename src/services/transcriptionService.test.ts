@@ -1,4 +1,4 @@
-import { loadInFull, loadAll, __resetClient } from './transcriptionService';
+import { loadInFull, loadAll, __resetClient, clearTranscriptionCache, isSyncing } from './transcriptionService';
 import { generateClient } from 'aws-amplify/api';
 import { loadRegionsForTranscription } from './regionService';
 import { loadIssuesForTranscription } from './issueService';
@@ -800,10 +800,23 @@ describe('TranscriptionService', () => {
         (transcriptionStorage.getAll as jest.Mock).mockResolvedValueOnce(minimalCachedTranscriptions);
 
         const result = await loadAll();
-        
+
         expect(Array.isArray(result)).toBe(true);
         expect(result.length).toBeGreaterThanOrEqual(0);
       });
+    });
+  });
+
+  describe('clearTranscriptionCache', () => {
+    it('delegates to transcriptionStorage.clearCache', async () => {
+      await clearTranscriptionCache();
+      expect(transcriptionStorage.clearCache).toHaveBeenCalledTimes(1);
+    });
+
+    it('resets currentSyncOperation so no stale sync can repopulate the cache', async () => {
+      expect(isSyncing()).toBe(false);
+      await clearTranscriptionCache();
+      expect(isSyncing()).toBe(false);
     });
   });
 }); 

@@ -37,7 +37,10 @@ interface TranscriptionsState {
   // Tab-specific sync actions
   setOwnedSyncStatus: (status: 'synced' | 'syncing' | null) => void;
   setSharedSyncStatus: (status: 'synced' | 'syncing' | null) => void;
-  
+
+  // Reset all state (used on logout / account switch)
+  reset: () => void;
+
   // Legacy action
   reload: () => void;
 }
@@ -107,7 +110,21 @@ export const useTranscriptionsStore = create<TranscriptionsState>()(
       setSharedSyncStatus: (sharedSyncStatus: 'synced' | 'syncing' | null) => {
         set({ sharedSyncStatus });
       },
-      
+
+      // Reset all state (used on logout / account switch)
+      reset: () => {
+        set({
+          transcriptions: [],
+          loading: false,
+          error: null,
+          isSyncing: false,
+          lastSyncedAt: null,
+          cacheStats: null,
+          ownedSyncStatus: null,
+          sharedSyncStatus: null,
+        });
+      },
+
       // Legacy action
       reload: () => {
         const store = useTranscriptionsStore.getState();

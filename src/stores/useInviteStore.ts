@@ -31,6 +31,7 @@ interface InviteState {
   clearCurrentInvite: () => void;
   markInviteAsAccepted: (inviteId: string) => void;
   refresh: () => Promise<void>;
+  reset: () => void;
 }
 
 export const useInviteStore = create<InviteState>()(
@@ -254,6 +255,17 @@ export const useInviteStore = create<InviteState>()(
         console.log('✅ Invite marked as accepted, pending count updated:', { 
           inviteId, 
           newPendingCount 
+        });
+      },
+
+      // Reset all state (used on logout / account switch)
+      reset: () => {
+        set({
+          invites: [],
+          invitesLoading: false,
+          invitesError: null,
+          pendingCount: 0,
+          loadedForUser: null,
         });
       },
 
