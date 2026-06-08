@@ -11,7 +11,7 @@ interface MergeRegionArgs {
 
 export const useMergeRegion = () => {
   const mergeRegion = useCallback(async ({ survivorId, absorbedId, transcriptionId }: MergeRegionArgs) => {
-    const confirmed = window.confirm('Merge this region with the adjacent region?');
+    const confirmed = window.confirm('Merge this region with the next region?');
     if (!confirmed) return;
 
     try {

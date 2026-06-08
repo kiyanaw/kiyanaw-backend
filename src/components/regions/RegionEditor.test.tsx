@@ -58,21 +58,10 @@ describe('RegionEditor deselect button', () => {
   });
 });
 
-describe('RegionEditor merge buttons', () => {
-  it('renders both merge buttons', () => {
+describe('RegionEditor merge button', () => {
+  it('renders merge-next button', () => {
     render(<RegionEditor region={mockRegion as any} />);
-    expect(screen.getByTestId('merge-previous-button')).toBeInTheDocument();
     expect(screen.getByTestId('merge-next-button')).toBeInTheDocument();
-  });
-
-  it('clicking merge-previous invokes mergeRegion with correct ids', () => {
-    render(<RegionEditor region={mockRegion as any} />);
-    fireEvent.click(screen.getByTestId('merge-previous-button'));
-    expect(mockMergeRegion).toHaveBeenCalledWith({
-      survivorId: prevRegion.id,
-      absorbedId: mockRegion.id,
-      transcriptionId: mockRegion.transcriptionId,
-    });
   });
 
   it('clicking merge-next invokes mergeRegion with correct ids', () => {
@@ -85,34 +74,16 @@ describe('RegionEditor merge buttons', () => {
     });
   });
 
-  it('merge-previous is disabled for the first region', () => {
-    mockStoreState = { ...mockStoreState, regions: [mockRegion, nextRegion] };
-    render(<RegionEditor region={mockRegion as any} />);
-    expect(screen.getByTestId('merge-previous-button')).toBeDisabled();
-  });
-
   it('merge-next is disabled for the last region', () => {
     mockStoreState = { ...mockStoreState, regions: [prevRegion, mockRegion] };
     render(<RegionEditor region={mockRegion as any} />);
     expect(screen.getByTestId('merge-next-button')).toBeDisabled();
   });
 
-  it('both buttons disabled when canEdit is false', () => {
+  it('merge-next disabled when canEdit is false', () => {
     mockStoreState = { ...mockStoreState, canEdit: false };
     render(<RegionEditor region={mockRegion as any} />);
-    expect(screen.getByTestId('merge-previous-button')).toBeDisabled();
     expect(screen.getByTestId('merge-next-button')).toBeDisabled();
-  });
-
-  it('merge-previous disabled when neighbor isNote differs', () => {
-    const noteRegion = { ...prevRegion, isNote: true };
-    mockStoreState = {
-      ...mockStoreState,
-      regions: [noteRegion, mockRegion, nextRegion],
-      regionById: (id: string) => [noteRegion, mockRegion, nextRegion].find((r) => r.id === id) ?? null,
-    };
-    render(<RegionEditor region={mockRegion as any} />);
-    expect(screen.getByTestId('merge-previous-button')).toBeDisabled();
   });
 
   it('merge-next disabled when neighbor isNote differs', () => {
