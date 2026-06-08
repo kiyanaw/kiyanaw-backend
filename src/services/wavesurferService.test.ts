@@ -904,14 +904,26 @@ describe('WaveSurferService', () => {
 
     it('should clear region-bounded playback when calling clearRegionBoundedPlayback', () => {
       const testRegion = { id: 'test-region', start: 25.5, end: 35.2 };
-      
+
       // First arm the guard
       wavesurferService.seekToRegion(testRegion);
       expect(wavesurferService['_playbackBoundRegion']).toEqual(testRegion);
-      
+
       // Then clear it
       wavesurferService.clearRegionBoundedPlayback();
       expect(wavesurferService['_playbackBoundRegion']).toBeNull();
+    });
+
+    it('should return the bound region via getPlaybackBoundRegion after seekToRegion', () => {
+      const testRegion = { id: 'test-region', start: 5.0, end: 10.0 };
+
+      expect(wavesurferService.getPlaybackBoundRegion()).toBeNull();
+
+      wavesurferService.seekToRegion(testRegion);
+      expect(wavesurferService.getPlaybackBoundRegion()).toEqual(testRegion);
+
+      wavesurferService.clearRegionBoundedPlayback();
+      expect(wavesurferService.getPlaybackBoundRegion()).toBeNull();
     });
 
     it('should stop playback when reaching end of bounded region', () => {

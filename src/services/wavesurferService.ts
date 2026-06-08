@@ -533,6 +533,10 @@ class WaveSurferService {
     }
   }
 
+  getPlaybackBoundRegion(): RegionEvent | null {
+    return this._playbackBoundRegion;
+  }
+
   /**
    * Clears the region-bounded playback guard, allowing free playback
    */

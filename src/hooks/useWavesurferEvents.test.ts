@@ -101,6 +101,7 @@ describe('useWavesurferEvents', () => {
     // Mock wavesurferService methods
     (wavesurferService.clearAllListeners as jest.Mock).mockImplementation(mockClearAllListeners);
     (wavesurferService.on as jest.Mock).mockImplementation(mockOn);
+    (wavesurferService.getPlaybackBoundRegion as jest.Mock).mockReturnValue(null);
   });
 
   describe('useEffect behavior', () => {
@@ -638,6 +639,48 @@ describe('useWavesurferEvents', () => {
       // Exit region2 - should work since it's the currently tracked region
       regionOutHandler({ regionId: region2 });
       expect(mockRemoveCustomStyle).toHaveBeenCalledWith('style-id-2');
+    });
+
+    it('should not select an overlapping region when playback is bound to a different region', () => {
+      const transcriptionId = 'test-transcription-1';
+      const boundRegionId = 'region-playing';
+      const overlappingRegionId = 'region-overlapping';
+
+      (wavesurferService.getPlaybackBoundRegion as jest.Mock).mockReturnValue({
+        id: boundRegionId,
+        start: 0,
+        end: 10,
+      });
+
+      renderHook(() => useWavesurferEvents(transcriptionId));
+
+      const regionInHandler = mockOn.mock.calls.find(call => call[0] === 'region-in')[1];
+
+      // Simulate region-in for the overlapping region (not the bound one)
+      regionInHandler({ regionId: overlappingRegionId });
+
+      expect(mockStore.setSelectedRegion).not.toHaveBeenCalled();
+      expect(mockAddCustomStyle).not.toHaveBeenCalled();
+      expect(mockScrollElementIntoView).not.toHaveBeenCalled();
+    });
+
+    it('should select the bound region when region-in fires for it during bounded playback', () => {
+      const transcriptionId = 'test-transcription-1';
+      const boundRegionId = 'region-playing';
+
+      (wavesurferService.getPlaybackBoundRegion as jest.Mock).mockReturnValue({
+        id: boundRegionId,
+        start: 0,
+        end: 10,
+      });
+
+      renderHook(() => useWavesurferEvents(transcriptionId));
+
+      const regionInHandler = mockOn.mock.calls.find(call => call[0] === 'region-in')[1];
+
+      regionInHandler({ regionId: boundRegionId });
+
+      expect(mockStore.setSelectedRegion).toHaveBeenCalledWith(boundRegionId);
     });
   });
 
