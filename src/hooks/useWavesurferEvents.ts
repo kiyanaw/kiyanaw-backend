@@ -111,6 +111,13 @@ export const useWavesurferEvents = (transcriptionId: string, source?: string): v
     const handleRegionIn = (data: unknown) => {
       const { regionId } = data as RegionEvent;
 
+      // During region-bounded playback, overlapping regions also fire `region-in`.
+      // Ignore those so selection, highlight, and scroll stay on the played region.
+      const boundRegion = wavesurferService.getPlaybackBoundRegion();
+      if (boundRegion && boundRegion.id !== regionId) {
+        return;
+      }
+
       useEditorStore.getState().setSelectedRegion(regionId);
 
       if (highlightedInboundRegionRef.current) {

@@ -1,6 +1,9 @@
 import { Authenticator, useAuthenticator, ThemeProvider, createTheme } from '@aws-amplify/ui-react';
 import { useRef, type ReactNode } from 'react';
 import { useAuthStore } from '../../stores/useAuthStore';
+import { useTranscriptionsStore } from '../../stores/useTranscriptionsStore';
+import { useInviteStore } from '../../stores/useInviteStore';
+import { clearTranscriptionCache } from '../../services/transcriptionService';
 
 interface AuthenticatorShellProps {
   children: ReactNode;
@@ -18,18 +21,33 @@ const AuthenticatedApp = ({ children }: { children: ReactNode }) => {
   const currentUserKey = route === 'authenticated' && user ? user.userId : 'null';
   
   if (lastUserRef.current !== currentUserKey) {
+    const previousUserKey = lastUserRef.current;
     lastUserRef.current = currentUserKey;
-    
+
     const currentUser = route === 'authenticated' && user ? {
       username: user.signInDetails?.loginId as string,  // This is the email
       userId: user.userId,
       signInDetails: user.signInDetails,
     } : null;
-    
+
     // Check if the store actually needs updating
     const storeUser = useAuthStore.getState().user;
     const storeUserKey = storeUser ? storeUser.userId : 'null';
-    
+
+    // When switching between two authenticated users in the same session,
+    // clear the previous user's cache before loading the new user's data.
+    const switchingUsers =
+      previousUserKey !== '__initial__' &&
+      previousUserKey !== 'null' &&
+      currentUserKey !== 'null' &&
+      previousUserKey !== currentUserKey;
+
+    if (switchingUsers) {
+      clearTranscriptionCache().catch(console.error);
+      useTranscriptionsStore.getState().reset();
+      useInviteStore.getState().reset();
+    }
+
     if (storeUserKey !== currentUserKey) {
       useAuthStore.getState().setUser(currentUser);
     }

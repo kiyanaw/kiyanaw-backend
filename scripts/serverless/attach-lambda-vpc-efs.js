@@ -162,6 +162,13 @@ async function main() {
       '/mnt/temp'
     );
 
+    // Attach VPC and EFS to processMedia (shares the same EFS as createPeaksFile)
+    await attachVpcAndEfs(
+      `processMedia-${amplifyEnv.envName}`,
+      outputs.CreatePeaksFileEFSAccessPointArn,
+      '/mnt/temp'
+    );
+
     console.log('\n========================================');
     console.log('✅ Lambda VPC/EFS attachment complete!');
     console.log('========================================\n');

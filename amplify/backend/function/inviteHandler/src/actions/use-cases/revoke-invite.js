@@ -102,6 +102,52 @@ class RevokeInviteUseCase {
   }
 
   /**
+   * Removes user from a Media record's editors or viewers list
+   * @param {string} mediaId - The Media record ID
+   * @param {string} userIdentifier - The user ID to remove
+   * @param {string} permissionLevel - "viewer" or "editor"
+   */
+  async removeUserFromMedia(mediaId, userIdentifier, permissionLevel) {
+    const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
+    const { DynamoDBDocumentClient, GetCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
+
+    const client = new DynamoDBClient({ region: process.env.REGION });
+    const docClient = DynamoDBDocumentClient.from(client);
+    const tableName = process.env.API_KIYANAW_MEDIATABLE_NAME;
+
+    if (!tableName) {
+      throw new Error('API_KIYANAW_MEDIATABLE_NAME environment variable not configured');
+    }
+
+    const listAttribute = permissionLevel === 'editor' ? 'editors' : 'viewers';
+    const now = new Date().toISOString();
+
+    const getResult = await docClient.send(new GetCommand({ TableName: tableName, Key: { id: mediaId } }));
+    const media = getResult.Item;
+
+    if (!media) {
+      console.log(`Media ${mediaId} not found - skipping ACL cleanup`);
+      return;
+    }
+
+    const currentList = media[listAttribute] || [];
+    if (!currentList.includes(userIdentifier)) {
+      return;
+    }
+
+    const updatedList = currentList.filter(id => id !== userIdentifier);
+    await docClient.send(new UpdateCommand({
+      TableName: tableName,
+      Key: { id: mediaId },
+      UpdateExpression: `SET #list = :updatedList, #updatedAt = :updatedAt`,
+      ExpressionAttributeNames: { '#list': listAttribute, '#updatedAt': 'updatedAt' },
+      ExpressionAttributeValues: { ':updatedList': updatedList, ':updatedAt': now }
+    }));
+
+    console.log(`User ${userIdentifier} removed from media ${mediaId} ${listAttribute} list`);
+  }
+
+  /**
    * Executes the revoke invitation process
    */
   async execute() {
@@ -129,19 +175,28 @@ class RevokeInviteUseCase {
       throw new Error(`Unauthorized: Only the person who sent the invite can revoke it. Invite was sent by "${invite.invitedBy}" but revoke requested by "${requestorUserId}"`);
     }
 
-    // 3. If the invite was accepted, remove the user from the transcription ACLs
+    // 3. If the invite was accepted, remove the user from the transcription and Media ACLs
     if (invite.status === 'accepted') {
       console.log(`📝 Invite was accepted - removing user from transcription ACLs`);
-      
+
       // Use acceptedByUserId if available (new field), fallback to email for older invites
       const userIdToRemove = invite.acceptedByUserId || invite.email;
       console.log(`🔍 Removing user from ACLs: ${userIdToRemove} (using ${invite.acceptedByUserId ? 'userId' : 'email as fallback'})`);
-      
-      await this.removeUserFromTranscription(
+
+      const transcription = await this.removeUserFromTranscription(
         invite.transcriptionId,
         userIdToRemove,
         invite.permissionLevel
       );
+
+      // Sync Media ACL when transcription has a linked media record
+      if (transcription && transcription.mediaId) {
+        try {
+          await this.removeUserFromMedia(transcription.mediaId, userIdToRemove, invite.permissionLevel);
+        } catch (mediaError) {
+          console.warn(`Failed to sync Media ACL for mediaId ${transcription.mediaId}:`, mediaError.message);
+        }
+      }
     } else {
       console.log(`ℹ️ Invite was not accepted (status: ${invite.status}) - skipping ACL cleanup`);
     }

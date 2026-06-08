@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "{\"createdOn\":\"Mac\",\"createdBy\":\"Amplify\",\"createdWith\":\"14.0.0\",\"stackType\":\"function-Lambda\",\"metadata\":{\"whyContinueWithGen1\":\"\"}}",
+  "Description": "{\"createdOn\":\"Linux\",\"createdBy\":\"Amplify\",\"createdWith\":\"14.0.0\",\"stackType\":\"function-Lambda\",\"metadata\":{\"whyContinueWithGen1\":\"\"}}",
   "Parameters": {
     "CloudWatchRule": {
       "Type": "String",
@@ -20,11 +20,21 @@
       "Type": "String",
       "Default": "apikiyanawGraphQLAPIIdOutput"
     },
-    "custominviteHandlerSESSESFromEmailAddress": {
-      "Type": "String"
+    "apikiyanawGraphQLAPIEndpointOutput": {
+      "Type": "String",
+      "Default": "apikiyanawGraphQLAPIEndpointOutput"
     },
-    "custominviteHandlerSESSESEmailIdentityArn": {
-      "Type": "String"
+    "storagetranscriptionsBucketName": {
+      "Type": "String",
+      "Default": "storagetranscriptionsBucketName"
+    },
+    "functionkiyanawaudiowaveformArn": {
+      "Type": "String",
+      "Default": "functionkiyanawaudiowaveformArn"
+    },
+    "functionkiyanawffmpegArn": {
+      "Type": "String",
+      "Default": "functionkiyanawffmpegArn"
     }
   },
   "Conditions": {
@@ -57,12 +67,12 @@
         "FunctionName": {
           "Fn::If": [
             "ShouldNotCreateEnvResources",
-            "inviteHandler",
+            "processMedia",
             {
               "Fn::Join": [
                 "",
                 [
-                  "inviteHandler",
+                  "processMedia",
                   "-",
                   {
                     "Ref": "env"
@@ -80,34 +90,11 @@
             "REGION": {
               "Ref": "AWS::Region"
             },
-            "API_KIYANAW_TRANSCRIPTIONTABLE_NAME": {
-              "Fn::ImportValue": {
-                "Fn::Sub": "${apikiyanawGraphQLAPIIdOutput}:GetAtt:TranscriptionTable:Name"
-              }
-            },
-            "API_KIYANAW_TRANSCRIPTIONTABLE_ARN": {
-              "Fn::Join": [
-                "",
-                [
-                  "arn:aws:dynamodb:",
-                  {
-                    "Ref": "AWS::Region"
-                  },
-                  ":",
-                  {
-                    "Ref": "AWS::AccountId"
-                  },
-                  ":table/",
-                  {
-                    "Fn::ImportValue": {
-                      "Fn::Sub": "${apikiyanawGraphQLAPIIdOutput}:GetAtt:TranscriptionTable:Name"
-                    }
-                  }
-                ]
-              ]
-            },
             "API_KIYANAW_GRAPHQLAPIIDOUTPUT": {
               "Ref": "apikiyanawGraphQLAPIIdOutput"
+            },
+            "API_KIYANAW_GRAPHQLAPIENDPOINTOUTPUT": {
+              "Ref": "apikiyanawGraphQLAPIEndpointOutput"
             },
             "API_KIYANAW_MEDIATABLE_NAME": {
               "Fn::ImportValue": {
@@ -135,37 +122,8 @@
                 ]
               ]
             },
-            "API_KIYANAW_INVITETABLE_NAME": {
-              "Fn::ImportValue": {
-                "Fn::Sub": "${apikiyanawGraphQLAPIIdOutput}:GetAtt:InviteTable:Name"
-              }
-            },
-            "API_KIYANAW_INVITETABLE_ARN": {
-              "Fn::Join": [
-                "",
-                [
-                  "arn:aws:dynamodb:",
-                  {
-                    "Ref": "AWS::Region"
-                  },
-                  ":",
-                  {
-                    "Ref": "AWS::AccountId"
-                  },
-                  ":table/",
-                  {
-                    "Fn::ImportValue": {
-                      "Fn::Sub": "${apikiyanawGraphQLAPIIdOutput}:GetAtt:InviteTable:Name"
-                    }
-                  }
-                ]
-              ]
-            },
-            "SES_FROM_EMAIL": {
-              "Ref": "custominviteHandlerSESSESFromEmailAddress"
-            },
-            "SES_EMAIL_IDENTITY_ARN": {
-              "Ref": "custominviteHandlerSESSESEmailIdentityArn"
+            "STORAGE_TRANSCRIPTIONS_BUCKETNAME": {
+              "Ref": "storagetranscriptionsBucketName"
             }
           }
         },
@@ -176,8 +134,16 @@
           ]
         },
         "Runtime": "nodejs22.x",
-        "Layers": [],
-        "Timeout": 25
+        "Layers": [
+          {
+            "Ref": "functionkiyanawaudiowaveformArn"
+          },
+          {
+            "Ref": "functionkiyanawffmpegArn"
+          }
+        ],
+        "MemorySize": 3008,
+        "Timeout": 900
       }
     },
     "LambdaExecutionRole": {
@@ -186,12 +152,12 @@
         "RoleName": {
           "Fn::If": [
             "ShouldNotCreateEnvResources",
-            "kiyanawLambdaRole01376a93",
+            "kiyanawLambdaRole449e6e49",
             {
               "Fn::Join": [
                 "",
                 [
-                  "kiyanawLambdaRole01376a93",
+                  "kiyanawLambdaRole449e6e49",
                   "-",
                   {
                     "Ref": "env"
@@ -279,102 +245,37 @@
           "Statement": [
             {
               "Effect": "Allow",
+              "Action": "s3:ListBucket",
+              "Resource": [
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:aws:s3:::",
+                      {
+                        "Ref": "storagetranscriptionsBucketName"
+                      }
+                    ]
+                  ]
+                }
+              ]
+            },
+            {
+              "Effect": "Allow",
               "Action": [
-                "dynamodb:Get*",
-                "dynamodb:BatchGetItem",
-                "dynamodb:List*",
-                "dynamodb:Describe*",
-                "dynamodb:Scan",
-                "dynamodb:Query",
-                "dynamodb:PartiQLSelect",
-                "dynamodb:Update*",
-                "dynamodb:RestoreTable*",
-                "dynamodb:PartiQLUpdate"
+                "s3:PutObject",
+                "s3:GetObject"
               ],
               "Resource": [
                 {
                   "Fn::Join": [
                     "",
                     [
-                      "arn:aws:dynamodb:",
+                      "arn:aws:s3:::",
                       {
-                        "Ref": "AWS::Region"
+                        "Ref": "storagetranscriptionsBucketName"
                       },
-                      ":",
-                      {
-                        "Ref": "AWS::AccountId"
-                      },
-                      ":table/",
-                      {
-                        "Fn::ImportValue": {
-                          "Fn::Sub": "${apikiyanawGraphQLAPIIdOutput}:GetAtt:TranscriptionTable:Name"
-                        }
-                      }
-                    ]
-                  ]
-                },
-                {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "arn:aws:dynamodb:",
-                      {
-                        "Ref": "AWS::Region"
-                      },
-                      ":",
-                      {
-                        "Ref": "AWS::AccountId"
-                      },
-                      ":table/",
-                      {
-                        "Fn::ImportValue": {
-                          "Fn::Sub": "${apikiyanawGraphQLAPIIdOutput}:GetAtt:TranscriptionTable:Name"
-                        }
-                      },
-                      "/index/*"
-                    ]
-                  ]
-                },
-                {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "arn:aws:dynamodb:",
-                      {
-                        "Ref": "AWS::Region"
-                      },
-                      ":",
-                      {
-                        "Ref": "AWS::AccountId"
-                      },
-                      ":table/",
-                      {
-                        "Fn::ImportValue": {
-                          "Fn::Sub": "${apikiyanawGraphQLAPIIdOutput}:GetAtt:MediaTable:Name"
-                        }
-                      }
-                    ]
-                  ]
-                },
-                {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "arn:aws:dynamodb:",
-                      {
-                        "Ref": "AWS::Region"
-                      },
-                      ":",
-                      {
-                        "Ref": "AWS::AccountId"
-                      },
-                      ":table/",
-                      {
-                        "Fn::ImportValue": {
-                          "Fn::Sub": "${apikiyanawGraphQLAPIIdOutput}:GetAtt:MediaTable:Name"
-                        }
-                      },
-                      "/index/*"
+                      "/*"
                     ]
                   ]
                 }
@@ -401,49 +302,6 @@
                 "dynamodb:PartiQLDelete"
               ],
               "Resource": [
-                {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "arn:aws:dynamodb:",
-                      {
-                        "Ref": "AWS::Region"
-                      },
-                      ":",
-                      {
-                        "Ref": "AWS::AccountId"
-                      },
-                      ":table/",
-                      {
-                        "Fn::ImportValue": {
-                          "Fn::Sub": "${apikiyanawGraphQLAPIIdOutput}:GetAtt:InviteTable:Name"
-                        }
-                      }
-                    ]
-                  ]
-                },
-                {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "arn:aws:dynamodb:",
-                      {
-                        "Ref": "AWS::Region"
-                      },
-                      ":",
-                      {
-                        "Ref": "AWS::AccountId"
-                      },
-                      ":table/",
-                      {
-                        "Fn::ImportValue": {
-                          "Fn::Sub": "${apikiyanawGraphQLAPIIdOutput}:GetAtt:InviteTable:Name"
-                        }
-                      },
-                      "/index/*"
-                    ]
-                  ]
-                },
                 {
                   "Fn::Join": [
                     "",
@@ -493,13 +351,13 @@
         }
       }
     },
-    "SESPolicy": {
+    "LambdaTriggerPolicyMedia": {
       "DependsOn": [
         "LambdaExecutionRole"
       ],
       "Type": "AWS::IAM::Policy",
       "Properties": {
-        "PolicyName": "ses-email-sending-policy",
+        "PolicyName": "amplify-lambda-execution-policy-Media",
         "Roles": [
           {
             "Ref": "LambdaExecutionRole"
@@ -511,14 +369,82 @@
             {
               "Effect": "Allow",
               "Action": [
-                "ses:SendEmail",
-                "ses:SendRawEmail",
-                "ses:SendTemplatedEmail"
+                "dynamodb:DescribeStream",
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+                "dynamodb:ListStreams"
+              ],
+              "Resource": {
+                "Fn::ImportValue": {
+                  "Fn::Sub": "${apikiyanawGraphQLAPIIdOutput}:GetAtt:MediaTable:StreamArn"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "LambdaEFSPolicy": {
+      "DependsOn": [
+        "LambdaExecutionRole"
+      ],
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyName": "lambda-efs-execution-policy",
+        "Roles": [
+          {
+            "Ref": "LambdaExecutionRole"
+          }
+        ],
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "elasticfilesystem:ClientMount",
+                "elasticfilesystem:ClientWrite",
+                "elasticfilesystem:ClientRootAccess"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ec2:CreateNetworkInterface",
+                "ec2:DescribeNetworkInterfaces",
+                "ec2:DeleteNetworkInterface",
+                "ec2:DescribeVpcs",
+                "ec2:DescribeSubnets",
+                "ec2:DescribeSecurityGroups"
               ],
               "Resource": "*"
             }
           ]
         }
+      }
+    },
+    "LambdaEventSourceMappingMedia": {
+      "Type": "AWS::Lambda::EventSourceMapping",
+      "DependsOn": [
+        "LambdaTriggerPolicyMedia",
+        "LambdaExecutionRole"
+      ],
+      "Properties": {
+        "BatchSize": 1,
+        "Enabled": true,
+        "EventSourceArn": {
+          "Fn::ImportValue": {
+            "Fn::Sub": "${apikiyanawGraphQLAPIIdOutput}:GetAtt:MediaTable:StreamArn"
+          }
+        },
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "LambdaFunction",
+            "Arn"
+          ]
+        },
+        "StartingPosition": "LATEST"
       }
     }
   },

@@ -178,6 +178,46 @@ class AcceptInviteUseCase {
   }
 
   /**
+   * Add user to a Media record's viewers or editors list
+   * @param {string} mediaId - The Media record ID
+   * @param {string} userId - The user ID to add
+   * @param {string} permissionLevel - "viewer" or "editor"
+   */
+  async addUserToMedia(mediaId, userId, permissionLevel) {
+    const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
+    const { DynamoDBDocumentClient, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
+
+    const client = new DynamoDBClient({ region: process.env.REGION });
+    const docClient = DynamoDBDocumentClient.from(client);
+    const tableName = process.env.API_KIYANAW_MEDIATABLE_NAME;
+
+    if (!tableName) {
+      throw new Error('API_KIYANAW_MEDIATABLE_NAME environment variable not configured');
+    }
+
+    const listAttribute = permissionLevel === 'editor' ? 'editors' : 'viewers';
+    const now = new Date().toISOString();
+
+    const command = new UpdateCommand({
+      TableName: tableName,
+      Key: { id: mediaId },
+      UpdateExpression: `SET #list = list_append(if_not_exists(#list, :empty_list), :user_id), #updatedAt = :updatedAt`,
+      ExpressionAttributeNames: {
+        '#list': listAttribute,
+        '#updatedAt': 'updatedAt'
+      },
+      ExpressionAttributeValues: {
+        ':user_id': [userId],
+        ':empty_list': [],
+        ':updatedAt': now
+      }
+    });
+
+    await docClient.send(command);
+    console.log(`User ${userId} added to media ${mediaId} as ${permissionLevel}`);
+  }
+
+  /**
    * Execute the invite acceptance process
    * @returns {Object} Result with invite details and transcription info
    */
@@ -220,7 +260,16 @@ class AcceptInviteUseCase {
     const updatedInvite = await this.updateInviteStatus(invite);
 
     // Add user to transcription's viewers or editors list
-    await this.addUserToTranscription(invite.transcriptionId, userId, invite.permissionLevel);
+    const transcription = await this.addUserToTranscription(invite.transcriptionId, userId, invite.permissionLevel);
+
+    // Sync Media ACL when transcription has a linked media record
+    if (transcription && transcription.mediaId) {
+      try {
+        await this.addUserToMedia(transcription.mediaId, userId, invite.permissionLevel);
+      } catch (mediaError) {
+        console.warn(`Failed to sync Media ACL for mediaId ${transcription.mediaId}:`, mediaError.message);
+      }
+    }
 
     console.log(`Invite accepted successfully: ${inviteId} for ${userEmail}, added as ${invite.permissionLevel} to transcription ${invite.transcriptionId}`);
 

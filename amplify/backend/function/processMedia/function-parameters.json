@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "api": {
+      "kiyanaw": [
+        "Query",
+        "Mutation"
+      ]
+    },
+    "storage": {
+      "Media:@model(appsync)": [
+        "create",
+        "read",
+        "update",
+        "delete"
+      ]
+    }
+  },
+  "lambdaLayers": [
+    {
+      "type": "ProjectLayer",
+      "resourceName": "kiyanawaudiowaveform",
+      "version": "Always choose latest version",
+      "isLatestVersionSelected": true,
+      "env": "staging"
+    },
+    {
+      "type": "ProjectLayer",
+      "resourceName": "kiyanawffmpeg",
+      "version": "Always choose latest version",
+      "isLatestVersionSelected": true,
+      "env": "staging"
+    }
+  ]
+}

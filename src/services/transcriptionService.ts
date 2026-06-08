@@ -665,6 +665,15 @@ const loadOwnedTranscriptionsSince = async (userId: string, sinceDate: string): 
 };
 
 /**
+ * Clear all cached transcription data and reset in-flight sync state.
+ * Call this on logout or account switch before loading data for the new user.
+ */
+export const clearTranscriptionCache = async (): Promise<void> => {
+  currentSyncOperation = null;
+  await transcriptionStorage.clearCache();
+};
+
+/**
  * Check if a sync operation is currently in progress
  */
 export const isSyncing = (): boolean => currentSyncOperation !== null;
