@@ -287,6 +287,42 @@
       "dependsOn": [],
       "providerPlugin": "awscloudformation",
       "service": "Lambda"
+    },
+    "processMedia": {
+      "build": true,
+      "dependsOn": [
+        {
+          "attributes": [
+            "GraphQLAPIIdOutput",
+            "GraphQLAPIEndpointOutput"
+          ],
+          "category": "api",
+          "resourceName": "kiyanaw"
+        },
+        {
+          "attributes": [
+            "Arn"
+          ],
+          "category": "function",
+          "resourceName": "kiyanawaudiowaveform"
+        },
+        {
+          "attributes": [
+            "Arn"
+          ],
+          "category": "function",
+          "resourceName": "kiyanawffmpeg"
+        },
+        {
+          "attributes": [
+            "BucketName"
+          ],
+          "category": "storage",
+          "resourceName": "transcriptions"
+        }
+      ],
+      "providerPlugin": "awscloudformation",
+      "service": "Lambda"
     }
   },
   "hosting": {
@@ -453,6 +489,22 @@
         {
           "category": "function",
           "resourceName": "opensearchproxy"
+        }
+      ]
+    },
+    "AMPLIFY_function_processMedia_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "processMedia"
+        }
+      ]
+    },
+    "AMPLIFY_function_processMedia_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "processMedia"
         }
       ]
     }
