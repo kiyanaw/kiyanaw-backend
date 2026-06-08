@@ -349,7 +349,7 @@ export const WaveformPlayer = ({
         </div>
 
         {/* Media Area: video overlays waveform on mobile via CSS toggle */}
-        <div className="relative w-full h-32">
+        <div className="relative w-full h-40">
           {/* Waveform sits underneath; never unmounted */}
           <div ref={setWaveformContainer} className="w-full h-32 bg-white relative" data-testid="waveform-container" />
           
@@ -491,7 +491,7 @@ export const WaveformPlayer = ({
         </div>
 
         {/* Controls */}
-        <div className="flex items-center justify-between mt-[20px] h-10 bg-gray-100 px-3 border-t border-gray-300 gap-2">
+        <div className="flex items-center justify-between h-10 bg-gray-100 px-3 border-t border-gray-300 gap-2">
           <div className="flex items-center gap-2">
             <button
               className="bg-none border-none text-base cursor-pointer px-2 py-1 rounded transition-colors hover:bg-gray-200 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
