@@ -1079,6 +1079,35 @@ describe('WaveSurferService', () => {
       });
     });
 
+    it('should not tint an overlapping region during bounded playback', () => {
+      wavesurferService.initialize(mockContainer, mockTimelineContainer);
+
+      const regionInCallback = mockRegionsInstance.on.mock.calls.find(
+        (call: any) => call[0] === 'region-in'
+      )[1];
+
+      const boundElement = { style: { backgroundColor: '' } };
+      const overlappingElement = { style: { backgroundColor: '' } };
+
+      // Arm bounded playback on the first region
+      wavesurferService.seekToRegion({ id: 'region-bound', start: 0, end: 10 });
+
+      // Enter the bound region (should highlight)
+      regionInCallback({ id: 'region-bound', element: boundElement });
+      expect(boundElement.style.backgroundColor).toBe('rgba(0, 213, 255, 0.1)');
+
+      // Enter the overlapping region while still bounded to the first
+      regionInCallback({ id: 'region-overlapping', element: overlappingElement });
+
+      // Overlapping region must NOT be highlighted, bound region must stay highlighted
+      expect(overlappingElement.style.backgroundColor).toBe('');
+      expect(boundElement.style.backgroundColor).toBe('rgba(0, 213, 255, 0.1)');
+      expect(wavesurferService['_inboundRegionCurrentHighlighted']).toEqual({
+        id: 'region-bound',
+        element: boundElement,
+      });
+    });
+
     it('should clear highlighted region tracking on normal region-out', () => {
       wavesurferService.initialize(mockContainer, mockTimelineContainer);
       

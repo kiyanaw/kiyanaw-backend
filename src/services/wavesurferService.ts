@@ -284,7 +284,13 @@ class WaveSurferService {
       if (!regionEvent?.element) {
         return;
       }
-      
+
+      // During bounded playback, overlapping regions fire region-in too. Ignore
+      // them so the waveform highlight and selection stay on the played region.
+      if (this._playbackBoundRegion && this._playbackBoundRegion.id !== regionEvent.id) {
+        return;
+      }
+
       const previouslyHighlightedInboundRegion = this._inboundRegionCurrentHighlighted !== null;
       const newRegionInIsDifferent = previouslyHighlightedInboundRegion && this._inboundRegionCurrentHighlighted?.id !== regionEvent.id;
       const needToClearHighlight = newRegionInIsDifferent;
