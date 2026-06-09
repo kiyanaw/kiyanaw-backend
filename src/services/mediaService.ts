@@ -6,7 +6,19 @@ import { createMedia as createMediaMutation, deleteMedia as deleteMediaMutation 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import { getMedia as getMediaQuery } from '../graphql/queries.js';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+import { onUpdateMedia } from '../graphql/subscriptions.js';
 import type { GraphQLClient } from '../types/shared';
+
+export const MEDIA_STATUS = {
+  PENDING: 'PENDING',
+  PROCESSING: 'PROCESSING',
+  READY: 'READY',
+  ERROR: 'ERROR',
+} as const;
+
+export type MediaStatus = typeof MEDIA_STATUS[keyof typeof MEDIA_STATUS];
 
 let client: GraphQLClient | null = null;
 const getClient = (): GraphQLClient => {
@@ -94,4 +106,48 @@ export const deleteMedia = async (id: string): Promise<void> => {
     variables: { input: { id, _version: media._version } },
     authMode: 'userPool',
   });
+};
+
+export interface SubscribeToMediaChangesFilter {
+  owner?: string;
+  id?: string;
+}
+
+export const subscribeToMediaChanges = (
+  filter: SubscribeToMediaChangesFilter,
+  callback: (media: MediaData) => void
+): (() => void) => {
+  const gqlFilter: Record<string, unknown> = {};
+  if (filter.owner) gqlFilter['owner'] = { eq: filter.owner };
+  if (filter.id) gqlFilter['id'] = { eq: filter.id };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let subscription: any = null;
+  try {
+    subscription = (getClient().graphql({
+      query: onUpdateMedia,
+      variables: Object.keys(gqlFilter).length > 0 ? { filter: gqlFilter } : {},
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    }) as any).subscribe({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      next: (result: any) => {
+        const media = result.data?.onUpdateMedia;
+        if (media && !media._deleted) {
+          callback(media as MediaData);
+        }
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      error: (error: any) => console.error('Media subscription error:', error),
+    });
+  } catch (error) {
+    console.error('Failed to establish media subscription:', error);
+  }
+
+  return () => {
+    try {
+      subscription?.unsubscribe();
+    } catch (error) {
+      console.error('Error unsubscribing from media changes:', error);
+    }
+  };
 };

@@ -34,6 +34,9 @@ interface TranscriptionsState {
   updateCacheStats: (stats: CacheStats) => void;
   mergeTranscriptions: (newTranscriptions: TranscriptionModel[]) => void;
   
+  // Media status updates
+  applyMediaStatus: (mediaId: string, status: string) => void;
+
   // Tab-specific sync actions
   setOwnedSyncStatus: (status: 'synced' | 'syncing' | null) => void;
   setSharedSyncStatus: (status: 'synced' | 'syncing' | null) => void;
@@ -103,6 +106,17 @@ export const useTranscriptionsStore = create<TranscriptionsState>()(
         set({ transcriptions: mergedTranscriptions });
       },
       
+      // Media status updates — find the matching transcription and update its mediaStatus
+      applyMediaStatus: (mediaId: string, status: string) => {
+        const { transcriptions } = get();
+        const updated = transcriptions.map(t => {
+          if (t.mediaId !== mediaId) return t;
+          t.mediaStatus = status;
+          return t;
+        });
+        set({ transcriptions: updated });
+      },
+
       // Tab-specific sync actions
       setOwnedSyncStatus: (ownedSyncStatus: 'synced' | 'syncing' | null) => {
         set({ ownedSyncStatus });

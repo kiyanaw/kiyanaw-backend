@@ -5,9 +5,11 @@ import { useTranscriptionsStore } from '../../stores/useTranscriptionsStore';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { useLoadTranscriptions } from '../../hooks/useLoadTranscriptions';
 import { SyncIndicator } from '../sync/SyncIndicator';
+import { MediaStatusIndicator } from './MediaStatusIndicator';
 import { SyncOwnedTranscriptions } from '../../use-cases/sync-owned-transcriptions';
 import { SyncSharedTranscriptions } from '../../use-cases/sync-shared-transcriptions';
 import { services } from '../../services';
+import { subscribeToMediaChanges } from '../../services/mediaService';
 import TimeAgo from 'javascript-time-ago';
 import en from 'javascript-time-ago/locale/en';
 
@@ -37,6 +39,7 @@ export const TranscriptionsList = () => {
   const reload = useTranscriptionsStore((state) => state.reload);
   const ownedSyncStatus = useTranscriptionsStore((state) => state.ownedSyncStatus);
   const sharedSyncStatus = useTranscriptionsStore((state) => state.sharedSyncStatus);
+  const applyMediaStatus = useTranscriptionsStore((state) => state.applyMediaStatus);
   const user = useAuthStore((state) => state.user);
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState('dateLastUpdated');
@@ -89,10 +92,20 @@ export const TranscriptionsList = () => {
 
   // Load transcriptions when component mounts
   const loadTranscriptions = useLoadTranscriptions();
-  
+
   useEffect(() => {
     loadTranscriptions();
   }, [loadTranscriptions]);
+
+  // Subscribe to media status updates for the current user's files
+  useEffect(() => {
+    if (!user?.userId) return;
+    const unsubscribe = subscribeToMediaChanges(
+      { owner: user.userId },
+      (media) => applyMediaStatus(media.id, media.status)
+    );
+    return unsubscribe;
+  }, [user?.userId, applyMediaStatus]);
 
   // Handle tab switching with sync
   const handleTabSwitch = (tab: TabType) => {
@@ -436,6 +449,8 @@ export const TranscriptionsList = () => {
                           {transcription.title}
                         </Link>
 
+                        <MediaStatusIndicator status={transcription.mediaStatus} />
+
                         {/* Media Type Icon */}
                         {transcription.isVideo ? (
                           <Video className="w-4 h-4 text-gray-500 flex-shrink-0" />
@@ -558,6 +573,8 @@ export const TranscriptionsList = () => {
                       >
                         {transcription.title}
                       </Link>
+
+                      <MediaStatusIndicator status={transcription.mediaStatus} />
 
                       {/* Sharing Status Icons */}
                       {(() => {

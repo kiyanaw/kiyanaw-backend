@@ -38,6 +38,8 @@ describe('LoadTranscription', () => {
     addKnownWords: jest.fn(),
     setAccessDenied: jest.fn(),
     setCanEdit: jest.fn(),
+    setTranscription: jest.fn(),
+    setMediaStatus: jest.fn(),
   };
   const mockTranscriptionData = {
     transcription: {
@@ -245,11 +247,74 @@ describe('LoadTranscription', () => {
 
     it('should set canEdit to false when user cannot edit', async () => {
       (services.userService.canEditTranscription as jest.Mock).mockReturnValue(false);
-      
+
       await useCase.execute();
-      
+
       expect(services.userService.canEditTranscription).toHaveBeenCalledWith(mockTranscriptionData.transcription);
       expect(mockStore.setCanEdit).toHaveBeenCalledWith(false);
+    });
+
+    describe('media processing variant', () => {
+      const mockProcessingTranscription = {
+        id: mockTranscriptionId,
+        title: 'Processing Transcription',
+        mediaId: 'media-1',
+      };
+
+      it('should set transcription and mediaStatus when media is PENDING', async () => {
+        (services.transcriptionService.loadInFull as jest.Mock).mockResolvedValue({
+          processing: true,
+          transcription: mockProcessingTranscription,
+          mediaId: 'media-1',
+          mediaStatus: 'PENDING',
+        });
+
+        await useCase.execute();
+
+        expect(mockStore.setTranscription).toHaveBeenCalledWith(mockProcessingTranscription);
+        expect(mockStore.setMediaStatus).toHaveBeenCalledWith('PENDING');
+      });
+
+      it('should NOT call setFullTranscriptionData when media is processing', async () => {
+        (services.transcriptionService.loadInFull as jest.Mock).mockResolvedValue({
+          processing: true,
+          transcription: mockProcessingTranscription,
+          mediaId: 'media-1',
+          mediaStatus: 'PROCESSING',
+        });
+
+        await useCase.execute();
+
+        expect(mockStore.setFullTranscriptionData).not.toHaveBeenCalled();
+      });
+
+      it('should NOT call wavesurferService.load when media is processing', async () => {
+        (services.transcriptionService.loadInFull as jest.Mock).mockResolvedValue({
+          processing: true,
+          transcription: mockProcessingTranscription,
+          mediaId: 'media-1',
+          mediaStatus: 'PENDING',
+        });
+
+        await useCase.execute();
+
+        expect(services.wavesurferService.load).not.toHaveBeenCalled();
+      });
+
+      it('should set transcription and ERROR mediaStatus when media errored', async () => {
+        (services.transcriptionService.loadInFull as jest.Mock).mockResolvedValue({
+          processing: true,
+          transcription: mockProcessingTranscription,
+          mediaId: 'media-1',
+          mediaStatus: 'ERROR',
+        });
+
+        await useCase.execute();
+
+        expect(mockStore.setTranscription).toHaveBeenCalledWith(mockProcessingTranscription);
+        expect(mockStore.setMediaStatus).toHaveBeenCalledWith('ERROR');
+        expect(services.wavesurferService.load).not.toHaveBeenCalled();
+      });
     });
 
     describe('error handling', () => {

@@ -36,6 +36,7 @@ interface EditorState {
   showExpiredCredentialsDialog: boolean;
   accessDenied: boolean;
   canEdit: boolean;
+  mediaStatus: string | null;
 
   // Regions state
   regions: RegionData[];
@@ -83,6 +84,7 @@ interface EditorState {
   // Actions
   setFullTranscriptionData: (data: EditorDataPayload, selectedRegionId?: string | null) => void;
   setAccessDenied: (denied: boolean) => void;
+  setMediaStatus: (status: string | null) => void;
   setWavesurferError: (error: string | null) => void;
   setShowExpiredCredentialsDialog: (show: boolean) => void;
   cleanup: () => void;
@@ -179,6 +181,7 @@ export const useEditorStore = create<EditorState>()(
       showExpiredCredentialsDialog: false,
       accessDenied: false,
       canEdit: false,
+      mediaStatus: null,
       regions: [],
       regionMap: {},
       regionVersions: {},
@@ -328,6 +331,10 @@ export const useEditorStore = create<EditorState>()(
         set({ accessDenied: denied });
       },
 
+      setMediaStatus: (status) => {
+        set({ mediaStatus: status });
+      },
+
       setWavesurferError: (error: string | null) => {
         set({ wavesurferError: error });
       },
@@ -351,6 +358,7 @@ export const useEditorStore = create<EditorState>()(
           transcription: null,
           peaks: null,
           accessDenied: false,
+          mediaStatus: null,
           regions: [],
           regionMap: {},
           regionVersions: {},

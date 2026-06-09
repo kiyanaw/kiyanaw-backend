@@ -40,15 +40,24 @@ export class LoadTranscription {
       this.config.store.setAccessDenied(true);
       return;
     }
-    
+
+    // Check if media is still processing (or errored) — show status UI, skip wavesurfer
+    if ('processing' in data) {
+      const canEdit = userService.canEditTranscription(data.transcription);
+      this.config.store.setCanEdit(canEdit);
+      this.config.store.setTranscription(data.transcription);
+      this.config.store.setMediaStatus(data.mediaStatus);
+      return;
+    }
+
     // Check if user can edit this transcription
     const canEdit = userService.canEditTranscription(data.transcription);
     this.config.store.setCanEdit(canEdit);
-    
+
     // Read deep-link params
     const selectedRegionId = browserService.getRegionIdFromUrl();
     const selectedIssueId = browserService.getIssueIdFromUrl?.() || null;
-    
+
     // Set transcription data in store - use null instead of undefined for consistency with tests
     this.config.store.setFullTranscriptionData(data, selectedRegionId || null);
     // Persist selected issue id in store if provided

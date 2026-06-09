@@ -3,9 +3,9 @@ import { getUrl, remove } from 'aws-amplify/storage';
 import { fetchAuthSession } from 'aws-amplify/auth';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - GraphQL queries are generated as JS files
-import { getTranscription, transcriptionsByAuthor } from '../graphql/queries.js';
+import { getTranscription } from '../graphql/queries.js';
 
-import { transcriptionsByAuthorDate } from './custom-queries';
+import { transcriptionsByAuthorDate, transcriptionsByAuthorWithMedia } from './custom-queries';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - GraphQL mutations are generated as JS files
 import { createTranscription as createTranscriptionMutation, updateTranscription as updateTranscriptionMutation, deleteTranscription as deleteTranscriptionMutation } from '../graphql/mutations.js';
@@ -20,16 +20,19 @@ import { getMyInvites } from './inviteService';
 import { getMedia } from './mediaService';
 import { awsConfigService } from './awsConfigService';
 
-import { 
-  type GraphQLClient, 
-  type GraphQLResponse, 
+import {
+  type GraphQLClient,
+  type GraphQLResponse,
   type GetTranscriptionResponse,
   type CreateTranscriptionResponse,
   type UpdateTranscriptionResponse,
   type DeleteTranscriptionResponse,
-  type TranscriptionData as SharedTranscriptionData, 
+  type TranscriptionData as SharedTranscriptionData,
   type LoadTranscriptionResult,
+  type LoadTranscriptionProcessingResult,
 } from '../types/shared';
+
+import { MEDIA_STATUS } from './mediaService';
 
 // Sync state management
 let currentSyncOperation: Promise<TranscriptionModel[]> | null = null;
@@ -436,7 +439,7 @@ const fetchPeaksDataByKey = async (
  * @param transcriptionId The ID of the transcription to load.
  * @returns An object containing the transcription, regions, and issues, or false if access denied.
  */
-export const loadInFull = async (transcriptionId: string): Promise<false | LoadTranscriptionResult> => {
+export const loadInFull = async (transcriptionId: string): Promise<false | LoadTranscriptionResult | LoadTranscriptionProcessingResult> => {
   if (!transcriptionId) {
     throw new Error('transcriptionId is required');
   }
@@ -475,6 +478,14 @@ export const loadInFull = async (transcriptionId: string): Promise<false | LoadT
   } else {
     // New pipeline: fetch Media record and derive source + peaks from it
     const media = await getMedia(transcription.mediaId!);
+    if (media.status !== MEDIA_STATUS.READY) {
+      return {
+        processing: true,
+        transcription,
+        mediaId: media.id,
+        mediaStatus: media.status,
+      };
+    }
     const bucket = awsConfigService.getUserFilesBucket();
     transcription.source = `https://${bucket}.s3.amazonaws.com/${media.renditionKey}`;
     const result = await fetchPeaksDataByKey(media.peaksKey!);
@@ -512,7 +523,7 @@ const loadOwnedTranscriptions = async (userId: string): Promise<TranscriptionMod
     
     do {
       const graphqlResult = await getClient().graphql({
-        query: transcriptionsByAuthor,
+        query: transcriptionsByAuthorWithMedia,
         variables: {
           author: userId,
           limit: 50,
@@ -520,13 +531,13 @@ const loadOwnedTranscriptions = async (userId: string): Promise<TranscriptionMod
         }
       });
 
-      const response = graphqlResult as { 
-        data: { 
+      const response = graphqlResult as {
+        data: {
           transcriptionsByAuthor: {
             items: SharedTranscriptionData[];
             nextToken?: string;
           }
-        } 
+        }
       };
       const page = response.data?.transcriptionsByAuthor;
       
