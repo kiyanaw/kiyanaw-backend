@@ -106,6 +106,11 @@ export const useTranscriptionsStore = create<TranscriptionsState>()(
         set({ transcriptions: mergedTranscriptions });
       },
       
+      removeTranscription: (transcriptionId: string) => {
+        const { transcriptions } = get();
+        set({ transcriptions: transcriptions.filter(t => t.id !== transcriptionId) });
+      },
+
       // Media status updates — find the matching transcription and update its mediaStatus
       applyMediaStatus: (mediaId: string, status: string) => {
         const { transcriptions } = get();
