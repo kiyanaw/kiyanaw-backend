@@ -35,6 +35,8 @@ interface TranscriptionsState {
   updateCacheStats: (stats: CacheStats) => void;
   mergeTranscriptions: (newTranscriptions: TranscriptionModel[]) => void;
   
+  removeTranscription: (transcriptionId: string) => void;
+
   // Media status updates
   applyMediaStatus: (mediaId: string, status: string) => void;
 
