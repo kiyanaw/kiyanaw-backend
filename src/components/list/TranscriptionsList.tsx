@@ -9,7 +9,7 @@ import { MediaStatusIndicator } from './MediaStatusIndicator';
 import { SyncOwnedTranscriptions } from '../../use-cases/sync-owned-transcriptions';
 import { SyncSharedTranscriptions } from '../../use-cases/sync-shared-transcriptions';
 import { services } from '../../services';
-import { subscribeToMediaChanges } from '../../services/mediaService';
+import { MEDIA_STATUS } from '../../services/mediaService';
 import TimeAgo from 'javascript-time-ago';
 import en from 'javascript-time-ago/locale/en';
 
@@ -97,16 +97,30 @@ export const TranscriptionsList = () => {
     loadTranscriptions();
   }, [loadTranscriptions]);
 
-  // Subscribe to media status updates for the current user's files.
-  // No explicit filter needed — Amplify owner auth restricts the subscription automatically.
+  // Poll media status for any transcriptions still processing.
+  // Lambda writes directly to DynamoDB, bypassing AppSync subscriptions.
+  const processingKey = transcriptions
+    .filter(t => t.mediaId && (t.mediaStatus === MEDIA_STATUS.PENDING || t.mediaStatus === MEDIA_STATUS.PROCESSING))
+    .map(t => t.mediaId as string)
+    .join(',');
+
   useEffect(() => {
-    if (!user?.userId) return;
-    const unsubscribe = subscribeToMediaChanges(
-      {},
-      (media) => applyMediaStatus(media.id, media.status)
-    );
-    return unsubscribe;
-  }, [user?.userId, applyMediaStatus]);
+    if (!processingKey) return;
+    const mediaIds = processingKey.split(',');
+
+    const pollInterval = setInterval(async () => {
+      for (const mediaId of mediaIds) {
+        try {
+          const media = await services.mediaService.getMedia(mediaId);
+          applyMediaStatus(mediaId, media.status);
+        } catch (error) {
+          console.error('Failed to poll media status:', error);
+        }
+      }
+    }, 3000);
+
+    return () => clearInterval(pollInterval);
+  }, [processingKey, applyMediaStatus]);
 
   // Handle tab switching with sync
   const handleTabSwitch = (tab: TabType) => {
