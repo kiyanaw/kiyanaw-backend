@@ -19,7 +19,7 @@ jest.mock('../stores/useEditorStore');
 
 describe('useLoadTranscription', () => {
   // Mock implementations
-  const mockExecute = jest.fn();
+  const mockExecute = jest.fn().mockResolvedValue(undefined);
   const mockStore = {
     setFullTranscriptionData: jest.fn(),
     cleanup: jest.fn(),
@@ -27,7 +27,8 @@ describe('useLoadTranscription', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
+    mockExecute.mockResolvedValue(undefined);
+
     // Mock LoadTranscription constructor and methods
     (LoadTranscription as jest.MockedClass<typeof LoadTranscription>).mockImplementation(() => ({
       execute: mockExecute,

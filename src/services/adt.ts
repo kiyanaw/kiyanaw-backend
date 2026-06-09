@@ -10,6 +10,7 @@ export interface TranscriptionData {
   issueCount?: number;
   source?: string;
   mediaId?: string;
+  media?: { status?: string } | null;
   coverage?: number;
   isPrivate?: boolean;
   publicIssues?: boolean;
@@ -239,6 +240,7 @@ export class TranscriptionModel {
   public type: string;
   public source: string;
   public mediaId?: string;
+  public mediaStatus?: string;
   public coverage: number;
   public isPrivate: boolean;
   public publicIssues: boolean;
@@ -259,7 +261,7 @@ export class TranscriptionModel {
     if (!data.id) {
       throw new Error('TranscriptionModel constructor: data.id is required');
     }
-    
+
     this.id = data.id;
     this.data = {
       ...data,
@@ -274,6 +276,7 @@ export class TranscriptionModel {
     // this.issues = Number(data.issues) || 0;
     this.source = data.source ?? '';
     this.mediaId = data.mediaId;
+    this.mediaStatus = data.media?.status ?? undefined;
     this.coverage = data.coverage || 0;
     this.isPrivate = data.isPrivate ?? true;
     this.publicIssues = data.publicIssues ?? false;

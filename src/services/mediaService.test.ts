@@ -1,4 +1,4 @@
-import { createMedia, getMedia, deleteMedia, __resetClient } from './mediaService';
+import { createMedia, getMedia, deleteMedia, subscribeToMediaChanges, __resetClient } from './mediaService';
 
 jest.mock('aws-amplify/api', () => ({
   generateClient: jest.fn(),
@@ -15,6 +15,10 @@ jest.mock('../graphql/mutations.js', () => ({
 
 jest.mock('../graphql/queries.js', () => ({
   getMedia: 'mock-get-media-query',
+}));
+
+jest.mock('../graphql/subscriptions.js', () => ({
+  onUpdateMedia: 'mock-on-update-media-subscription',
 }));
 
 import { generateClient } from 'aws-amplify/api';
@@ -203,6 +207,70 @@ describe('mediaService', () => {
       await deleteMedia('media-123');
 
       expect(mockGraphql).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('subscribeToMediaChanges', () => {
+    let mockUnsubscribe: jest.Mock;
+    let mockSubscribe: jest.Mock;
+
+    beforeEach(() => {
+      mockUnsubscribe = jest.fn();
+      mockSubscribe = jest.fn().mockReturnValue({ unsubscribe: mockUnsubscribe });
+      mockGraphql.mockReturnValue({ subscribe: mockSubscribe });
+    });
+
+    it('should subscribe with no filter when no id given (owner auth restricts automatically)', () => {
+      const callback = jest.fn();
+      subscribeToMediaChanges({}, callback);
+
+      expect(mockGraphql).toHaveBeenCalledWith({
+        query: 'mock-on-update-media-subscription',
+        variables: {},
+      });
+      expect(mockSubscribe).toHaveBeenCalledWith(
+        expect.objectContaining({ next: expect.any(Function), error: expect.any(Function) })
+      );
+    });
+
+    it('should subscribe with id filter when given an id', () => {
+      const callback = jest.fn();
+      subscribeToMediaChanges({ id: 'media-xyz' }, callback);
+
+      expect(mockGraphql).toHaveBeenCalledWith({
+        query: 'mock-on-update-media-subscription',
+        variables: { filter: { id: { eq: 'media-xyz' } } },
+      });
+    });
+
+    it('should invoke callback when media update arrives', () => {
+      const callback = jest.fn();
+      subscribeToMediaChanges({}, callback);
+
+      const nextFn = mockSubscribe.mock.calls[0][0].next;
+      const updatedMedia = { id: 'media-1', status: 'READY', _deleted: false };
+      nextFn({ data: { onUpdateMedia: updatedMedia } });
+
+      expect(callback).toHaveBeenCalledWith(updatedMedia);
+    });
+
+    it('should not invoke callback when media is deleted', () => {
+      const callback = jest.fn();
+      subscribeToMediaChanges({}, callback);
+
+      const nextFn = mockSubscribe.mock.calls[0][0].next;
+      nextFn({ data: { onUpdateMedia: { id: 'media-1', status: 'READY', _deleted: true } } });
+
+      expect(callback).not.toHaveBeenCalled();
+    });
+
+    it('should return unsubscribe function that calls unsubscribe on subscription', () => {
+      const callback = jest.fn();
+      const unsubscribe = subscribeToMediaChanges({}, callback);
+
+      unsubscribe();
+
+      expect(mockUnsubscribe).toHaveBeenCalled();
     });
   });
 });

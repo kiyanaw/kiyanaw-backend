@@ -189,7 +189,7 @@ describe('TranscriptionService', () => {
       const result = await loadInFull(mockTranscriptionId);
       
       expect(result).not.toBe(false);
-      if (result !== false) {
+      if (result !== false && !('processing' in result)) {
         expect(result.peaks).toEqual([10, 20, 30]);
       }
     });
@@ -200,11 +200,11 @@ describe('TranscriptionService', () => {
         ok: true,
         json: jest.fn().mockResolvedValue(peaksDirectArray),
       });
-      
+
       const result = await loadInFull(mockTranscriptionId);
-      
+
       expect(result).not.toBe(false);
-      if (result !== false) {
+      if (result !== false && !('processing' in result)) {
         expect(result.peaks).toEqual([40, 50, 60]);
       }
     });
@@ -271,10 +271,11 @@ describe('TranscriptionService', () => {
       await expect(loadInFull(mockTranscriptionId)).rejects.toThrow('Issue loading failed');
     });
 
-    it('should route to new pipeline when source is absent', async () => {
+    it('should route to new pipeline when source is absent and media is READY', async () => {
       const mediaService = require('./mediaService');
       (mediaService.getMedia as jest.Mock).mockResolvedValue({
         id: 'media-1',
+        status: 'READY',
         renditionKey: 'public/renditions/u/media-1.mp3',
         peaksKey: 'public/peaks/u/media-1.json',
       });
@@ -297,6 +298,97 @@ describe('TranscriptionService', () => {
       const result = await loadInFull(mockTranscriptionId);
       expect(mediaService.getMedia).toHaveBeenCalledWith('media-1');
       expect(result).not.toBe(false);
+      expect('processing' in (result as object)).toBe(false);
+    });
+
+    // Regression tests for mid-processing open (previously caused infinite retry loop)
+    it('should return processing result when media status is PENDING', async () => {
+      const mediaService = require('./mediaService');
+      (mediaService.getMedia as jest.Mock).mockResolvedValue({
+        id: 'media-1',
+        status: 'PENDING',
+        renditionKey: null,
+        peaksKey: null,
+      });
+
+      mockGraphqlClient.graphql.mockResolvedValue({
+        data: {
+          getTranscription: { ...mockRawTranscription, source: null, mediaId: 'media-1' },
+        },
+      });
+
+      (TranscriptionModel as jest.MockedClass<typeof TranscriptionModel>).mockImplementation(
+        (data: any) => ({
+          ...data,
+          source: data.source ?? null,
+          mediaId: data.mediaId,
+          setAccessLevel: jest.fn(),
+        }) as any
+      );
+
+      const result = await loadInFull(mockTranscriptionId);
+      expect(result).not.toBe(false);
+      expect(result).toMatchObject({ processing: true, mediaId: 'media-1', mediaStatus: 'PENDING' });
+      // Must not attempt to fetch peaks (would previously cause 11-retry loop)
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    it('should return processing result when media status is PROCESSING', async () => {
+      const mediaService = require('./mediaService');
+      (mediaService.getMedia as jest.Mock).mockResolvedValue({
+        id: 'media-2',
+        status: 'PROCESSING',
+        renditionKey: null,
+        peaksKey: null,
+      });
+
+      mockGraphqlClient.graphql.mockResolvedValue({
+        data: {
+          getTranscription: { ...mockRawTranscription, source: null, mediaId: 'media-2' },
+        },
+      });
+
+      (TranscriptionModel as jest.MockedClass<typeof TranscriptionModel>).mockImplementation(
+        (data: any) => ({
+          ...data,
+          source: data.source ?? null,
+          mediaId: data.mediaId,
+          setAccessLevel: jest.fn(),
+        }) as any
+      );
+
+      const result = await loadInFull(mockTranscriptionId);
+      expect(result).toMatchObject({ processing: true, mediaId: 'media-2', mediaStatus: 'PROCESSING' });
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    it('should return processing result when media status is ERROR', async () => {
+      const mediaService = require('./mediaService');
+      (mediaService.getMedia as jest.Mock).mockResolvedValue({
+        id: 'media-3',
+        status: 'ERROR',
+        renditionKey: null,
+        peaksKey: null,
+      });
+
+      mockGraphqlClient.graphql.mockResolvedValue({
+        data: {
+          getTranscription: { ...mockRawTranscription, source: null, mediaId: 'media-3' },
+        },
+      });
+
+      (TranscriptionModel as jest.MockedClass<typeof TranscriptionModel>).mockImplementation(
+        (data: any) => ({
+          ...data,
+          source: data.source ?? null,
+          mediaId: data.mediaId,
+          setAccessLevel: jest.fn(),
+        }) as any
+      );
+
+      const result = await loadInFull(mockTranscriptionId);
+      expect(result).toMatchObject({ processing: true, mediaId: 'media-3', mediaStatus: 'ERROR' });
+      expect(global.fetch).not.toHaveBeenCalled();
     });
 
     it('should throw when source is absent and getMedia fails', async () => {
@@ -346,9 +438,9 @@ describe('TranscriptionService', () => {
 
     it('should return peaks as array of numbers when access is granted', async () => {
       const result = await loadInFull(mockTranscriptionId);
-      
+
       expect(result).not.toBe(false);
-      if (result !== false) {
+      if (result !== false && !('processing' in result)) {
         expect(Array.isArray(result.peaks)).toBe(true);
         expect(result.peaks).toEqual(mockPeaksData);
       }
@@ -356,9 +448,9 @@ describe('TranscriptionService', () => {
 
     it('should return regions as array when access is granted', async () => {
       const result = await loadInFull(mockTranscriptionId);
-      
+
       expect(result).not.toBe(false);
-      if (result !== false) {
+      if (result !== false && !('processing' in result)) {
         expect(Array.isArray(result.regions)).toBe(true);
         expect(result.regions).toBe(mockRegions);
       }
@@ -366,9 +458,9 @@ describe('TranscriptionService', () => {
 
     it('should return issues as array when access is granted', async () => {
       const result = await loadInFull(mockTranscriptionId);
-      
+
       expect(result).not.toBe(false);
-      if (result !== false) {
+      if (result !== false && !('processing' in result)) {
         expect(Array.isArray(result.issues)).toBe(true);
         expect(result.issues).toBe(mockIssues);
       }
@@ -420,7 +512,7 @@ describe('TranscriptionService', () => {
       const result = await loadInFull(mockTranscriptionId);
       
       expect(result).not.toBe(false);
-      if (result !== false) {
+      if (result !== false && !('processing' in result)) {
         expect(result.regions).toEqual([]);
         expect(result.issues).toEqual([]);
       }

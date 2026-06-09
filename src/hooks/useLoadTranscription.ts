@@ -18,6 +18,8 @@ export const useLoadTranscription = (transcriptionId: string): void => {
       store,
     });
 
-    useCase.execute()
+    useCase.execute().catch((error: Error) => {
+      console.error('Failed to load transcription:', error);
+    });
   }
-}; 
+};
