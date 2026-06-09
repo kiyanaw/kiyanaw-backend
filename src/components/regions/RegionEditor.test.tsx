@@ -14,39 +14,86 @@ jest.mock('../../hooks/useSelectAndPlayRegion', () => ({
   useSelectAndPlayRegion: () => jest.fn(),
 }));
 
+const mockMergeRegion = jest.fn();
+jest.mock('../../hooks/useMergeRegion', () => ({
+  useMergeRegion: () => ({ mergeRegion: mockMergeRegion }),
+}));
+
 // Provide canEdit and setSelectedRegion in store
 const mockSetSelectedRegion = jest.fn();
-const mockRegion = { 
-  id: 'r1', 
-  start: 0, 
-  end: 1, 
+const mockRegion = {
+  id: 'r1',
+  start: 0,
+  end: 1,
   transcriptionId: 't1',
-  regionAnalysis: []
+  isNote: false,
+  regionAnalysis: [],
 };
+const prevRegion = { id: 'r0', start: 0, end: 0.5, transcriptionId: 't1', isNote: false, regionAnalysis: [] };
+const nextRegion = { id: 'r2', start: 1, end: 2, transcriptionId: 't1', isNote: false, regionAnalysis: [] };
+
+let mockStoreState: Record<string, unknown> = {};
+
 jest.mock('../../stores/useEditorStore', () => ({
-  useEditorStore: (selector: (s: any) => any) =>
-    selector({
-      canEdit: true,
-      regions: [mockRegion],
-      regionSelections: { r1: { text: '', length: 0 } },
-      regionCursorWords: {},
-      setSelectedRegion: mockSetSelectedRegion,
-      regionById: (id: string) => id === 'r1' ? mockRegion : undefined,
-    }),
+  useEditorStore: (selector: (s: any) => any) => selector(mockStoreState),
 }));
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  mockStoreState = {
+    canEdit: true,
+    regions: [prevRegion, mockRegion, nextRegion],
+    regionSelections: { r1: { text: '', length: 0 } },
+    regionCursorWords: {},
+    setSelectedRegion: mockSetSelectedRegion,
+    regionById: (id: string) => [prevRegion, mockRegion, nextRegion].find((r) => r.id === id) ?? null,
+  };
+});
 
 describe('RegionEditor deselect button', () => {
   it('calls setSelectedRegion(null) when clicking the deselect button', () => {
-    render(
-      <RegionEditor
-        region={{ id: 'r1', start: 0, end: 1, isNote: false } as any}
-      />
-    );
-
-    const btn = screen.getByTitle('Deselect region');
-    fireEvent.click(btn);
-
+    render(<RegionEditor region={{ id: 'r1', start: 0, end: 1, isNote: false } as any} />);
+    fireEvent.click(screen.getByTitle('Deselect region'));
     expect(mockSetSelectedRegion).toHaveBeenCalledWith(null);
   });
 });
 
+describe('RegionEditor merge button', () => {
+  it('renders merge-next button', () => {
+    render(<RegionEditor region={mockRegion as any} />);
+    expect(screen.getByTestId('merge-next-button')).toBeInTheDocument();
+  });
+
+  it('clicking merge-next invokes mergeRegion with correct ids', () => {
+    render(<RegionEditor region={mockRegion as any} />);
+    fireEvent.click(screen.getByTestId('merge-next-button'));
+    expect(mockMergeRegion).toHaveBeenCalledWith({
+      survivorId: mockRegion.id,
+      absorbedId: nextRegion.id,
+      transcriptionId: mockRegion.transcriptionId,
+    });
+  });
+
+  it('merge-next is disabled for the last region', () => {
+    mockStoreState = { ...mockStoreState, regions: [prevRegion, mockRegion] };
+    render(<RegionEditor region={mockRegion as any} />);
+    expect(screen.getByTestId('merge-next-button')).toBeDisabled();
+  });
+
+  it('merge-next disabled when canEdit is false', () => {
+    mockStoreState = { ...mockStoreState, canEdit: false };
+    render(<RegionEditor region={mockRegion as any} />);
+    expect(screen.getByTestId('merge-next-button')).toBeDisabled();
+  });
+
+  it('merge-next disabled when neighbor isNote differs', () => {
+    const noteNext = { ...nextRegion, isNote: true };
+    mockStoreState = {
+      ...mockStoreState,
+      regions: [prevRegion, mockRegion, noteNext],
+      regionById: (id: string) => [prevRegion, mockRegion, noteNext].find((r) => r.id === id) ?? null,
+    };
+    render(<RegionEditor region={mockRegion as any} />);
+    expect(screen.getByTestId('merge-next-button')).toBeDisabled();
+  });
+});
