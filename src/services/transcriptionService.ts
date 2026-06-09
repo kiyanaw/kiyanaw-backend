@@ -277,6 +277,14 @@ export const deletePeaksFile = async (sourceUrl: string): Promise<void> => {
   await remove({ path });
 };
 
+export const deleteTranscriptionFiles = async (sourceUrl: string): Promise<void> => {
+  const fileKey = extractS3KeyFromUrl(sourceUrl);
+  await Promise.all([
+    remove({ path: `public/${fileKey}` }).catch(err => console.warn('Failed to delete source file:', err)),
+    remove({ path: `public/${fileKey}.json` }).catch(err => console.warn('Failed to delete peaks file:', err)),
+  ]);
+};
+
 /**
  * Polls S3 until a freshly-generated peaks file is available.
  * Delegates to fetchPeaksData which uses exponential backoff.

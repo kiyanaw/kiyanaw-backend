@@ -1,11 +1,16 @@
-import { createMedia, getMedia, __resetClient } from './mediaService';
+import { createMedia, getMedia, deleteMedia, __resetClient } from './mediaService';
 
 jest.mock('aws-amplify/api', () => ({
   generateClient: jest.fn(),
 }));
 
+jest.mock('aws-amplify/storage', () => ({
+  remove: jest.fn(),
+}));
+
 jest.mock('../graphql/mutations.js', () => ({
   createMedia: 'mock-create-media-mutation',
+  deleteMedia: 'mock-delete-media-mutation',
 }));
 
 jest.mock('../graphql/queries.js', () => ({
@@ -13,7 +18,9 @@ jest.mock('../graphql/queries.js', () => ({
 }));
 
 import { generateClient } from 'aws-amplify/api';
+import { remove } from 'aws-amplify/storage';
 
+const mockRemove = remove as jest.MockedFunction<typeof remove>;
 const mockGraphql = jest.fn();
 const mockClient = { graphql: mockGraphql };
 (generateClient as jest.Mock).mockReturnValue(mockClient);
@@ -129,6 +136,73 @@ describe('mediaService', () => {
       mockGraphql.mockRejectedValue(new Error('Auth error'));
 
       await expect(getMedia('media-123')).rejects.toThrow('Auth error');
+    });
+  });
+
+  describe('deleteMedia', () => {
+    const mockMediaFull = {
+      id: 'media-123',
+      _version: 2,
+      originalKey: 'public/originals/user-1/media-123.mp3',
+      renditionKey: 'public/renditions/user-1/media-123.mp3',
+      peaksKey: 'public/peaks/user-1/media-123.json',
+      thumbnailKey: null,
+    };
+
+    beforeEach(() => {
+      mockRemove.mockResolvedValue({} as any);
+    });
+
+    it('should fetch the record, delete S3 files, then delete the DDB record', async () => {
+      mockGraphql
+        .mockResolvedValueOnce({ data: { getMedia: mockMediaFull } })
+        .mockResolvedValueOnce({ data: { deleteMedia: { id: 'media-123' } } });
+
+      await deleteMedia('media-123');
+
+      expect(mockRemove).toHaveBeenCalledWith({ path: 'public/originals/user-1/media-123.mp3' });
+      expect(mockRemove).toHaveBeenCalledWith({ path: 'public/renditions/user-1/media-123.mp3' });
+      expect(mockRemove).toHaveBeenCalledWith({ path: 'public/peaks/user-1/media-123.json' });
+
+      expect(mockGraphql).toHaveBeenLastCalledWith({
+        query: 'mock-delete-media-mutation',
+        variables: { input: { id: 'media-123', _version: 2 } },
+        authMode: 'userPool',
+      });
+    });
+
+    it('should skip null file keys', async () => {
+      const noRendition = { ...mockMediaFull, renditionKey: null, peaksKey: null };
+      mockGraphql
+        .mockResolvedValueOnce({ data: { getMedia: noRendition } })
+        .mockResolvedValueOnce({ data: { deleteMedia: { id: 'media-123' } } });
+
+      await deleteMedia('media-123');
+
+      expect(mockRemove).toHaveBeenCalledTimes(1);
+      expect(mockRemove).toHaveBeenCalledWith({ path: 'public/originals/user-1/media-123.mp3' });
+    });
+
+    it('should delete thumbnailKey when present (video)', async () => {
+      const withThumb = { ...mockMediaFull, thumbnailKey: 'public/thumbnails/user-1/media-123.jpg' };
+      mockGraphql
+        .mockResolvedValueOnce({ data: { getMedia: withThumb } })
+        .mockResolvedValueOnce({ data: { deleteMedia: { id: 'media-123' } } });
+
+      await deleteMedia('media-123');
+
+      expect(mockRemove).toHaveBeenCalledWith({ path: 'public/thumbnails/user-1/media-123.jpg' });
+    });
+
+    it('should still delete DDB record if an S3 deletion fails', async () => {
+      mockRemove.mockRejectedValue(new Error('S3 error') as any);
+      mockGraphql
+        .mockResolvedValueOnce({ data: { getMedia: mockMediaFull } })
+        .mockResolvedValueOnce({ data: { deleteMedia: { id: 'media-123' } } });
+
+      await deleteMedia('media-123');
+
+      expect(mockGraphql).toHaveBeenCalledTimes(2);
     });
   });
 });

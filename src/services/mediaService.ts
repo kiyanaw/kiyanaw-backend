@@ -1,7 +1,8 @@
 import { generateClient } from 'aws-amplify/api';
+import { remove } from 'aws-amplify/storage';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - GraphQL queries/mutations are generated as JS files
-import { createMedia as createMediaMutation } from '../graphql/mutations.js';
+import { createMedia as createMediaMutation, deleteMedia as deleteMediaMutation } from '../graphql/mutations.js';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import { getMedia as getMediaQuery } from '../graphql/queries.js';
@@ -33,6 +34,7 @@ export interface MediaData {
   fileSize: number;
   duration?: number | null;
   recordedAt?: string | null;
+  _version?: number;
 }
 
 export interface CreateMediaParams {
@@ -75,4 +77,21 @@ export const getMedia = async (id: string): Promise<MediaData> => {
     throw new Error(`Media record not found: ${id}`);
   }
   return media;
+};
+
+export const deleteMedia = async (id: string): Promise<void> => {
+  const media = await getMedia(id);
+
+  const keys = [media.originalKey, media.renditionKey, media.peaksKey, media.thumbnailKey];
+  await Promise.all(
+    keys
+      .filter((k): k is string => !!k)
+      .map(path => remove({ path }).catch(err => console.warn(`Failed to delete S3 object ${path}:`, err)))
+  );
+
+  await getClient().graphql({
+    query: deleteMediaMutation,
+    variables: { input: { id, _version: media._version } },
+    authMode: 'userPool',
+  });
 };

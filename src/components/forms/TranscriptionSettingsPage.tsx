@@ -280,7 +280,10 @@ export const TranscriptionSettingsPage = ({
     setDeleteError(null);
 
     try {
-      await deleteTranscription({ transcriptionId });
+      await deleteTranscription({
+        transcriptionId,
+        transcription: { source: transcription.source, mediaId: transcription.mediaId },
+      });
       // Success handling is done in the hook's onSuccess callback
     } catch (error) {
       // Error handling is done in the hook's onError callback
