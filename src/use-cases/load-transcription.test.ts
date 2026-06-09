@@ -254,6 +254,12 @@ describe('LoadTranscription', () => {
       expect(mockStore.setCanEdit).toHaveBeenCalledWith(false);
     });
 
+    it('should clear mediaStatus when load succeeds (dismisses processing overlay)', async () => {
+      await useCase.execute();
+
+      expect(mockStore.setMediaStatus).toHaveBeenCalledWith(null);
+    });
+
     describe('media processing variant', () => {
       const mockProcessingTranscription = {
         id: mockTranscriptionId,

@@ -53,6 +53,7 @@ export class LoadTranscription {
     // Check if user can edit this transcription
     const canEdit = userService.canEditTranscription(data.transcription);
     this.config.store.setCanEdit(canEdit);
+    this.config.store.setMediaStatus(null);
 
     // Read deep-link params
     const selectedRegionId = browserService.getRegionIdFromUrl();
