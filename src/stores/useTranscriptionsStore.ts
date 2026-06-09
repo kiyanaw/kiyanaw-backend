@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { TranscriptionModel } from '../services/adt';
 import { services } from '../services';
+import { transcriptionStorage } from '../services/transcriptionStorageService';
 import { LoadTranscriptions } from '../use-cases/load-transcriptions';
 
 interface CacheStats {
@@ -114,12 +115,20 @@ export const useTranscriptionsStore = create<TranscriptionsState>()(
       // Media status updates — find the matching transcription and update its mediaStatus
       applyMediaStatus: (mediaId: string, status: string) => {
         const { transcriptions } = get();
+        let updatedModel: TranscriptionModel | undefined;
         const updated = transcriptions.map(t => {
           if (t.mediaId !== mediaId) return t;
           t.mediaStatus = status;
+          t.data = { ...t.data, media: { ...(t.data.media ?? {}), status } };
+          updatedModel = t;
           return t;
         });
         set({ transcriptions: updated });
+        if (updatedModel) {
+          transcriptionStorage.storeTranscriptions([updatedModel]).catch(err =>
+            console.warn('Failed to persist media status to cache:', err)
+          );
+        }
       },
 
       // Tab-specific sync actions
