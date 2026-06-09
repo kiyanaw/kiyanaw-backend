@@ -44,8 +44,7 @@ export const UploadForm = () => {
 
       const result = await useCase.execute();
 
-      console.log('Transcription created:', result.transcription);
-      navigate('/transcribe-list');
+      navigate(`/transcribe-edit/${result.transcriptionId}`);
     } catch (error) {
       console.error('Error creating transcription:', error);
       // TODO: Show error message to user
