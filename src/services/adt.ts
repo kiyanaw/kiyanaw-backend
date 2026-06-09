@@ -8,7 +8,8 @@ export interface TranscriptionData {
   issues?: number;
   regionCount?: number;
   issueCount?: number;
-  source: string;
+  source?: string;
+  mediaId?: string;
   coverage?: number;
   isPrivate?: boolean;
   publicIssues?: boolean;
@@ -237,6 +238,7 @@ export class TranscriptionModel {
   public authorFriendly: string;
   public type: string;
   public source: string;
+  public mediaId?: string;
   public coverage: number;
   public isPrivate: boolean;
   public publicIssues: boolean;
@@ -270,7 +272,8 @@ export class TranscriptionModel {
     this.authorFriendly = data.authorFriendly;
     this.type = data.type;
     // this.issues = Number(data.issues) || 0;
-    this.source = data.source;
+    this.source = data.source ?? '';
+    this.mediaId = data.mediaId;
     this.coverage = data.coverage || 0;
     this.isPrivate = data.isPrivate ?? true;
     this.publicIssues = data.publicIssues ?? false;

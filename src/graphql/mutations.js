@@ -950,6 +950,7 @@ export const createMedia = /* GraphQL */ `
       status
       originalKey
       renditionKey
+      peaksKey
       thumbnailKey
       mimeType
       fileSize
@@ -987,6 +988,7 @@ export const updateMedia = /* GraphQL */ `
       status
       originalKey
       renditionKey
+      peaksKey
       thumbnailKey
       mimeType
       fileSize
@@ -1024,6 +1026,7 @@ export const deleteMedia = /* GraphQL */ `
       status
       originalKey
       renditionKey
+      peaksKey
       thumbnailKey
       mimeType
       fileSize

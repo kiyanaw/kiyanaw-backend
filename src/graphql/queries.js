@@ -728,6 +728,7 @@ export const getMedia = /* GraphQL */ `
       status
       originalKey
       renditionKey
+      peaksKey
       thumbnailKey
       mimeType
       fileSize

@@ -1,4 +1,4 @@
-import { loadInFull, loadAll, __resetClient, clearTranscriptionCache, isSyncing } from './transcriptionService';
+import { loadInFull, loadAll, create, __resetClient, clearTranscriptionCache, isSyncing } from './transcriptionService';
 import { generateClient } from 'aws-amplify/api';
 import { loadRegionsForTranscription } from './regionService';
 import { loadIssuesForTranscription } from './issueService';
@@ -17,6 +17,7 @@ jest.mock('./adt');
 jest.mock('./userService');
 jest.mock('./transcriptionStorageService');
 jest.mock('./inviteService');
+jest.mock('./mediaService');
 
 // Mock Amplify Storage
 jest.mock('aws-amplify/storage', () => ({
@@ -270,28 +271,54 @@ describe('TranscriptionService', () => {
       await expect(loadInFull(mockTranscriptionId)).rejects.toThrow('Issue loading failed');
     });
 
-    it('should handle transcription with missing source', async () => {
+    it('should route to new pipeline when source is absent', async () => {
+      const mediaService = require('./mediaService');
+      (mediaService.getMedia as jest.Mock).mockResolvedValue({
+        id: 'media-1',
+        renditionKey: 'public/renditions/u/media-1.mp3',
+        peaksKey: 'public/peaks/u/media-1.json',
+      });
+
       mockGraphqlClient.graphql.mockResolvedValue({
         data: {
-          getTranscription: { ...mockRawTranscription, source: null },
+          getTranscription: { ...mockRawTranscription, source: null, mediaId: 'media-1' },
         },
       });
-      
-      await expect(loadInFull(mockTranscriptionId)).rejects.toThrow(
-        'Transcription source is required to load peaks data'
+
+      (TranscriptionModel as jest.MockedClass<typeof TranscriptionModel>).mockImplementation(
+        (data: any) => ({
+          ...data,
+          source: data.source ?? null,
+          mediaId: data.mediaId,
+          setAccessLevel: jest.fn(),
+        }) as any
       );
+
+      const result = await loadInFull(mockTranscriptionId);
+      expect(mediaService.getMedia).toHaveBeenCalledWith('media-1');
+      expect(result).not.toBe(false);
     });
 
-    it('should handle transcription with undefined source', async () => {
+    it('should throw when source is absent and getMedia fails', async () => {
+      const mediaService = require('./mediaService');
+      (mediaService.getMedia as jest.Mock).mockRejectedValue(new Error('Media record not found'));
+
       mockGraphqlClient.graphql.mockResolvedValue({
         data: {
-          getTranscription: { ...mockRawTranscription, source: undefined },
+          getTranscription: { ...mockRawTranscription, source: null, mediaId: 'missing-id' },
         },
       });
-      
-      await expect(loadInFull(mockTranscriptionId)).rejects.toThrow(
-        'Transcription source is required to load peaks data'
+
+      (TranscriptionModel as jest.MockedClass<typeof TranscriptionModel>).mockImplementation(
+        (data: any) => ({
+          ...data,
+          source: data.source ?? null,
+          mediaId: data.mediaId,
+          setAccessLevel: jest.fn(),
+        }) as any
       );
+
+      await expect(loadInFull(mockTranscriptionId)).rejects.toThrow('Media record not found');
     });
   });
 
@@ -817,6 +844,107 @@ describe('TranscriptionService', () => {
       expect(isSyncing()).toBe(false);
       await clearTranscriptionCache();
       expect(isSyncing()).toBe(false);
+    });
+  });
+
+  describe('loadInFull — new pipeline branch (no source)', () => {
+    const mockMedia = {
+      id: 'media-abc',
+      status: 'READY',
+      renditionKey: 'public/renditions/user-1/media-abc.mp3',
+      peaksKey: 'public/peaks/user-1/media-abc.json',
+      thumbnailKey: null,
+    };
+
+    beforeEach(() => {
+      const mediaService = require('./mediaService');
+      (mediaService.getMedia as jest.Mock).mockResolvedValue(mockMedia);
+
+      mockGraphqlClient.graphql.mockResolvedValue({
+        data: {
+          getTranscription: {
+            id: mockTranscriptionId,
+            title: 'New Transcription',
+            source: null,
+            mediaId: 'media-abc',
+            author: 'user-1',
+          },
+        },
+      });
+
+      (TranscriptionModel as jest.MockedClass<typeof TranscriptionModel>).mockImplementation(
+        (data: any) => ({
+          ...data,
+          source: data.source ?? null,
+          mediaId: data.mediaId,
+          setAccessLevel: jest.fn(),
+        }) as any
+      );
+    });
+
+    it('calls mediaService.getMedia when source is absent', async () => {
+      const mediaService = require('./mediaService');
+      const result = await loadInFull(mockTranscriptionId);
+
+      expect(mediaService.getMedia).toHaveBeenCalledWith('media-abc');
+      expect(result).not.toBe(false);
+    });
+
+    it('synthesizes source URL from renditionKey', async () => {
+      const result = await loadInFull(mockTranscriptionId) as any;
+
+      expect(result).not.toBe(false);
+      expect(result.transcription.source).toContain('public/renditions/user-1/media-abc.mp3');
+    });
+  });
+
+  describe('create — with mediaId', () => {
+    it('includes mediaId in the mutation input and omits source', async () => {
+      const mockCreated = {
+        id: 'new-transcription',
+        title: 'Test',
+        mediaId: 'media-123',
+      };
+      mockGraphqlClient.graphql.mockResolvedValue({ data: { createTranscription: mockCreated } });
+      (transcriptionStorage.setLastSyncedAt as jest.Mock).mockResolvedValue(undefined);
+      (transcriptionStorage.storeTranscriptions as jest.Mock).mockResolvedValue(undefined);
+      (TranscriptionModel as jest.MockedClass<typeof TranscriptionModel>).mockImplementation(
+        (data: any) => ({ ...data, setAccessLevel: jest.fn() }) as any
+      );
+
+      await create({
+        title: 'Test',
+        type: 'audio/mpeg',
+        author: 'user-1',
+        userLastUpdated: 'user1',
+        mediaId: 'media-123',
+      });
+
+      const input = mockGraphqlClient.graphql.mock.calls[0][0].variables.input;
+      expect(input.mediaId).toBe('media-123');
+      expect(input).not.toHaveProperty('source');
+    });
+
+    it('includes source when provided (legacy path)', async () => {
+      const mockCreated = { id: 'new-transcription', title: 'Test', source: 'https://example.com/f.mp3' };
+      mockGraphqlClient.graphql.mockResolvedValue({ data: { createTranscription: mockCreated } });
+      (transcriptionStorage.setLastSyncedAt as jest.Mock).mockResolvedValue(undefined);
+      (transcriptionStorage.storeTranscriptions as jest.Mock).mockResolvedValue(undefined);
+      (TranscriptionModel as jest.MockedClass<typeof TranscriptionModel>).mockImplementation(
+        (data: any) => ({ ...data, setAccessLevel: jest.fn() }) as any
+      );
+
+      await create({
+        title: 'Test',
+        type: 'audio/mpeg',
+        author: 'user-1',
+        userLastUpdated: 'user1',
+        source: 'https://example.com/f.mp3',
+      });
+
+      const input = mockGraphqlClient.graphql.mock.calls[0][0].variables.input;
+      expect(input.source).toBe('https://example.com/f.mp3');
+      expect(input).not.toHaveProperty('mediaId');
     });
   });
 }); 

@@ -17,43 +17,42 @@ export interface UploadOptions {
  * Handles file uploads to S3 using Amplify Storage API
  */
 class UploadService {
-  /**
-   * Upload a file to S3 with optional progress tracking
-   */
-  async uploadFile(file: File, options?: UploadOptions): Promise<string> {
-    const timestamp = Date.now();
-    const key = `${timestamp}-${file.name}`;
-
+  private async _upload(key: string, file: File, options?: UploadOptions): Promise<void> {
     await uploadData({
       key,
       data: file,
       options: {
-        // TODO: move this to restricted access
-        accessLevel: 'guest', // equivalent to 'public' in v5
+        accessLevel: 'guest',
         onProgress: ({ transferredBytes, totalBytes }) => {
           if (totalBytes && options?.onProgress) {
             const percentage = (transferredBytes / totalBytes) * 100;
-            options.onProgress({
-              transferredBytes,
-              totalBytes,
-              percentage
-            });
+            options.onProgress({ transferredBytes, totalBytes, percentage });
           }
         },
       },
     }).result;
+  }
 
+  async uploadFile(file: File, options?: UploadOptions): Promise<string> {
+    const key = `${Date.now()}-${file.name}`;
+    await this._upload(key, file, options);
     return key;
   }
 
-  /**
-   * Construct the public S3 URL for a given key
-   * TODO: move this to use signed URLs for security
-   */
+  buildOriginalKey(userId: string, mediaId: string, fileName: string): string {
+    const ext = fileName.includes('.')
+      ? fileName.split('.').pop()!.toLowerCase()
+      : 'mp3';
+    return `originals/${userId}/${mediaId}.${ext}`;
+  }
+
+  async uploadOriginal(file: File, key: string, options?: UploadOptions): Promise<string> {
+    await this._upload(key, file, options);
+    return `public/${key}`;
+  }
+
   constructPublicUrl(key: string): string {
     const bucket = awsConfigService.getUserFilesBucket();
-    
-    // Use the virtual-hosted-style S3 URL format
     return `https://${bucket}.s3.amazonaws.com/public/${key}`;
   }
 }

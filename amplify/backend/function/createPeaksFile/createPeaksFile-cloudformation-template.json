@@ -253,39 +253,6 @@
         }
       }
     },
-    "LambdaTriggerPolicyTranscription": {
-      "DependsOn": [
-        "LambdaExecutionRole"
-      ],
-      "Type": "AWS::IAM::Policy",
-      "Properties": {
-        "PolicyName": "amplify-lambda-execution-policy-Transcription",
-        "Roles": [
-          {
-            "Ref": "LambdaExecutionRole"
-          }
-        ],
-        "PolicyDocument": {
-          "Version": "2012-10-17",
-          "Statement": [
-            {
-              "Effect": "Allow",
-              "Action": [
-                "dynamodb:DescribeStream",
-                "dynamodb:GetRecords",
-                "dynamodb:GetShardIterator",
-                "dynamodb:ListStreams"
-              ],
-              "Resource": {
-                "Fn::ImportValue": {
-                  "Fn::Sub": "${apikiyanawGraphQLAPIIdOutput}:GetAtt:TranscriptionTable:StreamArn"
-                }
-              }
-            }
-          ]
-        }
-      }
-    },
     "LambdaEFSPolicy": {
       "DependsOn": [
         "LambdaExecutionRole"
@@ -324,29 +291,6 @@
             }
           ]
         }
-      }
-    },
-    "LambdaEventSourceMappingTranscription": {
-      "Type": "AWS::Lambda::EventSourceMapping",
-      "DependsOn": [
-        "LambdaTriggerPolicyTranscription",
-        "LambdaExecutionRole"
-      ],
-      "Properties": {
-        "BatchSize": 1,
-        "Enabled": true,
-        "EventSourceArn": {
-          "Fn::ImportValue": {
-            "Fn::Sub": "${apikiyanawGraphQLAPIIdOutput}:GetAtt:TranscriptionTable:StreamArn"
-          }
-        },
-        "FunctionName": {
-          "Fn::GetAtt": [
-            "LambdaFunction",
-            "Arn"
-          ]
-        },
-        "StartingPosition": "LATEST"
       }
     }
   },

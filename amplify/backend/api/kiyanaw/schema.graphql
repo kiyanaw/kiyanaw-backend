@@ -179,6 +179,7 @@ type Media
   status: String!
   originalKey: String!
   renditionKey: String
+  peaksKey: String
   thumbnailKey: String
 
   # Metadata

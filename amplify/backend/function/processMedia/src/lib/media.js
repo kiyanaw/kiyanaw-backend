@@ -47,12 +47,11 @@ async function run({ id, originalKey, mimeType }) {
   const renditionLocalPath = `${efsPath}/${id}-rendition.${renditionExt}`
   const thumbLocalPath = video ? `${efsPath}/${id}-thumb.jpg` : null
 
-  // Derive S3 key layout: originals/<userId>/<mediaId>.<ext> → renditions/...
-  const keyParts = originalKey.split('/')
-  const userId = keyParts[1] || 'unknown'
-  const renditionKey = `renditions/${userId}/${id}.${renditionExt}`
-  const peaksKey = `peaks/${userId}/${id}.json`
-  const thumbnailKey = video ? `thumbnails/${userId}/${id}.jpg` : null
+  // Derive S3 key layout: public/originals/<userId>/<mediaId>.<ext> → public/renditions/...
+  const userId = originalKey.replace(/^public\//, '').split('/')[1] || 'unknown'
+  const renditionKey = `public/renditions/${userId}/${id}.${renditionExt}`
+  const peaksKey = `public/peaks/${userId}/${id}.json`
+  const thumbnailKey = video ? `public/thumbnails/${userId}/${id}.jpg` : null
 
   try {
     // 1. Download original

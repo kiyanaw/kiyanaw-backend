@@ -14,6 +14,7 @@ export interface CreateTranscriptionConfig {
 export interface CreateTranscriptionResult {
   transcriptionId: string;
   transcription: TranscriptionData;
+  mediaId: string;
 }
 
 export class CreateTranscriptionUseCase {
@@ -42,32 +43,33 @@ export class CreateTranscriptionUseCase {
     this.validate();
 
     const { title, file, username, userId, services, onProgress } = this.config;
-    
-    // Extract username from email (part before @)
     const displayUsername = username.split('@')[0];
-    console.log('Creating transcription for user:', userId);
 
-    // Step 1: Upload file to S3
-    const fileKey = await services.uploadService.uploadFile(file, {
-      onProgress,
+    const mediaId = crypto.randomUUID();
+    const key = services.uploadService.buildOriginalKey(userId, mediaId, file.name);
+    const originalKey = await services.uploadService.uploadOriginal(file, key, { onProgress });
+
+    await services.mediaService.createMedia({
+      id: mediaId,
+      owner: userId,
+      originalKey,
+      mimeType: file.type,
+      fileSize: file.size,
     });
 
-    // Step 2: Construct the source URL
-    const source = services.uploadService.constructPublicUrl(fileKey);
-
-    // Step 3: Create the transcription record
     const transcription = await services.transcriptionService.create({
       title,
-      source,
       type: file.type,
-      author: userId,  // Use userId for Amplify auth compatibility
-      userLastUpdated: displayUsername,  // Use username part of email for display
-      isPrivate: true,  // Default new transcriptions to private
+      author: userId,
+      userLastUpdated: displayUsername,
+      isPrivate: true,
+      mediaId,
     });
 
     return {
       transcriptionId: transcription.id,
       transcription,
+      mediaId,
     };
   }
 } 
