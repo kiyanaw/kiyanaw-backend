@@ -1107,7 +1107,12 @@ export const create = async (data: CreateTranscriptionData): Promise<SharedTrans
       await transcriptionStorage.setLastSyncedAt(user.userId, new Date().toISOString());
       
       try {
-        const model = new TranscriptionModel(created as unknown as ADTTranscriptionData);
+        // AppSync resolves @belongsTo as null in mutation responses — inject the
+        // known PENDING status so the list shows the processing indicator immediately.
+        const createdWithMedia = created.mediaId && !created.media
+          ? { ...created, media: { status: 'PENDING' } }
+          : created;
+        const model = new TranscriptionModel(createdWithMedia as unknown as ADTTranscriptionData);
         model.setAccessLevel(user.userId);
         await transcriptionStorage.storeTranscriptions([model]);
         console.debug('✅ Optimistically added new transcription to cache');
