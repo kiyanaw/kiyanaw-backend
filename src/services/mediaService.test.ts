@@ -41,7 +41,7 @@ describe('mediaService', () => {
     const params = {
       id: 'media-123',
       owner: 'user-abc',
-      originalKey: 'public/originals/user-abc/media-123.mp3',
+      originalKey: 'public/originals/media-123.mp3',
       mimeType: 'audio/mpeg',
       fileSize: 1024000,
     };
@@ -52,7 +52,7 @@ describe('mediaService', () => {
       sk: 'MEDIA#0000-00-00#media-123',
       owner: 'user-abc',
       status: 'PENDING',
-      originalKey: 'public/originals/user-abc/media-123.mp3',
+      originalKey: 'public/originals/media-123.mp3',
       mimeType: 'audio/mpeg',
       fileSize: 1024000,
     };
@@ -71,7 +71,7 @@ describe('mediaService', () => {
             sk: 'MEDIA#0000-00-00#media-123',
             owner: 'user-abc',
             status: 'PENDING',
-            originalKey: 'public/originals/user-abc/media-123.mp3',
+            originalKey: 'public/originals/media-123.mp3',
             mimeType: 'audio/mpeg',
             fileSize: 1024000,
           },
@@ -108,8 +108,8 @@ describe('mediaService', () => {
     const mockMedia = {
       id: 'media-123',
       status: 'READY',
-      renditionKey: 'public/renditions/user-abc/media-123.mp3',
-      peaksKey: 'public/peaks/user-abc/media-123.json',
+      renditionKey: 'public/renditions/media-123.mp3',
+      peaksKey: 'public/peaks/media-123.json',
       thumbnailKey: null,
     };
 
@@ -143,9 +143,9 @@ describe('mediaService', () => {
     const mockMediaFull = {
       id: 'media-123',
       _version: 2,
-      originalKey: 'public/originals/user-1/media-123.mp3',
-      renditionKey: 'public/renditions/user-1/media-123.mp3',
-      peaksKey: 'public/peaks/user-1/media-123.json',
+      originalKey: 'public/originals/media-123.mp3',
+      renditionKey: 'public/renditions/media-123.mp3',
+      peaksKey: 'public/peaks/media-123.json',
       thumbnailKey: null,
     };
 
@@ -160,9 +160,9 @@ describe('mediaService', () => {
 
       await deleteMedia('media-123');
 
-      expect(mockRemove).toHaveBeenCalledWith({ path: 'public/originals/user-1/media-123.mp3' });
-      expect(mockRemove).toHaveBeenCalledWith({ path: 'public/renditions/user-1/media-123.mp3' });
-      expect(mockRemove).toHaveBeenCalledWith({ path: 'public/peaks/user-1/media-123.json' });
+      expect(mockRemove).toHaveBeenCalledWith({ path: 'public/originals/media-123.mp3' });
+      expect(mockRemove).toHaveBeenCalledWith({ path: 'public/renditions/media-123.mp3' });
+      expect(mockRemove).toHaveBeenCalledWith({ path: 'public/peaks/media-123.json' });
 
       expect(mockGraphql).toHaveBeenLastCalledWith({
         query: 'mock-delete-media-mutation',
@@ -180,18 +180,18 @@ describe('mediaService', () => {
       await deleteMedia('media-123');
 
       expect(mockRemove).toHaveBeenCalledTimes(1);
-      expect(mockRemove).toHaveBeenCalledWith({ path: 'public/originals/user-1/media-123.mp3' });
+      expect(mockRemove).toHaveBeenCalledWith({ path: 'public/originals/media-123.mp3' });
     });
 
     it('should delete thumbnailKey when present (video)', async () => {
-      const withThumb = { ...mockMediaFull, thumbnailKey: 'public/thumbnails/user-1/media-123.jpg' };
+      const withThumb = { ...mockMediaFull, thumbnailKey: 'public/thumbnails/media-123.jpg' };
       mockGraphql
         .mockResolvedValueOnce({ data: { getMedia: withThumb } })
         .mockResolvedValueOnce({ data: { deleteMedia: { id: 'media-123' } } });
 
       await deleteMedia('media-123');
 
-      expect(mockRemove).toHaveBeenCalledWith({ path: 'public/thumbnails/user-1/media-123.jpg' });
+      expect(mockRemove).toHaveBeenCalledWith({ path: 'public/thumbnails/media-123.jpg' });
     });
 
     it('should still delete DDB record if an S3 deletion fails', async () => {

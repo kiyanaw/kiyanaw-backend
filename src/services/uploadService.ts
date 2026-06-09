@@ -39,11 +39,11 @@ class UploadService {
     return key;
   }
 
-  buildOriginalKey(userId: string, mediaId: string, fileName: string): string {
+  buildOriginalKey(mediaId: string, fileName: string): string {
     const ext = fileName.includes('.')
       ? fileName.split('.').pop()!.toLowerCase()
       : 'mp3';
-    return `originals/${userId}/${mediaId}.${ext}`;
+    return `originals/${mediaId}.${ext}`;
   }
 
   async uploadOriginal(file: File, key: string, options?: UploadOptions): Promise<string> {
