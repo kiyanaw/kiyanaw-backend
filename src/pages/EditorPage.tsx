@@ -16,7 +16,7 @@ import { TranscriptionModel, type IssueType, ISSUE_TYPE_VALUES } from '../servic
 
 import { browserService } from '../services/browserService';
 import { wavesurferService } from '../services/wavesurferService';
-import { subscribeToMediaChanges, MEDIA_STATUS } from '../services/mediaService';
+import { MEDIA_STATUS } from '../services/mediaService';
 import { LoadTranscription } from '../use-cases/load-transcription';
 import { services } from '../services';
 
@@ -319,24 +319,29 @@ export const EditorPage = () => {
     };
   }, []);
 
-  // Live auto-load: when media finishes processing, reload the transcription automatically
+  // Poll media status while processing — Lambda writes directly to DynamoDB, bypassing AppSync subscriptions
   useEffect(() => {
     const mediaId = transcription?.mediaId;
     if (!mediaId || !mediaStatus || mediaStatus === MEDIA_STATUS.ERROR) return;
 
-    const unsubscribe = subscribeToMediaChanges({ id: mediaId }, (updatedMedia) => {
-      if (updatedMedia.status === MEDIA_STATUS.READY) {
-        const store = useEditorStore.getState();
-        const useCase = new LoadTranscription({ transcriptionId: transcriptionId!, services, store });
-        useCase.execute().catch((error: Error) => console.error('Auto-load after media ready failed:', error));
-        unsubscribe();
-      } else if (updatedMedia.status === MEDIA_STATUS.ERROR) {
-        setMediaStatus(MEDIA_STATUS.ERROR);
-        unsubscribe();
+    const pollInterval = setInterval(async () => {
+      try {
+        const media = await services.mediaService.getMedia(mediaId);
+        if (media.status === MEDIA_STATUS.READY) {
+          clearInterval(pollInterval);
+          const store = useEditorStore.getState();
+          const useCase = new LoadTranscription({ transcriptionId: transcriptionId!, services, store });
+          useCase.execute().catch((error: Error) => console.error('Auto-load after media ready failed:', error));
+        } else if (media.status === MEDIA_STATUS.ERROR) {
+          clearInterval(pollInterval);
+          setMediaStatus(MEDIA_STATUS.ERROR);
+        }
+      } catch (error) {
+        console.error('Failed to poll media status:', error);
       }
-    });
+    }, 3000);
 
-    return unsubscribe;
+    return () => clearInterval(pollInterval);
   }, [transcriptionId, mediaStatus, setMediaStatus, transcription]);
 
   const isVideo = transcription?.isVideo ?? false
