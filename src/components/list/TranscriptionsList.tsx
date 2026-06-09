@@ -97,11 +97,12 @@ export const TranscriptionsList = () => {
     loadTranscriptions();
   }, [loadTranscriptions]);
 
-  // Subscribe to media status updates for the current user's files
+  // Subscribe to media status updates for the current user's files.
+  // No explicit filter needed — Amplify owner auth restricts the subscription automatically.
   useEffect(() => {
     if (!user?.userId) return;
     const unsubscribe = subscribeToMediaChanges(
-      { owner: user.userId },
+      {},
       (media) => applyMediaStatus(media.id, media.status)
     );
     return unsubscribe;

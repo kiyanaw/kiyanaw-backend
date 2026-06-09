@@ -220,13 +220,13 @@ describe('mediaService', () => {
       mockGraphql.mockReturnValue({ subscribe: mockSubscribe });
     });
 
-    it('should subscribe with owner filter and call callback on update', () => {
+    it('should subscribe with no filter when no id given (owner auth restricts automatically)', () => {
       const callback = jest.fn();
-      subscribeToMediaChanges({ owner: 'user-abc' }, callback);
+      subscribeToMediaChanges({}, callback);
 
       expect(mockGraphql).toHaveBeenCalledWith({
         query: 'mock-on-update-media-subscription',
-        variables: { filter: { owner: { eq: 'user-abc' } } },
+        variables: {},
       });
       expect(mockSubscribe).toHaveBeenCalledWith(
         expect.objectContaining({ next: expect.any(Function), error: expect.any(Function) })
@@ -245,7 +245,7 @@ describe('mediaService', () => {
 
     it('should invoke callback when media update arrives', () => {
       const callback = jest.fn();
-      subscribeToMediaChanges({ owner: 'user-abc' }, callback);
+      subscribeToMediaChanges({}, callback);
 
       const nextFn = mockSubscribe.mock.calls[0][0].next;
       const updatedMedia = { id: 'media-1', status: 'READY', _deleted: false };
@@ -256,7 +256,7 @@ describe('mediaService', () => {
 
     it('should not invoke callback when media is deleted', () => {
       const callback = jest.fn();
-      subscribeToMediaChanges({ owner: 'user-abc' }, callback);
+      subscribeToMediaChanges({}, callback);
 
       const nextFn = mockSubscribe.mock.calls[0][0].next;
       nextFn({ data: { onUpdateMedia: { id: 'media-1', status: 'READY', _deleted: true } } });
@@ -266,7 +266,7 @@ describe('mediaService', () => {
 
     it('should return unsubscribe function that calls unsubscribe on subscription', () => {
       const callback = jest.fn();
-      const unsubscribe = subscribeToMediaChanges({ owner: 'user-abc' }, callback);
+      const unsubscribe = subscribeToMediaChanges({}, callback);
 
       unsubscribe();
 

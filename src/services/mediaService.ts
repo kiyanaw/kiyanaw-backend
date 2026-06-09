@@ -109,7 +109,6 @@ export const deleteMedia = async (id: string): Promise<void> => {
 };
 
 export interface SubscribeToMediaChangesFilter {
-  owner?: string;
   id?: string;
 }
 
@@ -117,16 +116,16 @@ export const subscribeToMediaChanges = (
   filter: SubscribeToMediaChangesFilter,
   callback: (media: MediaData) => void
 ): (() => void) => {
-  const gqlFilter: Record<string, unknown> = {};
-  if (filter.owner) gqlFilter['owner'] = { eq: filter.owner };
-  if (filter.id) gqlFilter['id'] = { eq: filter.id };
+  // owner is an Amplify auth field — AppSync restricts by owner automatically via $owner.
+  // Only id can be used as a subscription filter field.
+  const variables = filter.id ? { filter: { id: { eq: filter.id } } } : {};
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let subscription: any = null;
   try {
     subscription = (getClient().graphql({
       query: onUpdateMedia,
-      variables: Object.keys(gqlFilter).length > 0 ? { filter: gqlFilter } : {},
+      variables,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }) as any).subscribe({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
