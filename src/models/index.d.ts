@@ -258,6 +258,7 @@ type EagerMedia = {
   readonly status: string;
   readonly originalKey: string;
   readonly renditionKey?: string | null;
+  readonly peaksKey?: string | null;
   readonly thumbnailKey?: string | null;
   readonly mimeType: string;
   readonly fileSize: number;
@@ -281,6 +282,7 @@ type LazyMedia = {
   readonly status: string;
   readonly originalKey: string;
   readonly renditionKey?: string | null;
+  readonly peaksKey?: string | null;
   readonly thumbnailKey?: string | null;
   readonly mimeType: string;
   readonly fileSize: number;

@@ -27,6 +27,7 @@ export const getTranscription = /* GraphQL */ `
         status
         originalKey
         renditionKey
+        peaksKey
         thumbnailKey
         mimeType
         fileSize
@@ -776,6 +777,7 @@ export const listMedia = /* GraphQL */ `
         status
         originalKey
         renditionKey
+        peaksKey
         thumbnailKey
         mimeType
         fileSize
@@ -820,6 +822,7 @@ export const syncMedia = /* GraphQL */ `
         status
         originalKey
         renditionKey
+        peaksKey
         thumbnailKey
         mimeType
         fileSize
@@ -1537,6 +1540,7 @@ export const mediaByPkSk = /* GraphQL */ `
         status
         originalKey
         renditionKey
+        peaksKey
         thumbnailKey
         mimeType
         fileSize
@@ -1583,6 +1587,7 @@ export const mediaByOwner = /* GraphQL */ `
         status
         originalKey
         renditionKey
+        peaksKey
         thumbnailKey
         mimeType
         fileSize

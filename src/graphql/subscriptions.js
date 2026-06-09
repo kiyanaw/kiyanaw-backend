@@ -30,6 +30,7 @@ export const onCreateTranscription = /* GraphQL */ `
         status
         originalKey
         renditionKey
+        peaksKey
         thumbnailKey
         mimeType
         fileSize
@@ -112,6 +113,7 @@ export const onUpdateTranscription = /* GraphQL */ `
         status
         originalKey
         renditionKey
+        peaksKey
         thumbnailKey
         mimeType
         fileSize
@@ -194,6 +196,7 @@ export const onDeleteTranscription = /* GraphQL */ `
         status
         originalKey
         renditionKey
+        peaksKey
         thumbnailKey
         mimeType
         fileSize
@@ -944,6 +947,7 @@ export const onCreateMedia = /* GraphQL */ `
       status
       originalKey
       renditionKey
+      peaksKey
       thumbnailKey
       mimeType
       fileSize
@@ -981,6 +985,7 @@ export const onUpdateMedia = /* GraphQL */ `
       status
       originalKey
       renditionKey
+      peaksKey
       thumbnailKey
       mimeType
       fileSize
@@ -1018,6 +1023,7 @@ export const onDeleteMedia = /* GraphQL */ `
       status
       originalKey
       renditionKey
+      peaksKey
       thumbnailKey
       mimeType
       fileSize

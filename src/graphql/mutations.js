@@ -30,6 +30,7 @@ export const createTranscription = /* GraphQL */ `
         status
         originalKey
         renditionKey
+        peaksKey
         thumbnailKey
         mimeType
         fileSize
@@ -112,6 +113,7 @@ export const updateTranscription = /* GraphQL */ `
         status
         originalKey
         renditionKey
+        peaksKey
         thumbnailKey
         mimeType
         fileSize
@@ -194,6 +196,7 @@ export const deleteTranscription = /* GraphQL */ `
         status
         originalKey
         renditionKey
+        peaksKey
         thumbnailKey
         mimeType
         fileSize

@@ -1157,6 +1157,13 @@ export const schema = {
                     "isRequired": false,
                     "attributes": []
                 },
+                "peaksKey": {
+                    "name": "peaksKey",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": false,
+                    "attributes": []
+                },
                 "thumbnailKey": {
                     "name": "thumbnailKey",
                     "isArray": false,
@@ -1355,5 +1362,5 @@ export const schema = {
     "enums": {},
     "nonModels": {},
     "codegenVersion": "3.4.4",
-    "version": "44a494462b956b8371ee426763d45af3"
+    "version": "572fb54d302b84eaaaf0265462d66c4e"
 };
