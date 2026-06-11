@@ -26,6 +26,7 @@ export const getTranscription = /* GraphQL */ `
         owner
         status
         originalKey
+        originalName
         renditionKey
         peaksKey
         thumbnailKey
@@ -728,6 +729,7 @@ export const getMedia = /* GraphQL */ `
       owner
       status
       originalKey
+      originalName
       renditionKey
       peaksKey
       thumbnailKey
@@ -776,6 +778,7 @@ export const listMedia = /* GraphQL */ `
         owner
         status
         originalKey
+        originalName
         renditionKey
         peaksKey
         thumbnailKey
@@ -821,6 +824,7 @@ export const syncMedia = /* GraphQL */ `
         owner
         status
         originalKey
+        originalName
         renditionKey
         peaksKey
         thumbnailKey
@@ -1539,6 +1543,7 @@ export const mediaByPkSk = /* GraphQL */ `
         owner
         status
         originalKey
+        originalName
         renditionKey
         peaksKey
         thumbnailKey
@@ -1586,6 +1591,7 @@ export const mediaByOwner = /* GraphQL */ `
         owner
         status
         originalKey
+        originalName
         renditionKey
         peaksKey
         thumbnailKey

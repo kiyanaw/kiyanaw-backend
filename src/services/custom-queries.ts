@@ -35,6 +35,8 @@ export const transcriptionsByAuthorWithMedia = /* GraphQL */ `
         media {
           id
           status
+          originalKey
+          originalName
         }
         index
         lang
@@ -99,6 +101,8 @@ export const transcriptionsByAuthorDate = /* GraphQL */ `
         media {
           id
           status
+          originalKey
+          originalName
         }
         index
         lang

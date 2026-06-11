@@ -170,6 +170,15 @@ export const generateSignedUrl = async (sourceUrl: string, fileSuffix: string = 
 };
 
 /**
+ * Generates a signed URL for an S3 key (e.g., "public/originals/<id>.mp3") without needing the full URL.
+ */
+export const generateSignedUrlFromKey = async (key: string): Promise<string> => {
+  const bucket = awsConfigService.getUserFilesBucket();
+  const sourceUrl = `https://${bucket}.s3.amazonaws.com/${key}`;
+  return generateSignedUrl(sourceUrl);
+};
+
+/**
  * Fallback function to generate S3 signed URLs directly via Amplify Storage
  * Used when CloudFront signing is unavailable
  *

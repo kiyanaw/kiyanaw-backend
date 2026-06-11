@@ -39,6 +39,7 @@ export interface MediaData {
   owner: string;
   status: string;
   originalKey: string;
+  originalName?: string | null;
   renditionKey?: string | null;
   peaksKey?: string | null;
   thumbnailKey?: string | null;
@@ -53,20 +54,21 @@ export interface CreateMediaParams {
   id: string;
   owner: string;
   originalKey: string;
+  originalName?: string;
   mimeType: string;
   fileSize: number;
   recordedAt?: string;
 }
 
 export const createMedia = async (params: CreateMediaParams): Promise<MediaData> => {
-  const { id, owner, originalKey, mimeType, fileSize, recordedAt } = params;
+  const { id, owner, originalKey, originalName, mimeType, fileSize, recordedAt } = params;
   const pk = `USER#${owner}`;
   const sk = `MEDIA#${recordedAt ?? '0000-00-00'}#${id}`;
 
   const { data: result } = await getClient().graphql({
     query: createMediaMutation,
     variables: {
-      input: { id, pk, sk, owner, status: 'PENDING', originalKey, mimeType, fileSize },
+      input: { id, pk, sk, owner, status: 'PENDING', originalKey, originalName, mimeType, fileSize },
     },
     authMode: 'userPool',
   }) as { data: { createMedia: MediaData } };

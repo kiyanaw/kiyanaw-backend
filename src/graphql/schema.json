@@ -2827,6 +2827,18 @@
               "deprecationReason": null
             },
             {
+              "name": "originalName",
+              "description": null,
+              "args": [],
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              },
+              "isDeprecated": false,
+              "deprecationReason": null
+            },
+            {
               "name": "renditionKey",
               "description": null,
               "args": [],
@@ -6491,6 +6503,16 @@
             },
             {
               "name": "originalKey",
+              "description": null,
+              "type": {
+                "kind": "INPUT_OBJECT",
+                "name": "ModelStringInput",
+                "ofType": null
+              },
+              "defaultValue": null
+            },
+            {
+              "name": "originalName",
               "description": null,
               "type": {
                 "kind": "INPUT_OBJECT",
@@ -10619,6 +10641,16 @@
               "defaultValue": null
             },
             {
+              "name": "originalName",
+              "description": null,
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              },
+              "defaultValue": null
+            },
+            {
               "name": "renditionKey",
               "description": null,
               "type": {
@@ -10849,6 +10881,16 @@
             },
             {
               "name": "originalKey",
+              "description": null,
+              "type": {
+                "kind": "INPUT_OBJECT",
+                "name": "ModelStringInput",
+                "ofType": null
+              },
+              "defaultValue": null
+            },
+            {
+              "name": "originalName",
               "description": null,
               "type": {
                 "kind": "INPUT_OBJECT",
@@ -11112,6 +11154,16 @@
             },
             {
               "name": "originalKey",
+              "description": null,
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              },
+              "defaultValue": null
+            },
+            {
+              "name": "originalName",
               "description": null,
               "type": {
                 "kind": "SCALAR",
@@ -13571,6 +13623,16 @@
             },
             {
               "name": "originalKey",
+              "description": null,
+              "type": {
+                "kind": "INPUT_OBJECT",
+                "name": "ModelSubscriptionStringInput",
+                "ofType": null
+              },
+              "defaultValue": null
+            },
+            {
+              "name": "originalName",
               "description": null,
               "type": {
                 "kind": "INPUT_OBJECT",

@@ -6,7 +6,8 @@ import { useRenewInvite } from '../../hooks/useRenewInvite';
 import { useUpdateInvitePermission } from '../../hooks/useUpdateInvitePermission';
 import { useDeleteTranscription } from '../../hooks/useDeleteTranscription';
 import * as inviteService from '../../services/inviteService';
-import { generateSignedUrl } from '../../services/transcriptionService';
+import { generateSignedUrl, generateSignedUrlFromKey } from '../../services/transcriptionService';
+import { getMedia } from '../../services/mediaService';
 import type { InviteModel, TranscriptionModel } from '../../services/adt';
 import { useExportTranscription } from '../../hooks/useExportTranscription';
 import type { ExportRegion } from '../../use-cases/export-transcription';
@@ -292,24 +293,29 @@ export const TranscriptionSettingsPage = ({
   };
 
   const handleDownloadSource = async () => {
-    if (!transcription.source) return;
-
     setIsDownloadingSource(true);
     try {
-      // Generate a fresh signed URL
-      const signedUrl = await generateSignedUrl(transcription.source);
-      
-      // Create a temporary link and trigger download
+      let signedUrl: string;
+      let filename: string;
+
+      if (transcription.mediaId) {
+        const media = await getMedia(transcription.mediaId);
+        signedUrl = await generateSignedUrlFromKey(media.originalKey);
+        filename = media.originalName || media.originalKey.split('/').pop() || 'download';
+      } else {
+        signedUrl = await generateSignedUrl(transcription.source);
+        filename = transcription.getSourceFilename();
+      }
+
       const link = document.createElement('a');
       link.href = signedUrl;
-      link.download = transcription.getSourceFilename();
+      link.download = filename;
       link.target = '_blank';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
     } catch (error) {
       console.error('Download failed:', error);
-      // Could add error state/toast here if needed
     } finally {
       setIsDownloadingSource(false);
     }
@@ -590,7 +596,7 @@ export const TranscriptionSettingsPage = ({
                 </div>
 
                 <div className="flex flex-wrap gap-3">
-                  {transcription.source && (
+                  {(transcription.source || transcription.mediaId) && (
                     <button
                       onClick={handleDownloadSource}
                       disabled={isDownloadingSource}

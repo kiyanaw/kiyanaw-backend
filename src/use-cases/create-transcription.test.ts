@@ -149,6 +149,7 @@ describe('CreateTranscriptionUseCase', () => {
         id: mockMediaId,
         owner: 'user-id',
         originalKey: 'public/originals/fixed-uuid.mp3',
+        originalName: 'test-audio.mp3',
         mimeType: 'audio/mpeg',
         fileSize: mockFile.size,
       });

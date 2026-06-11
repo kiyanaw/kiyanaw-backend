@@ -257,6 +257,7 @@ type EagerMedia = {
   readonly owner: string;
   readonly status: string;
   readonly originalKey: string;
+  readonly originalName?: string | null;
   readonly renditionKey?: string | null;
   readonly peaksKey?: string | null;
   readonly thumbnailKey?: string | null;
@@ -281,6 +282,7 @@ type LazyMedia = {
   readonly owner: string;
   readonly status: string;
   readonly originalKey: string;
+  readonly originalName?: string | null;
   readonly renditionKey?: string | null;
   readonly peaksKey?: string | null;
   readonly thumbnailKey?: string | null;

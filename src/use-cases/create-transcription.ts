@@ -53,6 +53,7 @@ export class CreateTranscriptionUseCase {
       id: mediaId,
       owner: userId,
       originalKey,
+      originalName: file.name,
       mimeType: file.type,
       fileSize: file.size,
     });

@@ -29,6 +29,7 @@ export const createTranscription = /* GraphQL */ `
         owner
         status
         originalKey
+        originalName
         renditionKey
         peaksKey
         thumbnailKey
@@ -112,6 +113,7 @@ export const updateTranscription = /* GraphQL */ `
         owner
         status
         originalKey
+        originalName
         renditionKey
         peaksKey
         thumbnailKey
@@ -195,6 +197,7 @@ export const deleteTranscription = /* GraphQL */ `
         owner
         status
         originalKey
+        originalName
         renditionKey
         peaksKey
         thumbnailKey
@@ -952,6 +955,7 @@ export const createMedia = /* GraphQL */ `
       owner
       status
       originalKey
+      originalName
       renditionKey
       peaksKey
       thumbnailKey
@@ -990,6 +994,7 @@ export const updateMedia = /* GraphQL */ `
       owner
       status
       originalKey
+      originalName
       renditionKey
       peaksKey
       thumbnailKey
@@ -1028,6 +1033,7 @@ export const deleteMedia = /* GraphQL */ `
       owner
       status
       originalKey
+      originalName
       renditionKey
       peaksKey
       thumbnailKey

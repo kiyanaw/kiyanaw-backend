@@ -1150,6 +1150,13 @@ export const schema = {
                     "isRequired": true,
                     "attributes": []
                 },
+                "originalName": {
+                    "name": "originalName",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": false,
+                    "attributes": []
+                },
                 "renditionKey": {
                     "name": "renditionKey",
                     "isArray": false,
@@ -1362,5 +1369,5 @@ export const schema = {
     "enums": {},
     "nonModels": {},
     "codegenVersion": "3.4.4",
-    "version": "572fb54d302b84eaaaf0265462d66c4e"
+    "version": "25590023b8309ed1f2a4a651a0666290"
 };
