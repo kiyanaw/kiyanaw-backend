@@ -18,6 +18,7 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, ScanCommand, GetCommand, PutCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { fromIni } from '@aws-sdk/credential-providers';
 import { randomUUID } from 'crypto';
+import { writeFileSync } from 'fs';
 
 const CLI_ARGS = process.argv.slice(2);
 
@@ -412,6 +413,7 @@ async function main() {
 
   let successCount = 0;
   let errorCount = 0;
+  const failures = [];
 
   for (const transcription of legacy) {
     const originalKey = extractKeyFromUrl(transcription.source);
@@ -420,11 +422,17 @@ async function main() {
 
     console.log(`Processing: ${transcription.id}  "${transcription.title}"  ->  ${originalName}`);
 
-    await createMediaRecord(mediaId, transcription, originalKey, originalName);
-    await pollUntilReady(mediaId);
-    await linkTranscriptionToMedia(transcription, mediaId);
-    console.log(`  ✅ Done (mediaId: ${mediaId})`);
-    successCount++;
+    try {
+      await createMediaRecord(mediaId, transcription, originalKey, originalName);
+      await pollUntilReady(mediaId);
+      await linkTranscriptionToMedia(transcription, mediaId);
+      console.log(`  ✅ Done (mediaId: ${mediaId})`);
+      successCount++;
+    } catch (err) {
+      console.error(`  ❌ Failed: ${err.message}`);
+      errorCount++;
+      failures.push({ id: transcription.id, title: transcription.title, originalName, error: err.message });
+    }
   }
 
   // Re-scan media so newly processed records are included in backfills
@@ -433,9 +441,17 @@ async function main() {
   await backfillMediaAcls(all);
   await backfillAudioOnly(allMediaAfter);
 
+  const logPath = `migration-errors-${Date.now()}.json`;
+  if (failures.length > 0) {
+    writeFileSync(logPath, JSON.stringify(failures, null, 2));
+  }
+
   console.log('\n' + '='.repeat(80));
   console.log('Migration complete!');
   console.log(`✅ Migrated: ${successCount}`);
+  if (errorCount > 0) {
+    console.log(`❌ Errors:   ${errorCount}  (see ${logPath})`);
+  }
   console.log(`📊 Total:    ${legacy.length}`);
 }
 

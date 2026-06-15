@@ -26,7 +26,12 @@ jest.mock('fs', () => ({
 jest.mock('child_process', () => ({
   exec: jest.fn((cmd, optsOrCb, cb) => {
     const callback = typeof optsOrCb === 'function' ? optsOrCb : cb
-    callback(null, '5.0', '')
+    if (typeof cmd === 'string' && cmd.includes('-select_streams a')) {
+      // ffprobe audio selection: single decodable AAC stream by default
+      callback(null, JSON.stringify({ streams: [{ codec_name: 'aac' }] }), '')
+    } else {
+      callback(null, '5.0', '') // ffprobe duration
+    }
   }),
 }))
 
@@ -137,5 +142,22 @@ describe('media.run', () => {
 
     const errorCall = mockUpdateMediaStatus.mock.calls.find(c => c[1] === 'ERROR')
     expect(errorCall).toBeTruthy()
+  })
+
+  it('skips undecodable apac track and maps the next decodable audio stream', async () => {
+    // Simulate iPhone MOV with apac (spatial audio) first, AAC second
+    const { exec } = require('child_process')
+    exec.mockImplementationOnce((cmd, optsOrCb, cb) => {
+      const callback = typeof optsOrCb === 'function' ? optsOrCb : cb
+      callback(null, JSON.stringify({ streams: [{ codec_name: 'apac' }, { codec_name: 'aac' }] }), '')
+    })
+
+    await run({ id: 'iphone', originalKey: 'public/originals/iphone.mov', mimeType: 'video/quicktime' })
+
+    const transcodeCall = mockRunCommand.mock.calls.find(c => c[0].includes('libx264'))
+    expect(transcodeCall).toBeTruthy()
+    // apac is at audio-relative index 0; AAC is at index 1 — must map to a:1
+    expect(transcodeCall[0]).toContain('-map 0:a:1')
+    expect(transcodeCall[0]).not.toContain('-map 0:a:0')
   })
 })
