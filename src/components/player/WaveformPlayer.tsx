@@ -400,9 +400,7 @@ export const WaveformPlayer = ({
                 playsInline
                 webkit-playsinline=""
                 onClick={showVideoMobile ? handleMobileVideoClick : showVideoFullscreen ? handleFullscreenVideoClick : undefined}
-              >
-                <source src={source} />
-              </video>
+              />
 
               {/* Desktop-only controls - hide in fullscreen */}
               <div className={`hidden lg:block ${showVideoFullscreen ? 'lg:hidden' : ''}`}>

@@ -1,19 +1,18 @@
 import { useState, useEffect, useCallback } from 'react';
-import { FileText, Users, Settings, Mail, Send, UserPlus, Trash2, Save, RotateCcw, Loader2, AlertTriangle, Download, RefreshCw } from 'lucide-react';
+import { FileText, Users, Settings, Mail, Send, UserPlus, Trash2, Save, RotateCcw, Loader2, AlertTriangle, Download } from 'lucide-react';
 import { useCreateInvite } from '../../hooks/useCreateInvite';
 import { useRevokeInvite } from '../../hooks/useRevokeInvite';
 import { useRenewInvite } from '../../hooks/useRenewInvite';
 import { useUpdateInvitePermission } from '../../hooks/useUpdateInvitePermission';
 import { useDeleteTranscription } from '../../hooks/useDeleteTranscription';
 import * as inviteService from '../../services/inviteService';
-import { generateSignedUrl, updateTranscription, deletePeaksFile, reloadPeaks } from '../../services/transcriptionService';
-import { currentUserFriendly } from '../../services/userService';
-import { useEditorStore } from '../../stores/useEditorStore';
-import { wavesurferService } from '../../services/wavesurferService';
+import { generateSignedUrl, generateSignedUrlFromKey } from '../../services/transcriptionService';
+import { getMedia, type MediaData } from '../../services/mediaService';
 import type { InviteModel, TranscriptionModel } from '../../services/adt';
 import { useExportTranscription } from '../../hooks/useExportTranscription';
 import type { ExportRegion } from '../../use-cases/export-transcription';
 import { SearchableLanguageSelector } from './SearchableLanguageSelector';
+import { DeleteTranscriptionModal } from '../shared/DeleteTranscriptionModal';
 
 interface TranscriptionSettingsPageProps {
   transcription: TranscriptionModel;
@@ -65,14 +64,17 @@ export const TranscriptionSettingsPage = ({
   
   // Delete transcription state
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   
-  // Regenerate waveform state
-  type RegenerateStatus = 'idle' | 'working' | 'done' | 'error';
-  const [regenerateStatus, setRegenerateStatus] = useState<RegenerateStatus>('idle');
-  const [regenerateError, setRegenerateError] = useState<string | null>(null);
+  // Media record
+  const [media, setMedia] = useState<MediaData | null>(null);
+
+  useEffect(() => {
+    if (transcription.mediaId) {
+      getMedia(transcription.mediaId).then(setMedia).catch(() => {});
+    }
+  }, [transcription.mediaId]);
 
   // Download state
   const [isDownloadingSource, setIsDownloadingSource] = useState(false);
@@ -269,83 +271,52 @@ export const TranscriptionSettingsPage = ({
   const handleDeleteClick = () => {
     setShowDeleteDialog(true);
     setDeleteError(null);
-    setDeleteConfirmText('');
   };
 
   const handleDeleteCancel = () => {
     setShowDeleteDialog(false);
-    setDeleteConfirmText('');
     setDeleteError(null);
   };
 
   const handleDeleteConfirm = async () => {
-    if (deleteConfirmText.toLowerCase() !== 'delete forever') {
-      setDeleteError('Please type "delete forever" to confirm');
-      return;
-    }
-
     setIsDeleting(true);
     setDeleteError(null);
-
     try {
-      await deleteTranscription({ transcriptionId });
-      // Success handling is done in the hook's onSuccess callback
+      await deleteTranscription({
+        transcriptionId,
+        transcription: { source: transcription.source, mediaId: transcription.mediaId },
+      });
     } catch (error) {
-      // Error handling is done in the hook's onError callback
       console.error('Delete failed:', error);
     }
   };
 
   const handleDownloadSource = async () => {
-    if (!transcription.source) return;
-
     setIsDownloadingSource(true);
     try {
-      // Generate a fresh signed URL
-      const signedUrl = await generateSignedUrl(transcription.source);
-      
-      // Create a temporary link and trigger download
+      let signedUrl: string;
+      let filename: string;
+
+      if (transcription.mediaId) {
+        const media = await getMedia(transcription.mediaId);
+        signedUrl = await generateSignedUrlFromKey(media.originalKey);
+        filename = media.originalName || media.originalKey.split('/').pop() || 'download';
+      } else {
+        signedUrl = await generateSignedUrl(transcription.source);
+        filename = transcription.getSourceFilename();
+      }
+
       const link = document.createElement('a');
       link.href = signedUrl;
-      link.download = transcription.getSourceFilename();
+      link.download = filename;
       link.target = '_blank';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
     } catch (error) {
       console.error('Download failed:', error);
-      // Could add error state/toast here if needed
     } finally {
       setIsDownloadingSource(false);
-    }
-  };
-
-  const handleRegeneratePeaks = async () => {
-    if (!transcription.source) return;
-    setRegenerateStatus('working');
-    setRegenerateError(null);
-
-    try {
-      // Remove the existing peaks file so the lambda won't skip regeneration
-      await deletePeaksFile(transcription.source);
-
-      // Touch the record — fires the DynamoDB stream which triggers createPeaksFile
-      await updateTranscription(transcriptionId, {
-        userLastUpdated: currentUserFriendly() || 'unknown',
-      });
-
-      // Poll until the lambda finishes writing the new file
-      const { data: newPeaks, duration: newDuration } = await reloadPeaks(transcription.source);
-
-      // Update the store and reload the waveform without a page refresh
-      useEditorStore.getState().setPeaks(newPeaks);
-      await wavesurferService.load(transcription.source, newPeaks, newDuration);
-
-      setRegenerateStatus('done');
-    } catch (error) {
-      console.error('Failed to regenerate peaks:', error);
-      setRegenerateError(error instanceof Error ? error.message : 'Failed to regenerate waveform');
-      setRegenerateStatus('error');
     }
   };
 
@@ -505,9 +476,18 @@ export const TranscriptionSettingsPage = ({
                   <div>
                     <label className="block text-sm font-medium text-gray-600">Source File</label>
                     <p className="text-base text-gray-900 mt-1 break-all">
-                      {transcription.source ? transcription.getSourceFilename() : 'Unknown'}
+                      {media?.originalName ?? (transcription.source ? transcription.getSourceFilename() : 'Unknown')}
                     </p>
                   </div>
+
+                  {media?.audioOnly && (
+                    <div className="flex items-start gap-2 p-3 bg-yellow-50 border border-yellow-300 rounded-lg text-sm text-yellow-800">
+                      <AlertTriangle className="flex-shrink-0 mt-0.5" size={16} />
+                      <p>
+                        Your original video file was too large to transcode for web playback, so it was converted to audio only. The video track is not available. If you need the video, please re-upload a smaller or compressed version of the file.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -624,7 +604,7 @@ export const TranscriptionSettingsPage = ({
                 </div>
 
                 <div className="flex flex-wrap gap-3">
-                  {transcription.source && (
+                  {(transcription.source || transcription.mediaId) && (
                     <button
                       onClick={handleDownloadSource}
                       disabled={isDownloadingSource}
@@ -651,35 +631,7 @@ export const TranscriptionSettingsPage = ({
                     Export transcription
                   </button>
                 </div>
-                {transcription.source && (
-                  <div className="flex flex-col gap-2">
-                    <div>
-                      <button
-                        onClick={handleRegeneratePeaks}
-                        disabled={regenerateStatus === 'working'}
-                        className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-orange-600 bg-orange-50 border border-orange-200 rounded-lg hover:bg-orange-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                      >
-                        {regenerateStatus === 'working' ? (
-                          <>
-                            <Loader2 size={16} className="animate-spin" />
-                            Regenerating...
-                          </>
-                        ) : (
-                          <>
-                            <RefreshCw size={16} />
-                            Regenerate waveform
-                          </>
-                        )}
-                      </button>
-                    </div>
-                    {regenerateStatus === 'done' && (
-                      <p className="text-sm text-green-600">Waveform regenerated successfully.</p>
-                    )}
-                    {regenerateStatus === 'error' && regenerateError && (
-                      <p className="text-sm text-red-600">{regenerateError}</p>
-                    )}
-                  </div>
-                )}
+
                 {exportError && (
                   <p className="text-sm text-red-600">{exportError}</p>
                 )}
@@ -883,82 +835,14 @@ export const TranscriptionSettingsPage = ({
         </div>
       </div>
 
-      {/* Delete Confirmation Dialog */}
-      {showDeleteDialog && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-            <div className="fixed inset-0 bg-gray-800/60 backdrop-saturate-0 transition-opacity" onClick={handleDeleteCancel}></div>
-            
-            <div className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
-              <div className="sm:flex sm:items-start">
-                <div className="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
-                  <AlertTriangle className="h-6 w-6 text-red-600" />
-                </div>
-                <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left flex-1">
-                  <h3 className="text-base font-semibold leading-6 text-gray-900">
-                    Delete Transcription
-                  </h3>
-                  <div className="mt-2">
-                    <p className="text-sm text-gray-500 mb-4">
-                      This action will permanently delete <strong>"{title}"</strong> and all associated data. 
-                      This cannot be undone.
-                    </p>
-                    
-                    <div className="mb-4">
-                      <label htmlFor="deleteConfirm" className="block text-sm font-medium text-gray-700 mb-2">
-                        Type <strong>"delete forever"</strong> to confirm:
-                      </label>
-                      <input
-                        id="deleteConfirm"
-                        type="text"
-                        value={deleteConfirmText}
-                        onChange={(e) => setDeleteConfirmText(e.target.value)}
-                        placeholder="delete forever"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm"
-                        disabled={isDeleting}
-                        data-testid="delete-confirm-input"
-                      />
-                    </div>
-
-                    {deleteError && (
-                      <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800">
-                        {deleteError}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-              
-              <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
-                <button
-                  type="button"
-                  onClick={handleDeleteConfirm}
-                  disabled={isDeleting || deleteConfirmText.toLowerCase() !== 'delete forever'}
-                  className="inline-flex w-full justify-center rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:ml-3 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
-                  data-testid="delete-forever-button"
-                >
-                  {isDeleting ? (
-                    <>
-                      <Loader2 size={16} className="animate-spin mr-2" />
-                      Deleting...
-                    </>
-                  ) : (
-                    'Delete Forever'
-                  )}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDeleteCancel}
-                  disabled={isDeleting}
-                  className="mt-3 inline-flex w-full justify-center rounded-lg bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <DeleteTranscriptionModal
+        isOpen={showDeleteDialog}
+        transcriptionTitle={title}
+        onConfirm={handleDeleteConfirm}
+        onCancel={handleDeleteCancel}
+        isDeleting={isDeleting}
+        error={deleteError}
+      />
 
       {showExportDialog && (
         <div className="fixed inset-0 z-50">

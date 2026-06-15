@@ -29,8 +29,11 @@ export const onCreateTranscription = /* GraphQL */ `
         owner
         status
         originalKey
+        originalName
         renditionKey
+        peaksKey
         thumbnailKey
+        audioOnly
         mimeType
         fileSize
         duration
@@ -111,8 +114,11 @@ export const onUpdateTranscription = /* GraphQL */ `
         owner
         status
         originalKey
+        originalName
         renditionKey
+        peaksKey
         thumbnailKey
+        audioOnly
         mimeType
         fileSize
         duration
@@ -193,8 +199,11 @@ export const onDeleteTranscription = /* GraphQL */ `
         owner
         status
         originalKey
+        originalName
         renditionKey
+        peaksKey
         thumbnailKey
+        audioOnly
         mimeType
         fileSize
         duration
@@ -943,8 +952,11 @@ export const onCreateMedia = /* GraphQL */ `
       owner
       status
       originalKey
+      originalName
       renditionKey
+      peaksKey
       thumbnailKey
+      audioOnly
       mimeType
       fileSize
       duration
@@ -980,8 +992,11 @@ export const onUpdateMedia = /* GraphQL */ `
       owner
       status
       originalKey
+      originalName
       renditionKey
+      peaksKey
       thumbnailKey
+      audioOnly
       mimeType
       fileSize
       duration
@@ -1017,8 +1032,11 @@ export const onDeleteMedia = /* GraphQL */ `
       owner
       status
       originalKey
+      originalName
       renditionKey
+      peaksKey
       thumbnailKey
+      audioOnly
       mimeType
       fileSize
       duration

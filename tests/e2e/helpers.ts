@@ -40,7 +40,20 @@ export async function createTestTranscription(page: Page): Promise<{ transcripti
   await expect(uploadButton).toBeEnabled();
   await uploadButton.click();
 
-  await expect(page).toHaveURL(/.*transcribe-edit\/.*/, { timeout: 120000 });
+  // Upload now redirects to the list while media processes in the background
+  await expect(page).toHaveURL(/.*transcribe-list.*/, { timeout: 30000 });
+
+  // Find the newly created transcription by its unique title
+  const titleRow = page.locator('[data-testid="transcription-list-item-title-row"]').filter({ hasText: title }).first();
+  await expect(titleRow).toBeVisible({ timeout: 15000 });
+
+  // Wait for the processing indicator to disappear (media is READY)
+  await expect(titleRow.locator('[data-testid="media-status-indicator"]')).toBeHidden({ timeout: 180000 });
+
+  // Click through to the editor
+  const titleLink = titleRow.locator('[data-testid="transcription-list-item-title"]');
+  await titleLink.click();
+  await expect(page).toHaveURL(/.*transcribe-edit\/.*/, { timeout: 30000 });
 
   const editorUrl = page.url();
   const urlMatch = editorUrl.match(/\/transcribe-edit\/([^/?]+)/);

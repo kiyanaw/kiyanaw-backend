@@ -16,6 +16,9 @@ import { TranscriptionModel, type IssueType, ISSUE_TYPE_VALUES } from '../servic
 
 import { browserService } from '../services/browserService';
 import { wavesurferService } from '../services/wavesurferService';
+import { MEDIA_STATUS } from '../services/mediaService';
+import { LoadTranscription } from '../use-cases/load-transcription';
+import { services } from '../services';
 
 import { WaveformPlayer } from '../components/player/WaveformPlayer';
 import { RegionList } from '../components/regions/RegionList';
@@ -173,6 +176,8 @@ export const EditorPage = () => {
   // Editor store selectors
   const transcription = useEditorStore((state) => state.transcription);
   const accessDenied = useEditorStore((state) => state.accessDenied);
+  const mediaStatus = useEditorStore((state) => state.mediaStatus);
+  const setMediaStatus = useEditorStore((state) => state.setMediaStatus);
   const user = useAuthStore((state) => state.user);
   
   // Hooks for settings functionality
@@ -314,6 +319,31 @@ export const EditorPage = () => {
     };
   }, []);
 
+  // Poll media status while processing — Lambda writes directly to DynamoDB, bypassing AppSync subscriptions
+  useEffect(() => {
+    const mediaId = transcription?.mediaId;
+    if (!mediaId || !mediaStatus || mediaStatus === MEDIA_STATUS.ERROR) return;
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const media = await services.mediaService.getMedia(mediaId);
+        if (media.status === MEDIA_STATUS.READY) {
+          clearInterval(pollInterval);
+          const store = useEditorStore.getState();
+          const useCase = new LoadTranscription({ transcriptionId: transcriptionId!, services, store });
+          useCase.execute().catch((error: Error) => console.error('Auto-load after media ready failed:', error));
+        } else if (media.status === MEDIA_STATUS.ERROR) {
+          clearInterval(pollInterval);
+          setMediaStatus(MEDIA_STATUS.ERROR);
+        }
+      } catch (error) {
+        console.error('Failed to poll media status:', error);
+      }
+    }, 3000);
+
+    return () => clearInterval(pollInterval);
+  }, [transcriptionId, mediaStatus, setMediaStatus, transcription]);
+
   const isVideo = transcription?.isVideo ?? false
 
   return (
@@ -330,7 +360,28 @@ export const EditorPage = () => {
         </div>
       )}
 
-      {(transcription) && (
+      {/* Media Processing Overlay */}
+      {(transcription && mediaStatus && mediaStatus !== MEDIA_STATUS.READY && mediaStatus !== MEDIA_STATUS.ERROR) && (
+        <div className="absolute inset-0 bg-white flex flex-col items-center justify-center z-10" data-testid="media-processing-overlay">
+          <div className="flex flex-col items-center justify-center h-full p-8 text-center">
+            <div className="w-10 h-10 border-4 border-gray-300 border-t-ki-blue rounded-full animate-spin mb-4"></div>
+            <p className="text-gray-700 font-medium mb-1">{transcription.title}</p>
+            <p className="text-gray-500 text-sm">This media is still being processed. The editor will load automatically when ready.</p>
+          </div>
+        </div>
+      )}
+
+      {/* Media Error Overlay */}
+      {(transcription && mediaStatus === MEDIA_STATUS.ERROR) && (
+        <div className="absolute inset-0 bg-white flex flex-col items-center justify-center z-10" data-testid="media-error-overlay">
+          <div className="flex flex-col items-center justify-center h-full p-8 text-center">
+            <p className="text-gray-700 font-medium mb-1">{transcription.title}</p>
+            <p className="text-red-600 text-sm">Media processing failed. Please try uploading the file again.</p>
+          </div>
+        </div>
+      )}
+
+      {(transcription && !mediaStatus) && (
         <>
         {/* Waveform/Video Player Section */}
         <div className="flex-shrink-0 bg-gray-100 border-b border-gray-300">

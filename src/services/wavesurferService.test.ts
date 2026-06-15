@@ -774,20 +774,15 @@ describe('WaveSurferService', () => {
     });
 
     it('should load source and peaks with signed URLs for video', async () => {
-      // Create mock video element
       const mockVideoElement = document.createElement('video');
-      
-      // Initialize wavesurfer with video element
       wavesurferService.initialize(mockContainer, mockTimelineContainer, mockVideoElement);
-      
+
       const source = 'https://bucket.s3.amazonaws.com/public/test-video.mp4';
       const peaks = [1, 2, 3, 4];
-      
+
       await wavesurferService.load(source, peaks);
-      
-      // Should set signed URL on video element src
-      expect(mockVideoElement.src).toBe('https://fake.s3.amazonaws.com/public/test-video.mp4');
-      // Should call wavesurfer load with signed URL
+
+      // WaveSurfer owns the media element src — verify it receives the signed URL
       expect(mockWaveSurferInstance.load).toHaveBeenCalledWith(
         'https://fake.s3.amazonaws.com/public/test-video.mp4',
         peaks,
@@ -795,7 +790,7 @@ describe('WaveSurferService', () => {
       );
     });
 
-    it('should handle signed URL generation errors gracefully', async () => {
+    it('should propagate signed URL generation errors', async () => {
       const spy = jest.spyOn(transcriptionService, 'generateSignedUrl').mockRejectedValueOnce(new Error('S3 access denied'));
 
       wavesurferService.initialize(mockContainer, mockTimelineContainer);
@@ -803,15 +798,13 @@ describe('WaveSurferService', () => {
       const source = 'https://bucket.s3.amazonaws.com/public/test-source.mp3';
       const peaks = [1, 2, 3, 4];
 
-      await wavesurferService.load(source, peaks);
-
-      // Should fallback to original URL
-      expect(mockWaveSurferInstance.load).toHaveBeenCalledWith(source, peaks, undefined);
+      await expect(wavesurferService.load(source, peaks)).rejects.toThrow('S3 access denied');
+      expect(mockWaveSurferInstance.load).not.toHaveBeenCalled();
 
       spy.mockRestore();
     });
 
-    it('should handle signed URL generation errors gracefully for video', async () => {
+    it('should propagate signed URL generation errors for video', async () => {
       const spy = jest.spyOn(transcriptionService, 'generateSignedUrl').mockRejectedValueOnce(new Error('S3 access denied'));
 
       const mockVideoElement = document.createElement('video');
@@ -820,11 +813,8 @@ describe('WaveSurferService', () => {
       const source = 'https://bucket.s3.amazonaws.com/public/test-video.mp4';
       const peaks = [1, 2, 3, 4];
 
-      await wavesurferService.load(source, peaks);
-
-      // Should fallback to original URL
-      expect(mockVideoElement.src).toBe(source);
-      expect(mockWaveSurferInstance.load).toHaveBeenCalledWith(source, peaks, undefined);
+      await expect(wavesurferService.load(source, peaks)).rejects.toThrow('S3 access denied');
+      expect(mockWaveSurferInstance.load).not.toHaveBeenCalled();
 
       spy.mockRestore();
     });

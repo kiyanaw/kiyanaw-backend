@@ -1,13 +1,17 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, Eye, Edit, Search, Plus, ChevronDown, Lock, LockOpen, Video, FileAudio, Filter, X, AlertTriangle, List } from 'lucide-react';
+import { Users, Eye, Edit, Search, Plus, ChevronDown, Lock, LockOpen, Video, FileAudio, Filter, X, AlertTriangle, List, Trash2 } from 'lucide-react';
+import { DeleteTranscriptionUseCase } from '../../use-cases/delete-transcription';
 import { useTranscriptionsStore } from '../../stores/useTranscriptionsStore';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { useLoadTranscriptions } from '../../hooks/useLoadTranscriptions';
 import { SyncIndicator } from '../sync/SyncIndicator';
+import { MediaStatusIndicator } from './MediaStatusIndicator';
+import { DeleteTranscriptionModal } from '../shared/DeleteTranscriptionModal';
 import { SyncOwnedTranscriptions } from '../../use-cases/sync-owned-transcriptions';
 import { SyncSharedTranscriptions } from '../../use-cases/sync-shared-transcriptions';
 import { services } from '../../services';
+import { MEDIA_STATUS } from '../../services/mediaService';
 import TimeAgo from 'javascript-time-ago';
 import en from 'javascript-time-ago/locale/en';
 
@@ -37,6 +41,8 @@ export const TranscriptionsList = () => {
   const reload = useTranscriptionsStore((state) => state.reload);
   const ownedSyncStatus = useTranscriptionsStore((state) => state.ownedSyncStatus);
   const sharedSyncStatus = useTranscriptionsStore((state) => state.sharedSyncStatus);
+  const applyMediaStatus = useTranscriptionsStore((state) => state.applyMediaStatus);
+  const removeTranscription = useTranscriptionsStore((state) => state.removeTranscription);
   const user = useAuthStore((state) => state.user);
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState('dateLastUpdated');
@@ -44,6 +50,39 @@ export const TranscriptionsList = () => {
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const [showMobileFilter, setShowMobileFilter] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('owned');
+  const [deleteTarget, setDeleteTarget] = useState<(typeof transcriptions)[0] | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const handleDeleteClick = (transcription: (typeof transcriptions)[0]) => {
+    setDeleteTarget(transcription);
+    setDeleteError(null);
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteTarget(null);
+    setDeleteError(null);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    setDeleteError(null);
+    try {
+      const useCase = new DeleteTranscriptionUseCase({
+        transcriptionId: deleteTarget.id,
+        transcription: { source: deleteTarget.source, mediaId: deleteTarget.mediaId },
+      });
+      await useCase.execute();
+      removeTranscription(deleteTarget.id);
+      setDeleteTarget(null);
+    } catch (error) {
+      console.error('Failed to delete transcription:', error);
+      setDeleteError(error instanceof Error ? error.message : 'Failed to delete transcription');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const showUploadButton = true;
 
@@ -89,10 +128,35 @@ export const TranscriptionsList = () => {
 
   // Load transcriptions when component mounts
   const loadTranscriptions = useLoadTranscriptions();
-  
+
   useEffect(() => {
     loadTranscriptions();
   }, [loadTranscriptions]);
+
+  // Poll media status for any transcriptions still processing.
+  // Lambda writes directly to DynamoDB, bypassing AppSync subscriptions.
+  const processingKey = transcriptions
+    .filter(t => t.mediaId && (t.mediaStatus === MEDIA_STATUS.PENDING || t.mediaStatus === MEDIA_STATUS.PROCESSING))
+    .map(t => t.mediaId as string)
+    .join(',');
+
+  useEffect(() => {
+    if (!processingKey) return;
+    const mediaIds = processingKey.split(',');
+
+    const pollInterval = setInterval(async () => {
+      for (const mediaId of mediaIds) {
+        try {
+          const media = await services.mediaService.getMedia(mediaId);
+          applyMediaStatus(mediaId, media.status);
+        } catch (error) {
+          console.error('Failed to poll media status:', error);
+        }
+      }
+    }, 3000);
+
+    return () => clearInterval(pollInterval);
+  }, [processingKey, applyMediaStatus]);
 
   // Handle tab switching with sync
   const handleTabSwitch = (tab: TabType) => {
@@ -203,6 +267,7 @@ export const TranscriptionsList = () => {
   }
 
   return (
+    <>
     <div className="fixed inset-x-0 top-[72px] bottom-0 flex flex-col bg-gray-50">
       {/* Page Header */}
       <div className="sticky top-0 z-10 bg-white border-b border-gray-200">
@@ -436,6 +501,8 @@ export const TranscriptionsList = () => {
                           {transcription.title}
                         </Link>
 
+                        <MediaStatusIndicator status={transcription.mediaStatus} />
+
                         {/* Media Type Icon */}
                         {transcription.isVideo ? (
                           <Video className="w-4 h-4 text-gray-500 flex-shrink-0" />
@@ -533,6 +600,17 @@ export const TranscriptionsList = () => {
                         <span className="text-gray-500">Updated</span>
                         <span className="text-gray-700">{formatTimeAgo(transcription.dateLastUpdated)}</span>
                       </div>
+                      {transcription.isMine(user?.userId) && (
+                        <div className="flex items-center justify-between text-sm pt-1 border-t border-gray-100">
+                          <button
+                            onClick={() => handleDeleteClick(transcription)}
+                            className="flex items-center gap-1 text-gray-400 hover:text-red-500 transition-colors"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            <span className="text-xs">Delete</span>
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -550,7 +628,7 @@ export const TranscriptionsList = () => {
                 <div className="flex-1 min-w-0 p-4">
                 {/* Top Row: Title + Issues */}
                     <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <div className="flex items-center gap-2 min-w-0 flex-1" data-testid="transcription-list-item-title-row" data-transcription-id={transcription.id}>
                       <Link
                         data-testid="transcription-list-item-title"
                         to={`/transcribe-edit/${transcription.id}`}
@@ -558,6 +636,8 @@ export const TranscriptionsList = () => {
                       >
                         {transcription.title}
                       </Link>
+
+                      <MediaStatusIndicator status={transcription.mediaStatus} />
 
                       {/* Sharing Status Icons */}
                       {(() => {
@@ -594,7 +674,7 @@ export const TranscriptionsList = () => {
                         {(() => {
                           const issues = transcription.data.issueCount ?? Number(transcription.data.issues || 0);
                           const regions = transcription.data.regionCount ?? 0;
-                          
+
                           return (
                             <>
                         <span
@@ -604,7 +684,7 @@ export const TranscriptionsList = () => {
                         >
                                 {issues} issues
                               </span>
-                              <span 
+                              <span
                                 className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium text-cyan-800"
                                 style={{ backgroundColor: 'rgba(0, 213, 255, 0.15)' }}
                               >
@@ -613,6 +693,15 @@ export const TranscriptionsList = () => {
                             </>
                           );
                         })()}
+                        {transcription.isMine(user?.userId) && (
+                          <button
+                            onClick={() => handleDeleteClick(transcription)}
+                            className="p-1 text-gray-400 hover:text-red-500 rounded transition-colors"
+                            title="Delete transcription"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </div>
 
@@ -667,5 +756,15 @@ export const TranscriptionsList = () => {
         </div>
       </div>
     </div>
+
+    <DeleteTranscriptionModal
+      isOpen={deleteTarget !== null}
+      transcriptionTitle={deleteTarget?.title ?? ''}
+      onConfirm={handleDeleteConfirm}
+      onCancel={handleDeleteCancel}
+      isDeleting={isDeleting}
+      error={deleteError}
+    />
+    </>
   );
 };

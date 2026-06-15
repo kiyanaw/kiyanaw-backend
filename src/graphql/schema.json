@@ -2827,7 +2827,31 @@
               "deprecationReason": null
             },
             {
+              "name": "originalName",
+              "description": null,
+              "args": [],
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              },
+              "isDeprecated": false,
+              "deprecationReason": null
+            },
+            {
               "name": "renditionKey",
+              "description": null,
+              "args": [],
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              },
+              "isDeprecated": false,
+              "deprecationReason": null
+            },
+            {
+              "name": "peaksKey",
               "description": null,
               "args": [],
               "type": {
@@ -2845,6 +2869,18 @@
               "type": {
                 "kind": "SCALAR",
                 "name": "String",
+                "ofType": null
+              },
+              "isDeprecated": false,
+              "deprecationReason": null
+            },
+            {
+              "name": "audioOnly",
+              "description": null,
+              "args": [],
+              "type": {
+                "kind": "SCALAR",
+                "name": "Boolean",
                 "ofType": null
               },
               "isDeprecated": false,
@@ -3118,6 +3154,16 @@
           ],
           "inputFields": null,
           "interfaces": [],
+          "enumValues": null,
+          "possibleTypes": null
+        },
+        {
+          "kind": "SCALAR",
+          "name": "Boolean",
+          "description": "Built-in Boolean",
+          "fields": null,
+          "inputFields": null,
+          "interfaces": null,
           "enumValues": null,
           "possibleTypes": null
         },
@@ -3676,16 +3722,6 @@
               "defaultValue": null
             }
           ],
-          "interfaces": null,
-          "enumValues": null,
-          "possibleTypes": null
-        },
-        {
-          "kind": "SCALAR",
-          "name": "Boolean",
-          "description": "Built-in Boolean",
-          "fields": null,
-          "inputFields": null,
           "interfaces": null,
           "enumValues": null,
           "possibleTypes": null
@@ -6488,7 +6524,27 @@
               "defaultValue": null
             },
             {
+              "name": "originalName",
+              "description": null,
+              "type": {
+                "kind": "INPUT_OBJECT",
+                "name": "ModelStringInput",
+                "ofType": null
+              },
+              "defaultValue": null
+            },
+            {
               "name": "renditionKey",
+              "description": null,
+              "type": {
+                "kind": "INPUT_OBJECT",
+                "name": "ModelStringInput",
+                "ofType": null
+              },
+              "defaultValue": null
+            },
+            {
+              "name": "peaksKey",
               "description": null,
               "type": {
                 "kind": "INPUT_OBJECT",
@@ -6503,6 +6559,16 @@
               "type": {
                 "kind": "INPUT_OBJECT",
                 "name": "ModelStringInput",
+                "ofType": null
+              },
+              "defaultValue": null
+            },
+            {
+              "name": "audioOnly",
+              "description": null,
+              "type": {
+                "kind": "INPUT_OBJECT",
+                "name": "ModelBooleanInput",
                 "ofType": null
               },
               "defaultValue": null
@@ -10597,7 +10663,27 @@
               "defaultValue": null
             },
             {
+              "name": "originalName",
+              "description": null,
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              },
+              "defaultValue": null
+            },
+            {
               "name": "renditionKey",
+              "description": null,
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              },
+              "defaultValue": null
+            },
+            {
+              "name": "peaksKey",
               "description": null,
               "type": {
                 "kind": "SCALAR",
@@ -10612,6 +10698,16 @@
               "type": {
                 "kind": "SCALAR",
                 "name": "String",
+                "ofType": null
+              },
+              "defaultValue": null
+            },
+            {
+              "name": "audioOnly",
+              "description": null,
+              "type": {
+                "kind": "SCALAR",
+                "name": "Boolean",
                 "ofType": null
               },
               "defaultValue": null
@@ -10826,7 +10922,27 @@
               "defaultValue": null
             },
             {
+              "name": "originalName",
+              "description": null,
+              "type": {
+                "kind": "INPUT_OBJECT",
+                "name": "ModelStringInput",
+                "ofType": null
+              },
+              "defaultValue": null
+            },
+            {
               "name": "renditionKey",
+              "description": null,
+              "type": {
+                "kind": "INPUT_OBJECT",
+                "name": "ModelStringInput",
+                "ofType": null
+              },
+              "defaultValue": null
+            },
+            {
+              "name": "peaksKey",
               "description": null,
               "type": {
                 "kind": "INPUT_OBJECT",
@@ -10841,6 +10957,16 @@
               "type": {
                 "kind": "INPUT_OBJECT",
                 "name": "ModelStringInput",
+                "ofType": null
+              },
+              "defaultValue": null
+            },
+            {
+              "name": "audioOnly",
+              "description": null,
+              "type": {
+                "kind": "INPUT_OBJECT",
+                "name": "ModelBooleanInput",
                 "ofType": null
               },
               "defaultValue": null
@@ -11079,7 +11205,27 @@
               "defaultValue": null
             },
             {
+              "name": "originalName",
+              "description": null,
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              },
+              "defaultValue": null
+            },
+            {
               "name": "renditionKey",
+              "description": null,
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              },
+              "defaultValue": null
+            },
+            {
+              "name": "peaksKey",
               "description": null,
               "type": {
                 "kind": "SCALAR",
@@ -11094,6 +11240,16 @@
               "type": {
                 "kind": "SCALAR",
                 "name": "String",
+                "ofType": null
+              },
+              "defaultValue": null
+            },
+            {
+              "name": "audioOnly",
+              "description": null,
+              "type": {
+                "kind": "SCALAR",
+                "name": "Boolean",
                 "ofType": null
               },
               "defaultValue": null
@@ -13528,7 +13684,27 @@
               "defaultValue": null
             },
             {
+              "name": "originalName",
+              "description": null,
+              "type": {
+                "kind": "INPUT_OBJECT",
+                "name": "ModelSubscriptionStringInput",
+                "ofType": null
+              },
+              "defaultValue": null
+            },
+            {
               "name": "renditionKey",
+              "description": null,
+              "type": {
+                "kind": "INPUT_OBJECT",
+                "name": "ModelSubscriptionStringInput",
+                "ofType": null
+              },
+              "defaultValue": null
+            },
+            {
+              "name": "peaksKey",
               "description": null,
               "type": {
                 "kind": "INPUT_OBJECT",
@@ -13543,6 +13719,16 @@
               "type": {
                 "kind": "INPUT_OBJECT",
                 "name": "ModelSubscriptionStringInput",
+                "ofType": null
+              },
+              "defaultValue": null
+            },
+            {
+              "name": "audioOnly",
+              "description": null,
+              "type": {
+                "kind": "INPUT_OBJECT",
+                "name": "ModelSubscriptionBooleanInput",
                 "ofType": null
               },
               "defaultValue": null

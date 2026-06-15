@@ -68,13 +68,27 @@ resources:
     # ==========================================
     # VPC S3 Endpoint
     # Required for Lambda functions in VPC to access S3 without going through NAT Gateway
-    # Used by: createPeaksFile
+    # Used by: createPeaksFile, processMedia
     # ==========================================
     VpcS3Endpoint:
       Type: AWS::EC2::VPCEndpoint
       Properties:
         VpcId: ${self:custom.vpc.vpcId}
         ServiceName: !Sub 'com.amazonaws.${AWS::Region}.s3'
+        RouteTableIds:
+          - ${self:custom.vpc.routeTableId}
+        VpcEndpointType: Gateway
+
+    # ==========================================
+    # VPC DynamoDB Endpoint
+    # Required for Lambda functions in VPC to reach DynamoDB without NAT Gateway
+    # Used by: processMedia (updates Media table status)
+    # ==========================================
+    VpcDynamoDBEndpoint:
+      Type: AWS::EC2::VPCEndpoint
+      Properties:
+        VpcId: ${self:custom.vpc.vpcId}
+        ServiceName: !Sub 'com.amazonaws.${AWS::Region}.dynamodb'
         RouteTableIds:
           - ${self:custom.vpc.routeTableId}
         VpcEndpointType: Gateway

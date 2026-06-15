@@ -120,6 +120,13 @@ export type LoadTranscriptionResult = {
   comments: CommentData[];
 };
 
+export type LoadTranscriptionProcessingResult = {
+  processing: true;
+  transcription: TranscriptionModel;
+  mediaId: string;
+  mediaStatus: string;
+};
+
 export interface User {
   username: string;
   email?: string;
@@ -157,6 +164,7 @@ export interface StoreWithTranscriptionData {
   setCanEdit: (canEdit: boolean) => void;
   addKnownWords: (words: string[]) => void;
   setTranscription: (transcription: TranscriptionData) => void;
+  setMediaStatus: (status: string | null) => void;
   transcription: TranscriptionData | null;
 }
 

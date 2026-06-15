@@ -3,9 +3,9 @@ import { getUrl, remove } from 'aws-amplify/storage';
 import { fetchAuthSession } from 'aws-amplify/auth';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - GraphQL queries are generated as JS files
-import { getTranscription, transcriptionsByAuthor } from '../graphql/queries.js';
+import { getTranscription } from '../graphql/queries.js';
 
-import { transcriptionsByAuthorDate } from './custom-queries';
+import { transcriptionsByAuthorDate, transcriptionsByAuthorWithMedia } from './custom-queries';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - GraphQL mutations are generated as JS files
 import { createTranscription as createTranscriptionMutation, updateTranscription as updateTranscriptionMutation, deleteTranscription as deleteTranscriptionMutation } from '../graphql/mutations.js';
@@ -17,17 +17,22 @@ import { TranscriptionModel, type TranscriptionData as ADTTranscriptionData } fr
 import { currentUser } from './userService';
 import { transcriptionStorage } from './transcriptionStorageService';
 import { getMyInvites } from './inviteService';
+import { getMedia } from './mediaService';
+import { awsConfigService } from './awsConfigService';
 
-import { 
-  type GraphQLClient, 
-  type GraphQLResponse, 
+import {
+  type GraphQLClient,
+  type GraphQLResponse,
   type GetTranscriptionResponse,
   type CreateTranscriptionResponse,
   type UpdateTranscriptionResponse,
   type DeleteTranscriptionResponse,
-  type TranscriptionData as SharedTranscriptionData, 
+  type TranscriptionData as SharedTranscriptionData,
   type LoadTranscriptionResult,
+  type LoadTranscriptionProcessingResult,
 } from '../types/shared';
+
+import { MEDIA_STATUS } from './mediaService';
 
 // Sync state management
 let currentSyncOperation: Promise<TranscriptionModel[]> | null = null;
@@ -48,7 +53,8 @@ export const __resetClient = () => {
 
 export interface CreateTranscriptionData {
   title: string;
-  source: string;
+  source?: string;
+  mediaId?: string;
   type: string;
   author: string;
   userLastUpdated: string;
@@ -164,6 +170,15 @@ export const generateSignedUrl = async (sourceUrl: string, fileSuffix: string = 
 };
 
 /**
+ * Generates a signed URL for an S3 key (e.g., "public/originals/<id>.mp3") without needing the full URL.
+ */
+export const generateSignedUrlFromKey = async (key: string): Promise<string> => {
+  const bucket = awsConfigService.getUserFilesBucket();
+  const sourceUrl = `https://${bucket}.s3.amazonaws.com/${key}`;
+  return generateSignedUrl(sourceUrl);
+};
+
+/**
  * Fallback function to generate S3 signed URLs directly via Amplify Storage
  * Used when CloudFront signing is unavailable
  *
@@ -274,6 +289,14 @@ export const deletePeaksFile = async (sourceUrl: string): Promise<void> => {
   await remove({ path });
 };
 
+export const deleteTranscriptionFiles = async (sourceUrl: string): Promise<void> => {
+  const fileKey = extractS3KeyFromUrl(sourceUrl);
+  await Promise.all([
+    remove({ path: `public/${fileKey}` }).catch(err => console.warn('Failed to delete source file:', err)),
+    remove({ path: `public/${fileKey}.json` }).catch(err => console.warn('Failed to delete peaks file:', err)),
+  ]);
+};
+
 /**
  * Polls S3 until a freshly-generated peaks file is available.
  * Delegates to fetchPeaksData which uses exponential backoff.
@@ -362,18 +385,74 @@ const fetchPeaksData = async (
   throw new Error(`Failed to load peaks data after ${maxRetries + 1} attempts. The audio file may still be processing. Please try again in a few minutes. Last error: ${lastError?.message}`);
 };
 
+const fetchPeaksDataByKey = async (
+  peaksKey: string,
+  maxRetries: number = 10,
+  baseDelay: number = 2000
+): Promise<{ data: number[]; duration: number }> => {
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      let signedUrl: string;
+      try {
+        const result = await generateCloudFrontSignedUrl(peaksKey);
+        signedUrlExpirationTime = result.expiresAt;
+        signedUrl = result.signedUrl;
+      } catch {
+        const { url } = await getUrl({
+          path: peaksKey,
+          options: { expiresIn: 3600, useAccelerateEndpoint: false },
+        });
+        signedUrlExpirationTime = Date.now() + 3600 * 1000;
+        signedUrl = url.toString();
+      }
+
+      const peaksResponse = await fetch(signedUrl);
+
+      if (peaksResponse.ok) {
+        const peaksObject = await peaksResponse.json();
+        if (peaksObject && peaksObject.data) {
+          const duration = peaksObject.length / PEAKS_PER_SECOND;
+          return { data: peaksObject.data, duration };
+        }
+        const data = peaksObject as number[];
+        return { data, duration: data.length / PEAKS_PER_SECOND };
+      }
+
+      if (peaksResponse.status === 403 || peaksResponse.status === 404) {
+        lastError = new Error(`Peaks file not ready yet (${peaksResponse.status}), will retry...`);
+        if (attempt < maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, baseDelay * Math.pow(1.5, attempt)));
+          continue;
+        }
+      } else {
+        throw new Error(`Failed to load peaks data: ${peaksResponse.status} ${peaksResponse.statusText}`);
+      }
+    } catch (error) {
+      lastError = error as Error;
+      if ((lastError.message || '').includes('Failed to load peaks data:')) throw lastError;
+      if (attempt < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, baseDelay * Math.pow(1.5, attempt)));
+        continue;
+      }
+    }
+  }
+
+  throw new Error(`Failed to load peaks data after ${maxRetries + 1} attempts. Last error: ${lastError?.message}`);
+};
+
 /**
  * Fetches all necessary data for the editor page.
  *
  * @param transcriptionId The ID of the transcription to load.
  * @returns An object containing the transcription, regions, and issues, or false if access denied.
  */
-export const loadInFull = async (transcriptionId: string): Promise<false | LoadTranscriptionResult> => {
+export const loadInFull = async (transcriptionId: string): Promise<false | LoadTranscriptionResult | LoadTranscriptionProcessingResult> => {
   if (!transcriptionId) {
     throw new Error('transcriptionId is required');
   }
 
-  // Load via GraphQL API (this will enforce authorization)
   let transcriptionData: SharedTranscriptionData;
   try {
     console.debug('🔍 Loading transcription via GraphQL API...');
@@ -385,26 +464,43 @@ export const loadInFull = async (transcriptionId: string): Promise<false | LoadT
     const response = graphqlResult as GraphQLResponse<GetTranscriptionResponse>;
     transcriptionData = response.data.getTranscription;
     if (!transcriptionData) {
-      return false; // Transcription not found
+      return false;
     }
   } catch (error) {
     console.error('❌ GraphQL API query failed - access denied:', error);
-    return false; // Return false instead of throwing error
+    return false;
   }
 
-  // Create TranscriptionModel from GraphQL data
   const transcription = new TranscriptionModel(transcriptionData as unknown as ADTTranscriptionData);
   
-  // Set access level for the current user
   const user = currentUser();
   transcription.setAccessLevel(user?.userId);
 
-  // Handle missing source
-  if (!transcription.source) {
-    throw new Error('Transcription source is required to load peaks data');
+  let peaks: number[];
+  let peaksDuration: number;
+
+  if (transcription.mediaId) {
+    // New pipeline: fetch Media record and derive source + peaks from it
+    const media = await getMedia(transcription.mediaId);
+    if (media.status !== MEDIA_STATUS.READY) {
+      return {
+        processing: true,
+        transcription,
+        mediaId: media.id,
+        mediaStatus: media.status,
+      };
+    }
+    const bucket = awsConfigService.getUserFilesBucket();
+    transcription.source = `https://${bucket}.s3.amazonaws.com/${media.renditionKey}`;
+    const result = await fetchPeaksDataByKey(media.peaksKey!);
+    peaks = result.data;
+    peaksDuration = result.duration;
+  } else {
+    // Legacy path: no mediaId, use source URL with peaks stored alongside it
+    const result = await fetchPeaksData(transcription.source);
+    peaks = result.data;
+    peaksDuration = result.duration;
   }
-  
-  const { data: peaks, duration: peaksDuration } = await fetchPeaksData(transcription.source);
 
   const [regions, issues, comments] = await Promise.all([
     loadRegionsForTranscription(transcriptionId),
@@ -436,7 +532,7 @@ const loadOwnedTranscriptions = async (userId: string): Promise<TranscriptionMod
     
     do {
       const graphqlResult = await getClient().graphql({
-        query: transcriptionsByAuthor,
+        query: transcriptionsByAuthorWithMedia,
         variables: {
           author: userId,
           limit: 50,
@@ -444,13 +540,13 @@ const loadOwnedTranscriptions = async (userId: string): Promise<TranscriptionMod
         }
       });
 
-      const response = graphqlResult as { 
-        data: { 
+      const response = graphqlResult as {
+        data: {
           transcriptionsByAuthor: {
             items: SharedTranscriptionData[];
             nextToken?: string;
           }
-        } 
+        }
       };
       const page = response.data?.transcriptionsByAuthor;
       
@@ -987,19 +1083,21 @@ export const categorizeTranscriptions = (
  */
 export const create = async (data: CreateTranscriptionData): Promise<SharedTranscriptionData> => {
   try {
-    const input = {
+    const input: Record<string, unknown> = {
       title: data.title,
-      source: data.source,
       type: data.type,
       author: data.author,
       authorFriendly: data.userLastUpdated,
       userLastUpdated: data.userLastUpdated,
       dateLastUpdated: new Date().toISOString(),
-      length: 0, // Will be updated when audio is processed
-      isPrivate: data.isPrivate ?? true, // Default to private if not specified
-      publicIssues: data.publicIssues ?? false, // Default to private issues if not specified
+      length: 0,
+      isPrivate: data.isPrivate ?? true,
+      publicIssues: data.publicIssues ?? false,
       disableAnalyzer: false,
     };
+
+    if (data.source) input.source = data.source;
+    if (data.mediaId) input.mediaId = data.mediaId;
 
     const { data: result } = await getClient().graphql({
       query: createTranscriptionMutation,
@@ -1012,15 +1110,18 @@ export const create = async (data: CreateTranscriptionData): Promise<SharedTrans
       throw new Error('Failed to create transcription - no data returned');
     }
 
-    // Invalidate cache after successful creation
     const user = currentUser();
     if (user?.userId) {
       console.debug('🔄 Invalidating cache after transcription creation');
       await transcriptionStorage.setLastSyncedAt(user.userId, new Date().toISOString());
       
-      // Optimistically add to cache if it exists
       try {
-        const model = new TranscriptionModel(created as unknown as ADTTranscriptionData);
+        // AppSync resolves @belongsTo as null in mutation responses — inject the
+        // known PENDING status so the list shows the processing indicator immediately.
+        const createdWithMedia = created.mediaId && !created.media
+          ? { ...created, media: { status: 'PENDING' } }
+          : created;
+        const model = new TranscriptionModel(createdWithMedia as unknown as ADTTranscriptionData);
         model.setAccessLevel(user.userId);
         await transcriptionStorage.storeTranscriptions([model]);
         console.debug('✅ Optimistically added new transcription to cache');

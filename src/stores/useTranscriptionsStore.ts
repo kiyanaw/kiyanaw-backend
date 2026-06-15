@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { TranscriptionModel } from '../services/adt';
 import { services } from '../services';
+import { transcriptionStorage } from '../services/transcriptionStorageService';
 import { LoadTranscriptions } from '../use-cases/load-transcriptions';
 
 interface CacheStats {
@@ -34,6 +35,11 @@ interface TranscriptionsState {
   updateCacheStats: (stats: CacheStats) => void;
   mergeTranscriptions: (newTranscriptions: TranscriptionModel[]) => void;
   
+  removeTranscription: (transcriptionId: string) => void;
+
+  // Media status updates
+  applyMediaStatus: (mediaId: string, status: string) => void;
+
   // Tab-specific sync actions
   setOwnedSyncStatus: (status: 'synced' | 'syncing' | null) => void;
   setSharedSyncStatus: (status: 'synced' | 'syncing' | null) => void;
@@ -103,6 +109,30 @@ export const useTranscriptionsStore = create<TranscriptionsState>()(
         set({ transcriptions: mergedTranscriptions });
       },
       
+      removeTranscription: (transcriptionId: string) => {
+        const { transcriptions } = get();
+        set({ transcriptions: transcriptions.filter(t => t.id !== transcriptionId) });
+      },
+
+      // Media status updates — find the matching transcription and update its mediaStatus
+      applyMediaStatus: (mediaId: string, status: string) => {
+        const { transcriptions } = get();
+        let updatedModel: TranscriptionModel | undefined;
+        const updated = transcriptions.map(t => {
+          if (t.mediaId !== mediaId) return t;
+          t.mediaStatus = status;
+          t.data = { ...t.data, media: { ...(t.data.media ?? {}), status } };
+          updatedModel = t;
+          return t;
+        });
+        set({ transcriptions: updated });
+        if (updatedModel) {
+          transcriptionStorage.storeTranscriptions([updatedModel]).catch(err =>
+            console.warn('Failed to persist media status to cache:', err)
+          );
+        }
+      },
+
       // Tab-specific sync actions
       setOwnedSyncStatus: (ownedSyncStatus: 'synced' | 'syncing' | null) => {
         set({ ownedSyncStatus });

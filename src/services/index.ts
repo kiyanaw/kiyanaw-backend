@@ -1,4 +1,5 @@
 import * as authService from './userService';
+import * as mediaService from './mediaService';
 import * as regionService from './regionService'
 import * as transcriptionService from './transcriptionService';
 import * as issueService from './issueService';
@@ -22,6 +23,7 @@ import * as versionConflictService from './versionConflictService';
 export const services = {
   userService: authService,
   authService,
+  mediaService,
   regionService,
   transcriptionService,
   issueService,

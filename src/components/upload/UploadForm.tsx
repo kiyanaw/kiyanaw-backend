@@ -42,10 +42,9 @@ export const UploadForm = () => {
         onProgress: handleProgressUpdate,
       });
 
-      const result = await useCase.execute();
+      await useCase.execute();
 
-      console.log('Transcription created:', result.transcription);
-      navigate(`/transcribe-edit/${result.transcriptionId}`);
+      navigate('/transcribe-list');
     } catch (error) {
       console.error('Error creating transcription:', error);
       // TODO: Show error message to user

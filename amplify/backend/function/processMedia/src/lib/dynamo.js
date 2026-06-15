@@ -8,7 +8,7 @@ const docClient = DynamoDBDocumentClient.from(client)
  * Update a Media record's status and optional extra fields.
  * Pass conditionStatus to add a ConditionExpression (for atomic dedupe).
  */
-async function updateMediaStatus(id, status, { conditionStatus, renditionKey, peaksKey, thumbnailKey, duration } = {}) {
+async function updateMediaStatus(id, status, { conditionStatus, renditionKey, peaksKey, thumbnailKey, duration, audioOnly } = {}) {
   const now = new Date().toISOString()
   const tableName = process.env.API_KIYANAW_MEDIATABLE_NAME
 
@@ -35,6 +35,11 @@ async function updateMediaStatus(id, status, { conditionStatus, renditionKey, pe
     exprParts.push('#duration = :duration')
     names['#duration'] = 'duration'
     values[':duration'] = duration
+  }
+  if (audioOnly !== undefined) {
+    exprParts.push('#audioOnly = :audioOnly')
+    names['#audioOnly'] = 'audioOnly'
+    values[':audioOnly'] = audioOnly
   }
 
   const params = {

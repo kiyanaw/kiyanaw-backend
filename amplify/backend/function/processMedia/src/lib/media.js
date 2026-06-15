@@ -7,8 +7,14 @@ const { escapeShellArg } = require('../utils')
 
 const bucket = process.env.STORAGE_TRANSCRIPTIONS_BUCKETNAME
 
+// TODO: Large videos that exceed this threshold are extracted to audio-only
+// to avoid Lambda's 15-minute timeout. The proper fix is to offload
+// transcoding for large files to a Fargate task so they get a proper
+// compressed video rendition.
+const LARGE_VIDEO_BYTES = 200 * 1024 * 1024 // 200 MB
+
 const VIDEO_MIME_PREFIXES = ['video/']
-const VIDEO_EXTENSIONS = ['mp4', 'm4v', 'mov', 'avi', 'mkv', 'webm']
+const VIDEO_EXTENSIONS = ['mp4', 'm4v', 'mov', 'avi', 'mkv', 'webm', 'wmv']
 
 function isVideo(mimeType, ext) {
   if (mimeType && VIDEO_MIME_PREFIXES.some(p => mimeType.startsWith(p))) return true
@@ -43,25 +49,34 @@ async function run({ id, originalKey, mimeType }) {
   const ext = path.extname(originalKey).slice(1).toLowerCase()
   const video = isVideo(mimeType, ext)
   const origLocalPath = `${efsPath}/${id}-orig.${ext}`
-  const renditionExt = video ? 'mp4' : 'mp3'
-  const renditionLocalPath = `${efsPath}/${id}-rendition.${renditionExt}`
-  const thumbLocalPath = video ? `${efsPath}/${id}-thumb.jpg` : null
-
-  // Derive S3 key layout: originals/<userId>/<mediaId>.<ext> → renditions/...
-  const keyParts = originalKey.split('/')
-  const userId = keyParts[1] || 'unknown'
-  const renditionKey = `renditions/${userId}/${id}.${renditionExt}`
-  const peaksKey = `peaks/${userId}/${id}.json`
-  const thumbnailKey = video ? `thumbnails/${userId}/${id}.jpg` : null
+  const peaksKey = `public/peaks/${id}.json`
 
   try {
     // 1. Download original
     await getS3File(bucket, originalKey, `${id}-orig.${ext}`)
 
+    const fileSizeBytes = fs.statSync(origLocalPath).size
+    const isLargeVideo = video && fileSizeBytes > LARGE_VIDEO_BYTES
+
+    // Large videos are extracted to audio-only to stay within Lambda's timeout.
+    // Normal videos transcode to mp4; audio and large-video fallbacks go to mp3.
+    const audioOnly = !video || isLargeVideo
+    const renditionExt = audioOnly ? 'mp3' : 'mp4'
+    const renditionMimeType = audioOnly ? 'audio/mpeg' : 'video/mp4'
+    const renditionLocalPath = `${efsPath}/${id}-rendition.${renditionExt}`
+    const renditionKey = `public/renditions/${id}.${renditionExt}`
+    const thumbLocalPath = audioOnly ? null : `${efsPath}/${id}-thumb.jpg`
+    const thumbnailKey = audioOnly ? null : `public/thumbnails/${id}.jpg`
+
     // 2. Transcode
-    if (video) {
+    if (isLargeVideo) {
+      console.log(`Media ${id} is a large video (${(fileSizeBytes / 1024 / 1024).toFixed(0)} MB) — extracting audio only`)
       await runCommand(
-        `ffmpeg -y -i ${escapeShellArg(origLocalPath)} -vf scale=-2:720 -c:v libx264 -b:v 1500k -preset medium -c:a aac -b:a 128k ${escapeShellArg(renditionLocalPath)}`
+        `ffmpeg -y -i ${escapeShellArg(origLocalPath)} -vn -c:a libmp3lame -b:a 192k ${escapeShellArg(renditionLocalPath)}`
+      )
+    } else if (video) {
+      await runCommand(
+        `ffmpeg -y -i ${escapeShellArg(origLocalPath)} -vf scale=-2:720 -c:v libx264 -b:v 1500k -preset veryfast -c:a aac -b:a 128k ${escapeShellArg(renditionLocalPath)}`
       )
     } else {
       await runCommand(
@@ -69,8 +84,8 @@ async function run({ id, originalKey, mimeType }) {
       )
     }
 
-    // 3. Thumbnail (video only)
-    if (video) {
+    // 3. Thumbnail (video renditions only)
+    if (!audioOnly) {
       const duration = await getDuration(renditionLocalPath)
       const seekTime = duration >= 1 ? '00:00:01' : '00:00:00'
       await runCommand(
@@ -86,8 +101,7 @@ async function run({ id, originalKey, mimeType }) {
     const duration = await getDuration(renditionLocalPath)
 
     // 6. Upload rendition
-    const renditionBody = fs.readFileSync(renditionLocalPath)
-    await putS3File(bucket, renditionKey, renditionBody, video ? 'video/mp4' : 'audio/mpeg')
+    await putS3File(bucket, renditionKey, fs.readFileSync(renditionLocalPath), renditionMimeType)
 
     // 7. Upload peaks
     await putS3File(bucket, peaksKey, JSON.stringify(peaksData), 'application/json')
@@ -99,7 +113,7 @@ async function run({ id, originalKey, mimeType }) {
     }
 
     // 9. Mark READY
-    const updates = { renditionKey, peaksKey, duration }
+    const updates = { renditionKey, peaksKey, duration, audioOnly: isLargeVideo }
     if (thumbnailKey) updates.thumbnailKey = thumbnailKey
     await updateMediaStatus(id, 'READY', updates)
 
@@ -109,11 +123,10 @@ async function run({ id, originalKey, mimeType }) {
     await updateMediaStatus(id, 'ERROR', {}).catch(e => console.error('Failed to set ERROR status:', e))
     throw error
   } finally {
-    // Clean up temp files
-    for (const p of [origLocalPath, renditionLocalPath, thumbLocalPath, `${renditionLocalPath}.wav`, `${renditionLocalPath}.json`]) {
-      if (p && fs.existsSync(p)) {
-        try { fs.unlinkSync(p) } catch (_) {}
-      }
+    const tmpDir = efsPath
+    const prefix = `${tmpDir}/${id}-`
+    for (const p of fs.readdirSync(tmpDir).filter(f => f.startsWith(`${id}-`)).map(f => `${tmpDir}/${f}`)) {
+      try { fs.unlinkSync(p) } catch (_) {}
     }
   }
 }

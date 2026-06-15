@@ -1150,8 +1150,22 @@ export const schema = {
                     "isRequired": true,
                     "attributes": []
                 },
+                "originalName": {
+                    "name": "originalName",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": false,
+                    "attributes": []
+                },
                 "renditionKey": {
                     "name": "renditionKey",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": false,
+                    "attributes": []
+                },
+                "peaksKey": {
+                    "name": "peaksKey",
                     "isArray": false,
                     "type": "String",
                     "isRequired": false,
@@ -1161,6 +1175,13 @@ export const schema = {
                     "name": "thumbnailKey",
                     "isArray": false,
                     "type": "String",
+                    "isRequired": false,
+                    "attributes": []
+                },
+                "audioOnly": {
+                    "name": "audioOnly",
+                    "isArray": false,
+                    "type": "Boolean",
                     "isRequired": false,
                     "attributes": []
                 },
@@ -1355,5 +1376,5 @@ export const schema = {
     "enums": {},
     "nonModels": {},
     "codegenVersion": "3.4.4",
-    "version": "44a494462b956b8371ee426763d45af3"
+    "version": "4edc88e16b5cbb20d78b185533ae273a"
 };

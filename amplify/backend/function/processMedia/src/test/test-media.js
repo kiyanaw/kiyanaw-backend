@@ -17,6 +17,8 @@ jest.mock('../lib/audio', () => ({
 jest.mock('fs', () => ({
   existsSync: jest.fn().mockReturnValue(false),
   readFileSync: jest.fn().mockReturnValue(Buffer.from('rendition-bytes')),
+  readdirSync: jest.fn().mockReturnValue([]),
+  statSync: jest.fn().mockReturnValue({ size: 1024 * 1024 }), // 1 MB — below large-video threshold
   createWriteStream: jest.fn(),
   unlinkSync: jest.fn(),
 }))
@@ -46,7 +48,7 @@ describe('media.run', () => {
   })
 
   it('branches into audio path for audio/mpeg mime type', async () => {
-    await run({ id: 'abc', originalKey: 'originals/u/abc.mp3', mimeType: 'audio/mpeg' })
+    await run({ id: 'abc', originalKey: 'public/originals/abc.mp3', mimeType: 'audio/mpeg' })
 
     // Status set to PROCESSING with condition
     expect(mockUpdateMediaStatus).toHaveBeenCalledWith('abc', 'PROCESSING', { conditionStatus: 'PENDING' })
@@ -59,15 +61,17 @@ describe('media.run', () => {
     const thumbCall = mockRunCommand.mock.calls.find(c => c[0].includes('-frames:v'))
     expect(thumbCall).toBeUndefined()
 
-    // Final status READY
+    // Final status READY with public/-prefixed keys; audioOnly false (was never a video)
     const readyCall = mockUpdateMediaStatus.mock.calls.find(c => c[1] === 'READY')
     expect(readyCall).toBeTruthy()
-    expect(readyCall[2].renditionKey).toBe('renditions/u/abc.mp3')
+    expect(readyCall[2].renditionKey).toBe('public/renditions/abc.mp3')
+    expect(readyCall[2].peaksKey).toBe('public/peaks/abc.json')
     expect(readyCall[2].thumbnailKey).toBeUndefined()
+    expect(readyCall[2].audioOnly).toBe(false)
   })
 
   it('branches into video path for video/mp4 mime type', async () => {
-    await run({ id: 'xyz', originalKey: 'originals/u/xyz.mp4', mimeType: 'video/mp4' })
+    await run({ id: 'xyz', originalKey: 'public/originals/xyz.mp4', mimeType: 'video/mp4' })
 
     // ffmpeg video transcode command used
     const transcodeCall = mockRunCommand.mock.calls.find(c => c[0].includes('libx264'))
@@ -77,14 +81,40 @@ describe('media.run', () => {
     const thumbCall = mockRunCommand.mock.calls.find(c => c[0].includes('-frames:v'))
     expect(thumbCall).toBeTruthy()
 
-    // Final status READY with thumbnailKey
+    // Final status READY with public/-prefixed keys; audioOnly false (full video rendition)
     const readyCall = mockUpdateMediaStatus.mock.calls.find(c => c[1] === 'READY')
     expect(readyCall).toBeTruthy()
-    expect(readyCall[2].thumbnailKey).toBe('thumbnails/u/xyz.jpg')
+    expect(readyCall[2].renditionKey).toBe('public/renditions/xyz.mp4')
+    expect(readyCall[2].peaksKey).toBe('public/peaks/xyz.json')
+    expect(readyCall[2].thumbnailKey).toBe('public/thumbnails/xyz.jpg')
+    expect(readyCall[2].audioOnly).toBe(false)
+  })
+
+  it('sets audioOnly true for a large video transcoded to audio', async () => {
+    const { statSync } = require('fs')
+    statSync.mockReturnValueOnce({ size: 201 * 1024 * 1024 }) // 201 MB — above threshold
+
+    await run({ id: 'big', originalKey: 'public/originals/big.mp4', mimeType: 'video/mp4' })
+
+    // Audio extraction command used, not video transcode
+    const transcodeCall = mockRunCommand.mock.calls.find(c => c[0].includes('libmp3lame'))
+    expect(transcodeCall).toBeTruthy()
+    const videoCall = mockRunCommand.mock.calls.find(c => c[0].includes('libx264'))
+    expect(videoCall).toBeUndefined()
+
+    // No thumbnail
+    const thumbCall = mockRunCommand.mock.calls.find(c => c[0].includes('-frames:v'))
+    expect(thumbCall).toBeUndefined()
+
+    // audioOnly saved as true
+    const readyCall = mockUpdateMediaStatus.mock.calls.find(c => c[1] === 'READY')
+    expect(readyCall).toBeTruthy()
+    expect(readyCall[2].renditionKey).toBe('public/renditions/big.mp3')
+    expect(readyCall[2].audioOnly).toBe(true)
   })
 
   it('falls back to extension when mime is application/octet-stream', async () => {
-    await run({ id: 'abc', originalKey: 'originals/u/abc.mp4', mimeType: 'application/octet-stream' })
+    await run({ id: 'abc', originalKey: 'public/originals/u/abc.mp4', mimeType: 'application/octet-stream' })
     const transcodeCall = mockRunCommand.mock.calls.find(c => c[0].includes('libx264'))
     expect(transcodeCall).toBeTruthy()
   })
@@ -94,7 +124,7 @@ describe('media.run', () => {
     err.name = 'ConditionalCheckFailedException'
     mockUpdateMediaStatus.mockRejectedValueOnce(err)
 
-    await run({ id: 'abc', originalKey: 'originals/u/abc.mp3', mimeType: 'audio/mpeg' })
+    await run({ id: 'abc', originalKey: 'public/originals/abc.mp3', mimeType: 'audio/mpeg' })
 
     // Should not proceed to download after dedupe skip
     expect(mockGetS3File).not.toHaveBeenCalled()
@@ -103,7 +133,7 @@ describe('media.run', () => {
   it('sets ERROR status on processing failure', async () => {
     mockGetS3File.mockRejectedValueOnce(new Error('S3 error'))
 
-    await expect(run({ id: 'abc', originalKey: 'originals/u/abc.mp3', mimeType: 'audio/mpeg' })).rejects.toThrow('S3 error')
+    await expect(run({ id: 'abc', originalKey: 'public/originals/abc.mp3', mimeType: 'audio/mpeg' })).rejects.toThrow('S3 error')
 
     const errorCall = mockUpdateMediaStatus.mock.calls.find(c => c[1] === 'ERROR')
     expect(errorCall).toBeTruthy()

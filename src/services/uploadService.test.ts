@@ -206,4 +206,96 @@ describe('UploadService', () => {
       expect(originalFile.name).toBe(originalName);
     });
   });
+
+  describe('buildOriginalKey', () => {
+    it('should build key with mp3 extension', () => {
+      const key = uploadService.buildOriginalKey('media-456', 'recording.mp3');
+      expect(key).toBe('originals/media-456.mp3');
+    });
+
+    it('should build key with mp4 extension', () => {
+      const key = uploadService.buildOriginalKey('media-456', 'video.mp4');
+      expect(key).toBe('originals/media-456.mp4');
+    });
+
+    it('should lowercase the extension', () => {
+      const key = uploadService.buildOriginalKey('m', 'file.MP3');
+      expect(key).toBe('originals/m.mp3');
+    });
+
+    it('should fall back to mp3 when no extension present', () => {
+      const key = uploadService.buildOriginalKey('m', 'noextension');
+      expect(key).toBe('originals/m.mp3');
+    });
+  });
+
+  describe('uploadOriginal', () => {
+    it('should upload file with given key and return public/<key>', async () => {
+      const mockResult = Promise.resolve({ key: 'test-key' });
+      mockUploadData.mockReturnValue({
+        result: mockResult,
+        cancel: jest.fn(),
+        pause: jest.fn(),
+        resume: jest.fn(),
+        state: 'IN_PROGRESS'
+      } as any);
+
+      const file = new File(['content'], 'audio.mp3', { type: 'audio/mpeg' });
+      const result = await uploadService.uploadOriginal(file, 'originals/media-1.mp3');
+
+      expect(uploadData).toHaveBeenCalledWith({
+        key: 'originals/media-1.mp3',
+        data: file,
+        options: {
+          accessLevel: 'guest',
+          onProgress: expect.any(Function),
+        },
+      });
+      expect(result).toBe('public/originals/media-1.mp3');
+    });
+
+    it('should forward progress events', async () => {
+      const progressCallback = jest.fn();
+      const mockResult = Promise.resolve({ key: 'test-key' });
+
+      mockUploadData.mockImplementation(({ options }) => {
+        if (options?.onProgress) {
+          options.onProgress({ transferredBytes: 30, totalBytes: 100 });
+        }
+        return {
+          result: mockResult,
+          cancel: jest.fn(),
+          pause: jest.fn(),
+          resume: jest.fn(),
+          state: 'IN_PROGRESS'
+        } as any;
+      });
+
+      await uploadService.uploadOriginal(
+        new File(['x'], 'x.mp3', { type: 'audio/mpeg' }),
+        'originals/m.mp3',
+        { onProgress: progressCallback }
+      );
+
+      expect(progressCallback).toHaveBeenCalledWith({
+        transferredBytes: 30,
+        totalBytes: 100,
+        percentage: 30,
+      });
+    });
+
+    it('should propagate upload errors', async () => {
+      mockUploadData.mockReturnValue({
+        result: Promise.reject(new Error('Upload failed')),
+        cancel: jest.fn(),
+        pause: jest.fn(),
+        resume: jest.fn(),
+        state: 'ERROR'
+      } as any);
+
+      await expect(
+        uploadService.uploadOriginal(new File(['x'], 'x.mp3'), 'originals/m.mp3')
+      ).rejects.toThrow('Upload failed');
+    });
+  });
 }); 

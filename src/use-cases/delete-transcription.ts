@@ -1,9 +1,11 @@
-import { deleteTranscription } from '../services/transcriptionService';
+import { deleteTranscription, deleteTranscriptionFiles } from '../services/transcriptionService';
+import { deleteMedia } from '../services/mediaService';
 import { currentUser } from '../services/userService';
 import type { TranscriptionData } from '../types/shared';
 
 export interface DeleteTranscriptionConfig {
   transcriptionId: string;
+  transcription?: { source?: string; mediaId?: string };
   currentUserId?: string;
 }
 
@@ -41,11 +43,20 @@ export class DeleteTranscriptionUseCase {
   async execute(): Promise<DeleteTranscriptionResult> {
     this.validate();
 
-    const { transcriptionId } = this.config;
+    const { transcriptionId, transcription } = this.config;
 
     try {
-      // Call the service to delete the transcription
       const deletedTranscription = await deleteTranscription(transcriptionId);
+
+      if (transcription?.mediaId) {
+        await deleteMedia(transcription.mediaId).catch(err =>
+          console.warn('Failed to clean up Media record/files:', err)
+        );
+      } else if (transcription?.source) {
+        await deleteTranscriptionFiles(transcription.source).catch(err =>
+          console.warn('Failed to clean up legacy transcription files:', err)
+        );
+      }
 
       return {
         success: true,
@@ -54,7 +65,6 @@ export class DeleteTranscriptionUseCase {
     } catch (error) {
       console.error('Failed to delete transcription:', error);
       
-      // Re-throw with more context for the UI layer
       if (error instanceof Error) {
         if (error.message.includes('not found')) {
           throw new Error('Transcription not found or you do not have permission to delete it');

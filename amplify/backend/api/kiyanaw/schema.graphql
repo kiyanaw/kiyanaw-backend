@@ -178,8 +178,11 @@ type Media
   # Processing
   status: String!
   originalKey: String!
+  originalName: String
   renditionKey: String
+  peaksKey: String
   thumbnailKey: String
+  audioOnly: Boolean
 
   # Metadata
   mimeType: String!
