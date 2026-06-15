@@ -262,11 +262,12 @@ async function backfillMediaAcls(transcriptions) {
       continue;
     }
 
+    const normalizeAcl = (val) => (val?.length ? val : null);
     const needsUpdate =
-      JSON.stringify(media.editors ?? null) !== JSON.stringify(transcription.editors ?? null) ||
-      JSON.stringify(media.viewers ?? null) !== JSON.stringify(transcription.viewers ?? null) ||
-      JSON.stringify(media.editorGroups ?? null) !== JSON.stringify(transcription.editorGroups ?? null) ||
-      JSON.stringify(media.viewerGroups ?? null) !== JSON.stringify(transcription.viewerGroups ?? null);
+      JSON.stringify(normalizeAcl(media.editors)) !== JSON.stringify(normalizeAcl(transcription.editors)) ||
+      JSON.stringify(normalizeAcl(media.viewers)) !== JSON.stringify(normalizeAcl(transcription.viewers)) ||
+      JSON.stringify(normalizeAcl(media.editorGroups)) !== JSON.stringify(normalizeAcl(transcription.editorGroups)) ||
+      JSON.stringify(normalizeAcl(media.viewerGroups)) !== JSON.stringify(normalizeAcl(transcription.viewerGroups));
 
     if (!needsUpdate) {
       skippedCount++;
