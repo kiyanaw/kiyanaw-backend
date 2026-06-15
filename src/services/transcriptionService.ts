@@ -479,14 +479,9 @@ export const loadInFull = async (transcriptionId: string): Promise<false | LoadT
   let peaks: number[];
   let peaksDuration: number;
 
-  if (transcription.source) {
-    // Legacy path: source URL present, peaks stored alongside the source file
-    const result = await fetchPeaksData(transcription.source);
-    peaks = result.data;
-    peaksDuration = result.duration;
-  } else {
+  if (transcription.mediaId) {
     // New pipeline: fetch Media record and derive source + peaks from it
-    const media = await getMedia(transcription.mediaId!);
+    const media = await getMedia(transcription.mediaId);
     if (media.status !== MEDIA_STATUS.READY) {
       return {
         processing: true,
@@ -498,6 +493,11 @@ export const loadInFull = async (transcriptionId: string): Promise<false | LoadT
     const bucket = awsConfigService.getUserFilesBucket();
     transcription.source = `https://${bucket}.s3.amazonaws.com/${media.renditionKey}`;
     const result = await fetchPeaksDataByKey(media.peaksKey!);
+    peaks = result.data;
+    peaksDuration = result.duration;
+  } else {
+    // Legacy path: no mediaId, use source URL with peaks stored alongside it
+    const result = await fetchPeaksData(transcription.source);
     peaks = result.data;
     peaksDuration = result.duration;
   }

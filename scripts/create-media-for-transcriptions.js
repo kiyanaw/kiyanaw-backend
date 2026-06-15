@@ -15,7 +15,7 @@
  */
 
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, ScanCommand, PutCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, ScanCommand, GetCommand, PutCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { fromIni } from '@aws-sdk/credential-providers';
 import { randomUUID } from 'crypto';
 
@@ -154,11 +154,9 @@ async function createMediaRecord(mediaId, transcription, originalKey, originalNa
     pk,
     sk,
     owner,
-    status: 'READY',
+    status: 'PENDING',
     originalKey,
     originalName,
-    // For legacy transcriptions the source IS the rendition (no separate encoding was done)
-    renditionKey: originalKey,
     mimeType: guessMimeType(originalName),
     fileSize: 0,
     createdAt: new Date(now).toISOString(),
@@ -195,6 +193,43 @@ async function linkTranscriptionToMedia(transcription, mediaId) {
       ':null': null,
     },
   }));
+}
+
+const POLL_INTERVAL_MS = 5000;
+const POLL_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
+
+async function pollUntilReady(mediaId) {
+  const deadline = Date.now() + POLL_TIMEOUT_MS;
+  let lastStatus = null;
+
+  while (Date.now() < deadline) {
+    const result = await docClient.send(new GetCommand({
+      TableName: MEDIA_TABLE,
+      Key: { id: mediaId },
+    }));
+
+    const status = result.Item?.status;
+    if (status !== lastStatus) {
+      process.stdout.write(`  Status: ${status}`);
+      lastStatus = status;
+    } else {
+      process.stdout.write('.');
+    }
+
+    if (status === 'READY') {
+      process.stdout.write('\n');
+      return;
+    }
+    if (status === 'ERROR') {
+      process.stdout.write('\n');
+      throw new Error(`processMedia set status to ERROR for mediaId ${mediaId}`);
+    }
+
+    await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL_MS));
+  }
+
+  process.stdout.write('\n');
+  throw new Error(`Timed out waiting for mediaId ${mediaId} to become READY (last status: ${lastStatus})`);
 }
 
 async function main() {
@@ -234,6 +269,7 @@ async function main() {
     try {
       await createMediaRecord(mediaId, transcription, originalKey, originalName);
       await linkTranscriptionToMedia(transcription, mediaId);
+      await pollUntilReady(mediaId);
       console.log(`  ✅ Done (mediaId: ${mediaId})`);
       successCount++;
     } catch (error) {
