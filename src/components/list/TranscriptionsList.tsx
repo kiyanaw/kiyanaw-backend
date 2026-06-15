@@ -7,6 +7,7 @@ import { useAuthStore } from '../../stores/useAuthStore';
 import { useLoadTranscriptions } from '../../hooks/useLoadTranscriptions';
 import { SyncIndicator } from '../sync/SyncIndicator';
 import { MediaStatusIndicator } from './MediaStatusIndicator';
+import { DeleteTranscriptionModal } from '../shared/DeleteTranscriptionModal';
 import { SyncOwnedTranscriptions } from '../../use-cases/sync-owned-transcriptions';
 import { SyncSharedTranscriptions } from '../../use-cases/sync-shared-transcriptions';
 import { services } from '../../services';
@@ -49,23 +50,37 @@ export const TranscriptionsList = () => {
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const [showMobileFilter, setShowMobileFilter] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('owned');
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<(typeof transcriptions)[0] | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const handleDelete = async (transcription: (typeof transcriptions)[0]) => {
-    setDeletingId(transcription.id);
+  const handleDeleteClick = (transcription: (typeof transcriptions)[0]) => {
+    setDeleteTarget(transcription);
+    setDeleteError(null);
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteTarget(null);
+    setDeleteError(null);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    setDeleteError(null);
     try {
       const useCase = new DeleteTranscriptionUseCase({
-        transcriptionId: transcription.id,
-        transcription: { source: transcription.source, mediaId: transcription.mediaId },
+        transcriptionId: deleteTarget.id,
+        transcription: { source: deleteTarget.source, mediaId: deleteTarget.mediaId },
       });
       await useCase.execute();
-      removeTranscription(transcription.id);
+      removeTranscription(deleteTarget.id);
+      setDeleteTarget(null);
     } catch (error) {
       console.error('Failed to delete transcription:', error);
+      setDeleteError(error instanceof Error ? error.message : 'Failed to delete transcription');
     } finally {
-      setDeletingId(null);
-      setConfirmDeleteId(null);
+      setIsDeleting(false);
     }
   };
 
@@ -252,6 +267,7 @@ export const TranscriptionsList = () => {
   }
 
   return (
+    <>
     <div className="fixed inset-x-0 top-[72px] bottom-0 flex flex-col bg-gray-50">
       {/* Page Header */}
       <div className="sticky top-0 z-10 bg-white border-b border-gray-200">
@@ -586,32 +602,13 @@ export const TranscriptionsList = () => {
                       </div>
                       {transcription.isMine(user?.userId) && (
                         <div className="flex items-center justify-between text-sm pt-1 border-t border-gray-100">
-                          {confirmDeleteId === transcription.id ? (
-                            <div className="flex items-center gap-2 w-full">
-                              <span className="text-gray-600 text-xs">Delete this transcription?</span>
-                              <button
-                                onClick={() => handleDelete(transcription)}
-                                disabled={deletingId === transcription.id}
-                                className="ml-auto px-2 py-1 text-xs font-medium bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
-                              >
-                                {deletingId === transcription.id ? 'Deleting…' : 'Confirm'}
-                              </button>
-                              <button
-                                onClick={() => setConfirmDeleteId(null)}
-                                className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => setConfirmDeleteId(transcription.id)}
-                              className="flex items-center gap-1 text-gray-400 hover:text-red-500 transition-colors"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                              <span className="text-xs">Delete</span>
-                            </button>
-                          )}
+                          <button
+                            onClick={() => handleDeleteClick(transcription)}
+                            className="flex items-center gap-1 text-gray-400 hover:text-red-500 transition-colors"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            <span className="text-xs">Delete</span>
+                          </button>
                         </div>
                       )}
                     </div>
@@ -697,31 +694,13 @@ export const TranscriptionsList = () => {
                           );
                         })()}
                         {transcription.isMine(user?.userId) && (
-                          confirmDeleteId === transcription.id ? (
-                            <div className="flex items-center gap-1">
-                              <button
-                                onClick={() => handleDelete(transcription)}
-                                disabled={deletingId === transcription.id}
-                                className="px-2 py-1 text-xs font-medium bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
-                              >
-                                {deletingId === transcription.id ? 'Deleting…' : 'Confirm'}
-                              </button>
-                              <button
-                                onClick={() => setConfirmDeleteId(null)}
-                                className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => setConfirmDeleteId(transcription.id)}
-                              className="p-1 text-gray-400 hover:text-red-500 rounded transition-colors"
-                              title="Delete transcription"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          )
+                          <button
+                            onClick={() => handleDeleteClick(transcription)}
+                            className="p-1 text-gray-400 hover:text-red-500 rounded transition-colors"
+                            title="Delete transcription"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         )}
                       </div>
                     </div>
@@ -777,5 +756,15 @@ export const TranscriptionsList = () => {
         </div>
       </div>
     </div>
+
+    <DeleteTranscriptionModal
+      isOpen={deleteTarget !== null}
+      transcriptionTitle={deleteTarget?.title ?? ''}
+      onConfirm={handleDeleteConfirm}
+      onCancel={handleDeleteCancel}
+      isDeleting={isDeleting}
+      error={deleteError}
+    />
+    </>
   );
 };
