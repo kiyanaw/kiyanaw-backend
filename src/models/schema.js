@@ -1178,6 +1178,13 @@ export const schema = {
                     "isRequired": false,
                     "attributes": []
                 },
+                "audioOnly": {
+                    "name": "audioOnly",
+                    "isArray": false,
+                    "type": "Boolean",
+                    "isRequired": false,
+                    "attributes": []
+                },
                 "mimeType": {
                     "name": "mimeType",
                     "isArray": false,
@@ -1369,5 +1376,5 @@ export const schema = {
     "enums": {},
     "nonModels": {},
     "codegenVersion": "3.4.4",
-    "version": "25590023b8309ed1f2a4a651a0666290"
+    "version": "4edc88e16b5cbb20d78b185533ae273a"
 };

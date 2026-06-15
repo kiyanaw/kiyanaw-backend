@@ -33,6 +33,7 @@ export const createTranscription = /* GraphQL */ `
         renditionKey
         peaksKey
         thumbnailKey
+        audioOnly
         mimeType
         fileSize
         duration
@@ -117,6 +118,7 @@ export const updateTranscription = /* GraphQL */ `
         renditionKey
         peaksKey
         thumbnailKey
+        audioOnly
         mimeType
         fileSize
         duration
@@ -201,6 +203,7 @@ export const deleteTranscription = /* GraphQL */ `
         renditionKey
         peaksKey
         thumbnailKey
+        audioOnly
         mimeType
         fileSize
         duration
@@ -959,6 +962,7 @@ export const createMedia = /* GraphQL */ `
       renditionKey
       peaksKey
       thumbnailKey
+      audioOnly
       mimeType
       fileSize
       duration
@@ -998,6 +1002,7 @@ export const updateMedia = /* GraphQL */ `
       renditionKey
       peaksKey
       thumbnailKey
+      audioOnly
       mimeType
       fileSize
       duration
@@ -1037,6 +1042,7 @@ export const deleteMedia = /* GraphQL */ `
       renditionKey
       peaksKey
       thumbnailKey
+      audioOnly
       mimeType
       fileSize
       duration

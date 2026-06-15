@@ -30,6 +30,7 @@ export const getTranscription = /* GraphQL */ `
         renditionKey
         peaksKey
         thumbnailKey
+        audioOnly
         mimeType
         fileSize
         duration
@@ -733,6 +734,7 @@ export const getMedia = /* GraphQL */ `
       renditionKey
       peaksKey
       thumbnailKey
+      audioOnly
       mimeType
       fileSize
       duration
@@ -782,6 +784,7 @@ export const listMedia = /* GraphQL */ `
         renditionKey
         peaksKey
         thumbnailKey
+        audioOnly
         mimeType
         fileSize
         duration
@@ -828,6 +831,7 @@ export const syncMedia = /* GraphQL */ `
         renditionKey
         peaksKey
         thumbnailKey
+        audioOnly
         mimeType
         fileSize
         duration
@@ -1547,6 +1551,7 @@ export const mediaByPkSk = /* GraphQL */ `
         renditionKey
         peaksKey
         thumbnailKey
+        audioOnly
         mimeType
         fileSize
         duration
@@ -1595,6 +1600,7 @@ export const mediaByOwner = /* GraphQL */ `
         renditionKey
         peaksKey
         thumbnailKey
+        audioOnly
         mimeType
         fileSize
         duration
