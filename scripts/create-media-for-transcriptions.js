@@ -85,12 +85,13 @@ const docClient = DynamoDBDocumentClient.from(client);
 function extractKeyFromUrl(sourceUrl) {
   try {
     const url = new URL(sourceUrl);
-    // pathname is "/public/1753823638851-filename.mp3"
-    return url.pathname.slice(1); // strip leading "/"
+    // pathname is "/public/1753823638851-filename.mp3" — decode so S3 gets
+    // the literal key (spaces etc.) rather than the %20-encoded form
+    return decodeURIComponent(url.pathname.slice(1));
   } catch {
     // Fallback: split on the domain part
     const parts = sourceUrl.split('amazonaws.com/');
-    return parts.length > 1 ? parts[1] : sourceUrl;
+    return parts.length > 1 ? decodeURIComponent(parts[1]) : sourceUrl;
   }
 }
 
@@ -184,8 +185,12 @@ async function linkTranscriptionToMedia(transcription, mediaId) {
   await docClient.send(new UpdateCommand({
     TableName: TRANSCRIPTION_TABLE,
     Key: { id: transcription.id },
-    UpdateExpression: 'SET mediaId = :mediaId, _version = :newVersion, _lastChangedAt = :now',
+    UpdateExpression: 'SET mediaId = :mediaId, #ver = :newVersion, #lca = :now',
     ConditionExpression: 'attribute_not_exists(mediaId) OR mediaId = :null',
+    ExpressionAttributeNames: {
+      '#ver': '_version',
+      '#lca': '_lastChangedAt',
+    },
     ExpressionAttributeValues: {
       ':mediaId': mediaId,
       ':newVersion': version + 1,
@@ -196,7 +201,7 @@ async function linkTranscriptionToMedia(transcription, mediaId) {
 }
 
 const POLL_INTERVAL_MS = 5000;
-const POLL_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
+const POLL_TIMEOUT_MS = 20 * 60 * 1000; // 20 minutes (Lambda max is 15min)
 
 async function pollUntilReady(mediaId) {
   const deadline = Date.now() + POLL_TIMEOUT_MS;
@@ -266,22 +271,16 @@ async function main() {
 
     console.log(`Processing: ${transcription.id}  "${transcription.title}"  ->  ${originalName}`);
 
-    try {
-      await createMediaRecord(mediaId, transcription, originalKey, originalName);
-      await linkTranscriptionToMedia(transcription, mediaId);
-      await pollUntilReady(mediaId);
-      console.log(`  ✅ Done (mediaId: ${mediaId})`);
-      successCount++;
-    } catch (error) {
-      console.error(`  ❌ Failed: ${error.message}`);
-      errorCount++;
-    }
+    await createMediaRecord(mediaId, transcription, originalKey, originalName);
+    await pollUntilReady(mediaId);
+    await linkTranscriptionToMedia(transcription, mediaId);
+    console.log(`  ✅ Done (mediaId: ${mediaId})`);
+    successCount++;
   }
 
   console.log('\n' + '='.repeat(80));
   console.log('Migration complete!');
   console.log(`✅ Migrated: ${successCount}`);
-  console.log(`❌ Errors:   ${errorCount}`);
   console.log(`📊 Total:    ${legacy.length}`);
 }
 

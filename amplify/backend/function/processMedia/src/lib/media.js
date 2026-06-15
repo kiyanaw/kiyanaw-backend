@@ -58,7 +58,7 @@ async function run({ id, originalKey, mimeType }) {
     // 2. Transcode
     if (video) {
       await runCommand(
-        `ffmpeg -y -i ${escapeShellArg(origLocalPath)} -vf scale=-2:720 -c:v libx264 -b:v 1500k -preset medium -c:a aac -b:a 128k ${escapeShellArg(renditionLocalPath)}`
+        `ffmpeg -y -i ${escapeShellArg(origLocalPath)} -vf scale=-2:720 -c:v libx264 -b:v 1500k -preset veryfast -c:a aac -b:a 128k ${escapeShellArg(renditionLocalPath)}`
       )
     } else {
       await runCommand(
