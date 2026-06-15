@@ -476,7 +476,7 @@ export const TranscriptionSettingsPage = ({
                   <div>
                     <label className="block text-sm font-medium text-gray-600">Source File</label>
                     <p className="text-base text-gray-900 mt-1 break-all">
-                      {transcription.source ? transcription.getSourceFilename() : 'Unknown'}
+                      {media?.originalName ?? (transcription.source ? transcription.getSourceFilename() : 'Unknown')}
                     </p>
                   </div>
 
