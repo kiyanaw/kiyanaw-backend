@@ -3,12 +3,14 @@
 /**
  * Cleanup script for stuck/errored media records.
  *
- * Does two things in order:
+ * Does three things in order:
  *   1. Finds Media records stuck in PROCESSING for more than 15 minutes and sets
  *      them to ERROR (covers Lambda timeouts that can't set their own error state).
  *   2. Finds Transcriptions that have both a `source` URL and a `mediaId` where
  *      the linked Media record is in ERROR — unlinks them so the migration script
  *      will retry them on the next run and the app falls back to the legacy source.
+ *   3. Finds orphaned Media records in ERROR state with no Transcription pointing
+ *      at them — deletes any partial S3 files they produced and removes the record.
  *
  * Usage:
  *   node scripts/cleanup-media-records.js <environment> [aws-profile] [--dry-run] [--verbose]
@@ -20,7 +22,8 @@
  */
 
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, ScanCommand, GetCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, ScanCommand, GetCommand, UpdateCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
+import { S3Client, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { fromIni } from '@aws-sdk/credential-providers';
 
 const CLI_ARGS = process.argv.slice(2);
@@ -52,6 +55,11 @@ const MEDIA_TABLE_NAMES = {
   production: 'Media-3ufecmha4nhidg7iexhboozdm4-production',
 };
 
+const BUCKET_NAMES = {
+  staging: 'kiyanaw-20250708160100-transcriptionsbucket-staging',
+  production: 'kiyanaw-20250811160100-transcriptionsbucket-production',
+};
+
 if (!TRANSCRIPTION_TABLE_NAMES[environment]) {
   console.error(`Error: Unknown environment "${environment}"`);
   process.exit(1);
@@ -59,6 +67,7 @@ if (!TRANSCRIPTION_TABLE_NAMES[environment]) {
 
 const TRANSCRIPTION_TABLE = TRANSCRIPTION_TABLE_NAMES[environment];
 const MEDIA_TABLE = MEDIA_TABLE_NAMES[environment];
+const BUCKET = BUCKET_NAMES[environment];
 const AWS_REGION = 'us-east-1';
 const STUCK_PROCESSING_THRESHOLD_MS = 15 * 60 * 1000; // 15 minutes = Lambda max timeout
 
@@ -67,6 +76,7 @@ if (awsProfile) clientConfig.credentials = fromIni({ profile: awsProfile });
 
 const client = new DynamoDBClient(clientConfig);
 const docClient = DynamoDBDocumentClient.from(client);
+const s3 = new S3Client(clientConfig);
 
 const logVerbose = (...args) => { if (isVerbose) console.log(...args); };
 
@@ -129,6 +139,32 @@ async function unlinkTranscription(transcription) {
       ':newVersion': version + 1,
       ':now': Date.now(),
     },
+  }));
+}
+
+async function deleteS3Key(key) {
+  logVerbose(`    Deleting s3://${BUCKET}/${key}`);
+  await s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key }));
+}
+
+async function deleteOrphanedMedia(media) {
+  // Delete any processed output files — but never the originalKey, which is
+  // the user's uploaded file and may still be referenced by the legacy source URL.
+  const keysToDelete = [media.renditionKey, media.peaksKey, media.thumbnailKey].filter(Boolean);
+
+  for (const key of keysToDelete) {
+    try {
+      await deleteS3Key(key);
+    } catch (error) {
+      // Missing objects are fine — partial processing may never have created them
+      if (error.name !== 'NoSuchKey') throw error;
+    }
+  }
+
+  logVerbose(`  Deleting Media record ${media.id} ("${media.originalName}")`);
+  await docClient.send(new DeleteCommand({
+    TableName: MEDIA_TABLE,
+    Key: { id: media.id },
   }));
 }
 
@@ -218,6 +254,43 @@ async function main() {
     }
   }
 
+  // ─── Phase 3: delete orphaned ERROR Media records ────────────────────────────
+
+  console.log('\nPhase 3: scanning for orphaned ERROR Media records...');
+
+  // Re-fetch transcriptions so we see the unlinks from Phase 2
+  const linkedMediaIds = new Set(
+    (await scanAll(TRANSCRIPTION_TABLE))
+      .filter(t => t.mediaId && !t._deleted)
+      .map(t => t.mediaId)
+  );
+
+  // Re-fetch media so we see the ERROR updates from Phase 1
+  const currentMedia = await scanAll(MEDIA_TABLE);
+  const orphans = currentMedia.filter(m =>
+    m.status === 'ERROR' &&
+    !m._deleted &&
+    !linkedMediaIds.has(m.id)
+  );
+
+  console.log(`Found ${orphans.length} orphaned Media record(s) in ERROR state with no linked transcription`);
+
+  if (orphans.length > 0) {
+    if (isDryRun) {
+      for (const m of orphans) {
+        const s3Keys = [m.renditionKey, m.peaksKey, m.thumbnailKey].filter(Boolean);
+        console.log(`  Would delete: ${m.id}  "${m.originalName}"  (${s3Keys.length} S3 file(s))`);
+      }
+    } else {
+      for (const m of orphans) {
+        const s3Keys = [m.renditionKey, m.peaksKey, m.thumbnailKey].filter(Boolean);
+        console.log(`  Deleting: ${m.id}  "${m.originalName}"  (${s3Keys.length} S3 file(s))`);
+        await deleteOrphanedMedia(m);
+        console.log(`    ✅ Done`);
+      }
+    }
+  }
+
   // ─── Summary ─────────────────────────────────────────────────────────────────
 
   console.log('\n' + '='.repeat(80));
@@ -225,10 +298,12 @@ async function main() {
     console.log('Dry run complete.');
     console.log(`  Would set ERROR:  ${stuckRecords.length} Media record(s)`);
     console.log(`  Would unlink:     ${toUnlink.length} Transcription(s)`);
+    console.log(`  Would delete:     ${orphans.length} orphaned Media record(s)`);
   } else {
     console.log('Cleanup complete.');
     console.log(`  Set to ERROR: ${stuckRecords.length} Media record(s)`);
     console.log(`  Unlinked:     ${toUnlink.length} Transcription(s)`);
+    console.log(`  Deleted:      ${orphans.length} orphaned Media record(s)`);
   }
 }
 
