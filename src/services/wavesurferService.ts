@@ -376,27 +376,8 @@ class WaveSurferService {
       this._peaksDuration = duration;
     }
 
-    try {
-      let signedMediaUrl: string;
-
-      if (this.currentMediaElement) {
-        signedMediaUrl = await generateSignedUrl(source);
-        this.currentMediaElement.src = signedMediaUrl;
-        this.wavesurfer?.load(signedMediaUrl, peaks as (Float32Array)[], duration);
-      } else {
-        signedMediaUrl = await generateSignedUrl(source);
-        this.wavesurfer?.load(signedMediaUrl, peaks as (Float32Array)[], duration);
-      }
-    } catch (error) {
-      console.error('Failed to load media with signed URL:', error);
-      // Fallback to original URL if signing fails
-      if (this.currentMediaElement) {
-        this.currentMediaElement.src = source;
-        this.wavesurfer?.load(source, peaks as (Float32Array)[], duration);
-      } else {
-        this.wavesurfer?.load(source, peaks as (Float32Array)[], duration);
-      }
-    }
+    const signedMediaUrl = await generateSignedUrl(source);
+    this.wavesurfer?.load(signedMediaUrl, peaks as (Float32Array)[], duration);
   }
 
 
@@ -422,12 +403,7 @@ class WaveSurferService {
       const signedMediaUrl = await generateSignedUrl(source);
       const duration = this._peaksDuration ?? undefined;
 
-      if (this.currentMediaElement) {
-        this.currentMediaElement.src = signedMediaUrl;
-        this.wavesurfer.load(signedMediaUrl, peaks as (Float32Array)[], duration);
-      } else {
-        this.wavesurfer.load(signedMediaUrl, peaks as (Float32Array)[], duration);
-      }
+      this.wavesurfer.load(signedMediaUrl, peaks as (Float32Array)[], duration);
 
       // Wait for ready event before seeking
       await new Promise<void>((resolve) => {
