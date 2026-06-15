@@ -7,7 +7,7 @@ import { useUpdateInvitePermission } from '../../hooks/useUpdateInvitePermission
 import { useDeleteTranscription } from '../../hooks/useDeleteTranscription';
 import * as inviteService from '../../services/inviteService';
 import { generateSignedUrl, generateSignedUrlFromKey } from '../../services/transcriptionService';
-import { getMedia } from '../../services/mediaService';
+import { getMedia, type MediaData } from '../../services/mediaService';
 import type { InviteModel, TranscriptionModel } from '../../services/adt';
 import { useExportTranscription } from '../../hooks/useExportTranscription';
 import type { ExportRegion } from '../../use-cases/export-transcription';
@@ -67,6 +67,15 @@ export const TranscriptionSettingsPage = ({
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   
+  // Media record
+  const [media, setMedia] = useState<MediaData | null>(null);
+
+  useEffect(() => {
+    if (transcription.mediaId) {
+      getMedia(transcription.mediaId).then(setMedia).catch(() => {});
+    }
+  }, [transcription.mediaId]);
+
   // Download state
   const [isDownloadingSource, setIsDownloadingSource] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
@@ -470,6 +479,15 @@ export const TranscriptionSettingsPage = ({
                       {transcription.source ? transcription.getSourceFilename() : 'Unknown'}
                     </p>
                   </div>
+
+                  {media?.audioOnly && (
+                    <div className="flex items-start gap-2 p-3 bg-yellow-50 border border-yellow-300 rounded-lg text-sm text-yellow-800">
+                      <AlertTriangle className="flex-shrink-0 mt-0.5" size={16} />
+                      <p>
+                        Your original video file was too large to transcode within our processing limits, so it was converted to audio only. The video track is not available. If you need the video, please re-upload a smaller or compressed version of the file.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
