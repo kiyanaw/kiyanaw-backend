@@ -253,6 +253,7 @@ async function backfillMediaAcls(transcriptions) {
     const result = await docClient.send(new GetCommand({
       TableName: MEDIA_TABLE,
       Key: { id: transcription.mediaId },
+      ConsistentRead: true,
     }));
 
     const media = result.Item;
@@ -306,9 +307,11 @@ async function backfillMediaAcls(transcriptions) {
         ExpressionAttributeNames: exprNames,
         ExpressionAttributeValues: exprValues,
       }));
-    }
 
-    console.log(`  ✅ Updated ACLs for Media ${transcription.mediaId}`);
+      console.log(`  ✅ Updated ACLs for Media ${transcription.mediaId}`);
+    } else {
+      console.log(`  Would update ACLs for Media ${transcription.mediaId}`);
+    }
     updatedCount++;
   }
 
