@@ -113,7 +113,7 @@ async function run({ id, originalKey, mimeType }) {
     }
 
     // 9. Mark READY
-    const updates = { renditionKey, peaksKey, duration }
+    const updates = { renditionKey, peaksKey, duration, audioOnly: isLargeVideo }
     if (thumbnailKey) updates.thumbnailKey = thumbnailKey
     await updateMediaStatus(id, 'READY', updates)
 

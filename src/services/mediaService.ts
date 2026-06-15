@@ -46,6 +46,7 @@ export interface MediaData {
   mimeType: string;
   fileSize: number;
   duration?: number | null;
+  audioOnly?: boolean | null;
   recordedAt?: string | null;
   _version?: number;
 }

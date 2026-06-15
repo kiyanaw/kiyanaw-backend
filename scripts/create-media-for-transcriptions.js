@@ -111,6 +111,14 @@ function extractOriginalName(sourceUrl) {
   }
 }
 
+const VIDEO_MIME_PREFIXES = ['video/'];
+const VIDEO_EXTENSIONS = ['mp4', 'm4v', 'mov', 'avi', 'mkv', 'webm', 'wmv'];
+
+function isVideoFile(mimeType, ext) {
+  if (mimeType && VIDEO_MIME_PREFIXES.some(p => mimeType.startsWith(p))) return true;
+  return VIDEO_EXTENSIONS.includes((ext || '').toLowerCase());
+}
+
 /**
  * Guess the MIME type from a file extension.
  */
@@ -126,6 +134,22 @@ function guessMimeType(filename) {
     mov: 'video/quicktime',
   };
   return map[ext] || 'application/octet-stream';
+}
+
+async function scanAllMedia() {
+  const items = [];
+  let lastEvaluatedKey = undefined;
+
+  do {
+    const result = await docClient.send(new ScanCommand({
+      TableName: MEDIA_TABLE,
+      ExclusiveStartKey: lastEvaluatedKey,
+    }));
+    if (result.Items) items.push(...result.Items);
+    lastEvaluatedKey = result.LastEvaluatedKey;
+  } while (lastEvaluatedKey);
+
+  return items;
 }
 
 async function scanAllTranscriptions() {
@@ -313,6 +337,50 @@ async function backfillMediaAcls(transcriptions) {
   console.log(`ACL backfill complete: ${updatedCount} ${action}, ${skippedCount} already correct.`);
 }
 
+async function backfillAudioOnly(mediaRecords) {
+  const ready = mediaRecords.filter(m => m.status === 'READY' && !m._deleted);
+  const needsBackfill = ready.filter(m => m.audioOnly === undefined || m.audioOnly === null);
+  console.log(`\nChecking audioOnly on ${ready.length} READY Media records (${needsBackfill.length} need backfill)...`);
+
+  let updatedCount = 0;
+  let skippedCount = 0;
+
+  for (const media of needsBackfill) {
+    const ext = media.originalKey?.split('.').pop() || '';
+    const wasVideo = isVideoFile(media.mimeType, ext);
+    const renditionIsAudio = media.renditionKey?.endsWith('.mp3') ?? false;
+    const audioOnly = wasVideo && renditionIsAudio;
+
+    logVerbose(`  ${media.id}: wasVideo=${wasVideo} renditionIsAudio=${renditionIsAudio} -> audioOnly=${audioOnly}`);
+
+    if (!isDryRun) {
+      await docClient.send(new UpdateCommand({
+        TableName: MEDIA_TABLE,
+        Key: { id: media.id },
+        UpdateExpression: 'SET #audioOnly = :audioOnly, #lca = :now, #ver = :newVersion',
+        ExpressionAttributeNames: {
+          '#audioOnly': 'audioOnly',
+          '#lca': '_lastChangedAt',
+          '#ver': '_version',
+        },
+        ExpressionAttributeValues: {
+          ':audioOnly': audioOnly,
+          ':now': Date.now(),
+          ':newVersion': (media._version || 1) + 1,
+        },
+      }));
+    }
+    updatedCount++;
+  }
+
+  for (const media of ready) {
+    if (media.audioOnly !== undefined && media.audioOnly !== null) skippedCount++;
+  }
+
+  const action = isDryRun ? 'would be updated' : 'updated';
+  console.log(`audioOnly backfill complete: ${updatedCount} ${action}, ${skippedCount} already set.`);
+}
+
 async function main() {
   console.log(`\nEnvironment: ${environment}`);
   console.log(`Transcription table: ${TRANSCRIPTION_TABLE}`);
@@ -327,6 +395,9 @@ async function main() {
   const legacy = all.filter(t => t.source && !t.mediaId && !t._deleted);
   console.log(`Found ${legacy.length} transcriptions with a source URL but no mediaId\n`);
 
+  const allMedia = await scanAllMedia();
+  console.log(`Found ${allMedia.length} total Media records`);
+
   if (isDryRun) {
     console.log('Records that would be migrated:');
     for (const t of legacy) {
@@ -335,6 +406,7 @@ async function main() {
     }
     console.log(`\nDry run complete. ${legacy.length} records would be migrated.`);
     await backfillMediaAcls(all);
+    await backfillAudioOnly(allMedia);
     return;
   }
 
@@ -355,7 +427,11 @@ async function main() {
     successCount++;
   }
 
+  // Re-scan media so newly processed records are included in backfills
+  const allMediaAfter = await scanAllMedia();
+
   await backfillMediaAcls(all);
+  await backfillAudioOnly(allMediaAfter);
 
   console.log('\n' + '='.repeat(80));
   console.log('Migration complete!');

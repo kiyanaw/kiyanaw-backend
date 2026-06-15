@@ -182,6 +182,7 @@ type Media
   renditionKey: String
   peaksKey: String
   thumbnailKey: String
+  audioOnly: Boolean
 
   # Metadata
   mimeType: String!

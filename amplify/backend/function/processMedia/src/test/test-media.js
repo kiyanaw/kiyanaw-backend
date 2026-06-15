@@ -61,12 +61,13 @@ describe('media.run', () => {
     const thumbCall = mockRunCommand.mock.calls.find(c => c[0].includes('-frames:v'))
     expect(thumbCall).toBeUndefined()
 
-    // Final status READY with public/-prefixed keys
+    // Final status READY with public/-prefixed keys; audioOnly false (was never a video)
     const readyCall = mockUpdateMediaStatus.mock.calls.find(c => c[1] === 'READY')
     expect(readyCall).toBeTruthy()
     expect(readyCall[2].renditionKey).toBe('public/renditions/abc.mp3')
     expect(readyCall[2].peaksKey).toBe('public/peaks/abc.json')
     expect(readyCall[2].thumbnailKey).toBeUndefined()
+    expect(readyCall[2].audioOnly).toBe(false)
   })
 
   it('branches into video path for video/mp4 mime type', async () => {
@@ -80,12 +81,36 @@ describe('media.run', () => {
     const thumbCall = mockRunCommand.mock.calls.find(c => c[0].includes('-frames:v'))
     expect(thumbCall).toBeTruthy()
 
-    // Final status READY with public/-prefixed keys
+    // Final status READY with public/-prefixed keys; audioOnly false (full video rendition)
     const readyCall = mockUpdateMediaStatus.mock.calls.find(c => c[1] === 'READY')
     expect(readyCall).toBeTruthy()
     expect(readyCall[2].renditionKey).toBe('public/renditions/xyz.mp4')
     expect(readyCall[2].peaksKey).toBe('public/peaks/xyz.json')
     expect(readyCall[2].thumbnailKey).toBe('public/thumbnails/xyz.jpg')
+    expect(readyCall[2].audioOnly).toBe(false)
+  })
+
+  it('sets audioOnly true for a large video transcoded to audio', async () => {
+    const { statSync } = require('fs')
+    statSync.mockReturnValueOnce({ size: 201 * 1024 * 1024 }) // 201 MB — above threshold
+
+    await run({ id: 'big', originalKey: 'public/originals/big.mp4', mimeType: 'video/mp4' })
+
+    // Audio extraction command used, not video transcode
+    const transcodeCall = mockRunCommand.mock.calls.find(c => c[0].includes('libmp3lame'))
+    expect(transcodeCall).toBeTruthy()
+    const videoCall = mockRunCommand.mock.calls.find(c => c[0].includes('libx264'))
+    expect(videoCall).toBeUndefined()
+
+    // No thumbnail
+    const thumbCall = mockRunCommand.mock.calls.find(c => c[0].includes('-frames:v'))
+    expect(thumbCall).toBeUndefined()
+
+    // audioOnly saved as true
+    const readyCall = mockUpdateMediaStatus.mock.calls.find(c => c[1] === 'READY')
+    expect(readyCall).toBeTruthy()
+    expect(readyCall[2].renditionKey).toBe('public/renditions/big.mp3')
+    expect(readyCall[2].audioOnly).toBe(true)
   })
 
   it('falls back to extension when mime is application/octet-stream', async () => {
