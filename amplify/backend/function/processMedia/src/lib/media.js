@@ -21,6 +21,33 @@ function isVideo(mimeType, ext) {
   return VIDEO_EXTENSIONS.includes(ext.toLowerCase())
 }
 
+// Codecs that ffmpeg cannot decode (e.g. Apple spatial audio in iPhone MOVs).
+const UNDECODABLE_AUDIO_CODECS = new Set(['apac', 'none'])
+
+// Returns the audio-relative index of the first decodable audio stream, or null
+// if the file has no audio or only undecodable streams. Used to build an explicit
+// -map flag so ffmpeg doesn't auto-select a high-channel-count undecodable track.
+async function selectAudioStream(filePath) {
+  return new Promise((resolve) => {
+    const { exec } = require('child_process')
+    exec(
+      `ffprobe -v error -select_streams a -show_entries stream=codec_name -of json ${escapeShellArg(filePath)}`,
+      { maxBuffer: 1024 * 64 },
+      (error, stdout) => {
+        if (error) { resolve(null); return }
+        try {
+          const { streams } = JSON.parse(stdout)
+          if (!streams || streams.length === 0) { resolve(null); return }
+          const idx = streams.findIndex(s => s.codec_name && !UNDECODABLE_AUDIO_CODECS.has(s.codec_name))
+          resolve(idx >= 0 ? idx : null)
+        } catch {
+          resolve(null)
+        }
+      }
+    )
+  })
+}
+
 async function getDuration(filePath) {
   return new Promise((resolve, reject) => {
     const { exec } = require('child_process')
@@ -68,19 +95,26 @@ async function run({ id, originalKey, mimeType }) {
     const thumbLocalPath = audioOnly ? null : `${efsPath}/${id}-thumb.jpg`
     const thumbnailKey = audioOnly ? null : `public/thumbnails/${id}.jpg`
 
+    // Probe audio streams before transcoding. iPhones embed an undecodable Apple
+    // spatial-audio (apac) track alongside the standard AAC; without an explicit
+    // map, ffmpeg auto-selects the highest-channel-count stream and fails.
+    const audioIdx = await selectAudioStream(origLocalPath)
+    const aMap = audioIdx !== null ? `-map 0:a:${audioIdx}` : ''
+
     // 2. Transcode
     if (isLargeVideo) {
       console.log(`Media ${id} is a large video (${(fileSizeBytes / 1024 / 1024).toFixed(0)} MB) — extracting audio only`)
       await runCommand(
-        `ffmpeg -y -i ${escapeShellArg(origLocalPath)} -vn -c:a libmp3lame -b:a 192k ${escapeShellArg(renditionLocalPath)}`
+        `ffmpeg -y -i ${escapeShellArg(origLocalPath)} ${aMap} -vn -c:a libmp3lame -b:a 192k ${escapeShellArg(renditionLocalPath)}`
       )
     } else if (video) {
+      const aCodec = aMap ? '-c:a aac -b:a 128k' : ''
       await runCommand(
-        `ffmpeg -y -i ${escapeShellArg(origLocalPath)} -vf scale=-2:720 -c:v libx264 -b:v 1500k -preset veryfast -c:a aac -b:a 128k ${escapeShellArg(renditionLocalPath)}`
+        `ffmpeg -y -i ${escapeShellArg(origLocalPath)} -map 0:v:0 ${aMap} -dn -c:v libx264 -b:v 1500k -preset veryfast -vf scale=-2:720 ${aCodec} ${escapeShellArg(renditionLocalPath)}`
       )
     } else {
       await runCommand(
-        `ffmpeg -y -i ${escapeShellArg(origLocalPath)} -vn -c:a libmp3lame -b:a 192k ${escapeShellArg(renditionLocalPath)}`
+        `ffmpeg -y -i ${escapeShellArg(origLocalPath)} ${aMap} -vn -c:a libmp3lame -b:a 192k ${escapeShellArg(renditionLocalPath)}`
       )
     }
 
