@@ -17,6 +17,8 @@ jest.mock('../lib/audio', () => ({
 jest.mock('fs', () => ({
   existsSync: jest.fn().mockReturnValue(false),
   readFileSync: jest.fn().mockReturnValue(Buffer.from('rendition-bytes')),
+  readdirSync: jest.fn().mockReturnValue([]),
+  statSync: jest.fn().mockReturnValue({ size: 1024 * 1024 }), // 1 MB — below large-video threshold
   createWriteStream: jest.fn(),
   unlinkSync: jest.fn(),
 }))
