@@ -631,7 +631,7 @@ export const TranscriptionsList = () => {
                 <div className="flex-1 min-w-0 p-4">
                 {/* Top Row: Title + Issues */}
                     <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <div className="flex items-center gap-2 min-w-0 flex-1" data-testid="transcription-list-item-title-row" data-transcription-id={transcription.id}>
                       <Link
                         data-testid="transcription-list-item-title"
                         to={`/transcribe-edit/${transcription.id}`}
