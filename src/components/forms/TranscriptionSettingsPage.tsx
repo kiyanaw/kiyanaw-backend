@@ -484,7 +484,7 @@ export const TranscriptionSettingsPage = ({
                     <div className="flex items-start gap-2 p-3 bg-yellow-50 border border-yellow-300 rounded-lg text-sm text-yellow-800">
                       <AlertTriangle className="flex-shrink-0 mt-0.5" size={16} />
                       <p>
-                        Your original video file was either too large or in a format that could not be transcoded for web playback, so it was converted to audio only. The video track is not available. If you need the video, please re-upload a smaller, compressed, or web-compatible version of the file.
+                        Your original video file was too large to transcode for web playback, so it was converted to audio only. The video track is not available. If you need the video, please re-upload a smaller or compressed version of the file.
                       </p>
                     </div>
                   )}
