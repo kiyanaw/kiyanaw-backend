@@ -271,11 +271,8 @@ async function backfillMediaAcls(transcriptions) {
 
     if (!needsUpdate) {
       skippedCount++;
-      logVerbose(`  ✓ ${transcription.id} ACLs already match`);
       continue;
     }
-
-    logVerbose(`  Updating ACLs for Media ${transcription.mediaId} (transcription: ${transcription.id})`);
 
     if (!isDryRun) {
       const updateExprParts = ['#lca = :now', '#ver = :newVersion'];
@@ -308,15 +305,12 @@ async function backfillMediaAcls(transcriptions) {
         ExpressionAttributeNames: exprNames,
         ExpressionAttributeValues: exprValues,
       }));
-
-      console.log(`  ✅ Updated ACLs for Media ${transcription.mediaId}`);
-    } else {
-      console.log(`  Would update ACLs for Media ${transcription.mediaId}`);
     }
     updatedCount++;
   }
 
-  console.log(`ACL backfill complete: ${updatedCount} updated, ${skippedCount} already correct.`);
+  const action = isDryRun ? 'would be updated' : 'updated';
+  console.log(`ACL backfill complete: ${updatedCount} ${action}, ${skippedCount} already correct.`);
 }
 
 async function main() {
