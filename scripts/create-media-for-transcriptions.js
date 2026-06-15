@@ -168,6 +168,11 @@ async function createMediaRecord(mediaId, transcription, originalKey, originalNa
     __typename: 'Media',
   };
 
+  if (transcription.editors?.length) item.editors = transcription.editors;
+  if (transcription.viewers?.length) item.viewers = transcription.viewers;
+  if (transcription.editorGroups?.length) item.editorGroups = transcription.editorGroups;
+  if (transcription.viewerGroups?.length) item.viewerGroups = transcription.viewerGroups;
+
   logVerbose('  Creating Media record:', JSON.stringify(item, null, 2));
 
   await docClient.send(new PutCommand({
@@ -237,6 +242,79 @@ async function pollUntilReady(mediaId) {
   throw new Error(`Timed out waiting for mediaId ${mediaId} to become READY (last status: ${lastStatus})`);
 }
 
+async function backfillMediaAcls(transcriptions) {
+  const migrated = transcriptions.filter(t => t.mediaId && !t._deleted);
+  console.log(`\nChecking ACLs on ${migrated.length} already-migrated Media records...`);
+
+  let updatedCount = 0;
+  let skippedCount = 0;
+
+  for (const transcription of migrated) {
+    const result = await docClient.send(new GetCommand({
+      TableName: MEDIA_TABLE,
+      Key: { id: transcription.mediaId },
+    }));
+
+    const media = result.Item;
+    if (!media) {
+      console.log(`  ⚠️  Media record not found for transcription ${transcription.id} (mediaId: ${transcription.mediaId})`);
+      continue;
+    }
+
+    const needsUpdate =
+      JSON.stringify(media.editors ?? null) !== JSON.stringify(transcription.editors ?? null) ||
+      JSON.stringify(media.viewers ?? null) !== JSON.stringify(transcription.viewers ?? null) ||
+      JSON.stringify(media.editorGroups ?? null) !== JSON.stringify(transcription.editorGroups ?? null) ||
+      JSON.stringify(media.viewerGroups ?? null) !== JSON.stringify(transcription.viewerGroups ?? null);
+
+    if (!needsUpdate) {
+      skippedCount++;
+      logVerbose(`  ✓ ${transcription.id} ACLs already match`);
+      continue;
+    }
+
+    logVerbose(`  Updating ACLs for Media ${transcription.mediaId} (transcription: ${transcription.id})`);
+
+    if (!isDryRun) {
+      const updateExprParts = ['#lca = :now', '#ver = :newVersion'];
+      const exprNames = { '#lca': '_lastChangedAt', '#ver': '_version' };
+      const exprValues = { ':now': Date.now(), ':newVersion': (media._version || 1) + 1 };
+
+      const aclFields = ['editors', 'viewers', 'editorGroups', 'viewerGroups'];
+      for (const field of aclFields) {
+        const val = transcription[field];
+        exprNames[`#${field}`] = field;
+        if (val?.length) {
+          updateExprParts.push(`#${field} = :${field}`);
+          exprValues[`:${field}`] = val;
+        } else {
+          updateExprParts.push(`REMOVE #${field}`);
+        }
+      }
+
+      // REMOVE expressions must be separated
+      const setParts = updateExprParts.filter(p => !p.startsWith('REMOVE'));
+      const removeParts = updateExprParts.filter(p => p.startsWith('REMOVE')).map(p => p.replace('REMOVE ', ''));
+
+      let updateExpression = `SET ${setParts.join(', ')}`;
+      if (removeParts.length) updateExpression += ` REMOVE ${removeParts.join(', ')}`;
+
+      await docClient.send(new UpdateCommand({
+        TableName: MEDIA_TABLE,
+        Key: { id: transcription.mediaId },
+        UpdateExpression: updateExpression,
+        ExpressionAttributeNames: exprNames,
+        ExpressionAttributeValues: exprValues,
+      }));
+    }
+
+    console.log(`  ✅ Updated ACLs for Media ${transcription.mediaId}`);
+    updatedCount++;
+  }
+
+  console.log(`ACL backfill complete: ${updatedCount} updated, ${skippedCount} already correct.`);
+}
+
 async function main() {
   console.log(`\nEnvironment: ${environment}`);
   console.log(`Transcription table: ${TRANSCRIPTION_TABLE}`);
@@ -258,6 +336,7 @@ async function main() {
       console.log(`  ${t.id}  "${t.title}"  ->  ${originalName}`);
     }
     console.log(`\nDry run complete. ${legacy.length} records would be migrated.`);
+    await backfillMediaAcls(all);
     return;
   }
 
@@ -277,6 +356,8 @@ async function main() {
     console.log(`  ✅ Done (mediaId: ${mediaId})`);
     successCount++;
   }
+
+  await backfillMediaAcls(all);
 
   console.log('\n' + '='.repeat(80));
   console.log('Migration complete!');
