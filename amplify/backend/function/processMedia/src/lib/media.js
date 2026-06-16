@@ -52,6 +52,29 @@ async function selectAudioStream(filePath) {
   })
 }
 
+// Some mp4/m4v uploads are audio-only exports (voice memos, audio-only DaVinci
+// Resolve renders) despite the video-looking extension/mimeType. Confirm a video
+// stream actually exists before mapping it with -map 0:v:0, which otherwise fails
+// outright with "Stream map '0:v:0' matches no streams."
+async function hasVideoStream(filePath) {
+  return new Promise((resolve) => {
+    const { exec } = require('child_process')
+    exec(
+      `ffprobe -v error -select_streams v -show_entries stream=codec_name -of json ${escapeShellArg(filePath)}`,
+      { maxBuffer: 1024 * 64 },
+      (error, stdout) => {
+        if (error) { resolve(false); return }
+        try {
+          const { streams } = JSON.parse(stdout)
+          resolve(Boolean(streams && streams.length > 0))
+        } catch {
+          resolve(false)
+        }
+      }
+    )
+  })
+}
+
 async function getDuration(filePath) {
   return new Promise((resolve, reject) => {
     const { exec } = require('child_process')
@@ -96,17 +119,6 @@ async function run({ id, originalKey, mimeType }) {
     await getS3File(bucket, originalKey, `${id}-orig.${ext}`)
 
     const fileSizeBytes = fs.statSync(origLocalPath).size
-    const isLargeVideo = video && fileSizeBytes > LARGE_VIDEO_BYTES
-
-    // Large videos are extracted to audio-only to stay within Lambda's timeout.
-    // Normal videos transcode to mp4; audio and large-video fallbacks go to mp3.
-    const audioOnly = !video || isLargeVideo
-    const renditionExt = audioOnly ? 'mp3' : 'mp4'
-    const renditionMimeType = audioOnly ? 'audio/mpeg' : 'video/mp4'
-    const renditionLocalPath = `${efsPath}/${id}-rendition.${renditionExt}`
-    const renditionKey = `public/renditions/${id}.${renditionExt}`
-    const thumbLocalPath = audioOnly ? null : `${efsPath}/${id}-thumb.jpg`
-    const thumbnailKey = audioOnly ? null : `public/thumbnails/${id}.jpg`
 
     // Probe audio streams before transcoding. iPhones embed an undecodable Apple
     // spatial-audio (apac) track alongside the standard AAC; without an explicit
@@ -114,13 +126,28 @@ async function run({ id, originalKey, mimeType }) {
     const audioIdx = await selectAudioStream(origLocalPath)
     const aMap = audioIdx !== null ? `-map 0:a:${audioIdx}` : ''
 
+    // Confirm the file actually has a video stream before trusting the
+    // mimeType/extension — some "video" uploads are audio-only.
+    const hasVideo = video && (await hasVideoStream(origLocalPath))
+    const isLargeVideo = hasVideo && fileSizeBytes > LARGE_VIDEO_BYTES
+
+    // Large videos are extracted to audio-only to stay within Lambda's timeout.
+    // Normal videos transcode to mp4; audio and large-video fallbacks go to mp3.
+    const audioOnly = !hasVideo || isLargeVideo
+    const renditionExt = audioOnly ? 'mp3' : 'mp4'
+    const renditionMimeType = audioOnly ? 'audio/mpeg' : 'video/mp4'
+    const renditionLocalPath = `${efsPath}/${id}-rendition.${renditionExt}`
+    const renditionKey = `public/renditions/${id}.${renditionExt}`
+    const thumbLocalPath = audioOnly ? null : `${efsPath}/${id}-thumb.jpg`
+    const thumbnailKey = audioOnly ? null : `public/thumbnails/${id}.jpg`
+
     // 2. Transcode
     if (isLargeVideo) {
       console.log(`Media ${id} is a large video (${(fileSizeBytes / 1024 / 1024).toFixed(0)} MB) — extracting audio only`)
       await runCommand(
         `ffmpeg -y -i ${escapeShellArg(origLocalPath)} ${aMap} -vn -c:a libmp3lame -b:a 192k ${escapeShellArg(renditionLocalPath)}`
       )
-    } else if (video) {
+    } else if (hasVideo) {
       const aCodec = aMap ? '-c:a aac -b:a 128k' : ''
       await runCommand(
         `ffmpeg -y -i ${escapeShellArg(origLocalPath)} -map 0:v:0 ${aMap} -dn -c:v libx264 -b:v 1500k -preset veryfast -vf scale=-2:720 ${aCodec} ${escapeShellArg(renditionLocalPath)}`
@@ -160,7 +187,7 @@ async function run({ id, originalKey, mimeType }) {
     }
 
     // 9. Mark READY
-    const updates = { renditionKey, peaksKey, duration, audioOnly: isLargeVideo }
+    const updates = { renditionKey, peaksKey, duration, audioOnly: isLargeVideo || (video && !hasVideo) }
     if (thumbnailKey) updates.thumbnailKey = thumbnailKey
     await updateMediaStatus(id, 'READY', updates)
 

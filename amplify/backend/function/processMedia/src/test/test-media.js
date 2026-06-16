@@ -35,6 +35,9 @@ jest.mock('child_process', () => ({
     if (typeof cmd === 'string' && cmd.includes('-select_streams a')) {
       // ffprobe audio selection: single decodable AAC stream by default
       callback(null, JSON.stringify({ streams: [{ codec_name: 'aac' }] }), '')
+    } else if (typeof cmd === 'string' && cmd.includes('-select_streams v')) {
+      // ffprobe video-stream check: has a video stream by default
+      callback(null, JSON.stringify({ streams: [{ codec_name: 'h264' }] }), '')
     } else {
       callback(null, '5.0', '') // ffprobe duration
     }
@@ -161,6 +164,39 @@ describe('media.run', () => {
     expect(mockGetS3File).not.toHaveBeenCalled()
     const errorCall = mockUpdateMediaStatus.mock.calls.find(c => c[1] === 'ERROR')
     expect(errorCall).toBeTruthy()
+  })
+
+  it('falls back to audio when a video-tagged file has no actual video stream', async () => {
+    // mp4 container that's actually an audio-only export (voice memo, audio-only
+    // DaVinci Resolve render, etc.) — audio probe first, then video probe finds nothing
+    const { exec } = require('child_process')
+    exec
+      .mockImplementationOnce((cmd, optsOrCb, cb) => {
+        const callback = typeof optsOrCb === 'function' ? optsOrCb : cb
+        callback(null, JSON.stringify({ streams: [{ codec_name: 'aac' }] }), '')
+      })
+      .mockImplementationOnce((cmd, optsOrCb, cb) => {
+        const callback = typeof optsOrCb === 'function' ? optsOrCb : cb
+        callback(null, JSON.stringify({ streams: [] }), '')
+      })
+
+    await run({ id: 'voiceclip', originalKey: 'public/originals/voiceclip.mp4', mimeType: 'video/mp4' })
+
+    const videoCall = mockRunCommand.mock.calls.find(c => c[0].includes('libx264'))
+    expect(videoCall).toBeUndefined()
+    const audioCall = mockRunCommand.mock.calls.find(c => c[0].includes('libmp3lame'))
+    expect(audioCall).toBeTruthy()
+    expect(audioCall[0]).not.toContain('-map 0:v:0')
+
+    // No thumbnail — there's no video frame to grab
+    const thumbCall = mockRunCommand.mock.calls.find(c => c[0].includes('-frames:v'))
+    expect(thumbCall).toBeUndefined()
+
+    const readyCall = mockUpdateMediaStatus.mock.calls.find(c => c[1] === 'READY')
+    expect(readyCall).toBeTruthy()
+    expect(readyCall[2].renditionKey).toBe('public/renditions/voiceclip.mp3')
+    expect(readyCall[2].thumbnailKey).toBeUndefined()
+    expect(readyCall[2].audioOnly).toBe(true)
   })
 
   it('skips undecodable apac track and maps the next decodable audio stream', async () => {
