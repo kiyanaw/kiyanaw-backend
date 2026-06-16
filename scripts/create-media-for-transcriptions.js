@@ -18,7 +18,8 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, ScanCommand, GetCommand, PutCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { fromIni } from '@aws-sdk/credential-providers';
 import { randomUUID } from 'crypto';
-import { writeFileSync } from 'fs';
+import { writeFileSync, mkdirSync } from 'fs';
+import { join } from 'path';
 
 const CLI_ARGS = process.argv.slice(2);
 
@@ -425,6 +426,9 @@ async function main() {
   let errorCount = 0;
   const failures = [];
 
+  mkdirSync('logs', { recursive: true });
+  const logPath = join('logs', `migration-errors-${Date.now()}.json`);
+
   for (const transcription of legacy) {
     const originalKey = extractKeyFromUrl(transcription.source);
     const originalName = extractOriginalName(transcription.source);
@@ -442,6 +446,9 @@ async function main() {
       console.error(`  ❌ Failed: ${err.message}`);
       errorCount++;
       failures.push({ id: transcription.id, title: transcription.title, originalName, error: err.message });
+      // Written immediately, not just at the end, so a cancelled or crashed
+      // run doesn't lose track of failures already encountered.
+      writeFileSync(logPath, JSON.stringify(failures, null, 2));
     }
   }
 
@@ -450,11 +457,6 @@ async function main() {
 
   await backfillMediaAcls(all);
   await backfillAudioOnly(allMediaAfter);
-
-  const logPath = `migration-errors-${Date.now()}.json`;
-  if (failures.length > 0) {
-    writeFileSync(logPath, JSON.stringify(failures, null, 2));
-  }
 
   console.log('\n' + '='.repeat(80));
   console.log('Migration complete!');
