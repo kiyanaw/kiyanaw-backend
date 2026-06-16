@@ -1,4 +1,5 @@
 const mockUpdateMediaStatus = jest.fn()
+const mockGetS3FileSize = jest.fn()
 const mockGetS3File = jest.fn()
 const mockPutS3File = jest.fn()
 const mockRunCommand = jest.fn()
@@ -6,7 +7,12 @@ const mockGenerateWaveform = jest.fn()
 const mockProcessPeaksData = jest.fn()
 
 jest.mock('../lib/dynamo', () => ({ updateMediaStatus: mockUpdateMediaStatus }))
-jest.mock('../lib/s3', () => ({ getS3File: mockGetS3File, putS3File: mockPutS3File, efsPath: '/mnt/temp' }))
+jest.mock('../lib/s3', () => ({
+  getS3FileSize: mockGetS3FileSize,
+  getS3File: mockGetS3File,
+  putS3File: mockPutS3File,
+  efsPath: '/mnt/temp',
+}))
 jest.mock('../lib/audio', () => ({
   runCommand: mockRunCommand,
   generateWaveform: mockGenerateWaveform,
@@ -45,6 +51,7 @@ describe('media.run', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockUpdateMediaStatus.mockResolvedValue({})
+    mockGetS3FileSize.mockResolvedValue(1024 * 1024) // 1 MB — well under the download cap
     mockGetS3File.mockResolvedValue({})
     mockRunCommand.mockResolvedValue()
     mockGenerateWaveform.mockResolvedValue('/mnt/temp/abc-rendition.mp3.json')
@@ -97,7 +104,7 @@ describe('media.run', () => {
 
   it('sets audioOnly true for a large video transcoded to audio', async () => {
     const { statSync } = require('fs')
-    statSync.mockReturnValueOnce({ size: 201 * 1024 * 1024 }) // 201 MB — above threshold
+    statSync.mockReturnValueOnce({ size: 100 * 1024 * 1024 }) // 100 MB — above the 75 MB threshold
 
     await run({ id: 'big', originalKey: 'public/originals/big.mp4', mimeType: 'video/mp4' })
 
@@ -140,6 +147,18 @@ describe('media.run', () => {
 
     await expect(run({ id: 'abc', originalKey: 'public/originals/abc.mp3', mimeType: 'audio/mpeg' })).rejects.toThrow('S3 error')
 
+    const errorCall = mockUpdateMediaStatus.mock.calls.find(c => c[1] === 'ERROR')
+    expect(errorCall).toBeTruthy()
+  })
+
+  it('rejects without downloading when the S3 object exceeds the 1 GB download cap', async () => {
+    mockGetS3FileSize.mockResolvedValueOnce(2 * 1024 * 1024 * 1024) // 2 GB
+
+    await expect(
+      run({ id: 'huge', originalKey: 'public/originals/huge.mp4', mimeType: 'video/mp4' })
+    ).rejects.toThrow(/exceeding the 1\.0 GB download cap/)
+
+    expect(mockGetS3File).not.toHaveBeenCalled()
     const errorCall = mockUpdateMediaStatus.mock.calls.find(c => c[1] === 'ERROR')
     expect(errorCall).toBeTruthy()
   })

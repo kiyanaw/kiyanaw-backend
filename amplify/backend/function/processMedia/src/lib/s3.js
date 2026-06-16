@@ -1,8 +1,13 @@
-const { S3Client, GetObjectCommand, PutObjectCommand } = require('@aws-sdk/client-s3')
+const { S3Client, GetObjectCommand, PutObjectCommand, HeadObjectCommand } = require('@aws-sdk/client-s3')
 const fs = require('fs')
 
 const s3Client = new S3Client({ region: process.env.REGION })
 const efsPath = '/mnt/temp'
+
+const getS3FileSize = async (bucket, key) => {
+  const { ContentLength } = await s3Client.send(new HeadObjectCommand({ Bucket: bucket, Key: key }))
+  return ContentLength
+}
 
 const getS3File = async (bucket, key, filename) => {
   return new Promise(async (resolve, reject) => {
@@ -32,4 +37,4 @@ const putS3File = async (bucket, key, body, contentType = 'application/octet-str
   return s3Client.send(new PutObjectCommand(params))
 }
 
-module.exports = { getS3File, putS3File, efsPath }
+module.exports = { getS3FileSize, getS3File, putS3File, efsPath }

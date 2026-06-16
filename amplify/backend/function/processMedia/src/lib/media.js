@@ -1,6 +1,6 @@
 const path = require('path')
 const fs = require('fs')
-const { getS3File, putS3File, efsPath } = require('./s3')
+const { getS3FileSize, getS3File, putS3File, efsPath } = require('./s3')
 const { runCommand, generateWaveform, processPeaksData } = require('./audio')
 const { updateMediaStatus } = require('./dynamo')
 const { escapeShellArg } = require('../utils')
@@ -11,7 +11,11 @@ const bucket = process.env.STORAGE_TRANSCRIPTIONS_BUCKETNAME
 // to avoid Lambda's 15-minute timeout. The proper fix is to offload
 // transcoding for large files to a Fargate task so they get a proper
 // compressed video rendition.
-const LARGE_VIDEO_BYTES = 200 * 1024 * 1024 // 200 MB
+const LARGE_VIDEO_BYTES = 75 * 1024 * 1024 // 75 MB
+
+// Above this, even the audio-only fallback can't download from S3 to EFS within
+// Lambda's 15-minute timeout, so we reject without attempting the download at all.
+const MAX_DOWNLOAD_BYTES = 1 * 1024 * 1024 * 1024 // 1 GB
 
 const VIDEO_MIME_PREFIXES = ['video/']
 const VIDEO_EXTENSIONS = ['mp4', 'm4v', 'mov', 'avi', 'mkv', 'webm', 'wmv']
@@ -79,6 +83,15 @@ async function run({ id, originalKey, mimeType }) {
   const peaksKey = `public/peaks/${id}.json`
 
   try {
+    // 0. Reject outright if the original is too large to download within the
+    // Lambda timeout, before spending any time/EFS space on it.
+    const remoteSizeBytes = await getS3FileSize(bucket, originalKey)
+    if (remoteSizeBytes > MAX_DOWNLOAD_BYTES) {
+      throw new Error(
+        `Media ${id} originalKey is ${(remoteSizeBytes / 1024 / 1024 / 1024).toFixed(1)} GB, exceeding the ${(MAX_DOWNLOAD_BYTES / 1024 / 1024 / 1024).toFixed(1)} GB download cap`
+      )
+    }
+
     // 1. Download original
     await getS3File(bucket, originalKey, `${id}-orig.${ext}`)
 
