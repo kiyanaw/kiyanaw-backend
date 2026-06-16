@@ -1,4 +1,5 @@
 const mockUpdateMediaStatus = jest.fn()
+const mockGetS3FileSize = jest.fn()
 const mockGetS3File = jest.fn()
 const mockPutS3File = jest.fn()
 const mockRunCommand = jest.fn()
@@ -6,7 +7,12 @@ const mockGenerateWaveform = jest.fn()
 const mockProcessPeaksData = jest.fn()
 
 jest.mock('../lib/dynamo', () => ({ updateMediaStatus: mockUpdateMediaStatus }))
-jest.mock('../lib/s3', () => ({ getS3File: mockGetS3File, putS3File: mockPutS3File, efsPath: '/mnt/temp' }))
+jest.mock('../lib/s3', () => ({
+  getS3FileSize: mockGetS3FileSize,
+  getS3File: mockGetS3File,
+  putS3File: mockPutS3File,
+  efsPath: '/mnt/temp',
+}))
 jest.mock('../lib/audio', () => ({
   runCommand: mockRunCommand,
   generateWaveform: mockGenerateWaveform,
@@ -18,7 +24,6 @@ jest.mock('fs', () => ({
   existsSync: jest.fn().mockReturnValue(false),
   readFileSync: jest.fn().mockReturnValue(Buffer.from('rendition-bytes')),
   readdirSync: jest.fn().mockReturnValue([]),
-  statSync: jest.fn().mockReturnValue({ size: 1024 * 1024 }), // 1 MB — below large-video threshold
   createWriteStream: jest.fn(),
   unlinkSync: jest.fn(),
 }))
@@ -29,6 +34,9 @@ jest.mock('child_process', () => ({
     if (typeof cmd === 'string' && cmd.includes('-select_streams a')) {
       // ffprobe audio selection: single decodable AAC stream by default
       callback(null, JSON.stringify({ streams: [{ codec_name: 'aac' }] }), '')
+    } else if (typeof cmd === 'string' && cmd.includes('-select_streams v')) {
+      // ffprobe video-stream check: has a video stream by default
+      callback(null, JSON.stringify({ streams: [{ codec_name: 'h264' }] }), '')
     } else {
       callback(null, '5.0', '') // ffprobe duration
     }
@@ -45,6 +53,7 @@ describe('media.run', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockUpdateMediaStatus.mockResolvedValue({})
+    mockGetS3FileSize.mockResolvedValue(1024 * 1024) // 1 MB — well under the download cap
     mockGetS3File.mockResolvedValue({})
     mockRunCommand.mockResolvedValue()
     mockGenerateWaveform.mockResolvedValue('/mnt/temp/abc-rendition.mp3.json')
@@ -78,9 +87,13 @@ describe('media.run', () => {
   it('branches into video path for video/mp4 mime type', async () => {
     await run({ id: 'xyz', originalKey: 'public/originals/xyz.mp4', mimeType: 'video/mp4' })
 
-    // ffmpeg video transcode command used
+    // ffmpeg video transcode command used, with the superfast preset and a
+    // muxing queue guard against "Too many packets buffered" on erratic input
+    // timestamps
     const transcodeCall = mockRunCommand.mock.calls.find(c => c[0].includes('libx264'))
     expect(transcodeCall).toBeTruthy()
+    expect(transcodeCall[0]).toContain('-preset superfast')
+    expect(transcodeCall[0]).toContain('-max_muxing_queue_size')
 
     // Thumbnail generated for video
     const thumbCall = mockRunCommand.mock.calls.find(c => c[0].includes('-frames:v'))
@@ -95,9 +108,21 @@ describe('media.run', () => {
     expect(readyCall[2].audioOnly).toBe(false)
   })
 
-  it('sets audioOnly true for a large video transcoded to audio', async () => {
-    const { statSync } = require('fs')
-    statSync.mockReturnValueOnce({ size: 201 * 1024 * 1024 }) // 201 MB — above threshold
+  it('sets audioOnly true for a video longer than the 30-minute threshold', async () => {
+    const { exec } = require('child_process')
+    exec
+      .mockImplementationOnce((cmd, optsOrCb, cb) => { // audio stream select
+        const callback = typeof optsOrCb === 'function' ? optsOrCb : cb
+        callback(null, JSON.stringify({ streams: [{ codec_name: 'aac' }] }), '')
+      })
+      .mockImplementationOnce((cmd, optsOrCb, cb) => { // video stream select
+        const callback = typeof optsOrCb === 'function' ? optsOrCb : cb
+        callback(null, JSON.stringify({ streams: [{ codec_name: 'h264' }] }), '')
+      })
+      .mockImplementationOnce((cmd, optsOrCb, cb) => { // source duration probe
+        const callback = typeof optsOrCb === 'function' ? optsOrCb : cb
+        callback(null, '2400.0', '') // 40 minutes — above the 30-minute threshold
+      })
 
     await run({ id: 'big', originalKey: 'public/originals/big.mp4', mimeType: 'video/mp4' })
 
@@ -142,6 +167,51 @@ describe('media.run', () => {
 
     const errorCall = mockUpdateMediaStatus.mock.calls.find(c => c[1] === 'ERROR')
     expect(errorCall).toBeTruthy()
+  })
+
+  it('rejects without downloading when the S3 object exceeds the 5 GB download cap', async () => {
+    mockGetS3FileSize.mockResolvedValueOnce(10 * 1024 * 1024 * 1024) // 10 GB
+
+    await expect(
+      run({ id: 'huge', originalKey: 'public/originals/huge.mp4', mimeType: 'video/mp4' })
+    ).rejects.toThrow(/exceeding the 5\.0 GB download cap/)
+
+    expect(mockGetS3File).not.toHaveBeenCalled()
+    const errorCall = mockUpdateMediaStatus.mock.calls.find(c => c[1] === 'ERROR')
+    expect(errorCall).toBeTruthy()
+  })
+
+  it('falls back to audio when a video-tagged file has no actual video stream', async () => {
+    // mp4 container that's actually an audio-only export (voice memo, audio-only
+    // DaVinci Resolve render, etc.) — audio probe first, then video probe finds nothing
+    const { exec } = require('child_process')
+    exec
+      .mockImplementationOnce((cmd, optsOrCb, cb) => {
+        const callback = typeof optsOrCb === 'function' ? optsOrCb : cb
+        callback(null, JSON.stringify({ streams: [{ codec_name: 'aac' }] }), '')
+      })
+      .mockImplementationOnce((cmd, optsOrCb, cb) => {
+        const callback = typeof optsOrCb === 'function' ? optsOrCb : cb
+        callback(null, JSON.stringify({ streams: [] }), '')
+      })
+
+    await run({ id: 'voiceclip', originalKey: 'public/originals/voiceclip.mp4', mimeType: 'video/mp4' })
+
+    const videoCall = mockRunCommand.mock.calls.find(c => c[0].includes('libx264'))
+    expect(videoCall).toBeUndefined()
+    const audioCall = mockRunCommand.mock.calls.find(c => c[0].includes('libmp3lame'))
+    expect(audioCall).toBeTruthy()
+    expect(audioCall[0]).not.toContain('-map 0:v:0')
+
+    // No thumbnail — there's no video frame to grab
+    const thumbCall = mockRunCommand.mock.calls.find(c => c[0].includes('-frames:v'))
+    expect(thumbCall).toBeUndefined()
+
+    const readyCall = mockUpdateMediaStatus.mock.calls.find(c => c[1] === 'READY')
+    expect(readyCall).toBeTruthy()
+    expect(readyCall[2].renditionKey).toBe('public/renditions/voiceclip.mp3')
+    expect(readyCall[2].thumbnailKey).toBeUndefined()
+    expect(readyCall[2].audioOnly).toBe(true)
   })
 
   it('skips undecodable apac track and maps the next decodable audio stream', async () => {

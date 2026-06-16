@@ -1,17 +1,29 @@
 const path = require('path')
 const fs = require('fs')
-const { getS3File, putS3File, efsPath } = require('./s3')
+const { getS3FileSize, getS3File, putS3File, efsPath } = require('./s3')
 const { runCommand, generateWaveform, processPeaksData } = require('./audio')
 const { updateMediaStatus } = require('./dynamo')
 const { escapeShellArg } = require('../utils')
 
 const bucket = process.env.STORAGE_TRANSCRIPTIONS_BUCKETNAME
 
-// TODO: Large videos that exceed this threshold are extracted to audio-only
-// to avoid Lambda's 15-minute timeout. The proper fix is to offload
-// transcoding for large files to a Fargate task so they get a proper
-// compressed video rendition.
-const LARGE_VIDEO_BYTES = 200 * 1024 * 1024 // 200 MB
+// TODO: Long videos that exceed this threshold are extracted to audio-only to
+// avoid Lambda's 15-minute timeout. The proper fix is to offload transcoding
+// for these to a Fargate task so they get a proper compressed video rendition.
+//
+// Gated on source duration rather than file size — processing time tracks
+// video runtime far more closely than bytes on disk. A long, low-bitrate
+// recording has many more frames to decode/encode than a short, high-bitrate
+// file of the same size, so file size alone is a poor predictor of risk.
+const LARGE_VIDEO_DURATION_SECONDS = 30 * 60 // 30 minutes
+
+// Above this, even the audio-only fallback can't download from S3 to EFS within
+// Lambda's 15-minute timeout, so we reject without attempting the download at all.
+// A production survey of uploaded originals found a handful of legitimate files
+// in the 1-5GB range (S3-to-Lambda transfer is fast enough that size alone isn't
+// the bottleneck there) alongside a few multi-GB raw camera dumps that are never
+// going to work regardless of cap — 5GB draws the line between them.
+const MAX_DOWNLOAD_BYTES = 5 * 1024 * 1024 * 1024 // 5 GB
 
 const VIDEO_MIME_PREFIXES = ['video/']
 const VIDEO_EXTENSIONS = ['mp4', 'm4v', 'mov', 'avi', 'mkv', 'webm', 'wmv']
@@ -42,6 +54,29 @@ async function selectAudioStream(filePath) {
           resolve(idx >= 0 ? idx : null)
         } catch {
           resolve(null)
+        }
+      }
+    )
+  })
+}
+
+// Some mp4/m4v uploads are audio-only exports (voice memos, audio-only DaVinci
+// Resolve renders) despite the video-looking extension/mimeType. Confirm a video
+// stream actually exists before mapping it with -map 0:v:0, which otherwise fails
+// outright with "Stream map '0:v:0' matches no streams."
+async function hasVideoStream(filePath) {
+  return new Promise((resolve) => {
+    const { exec } = require('child_process')
+    exec(
+      `ffprobe -v error -select_streams v -show_entries stream=codec_name -of json ${escapeShellArg(filePath)}`,
+      { maxBuffer: 1024 * 64 },
+      (error, stdout) => {
+        if (error) { resolve(false); return }
+        try {
+          const { streams } = JSON.parse(stdout)
+          resolve(Boolean(streams && streams.length > 0))
+        } catch {
+          resolve(false)
         }
       }
     )
@@ -79,21 +114,17 @@ async function run({ id, originalKey, mimeType }) {
   const peaksKey = `public/peaks/${id}.json`
 
   try {
+    // 0. Reject outright if the original is too large to download within the
+    // Lambda timeout, before spending any time/EFS space on it.
+    const remoteSizeBytes = await getS3FileSize(bucket, originalKey)
+    if (remoteSizeBytes > MAX_DOWNLOAD_BYTES) {
+      throw new Error(
+        `Media ${id} originalKey is ${(remoteSizeBytes / 1024 / 1024 / 1024).toFixed(1)} GB, exceeding the ${(MAX_DOWNLOAD_BYTES / 1024 / 1024 / 1024).toFixed(1)} GB download cap`
+      )
+    }
+
     // 1. Download original
     await getS3File(bucket, originalKey, `${id}-orig.${ext}`)
-
-    const fileSizeBytes = fs.statSync(origLocalPath).size
-    const isLargeVideo = video && fileSizeBytes > LARGE_VIDEO_BYTES
-
-    // Large videos are extracted to audio-only to stay within Lambda's timeout.
-    // Normal videos transcode to mp4; audio and large-video fallbacks go to mp3.
-    const audioOnly = !video || isLargeVideo
-    const renditionExt = audioOnly ? 'mp3' : 'mp4'
-    const renditionMimeType = audioOnly ? 'audio/mpeg' : 'video/mp4'
-    const renditionLocalPath = `${efsPath}/${id}-rendition.${renditionExt}`
-    const renditionKey = `public/renditions/${id}.${renditionExt}`
-    const thumbLocalPath = audioOnly ? null : `${efsPath}/${id}-thumb.jpg`
-    const thumbnailKey = audioOnly ? null : `public/thumbnails/${id}.jpg`
 
     // Probe audio streams before transcoding. iPhones embed an undecodable Apple
     // spatial-audio (apac) track alongside the standard AAC; without an explicit
@@ -101,16 +132,37 @@ async function run({ id, originalKey, mimeType }) {
     const audioIdx = await selectAudioStream(origLocalPath)
     const aMap = audioIdx !== null ? `-map 0:a:${audioIdx}` : ''
 
+    // Confirm the file actually has a video stream before trusting the
+    // mimeType/extension — some "video" uploads are audio-only.
+    const hasVideo = video && (await hasVideoStream(origLocalPath))
+    const sourceDurationSeconds = hasVideo ? await getDuration(origLocalPath) : 0
+    const isLargeVideo = hasVideo && sourceDurationSeconds > LARGE_VIDEO_DURATION_SECONDS
+
+    // Large videos are extracted to audio-only to stay within Lambda's timeout.
+    // Normal videos transcode to mp4; audio and large-video fallbacks go to mp3.
+    const audioOnly = !hasVideo || isLargeVideo
+    const renditionExt = audioOnly ? 'mp3' : 'mp4'
+    const renditionMimeType = audioOnly ? 'audio/mpeg' : 'video/mp4'
+    const renditionLocalPath = `${efsPath}/${id}-rendition.${renditionExt}`
+    const renditionKey = `public/renditions/${id}.${renditionExt}`
+    const thumbLocalPath = audioOnly ? null : `${efsPath}/${id}-thumb.jpg`
+    const thumbnailKey = audioOnly ? null : `public/thumbnails/${id}.jpg`
+
     // 2. Transcode
     if (isLargeVideo) {
-      console.log(`Media ${id} is a large video (${(fileSizeBytes / 1024 / 1024).toFixed(0)} MB) — extracting audio only`)
+      console.log(`Media ${id} is a long video (${(sourceDurationSeconds / 60).toFixed(0)} min) — extracting audio only`)
       await runCommand(
         `ffmpeg -y -i ${escapeShellArg(origLocalPath)} ${aMap} -vn -c:a libmp3lame -b:a 192k ${escapeShellArg(renditionLocalPath)}`
       )
-    } else if (video) {
+    } else if (hasVideo) {
       const aCodec = aMap ? '-c:a aac -b:a 128k' : ''
+      // superfast trades a bit of compression efficiency for a meaningful speed
+      // gain over veryfast, buying more headroom under Lambda's 15-minute timeout.
+      // max_muxing_queue_size guards against "Too many packets buffered for
+      // output stream" on long, low-bitrate videos where erratic input
+      // timestamps make ffmpeg's default interleaving buffer overflow.
       await runCommand(
-        `ffmpeg -y -i ${escapeShellArg(origLocalPath)} -map 0:v:0 ${aMap} -dn -c:v libx264 -b:v 1500k -preset veryfast -vf scale=-2:720 ${aCodec} ${escapeShellArg(renditionLocalPath)}`
+        `ffmpeg -y -i ${escapeShellArg(origLocalPath)} -map 0:v:0 ${aMap} -dn -c:v libx264 -b:v 1500k -preset superfast -vf scale=-2:720 ${aCodec} -max_muxing_queue_size 9999 ${escapeShellArg(renditionLocalPath)}`
       )
     } else {
       await runCommand(
@@ -147,7 +199,7 @@ async function run({ id, originalKey, mimeType }) {
     }
 
     // 9. Mark READY
-    const updates = { renditionKey, peaksKey, duration, audioOnly: isLargeVideo }
+    const updates = { renditionKey, peaksKey, duration, audioOnly: isLargeVideo || (video && !hasVideo) }
     if (thumbnailKey) updates.thumbnailKey = thumbnailKey
     await updateMediaStatus(id, 'READY', updates)
 

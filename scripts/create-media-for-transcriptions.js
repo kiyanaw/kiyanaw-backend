@@ -18,7 +18,8 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, ScanCommand, GetCommand, PutCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { fromIni } from '@aws-sdk/credential-providers';
 import { randomUUID } from 'crypto';
-import { writeFileSync } from 'fs';
+import { writeFileSync, mkdirSync } from 'fs';
+import { join } from 'path';
 
 const CLI_ARGS = process.argv.slice(2);
 
@@ -82,17 +83,28 @@ const docClient = DynamoDBDocumentClient.from(client);
  * Extract the S3 key from a legacy source URL.
  * e.g. "https://bucket.s3.amazonaws.com/public/1753823638851-filename.mp3"
  *   -> "public/1753823638851-filename.mp3"
+ *
+ * These URLs were built by concatenating the raw uploaded filename onto the
+ * bucket URL without percent-encoding reserved characters, so filenames
+ * containing a literal '#' or '?' (e.g. "Story #1.m4a") are common. Parsing
+ * with `new URL()` treats those as the start of a fragment/query string and
+ * silently truncates the key there, so the key is taken verbatim from after
+ * the host instead of relying on `.pathname`.
  */
 function extractKeyFromUrl(sourceUrl) {
+  const hostMatch = sourceUrl.match(/^https?:\/\/[^/]+\//);
+  const rawKey = hostMatch ? sourceUrl.slice(hostMatch[0].length) : sourceUrl.split('amazonaws.com/')[1];
+
+  if (!rawKey) return sourceUrl;
+
   try {
-    const url = new URL(sourceUrl);
-    // pathname is "/public/1753823638851-filename.mp3" — decode so S3 gets
-    // the literal key (spaces etc.) rather than the %20-encoded form
-    return decodeURIComponent(url.pathname.slice(1));
+    // Decode any legitimately percent-encoded characters (e.g. %20 for a space)
+    // so S3 gets the literal key rather than the encoded form.
+    return decodeURIComponent(rawKey);
   } catch {
-    // Fallback: split on the domain part
-    const parts = sourceUrl.split('amazonaws.com/');
-    return parts.length > 1 ? decodeURIComponent(parts[1]) : sourceUrl;
+    // A literal '%' not part of a valid escape sequence (e.g. "100% Done.mp4") —
+    // leave it as-is rather than losing the key entirely.
+    return rawKey;
   }
 }
 
@@ -104,9 +116,8 @@ function extractOriginalName(sourceUrl) {
   try {
     const key = extractKeyFromUrl(sourceUrl);
     const filename = key.split('/').pop();
-    const decoded = decodeURIComponent(filename);
-    const match = decoded.match(/^\d+-(.+)$/);
-    return match ? match[1] : decoded;
+    const match = filename.match(/^\d+-(.+)$/);
+    return match ? match[1] : filename;
   } catch {
     return 'unknown';
   }
@@ -415,6 +426,9 @@ async function main() {
   let errorCount = 0;
   const failures = [];
 
+  mkdirSync('logs', { recursive: true });
+  const logPath = join('logs', `migration-errors-${Date.now()}.json`);
+
   for (const transcription of legacy) {
     const originalKey = extractKeyFromUrl(transcription.source);
     const originalName = extractOriginalName(transcription.source);
@@ -432,6 +446,9 @@ async function main() {
       console.error(`  ❌ Failed: ${err.message}`);
       errorCount++;
       failures.push({ id: transcription.id, title: transcription.title, originalName, error: err.message });
+      // Written immediately, not just at the end, so a cancelled or crashed
+      // run doesn't lose track of failures already encountered.
+      writeFileSync(logPath, JSON.stringify(failures, null, 2));
     }
   }
 
@@ -440,11 +457,6 @@ async function main() {
 
   await backfillMediaAcls(all);
   await backfillAudioOnly(allMediaAfter);
-
-  const logPath = `migration-errors-${Date.now()}.json`;
-  if (failures.length > 0) {
-    writeFileSync(logPath, JSON.stringify(failures, null, 2));
-  }
 
   console.log('\n' + '='.repeat(80));
   console.log('Migration complete!');
