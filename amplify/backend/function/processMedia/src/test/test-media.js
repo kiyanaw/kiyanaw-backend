@@ -169,12 +169,12 @@ describe('media.run', () => {
     expect(errorCall).toBeTruthy()
   })
 
-  it('rejects without downloading when the S3 object exceeds the 1 GB download cap', async () => {
-    mockGetS3FileSize.mockResolvedValueOnce(2 * 1024 * 1024 * 1024) // 2 GB
+  it('rejects without downloading when the S3 object exceeds the 5 GB download cap', async () => {
+    mockGetS3FileSize.mockResolvedValueOnce(10 * 1024 * 1024 * 1024) // 10 GB
 
     await expect(
       run({ id: 'huge', originalKey: 'public/originals/huge.mp4', mimeType: 'video/mp4' })
-    ).rejects.toThrow(/exceeding the 1\.0 GB download cap/)
+    ).rejects.toThrow(/exceeding the 5\.0 GB download cap/)
 
     expect(mockGetS3File).not.toHaveBeenCalled()
     const errorCall = mockUpdateMediaStatus.mock.calls.find(c => c[1] === 'ERROR')

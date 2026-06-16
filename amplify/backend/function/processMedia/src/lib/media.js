@@ -19,7 +19,11 @@ const LARGE_VIDEO_DURATION_SECONDS = 30 * 60 // 30 minutes
 
 // Above this, even the audio-only fallback can't download from S3 to EFS within
 // Lambda's 15-minute timeout, so we reject without attempting the download at all.
-const MAX_DOWNLOAD_BYTES = 1 * 1024 * 1024 * 1024 // 1 GB
+// A production survey of uploaded originals found a handful of legitimate files
+// in the 1-5GB range (S3-to-Lambda transfer is fast enough that size alone isn't
+// the bottleneck there) alongside a few multi-GB raw camera dumps that are never
+// going to work regardless of cap — 5GB draws the line between them.
+const MAX_DOWNLOAD_BYTES = 5 * 1024 * 1024 * 1024 // 5 GB
 
 const VIDEO_MIME_PREFIXES = ['video/']
 const VIDEO_EXTENSIONS = ['mp4', 'm4v', 'mov', 'avi', 'mkv', 'webm', 'wmv']
