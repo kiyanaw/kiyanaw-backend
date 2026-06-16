@@ -24,7 +24,6 @@ jest.mock('fs', () => ({
   existsSync: jest.fn().mockReturnValue(false),
   readFileSync: jest.fn().mockReturnValue(Buffer.from('rendition-bytes')),
   readdirSync: jest.fn().mockReturnValue([]),
-  statSync: jest.fn().mockReturnValue({ size: 1024 * 1024 }), // 1 MB — below large-video threshold
   createWriteStream: jest.fn(),
   unlinkSync: jest.fn(),
 }))
@@ -88,10 +87,12 @@ describe('media.run', () => {
   it('branches into video path for video/mp4 mime type', async () => {
     await run({ id: 'xyz', originalKey: 'public/originals/xyz.mp4', mimeType: 'video/mp4' })
 
-    // ffmpeg video transcode command used, with a muxing queue guard against
-    // "Too many packets buffered" on erratic input timestamps
+    // ffmpeg video transcode command used, with the superfast preset and a
+    // muxing queue guard against "Too many packets buffered" on erratic input
+    // timestamps
     const transcodeCall = mockRunCommand.mock.calls.find(c => c[0].includes('libx264'))
     expect(transcodeCall).toBeTruthy()
+    expect(transcodeCall[0]).toContain('-preset superfast')
     expect(transcodeCall[0]).toContain('-max_muxing_queue_size')
 
     // Thumbnail generated for video
@@ -107,9 +108,21 @@ describe('media.run', () => {
     expect(readyCall[2].audioOnly).toBe(false)
   })
 
-  it('sets audioOnly true for a large video transcoded to audio', async () => {
-    const { statSync } = require('fs')
-    statSync.mockReturnValueOnce({ size: 100 * 1024 * 1024 }) // 100 MB — above the 75 MB threshold
+  it('sets audioOnly true for a video longer than the 30-minute threshold', async () => {
+    const { exec } = require('child_process')
+    exec
+      .mockImplementationOnce((cmd, optsOrCb, cb) => { // audio stream select
+        const callback = typeof optsOrCb === 'function' ? optsOrCb : cb
+        callback(null, JSON.stringify({ streams: [{ codec_name: 'aac' }] }), '')
+      })
+      .mockImplementationOnce((cmd, optsOrCb, cb) => { // video stream select
+        const callback = typeof optsOrCb === 'function' ? optsOrCb : cb
+        callback(null, JSON.stringify({ streams: [{ codec_name: 'h264' }] }), '')
+      })
+      .mockImplementationOnce((cmd, optsOrCb, cb) => { // source duration probe
+        const callback = typeof optsOrCb === 'function' ? optsOrCb : cb
+        callback(null, '2400.0', '') // 40 minutes — above the 30-minute threshold
+      })
 
     await run({ id: 'big', originalKey: 'public/originals/big.mp4', mimeType: 'video/mp4' })
 

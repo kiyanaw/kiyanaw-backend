@@ -7,11 +7,15 @@ const { escapeShellArg } = require('../utils')
 
 const bucket = process.env.STORAGE_TRANSCRIPTIONS_BUCKETNAME
 
-// TODO: Large videos that exceed this threshold are extracted to audio-only
-// to avoid Lambda's 15-minute timeout. The proper fix is to offload
-// transcoding for large files to a Fargate task so they get a proper
-// compressed video rendition.
-const LARGE_VIDEO_BYTES = 75 * 1024 * 1024 // 75 MB
+// TODO: Long videos that exceed this threshold are extracted to audio-only to
+// avoid Lambda's 15-minute timeout. The proper fix is to offload transcoding
+// for these to a Fargate task so they get a proper compressed video rendition.
+//
+// Gated on source duration rather than file size — processing time tracks
+// video runtime far more closely than bytes on disk. A long, low-bitrate
+// recording has many more frames to decode/encode than a short, high-bitrate
+// file of the same size, so file size alone is a poor predictor of risk.
+const LARGE_VIDEO_DURATION_SECONDS = 30 * 60 // 30 minutes
 
 // Above this, even the audio-only fallback can't download from S3 to EFS within
 // Lambda's 15-minute timeout, so we reject without attempting the download at all.
@@ -118,8 +122,6 @@ async function run({ id, originalKey, mimeType }) {
     // 1. Download original
     await getS3File(bucket, originalKey, `${id}-orig.${ext}`)
 
-    const fileSizeBytes = fs.statSync(origLocalPath).size
-
     // Probe audio streams before transcoding. iPhones embed an undecodable Apple
     // spatial-audio (apac) track alongside the standard AAC; without an explicit
     // map, ffmpeg auto-selects the highest-channel-count stream and fails.
@@ -129,7 +131,8 @@ async function run({ id, originalKey, mimeType }) {
     // Confirm the file actually has a video stream before trusting the
     // mimeType/extension — some "video" uploads are audio-only.
     const hasVideo = video && (await hasVideoStream(origLocalPath))
-    const isLargeVideo = hasVideo && fileSizeBytes > LARGE_VIDEO_BYTES
+    const sourceDurationSeconds = hasVideo ? await getDuration(origLocalPath) : 0
+    const isLargeVideo = hasVideo && sourceDurationSeconds > LARGE_VIDEO_DURATION_SECONDS
 
     // Large videos are extracted to audio-only to stay within Lambda's timeout.
     // Normal videos transcode to mp4; audio and large-video fallbacks go to mp3.
@@ -143,17 +146,19 @@ async function run({ id, originalKey, mimeType }) {
 
     // 2. Transcode
     if (isLargeVideo) {
-      console.log(`Media ${id} is a large video (${(fileSizeBytes / 1024 / 1024).toFixed(0)} MB) — extracting audio only`)
+      console.log(`Media ${id} is a long video (${(sourceDurationSeconds / 60).toFixed(0)} min) — extracting audio only`)
       await runCommand(
         `ffmpeg -y -i ${escapeShellArg(origLocalPath)} ${aMap} -vn -c:a libmp3lame -b:a 192k ${escapeShellArg(renditionLocalPath)}`
       )
     } else if (hasVideo) {
       const aCodec = aMap ? '-c:a aac -b:a 128k' : ''
+      // superfast trades a bit of compression efficiency for a meaningful speed
+      // gain over veryfast, buying more headroom under Lambda's 15-minute timeout.
       // max_muxing_queue_size guards against "Too many packets buffered for
       // output stream" on long, low-bitrate videos where erratic input
       // timestamps make ffmpeg's default interleaving buffer overflow.
       await runCommand(
-        `ffmpeg -y -i ${escapeShellArg(origLocalPath)} -map 0:v:0 ${aMap} -dn -c:v libx264 -b:v 1500k -preset veryfast -vf scale=-2:720 ${aCodec} -max_muxing_queue_size 9999 ${escapeShellArg(renditionLocalPath)}`
+        `ffmpeg -y -i ${escapeShellArg(origLocalPath)} -map 0:v:0 ${aMap} -dn -c:v libx264 -b:v 1500k -preset superfast -vf scale=-2:720 ${aCodec} -max_muxing_queue_size 9999 ${escapeShellArg(renditionLocalPath)}`
       )
     } else {
       await runCommand(
