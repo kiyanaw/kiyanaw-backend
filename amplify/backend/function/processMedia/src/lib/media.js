@@ -149,8 +149,11 @@ async function run({ id, originalKey, mimeType }) {
       )
     } else if (hasVideo) {
       const aCodec = aMap ? '-c:a aac -b:a 128k' : ''
+      // max_muxing_queue_size guards against "Too many packets buffered for
+      // output stream" on long, low-bitrate videos where erratic input
+      // timestamps make ffmpeg's default interleaving buffer overflow.
       await runCommand(
-        `ffmpeg -y -i ${escapeShellArg(origLocalPath)} -map 0:v:0 ${aMap} -dn -c:v libx264 -b:v 1500k -preset veryfast -vf scale=-2:720 ${aCodec} ${escapeShellArg(renditionLocalPath)}`
+        `ffmpeg -y -i ${escapeShellArg(origLocalPath)} -map 0:v:0 ${aMap} -dn -c:v libx264 -b:v 1500k -preset veryfast -vf scale=-2:720 ${aCodec} -max_muxing_queue_size 9999 ${escapeShellArg(renditionLocalPath)}`
       )
     } else {
       await runCommand(

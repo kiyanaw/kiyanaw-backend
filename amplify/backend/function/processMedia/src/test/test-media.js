@@ -88,9 +88,11 @@ describe('media.run', () => {
   it('branches into video path for video/mp4 mime type', async () => {
     await run({ id: 'xyz', originalKey: 'public/originals/xyz.mp4', mimeType: 'video/mp4' })
 
-    // ffmpeg video transcode command used
+    // ffmpeg video transcode command used, with a muxing queue guard against
+    // "Too many packets buffered" on erratic input timestamps
     const transcodeCall = mockRunCommand.mock.calls.find(c => c[0].includes('libx264'))
     expect(transcodeCall).toBeTruthy()
+    expect(transcodeCall[0]).toContain('-max_muxing_queue_size')
 
     // Thumbnail generated for video
     const thumbCall = mockRunCommand.mock.calls.find(c => c[0].includes('-frames:v'))
