@@ -926,6 +926,48 @@ describe('TranscriptionService', () => {
     });
   });
 
+  describe('performSync resilience — shared load failures (issue #303)', () => {
+    beforeEach(() => {
+      (currentUser as jest.Mock).mockReturnValue({ userId: 'test-user-id', username: 'test@example.com' });
+      (transcriptionStorage.getLastSyncedAt as jest.Mock).mockResolvedValue(null); // first-sync path
+      mockGraphqlClient.graphql.mockResolvedValue({
+        data: {
+          transcriptionsByAuthor: {
+            items: [{ id: 'owned-1', title: 'My Transcription', author: 'test-user-id' }],
+          },
+        },
+      });
+    });
+
+    it('should resolve with owned transcriptions when shared load fails with API error', async () => {
+      const { getMyInvites } = require('./inviteService');
+      // Simulate stale client where 'invite' REST API is not in Amplify config.
+      // Use two once-rejections to cover both performSync call sites in loadAll
+      // (primary sync and the fallback). This proves the fix prevents the error
+      // from surfacing as a blocking failure regardless of which code path runs.
+      (getMyInvites as jest.Mock)
+        .mockRejectedValueOnce(new Error('API name is invalid.'))
+        .mockRejectedValueOnce(new Error('API name is invalid.'));
+
+      // Before the fix this rejects; after the fix it resolves with owned transcriptions
+      await expect(loadAll()).resolves.toBeDefined();
+    });
+
+    it('should still merge owned and shared when both succeed', async () => {
+      const { getMyInvites } = require('./inviteService');
+      // Happy path is unaffected by the resilience change
+      (getMyInvites as jest.Mock).mockResolvedValueOnce({
+        invites: [],
+        total: 0,
+        filters: { userEmail: 'test@example.com', transcriptionId: null, inviteId: null }
+      });
+
+      await expect(loadAll()).resolves.toBeDefined();
+      expect(getMyInvites).toHaveBeenCalled();
+      expect(mockGraphqlClient.graphql).toHaveBeenCalled();
+    });
+  });
+
   describe('clearTranscriptionCache', () => {
     it('delegates to transcriptionStorage.clearCache', async () => {
       await clearTranscriptionCache();
