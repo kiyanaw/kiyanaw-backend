@@ -480,13 +480,18 @@ export const loadInFull = async (transcriptionId: string): Promise<false | LoadT
   let peaksDuration: number;
 
   if (transcription.mediaId) {
-    // New pipeline: fetch Media record and derive source + peaks from it
-    const media = await getMedia(transcription.mediaId);
+    // New pipeline: prefer media data already nested in the getTranscription response.
+    // This avoids a separate getMedia call that would fail for non-owner users on
+    // public (discoverable) transcriptions, since Media has no public-read path.
+    const nestedMedia = transcriptionData.media;
+    const media = (nestedMedia?.id && nestedMedia?.status && nestedMedia?.renditionKey)
+      ? (nestedMedia as { id: string; status: string; renditionKey: string; peaksKey?: string | null; audioOnly?: boolean | null })
+      : await getMedia(transcription.mediaId);
     if (media.status !== MEDIA_STATUS.READY) {
       return {
         processing: true,
         transcription,
-        mediaId: media.id,
+        mediaId: media.id ?? transcription.mediaId!,
         mediaStatus: media.status,
       };
     }
