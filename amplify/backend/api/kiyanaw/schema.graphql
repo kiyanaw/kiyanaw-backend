@@ -11,6 +11,10 @@ type Transcription
 
     # 4) Static Admin group via User Pools
     { allow: groups, groups: ["Admins"], operations: [create, read, update, delete] }
+
+    # 5) Any authenticated user may read — isPrivate enforcement is handled in the
+    #    custom getTranscription.res.vtl and listTranscriptions.res.vtl resolvers.
+    { allow: private, operations: [read] }
   ]) {
   id: ID! @primaryKey
   author: String! @index(name: "ByAuthor", queryField: "transcriptionsByAuthor") @index(name: "ByAuthorDate", queryField: "transcriptionsByAuthorDate", sortKeyFields: ["dateLastUpdated"]) # UUID of the Cognito user

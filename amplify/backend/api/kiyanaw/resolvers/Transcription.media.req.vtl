@@ -21,6 +21,11 @@
 #if( $ctx.stash.deniedField )
   #set( $partitionKeyValue = "___xamznone____" )
 #end
+## For public (discoverable) transcriptions, clear the Media authFilter so the linked
+## Media record resolves for any authenticated user without an ACL match.
+#if( $ctx.source.isPrivate == false )
+  $util.qr($ctx.stash.put("authFilter", null))
+#end
 #set( $GetRequest = {
   "version": "2018-05-29",
   "operation": "Query"

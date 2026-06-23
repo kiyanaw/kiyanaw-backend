@@ -1,0 +1,49 @@
+## Response mapping template for Query.transcriptionsByAuthor
+## Filters results to only items the requesting user has explicit ACL access to.
+## This prevents any authenticated user from enumerating another author's private
+## transcriptions via the by-author GSI (which has no built-in owner filter when
+## the Transcription model includes an allow:private read rule).
+
+#set($out = [])
+#set($userSub = $ctx.identity.claims.get("sub"))
+#set($userGroups = $ctx.identity.claims.get("cognito:groups"))
+
+#if($util.isNull($userSub))
+  #set($userSub = "")
+#end
+#if($util.isNull($userGroups))
+  #set($userGroups = [])
+#end
+
+#foreach($item in $ctx.result.items)
+  #set($ok = false)
+
+  #if(!$util.isNull($item.author) && $item.author == $userSub)
+    #set($ok = true)
+  #end
+
+  #if(!$ok && !$util.isNull($item.editors) && $item.editors.contains($userSub))
+    #set($ok = true)
+  #end
+
+  #if(!$ok && !$util.isNull($item.viewers) && $item.viewers.contains($userSub))
+    #set($ok = true)
+  #end
+
+  #if(!$ok && !$util.isNull($item.editorGroups) && $util.list.copyAndRetain($item.editorGroups, $userGroups).size() > 0)
+    #set($ok = true)
+  #end
+
+  #if(!$ok && !$util.isNull($item.viewerGroups) && $util.list.copyAndRetain($item.viewerGroups, $userGroups).size() > 0)
+    #set($ok = true)
+  #end
+
+  #if($ok)
+    $util.qr($out.add($item))
+  #end
+#end
+
+$util.toJson({
+  "items": $out,
+  "nextToken": $ctx.result.nextToken
+})

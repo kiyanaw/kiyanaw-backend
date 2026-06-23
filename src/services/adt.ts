@@ -10,7 +10,7 @@ export interface TranscriptionData {
   issueCount?: number;
   source?: string;
   mediaId?: string;
-  media?: { status?: string; originalKey?: string; originalName?: string | null } | null;
+  media?: { id?: string; status?: string; originalKey?: string; originalName?: string | null; renditionKey?: string | null; peaksKey?: string | null; audioOnly?: boolean | null } | null;
   coverage?: number;
   isPrivate?: boolean;
   publicIssues?: boolean;
