@@ -163,7 +163,7 @@ export const DatabaseLemmaPage = () => {
             >
               <ArrowLeft size={20} />
             </button>
-            <h1 className="text-2xl font-semibold text-gray-900 ml-3">
+            <h1 data-testid="lemma-page-header" className="text-2xl font-semibold text-gray-900 ml-3">
               {decodedLemma}
             </h1>
           </div>

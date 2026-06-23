@@ -383,6 +383,7 @@ export const TranscriptionsList = () => {
             {/* Search */}
             <div className="relative">
               <input
+                data-testid="transcription-search-input"
                 type="text"
                 placeholder="Search by title..."
                 value={search}
@@ -397,6 +398,7 @@ export const TranscriptionsList = () => {
             {/* Sort Dropdown */}
             <div className="relative">
               <select
+                data-testid="transcription-sort-select"
                 value={`${sortBy}-${sortDesc ? 'desc' : 'asc'}`}
                 onChange={(e) => {
                   const [key, direction] = e.target.value.split('-');
@@ -695,6 +697,7 @@ export const TranscriptionsList = () => {
                         })()}
                         {transcription.isMine(user?.userId) && (
                           <button
+                            data-testid="transcription-delete-button"
                             onClick={() => handleDeleteClick(transcription)}
                             className="p-1 text-gray-400 hover:text-red-500 rounded transition-colors"
                             title="Delete transcription"
