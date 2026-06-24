@@ -73,12 +73,13 @@ testWithAccount('owner').describe('Language Database', () => {
     await expect(searchInput).toBeVisible({ timeout: 10000 });
     await searchInput.fill(TEST_QUERY);
 
-    // Wait for the 600 ms debounce + API response
-    await page.waitForTimeout(4000);
+    // Wait for the 600 ms debounce + API response (Lambda cold start can add 2-4 s)
+    await page.waitForTimeout(10000);
 
     // Either results or the no-results message should be visible
     const hasResults = await page.locator('[data-testid="database-search-results"]').isVisible().catch(() => false);
-    const hasNoResults = await page.locator(`text=No results found for "${TEST_QUERY}"`).isVisible().catch(() => false);
+    // Use a prefix match to avoid Unicode encoding issues with the full query string
+    const hasNoResults = await page.locator('text=No results found').isVisible().catch(() => false);
 
     expect(hasResults || hasNoResults).toBeTruthy();
     console.log(`✅ Search produced ${hasResults ? 'results' : 'no-results message'} for "${TEST_QUERY}"`);
