@@ -285,15 +285,23 @@ testWithAccount('owner').describe('Issue resolve toggle', () => {
     await regionItem.click();
     await page.waitForTimeout(1000);
 
-    await expect(page.locator('text=Issues (1)').first()).toBeVisible({ timeout: 10000 });
+    // Resolved issues are hidden by default; the toggle "Show resolved issues (1)"
+    // confirms the resolved state persisted
+    const showResolvedToggle = page.locator('text=Show resolved issues (1)').first();
+    await expect(showResolvedToggle).toBeVisible({ timeout: 10000 });
+    console.log('✅ "Show resolved issues (1)" visible — resolved state persisted after reload');
+
+    // Click the toggle to reveal the resolved issue and verify the RESOLVED badge
+    await showResolvedToggle.click();
+    await page.waitForTimeout(500);
 
     const issueItemReloaded = page.locator('[data-testid="issue-item-open-dialog"]').first();
-    await expect(issueItemReloaded).toBeVisible();
+    await expect(issueItemReloaded).toBeVisible({ timeout: 5000 });
     await issueItemReloaded.click();
     await page.waitForTimeout(1000);
 
     await expect(page.locator('text=RESOLVED').first()).toBeVisible({ timeout: 5000 });
-    console.log('✅ Resolved state persisted after hard reload');
+    console.log('✅ RESOLVED badge visible after toggling resolved issues on');
   });
 });
 

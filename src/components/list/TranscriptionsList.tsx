@@ -481,6 +481,8 @@ export const TranscriptionsList = () => {
           {displayedTranscriptions.map((transcription) => (
             <div
               key={transcription.id}
+              data-testid="transcription-list-item"
+              data-transcription-id={transcription.id}
               className="relative bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
             >
               {/* Bottom progress border */}

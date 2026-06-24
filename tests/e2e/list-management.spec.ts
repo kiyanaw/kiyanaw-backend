@@ -76,11 +76,12 @@ testWithAccount('owner').describe('Transcription list management', () => {
   });
 
   testWithAccount('owner')('delete via list trash button removes the row', async ({ page }) => {
-    const titleRow = page.locator('[data-testid="transcription-list-item-title-row"]').filter({ hasText: title }).first();
-    await expect(titleRow).toBeVisible({ timeout: 15000 });
+    // Scope to the card container (parent of both the title row and the delete button)
+    const card = page.locator('[data-testid="transcription-list-item"]').filter({ hasText: title }).first();
+    await expect(card).toBeVisible({ timeout: 15000 });
 
     // Click the trash icon in the desktop row
-    const deleteBtn = titleRow.locator('[data-testid="transcription-delete-button"]').first();
+    const deleteBtn = card.locator('[data-testid="transcription-delete-button"]').first();
     await expect(deleteBtn).toBeVisible();
     await deleteBtn.click();
     await page.waitForTimeout(500);

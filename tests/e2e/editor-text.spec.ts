@@ -161,20 +161,22 @@ testWithAccount('owner').describe('Region merge', () => {
     await expect(page.locator('text=Regions (2)').first()).toBeVisible({ timeout: 15000 });
     console.log('✅ Two regions created');
 
-    // Wait for audio decode, click first region to open the editor
+    // Wait for both create-region API calls to settle in the database before merging
     await waitForAudioReady(page);
+    await page.waitForTimeout(5000);
     const firstRegion = page.locator('[data-testid*="regionitem"]').first();
     await expect(firstRegion).toBeVisible();
     await firstRegion.click();
     await page.waitForTimeout(1000);
 
-    // Click merge-next
+    // Click merge-next — accept the confirm dialog that fires before the merge
+    page.once('dialog', async (dialog) => dialog.accept());
     const mergeButton = page.locator('[data-testid="merge-next-button"]').first();
     await expect(mergeButton).toBeEnabled({ timeout: 5000 });
     await mergeButton.click();
-    await page.waitForTimeout(2000);
+    await page.waitForTimeout(5000);
 
-    await expect(page.locator('text=Regions (1)').first()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=Regions (1)').first()).toBeVisible({ timeout: 20000 });
     console.log('✅ Merge reduced region count to 1');
   });
 });
