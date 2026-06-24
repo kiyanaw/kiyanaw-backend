@@ -173,11 +173,12 @@ export const RegionEditor = memo(({
           {/* Tab Toggle Button Group */}
           <div className="flex border border-gray-300 rounded overflow-hidden" style={{ fontSize: '12px' }}>
             <button
+              data-testid="region-tab-orig"
               className={`px-1.5 py-0.5 font-medium uppercase transition-all duration-200 ${
                 activeTab === 'main'
                   ? 'bg-gray-300 text-gray-800 shadow-inner border-t border-gray-400'
-                  : canEdit 
-                    ? 'bg-white text-gray-600 hover:bg-gray-100 cursor-pointer' 
+                  : canEdit
+                    ? 'bg-white text-gray-600 hover:bg-gray-100 cursor-pointer'
                     : 'bg-gray-50 text-gray-400 cursor-not-allowed'
               }`}
               onClick={canEdit ? () => setActiveTab('main') : undefined}
@@ -188,11 +189,12 @@ export const RegionEditor = memo(({
               <span className="hidden lg:inline">ORIG</span>
             </button>
             <button
+              data-testid="region-tab-tran"
               className={`px-1.5 py-0.5 font-medium uppercase transition-all duration-200 border-l border-gray-300 ${
                 activeTab === 'translation'
                   ? 'bg-gray-300 text-gray-800 shadow-inner border-t border-gray-400'
-                  : canEdit 
-                    ? 'bg-white text-gray-600 hover:bg-gray-100 cursor-pointer' 
+                  : canEdit
+                    ? 'bg-white text-gray-600 hover:bg-gray-100 cursor-pointer'
                     : 'bg-gray-50 text-gray-400 cursor-not-allowed'
               }`}
               onClick={canEdit ? () => setActiveTab('translation') : undefined}
@@ -298,8 +300,9 @@ export const RegionEditor = memo(({
 
         {activeTab === 'translation' && (
           <div className="h-full" style={{ backgroundColor: '#f5f5f5' }}>
-            <div 
+            <div
               ref={translationEditorRef}
+              data-testid="region-editor-translation"
               className="h-full"
               style={{ backgroundColor: '#f5f5f5' }}
             />

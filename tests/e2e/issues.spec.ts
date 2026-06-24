@@ -180,7 +180,7 @@ testWithAccount('owner').describe('Comment round-trip on an issue', () => {
     if (editorContext) await editorContext.close().catch(() => {});
   });
 
-  testWithAccount('owner')('owner posts comment; editor sees it after reload', async ({ page }) => {
+  testWithAccount('owner')('owner posts comment; editor sees it after reload (comment round-trip)', async ({ page }) => {
     // Owner creates region + issue
     await page.goto(`/transcribe-edit/${transcriptionId}`);
     await page.waitForLoadState('networkidle');
@@ -234,5 +234,176 @@ testWithAccount('owner').describe('Comment round-trip on an issue', () => {
     console.log('✅ Owner comment visible to editor via commentsByTranscription / listComments resolver');
 
     await editorPage.close();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Issue resolve toggle
+// ---------------------------------------------------------------------------
+testWithAccount('owner').describe('Issue resolve toggle', () => {
+  let transcriptionId: string;
+  let title: string;
+
+  testWithAccount('owner').beforeEach(async ({ page }) => {
+    const result = await createTestTranscription(page);
+    transcriptionId = result.transcriptionId;
+    title = result.title;
+  });
+
+  testWithAccount('owner').afterEach(async ({ page }) => {
+    await deleteTestTranscription(page, transcriptionId, title);
+  });
+
+  testWithAccount('owner')('owner can resolve an issue; resolved state persists after reload', async ({ page }) => {
+    await createRegionAndIssue(page);
+    await expect(page.locator('text=Issues (1)').first()).toBeVisible({ timeout: 10000 });
+
+    // Open the issue details dialog
+    const issueItem = page.locator('[data-testid="issue-item-open-dialog"]').first();
+    await expect(issueItem).toBeVisible();
+    await issueItem.click();
+    await page.waitForTimeout(1000);
+
+    // Click resolve — the badge should flip to RESOLVED
+    const resolveBtn = page.locator('[data-testid="issue-resolve-toggle"]').first();
+    await expect(resolveBtn).toBeVisible({ timeout: 5000 });
+    await resolveBtn.click();
+    await page.waitForTimeout(2000);
+
+    await expect(page.locator('text=RESOLVED').first()).toBeVisible({ timeout: 5000 });
+    console.log('✅ Issue resolved; RESOLVED badge visible');
+
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(500);
+
+    // Reload and verify resolved state persists
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+
+    const regionItem = page.locator('[data-testid*="regionitem"]').first();
+    await expect(regionItem).toBeVisible({ timeout: 15000 });
+    await regionItem.click();
+    await page.waitForTimeout(1000);
+
+    // Resolved issues are hidden by default; the toggle "Show resolved issues (1)"
+    // confirms the resolved state persisted
+    const showResolvedToggle = page.locator('text=Show resolved issues (1)').first();
+    await expect(showResolvedToggle).toBeVisible({ timeout: 10000 });
+    console.log('✅ "Show resolved issues (1)" visible — resolved state persisted after reload');
+
+    // Click the toggle to reveal the resolved issue and verify the RESOLVED badge
+    await showResolvedToggle.click();
+    await page.waitForTimeout(500);
+
+    const issueItemReloaded = page.locator('[data-testid="issue-item-open-dialog"]').first();
+    await expect(issueItemReloaded).toBeVisible({ timeout: 5000 });
+    await issueItemReloaded.click();
+    await page.waitForTimeout(1000);
+
+    await expect(page.locator('text=RESOLVED').first()).toBeVisible({ timeout: 5000 });
+    console.log('✅ RESOLVED badge visible after toggling resolved issues on');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Issue delete
+// ---------------------------------------------------------------------------
+testWithAccount('owner').describe('Issue delete', () => {
+  let transcriptionId: string;
+  let title: string;
+
+  testWithAccount('owner').beforeEach(async ({ page }) => {
+    const result = await createTestTranscription(page);
+    transcriptionId = result.transcriptionId;
+    title = result.title;
+  });
+
+  testWithAccount('owner').afterEach(async ({ page }) => {
+    await deleteTestTranscription(page, transcriptionId, title);
+  });
+
+  testWithAccount('owner')('owner can delete an issue; it is removed from IssuesPanel after reload', async ({ page }) => {
+    await createRegionAndIssue(page);
+    await expect(page.locator('text=Issues (1)').first()).toBeVisible({ timeout: 10000 });
+
+    const issueItem = page.locator('[data-testid="issue-item-open-dialog"]').first();
+    await expect(issueItem).toBeVisible();
+    await issueItem.click();
+    await page.waitForTimeout(1000);
+
+    page.once('dialog', async (dialog) => dialog.accept());
+
+    const deleteBtn = page.locator('[data-testid="issue-delete-button"]').first();
+    await expect(deleteBtn).toBeVisible({ timeout: 5000 });
+    await deleteBtn.click();
+    await page.waitForTimeout(2000);
+
+    await expect(page.locator('text=Issues (0)').first()).toBeVisible({ timeout: 10000 });
+    console.log('✅ Issue deleted; Issues (0) visible immediately');
+
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+
+    const regionItem = page.locator('[data-testid*="regionitem"]').first();
+    await expect(regionItem).toBeVisible({ timeout: 15000 });
+    await regionItem.click();
+    await page.waitForTimeout(1000);
+
+    await expect(page.locator('text=Issues (0)').first()).toBeVisible({ timeout: 10000 });
+    console.log('✅ Issue deletion persisted after hard reload');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Comment delete
+// ---------------------------------------------------------------------------
+testWithAccount('owner').describe('Comment delete', () => {
+  let transcriptionId: string;
+  let title: string;
+
+  testWithAccount('owner').beforeEach(async ({ page }) => {
+    const result = await createTestTranscription(page);
+    transcriptionId = result.transcriptionId;
+    title = result.title;
+  });
+
+  testWithAccount('owner').afterEach(async ({ page }) => {
+    await deleteTestTranscription(page, transcriptionId, title);
+  });
+
+  testWithAccount('owner')('owner can delete a comment; it is removed immediately', async ({ page }) => {
+    await createRegionAndIssue(page);
+    await expect(page.locator('text=Issues (1)').first()).toBeVisible({ timeout: 10000 });
+
+    const issueItem = page.locator('[data-testid="issue-item-open-dialog"]').first();
+    await expect(issueItem).toBeVisible();
+    await issueItem.click();
+    await page.waitForTimeout(1000);
+
+    const commentInput = page.locator('[data-testid="comment-input"]').first();
+    await expect(commentInput).toBeVisible({ timeout: 5000 });
+    const commentText = `delete me ${Date.now()}`;
+    await commentInput.fill(commentText);
+
+    const submitBtn = page.locator('[data-testid="submit-comment"]').first();
+    await expect(submitBtn).toBeEnabled();
+    await submitBtn.click();
+    await page.waitForTimeout(2000);
+
+    const commentItem = page.locator(`[data-testid="comment-item"]:has-text("${commentText}")`).first();
+    await expect(commentItem).toBeVisible({ timeout: 5000 });
+    console.log('✅ Comment posted and visible');
+
+    page.once('dialog', async (dialog) => dialog.accept());
+
+    const deleteCommentBtn = commentItem.locator('[data-testid="comment-delete-button"]').first();
+    await expect(deleteCommentBtn).toBeVisible({ timeout: 5000 });
+    await deleteCommentBtn.click();
+    await page.waitForTimeout(2000);
+
+    await expect(
+      page.locator(`[data-testid="comment-item"]:has-text("${commentText}")`)
+    ).toHaveCount(0, { timeout: 5000 });
+    console.log('✅ Comment deleted and removed from dialog');
   });
 });

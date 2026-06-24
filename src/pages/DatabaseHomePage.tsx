@@ -255,6 +255,7 @@ export const DatabaseHomePage = () => {
               </label>
               <select
                 id="header-language-selector"
+                data-testid="database-language-select"
                 value={selectedLang}
                 onChange={(e) => handleLanguageChange(e.target.value)}
                 disabled={loading}
@@ -295,6 +296,7 @@ export const DatabaseHomePage = () => {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
                 <input
                   ref={searchInputRef}
+                  data-testid="database-search-input"
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -315,7 +317,7 @@ export const DatabaseHomePage = () => {
 
             {/* Search Results */}
             {searchResults.length > 0 && (
-              <div className="mt-6 bg-white rounded-lg border border-gray-200 overflow-hidden">
+              <div data-testid="database-search-results" className="mt-6 bg-white rounded-lg border border-gray-200 overflow-hidden">
                 <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
                   <h3 className="font-medium text-gray-900">
                     {searchResults.length} {searchResults.length === 1 ? 'result' : 'results'}
