@@ -1003,9 +1003,20 @@ const performSync = async (sinceTimestamp?: string): Promise<TranscriptionModel[
     }
     console.debug(`📝 Loaded ${ownedTranscriptions.length} owned transcriptions`);
     
-    // Load shared transcriptions via invites (need email for invite lookup)
-    const sharedTranscriptions: TranscriptionModel[] = await loadSharedTranscriptions(user.username, sinceTimestamp);
-    console.debug(`🤝 Loaded ${sharedTranscriptions.length} shared transcriptions`);
+    // Load shared transcriptions via invites (need email for invite lookup).
+    // Wrapped in try/catch so a shared-load failure (e.g. stale client with
+    // unregistered REST API — see issue #303) does not blank the owned list.
+    let sharedTranscriptions: TranscriptionModel[] = [];
+    try {
+      sharedTranscriptions = await loadSharedTranscriptions(user.username, sinceTimestamp);
+      console.debug(`🤝 Loaded ${sharedTranscriptions.length} shared transcriptions`);
+    } catch (sharedError) {
+      // Log build hash + service-worker URL to help diagnose stale-bundle issues in the wild
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const buildHash = (globalThis as any).__BUILD_HASH__ ?? 'unknown';
+      const swUrl = typeof navigator !== 'undefined' ? (navigator.serviceWorker?.controller?.scriptURL ?? 'none') : 'n/a';
+      console.warn(`⚠️ Shared transcription load failed — owned list unaffected (build=${buildHash}, sw=${swUrl}):`, sharedError);
+    }
 
     // Combine and deduplicate (in case user has both ownership and invite access)
     const allTranscriptions = new Map<string, TranscriptionModel>();
