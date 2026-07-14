@@ -195,6 +195,7 @@ export const IssueDetailsDialog = ({
           <div className="flex items-center gap-1">
             {canResolve && (
               <button
+                data-testid="issue-resolve-toggle"
                 onClick={handleToggleResolved}
                 title={issue.resolved ? 'Reopen issue' : 'Resolve issue'}
                 className={`p-2 rounded-md transition-colors ${
@@ -208,6 +209,7 @@ export const IssueDetailsDialog = ({
             )}
             {canDelete && (
               <button
+                data-testid="issue-delete-button"
                 onClick={handleDeleteIssue}
                 title="Delete issue"
                 className="p-2 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
@@ -293,6 +295,7 @@ export const IssueDetailsDialog = ({
                       {/* Delete button */}
                       {canDeleteThisComment && (
                         <button
+                          data-testid="comment-delete-button"
                           onClick={() => handleDeleteComment(comment.id)}
                           className="p-1 rounded text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors flex-shrink-0"
                           title="Delete comment"

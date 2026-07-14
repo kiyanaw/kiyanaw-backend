@@ -118,6 +118,10 @@ TEST_PARALLEL_INDEX=1 npm run test:e2e
 
 Available account names: `owner`, `viewer`, `editor`
 
+## Coverage
+
+See [`tests/e2e/COVERAGE.md`](./e2e/COVERAGE.md) for a matrix of core flows vs. their test status. Keep it updated when adding or removing specs.
+
 ## Important Notes
 
 - The `playwright/.auth/` directory and `.env` file are gitignored for security

@@ -102,3 +102,5 @@ hive-mind-prompt-*.txt
 .cursor
 .claude
 /plans/
+
+graphify-out/

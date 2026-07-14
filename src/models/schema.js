@@ -365,6 +365,12 @@ export const schema = {
                                     "update",
                                     "delete"
                                 ]
+                            },
+                            {
+                                "allow": "private",
+                                "operations": [
+                                    "read"
+                                ]
                             }
                         ]
                     }

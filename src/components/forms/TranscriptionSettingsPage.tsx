@@ -531,6 +531,7 @@ export const TranscriptionSettingsPage = ({
                           type="button"
                           role="switch"
                           aria-checked={!isPrivate}
+                          data-testid="discoverable-toggle"
                           onClick={() => {
                             const newIsPrivate = !isPrivate;
                             setIsPrivate(newIsPrivate);
