@@ -41,7 +41,7 @@ export const SupportPage = () => {
       <div className="max-w-md mx-auto">
         <div className="text-center">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Support</h1>
-          <p className="text-gray-600 mb-8">
+          <p className="text-gray-600 mb-2">
             Need help? We're here to assist you.
           </p>
         </div>
@@ -105,6 +105,25 @@ export const SupportPage = () => {
               </button>
             </div>
           )}
+
+          {/* Account & Data Deletion — shown to everyone (required by app store policy) */}
+          <div className="pt-4 border-t border-gray-200">
+            <h2 className="text-lg font-medium text-gray-900 mb-3">Account &amp; Data Deletion</h2>
+            <p className="text-sm text-gray-600 mb-3">
+              To request deletion of your account and all associated data for the{' '}
+              <span className="font-medium">kiyânaw Platform (Transcribe and Mentor)</span> or{' '}
+              <span className="font-medium">Our Métis Languages</span> mobile app, email us at{' '}
+              <a href={`mailto:${supportEmail}`} className="text-ki-blue font-medium">
+                {supportEmail}
+              </a>{' '}
+              from the email address linked to your account (or include your account details in
+              the message).
+            </p>
+            <p className="text-sm text-gray-600">
+              We will permanently delete your account and personal data within 30 days of your
+              request. Some information may be retained where required by law.
+            </p>
+          </div>
 
           {/* Additional Info */}
           <div className="pt-4 border-t border-gray-200">
