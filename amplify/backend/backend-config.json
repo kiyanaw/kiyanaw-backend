@@ -256,6 +256,28 @@
       "providerPlugin": "awscloudformation",
       "service": "Lambda"
     },
+    "mentorExport": {
+      "build": true,
+      "dependsOn": [
+        {
+          "attributes": [
+            "GraphQLAPIIdOutput",
+            "GraphQLAPIEndpointOutput"
+          ],
+          "category": "api",
+          "resourceName": "kiyanaw"
+        },
+        {
+          "attributes": [
+            "BucketName"
+          ],
+          "category": "storage",
+          "resourceName": "transcriptions"
+        }
+      ],
+      "providerPlugin": "awscloudformation",
+      "service": "Lambda"
+    },
     "notifyRegionChanges": {
       "build": true,
       "providerPlugin": "awscloudformation",
@@ -441,6 +463,22 @@
         {
           "category": "function",
           "resourceName": "mediaAccess"
+        }
+      ]
+    },
+    "AMPLIFY_function_mentorExport_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "mentorExport"
+        }
+      ]
+    },
+    "AMPLIFY_function_mentorExport_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "mentorExport"
         }
       ]
     },

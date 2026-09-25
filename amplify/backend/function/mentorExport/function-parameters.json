@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "api": {
+      "kiyanaw": [
+        "Query",
+        "Mutation",
+        "Subscription"
+      ]
+    },
+    "storage": {
+      "transcriptions": [
+        "create",
+        "read",
+        "update"
+      ],
+      "Transcription:@model(appsync)": [
+        "read"
+      ],
+      "Region:@model(appsync)": [
+        "read"
+      ],
+      "Media:@model(appsync)": [
+        "read"
+      ],
+      "Export:@model(appsync)": [
+        "create",
+        "read",
+        "update"
+      ]
+    }
+  },
+  "lambdaLayers": []
+}
