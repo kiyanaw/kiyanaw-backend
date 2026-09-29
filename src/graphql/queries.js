@@ -1,6 +1,11 @@
 /* eslint-disable */
 // this is an auto generated file. This will be overwritten
 
+export const regionClipUrl = /* GraphQL */ `
+  query RegionClipUrl($regionId: ID!) {
+    regionClipUrl(regionId: $regionId)
+  }
+`;
 export const getTranscription = /* GraphQL */ `
   query GetTranscription($id: ID!) {
     getTranscription(id: $id) {

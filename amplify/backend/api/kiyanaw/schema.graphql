@@ -234,3 +234,13 @@ type Export
   createdAt: AWSDateTime!
   updatedAt: AWSDateTime!
 }
+
+# On-demand single-region audio clip. Returns a short-lived presigned MP3 URL for the
+# given region so the caller can download/share just that clip. Backed by the
+# mentorExport Lambda (reuses its ffmpeg layer + table access); the Lambda authorizes
+# owner-or-public server-side and clips on demand. Clips land under
+# public/region-clips/ and auto-expire via an S3 lifecycle rule. The API's default
+# Cognito User Pool auth means only signed-in users can call this field.
+type Query {
+  regionClipUrl(regionId: ID!): String @function(name: "mentorExport-${env}")
+}

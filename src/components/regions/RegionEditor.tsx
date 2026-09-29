@@ -1,9 +1,10 @@
 import { useState, memo } from 'react';
-import { Pause, Trash2, X, AlertTriangle, Repeat1, Database, Merge } from 'lucide-react';
+import { Pause, Trash2, X, AlertTriangle, Repeat1, Database, Merge, Download, Loader2 } from 'lucide-react';
 import { type RegionData as Region } from '../../services/adt';
 import { useTextEditors } from '../../hooks/useTextEditors';
 import { useDeleteRegion } from '../../hooks/useDeleteRegion';
 import { useMergeRegion } from '../../hooks/useMergeRegion';
+import { useSnipRegion } from '../../hooks/useSnipRegion';
 import { useSelectAndPlayRegion } from '../../hooks/useSelectAndPlayRegion';
 import { useCreateIssueFromSelection } from '../../hooks/useCreateIssueFromSelection';
 import { useEditorStore } from '../../stores/useEditorStore';
@@ -26,6 +27,7 @@ export const RegionEditor = memo(({
   const { mergeRegion } = useMergeRegion();
   const playRegion = useSelectAndPlayRegion();
   const createIssueFromSelection = useCreateIssueFromSelection();
+  const { snip, isSnipping, canSnip } = useSnipRegion();
   const canEdit = useEditorStore((state) => state.canEdit);
   const setSelectedRegion = useEditorStore((state) => state.setSelectedRegion);
   const regions = useEditorStore((state) => state.regions);
@@ -266,6 +268,23 @@ export const RegionEditor = memo(({
               </button>
             );
           })()}
+
+          {/* Download this region as an MP3 clip — owner, or anyone when public */}
+          {canSnip && (
+            <button
+              data-testid="snip-region-button"
+              className={`flex items-center justify-center w-7 h-7 border border-gray-300 rounded-md bg-white transition-all duration-200 text-sm ${
+                isSnipping
+                  ? 'cursor-wait opacity-50 text-gray-400'
+                  : 'cursor-pointer hover:bg-gray-50 hover:border-gray-400'
+              }`}
+              onClick={isSnipping ? undefined : () => { snip(region.id).catch(() => {}); }}
+              disabled={isSnipping}
+              title="Download this region as an MP3 clip"
+            >
+              {isSnipping ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+            </button>
+          )}
         </div>
 
         <div className="flex items-center gap-2">

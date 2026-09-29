@@ -15,17 +15,30 @@ Amplify Params - DO NOT EDIT */
 process.env.PATH = process.env.PATH + ':' + '/opt/nodejs/bin'
 
 const { run } = require('./lib/export')
+const { clipOne } = require('./lib/clip-one')
 const { okResponse } = require('./utils')
 
 /**
- * DynamoDB-stream handler on the Export table. A new PENDING row (created by the
- * frontend "Export to Mentor" action) fires this Lambda, which clips every region
- * of the transcription to MP3, bundles them with an import.csv into a zip, uploads
- * the zip to S3, and flips the row to READY (or ERROR).
+ * This Lambda serves two callers:
  *
- * @type {import('@types/aws-lambda').DynamoDBStreamHandler}
+ * 1. **AppSync @function resolver** for `Query.regionClipUrl(regionId)` — clips a single
+ *    region on demand and returns a short-lived presigned MP3 URL (returns the string
+ *    directly; throws on auth failure so AppSync surfaces a GraphQL error).
+ * 2. **DynamoDB-stream handler** on the Export table — a new PENDING row (the "Export to
+ *    Mentor" action) fires the full-bundle flow (clip every region → import.csv → zip).
+ *
+ * @type {import('@types/aws-lambda').Handler}
  */
 exports.handler = async (event) => {
+  // 1. AppSync single-region clip resolver.
+  if (event && event.fieldName === 'regionClipUrl') {
+    return clipOne({
+      regionId: event.arguments && event.arguments.regionId,
+      identity: event.identity,
+    })
+  }
+
+  // 2. DynamoDB-stream Mentor bundle export.
   console.log(`EVENT: ${JSON.stringify(event)}`)
 
   for (const record of event.Records) {
