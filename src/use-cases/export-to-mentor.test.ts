@@ -16,7 +16,7 @@ const region = (over: Partial<ExportRegion> = {}): ExportRegion => ({
 const baseInput = (over: Partial<ExportToMentorInput> = {}): ExportToMentorInput => ({
   transcriptionId: 'T1',
   ownerSub: 'owner-sub',
-  isOwner: true,
+  canExport: true,
   speaker: 'Terry Ireland',
   regions: [region()],
   ...over,
@@ -26,9 +26,9 @@ describe('ExportToMentorUseCase', () => {
   beforeEach(() => jest.clearAllMocks());
 
   describe('validate', () => {
-    it('rejects a non-owner', () => {
-      const uc = new ExportToMentorUseCase(baseInput({ isOwner: false }));
-      expect(() => uc.validate()).toThrow('Only the transcription owner can export.');
+    it('rejects a user without export permission', () => {
+      const uc = new ExportToMentorUseCase(baseInput({ canExport: false }));
+      expect(() => uc.validate()).toThrow('You do not have permission to export this transcription.');
     });
 
     it('rejects a blank speaker', () => {
@@ -74,8 +74,8 @@ describe('ExportToMentorUseCase', () => {
     });
 
     it('does not call the service when validation fails', async () => {
-      const uc = new ExportToMentorUseCase(baseInput({ isOwner: false }));
-      await expect(uc.execute()).rejects.toThrow('Only the transcription owner can export.');
+      const uc = new ExportToMentorUseCase(baseInput({ canExport: false }));
+      await expect(uc.execute()).rejects.toThrow('You do not have permission to export this transcription.');
       expect(mockCreateExport).not.toHaveBeenCalled();
     });
   });

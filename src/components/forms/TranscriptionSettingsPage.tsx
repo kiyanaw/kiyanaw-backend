@@ -11,6 +11,7 @@ import { getMedia, type MediaData } from '../../services/mediaService';
 import type { InviteModel, TranscriptionModel } from '../../services/adt';
 import { useExportTranscription } from '../../hooks/useExportTranscription';
 import { useMentorExport } from '../../hooks/useMentorExport';
+import { useIsAdmin } from '../../hooks/useIsAdmin';
 import type { ExportRegion } from '../../use-cases/export-transcription';
 import { SearchableLanguageSelector } from './SearchableLanguageSelector';
 import { DeleteTranscriptionModal } from '../shared/DeleteTranscriptionModal';
@@ -326,13 +327,17 @@ export const TranscriptionSettingsPage = ({
 
   const exportTranscription = useExportTranscription();
 
-  const mentorExport = useMentorExport(transcriptionId, isOwner);
+  // Mentor export is available to the transcription owner OR an Admin (e.g. support).
+  const isAdmin = useIsAdmin();
+  const canExport = isOwner || isAdmin;
+
+  const mentorExport = useMentorExport(transcriptionId, canExport);
 
   const handleStartMentorExport = async () => {
     try {
       await mentorExport.start({
         ownerSub: transcription.author,
-        isOwner,
+        canExport,
         speaker: mentorSpeaker,
         regions,
       });
@@ -617,8 +622,8 @@ export const TranscriptionSettingsPage = ({
               </div>
             </div>
 
-            {/* Actions Section (Owners Only) */}
-            {isOwner && (
+            {/* Actions Section — owner, plus Admins for the Mentor Bundle export */}
+            {canExport && (
               <div className="space-y-4 md:space-y-6">
                 <div className="flex items-center gap-2 md:gap-3 pb-2 md:pb-3 border-b border-gray-200">
                   <Download className="text-blue-600" size={18} />
@@ -626,7 +631,8 @@ export const TranscriptionSettingsPage = ({
                 </div>
 
                 <div className="flex flex-wrap gap-3">
-                  {(transcription.source || transcription.mediaId) && (
+                  {/* Download media + text export stay owner-only */}
+                  {isOwner && (transcription.source || transcription.mediaId) && (
                     <button
                       onClick={handleDownloadSource}
                       disabled={isDownloadingSource}
@@ -645,14 +651,17 @@ export const TranscriptionSettingsPage = ({
                       )}
                     </button>
                   )}
-                  <button
-                    onClick={() => setShowExportDialog(true)}
-                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-purple-600 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-colors"
-                  >
-                    <FileText size={16} />
-                    Export transcription
-                  </button>
+                  {isOwner && (
+                    <button
+                      onClick={() => setShowExportDialog(true)}
+                      className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-purple-600 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-colors"
+                    >
+                      <FileText size={16} />
+                      Export transcription
+                    </button>
+                  )}
 
+                  {/* Export Mentor Bundle — owner or Admin */}
                   {!mentorExport.isPending && !mentorExport.isReady && (
                     <button
                       onClick={() => setShowMentorDialog(true)}

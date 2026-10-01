@@ -28,7 +28,7 @@ const describeError = (err: unknown): string => {
 
 interface StartExportParams {
   ownerSub: string;
-  isOwner: boolean;
+  canExport: boolean;
   speaker: string;
   regions: ExportRegion[];
 }
@@ -105,7 +105,7 @@ export const useMentorExport = (transcriptionId: string, enabled: boolean = true
       const record = await new ExportToMentorUseCase({
         transcriptionId,
         ownerSub: params.ownerSub,
-        isOwner: params.isOwner,
+        canExport: params.canExport,
         speaker: params.speaker,
         regions: params.regions,
       }).execute();

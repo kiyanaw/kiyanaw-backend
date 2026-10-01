@@ -8,7 +8,7 @@ import type { ExportRegion } from './export-transcription';
 export interface ExportToMentorInput {
   transcriptionId: string;
   ownerSub: string;      // transcription author's Cognito sub — Export record owner
-  isOwner: boolean;      // current user is the transcription owner
+  canExport: boolean;    // current user may export (transcription owner, or an Admin)
   speaker: string;       // value written into every CSV row's Speaker column
   regions: ExportRegion[];
 }
@@ -25,14 +25,14 @@ const isExportable = (region: ExportRegion): boolean => {
 export class ExportToMentorUseCase {
   private readonly transcriptionId: string;
   private readonly ownerSub: string;
-  private readonly isOwner: boolean;
+  private readonly canExport: boolean;
   private readonly speaker: string;
   private readonly regions: ExportRegion[];
 
   constructor(input: ExportToMentorInput) {
     this.transcriptionId = input.transcriptionId;
     this.ownerSub = input.ownerSub;
-    this.isOwner = input.isOwner;
+    this.canExport = input.canExport;
     this.speaker = input.speaker;
     this.regions = input.regions;
   }
@@ -41,8 +41,8 @@ export class ExportToMentorUseCase {
     if (!this.transcriptionId?.trim()) {
       throw new Error('Transcription ID is required.');
     }
-    if (!this.isOwner) {
-      throw new Error('Only the transcription owner can export.');
+    if (!this.canExport) {
+      throw new Error('You do not have permission to export this transcription.');
     }
     if (!this.speaker?.trim()) {
       throw new Error('A speaker name is required.');
