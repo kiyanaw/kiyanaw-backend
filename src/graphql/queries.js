@@ -854,6 +854,101 @@ export const syncMedia = /* GraphQL */ `
     }
   }
 `;
+export const getExport = /* GraphQL */ `
+  query GetExport($id: ID!) {
+    getExport(id: $id) {
+      id
+      transcriptionId
+      owner
+      status
+      speaker
+      progress
+      total
+      downloadKey
+      error
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;
+export const listExports = /* GraphQL */ `
+  query ListExports(
+    $id: ID
+    $filter: ModelExportFilterInput
+    $limit: Int
+    $nextToken: String
+    $sortDirection: ModelSortDirection
+  ) {
+    listExports(
+      id: $id
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+      sortDirection: $sortDirection
+    ) {
+      items {
+        id
+        transcriptionId
+        owner
+        status
+        speaker
+        progress
+        total
+        downloadKey
+        error
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      nextToken
+      startedAt
+      __typename
+    }
+  }
+`;
+export const syncExports = /* GraphQL */ `
+  query SyncExports(
+    $filter: ModelExportFilterInput
+    $limit: Int
+    $nextToken: String
+    $lastSync: AWSTimestamp
+  ) {
+    syncExports(
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+      lastSync: $lastSync
+    ) {
+      items {
+        id
+        transcriptionId
+        owner
+        status
+        speaker
+        progress
+        total
+        downloadKey
+        error
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      nextToken
+      startedAt
+      __typename
+    }
+  }
+`;
 export const transcriptionsByAuthor = /* GraphQL */ `
   query TranscriptionsByAuthor(
     $author: String!
@@ -1610,6 +1705,44 @@ export const mediaByOwner = /* GraphQL */ `
         viewers
         editorGroups
         viewerGroups
+        createdAt
+        updatedAt
+        _version
+        _deleted
+        _lastChangedAt
+        __typename
+      }
+      nextToken
+      startedAt
+      __typename
+    }
+  }
+`;
+export const exportsByTranscription = /* GraphQL */ `
+  query ExportsByTranscription(
+    $transcriptionId: ID!
+    $sortDirection: ModelSortDirection
+    $filter: ModelExportFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    exportsByTranscription(
+      transcriptionId: $transcriptionId
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        transcriptionId
+        owner
+        status
+        speaker
+        progress
+        total
+        downloadKey
+        error
         createdAt
         updatedAt
         _version

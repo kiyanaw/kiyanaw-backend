@@ -206,3 +206,31 @@ type Media
   createdAt: AWSDateTime!
   updatedAt: AWSDateTime!
 }
+
+# A bundled "Export to Mentor" job for a single transcription.
+# Look up a transcription's current export via the exportsByTranscription GSI (the app
+# keeps at most one live row per transcription). The id is an auto-generated UUID — NOT
+# the transcriptionId — because this API uses global VERSION conflict detection: deletes
+# leave `_deleted:true` tombstones, and reusing transcriptionId as the primary key would
+# let a tombstone block all future creates. Creating a PENDING row triggers the
+# `mentorExport` Lambda via this table's DynamoDB stream (wired in CloudFormation,
+# mirroring Media -> processMedia). The Lambda clips every region to MP3, builds
+# import.csv, zips them, uploads the zip to S3, and flips the row to READY/ERROR.
+type Export
+  @model
+  @auth(rules: [
+    { allow: owner, ownerField: "owner", operations: [create, read, update, delete] }
+    { allow: groups, groups: ["Admins"], operations: [create, read, update, delete] }
+  ]) {
+  id: ID! @primaryKey            # auto-generated UUID
+  transcriptionId: ID! @index(name: "ByTranscription", queryField: "exportsByTranscription")
+  owner: String!                 # transcription author's Cognito sub
+  status: String!                # PENDING | PROCESSING | READY | ERROR
+  speaker: String                # written into every CSV row's Speaker column
+  progress: Int                  # clips completed so far (for UI polling)
+  total: Int                     # total clips to produce
+  downloadKey: String            # S3 key of the generated zip (set when READY)
+  error: String                  # failure message (set when ERROR)
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}

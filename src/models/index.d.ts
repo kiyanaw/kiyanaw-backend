@@ -22,6 +22,8 @@ type InviteMetaData = {
 
 
 
+
+
 type EagerTranscription = {
   readonly id: string;
   readonly author: string;
@@ -306,4 +308,38 @@ export declare type Media = LazyLoading extends LazyLoadingDisabled ? EagerMedia
 
 export declare const Media: (new (init: ModelInit<Media>) => Media) & {
   copyOf(source: Media, mutator: (draft: MutableModel<Media>) => MutableModel<Media> | void): Media;
+}
+
+type EagerExport = {
+  readonly id: string;
+  readonly transcriptionId: string;
+  readonly owner: string;
+  readonly status: string;
+  readonly speaker?: string | null;
+  readonly progress?: number | null;
+  readonly total?: number | null;
+  readonly downloadKey?: string | null;
+  readonly error?: string | null;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+type LazyExport = {
+  readonly id: string;
+  readonly transcriptionId: string;
+  readonly owner: string;
+  readonly status: string;
+  readonly speaker?: string | null;
+  readonly progress?: number | null;
+  readonly total?: number | null;
+  readonly downloadKey?: string | null;
+  readonly error?: string | null;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+export declare type Export = LazyLoading extends LazyLoadingDisabled ? EagerExport : LazyExport
+
+export declare const Export: (new (init: ModelInit<Export>) => Export) & {
+  copyOf(source: Export, mutator: (draft: MutableModel<Export>) => MutableModel<Export> | void): Export;
 }

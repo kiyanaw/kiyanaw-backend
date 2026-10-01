@@ -1060,3 +1060,75 @@ export const onDeleteMedia = /* GraphQL */ `
     }
   }
 `;
+export const onCreateExport = /* GraphQL */ `
+  subscription OnCreateExport(
+    $filter: ModelSubscriptionExportFilterInput
+    $owner: String
+  ) {
+    onCreateExport(filter: $filter, owner: $owner) {
+      id
+      transcriptionId
+      owner
+      status
+      speaker
+      progress
+      total
+      downloadKey
+      error
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;
+export const onUpdateExport = /* GraphQL */ `
+  subscription OnUpdateExport(
+    $filter: ModelSubscriptionExportFilterInput
+    $owner: String
+  ) {
+    onUpdateExport(filter: $filter, owner: $owner) {
+      id
+      transcriptionId
+      owner
+      status
+      speaker
+      progress
+      total
+      downloadKey
+      error
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;
+export const onDeleteExport = /* GraphQL */ `
+  subscription OnDeleteExport(
+    $filter: ModelSubscriptionExportFilterInput
+    $owner: String
+  ) {
+    onDeleteExport(filter: $filter, owner: $owner) {
+      id
+      transcriptionId
+      owner
+      status
+      speaker
+      progress
+      total
+      downloadKey
+      error
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;

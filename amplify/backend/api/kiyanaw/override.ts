@@ -237,6 +237,24 @@ export function override(resources: AmplifyApiGraphQlResourceStackTemplate) {
     };
   }
 
+  // ── createExport: parent-transcription editor ACL ────────────────────────────
+  // Export's @auth(owner) only checks the export's own `owner` field — it does NOT
+  // verify the caller may access the transcription being exported. Without this,
+  // a user could create an export for someone else's PRIVATE transcription (setting
+  // owner=self to pass owner-auth) and the mentorExport Lambda would hand them a zip
+  // of that private audio. Guard it like createRegion: fetch the parent Transcription
+  // (by args.input.transcriptionId) and require owner/editor/Admin access.
+  const createExportResolver = resources.models?.['Export']?.resolvers?.['mutationCreateExportResolver'];
+  if (createExportResolver) {
+    const aclFn = newFn(
+      createExportResolver, 'CreateExportTranscriptionACLFn', 'CreateExportTranscriptionACLFn',
+      apiId, CREATE_REGION_ACL_REQ, CREATE_REGION_ACL_RES,
+    );
+    createExportResolver.pipelineConfig = {
+      functions: insertBeforeLast(getFunctions(createExportResolver), aclFn.attrFunctionId),
+    };
+  }
+
   // ── issuesByRegion: parent-ACL (deferred) ────────────────────────────────────
   // Requires two-hop lookup: regionId → Region → transcriptionId → Transcription.
   // The Region data source is not directly available in the Issue stack without

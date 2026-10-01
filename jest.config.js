@@ -130,6 +130,23 @@ export default {
         '/node_modules/',
       ],
     },
+    {
+      displayName: 'Lambda Functions - MentorExport',
+      testEnvironment: 'node',
+      rootDir: 'amplify/backend/function/mentorExport/src',
+      testMatch: [
+        '<rootDir>/test/**/*.(test|spec).(js|ts)',
+      ],
+      collectCoverageFrom: [
+        'lib/**/*.(js|ts)',
+        'index.js',
+        'utils.js',
+        '!test/**/*.(js|ts)',
+      ],
+      testPathIgnorePatterns: [
+        '/node_modules/',
+      ],
+    },
     // Amplify hooks tests
     {
       displayName: 'Amplify Hooks',
