@@ -55,6 +55,11 @@ async function getMedia(id) {
   return Item || null
 }
 
+async function getRegion(id) {
+  const { Item } = await docClient.send(new GetCommand({ TableName: REGION_TABLE, Key: { id } }))
+  return Item || null
+}
+
 /**
  * Fetch every region for a transcription via the ByTranscription GSI, paging
  * through all results (a transcription can have hundreds of regions).
@@ -78,4 +83,4 @@ async function getRegionsByTranscription(transcriptionId) {
   return regions
 }
 
-module.exports = { updateExportStatus, getTranscription, getMedia, getRegionsByTranscription }
+module.exports = { updateExportStatus, getTranscription, getMedia, getRegion, getRegionsByTranscription }
