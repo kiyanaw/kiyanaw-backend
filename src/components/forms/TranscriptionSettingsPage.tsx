@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { FileText, Users, Settings, Mail, Send, UserPlus, Trash2, Save, RotateCcw, Loader2, AlertTriangle, Download } from 'lucide-react';
+import { FileText, Users, Settings, Mail, Send, UserPlus, Trash2, Save, RotateCcw, Loader2, AlertTriangle, Download, Package, CheckCircle2 } from 'lucide-react';
 import { useCreateInvite } from '../../hooks/useCreateInvite';
 import { useRevokeInvite } from '../../hooks/useRevokeInvite';
 import { useRenewInvite } from '../../hooks/useRenewInvite';
@@ -10,6 +10,8 @@ import { generateSignedUrl, generateSignedUrlFromKey } from '../../services/tran
 import { getMedia, type MediaData } from '../../services/mediaService';
 import type { InviteModel, TranscriptionModel } from '../../services/adt';
 import { useExportTranscription } from '../../hooks/useExportTranscription';
+import { useMentorExport } from '../../hooks/useMentorExport';
+import { useIsAdmin } from '../../hooks/useIsAdmin';
 import type { ExportRegion } from '../../use-cases/export-transcription';
 import { SearchableLanguageSelector } from './SearchableLanguageSelector';
 import { DeleteTranscriptionModal } from '../shared/DeleteTranscriptionModal';
@@ -79,6 +81,9 @@ export const TranscriptionSettingsPage = ({
   // Download state
   const [isDownloadingSource, setIsDownloadingSource] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
+  // Export to Mentor (bundled audio + import.csv zip)
+  const [showMentorDialog, setShowMentorDialog] = useState(false);
+  const [mentorSpeaker, setMentorSpeaker] = useState('');
   const [isExporting, setIsExporting] = useState(false);
   const [includeRegionNumbers, setIncludeRegionNumbers] = useState(true);
   const [includeTimestamps, setIncludeTimestamps] = useState(true);
@@ -321,6 +326,27 @@ export const TranscriptionSettingsPage = ({
   };
 
   const exportTranscription = useExportTranscription();
+
+  // Mentor export is available to the transcription owner OR an Admin (e.g. support).
+  const isAdmin = useIsAdmin();
+  const canExport = isOwner || isAdmin;
+
+  const mentorExport = useMentorExport(transcriptionId, canExport);
+
+  const handleStartMentorExport = async () => {
+    try {
+      await mentorExport.start({
+        ownerSub: transcription.author,
+        canExport,
+        speaker: mentorSpeaker,
+        regions,
+      });
+      setShowMentorDialog(false);
+      setMentorSpeaker('');
+    } catch {
+      // Error surfaced via mentorExport.error; keep the dialog open.
+    }
+  };
 
   const handleExportTranscription = async () => {
     setExportError(null);
@@ -596,8 +622,8 @@ export const TranscriptionSettingsPage = ({
               </div>
             </div>
 
-            {/* Actions Section (Owners Only) */}
-            {isOwner && (
+            {/* Actions Section — owner, plus Admins for the Mentor Bundle export */}
+            {canExport && (
               <div className="space-y-4 md:space-y-6">
                 <div className="flex items-center gap-2 md:gap-3 pb-2 md:pb-3 border-b border-gray-200">
                   <Download className="text-blue-600" size={18} />
@@ -605,7 +631,8 @@ export const TranscriptionSettingsPage = ({
                 </div>
 
                 <div className="flex flex-wrap gap-3">
-                  {(transcription.source || transcription.mediaId) && (
+                  {/* Download media + text export stay owner-only */}
+                  {isOwner && (transcription.source || transcription.mediaId) && (
                     <button
                       onClick={handleDownloadSource}
                       disabled={isDownloadingSource}
@@ -624,14 +651,93 @@ export const TranscriptionSettingsPage = ({
                       )}
                     </button>
                   )}
-                  <button
-                    onClick={() => setShowExportDialog(true)}
-                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-purple-600 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-colors"
-                  >
-                    <FileText size={16} />
-                    Export transcription
-                  </button>
+                  {isOwner && (
+                    <button
+                      onClick={() => setShowExportDialog(true)}
+                      className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-purple-600 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-colors"
+                    >
+                      <FileText size={16} />
+                      Export transcription
+                    </button>
+                  )}
+
+                  {/* Export Mentor Bundle — owner or Admin */}
+                  {!mentorExport.isPending && !mentorExport.isReady && (
+                    <button
+                      onClick={() => setShowMentorDialog(true)}
+                      disabled={mentorExport.isLoading}
+                      className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <Package size={16} />
+                      Export Mentor Bundle
+                    </button>
+                  )}
                 </div>
+
+                {/* Mentor export status */}
+                {mentorExport.isPending && (
+                  <div className="flex items-center justify-between gap-3 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                    <div className="flex items-center gap-2 text-sm text-emerald-800">
+                      <Loader2 size={16} className="animate-spin" />
+                      <span>
+                        Building Mentor bundle
+                        {typeof mentorExport.exportRecord?.total === 'number' && mentorExport.exportRecord.total > 0
+                          ? ` — ${mentorExport.exportRecord.progress ?? 0} / ${mentorExport.exportRecord.total} clips`
+                          : '…'}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => mentorExport.remove().catch(() => {})}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
+
+                {mentorExport.isReady && (
+                  <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                    <div className="flex items-center gap-2 text-sm text-emerald-800">
+                      <CheckCircle2 size={16} />
+                      <span>Mentor bundle ready</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => mentorExport.download().catch(() => {})}
+                        className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-emerald-600 border border-transparent rounded-lg hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-colors"
+                      >
+                        <Download size={16} />
+                        Download zip
+                      </button>
+                      <button
+                        onClick={() => mentorExport.remove().catch(() => {})}
+                        className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-600 bg-white border border-red-200 rounded-lg hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors"
+                      >
+                        <Trash2 size={16} />
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {mentorExport.isError && (
+                  <div className="flex items-center justify-between gap-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <div className="flex items-center gap-2 text-sm text-red-800">
+                      <AlertTriangle size={16} />
+                      <span>{mentorExport.exportRecord?.error || 'Mentor bundle failed.'}</span>
+                    </div>
+                    <button
+                      onClick={() => mentorExport.remove().catch(() => {})}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                )}
+
+                {mentorExport.error && (
+                  <p className="text-sm text-red-600">{mentorExport.error}</p>
+                )}
 
                 {exportError && (
                   <p className="text-sm text-red-600">{exportError}</p>
@@ -984,6 +1090,73 @@ export const TranscriptionSettingsPage = ({
                   type="button"
                   onClick={() => setShowExportDialog(false)}
                   disabled={isExporting}
+                  className="mt-3 inline-flex w-full justify-center rounded-lg bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Export to Mentor dialog (speaker prompt) */}
+      {showMentorDialog && (
+        <div className="fixed inset-0 z-50">
+          <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+            <div className="fixed inset-0 bg-gray-800/60 backdrop-saturate-0 transition-opacity" onClick={() => setShowMentorDialog(false)}></div>
+
+            <div className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-md sm:p-6">
+              <div className="text-center sm:text-left">
+                <h3 className="text-base font-semibold leading-6 text-gray-900">
+                  Export Mentor Bundle
+                </h3>
+                <p className="mt-2 text-sm text-gray-500">
+                  Bundles every region as an MP3 clip plus an <code>import.csv</code> into a downloadable zip.
+                  This runs in the background — you can leave this page and check back here.
+                </p>
+
+                <div className="mt-4">
+                  <label htmlFor="mentor-speaker" className="block text-sm font-medium text-gray-700">
+                    Speaker
+                  </label>
+                  <input
+                    id="mentor-speaker"
+                    type="text"
+                    value={mentorSpeaker}
+                    onChange={(e) => setMentorSpeaker(e.target.value)}
+                    placeholder="e.g. Terry Ireland"
+                    className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                    data-testid="mentor-speaker-input"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">Written into the Speaker column for every row.</p>
+                </div>
+
+                {mentorExport.error && (
+                  <p className="mt-3 text-sm text-red-600">{mentorExport.error}</p>
+                )}
+              </div>
+
+              <div className="mt-6 sm:mt-5 sm:flex sm:flex-row-reverse">
+                <button
+                  type="button"
+                  onClick={handleStartMentorExport}
+                  disabled={mentorExport.isStarting || !mentorSpeaker.trim()}
+                  className="inline-flex w-full justify-center rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 sm:ml-3 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {mentorExport.isStarting ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin mr-2" />
+                      Starting...
+                    </>
+                  ) : (
+                    'Start export'
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowMentorDialog(false)}
+                  disabled={mentorExport.isStarting}
                   className="mt-3 inline-flex w-full justify-center rounded-lg bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel

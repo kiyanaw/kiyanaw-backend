@@ -1066,3 +1066,75 @@ export const deleteMedia = /* GraphQL */ `
     }
   }
 `;
+export const createExport = /* GraphQL */ `
+  mutation CreateExport(
+    $input: CreateExportInput!
+    $condition: ModelExportConditionInput
+  ) {
+    createExport(input: $input, condition: $condition) {
+      id
+      transcriptionId
+      owner
+      status
+      speaker
+      progress
+      total
+      downloadKey
+      error
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;
+export const updateExport = /* GraphQL */ `
+  mutation UpdateExport(
+    $input: UpdateExportInput!
+    $condition: ModelExportConditionInput
+  ) {
+    updateExport(input: $input, condition: $condition) {
+      id
+      transcriptionId
+      owner
+      status
+      speaker
+      progress
+      total
+      downloadKey
+      error
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;
+export const deleteExport = /* GraphQL */ `
+  mutation DeleteExport(
+    $input: DeleteExportInput!
+    $condition: ModelExportConditionInput
+  ) {
+    deleteExport(input: $input, condition: $condition) {
+      id
+      transcriptionId
+      owner
+      status
+      speaker
+      progress
+      total
+      downloadKey
+      error
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;
