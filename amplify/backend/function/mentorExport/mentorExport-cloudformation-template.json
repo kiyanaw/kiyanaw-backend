@@ -27,6 +27,10 @@
     "storagetranscriptionsBucketName": {
       "Type": "String",
       "Default": "storagetranscriptionsBucketName"
+    },
+    "functionkiyanawffmpegArn": {
+      "Type": "String",
+      "Default": "functionkiyanawffmpegArn"
     }
   },
   "Conditions": {
@@ -206,7 +210,7 @@
         "Runtime": "nodejs22.x",
         "Layers": [
           {
-            "Fn::Sub": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:kiyanawffmpeg-${env}:9"
+            "Ref": "functionkiyanawffmpegArn"
           }
         ],
         "Timeout": 900,
