@@ -1,4 +1,5 @@
 const { S3Client, GetObjectCommand, PutObjectCommand } = require('@aws-sdk/client-s3')
+const { getSignedUrl } = require('@aws-sdk/s3-request-presigner')
 const fs = require('fs')
 
 const s3Client = new S3Client({ region: process.env.REGION })
@@ -33,4 +34,18 @@ const putS3File = async (bucket, key, body, contentType = 'application/octet-str
   }))
 }
 
-module.exports = { getS3File, putS3File, efsPath }
+/**
+ * Presigned GET URL for a clip, forcing a download with a friendly filename via
+ * Content-Disposition. Short TTL — the object is also swept by an S3 lifecycle rule.
+ */
+const presignGetUrl = async (bucket, key, downloadName, expiresSeconds = 3600) => {
+  const command = new GetObjectCommand({
+    Bucket: bucket,
+    Key: key,
+    ResponseContentDisposition: `attachment; filename="${downloadName}"`,
+    ResponseContentType: 'audio/mpeg',
+  })
+  return getSignedUrl(s3Client, command, { expiresIn: expiresSeconds })
+}
+
+module.exports = { getS3File, putS3File, presignGetUrl, efsPath }
