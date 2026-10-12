@@ -96,6 +96,30 @@ async function getDuration(filePath) {
   })
 }
 
+// Length of the audio stream in seconds, from its packet timestamps. Unlike the
+// container duration (the longest stream) this is what the peaks are built from.
+// Packet timing is used because stream-level duration is missing for some
+// containers (mkv/webm).
+async function getAudioDuration(filePath, audioIdx) {
+  return new Promise((resolve, reject) => {
+    const { exec } = require('child_process')
+    exec(
+      `ffprobe -v error -select_streams a:${audioIdx} -show_entries packet=pts_time,duration_time -of csv=p=0 ${escapeShellArg(filePath)}`,
+      { maxBuffer: 1024 * 1024 * 64 },
+      (error, stdout) => {
+        if (error) return reject(error)
+        let end = 0
+        for (const line of stdout.split('\n')) {
+          const [pts, dur] = line.split(',').map(parseFloat)
+          if (pts + (dur || 0) > end) end = pts + (dur || 0)
+        }
+        if (!(end > 0)) return reject(new Error(`Could not measure audio duration of ${filePath}`))
+        resolve(end)
+      }
+    )
+  })
+}
+
 async function run({ id, originalKey, mimeType }) {
   // Atomic dedupe: skip if another invocation already claimed this record
   try {
@@ -155,7 +179,12 @@ async function run({ id, originalKey, mimeType }) {
         `ffmpeg -y -i ${escapeShellArg(origLocalPath)} ${aMap} -vn -c:a libmp3lame -b:a 192k ${escapeShellArg(renditionLocalPath)}`
       )
     } else if (hasVideo) {
-      const aCodec = aMap ? '-c:a aac -b:a 128k' : ''
+      // Renditions are generated, not edits, so they're trimmed to the audio
+      // length. When the video track outlasts the audio, the container duration
+      // (the longest stream) no longer matches the audio the peaks are built
+      // from, and the waveform stretches against the media timeline. -t rather
+      // than -shortest: -shortest overshoots at low frame rates.
+      const aCodec = aMap ? `-c:a aac -b:a 128k -t ${(await getAudioDuration(origLocalPath, audioIdx)).toFixed(3)}` : ''
       // superfast trades a bit of compression efficiency for a meaningful speed
       // gain over veryfast, buying more headroom under Lambda's 15-minute timeout.
       // max_muxing_queue_size guards against "Too many packets buffered for

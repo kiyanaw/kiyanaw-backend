@@ -31,7 +31,10 @@ jest.mock('fs', () => ({
 jest.mock('child_process', () => ({
   exec: jest.fn((cmd, optsOrCb, cb) => {
     const callback = typeof optsOrCb === 'function' ? optsOrCb : cb
-    if (typeof cmd === 'string' && cmd.includes('-select_streams a')) {
+    if (typeof cmd === 'string' && cmd.includes('packet=pts_time,duration_time')) {
+      // ffprobe audio packet timing: last packet ends at 4.0 + 0.021333 = ~4.021s
+      callback(null, '-0.021333,0.021333,\n0.000000,0.021333,\n4.000000,0.021333,\n', '')
+    } else if (typeof cmd === 'string' && cmd.includes('-select_streams a')) {
       // ffprobe audio selection: single decodable AAC stream by default
       callback(null, JSON.stringify({ streams: [{ codec_name: 'aac' }] }), '')
     } else if (typeof cmd === 'string' && cmd.includes('-select_streams v')) {
@@ -106,6 +109,59 @@ describe('media.run', () => {
     expect(readyCall[2].peaksKey).toBe('public/peaks/xyz.json')
     expect(readyCall[2].thumbnailKey).toBe('public/thumbnails/xyz.jpg')
     expect(readyCall[2].audioOnly).toBe(false)
+  })
+
+  it('trims the video rendition to the audio length so a longer video track does not outlast the audio/peaks', async () => {
+    await run({ id: 'xyz', originalKey: 'public/originals/xyz.mp4', mimeType: 'video/mp4' })
+
+    // The mocked audio packets end at ~4.021s while the container reports 5.0s.
+    // -t (not -shortest, which overshoots at low frame rates) caps the output at
+    // the audio length so the stored duration matches the peaks.
+    const transcodeCall = mockRunCommand.mock.calls.find(c => c[0].includes('libx264'))
+    expect(transcodeCall[0]).toContain('-t 4.021')
+    expect(transcodeCall[0]).not.toContain('-shortest')
+    expect(transcodeCall[0]).not.toContain('apad')
+  })
+
+  it('measures the audio length on the stream that gets mapped', async () => {
+    await run({ id: 'xyz', originalKey: 'public/originals/xyz.mp4', mimeType: 'video/mp4' })
+
+    const { exec } = require('child_process')
+    const probe = exec.mock.calls.map(c => c[0]).find(c => c.includes('packet=pts_time,duration_time'))
+    expect(probe).toContain('-select_streams a:0')
+  })
+
+  it('does not trim when the video has no decodable audio stream', async () => {
+    const { exec } = require('child_process')
+    exec.mockImplementationOnce((cmd, optsOrCb, cb) => {
+      const callback = typeof optsOrCb === 'function' ? optsOrCb : cb
+      callback(null, JSON.stringify({ streams: [] }), '')
+    })
+
+    await run({ id: 'mute', originalKey: 'public/originals/mute.mp4', mimeType: 'video/mp4' })
+
+    const transcodeCall = mockRunCommand.mock.calls.find(c => c[0].includes('libx264'))
+    expect(transcodeCall[0]).not.toMatch(/ -t /)
+  })
+
+  it('sets ERROR status when the audio length cannot be measured', async () => {
+    const { exec } = require('child_process')
+    const defaultImpl = exec.getMockImplementation()
+    exec.mockImplementation((cmd, optsOrCb, cb) => {
+      if (cmd.includes('packet=pts_time,duration_time')) {
+        const callback = typeof optsOrCb === 'function' ? optsOrCb : cb
+        callback(null, '', '')
+      } else {
+        defaultImpl(cmd, optsOrCb, cb)
+      }
+    })
+
+    try {
+      await expect(run({ id: 'bad', originalKey: 'public/originals/bad.mp4', mimeType: 'video/mp4' })).rejects.toThrow()
+      expect(mockUpdateMediaStatus).toHaveBeenCalledWith('bad', 'ERROR', {})
+    } finally {
+      exec.mockImplementation(defaultImpl)
+    }
   })
 
   it('sets audioOnly true for a video longer than the 30-minute threshold', async () => {
