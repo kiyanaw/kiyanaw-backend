@@ -40,6 +40,7 @@ describe('useWavesurferEvents', () => {
     cleanup: jest.fn(),
     regionById: jest.fn(),
     setSelectedRegion: jest.fn(),
+    setWavesurferError: jest.fn(),
     transcription: {
       id: 'test-transcription-id',
       title: 'Test Transcription',
@@ -321,6 +322,13 @@ describe('useWavesurferEvents', () => {
   });
 
   describe('ready event handling', () => {
+    it('clears any previous media error when the media becomes ready', () => {
+      renderHook(() => useWavesurferEvents('test-transcription-id'));
+      const readyHandler = (wavesurferService.on as jest.Mock).mock.calls.find(([event]) => event === 'ready')?.[1];
+      readyHandler({ duration: 10 });
+      expect(mockStore.setWavesurferError).toHaveBeenCalledWith(null);
+    });
+
     it('should call playerStore.setLoadedAndReady(true) when ready event fires', () => {
       const transcriptionId = 'test-transcription-1';
 

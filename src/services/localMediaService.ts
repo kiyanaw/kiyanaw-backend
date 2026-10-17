@@ -46,14 +46,40 @@ export const deleteMedia = async (projectId: string): Promise<void> => {
   await (await mediaDir()).removeEntry(projectId);
 };
 
-const objectUrls = new Map<string, string>();
-
-/** Returns a blob: URL for a local source, reusing one URL per project for the page's lifetime. */
-export const getMediaUrl = async (source: string): Promise<string> => {
-  const projectId = projectIdFromSource(source);
-  const existing = objectUrls.get(projectId);
-  if (existing) return existing;
-  const url = URL.createObjectURL(await getMediaFile(projectId));
-  objectUrls.set(projectId, url);
-  return url;
+/** Every project id that has a media file on this device. */
+export const listMediaIds = async (): Promise<string[]> => {
+  const ids: string[] = [];
+  for await (const name of (await mediaDir()).keys()) ids.push(name);
+  return ids;
 };
+
+const CREATE_LOCK_PREFIX = 'kiyanaw-local-create:';
+
+/**
+ * Runs `work` while holding a lock that marks the project as being created, so cleanup in this
+ * or another tab never deletes media that is still being written. Locks die with the page,
+ * so a reload mid-create leaves an unlocked orphan that cleanup can remove.
+ */
+export const whileCreating = <T>(projectId: string, work: () => Promise<T>): Promise<T> =>
+  navigator.locks.request(`${CREATE_LOCK_PREFIX}${projectId}`, work);
+
+/** Runs cleanup one at a time across tabs, so two passes never race to delete the same file. */
+export const withCleanupLock = <T>(work: () => Promise<T>): Promise<T> =>
+  navigator.locks.request('kiyanaw-local-cleanup', work);
+
+/** Project ids currently being created (in any tab). */
+export const idsBeingCreated = async (): Promise<string[]> => {
+  const { held = [], pending = [] } = await navigator.locks.query();
+  return [...held, ...pending]
+    .map((lock) => lock.name ?? '')
+    .filter((name) => name.startsWith(CREATE_LOCK_PREFIX))
+    .map((name) => name.slice(CREATE_LOCK_PREFIX.length));
+};
+
+/**
+ * Returns a fresh blob: URL for a local source. Never cache it: WaveSurfer revokes `blob:` sources
+ * when the player is destroyed or its source changes, so a reused URL is dead after navigating
+ * away and back.
+ */
+export const getMediaUrl = async (source: string): Promise<string> =>
+  URL.createObjectURL(await getMediaFile(projectIdFromSource(source)));

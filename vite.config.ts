@@ -26,6 +26,11 @@ export default defineConfig(({ mode }) => {
     // Enable symlink resolution for shared code from Lambda
     preserveSymlinks: true,
   },
+  optimizeDeps: {
+    // Only imported by the local-mode peaks worker. Without this, Vite discovers it on first
+    // use in dev, re-optimizes and force-reloads the page in the middle of opening a file.
+    include: ['mediabunny'],
+  },
   server: {
     watch: {
       // Ignore claude-flow directory to prevent reload when metrics are written

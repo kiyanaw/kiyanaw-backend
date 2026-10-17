@@ -434,6 +434,12 @@ describe('useEditorStore known words functionality', () => {
       state = useEditorStore.getState();
       expect(state.regionVersions).toEqual({});
     });
+
+    it('does not carry a media error over to the next editor visit', () => {
+      useEditorStore.getState().setWavesurferError("The recording couldn't be loaded.");
+      useEditorStore.getState().cleanup();
+      expect(useEditorStore.getState().wavesurferError).toBeNull();
+    });
   });
 
   describe('pending edits tracking', () => {

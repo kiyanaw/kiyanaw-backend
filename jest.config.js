@@ -25,7 +25,7 @@ export default {
             allowSyntheticDefaultImports: true,
             allowJs: true,
             target: 'ES2020',
-            lib: ['ES2020', 'DOM', 'DOM.Iterable'],
+            lib: ['ES2020', 'DOM', 'DOM.Iterable', 'DOM.AsyncIterable'],
             types: ['@testing-library/jest-dom'],
           },
         }],

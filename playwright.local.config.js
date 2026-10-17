@@ -6,7 +6,7 @@ import { defineConfig, devices } from '@playwright/test';
  */
 export default defineConfig({
   testDir: './tests/e2e-local',
-  fullyParallel: true,
+  fullyParallel: false,
   timeout: 120000,
   reporter: [['list']],
   use: {

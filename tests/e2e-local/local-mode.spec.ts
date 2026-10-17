@@ -7,7 +7,9 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DIST = path.resolve(__dirname, '../../dist');
 const AUDIO = path.resolve(__dirname, '../fixtures/test_mp3.mp3');
-const ORIGIN = 'https://transcribe.local.test';
+// Set LOCAL_E2E_BASE_URL (e.g. http://localhost:5199) to smoke-test a running dev server instead of dist/.
+const DEV_URL = process.env.LOCAL_E2E_BASE_URL;
+const ORIGIN = DEV_URL ? new URL(DEV_URL).origin : 'https://transcribe.local.test';
 
 /**
  * Local mode keeps work in on-device storage, so tests use a real (persistent) browser profile.
@@ -27,7 +29,7 @@ const test = base.extend({
 });
 
 /**
- * Serves dist/ for ORIGIN and records anything that tries to leave it: requests to other
+ * Serves dist/ (or passes through to the dev server) for ORIGIN and records anything that tries to leave it: requests to other
  * origins (aborted, never sent) and requests the CSP blocked before they were made.
  */
 const serveApp = async (context: BrowserContext) => {
@@ -41,6 +43,7 @@ const serveApp = async (context: BrowserContext) => {
     });
   }
   await context.route(`${ORIGIN}/**`, (route) => {
+    if (DEV_URL) return route.continue();
     const url = new URL(route.request().url());
     const file = path.join(DIST, url.pathname);
     const isAsset = path.extname(url.pathname) !== '' && fs.existsSync(file) && fs.statSync(file).isFile();
@@ -67,6 +70,15 @@ const createLocalProject = async (page: Page, title: string) => {
   await page.locator('text=Loading audio...').first().waitFor({ state: 'hidden', timeout: 30000 });
 };
 
+const expectRecordingLoaded = async (page: Page) => {
+  await expect(page.getByTestId('waveform-container').first()).toBeVisible({ timeout: 30000 });
+  await page.locator('text=Loading audio...').first().waitFor({ state: 'hidden', timeout: 30000 });
+  await expect(page.locator('text=Regions (1)').first()).toBeVisible();
+  // Give a late media error time to surface before asserting there is none.
+  await page.waitForTimeout(1500);
+  await expect(page.getByTestId('waveform-error')).toHaveCount(0);
+};
+
 const dragRegion = async (page: Page, fromX: number, toX: number) => {
   const box = await page.getByTestId('waveform-container').boundingBox();
   if (!box) throw new Error('waveform has no bounding box');
@@ -77,7 +89,10 @@ const dragRegion = async (page: Page, fromX: number, toX: number) => {
   await page.mouse.up();
 };
 
-test.skip(!fs.existsSync(path.join(DIST, 'index.html')), 'Run `npm run build` first');
+test.skip(!DEV_URL && !fs.existsSync(path.join(DIST, 'index.html')), 'Run `npm run build` first');
+// One test at a time per browser: several headless WebKit instances playing media at once stall
+// each other's audio loading (the app is fine serially and in real Safari).
+test.describe.configure({ mode: 'serial' });
 
 test('local transcription works end to end and never leaves the device', async ({ context, page }) => {
   const egress = await serveApp(context);
@@ -120,9 +135,15 @@ test('local transcription works end to end and never leaves the device', async (
   const srt = fs.readFileSync(await download.path(), 'utf-8');
   expect(srt).toMatch(/^1\n\d\d:\d\d:\d\d,\d{3} --> \d\d:\d\d:\d\d,\d{3}\ntânisi kiyânaw\nhello friend/);
 
-  // Listed on the local projects page
-  await page.goto(`${ORIGIN}/local`);
+  // Navigate away and back (in-app link, then browser back/forward): the recording must load every time.
+  await page.getByRole('link', { name: 'My local transcriptions' }).click();
   await expect(page.getByTestId('local-project-list')).toContainText('Local e2e');
+  await page.getByTestId('local-project-list').getByRole('link', { name: /Local e2e/ }).click();
+  await expectRecordingLoaded(page);
+  await page.goBack();
+  await expect(page.getByTestId('local-project-list')).toBeVisible();
+  await page.goForward();
+  await expectRecordingLoaded(page);
 
   expect(egress, 'requests to other origins').toEqual([]);
   expect(cspViolations, 'requests blocked by the CSP').toEqual([]);
@@ -156,4 +177,30 @@ test('in local mode the browser itself refuses requests to other origins', async
   expect(result).toBe('blocked');
   // Blocked by the CSP before it reached the network at all.
   expect(egress).toEqual([]);
+});
+
+const localMediaNames = (page: Page) =>
+  page.evaluate(async () => {
+    const dir = await (await navigator.storage.getDirectory()).getDirectoryHandle('local-media', { create: true });
+    const names: string[] = [];
+    for await (const name of dir.keys()) names.push(name);
+    return names;
+  });
+
+test('media left by an open that never finished (e.g. a reload) is cleaned up', async ({ context, page }) => {
+  await serveApp(context);
+  await createLocalProject(page, 'Keep me');
+  const projectId = page.url().split('/').pop();
+
+  // What a reload in the middle of storing the media leaves behind: a file with no project.
+  await page.evaluate(async () => {
+    const dir = await (await navigator.storage.getDirectory()).getDirectoryHandle('local-media', { create: true });
+    const writable = await (await dir.getFileHandle('unfinished-open', { create: true })).createWritable();
+    await writable.write('partial');
+    await writable.close();
+  });
+
+  await page.goto(`${ORIGIN}/local`);
+  await expect(page.getByTestId('local-project-list')).toContainText('Keep me');
+  await expect.poll(() => localMediaNames(page)).toEqual([projectId]);
 });

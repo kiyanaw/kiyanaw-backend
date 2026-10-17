@@ -359,6 +359,8 @@ export const useEditorStore = create<EditorState>()(
           peaks: null,
           accessDenied: false,
           mediaStatus: null,
+          // A media error belongs to the editor visit it happened in; never carry it to the next one.
+          wavesurferError: null,
           regions: [],
           regionMap: {},
           regionVersions: {},

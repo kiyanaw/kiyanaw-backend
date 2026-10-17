@@ -77,6 +77,14 @@ export const WaveformPlayer = ({
   const peaks = useEditorStore((state) => state.peaks);
 
   const { refreshCredentials, isRefreshing } = useRefreshMediaCredentials();
+  const setWavesurferError = useEditorStore((state) => state.setWavesurferError);
+
+  // Reloads the media with a fresh URL (re-signed in the cloud, re-read from the device locally).
+  // A failure shows up again through the player's error event.
+  const retryMediaLoad = () => {
+    setWavesurferError(null);
+    refreshCredentials(source, peaks).catch((error) => console.error('Retrying the media load failed:', error));
+  };
   const hasPendingSaves = useHasPendingSaves(showExpiredCredentialsDialog);
   
   const play = usePlay()
@@ -355,12 +363,19 @@ export const WaveformPlayer = ({
           
           {/* Error Display */}
           {wavesurferError && (
-            <div className="absolute inset-0 flex items-center justify-center bg-red-50 border-2 border-red-200 rounded">
+            <div className="absolute inset-0 flex items-center justify-center bg-red-50 border-2 border-red-200 rounded" data-testid="waveform-error">
               <div className="text-center p-4">
-                <div className="text-red-600 font-semibold mb-2">Waveform Error</div>
+                <div className="text-red-600 font-semibold mb-1">The recording didn't load</div>
                 <div className="text-red-500 text-sm mb-3">{wavesurferError}</div>
-                <div className="text-gray-600 text-xs">
-                </div>
+                <button
+                  type="button"
+                  onClick={retryMediaLoad}
+                  disabled={isRefreshing}
+                  data-testid="waveform-error-retry"
+                  className="px-3 py-1.5 text-sm font-medium rounded-md bg-white border border-red-300 text-red-700 hover:bg-red-100 disabled:opacity-50"
+                >
+                  {isRefreshing ? 'Trying again…' : 'Try again'}
+                </button>
               </div>
             </div>
           )}

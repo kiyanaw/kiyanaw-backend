@@ -48,28 +48,29 @@ export class CreateLocalProjectUseCase {
     const peaks = await localPeaksService.computePeaks(this.file);
 
     const id = this.newId();
-    await localMediaService.putMedia(id, this.file);
-
     const now = this.now();
-    try {
-      return await localTranscriptionService.createLocalProject(
-        {
-          id,
-          title: this.title.trim(),
-          mediaName: this.file.name,
-          mediaType: this.file.type,
-          isVideo: peaks.hasVideo,
-          length: peaks.duration,
-          regionCount: 0,
-          coverage: 0,
-          createdAt: now,
-          dateLastUpdated: now,
-        },
-        { length: peaks.length, data: peaks.data }
-      );
-    } catch (error) {
-      await localMediaService.deleteMedia(id);
-      throw error;
-    }
+    const project = {
+      id,
+      title: this.title.trim(),
+      mediaName: this.file.name,
+      mediaType: this.file.type,
+      isVideo: peaks.hasVideo,
+      length: peaks.duration,
+      regionCount: 0,
+      coverage: 0,
+      createdAt: now,
+      dateLastUpdated: now,
+    };
+
+    // Held until the project record exists: if the page dies in between, cleanup removes the media.
+    return localMediaService.whileCreating(id, async () => {
+      await localMediaService.putMedia(id, this.file);
+      try {
+        return await localTranscriptionService.createLocalProject(project, { length: peaks.length, data: peaks.data });
+      } catch (error) {
+        await localMediaService.deleteMedia(id);
+        throw error;
+      }
+    });
   }
 }

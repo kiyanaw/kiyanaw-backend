@@ -98,6 +98,8 @@ export const listLocalTranscriptions = async (): Promise<TranscriptionModel[]> =
   return records.map(toModel);
 };
 
+export const listProjectIds = (): Promise<string[]> => localDb.projects.toCollection().primaryKeys();
+
 export const createLocalProject = async (
   project: LocalProjectRecord,
   peaks: { length: number; data: number[] }

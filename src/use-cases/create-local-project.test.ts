@@ -4,6 +4,7 @@ const makeServices = () => ({
   localMediaService: {
     putMedia: jest.fn().mockResolvedValue(undefined),
     deleteMedia: jest.fn().mockResolvedValue(undefined),
+    whileCreating: jest.fn((_id: string, work: () => Promise<unknown>) => work()),
   },
   localPeaksService: {
     computePeaks: jest.fn().mockResolvedValue({ data: [-1, 1], length: 1, duration: 0.05, hasVideo: true }),
@@ -28,6 +29,7 @@ describe('CreateLocalProjectUseCase', () => {
     await new CreateLocalProjectUseCase(makeInput({}, services)).execute();
 
     expect(services.localPeaksService.computePeaks).toHaveBeenCalledTimes(1);
+    expect(services.localMediaService.whileCreating).toHaveBeenCalledWith('p1', expect.any(Function));
     expect(services.localMediaService.putMedia).toHaveBeenCalledWith('p1', expect.any(File));
     expect(services.localTranscriptionService.createLocalProject).toHaveBeenCalledWith(
       {

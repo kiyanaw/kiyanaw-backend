@@ -9,6 +9,8 @@ import { services } from '../services';
 import { CreateRegion } from '../use-cases/create-region';
 import { UpdateRegionBounds } from '../use-cases/update-region-bounds';
 import { UpdateTranscriptionUseCase } from '../use-cases/update-transcription';
+import { mediaErrorMessage } from '../lib/mediaErrorMessage';
+import { useAppModeStore } from '../stores/useAppModeStore';
 import { SelectAndPlayRegion } from '../use-cases/select-and-play-region';
 
 // Wavesurfer event interfaces
@@ -160,11 +162,12 @@ export const useWavesurferEvents = (transcriptionId: string, source?: string): v
       const event = data as MediaError;
       console.error('Wavesurfer error:', event);
       // Set error in store for UI to display
-      useEditorStore.getState().setWavesurferError('Failed to load media. Please contact support if this issue persists.');
+      useEditorStore.getState().setWavesurferError(mediaErrorMessage(event?.code, useAppModeStore.getState().mode));
     };
 
     const handleReadyWithDuration = (data: unknown) => {
       const event = data as ReadyEvent;
+      useEditorStore.getState().setWavesurferError(null);
       usePlayerStore.getState().setLoadedAndReady(true);
       usePlayerStore.getState().setDuration(event.duration);
       
