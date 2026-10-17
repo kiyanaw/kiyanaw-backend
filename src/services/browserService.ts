@@ -7,6 +7,7 @@ interface VideoPreferences {
 }
 
 import { isMobileViewport } from '../config/ui';
+import { detectAppMode, editorPath } from './appModeService';
 
 class BrowserService {
   private static instance: BrowserService;
@@ -34,6 +35,11 @@ class BrowserService {
     if (typeof window !== 'undefined' && window.history) {
       window.history.pushState(null, '', path);
     }
+  }
+
+  /** Editor URL for a region, in whichever mode (cloud or local) the app is running. */
+  editorPath(transcriptionId: string, regionId: string): string {
+    return editorPath(detectAppMode(window.location.pathname), transcriptionId, regionId);
   }
 
   /**
@@ -161,9 +167,11 @@ class BrowserService {
       // Check path segments for patterns like: /transcribe-edit/transcriptionId/regionId
       const pathSegments = url.pathname.split('/').filter(segment => segment !== '');
       
-      // Look for pattern: ['transcribe-edit', transcriptionId, regionId]
-      if (pathSegments.length >= 3 && pathSegments[0] === 'transcribe-edit') {
-        const potentialRegionId = pathSegments[2];
+      // Look for pattern: ['transcribe-edit', transcriptionId, regionId] or, in local mode,
+      // ['local', 'edit', transcriptionId, regionId]
+      const regionSegment = pathSegments[0] === 'local' && pathSegments[1] === 'edit' ? 3 : pathSegments[0] === 'transcribe-edit' ? 2 : -1;
+      if (regionSegment > 0 && pathSegments.length > regionSegment) {
+        const potentialRegionId = pathSegments[regionSegment];
         // Basic validation: region IDs should not be empty
         if (potentialRegionId && potentialRegionId.trim() !== '') {
           return potentialRegionId;

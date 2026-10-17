@@ -25,6 +25,9 @@ import { RegionList } from '../components/regions/RegionList';
 import { StationaryInspector } from '../components/inspector/StationaryInspector';
 import { TranscriptionSettingsPage } from '../components/forms/TranscriptionSettingsPage';
 import { IssuesPanel } from '../components/issues/IssuesPanel';
+import { LocalProjectSettings } from '../components/forms/LocalProjectSettings';
+import { useAppModeStore } from '../stores/useAppModeStore';
+import { LOCAL_ROOT } from '../services/appModeService';
 
 export const EditorPage = () => {
   const { id: transcriptionId } = useParams<{
@@ -32,6 +35,8 @@ export const EditorPage = () => {
   }>();
   
   const navigate = useNavigate();
+  // Local projects have no issues, comments or sharing: those panels are hidden.
+  const isLocal = useAppModeStore((state) => state.mode === 'local');
   
   // Settings page state
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -105,7 +110,7 @@ export const EditorPage = () => {
       // Swipe left
       if (mobileTab === 'editor') {
         setMobileTab('regions');
-      } else if (mobileTab === 'regions') {
+      } else if (mobileTab === 'regions' && !isLocal) {
         setMobileTab('issues');
       }
     }
@@ -302,9 +307,9 @@ export const EditorPage = () => {
   // Redirect to 404 if access is denied
   useEffect(() => {
     if (accessDenied) {
-      navigate('/404', { replace: true });
+      navigate(isLocal ? LOCAL_ROOT : '/404', { replace: true });
     }
-  }, [accessDenied, navigate]);
+  }, [accessDenied, navigate, isLocal]);
 
   // THE ONLY TIME USEEFFECT IS ALLOWED, TO RETURN A CLEAN UP FUNCTION
   useEffect(() => {
@@ -407,44 +412,48 @@ export const EditorPage = () => {
           {/* Stationary Inspector - dynamic height */}
           <div
             className="overflow-hidden flex flex-col"
-            style={{ height: `${100 - issuesPanelHeight}%` }}
+            style={{ height: isLocal ? '100%' : `${100 - issuesPanelHeight}%` }}
           >
             <StationaryInspector
               selectedRegion={selectedRegion}
             />
           </div>
 
-          {/* Resize Handle */}
-          <div
-            className={`h-1 bg-gray-200 cursor-row-resize hover:bg-ki-blue transition-colors flex-shrink-0 ${
-              isResizing ? 'bg-ki-blue' : ''
-            }`}
-            onMouseDown={handleResizeStart}
-            title="Drag to resize"
-          />
+          {!isLocal && (
+            <>
+              {/* Resize Handle */}
+              <div
+                className={`h-1 bg-gray-200 cursor-row-resize hover:bg-ki-blue transition-colors flex-shrink-0 ${
+                  isResizing ? 'bg-ki-blue' : ''
+                }`}
+                onMouseDown={handleResizeStart}
+                title="Drag to resize"
+              />
 
-          {/* Issues Panel Area - dynamic height */}
-          <div
-            className="overflow-hidden flex flex-col"
-            style={{ height: `calc(${issuesPanelHeight}% - 4px)` }}
-          >
-            {transcription && (
-              <>
-                <IssuesPanel
-                  selectedRegionId={selectedRegion?.id}
-                  issues={getFilteredIssues()}
-                  canEdit={userCanEdit}
-                  onUpdateIssue={handleUpdateIssue}
-                  onDeleteIssue={handleDeleteIssue}
-                  enabledIssueTypes={enabledIssueTypes}
-                  onToggleIssueType={toggleIssueType}
-                  searchText={issueSearchText}
-                  onSearchChange={setIssueSearchText}
-                  onResetFilters={resetFilters}
-                />
-              </>
-            )}
-          </div>
+              {/* Issues Panel Area - dynamic height */}
+              <div
+                className="overflow-hidden flex flex-col"
+                style={{ height: `calc(${issuesPanelHeight}% - 4px)` }}
+              >
+                {transcription && (
+                  <>
+                    <IssuesPanel
+                      selectedRegionId={selectedRegion?.id}
+                      issues={getFilteredIssues()}
+                      canEdit={userCanEdit}
+                      onUpdateIssue={handleUpdateIssue}
+                      onDeleteIssue={handleDeleteIssue}
+                      enabledIssueTypes={enabledIssueTypes}
+                      onToggleIssueType={toggleIssueType}
+                      searchText={issueSearchText}
+                      onSearchChange={setIssueSearchText}
+                      onResetFilters={resetFilters}
+                    />
+                  </>
+                )}
+              </div>
+            </>
+          )}
         </div>
 
         {/* Region List */}
@@ -525,6 +534,7 @@ export const EditorPage = () => {
             >
               Regions
             </button>
+            {!isLocal && (
             <button
               onClick={() => setMobileTab('issues')}
               className={`flex-1 py-3 px-4 text-sm font-medium rounded-lg transition-colors ${
@@ -535,6 +545,7 @@ export const EditorPage = () => {
             >
               Issues
             </button>
+            )}
           </div>
         </div>
       </div>
@@ -542,6 +553,14 @@ export const EditorPage = () => {
       {/* Settings Page Overlay */}
       {isSettingsOpen && transcription && (
         <div className="absolute inset-0 z-50">
+          {isLocal ? (
+            <LocalProjectSettings
+              transcription={new TranscriptionModel(transcription)}
+              regions={regions}
+              onSave={handleSaveChanges}
+              onBack={handleCloseSettings}
+            />
+          ) : (
           <TranscriptionSettingsPage
             transcription={new TranscriptionModel(transcription)}
             regionCount={regions.length}
@@ -552,6 +571,7 @@ export const EditorPage = () => {
             onDelete={handleDeleteTranscription}
             isOwner={isOwner}
           />
+          )}
         </div>
       )}
 

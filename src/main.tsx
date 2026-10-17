@@ -8,6 +8,8 @@ import '@aws-amplify/ui-react/styles.css';
 import awsExports from './aws-exports';
 import './index.css';
 import App from './App.tsx';
+import { detectAppMode } from './services/appModeService';
+import { bootLocalMode } from './bootLocalMode';
 
 // PWA service worker is handled by vite-plugin-pwa in production builds
 
@@ -25,8 +27,13 @@ if (currentDomain.startsWith('transcribe.kiyanaw')) {
   window.location.href = newUrl;
 }
 
-// Configure Amplify
-Amplify.configure(awsExports);
+// Local mode never configures Amplify: the backend is unreachable by construction.
+const appMode = detectAppMode(window.location.pathname);
+if (appMode === 'local') {
+  bootLocalMode();
+} else {
+  Amplify.configure(awsExports);
+}
 
 
 
@@ -36,7 +43,7 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <App />
+        <App mode={appMode} />
       </ThemeProvider>
     </QueryClientProvider>
   </StrictMode> 

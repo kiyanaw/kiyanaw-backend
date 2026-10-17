@@ -117,3 +117,21 @@ describe('BrowserService Video Preferences', () => {
     });
   });
 }); 
+describe('BrowserService editor URLs', () => {
+  afterEach(() => window.history.replaceState(null, '', '/'));
+
+  it('builds and reads cloud editor region URLs', () => {
+    window.history.replaceState(null, '', '/transcribe-edit/t1');
+    expect(browserService.editorPath('t1', 'r1')).toBe('/transcribe-edit/t1/r1');
+    window.history.replaceState(null, '', '/transcribe-edit/t1/r1');
+    expect(browserService.getRegionIdFromUrl()).toBe('r1');
+  });
+
+  it('keeps local projects on local URLs', () => {
+    window.history.replaceState(null, '', '/local/edit/t1');
+    expect(browserService.editorPath('t1', 'r1')).toBe('/local/edit/t1/r1');
+    expect(browserService.getRegionIdFromUrl()).toBeNull();
+    window.history.replaceState(null, '', '/local/edit/t1/r1');
+    expect(browserService.getRegionIdFromUrl()).toBe('r1');
+  });
+});

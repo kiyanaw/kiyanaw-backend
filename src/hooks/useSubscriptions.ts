@@ -3,10 +3,14 @@ import { SubscribeToRegionChangesUseCase } from '../use-cases/subscribe-to-regio
 import { SubscribeToIssueChangesUseCase } from '../use-cases/subscribe-to-issue-changes';
 import { SubscribeToCommentChangesUseCase } from '../use-cases/subscribe-to-comment-changes';
 import { services } from '../services';
+import { useAppModeStore } from '../stores/useAppModeStore';
 
 export const useSubscriptions = (transcriptionId: string): void => {
+  // Local projects have a single writer (this device), so there is nothing to subscribe to.
+  const isLocal = useAppModeStore((state) => state.mode === 'local');
+
   useEffect(() => {
-    if (!transcriptionId) return;
+    if (!transcriptionId || isLocal) return;
 
     const regionUseCase = new SubscribeToRegionChangesUseCase({
       transcriptionId,
@@ -32,5 +36,5 @@ export const useSubscriptions = (transcriptionId: string): void => {
     return () => {
       unsubscribeFunctions.forEach(unsub => unsub());
     };
-  }, [transcriptionId]);
+  }, [transcriptionId, isLocal]);
 }; 

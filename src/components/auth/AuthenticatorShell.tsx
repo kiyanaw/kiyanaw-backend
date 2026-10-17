@@ -4,6 +4,7 @@ import { useAuthStore } from '../../stores/useAuthStore';
 import { useTranscriptionsStore } from '../../stores/useTranscriptionsStore';
 import { useInviteStore } from '../../stores/useInviteStore';
 import { clearTranscriptionCache } from '../../services/transcriptionService';
+import { LocalModeEntry } from './LocalModeEntry';
 
 interface AuthenticatorShellProps {
   children: ReactNode;
@@ -125,6 +126,9 @@ export const AuthenticatorShell = ({ children }: AuthenticatorShellProps) => {
                 <p className="text-ki-blue/70 text-sm mt-1">Indigenous Language Transcription Platform</p>
               </div>
             );
+          },
+          Footer() {
+            return <LocalModeEntry />;
           },
         }}
       >

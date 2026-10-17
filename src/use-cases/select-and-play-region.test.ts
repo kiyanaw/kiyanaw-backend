@@ -8,6 +8,7 @@ describe('SelectAndPlayRegion', () => {
 
   const mockBrowserService = {
     updateUrl: jest.fn(),
+    editorPath: (transcriptionId: string, regionId: string) => `/transcribe-edit/${transcriptionId}/${regionId}`,
     setSelectedRegion: jest.fn(),
   };
 
@@ -123,6 +124,7 @@ describe('SelectAndPlayRegion', () => {
 
       const mockBrowserServiceWithTracking = {
         updateUrl: jest.fn(() => callOrder.push('updateUrl')),
+        editorPath: (transcriptionId: string, regionId: string) => `/transcribe-edit/${transcriptionId}/${regionId}`,
         setSelectedRegion: jest.fn(() => callOrder.push('setBrowserSelectedRegion')),
       };
 

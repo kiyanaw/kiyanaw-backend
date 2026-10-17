@@ -14,6 +14,7 @@ jest.mock('../services', () => ({
     },
     browserService: {
       updateUrl: jest.fn(),
+      editorPath: (transcriptionId: string, regionId: string) => `/transcribe-edit/${transcriptionId}/${regionId}`,
       setSelectedRegion: jest.fn(),
     },
   },

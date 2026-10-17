@@ -46,3 +46,13 @@ export const services = {
 };
 
 export { regionSaveManager } from './regionSaveManager';
+
+export type Services = typeof services;
+
+/**
+ * Swaps service implementations at boot (used by local mode). Every module reads services
+ * through this shared object at call time, so replacing an entry here switches it everywhere.
+ */
+export const applyServiceOverrides = (overrides: Partial<Services>): void => {
+  Object.assign(services, overrides);
+};

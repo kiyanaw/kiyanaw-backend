@@ -57,12 +57,18 @@ class WaveSurferService {
   private _canEdit: boolean = false
   private _disableDragSelection: (() => void) | null = null
   private _peaksDuration: number | null = null
+  // Turns a transcription's `source` into a playable URL (signed cloud URL by default; blob: URL in local mode)
+  private _resolveMediaUrl: (source: string) => Promise<string> = (source) => generateSignedUrl(source)
 
   private REGION_BACKGROUND_COLOR = 'rgba(0, 0, 0, 0.1)'
   private REGION_HIGHLIGHTED_COLOR = 'rgba(0, 213, 255, 0.1)'
 
   private constructor() {
     // Private constructor for singleton
+  }
+
+  setMediaUrlResolver(resolver: (source: string) => Promise<string>): void {
+    this._resolveMediaUrl = resolver;
   }
 
   static getInstance(): WaveSurferService {
@@ -376,7 +382,7 @@ class WaveSurferService {
       this._peaksDuration = duration;
     }
 
-    const signedMediaUrl = await generateSignedUrl(source);
+    const signedMediaUrl = await this._resolveMediaUrl(source);
     this.wavesurfer?.load(signedMediaUrl, peaks as (Float32Array)[], duration);
   }
 
@@ -400,7 +406,7 @@ class WaveSurferService {
 
     try {
       // Generate fresh signed URL
-      const signedMediaUrl = await generateSignedUrl(source);
+      const signedMediaUrl = await this._resolveMediaUrl(source);
       const duration = this._peaksDuration ?? undefined;
 
       this.wavesurfer.load(signedMediaUrl, peaks as (Float32Array)[], duration);

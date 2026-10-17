@@ -5,6 +5,7 @@ import { useTextEditors } from '../../hooks/useTextEditors';
 import { useDeleteRegion } from '../../hooks/useDeleteRegion';
 import { useMergeRegion } from '../../hooks/useMergeRegion';
 import { useSnipRegion } from '../../hooks/useSnipRegion';
+import { useAppModeStore } from '../../stores/useAppModeStore';
 import { useSelectAndPlayRegion } from '../../hooks/useSelectAndPlayRegion';
 import { useCreateIssueFromSelection } from '../../hooks/useCreateIssueFromSelection';
 import { useEditorStore } from '../../stores/useEditorStore';
@@ -29,6 +30,7 @@ export const RegionEditor = memo(({
   const createIssueFromSelection = useCreateIssueFromSelection();
   const { snip, isSnipping, canSnip } = useSnipRegion();
   const canEdit = useEditorStore((state) => state.canEdit);
+  const isLocal = useAppModeStore((state) => state.mode === 'local');
   const setSelectedRegion = useEditorStore((state) => state.setSelectedRegion);
   const regions = useEditorStore((state) => state.regions);
   const regionSelection = useEditorStore((state) => state.regionSelections[region.id]);
@@ -132,20 +134,22 @@ export const RegionEditor = memo(({
             {isPlaying ? <Pause size={14} /> : <Repeat1 size={14} />}
           </button>
 
-          {/* Create Issue Button - Second position, always visible but disabled when no selection */}
-          <button
-            data-testid="create-issue-button"
-            className={`flex items-center justify-center w-7 h-7 border rounded-md transition-all duration-200 text-sm ${
-              canEdit && hasSelection
-                ? 'border-orange-300 bg-orange-50 text-orange-600 cursor-pointer hover:bg-orange-100 hover:border-orange-400'
-                : 'border-gray-300 bg-gray-50 text-gray-400 cursor-not-allowed opacity-50'
-            }`}
-            onClick={canEdit && hasSelection ? handleCreateIssue : undefined}
-            disabled={!canEdit || !hasSelection}
-            title={hasSelection ? "Create issue from selected text" : "Select text to create an issue"}
-          >
-            <AlertTriangle size={14} />
-          </button>
+          {/* Create Issue Button - Second position, always visible but disabled when no selection. Issues don't exist in local mode. */}
+          {!isLocal && (
+            <button
+              data-testid="create-issue-button"
+              className={`flex items-center justify-center w-7 h-7 border rounded-md transition-all duration-200 text-sm ${
+                canEdit && hasSelection
+                  ? 'border-orange-300 bg-orange-50 text-orange-600 cursor-pointer hover:bg-orange-100 hover:border-orange-400'
+                  : 'border-gray-300 bg-gray-50 text-gray-400 cursor-not-allowed opacity-50'
+              }`}
+              onClick={canEdit && hasSelection ? handleCreateIssue : undefined}
+              disabled={!canEdit || !hasSelection}
+              title={hasSelection ? "Create issue from selected text" : "Select text to create an issue"}
+            >
+              <AlertTriangle size={14} />
+            </button>
+          )}
 
           {/* Dictionary Lookup Button - Third position, enabled when cursor is on an analyzed word */}
           <button

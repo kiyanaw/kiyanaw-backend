@@ -25,6 +25,7 @@ export default tseslint.config(
       'amplify/backend/custom/inviteHandlerSES/cdk-stack.ts',
       'amplify-codegen-temp/models/models',
       'tests/e2e/**',
+      'tests/e2e-local/**',
       '**/workbox-*.js',
     ] 
   },

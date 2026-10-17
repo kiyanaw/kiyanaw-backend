@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { SnipRegionUseCase } from '../use-cases/snip-region';
 import { useEditorStore } from '../stores/useEditorStore';
 import { currentUser } from '../services/userService';
+import { useAppModeStore } from '../stores/useAppModeStore';
 
 /**
  * Download a single region as an MP3 clip (to share). Enabled for the transcription
@@ -16,7 +17,9 @@ export const useSnipRegion = () => {
   const user = currentUser();
   const isOwner = !!user && !!transcription && transcription.author === user.userId;
   const isPublic = transcription?.isPrivate === false;
-  const canSnip = isOwner || isPublic;
+  // Clips are cut by the backend, so they don't exist in local mode.
+  const isLocal = useAppModeStore((state) => state.mode === 'local');
+  const canSnip = !isLocal && (isOwner || isPublic);
 
   const snip = useCallback(async (regionId: string): Promise<void> => {
     setError(null);

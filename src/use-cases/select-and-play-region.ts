@@ -8,6 +8,7 @@ interface SelectAndPlayRegionConfig {
     };
     browserService: {
       updateUrl: (url: string) => void;
+      editorPath: (transcriptionId: string, regionId: string) => string;
       setSelectedRegion: (regionId: string) => void;
     };
   };
@@ -42,9 +43,8 @@ export class SelectAndPlayRegion {
     const transcription = this.config.store.transcription;
     if (transcription && transcription.id) {
       // Update URL to reflect current region being played
-      this.config.services.browserService.updateUrl(
-        `/transcribe-edit/${transcription.id}/${this.config.regionId}`
-      );
+      const { browserService } = this.config.services;
+      browserService.updateUrl(browserService.editorPath(transcription.id, this.config.regionId));
     }
 
     // Update the selected region in the store
