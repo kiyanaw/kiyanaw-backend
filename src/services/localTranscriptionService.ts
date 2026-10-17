@@ -2,6 +2,7 @@ import { TranscriptionModel, type TranscriptionData } from './adt';
 import type { LoadTranscriptionResult } from '../types/shared';
 import { localDb, type LocalProjectRecord } from './localDbService';
 import { loadRegionsForTranscription } from './localRegionService';
+import { loadIssuesForTranscription } from './localIssueService';
 import { getMediaUrl, sourceForProject } from './localMediaService';
 import { PEAKS_PER_SECOND } from '../lib/peaksFold';
 
@@ -53,14 +54,17 @@ export const loadInFull = async (transcriptionId: string): Promise<false | LoadT
   if (!peaks) {
     throw new Error(`Local project ${transcriptionId} has no waveform data`);
   }
-  const regions = await loadRegionsForTranscription(transcriptionId);
+  const [regions, issues] = await Promise.all([
+    loadRegionsForTranscription(transcriptionId),
+    loadIssuesForTranscription(transcriptionId),
+  ]);
 
   return {
     transcription: toModel(record),
     peaks: peaks.data,
     peaksDuration: peaks.length / PEAKS_PER_SECOND,
     regions,
-    issues: [],
+    issues,
     comments: [],
   };
 };

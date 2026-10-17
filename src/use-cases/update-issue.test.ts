@@ -82,6 +82,8 @@ describe('UpdateIssueUseCase', () => {
     mockUpdateExistingIssue.mockResolvedValue(mockUpdatedIssue);
 
     // Mock services
+    // Use-cases reach the issue service through the shared services bag
+    (services as any).issueService = jest.requireMock('../services/issueService');
     (services as any).authService = {
       currentUser: jest.fn().mockReturnValue({
         username: 'user-123',

@@ -1,4 +1,3 @@
-import { deleteExistingIssue } from '../services/issueService';
 import { useEditorStore } from '../stores/useEditorStore';
 import { rteService } from '../services/rteService';
 import { services } from '../services';
@@ -32,7 +31,7 @@ export class DeleteIssueUseCase {
       const version = issue._version || 0;
 
       // Delete the issue via the service with version for conflict resolution
-      await deleteExistingIssue(this.config.issueId, version);
+      await services.issueService.deleteExistingIssue(this.config.issueId, version);
 
       // Update the store by removing the deleted issue using the proper store method
       store.deleteIssue(this.config.issueId);

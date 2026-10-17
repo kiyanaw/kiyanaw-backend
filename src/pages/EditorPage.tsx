@@ -35,7 +35,7 @@ export const EditorPage = () => {
   }>();
   
   const navigate = useNavigate();
-  // Local projects have no issues, comments or sharing: those panels are hidden.
+  // Local projects can't be shared or deleted from here; their settings are rename + export.
   const isLocal = useAppModeStore((state) => state.mode === 'local');
   
   // Settings page state
@@ -110,7 +110,7 @@ export const EditorPage = () => {
       // Swipe left
       if (mobileTab === 'editor') {
         setMobileTab('regions');
-      } else if (mobileTab === 'regions' && !isLocal) {
+      } else if (mobileTab === 'regions') {
         setMobileTab('issues');
       }
     }
@@ -412,48 +412,44 @@ export const EditorPage = () => {
           {/* Stationary Inspector - dynamic height */}
           <div
             className="overflow-hidden flex flex-col"
-            style={{ height: isLocal ? '100%' : `${100 - issuesPanelHeight}%` }}
+            style={{ height: `${100 - issuesPanelHeight}%` }}
           >
             <StationaryInspector
               selectedRegion={selectedRegion}
             />
           </div>
 
-          {!isLocal && (
-            <>
-              {/* Resize Handle */}
-              <div
-                className={`h-1 bg-gray-200 cursor-row-resize hover:bg-ki-blue transition-colors flex-shrink-0 ${
-                  isResizing ? 'bg-ki-blue' : ''
-                }`}
-                onMouseDown={handleResizeStart}
-                title="Drag to resize"
-              />
+          {/* Resize Handle */}
+          <div
+            className={`h-1 bg-gray-200 cursor-row-resize hover:bg-ki-blue transition-colors flex-shrink-0 ${
+              isResizing ? 'bg-ki-blue' : ''
+            }`}
+            onMouseDown={handleResizeStart}
+            title="Drag to resize"
+          />
 
-              {/* Issues Panel Area - dynamic height */}
-              <div
-                className="overflow-hidden flex flex-col"
-                style={{ height: `calc(${issuesPanelHeight}% - 4px)` }}
-              >
-                {transcription && (
-                  <>
-                    <IssuesPanel
-                      selectedRegionId={selectedRegion?.id}
-                      issues={getFilteredIssues()}
-                      canEdit={userCanEdit}
-                      onUpdateIssue={handleUpdateIssue}
-                      onDeleteIssue={handleDeleteIssue}
-                      enabledIssueTypes={enabledIssueTypes}
-                      onToggleIssueType={toggleIssueType}
-                      searchText={issueSearchText}
-                      onSearchChange={setIssueSearchText}
-                      onResetFilters={resetFilters}
-                    />
-                  </>
-                )}
-              </div>
-            </>
-          )}
+          {/* Issues Panel Area - dynamic height */}
+          <div
+            className="overflow-hidden flex flex-col"
+            style={{ height: `calc(${issuesPanelHeight}% - 4px)` }}
+          >
+            {transcription && (
+              <>
+                <IssuesPanel
+                  selectedRegionId={selectedRegion?.id}
+                  issues={getFilteredIssues()}
+                  canEdit={userCanEdit}
+                  onUpdateIssue={handleUpdateIssue}
+                  onDeleteIssue={handleDeleteIssue}
+                  enabledIssueTypes={enabledIssueTypes}
+                  onToggleIssueType={toggleIssueType}
+                  searchText={issueSearchText}
+                  onSearchChange={setIssueSearchText}
+                  onResetFilters={resetFilters}
+                />
+              </>
+            )}
+          </div>
         </div>
 
         {/* Region List */}
@@ -534,7 +530,6 @@ export const EditorPage = () => {
             >
               Regions
             </button>
-            {!isLocal && (
             <button
               onClick={() => setMobileTab('issues')}
               className={`flex-1 py-3 px-4 text-sm font-medium rounded-lg transition-colors ${
@@ -545,7 +540,6 @@ export const EditorPage = () => {
             >
               Issues
             </button>
-            )}
           </div>
         </div>
       </div>

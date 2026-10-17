@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie';
-import type { RegionData } from './adt';
+import type { IssueData, RegionData } from './adt';
 
 /**
  * On-device storage for local mode. Kept separate from the cloud cache
@@ -23,6 +23,8 @@ export interface LocalRegionRecord extends Omit<RegionData, 'regionSuggestions'>
   _version: number;
 }
 
+export type LocalIssueRecord = IssueData & { _version: number };
+
 export interface LocalPeaksRecord {
   projectId: string;
   length: number;
@@ -33,6 +35,7 @@ class KiyanawLocalDB extends Dexie {
   projects!: Table<LocalProjectRecord, string>;
   regions!: Table<LocalRegionRecord, string>;
   peaks!: Table<LocalPeaksRecord, string>;
+  issues!: Table<LocalIssueRecord, string>;
 
   constructor() {
     super('KiyanawLocalDB');
@@ -40,6 +43,9 @@ class KiyanawLocalDB extends Dexie {
       projects: 'id, dateLastUpdated',
       regions: 'id, transcriptionId',
       peaks: 'projectId',
+    });
+    this.version(2).stores({
+      issues: 'id, transcriptionId',
     });
   }
 }

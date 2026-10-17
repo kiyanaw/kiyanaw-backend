@@ -2,6 +2,7 @@ import { applyServiceOverrides, services } from './services';
 import { localModeCsp } from './services/appModeService';
 import * as localTranscriptionService from './services/localTranscriptionService';
 import * as localRegionService from './services/localRegionService';
+import * as localIssueService from './services/localIssueService';
 import { getMediaUrl } from './services/localMediaService';
 import { wavesurferService } from './services/wavesurferService';
 import { useAuthStore } from './stores/useAuthStore';
@@ -21,6 +22,7 @@ export const bootLocalMode = (): void => {
   applyServiceOverrides({
     transcriptionService: { ...services.transcriptionService, ...localTranscriptionService },
     regionService: { ...services.regionService, ...localRegionService },
+    issueService: { ...services.issueService, ...localIssueService },
   });
   wavesurferService.setMediaUrlResolver(getMediaUrl);
 

@@ -1,4 +1,3 @@
-import { createIssueForRegion } from '../services/issueService';
 import { useEditorStore } from '../stores/useEditorStore';
 import { rteService } from '../services/rteService';
 import { currentUser } from '../services/userService';
@@ -72,7 +71,7 @@ export class CreateIssueUseCase {
     try {
 
       // Save to backend
-      const savedIssue = await createIssueForRegion({
+      const savedIssue = await services.issueService.createIssueForRegion({
         text: this.config.text.trim(),
         type: this.config.type,
         owner: this.config.owner,

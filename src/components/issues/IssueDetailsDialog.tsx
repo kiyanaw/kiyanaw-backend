@@ -6,6 +6,7 @@ import { useCreateComment } from '../../hooks/useCreateComment';
 import { useDeleteComment } from '../../hooks/useDeleteComment';
 import { canComment, canDeleteComment, canDeleteIssue, canResolveIssue } from '../../lib/permissions';
 import type { CommentData } from '../../services/adt';
+import { useAppModeStore } from '../../stores/useAppModeStore';
 import { ISSUE_TYPES } from '../../services/adt';
 
 interface IssueDetailsDialogProps {
@@ -33,6 +34,7 @@ export const IssueDetailsDialog = ({
 }: IssueDetailsDialogProps) => {
   const user = useAuthStore((state) => state.user);
   const transcription = useEditorStore((state) => state.transcription);
+  const isLocal = useAppModeStore((state) => state.mode === 'local');
   const issue = useEditorStore((state) => state.issueById(issueId));
   const rawComments = useEditorStore((state) => state.commentsByIssue(issueId));
   // Sort comments oldest to newest (chronological order)
@@ -256,97 +258,99 @@ export const IssueDetailsDialog = ({
           </div>
         </div>
 
-        {/* Comments Section */}
-        <div className="flex-1 flex flex-col min-h-0">
-          {/* Comments Header */}
-          <div className="px-4 md:px-6 py-2 md:py-4 border-b border-gray-200 bg-gray-50">
-            <h3 className="text-base md:text-lg font-medium text-gray-900">
-              Comments {comments.length > 0 && `(${comments.length})`}
-            </h3>
-          </div>
+        {/* Comments Section (not in local mode: there is only one person) */}
+        {!isLocal && (
+          <div className="flex-1 flex flex-col min-h-0">
+            {/* Comments Header */}
+            <div className="px-4 md:px-6 py-2 md:py-4 border-b border-gray-200 bg-gray-50">
+              <h3 className="text-base md:text-lg font-medium text-gray-900">
+                Comments {comments.length > 0 && `(${comments.length})`}
+              </h3>
+            </div>
 
-          {/* Comments List */}
-          <div className="flex-1 overflow-y-auto px-4 md:px-6 py-3 md:py-4">
-            {comments.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <MessageSquare className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-                <p>No comments yet.</p>
-              </div>
-            ) : (
-              <div className="space-y-3 md:space-y-4">
-                {comments.map((comment: CommentData) => {
-                  const canDeleteThisComment = canDeleteComment(comment.author, transcription, user);
-                  
-                  return (
-                    <div key={comment.id} data-testid="comment-item" className="flex gap-3 p-3 md:p-4 bg-gray-50 rounded-lg">
-                      {/* Comment content */}
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="font-medium text-gray-900">
-                            {user?.userId === comment.author ? 'me' : comment.authorFriendly}
-                          </span>
-                          <span className="text-sm text-gray-500">
-                            {formatDate(comment.createdAt)}
-                          </span>
+            {/* Comments List */}
+            <div className="flex-1 overflow-y-auto px-4 md:px-6 py-3 md:py-4">
+              {comments.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <MessageSquare className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                  <p>No comments yet.</p>
+                </div>
+              ) : (
+                <div className="space-y-3 md:space-y-4">
+                  {comments.map((comment: CommentData) => {
+                    const canDeleteThisComment = canDeleteComment(comment.author, transcription, user);
+                    
+                    return (
+                      <div key={comment.id} data-testid="comment-item" className="flex gap-3 p-3 md:p-4 bg-gray-50 rounded-lg">
+                        {/* Comment content */}
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="font-medium text-gray-900">
+                              {user?.userId === comment.author ? 'me' : comment.authorFriendly}
+                            </span>
+                            <span className="text-sm text-gray-500">
+                              {formatDate(comment.createdAt)}
+                            </span>
+                          </div>
+                          <p className="text-gray-800">{comment.text}</p>
                         </div>
-                        <p className="text-gray-800">{comment.text}</p>
-                      </div>
 
-                      {/* Delete button */}
-                      {canDeleteThisComment && (
-                        <button
-                          data-testid="comment-delete-button"
-                          onClick={() => handleDeleteComment(comment.id)}
-                          className="p-1 rounded text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors flex-shrink-0"
-                          title="Delete comment"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
+                        {/* Delete button */}
+                        {canDeleteThisComment && (
+                          <button
+                            data-testid="comment-delete-button"
+                            onClick={() => handleDeleteComment(comment.id)}
+                            className="p-1 rounded text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors flex-shrink-0"
+                            title="Delete comment"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Comment Composer */}
+            {userCanComment && (
+              <div className="p-4 md:p-6 border-t border-gray-200 bg-gray-50">
+                <div className="relative">
+                  <textarea
+                    data-testid="comment-input"
+                    ref={textareaRef}
+                    value={newCommentText}
+                    onChange={(e) => setNewCommentText(e.target.value)}
+                    placeholder="Add a comment..."
+                    className="w-full p-3 pr-16 border border-gray-300 rounded-lg resize-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400 transition-all min-h-[44px] max-h-32 overflow-hidden"
+                    rows={1}
+                    disabled={isSubmittingComment}
+                    style={{
+                      height: 'auto',
+                      minHeight: '44px'
+                    }}
+                    onInput={(e) => {
+                      const target = e.target as HTMLTextAreaElement;
+                      target.style.height = 'auto';
+                      target.style.height = Math.min(target.scrollHeight, 128) + 'px';
+                    }}
+                  />
+                  <button
+                    data-testid="submit-comment"
+                    onClick={handleAddComment}
+                    disabled={!newCommentText.trim() || isSubmittingComment}
+                    className="absolute right-3 top-1/2 w-8 h-8 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+                    style={{ transform: 'translate(2px, calc(-50% - 4px))' }}
+                    title="Send comment"
+                  >
+                    <Send className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             )}
           </div>
-
-          {/* Comment Composer */}
-          {userCanComment && (
-            <div className="p-4 md:p-6 border-t border-gray-200 bg-gray-50">
-              <div className="relative">
-                <textarea
-                  data-testid="comment-input"
-                  ref={textareaRef}
-                  value={newCommentText}
-                  onChange={(e) => setNewCommentText(e.target.value)}
-                  placeholder="Add a comment..."
-                  className="w-full p-3 pr-16 border border-gray-300 rounded-lg resize-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400 transition-all min-h-[44px] max-h-32 overflow-hidden"
-                  rows={1}
-                  disabled={isSubmittingComment}
-                  style={{
-                    height: 'auto',
-                    minHeight: '44px'
-                  }}
-                  onInput={(e) => {
-                    const target = e.target as HTMLTextAreaElement;
-                    target.style.height = 'auto';
-                    target.style.height = Math.min(target.scrollHeight, 128) + 'px';
-                  }}
-                />
-                <button
-                  data-testid="submit-comment"
-                  onClick={handleAddComment}
-                  disabled={!newCommentText.trim() || isSubmittingComment}
-                  className="absolute right-3 top-1/2 w-8 h-8 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
-                  style={{ transform: 'translate(2px, calc(-50% - 4px))' }}
-                  title="Send comment"
-                >
-                  <Send className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
+        )}
       </div>
     </div>
   );

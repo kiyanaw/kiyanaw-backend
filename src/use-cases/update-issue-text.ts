@@ -1,4 +1,3 @@
-import { updateExistingIssue } from '../services/issueService';
 import { useEditorStore } from '../stores/useEditorStore';
 import { rteService } from '../services/rteService';
 import { currentUser } from '../services/userService';
@@ -76,7 +75,7 @@ export class UpdateIssueTextUseCase {
           }
 
           console.log(`💾 Saving issue text for ${issueId}: "${newText.trim()}" (version: ${originalVersion})`);
-          const updatedIssue = await updateExistingIssue(issueId, { text: newText.trim() }, originalVersion, user.username);
+          const updatedIssue = await services.issueService.updateExistingIssue(issueId, { text: newText.trim() }, originalVersion, user.username);
           console.log(`✅ Issue text saved successfully for ${issueId}`);
 
           // Update transcription (this will show "Transcription saved" toast)

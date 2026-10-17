@@ -5,6 +5,7 @@ import 'fake-indexeddb/auto';
 import { localDb, countProjects } from './localDbService';
 import * as localTranscriptionService from './localTranscriptionService';
 import * as localRegionService from './localRegionService';
+import * as localIssueService from './localIssueService';
 import { TranscriptionModel, RegionModel } from './adt';
 
 const project = {
@@ -21,7 +22,7 @@ const project = {
 };
 
 beforeEach(async () => {
-  await Promise.all([localDb.projects.clear(), localDb.regions.clear(), localDb.peaks.clear()]);
+  await Promise.all([localDb.projects.clear(), localDb.regions.clear(), localDb.peaks.clear(), localDb.issues.clear()]);
 });
 
 describe('localTranscriptionService', () => {
@@ -41,7 +42,7 @@ describe('localTranscriptionService', () => {
     expect(loaded.peaks).toEqual([-1, 1, -0.5, 0.5]);
     expect(loaded.peaksDuration).toBe(0.1);
     expect(loaded.regions).toEqual([]);
-    expect(loaded.issues).toEqual([]);
+    expect(loaded.issues).toEqual([]); // none created yet
     expect(loaded.comments).toEqual([]);
   });
 
@@ -122,5 +123,44 @@ describe('localRegionService', () => {
     await localRegionService.createRegion('p1', { id: 'a', start: 0, end: 1 }, 'local');
     await localRegionService.createRegion('p2', { id: 'b', start: 0, end: 1 }, 'local');
     expect((await localRegionService.loadRegionsForTranscription('p1')).map((r) => r.id)).toEqual(['a']);
+  });
+});
+
+describe('localIssueService', () => {
+  const newIssue = (text: string) => ({
+    text,
+    type: 'needs-help',
+    owner: 'local-device',
+    ownerFriendly: 'You',
+    regionId: 'r1',
+    transcriptionId: 'p1',
+  });
+
+  it('creates, updates, resolves and deletes issues', async () => {
+    const created = await localIssueService.createIssueForRegion(newIssue('check this word'), 'You');
+    expect(created).toMatchObject({ text: 'check this word', type: 'needs-help', resolved: false, _version: 1, index: 0 });
+
+    const resolved = await localIssueService.updateExistingIssue(created.id, { resolved: true, text: 'checked' }, 1, 'You');
+    expect(resolved).toMatchObject({ resolved: true, text: 'checked', _version: 2, transcriptionId: 'p1' });
+
+    await localIssueService.deleteExistingIssue(created.id, 2);
+    expect(await localIssueService.loadIssuesForTranscription('p1')).toEqual([]);
+  });
+
+  it('lists a project\'s issues newest first and loads them with the project', async () => {
+    await localTranscriptionService.createLocalProject(project, { length: 1, data: [0, 0] });
+    const first = await localIssueService.createIssueForRegion(newIssue('first'), 'You');
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    const second = await localIssueService.createIssueForRegion(newIssue('second'), 'You');
+    await localIssueService.createIssueForRegion({ ...newIssue('other project'), transcriptionId: 'p2' }, 'You');
+
+    expect((await localIssueService.loadIssuesForTranscription('p1')).map((i) => i.id)).toEqual([second.id, first.id]);
+    const loaded = await localTranscriptionService.loadInFull('p1');
+    expect(loaded && loaded.issues.map((i) => i.text)).toEqual(['second', 'first']);
+  });
+
+  it('fails to update or delete an issue that does not exist', async () => {
+    await expect(localIssueService.updateExistingIssue('nope', { resolved: true }, 1, 'You')).rejects.toThrow('not found');
+    await expect(localIssueService.deleteExistingIssue('nope', 1)).rejects.toThrow('not found');
   });
 });

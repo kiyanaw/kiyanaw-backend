@@ -110,6 +110,19 @@ test('local transcription works end to end and never leaves the device', async (
   const editor = page.locator('[data-testid="region-editor-main"] .ql-editor').first();
   await editor.click();
   await page.keyboard.type('tânisi kiyânaw');
+
+  // Issue: flag the text, then resolve it
+  await page.keyboard.press('ControlOrMeta+a');
+  await expect(page.getByTestId('create-issue-button')).toBeEnabled();
+  await page.getByTestId('create-issue-button').click();
+  await expect(page.locator('text=Issues (1)').first()).toBeVisible({ timeout: 10000 });
+  await page.getByTestId('issue-item-open-dialog').first().click();
+  await expect(page.getByText('Created by me')).toBeVisible();
+  await page.getByTestId('issue-resolve-toggle').first().click();
+  await expect(page.locator('text=RESOLVED').first()).toBeVisible({ timeout: 5000 });
+  await page.keyboard.press('Escape');
+
+  await page.locator('[data-testid="region-editor-main"] .ql-editor').first().click();
   await page.locator('[data-testid="region-tab-tran"]').first().click();
   const translation = page.locator('[data-testid="region-editor-translation"] .ql-editor').first();
   await translation.click();
@@ -124,6 +137,8 @@ test('local transcription works end to end and never leaves the device', async (
   await expect(page.locator('[data-testid="region-editor-main"] .ql-editor').first()).toContainText('tânisi kiyânaw');
   await page.locator('[data-testid="region-tab-tran"]').first().click();
   await expect(page.locator('[data-testid="region-editor-translation"] .ql-editor').first()).toContainText('hello friend');
+  // The resolved issue came back from this device too
+  await expect(page.locator('text=Show resolved issues (1)').first()).toBeVisible({ timeout: 10000 });
 
   // Export SRT
   await page.getByTestId('transcription-settings-button').click();

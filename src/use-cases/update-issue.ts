@@ -1,4 +1,3 @@
-import { updateExistingIssue } from '../services/issueService';
 import { useEditorStore } from '../stores/useEditorStore';
 import { rteService } from '../services/rteService';
 import { currentUser } from '../services/userService';
@@ -49,7 +48,7 @@ export class UpdateIssueUseCase {
         throw new Error('User must be authenticated to update issues');
       }
       
-      const updatedIssue = await updateExistingIssue(this.config.issueId, this.config.updates, currentIssue._version || 0, user.username);
+      const updatedIssue = await services.issueService.updateExistingIssue(this.config.issueId, this.config.updates, currentIssue._version || 0, user.username);
 
       // 4. Update store with server response (in case server changed anything)
       store.updateIssue(this.config.issueId, updatedIssue);
