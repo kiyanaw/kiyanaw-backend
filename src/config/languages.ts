@@ -15,6 +15,7 @@ const LANGUAGES_UNSORTED: readonly LanguageConfig[] = [
   { code: 'crk', name: 'Nêhiyawêwin (Plains Cree Y-dialect)' },
   { code: 'cwd', name: 'Nīhithawīwin (Woods Cree TH-dialect)' },
   { code: 'gle', name: 'Gaeilge (Irish)' },
+  { code: 'ojbl', name: 'Anishinaabemowin (Border Lakes Ojibwe)' },
   { code: 'otwc', name: 'Nishnaabemowin (Odawa - Corbiere)' },
   { code: 'otwr', name: 'Nishnaabemowin (Odawa - Rhodes)' },
 ] as const;

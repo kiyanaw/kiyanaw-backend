@@ -13,6 +13,7 @@ describe('special-processing registry', () => {
       expect(getLanguageProcessor('crk')).not.toBeNull()
       expect(getLanguageProcessor('cwd')).not.toBeNull()
       expect(getLanguageProcessor('gle')).not.toBeNull()
+      expect(getLanguageProcessor('ojbl')).not.toBeNull()
       expect(getLanguageProcessor('otwr')).not.toBeNull()
       expect(getLanguageProcessor('otwc')).not.toBeNull()
     })
@@ -43,6 +44,7 @@ describe('special-processing registry', () => {
       expect(hasSpecialProcessing('crk')).toBe(true)
       expect(hasSpecialProcessing('cwd')).toBe(true)
       expect(hasSpecialProcessing('gle')).toBe(true)
+      expect(hasSpecialProcessing('ojbl')).toBe(true)
       expect(hasSpecialProcessing('otwr')).toBe(true)
       expect(hasSpecialProcessing('otwc')).toBe(true)
     })
@@ -120,6 +122,16 @@ describe('special-processing registry', () => {
       })
     })
 
+    describe('Border Lakes Ojibwe (ojbl)', () => {
+      it('extracts lemma from verb analysis', () => {
+        expect(getLemma('ojbl', '1+prv+tam+gii+owaabamaan+vta+thmdir')).toBe('owaabamaan')
+      })
+
+      it('extracts lemma from noun analysis', () => {
+        expect(getLemma('ojbl', 'makwa+na+pl')).toBe('makwa')
+      })
+    })
+
     describe('Odawa (otwr/otwc)', () => {
       it('extracts lemma from verb analysis', () => {
         expect(getLemma('otwr', 'gwekshin+VAI+3')).toBe('gwekshin')
@@ -158,6 +170,7 @@ describe('special-processing registry', () => {
       expect(Object.keys(languages)).toContain('crk')
       expect(Object.keys(languages)).toContain('cwd')
       expect(Object.keys(languages)).toContain('gle')
+      expect(Object.keys(languages)).toContain('ojbl')
       expect(Object.keys(languages)).toContain('otwr')
       expect(Object.keys(languages)).toContain('otwc')
     })
