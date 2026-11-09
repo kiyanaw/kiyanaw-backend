@@ -41,7 +41,7 @@ describe('languages config', () => {
   describe('getLanguageName', () => {
     it('returns the correct language name for valid code', () => {
       expect(getLanguageName('bla')).toBe('Siksika (Blackfoot)');
-      expect(getLanguageName('ciw')).toBe('Anishnaabemowin (Ojibwe)');
+      expect(getLanguageName('ciw')).toBe('Anishinaabemowin (Southwestern Ojibwe)');
       expect(getLanguageName('crgn')).toBe('Michif (Northern)');
       expect(getLanguageName('crk')).toBe('Nêhiyawêwin (Plains Cree Y-dialect)');
       expect(getLanguageName('cwd')).toBe('Nīhithawīwin (Woods Cree TH-dialect)');
