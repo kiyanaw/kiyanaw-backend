@@ -32,6 +32,7 @@ describe('languages config', () => {
       expect(LANGUAGE_CODES).toContain('crk');
       expect(LANGUAGE_CODES).toContain('cwd');
       expect(LANGUAGE_CODES).toContain('gle');
+      expect(LANGUAGE_CODES).toContain('ojbl');
       expect(LANGUAGE_CODES).toContain('otwc');
       expect(LANGUAGE_CODES).toContain('otwr');
     });
@@ -40,11 +41,12 @@ describe('languages config', () => {
   describe('getLanguageName', () => {
     it('returns the correct language name for valid code', () => {
       expect(getLanguageName('bla')).toBe('Siksika (Blackfoot)');
-      expect(getLanguageName('ciw')).toBe('Anishnaabemowin (Ojibwe)');
+      expect(getLanguageName('ciw')).toBe('Anishinaabemowin (Southwestern Ojibwe)');
       expect(getLanguageName('crgn')).toBe('Michif (Northern)');
       expect(getLanguageName('crk')).toBe('Nêhiyawêwin (Plains Cree Y-dialect)');
       expect(getLanguageName('cwd')).toBe('Nīhithawīwin (Woods Cree TH-dialect)');
       expect(getLanguageName('gle')).toBe('Gaeilge (Irish)');
+      expect(getLanguageName('ojbl')).toBe('Anishinaabemowin (Border Lakes Ojibwe)');
       expect(getLanguageName('otwc')).toBe('Nishnaabemowin (Odawa - Corbiere)');
       expect(getLanguageName('otwr')).toBe('Nishnaabemowin (Odawa - Rhodes)');
     });
@@ -63,6 +65,7 @@ describe('languages config', () => {
       expect(isValidLanguageCode('crk')).toBe(true);
       expect(isValidLanguageCode('cwd')).toBe(true);
       expect(isValidLanguageCode('gle')).toBe(true);
+      expect(isValidLanguageCode('ojbl')).toBe(true);
       expect(isValidLanguageCode('otwc')).toBe(true);
       expect(isValidLanguageCode('otwr')).toBe(true);
     });
