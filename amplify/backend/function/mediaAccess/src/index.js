@@ -1,10 +1,15 @@
 const { SecretsManagerClient, GetSecretValueCommand } = require('@aws-sdk/client-secrets-manager');
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
+const { DynamoDBDocumentClient } = require('@aws-sdk/lib-dynamodb');
+const { CognitoIdentityProviderClient } = require('@aws-sdk/client-cognito-identity-provider');
 const { getSignedUrl } = require('@aws-sdk/cloudfront-signer');
+const { createRecords } = require('./lib/records');
+const { createAuthorizer } = require('./lib/access');
+const { callerFromEvent } = require('./lib/identity');
 
-// Cache for private key (Lambda instance reuse)
-let cachedPrivateKey = null;
-let cacheTimestamp = 0;
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const KEY_CACHE_TTL_MS = 5 * 60 * 1000;
+const DEFAULT_EXPIRES_IN_SECONDS = 60 * 60; // 1 hour
+const MAX_EXPIRES_IN_SECONDS = 4 * 60 * 60; // 4 hours
 
 const HEADERS = {
   'Content-Type': 'application/json',
@@ -13,153 +18,157 @@ const HEADERS = {
   'Access-Control-Allow-Methods': 'POST,OPTIONS'
 };
 
+const respond = (statusCode, body) => ({ statusCode, headers: HEADERS, body: JSON.stringify(body) });
+
 /**
- * Retrieves the CloudFront private key from Secrets Manager with caching
- * @returns {Promise<string>} The private key PEM string
+ * Reads a required environment variable.
+ * @param {string} name
+ * @returns {string}
  */
-async function getPrivateKey() {
-  const now = Date.now();
-
-  // Return cached key if still valid
-  if (cachedPrivateKey && (now - cacheTimestamp) < CACHE_TTL_MS) {
-    console.log('Using cached private key');
-    return cachedPrivateKey;
-  }
-
-  const secretName = process.env.CLOUDFRONT_PRIVATE_KEY_SECRET;
-  if (!secretName) {
-    throw new Error('CLOUDFRONT_PRIVATE_KEY_SECRET environment variable not set');
-  }
-
-  console.log('Fetching private key from Secrets Manager:', secretName);
-
-  const client = new SecretsManagerClient({ region: process.env.AWS_REGION || 'us-east-1' });
-  const response = await client.send(
-    new GetSecretValueCommand({ SecretId: secretName })
-  );
-
-  if (!response.SecretString) {
-    throw new Error('Secret value is empty');
-  }
-
-  cachedPrivateKey = response.SecretString;
-  cacheTimestamp = now;
-
-  return cachedPrivateKey;
+function requireEnv(name) {
+  const value = process.env[name];
+  if (!value) throw new Error(`${name} environment variable not set`);
+  return value;
 }
 
 /**
- * Generates a CloudFront signed URL for the given S3 key
- * @param {string} s3Key - The S3 object key
- * @param {string} privateKey - The CloudFront private key PEM
- * @param {number} expiresInSeconds - URL validity duration in seconds
- * @returns {{signedUrl: string, expiresAt: number}} The signed URL and expiration timestamp
+ * Resolves the requested lifetime: default 1h, capped at 4h.
+ * @param {unknown} requested - expiresInSeconds from the request body
+ * @returns {number|null} seconds, or null when the value is invalid
  */
-function generateCloudFrontSignedUrl(s3Key, privateKey, expiresInSeconds) {
-  const cdnDomain = process.env.CLOUDFRONT_DOMAIN;
-  const keyPairId = process.env.CLOUDFRONT_KEY_PAIR_ID;
+function resolveExpiresIn(requested) {
+  if (requested === undefined || requested === null) return DEFAULT_EXPIRES_IN_SECONDS;
+  if (typeof requested !== 'number' || !Number.isFinite(requested) || requested <= 0) return null;
+  return Math.min(Math.floor(requested), MAX_EXPIRES_IN_SECONDS);
+}
 
-  if (!cdnDomain) {
-    throw new Error('CLOUDFRONT_DOMAIN environment variable not set');
-  }
-  if (!keyPairId) {
-    throw new Error('CLOUDFRONT_KEY_PAIR_ID environment variable not set');
-  }
-
-  // Ensure key starts with correct prefix for S3 bucket structure
-  const normalizedKey = s3Key.startsWith('public/') ? s3Key : `public/${s3Key}`;
-
-  // Encode each path segment to handle filenames with spaces or special characters.
-  // Decode first to avoid double-encoding keys that are already percent-encoded.
-  const encodedKey = normalizedKey
-    .split('/')
-    .map(segment => {
-      try {
-        return encodeURIComponent(decodeURIComponent(segment));
-      } catch {
-        return encodeURIComponent(segment);
-      }
-    })
-    .join('/');
-
-  const url = `https://${cdnDomain}/${encodedKey}`;
+/**
+ * Generates a CloudFront signed URL for an already-normalized, decoded key ("public/...").
+ * @returns {{signedUrl: string, expiresAt: number}} expiresAt in milliseconds
+ */
+function generateCloudFrontSignedUrl({ objectKey, privateKey, expiresInSeconds, cdnDomain, keyPairId }) {
+  const encodedKey = objectKey.split('/').map(encodeURIComponent).join('/');
   const expiresAt = Math.floor(Date.now() / 1000) + expiresInSeconds;
 
   const signedUrl = getSignedUrl({
-    url,
+    url: `https://${cdnDomain}/${encodedKey}`,
     keyPairId,
     privateKey,
     dateLessThan: new Date(expiresAt * 1000).toISOString()
   });
 
-  return {
-    signedUrl,
-    expiresAt: expiresAt * 1000 // Return milliseconds for frontend consistency
-  };
+  return { signedUrl, expiresAt: expiresAt * 1000 };
 }
 
 /**
- * Lambda handler for CloudFront URL signing
- * @param {object} event - API Gateway event
- * @returns {Promise<object>} API Gateway response
+ * Builds the handler from injected clients so tests can mock every AWS call.
+ * @param {object} deps
+ * @param {{send: Function}} deps.docClient
+ * @param {{send: Function}} deps.cognitoClient
+ * @param {{send: Function}} deps.secretsClient
+ * @param {{transcriptionTable: string, mediaTable: string, userPoolId: string,
+ *   privateKeySecret: string, cdnDomain: string, keyPairId: string}} deps.config
+ * @param {(line: string) => void} [deps.log]
  */
-exports.handler = async (event) => {
-  console.log('CloudFront Signer invoked:', JSON.stringify({
-    httpMethod: event.httpMethod,
-    path: event.path,
-    hasBody: !!event.body
-  }));
+function createHandler({ docClient, cognitoClient, secretsClient, config, log = console.log }) {
+  const authorize = createAuthorizer(createRecords({ docClient, cognitoClient, config }));
+  let cachedPrivateKey = null;
+  let cacheTimestamp = 0;
 
-  // Handle CORS preflight
-  if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 200,
-      headers: HEADERS,
-      body: ''
-    };
+  async function getPrivateKey() {
+    const now = Date.now();
+    if (cachedPrivateKey && now - cacheTimestamp < KEY_CACHE_TTL_MS) return cachedPrivateKey;
+
+    const response = await secretsClient.send(new GetSecretValueCommand({ SecretId: config.privateKeySecret }));
+    if (!response.SecretString) throw new Error('Secret value is empty');
+
+    cachedPrivateKey = response.SecretString;
+    cacheTimestamp = now;
+    return cachedPrivateKey;
   }
 
-  try {
-    const body = JSON.parse(event.body || '{}');
+  const audit = (fields) => log(JSON.stringify({ route: 'mediaAccess', ...fields }));
 
-    if (!body.s3Key) {
-      return {
-        statusCode: 400,
-        headers: HEADERS,
-        body: JSON.stringify({ error: 's3Key is required' })
-      };
+  return async function handler(event) {
+    if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers: HEADERS, body: '' };
+
+    const caller = callerFromEvent(event, config.userPoolId);
+    let body;
+    try {
+      body = JSON.parse(event.body || '{}');
+    } catch {
+      audit({ callerSub: caller && caller.sub, key: null, decision: 'deny', reason: 'bad-body' });
+      return respond(400, { error: 'Invalid JSON body' });
+    }
+    const rawKey = body.s3Key;
+
+    if (!caller) {
+      audit({ callerSub: null, key: rawKey, decision: 'deny', reason: 'no-identity' });
+      return respond(403, { error: 'Forbidden' });
+    }
+    if (!rawKey) {
+      audit({ callerSub: caller.sub, key: null, decision: 'deny', reason: 'missing-key' });
+      return respond(400, { error: 's3Key is required' });
+    }
+    const expiresInSeconds = resolveExpiresIn(body.expiresInSeconds);
+    if (expiresInSeconds === null) {
+      audit({ callerSub: caller.sub, key: rawKey, decision: 'deny', reason: 'bad-expiry' });
+      return respond(400, { error: 'expiresInSeconds must be a positive number' });
     }
 
-    // Default 24 hours (86400 seconds), max 7 days (604800 seconds)
-    const expiresInSeconds = Math.min(
-      body.expiresInSeconds || 86400,
-      604800
-    );
+    try {
+      const decision = await authorize({ rawKey, sub: caller.sub });
+      audit({
+        callerSub: caller.sub,
+        key: rawKey,
+        decision: decision.allowed ? 'allow' : 'deny',
+        reason: decision.reason,
+        expiresInSeconds: decision.allowed ? expiresInSeconds : undefined
+      });
+      if (!decision.allowed) return respond(403, { error: 'Forbidden' });
 
-    const privateKey = await getPrivateKey();
-    const result = generateCloudFrontSignedUrl(
-      body.s3Key,
-      privateKey,
-      expiresInSeconds
-    );
+      const privateKey = await getPrivateKey();
+      const result = generateCloudFrontSignedUrl({
+        objectKey: decision.objectKey,
+        privateKey,
+        expiresInSeconds,
+        cdnDomain: config.cdnDomain,
+        keyPairId: config.keyPairId
+      });
+      return respond(200, result);
+    } catch (error) {
+      audit({ callerSub: caller.sub, key: rawKey, decision: 'error', reason: error.name || 'Error' });
+      console.error('Error generating signed URL:', error);
+      return respond(500, { error: 'Failed to generate signed URL' });
+    }
+  };
+}
 
-    console.log('Generated signed URL for:', body.s3Key, 'expires in:', expiresInSeconds, 'seconds');
+let defaultHandler = null;
 
-    return {
-      statusCode: 200,
-      headers: HEADERS,
-      body: JSON.stringify(result)
-    };
-
-  } catch (error) {
-    console.error('Error generating signed URL:', error);
-    return {
-      statusCode: 500,
-      headers: HEADERS,
-      body: JSON.stringify({
-        error: 'Failed to generate signed URL',
-        message: error.message
-      })
-    };
+/**
+ * Lambda entry point (API Gateway, AWS_IAM auth).
+ */
+exports.handler = async (event) => {
+  if (!defaultHandler) {
+    const region = requireEnv('REGION');
+    defaultHandler = createHandler({
+      docClient: DynamoDBDocumentClient.from(new DynamoDBClient({ region })),
+      cognitoClient: new CognitoIdentityProviderClient({ region }),
+      secretsClient: new SecretsManagerClient({ region }),
+      config: {
+        transcriptionTable: requireEnv('API_KIYANAW_TRANSCRIPTIONTABLE_NAME'),
+        mediaTable: requireEnv('API_KIYANAW_MEDIATABLE_NAME'),
+        userPoolId: requireEnv('AUTH_KIYANAW4007D1974007D197_USERPOOLID'),
+        privateKeySecret: requireEnv('CLOUDFRONT_PRIVATE_KEY_SECRET'),
+        cdnDomain: requireEnv('CLOUDFRONT_DOMAIN'),
+        keyPairId: requireEnv('CLOUDFRONT_KEY_PAIR_ID')
+      }
+    });
   }
+  return defaultHandler(event);
 };
+
+exports.createHandler = createHandler;
+exports.DEFAULT_EXPIRES_IN_SECONDS = DEFAULT_EXPIRES_IN_SECONDS;
+exports.MAX_EXPIRES_IN_SECONDS = MAX_EXPIRES_IN_SECONDS;

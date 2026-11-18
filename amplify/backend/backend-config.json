@@ -253,6 +253,22 @@
     },
     "mediaAccess": {
       "build": true,
+      "dependsOn": [
+        {
+          "attributes": [
+            "GraphQLAPIIdOutput"
+          ],
+          "category": "api",
+          "resourceName": "kiyanaw"
+        },
+        {
+          "attributes": [
+            "UserPoolId"
+          ],
+          "category": "auth",
+          "resourceName": "kiyanaw4007d1974007d197"
+        }
+      ],
       "providerPlugin": "awscloudformation",
       "service": "Lambda"
     },
@@ -454,6 +470,22 @@
         {
           "category": "function",
           "resourceName": "kiyanawffmpeg"
+        }
+      ]
+    },
+    "AMPLIFY_function_mediaAccess_apikiyanawGraphQLAPIIdOutput": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "mediaAccess"
+        }
+      ]
+    },
+    "AMPLIFY_function_mediaAccess_authkiyanaw4007d1974007d197UserPoolId": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "mediaAccess"
         }
       ]
     },

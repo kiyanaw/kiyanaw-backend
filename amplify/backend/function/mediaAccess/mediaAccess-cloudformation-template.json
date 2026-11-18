@@ -15,6 +15,14 @@
     },
     "s3Key": {
       "Type": "String"
+    },
+    "apikiyanawGraphQLAPIIdOutput": {
+      "Type": "String",
+      "Default": "apikiyanawGraphQLAPIIdOutput"
+    },
+    "authkiyanaw4007d1974007d197UserPoolId": {
+      "Type": "String",
+      "Default": "authkiyanaw4007d1974007d197UserPoolId"
     }
   },
   "Conditions": {
@@ -92,6 +100,64 @@
               "Fn::ImportValue": {
                 "Fn::Sub": "kiyanaw-serverless-${env}-CloudFrontPublicKeyId"
               }
+            },
+            "API_KIYANAW_GRAPHQLAPIIDOUTPUT": {
+              "Ref": "apikiyanawGraphQLAPIIdOutput"
+            },
+            "API_KIYANAW_TRANSCRIPTIONTABLE_NAME": {
+              "Fn::ImportValue": {
+                "Fn::Sub": "${apikiyanawGraphQLAPIIdOutput}:GetAtt:TranscriptionTable:Name"
+              }
+            },
+            "API_KIYANAW_TRANSCRIPTIONTABLE_ARN": {
+              "Fn::Join": [
+                "",
+                [
+                  "arn:aws:dynamodb:",
+                  {
+                    "Ref": "AWS::Region"
+                  },
+                  ":",
+                  {
+                    "Ref": "AWS::AccountId"
+                  },
+                  ":table/",
+                  {
+                    "Fn::ImportValue": {
+                      "Fn::Sub": "${apikiyanawGraphQLAPIIdOutput}:GetAtt:TranscriptionTable:Name"
+                    }
+                  }
+                ]
+              ]
+            },
+            "API_KIYANAW_MEDIATABLE_NAME": {
+              "Fn::ImportValue": {
+                "Fn::Sub": "${apikiyanawGraphQLAPIIdOutput}:GetAtt:MediaTable:Name"
+              }
+            },
+            "API_KIYANAW_MEDIATABLE_ARN": {
+              "Fn::Join": [
+                "",
+                [
+                  "arn:aws:dynamodb:",
+                  {
+                    "Ref": "AWS::Region"
+                  },
+                  ":",
+                  {
+                    "Ref": "AWS::AccountId"
+                  },
+                  ":table/",
+                  {
+                    "Fn::ImportValue": {
+                      "Fn::Sub": "${apikiyanawGraphQLAPIIdOutput}:GetAtt:MediaTable:Name"
+                    }
+                  }
+                ]
+              ]
+            },
+            "AUTH_KIYANAW4007D1974007D197_USERPOOLID": {
+              "Ref": "authkiyanaw4007d1974007d197UserPoolId"
             }
           }
         },
@@ -213,6 +279,134 @@
         ]
       },
       "DependsOn": "LambdaExecutionRole"
+    },
+    "AmplifyResourcesPolicy": {
+      "DependsOn": [
+        "LambdaExecutionRole"
+      ],
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyName": "amplify-lambda-execution-policy",
+        "Roles": [
+          {
+            "Ref": "LambdaExecutionRole"
+          }
+        ],
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "dynamodb:GetItem",
+                "dynamodb:Query",
+                "dynamodb:Scan"
+              ],
+              "Resource": [
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:aws:dynamodb:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":",
+                      {
+                        "Ref": "AWS::AccountId"
+                      },
+                      ":table/",
+                      {
+                        "Fn::ImportValue": {
+                          "Fn::Sub": "${apikiyanawGraphQLAPIIdOutput}:GetAtt:TranscriptionTable:Name"
+                        }
+                      }
+                    ]
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:aws:dynamodb:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":",
+                      {
+                        "Ref": "AWS::AccountId"
+                      },
+                      ":table/",
+                      {
+                        "Fn::ImportValue": {
+                          "Fn::Sub": "${apikiyanawGraphQLAPIIdOutput}:GetAtt:TranscriptionTable:Name"
+                        }
+                      },
+                      "/index/*"
+                    ]
+                  ]
+                }
+              ]
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "dynamodb:GetItem"
+              ],
+              "Resource": [
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:aws:dynamodb:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":",
+                      {
+                        "Ref": "AWS::AccountId"
+                      },
+                      ":table/",
+                      {
+                        "Fn::ImportValue": {
+                          "Fn::Sub": "${apikiyanawGraphQLAPIIdOutput}:GetAtt:MediaTable:Name"
+                        }
+                      }
+                    ]
+                  ]
+                }
+              ]
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "cognito-idp:AdminListGroupsForUser"
+              ],
+              "Resource": [
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:aws:cognito-idp:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":",
+                      {
+                        "Ref": "AWS::AccountId"
+                      },
+                      ":userpool/",
+                      {
+                        "Ref": "authkiyanaw4007d1974007d197UserPoolId"
+                      }
+                    ]
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
     }
   },
   "Outputs": {
