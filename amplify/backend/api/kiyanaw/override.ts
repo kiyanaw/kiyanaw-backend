@@ -6,7 +6,7 @@ import { CfnFunctionConfiguration, CfnResolver } from 'aws-cdk-lib/aws-appsync';
 // Shared ACL logic block (read access: author | editors | viewers | editorGroups | viewerGroups | Admins)
 // Assumes $ctx.result = fetched Transcription, $userSub / $userGroups already set.
 // Calls $util.unauthorized() if access denied; otherwise falls through.
-const READ_ACL_GUARD = `\
+export const READ_ACL_GUARD = `\
 #if($t.isPrivate == true && !$userGroups.contains("Admins"))
   #set($hasAccess = false)
   #if(!$util.isNull($t.author) && $t.author == $userSub) #set($hasAccess = true) #end
@@ -27,7 +27,7 @@ const EDITOR_ACL_GUARD = `\
 #if(!$hasAccess) $util.unauthorized() #end`;
 
 // Identity extraction preamble shared by all ACL response templates
-const IDENTITY_PREAMBLE = `\
+export const IDENTITY_PREAMBLE = `\
 #set($userSub = $ctx.identity.claims.get("sub"))
 #set($userGroups = $ctx.identity.claims.get("cognito:groups"))
 #if($util.isNull($userSub)) #set($userSub = "") #end
@@ -70,7 +70,7 @@ const GET_REGION_ACL_RES = `\
 #end`;
 
 // issuesByTranscription / commentsByTranscription: request — fetch Transcription by args.transcriptionId.
-const LIST_BY_TRANSCRIPTION_ACL_REQ = `\
+export const LIST_BY_TRANSCRIPTION_ACL_REQ = `\
 {
   "version": "2018-05-29",
   "operation": "GetItem",
@@ -78,7 +78,7 @@ const LIST_BY_TRANSCRIPTION_ACL_REQ = `\
 }`;
 
 // issuesByTranscription / commentsByTranscription: response — ACL check, pass through to data function.
-const LIST_BY_TRANSCRIPTION_ACL_RES = `\
+export const LIST_BY_TRANSCRIPTION_ACL_RES = `\
 #set($t = $ctx.result)
 #if($util.isNull($t)) $util.unauthorized() #end
 ${IDENTITY_PREAMBLE}
@@ -122,6 +122,16 @@ ${IDENTITY_PREAMBLE}
 ${EDITOR_ACL_GUARD}
 $util.toJson({})`;
 
+// Admin-only deny: request — prepended to list/sync/byX queries that no client uses.
+// Runs on the NONE data source; non-Admins stop here with Unauthorized.
+export const ADMIN_ONLY_DENY_REQ = `\
+${IDENTITY_PREAMBLE}
+#if(!$userGroups.contains("Admins")) $util.unauthorized() #end
+$util.toJson({"version": "2018-05-29", "payload": {}})`;
+
+export const ADMIN_ONLY_DENY_RES = `\
+$util.toJson({})`;
+
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 function getFunctions(resolver: CfnResolver): string[] {
@@ -137,6 +147,8 @@ function insertBeforeLast(fns: string[], newFnId: string): string[] {
 // We reference it by string rather than via cross-stack CDK token to avoid
 // circular dependency errors between Amplify nested stacks.
 const TRANSCRIPTION_DS_NAME = 'TranscriptionTable';
+// The API's NONE data source (root stack, transformer convention).
+const NONE_DS_NAME = 'NONE_DS';
 
 function newFn(
   resolver: CfnResolver,
@@ -145,15 +157,43 @@ function newFn(
   apiId: string,
   reqVtl: string,
   resVtl: string,
+  dataSourceName: string = TRANSCRIPTION_DS_NAME,
 ): CfnFunctionConfiguration {
   return new CfnFunctionConfiguration(resolver.stack, logicalId, {
     apiId,
-    dataSourceName: TRANSCRIPTION_DS_NAME,
+    dataSourceName,
     functionVersion: '2018-05-29',
     name,
     requestMappingTemplate: reqVtl,
     responseMappingTemplate: resVtl,
   });
+}
+
+// Looks up a generated resolver; throws so a renamed key fails the push instead of
+// silently shipping the field unguarded.
+function requireResolver(
+  resources: AmplifyApiGraphQlResourceStackTemplate,
+  model: string,
+  key: string,
+): CfnResolver {
+  const resolver = resources.models?.[model]?.resolvers?.[key];
+  if (!resolver) throw new Error(`override.ts: resolver ${model}.${key} not found`);
+  return resolver;
+}
+
+// Prepends one shared Admin-only deny function (per model stack) to each resolver.
+function denyNonAdmins(
+  resources: AmplifyApiGraphQlResourceStackTemplate,
+  apiId: string,
+  model: string,
+  fnName: string,
+  resolverKeys: string[],
+): void {
+  const resolvers = resolverKeys.map((key) => requireResolver(resources, model, key));
+  const denyFn = newFn(resolvers[0], fnName, fnName, apiId, ADMIN_ONLY_DENY_REQ, ADMIN_ONLY_DENY_RES, NONE_DS_NAME);
+  for (const resolver of resolvers) {
+    resolver.pipelineConfig = { functions: [denyFn.attrFunctionId, ...getFunctions(resolver)] };
+  }
 }
 
 // ── Override entry point ───────────────────────────────────────────────────────
@@ -186,6 +226,28 @@ export function override(resources: AmplifyApiGraphQlResourceStackTemplate) {
       functions: insertBeforeLast(getFunctions(issuesByTranscriptionResolver), aclFn.attrFunctionId),
     };
   }
+
+  // ── regionsByTranscription: parent-ACL (audit C3.1) ──────────────────────────
+  const regionsByTranscriptionResolver = requireResolver(resources, 'Region', 'queryRegionsByTranscriptionResolver');
+  const regionsAclFn = newFn(
+    regionsByTranscriptionResolver, 'RegionsByTranscriptionACLFn', 'RegionsByTranscriptionACLFn',
+    apiId, LIST_BY_TRANSCRIPTION_ACL_REQ, LIST_BY_TRANSCRIPTION_ACL_RES,
+  );
+  regionsByTranscriptionResolver.pipelineConfig = {
+    functions: insertBeforeLast(getFunctions(regionsByTranscriptionResolver), regionsAclFn.attrFunctionId),
+  };
+
+  // ── Unused list/sync/index queries: Admins only (audit C3.3) ─────────────────
+  // No client calls these (app, portal, Mentor, Lambdas); they bypass the parent ACL.
+  denyNonAdmins(resources, apiId, 'Region', 'RegionAdminOnlyDenyFn', [
+    'queryListRegionsResolver',
+    'querySyncRegionsResolver',
+  ]);
+  denyNonAdmins(resources, apiId, 'Transcription', 'TranscriptionAdminOnlyDenyFn', [
+    'queryByTitleResolver',
+    'queryTranscriptionsByMediaResolver',
+    'querySyncTranscriptionsResolver',
+  ]);
 
   // ── commentsByTranscription: parent-ACL ──────────────────────────────────────
   const commentsByTranscriptionResolver = resources.models?.['Comment']?.resolvers?.['queryCommentsByTranscriptionResolver'];
