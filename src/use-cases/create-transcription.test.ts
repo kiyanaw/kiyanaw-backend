@@ -11,7 +11,6 @@ describe('CreateTranscriptionUseCase', () => {
       uploadFile: jest.fn(),
       constructPublicUrl: jest.fn(),
       uploadOriginal: jest.fn(),
-      buildOriginalKey: jest.fn(),
     },
     transcriptionService: {
       create: jest.fn()
@@ -118,8 +117,7 @@ describe('CreateTranscriptionUseCase', () => {
       const mockMediaId = 'fixed-uuid';
 
       jest.spyOn(globalThis.crypto, 'randomUUID').mockReturnValue(mockMediaId as any);
-      mockServices.uploadService.buildOriginalKey.mockReturnValue('originals/fixed-uuid.mp3');
-      mockServices.uploadService.uploadOriginal.mockResolvedValue('public/originals/fixed-uuid.mp3');
+      mockServices.uploadService.uploadOriginal.mockResolvedValue('public/originals/us-east-1:11111111-2222-3333-4444-555555555555/fixed-uuid.mp3');
       mockServices.mediaService.createMedia.mockResolvedValue({});
       mockServices.transcriptionService.create.mockResolvedValue(mockTranscription);
 
@@ -134,13 +132,10 @@ describe('CreateTranscriptionUseCase', () => {
       const useCase = new CreateTranscriptionUseCase(config);
       const result = await useCase.execute();
 
-      // Verify key built from mediaId + filename (no userId)
-      expect(mockServices.uploadService.buildOriginalKey).toHaveBeenCalledWith(mockMediaId, 'test-audio.mp3');
-
-      // Verify upload with the built key
+      // Upload is keyed by mediaId; the service picks the identity folder
       expect(mockServices.uploadService.uploadOriginal).toHaveBeenCalledWith(
         mockFile,
-        'originals/fixed-uuid.mp3',
+        mockMediaId,
         { onProgress: undefined }
       );
 
@@ -148,7 +143,7 @@ describe('CreateTranscriptionUseCase', () => {
       expect(mockServices.mediaService.createMedia).toHaveBeenCalledWith({
         id: mockMediaId,
         owner: 'user-id',
-        originalKey: 'public/originals/fixed-uuid.mp3',
+        originalKey: 'public/originals/us-east-1:11111111-2222-3333-4444-555555555555/fixed-uuid.mp3',
         originalName: 'test-audio.mp3',
         mimeType: 'audio/mpeg',
         fileSize: mockFile.size,
@@ -194,7 +189,6 @@ describe('CreateTranscriptionUseCase', () => {
       const mockFile = createMockFile();
       const mockTranscription = { id: 'transcription-id', title: 'Test' };
 
-      mockServices.uploadService.buildOriginalKey.mockReturnValue('originals/m.mp3');
       mockServices.uploadService.uploadOriginal.mockResolvedValue('public/originals/m.mp3');
       mockServices.mediaService.createMedia.mockResolvedValue({});
       mockServices.transcriptionService.create.mockResolvedValue(mockTranscription);
@@ -213,14 +207,13 @@ describe('CreateTranscriptionUseCase', () => {
 
       expect(mockServices.uploadService.uploadOriginal).toHaveBeenCalledWith(
         mockFile,
-        'originals/m.mp3',
+        expect.any(String),
         { onProgress: progressCallback }
       );
     });
 
     it('should handle upload service errors', async () => {
       const uploadError = new Error('Upload failed');
-      mockServices.uploadService.buildOriginalKey.mockReturnValue('originals/u/m.mp3');
       mockServices.uploadService.uploadOriginal.mockRejectedValue(uploadError);
 
       const config = {
@@ -239,7 +232,6 @@ describe('CreateTranscriptionUseCase', () => {
     it('should handle transcription creation errors', async () => {
       const transcriptionError = new Error('Transcription creation failed');
 
-      mockServices.uploadService.buildOriginalKey.mockReturnValue('originals/u/m.mp3');
       mockServices.uploadService.uploadOriginal.mockResolvedValue('public/originals/u/m.mp3');
       mockServices.mediaService.createMedia.mockResolvedValue({});
       mockServices.transcriptionService.create.mockRejectedValue(transcriptionError);
@@ -263,7 +255,6 @@ describe('CreateTranscriptionUseCase', () => {
       const videoFile = createMockFile('video.mp4', 'video/mp4');
       const mockTranscription = { id: 'transcription-id' };
 
-      mockServices.uploadService.buildOriginalKey.mockReturnValue('originals/m.mp4');
       mockServices.uploadService.uploadOriginal.mockResolvedValue('public/originals/m.mp4');
       mockServices.mediaService.createMedia.mockResolvedValue({});
       mockServices.transcriptionService.create.mockResolvedValue(mockTranscription);
@@ -294,7 +285,6 @@ describe('CreateTranscriptionUseCase', () => {
       const mockFile = createMockFile('test.mp3', 'audio/mpeg');
       const mockTranscription = { id: 'transcription-id', title: 'Test Title' };
 
-      mockServices.uploadService.buildOriginalKey.mockReturnValue('originals/m.mp3');
       mockServices.uploadService.uploadOriginal.mockResolvedValue('public/originals/m.mp3');
       mockServices.mediaService.createMedia.mockResolvedValue({});
       mockServices.transcriptionService.create.mockResolvedValue(mockTranscription);
@@ -319,7 +309,6 @@ describe('CreateTranscriptionUseCase', () => {
       const mockFile = createMockFile('test.mp3', 'audio/mpeg');
       const mockTranscription = { id: 'transcription-id', title: 'Test Title' };
 
-      mockServices.uploadService.buildOriginalKey.mockReturnValue('originals/m.mp3');
       mockServices.uploadService.uploadOriginal.mockResolvedValue('public/originals/m.mp3');
       mockServices.mediaService.createMedia.mockResolvedValue({});
       mockServices.transcriptionService.create.mockResolvedValue(mockTranscription);
@@ -346,9 +335,6 @@ describe('CreateTranscriptionUseCase', () => {
       const mockTranscription1 = { id: 'transcription-1' };
       const mockTranscription2 = { id: 'transcription-2' };
 
-      mockServices.uploadService.buildOriginalKey
-        .mockReturnValueOnce('originals/m1.mp3')
-        .mockReturnValueOnce('originals/m2.mp3');
       mockServices.uploadService.uploadOriginal
         .mockResolvedValueOnce('public/originals/m1.mp3')
         .mockResolvedValueOnce('public/originals/m2.mp3');
@@ -389,7 +375,6 @@ describe('CreateTranscriptionUseCase', () => {
       const originalFile = createMockFile('original.mp3');
       const originalTitle = 'Original Title';
 
-      mockServices.uploadService.buildOriginalKey.mockReturnValue('originals/u/m.mp3');
       mockServices.uploadService.uploadOriginal.mockResolvedValue('public/originals/u/m.mp3');
       mockServices.mediaService.createMedia.mockResolvedValue({});
       mockServices.transcriptionService.create.mockResolvedValue({ id: 'transcription-id' });

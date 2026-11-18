@@ -23,14 +23,18 @@ class UploadService {
       data: file,
       options: {
         accessLevel: 'guest',
-        onProgress: ({ transferredBytes, totalBytes }) => {
-          if (totalBytes && options?.onProgress) {
-            const percentage = (transferredBytes / totalBytes) * 100;
-            options.onProgress({ transferredBytes, totalBytes, percentage });
-          }
-        },
+        onProgress: this._progressHandler(options),
       },
     }).result;
+  }
+
+  private _progressHandler(options?: UploadOptions) {
+    return ({ transferredBytes, totalBytes }: { transferredBytes: number; totalBytes?: number }) => {
+      if (totalBytes && options?.onProgress) {
+        const percentage = (transferredBytes / totalBytes) * 100;
+        options.onProgress({ transferredBytes, totalBytes, percentage });
+      }
+    };
   }
 
   async uploadFile(file: File, options?: UploadOptions): Promise<string> {
@@ -39,16 +43,31 @@ class UploadService {
     return key;
   }
 
-  buildOriginalKey(mediaId: string, fileName: string): string {
+  /**
+   * Full S3 key of an original upload: public/originals/<identityId>/<mediaId>.<ext>.
+   * The identity folder is what the storage IAM policy scopes Put/Get to.
+   */
+  buildOriginalPath(identityId: string | undefined, mediaId: string, fileName: string): string {
+    if (!identityId) {
+      throw new Error('Cannot upload original: no Cognito identity id');
+    }
     const ext = fileName.includes('.')
       ? fileName.split('.').pop()!.toLowerCase()
       : 'mp3';
-    return `originals/${mediaId}.${ext}`;
+    return `public/originals/${identityId}/${mediaId}.${ext}`;
   }
 
-  async uploadOriginal(file: File, key: string, options?: UploadOptions): Promise<string> {
-    await this._upload(key, file, options);
-    return `public/${key}`;
+  /**
+   * Uploads an original into the caller's identity folder.
+   * @returns the full S3 key (store as Media.originalKey)
+   */
+  async uploadOriginal(file: File, mediaId: string, options?: UploadOptions): Promise<string> {
+    const { path } = await uploadData({
+      path: ({ identityId }) => this.buildOriginalPath(identityId, mediaId, file.name),
+      data: file,
+      options: { onProgress: this._progressHandler(options) },
+    }).result;
+    return path;
   }
 
   constructPublicUrl(key: string): string {

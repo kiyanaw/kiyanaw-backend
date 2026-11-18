@@ -306,7 +306,7 @@
                       {
                         "Ref": "S3Bucket"
                       },
-                      "/public/*"
+                      "/public/originals/${cognito-identity.amazonaws.com:sub}/*"
                     ]
                   ]
                 }
@@ -516,8 +516,6 @@
               "Condition": {
                 "StringLike": {
                   "s3:prefix": [
-                    "public/",
-                    "public/*",
                     "protected/",
                     "protected/*",
                     "private/${cognito-identity.amazonaws.com:sub}/",

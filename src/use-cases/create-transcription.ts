@@ -46,8 +46,7 @@ export class CreateTranscriptionUseCase {
     const displayUsername = username.split('@')[0];
 
     const mediaId = crypto.randomUUID();
-    const key = services.uploadService.buildOriginalKey(mediaId, file.name);
-    const originalKey = await services.uploadService.uploadOriginal(file, key, { onProgress });
+    const originalKey = await services.uploadService.uploadOriginal(file, mediaId, { onProgress });
 
     await services.mediaService.createMedia({
       id: mediaId,

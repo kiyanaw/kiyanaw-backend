@@ -25,6 +25,19 @@ jest.mock('wavesurfer.js/dist/plugins/timeline.esm.js', () => ({
 }));
 
 import WaveSurfer from 'wavesurfer.js';
+// mediaAccess (/cloudfront/sign) stub: signs any key as a CDN URL under public/.
+jest.mock('aws-amplify/api', () => ({
+  generateClient: jest.fn(),
+  post: jest.fn(({ options }: { options: { body: { s3Key: string } } }) => {
+    const relative = options.body.s3Key.replace(/^public\//, '');
+    return {
+      response: Promise.resolve({
+        body: { json: () => Promise.resolve({ signedUrl: `https://cdn.example/public/${relative}`, expiresAt: Date.now() + 3600 * 1000 }) },
+      }),
+    };
+  }),
+}));
+
 import Regions from 'wavesurfer.js/dist/plugins/regions.esm.js';
 import Timeline from 'wavesurfer.js/dist/plugins/timeline.esm.js';
 import { wavesurferService } from './wavesurferService';
@@ -767,7 +780,7 @@ describe('WaveSurferService', () => {
       
       // Should call wavesurfer load with signed URL
       expect(mockWaveSurferInstance.load).toHaveBeenCalledWith(
-        'https://fake.s3.amazonaws.com/public/test-source.mp3',
+        'https://cdn.example/public/test-source.mp3',
         peaks,
         undefined
       );
@@ -784,7 +797,7 @@ describe('WaveSurferService', () => {
 
       // WaveSurfer owns the media element src — verify it receives the signed URL
       expect(mockWaveSurferInstance.load).toHaveBeenCalledWith(
-        'https://fake.s3.amazonaws.com/public/test-video.mp4',
+        'https://cdn.example/public/test-video.mp4',
         peaks,
         undefined
       );
@@ -1450,7 +1463,7 @@ describe('WaveSurferService', () => {
       await new Promise(resolve => setTimeout(resolve, 0));
 
       // The delayed load should be processed immediately after instance creation with signed URL
-      expect(mockLoad).toHaveBeenCalledWith('https://fake.s3.amazonaws.com/public/test.mp4', peaks, undefined);
+      expect(mockLoad).toHaveBeenCalledWith('https://cdn.example/public/test.mp4', peaks, undefined);
       expect(wavesurferService['_delayedLoad']).toBeNull();
     });
 
@@ -1468,7 +1481,7 @@ describe('WaveSurferService', () => {
       await wavesurferService.load(source, peaks);
       
       // Should use signed URL
-      expect(mockLoad).toHaveBeenCalledWith('https://fake.s3.amazonaws.com/public/test.mp4', peaks, undefined);
+      expect(mockLoad).toHaveBeenCalledWith('https://cdn.example/public/test.mp4', peaks, undefined);
       expect(wavesurferService['_delayedLoad']).toBeNull();
     });
 
@@ -1546,7 +1559,7 @@ describe('WaveSurferService', () => {
       await new Promise(resolve => setTimeout(resolve, 0));
 
       // Should have processed the delayed load immediately with signed URL
-      expect(mockLoad).toHaveBeenCalledWith('https://fake.s3.amazonaws.com/public/test.mp4', peaks, undefined);
+      expect(mockLoad).toHaveBeenCalledWith('https://cdn.example/public/test.mp4', peaks, undefined);
       expect(wavesurferService['_delayedLoad']).toBeNull();
       
       // Now destroy the instance and set up a new delayed load to test preservation
@@ -1565,7 +1578,7 @@ describe('WaveSurferService', () => {
       await new Promise(resolve => setTimeout(resolve, 0));
       
       // Should process the delayed load with the new containers with signed URL
-      expect(mockLoad).toHaveBeenCalledWith('https://fake.s3.amazonaws.com/public/test2.mp4', peaks2, undefined);
+      expect(mockLoad).toHaveBeenCalledWith('https://cdn.example/public/test2.mp4', peaks2, undefined);
       expect(wavesurferService['_delayedLoad']).toBeNull();
     });
   });
