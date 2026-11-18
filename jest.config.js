@@ -147,6 +147,29 @@ export default {
         '/node_modules/',
       ],
     },
+    // AppSync override (amplify/backend/api/kiyanaw/override.ts): VTL + resolver wiring.
+    // isolatedModules: the Amplify CLI bundles aws-cdk-lib and cli-extensibility-helper,
+    // so they are not in node_modules; the tests mock them.
+    {
+      displayName: 'API Override',
+      testEnvironment: 'node',
+      testMatch: [
+        '<rootDir>/tests/unit/apiOverride/**/*.test.ts',
+      ],
+      transform: {
+        '^.+\\.ts$': ['ts-jest', {
+          tsconfig: {
+            isolatedModules: true,
+            module: 'commonjs',
+            esModuleInterop: true,
+            target: 'ES2020',
+          },
+        }],
+      },
+      testPathIgnorePatterns: [
+        '/node_modules/',
+      ],
+    },
     // Amplify hooks tests
     {
       displayName: 'Amplify Hooks',

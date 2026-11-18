@@ -1,5 +1,5 @@
 import { generateClient, post } from 'aws-amplify/api';
-import { getUrl, remove } from 'aws-amplify/storage';
+import { remove } from 'aws-amplify/storage';
 import { fetchAuthSession } from 'aws-amplify/auth';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - GraphQL queries are generated as JS files
@@ -71,34 +71,56 @@ interface CloudFrontSignedUrlResponse {
 }
 
 /**
- * Generates a CloudFront signed URL by calling the mediaAccess Lambda
- * @param s3Key The S3 object key
+ * Thrown when mediaAccess will not sign a key (denied, missing record, or the call failed).
+ * Browser reads of media go only through these signed URLs, so callers must not retry or
+ * fall back: the auth role has no S3 GetObject on public/ media.
+ */
+export class MediaSigningError extends Error {
+  readonly s3Key: string;
+
+  constructor(s3Key: string, cause: unknown) {
+    super(`Could not get access to media file ${s3Key}: ${cause instanceof Error ? cause.message : String(cause)}`);
+    this.name = 'MediaSigningError';
+    this.s3Key = s3Key;
+  }
+}
+
+// mediaAccess caps signed URLs at 4 hours.
+const SIGNED_URL_TTL_SECONDS = 4 * 60 * 60;
+
+// Track when the most recent signed URL expires
+let signedUrlExpirationTime: number | null = null;
+
+/**
+ * Generates a CloudFront signed URL by calling the mediaAccess Lambda, which checks
+ * that the caller may read the media before signing.
+ * @param s3Key The S3 object key (with or without the leading "public/")
  * @returns Object containing the signed URL and expiration timestamp
+ * @throws {MediaSigningError} when mediaAccess refuses or the call fails
  */
 const generateCloudFrontSignedUrl = async (s3Key: string): Promise<CloudFrontSignedUrlResponse> => {
   try {
-    console.debug(`Requesting CloudFront signed URL for: ${s3Key}`);
-
     const restOperation = post({
       apiName: 'media',
       path: '/cloudfront/sign',
       options: {
         body: {
           s3Key,
-          expiresInSeconds: 86400 // 24 hours
+          expiresInSeconds: SIGNED_URL_TTL_SECONDS
         }
       }
     });
 
     const response = await restOperation.response;
     const body = await response.body.json() as unknown as CloudFrontSignedUrlResponse;
-
-    console.debug(`CloudFront signed URL generated, expires at: ${new Date(body.expiresAt).toISOString()}`);
-
+    if (!body || typeof body.signedUrl !== 'string' || typeof body.expiresAt !== 'number') {
+      throw new Error('mediaAccess returned no signed URL');
+    }
+    signedUrlExpirationTime = body.expiresAt;
     return body;
   } catch (error) {
     console.error('Failed to generate CloudFront signed URL:', error);
-    throw error;
+    throw new MediaSigningError(s3Key, error);
   }
 };
 
@@ -134,39 +156,18 @@ const extractS3KeyFromUrl = (sourceUrl: string): string => {
 };
 
 /**
- * Generates a signed URL for S3 files using CloudFront CDN (preferred) with S3 fallback.
- * CloudFront URLs are valid for 24 hours, providing better caching and lower latency.
- * Falls back to direct S3 signed URLs if CloudFront signing fails.
+ * Generates a mediaAccess-signed CloudFront URL for a file named by its S3 URL.
+ * There is no direct-S3 fallback: signed-in users cannot read public/ media from S3.
  *
  * @param sourceUrl The source URL of the file
  * @param fileSuffix Optional suffix to append to the key (e.g., '.json' for peaks files)
  * @returns The signed URL for the file
+ * @throws {MediaSigningError} when mediaAccess refuses or the call fails
  */
 export const generateSignedUrl = async (sourceUrl: string, fileSuffix: string = ''): Promise<string> => {
-  try {
-    const fileKey = extractS3KeyFromUrl(sourceUrl);
-    const targetKey = `${fileKey}${fileSuffix}`;
-
-    console.debug(`Generating signed URL for file: ${targetKey}`);
-
-    // Try CloudFront signing first (24-hour URLs via CDN)
-    try {
-      const result = await generateCloudFrontSignedUrl(targetKey);
-
-      // Track when this signed URL will expire (24 hours)
-      signedUrlExpirationTime = result.expiresAt;
-
-      return result.signedUrl;
-    } catch (cloudFrontError) {
-      console.warn('CloudFront signing failed, falling back to S3:', cloudFrontError);
-    }
-
-    // Fallback to direct S3 signed URL (60 minutes)
-    return await generateS3SignedUrlFallback(sourceUrl, fileSuffix);
-  } catch (error) {
-    console.error(`Failed to generate signed URL for file: ${sourceUrl}${fileSuffix}`, error);
-    throw new Error(`Failed to generate signed URL for file: ${error}`);
-  }
+  const fileKey = extractS3KeyFromUrl(sourceUrl);
+  const result = await generateCloudFrontSignedUrl(`${fileKey}${fileSuffix}`);
+  return result.signedUrl;
 };
 
 /**
@@ -178,42 +179,9 @@ export const generateSignedUrlFromKey = async (key: string): Promise<string> => 
   return generateSignedUrl(sourceUrl);
 };
 
-/**
- * Fallback function to generate S3 signed URLs directly via Amplify Storage
- * Used when CloudFront signing is unavailable
- *
- * @param sourceUrl The source URL of the file
- * @param fileSuffix Optional suffix to append to the key
- * @returns The signed S3 URL
- */
-const generateS3SignedUrlFallback = async (sourceUrl: string, fileSuffix: string = ''): Promise<string> => {
-  const fileKey = extractS3KeyFromUrl(sourceUrl);
-  const targetKey = `${fileKey}${fileSuffix}`;
-
-  // Determine the path - if the key already starts with 'public/', use it as is
-  // Otherwise, prepend 'public/'
-  const path = targetKey.startsWith('public/') ? targetKey : `public/${targetKey}`;
-
-  const { url } = await getUrl({
-    path,
-    options: {
-      expiresIn: 3600, // 60 minutes
-      useAccelerateEndpoint: false
-    }
-  });
-
-  // Track when this signed URL will expire (60 minutes)
-  signedUrlExpirationTime = Date.now() + (3600 * 1000);
-
-  console.debug(`Generated S3 fallback signed URL for: ${targetKey}`);
-  return url.toString();
-};
-
 // Track credential expiration time
 let credentialExpirationTime: number | null = null;
 
-// Track signed URL expiration time (3 minutes from generation)
-let signedUrlExpirationTime: number | null = null;
 
 /**
  * Forces fresh credentials to be obtained.
@@ -271,7 +239,7 @@ export function getSignedUrlExpirationTime(): number | null {
 
 
 /**
- * Generates a signed URL for a peaks file using Amplify Storage
+ * Generates a signed URL for a legacy peaks file (`<source key>.json`)
  * @param sourceUrl The source URL of the media file
  * @returns The signed URL for the peaks file
  */
@@ -366,8 +334,8 @@ const fetchPeaksData = async (
       lastError = error as Error;
       console.error(`❌ Attempt ${attempt + 1} failed:`, lastError.message);
 
-      // If this is a "failed to load peaks data" error (non-retryable), re-throw immediately
-      if (lastError.message.includes('Failed to load peaks data:')) {
+      // Signing refused or failed, or a non-retryable HTTP status: fail fast
+      if (lastError instanceof MediaSigningError || lastError.message.includes('Failed to load peaks data:')) {
         throw lastError;
       }
 
@@ -394,20 +362,7 @@ const fetchPeaksDataByKey = async (
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      let signedUrl: string;
-      try {
-        const result = await generateCloudFrontSignedUrl(peaksKey);
-        signedUrlExpirationTime = result.expiresAt;
-        signedUrl = result.signedUrl;
-      } catch {
-        const { url } = await getUrl({
-          path: peaksKey,
-          options: { expiresIn: 3600, useAccelerateEndpoint: false },
-        });
-        signedUrlExpirationTime = Date.now() + 3600 * 1000;
-        signedUrl = url.toString();
-      }
-
+      const { signedUrl } = await generateCloudFrontSignedUrl(peaksKey);
       const peaksResponse = await fetch(signedUrl);
 
       if (peaksResponse.ok) {
@@ -431,6 +386,7 @@ const fetchPeaksDataByKey = async (
       }
     } catch (error) {
       lastError = error as Error;
+      if (lastError instanceof MediaSigningError) throw lastError;
       if ((lastError.message || '').includes('Failed to load peaks data:')) throw lastError;
       if (attempt < maxRetries) {
         await new Promise(resolve => setTimeout(resolve, baseDelay * Math.pow(1.5, attempt)));

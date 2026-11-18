@@ -1,6 +1,7 @@
 import { uploadService } from './uploadService';
 import { awsConfigService } from './awsConfigService';
 import { uploadData } from 'aws-amplify/storage';
+import type { UploadDataWithPathInput, UploadDataWithPathOutput } from 'aws-amplify/storage';
 
 // Mock AWS Amplify uploadData
 jest.mock('aws-amplify/storage', () => ({
@@ -207,95 +208,74 @@ describe('UploadService', () => {
     });
   });
 
-  describe('buildOriginalKey', () => {
-    it('should build key with mp3 extension', () => {
-      const key = uploadService.buildOriginalKey('media-456', 'recording.mp3');
-      expect(key).toBe('originals/media-456.mp3');
-    });
+  describe('buildOriginalPath', () => {
+    const ID = 'us-east-1:11111111-2222-3333-4444-555555555555';
 
-    it('should build key with mp4 extension', () => {
-      const key = uploadService.buildOriginalKey('media-456', 'video.mp4');
-      expect(key).toBe('originals/media-456.mp4');
-    });
-
-    it('should lowercase the extension', () => {
-      const key = uploadService.buildOriginalKey('m', 'file.MP3');
-      expect(key).toBe('originals/m.mp3');
+    it('should build the identity-scoped key with the lowercased extension', () => {
+      expect(uploadService.buildOriginalPath(ID, 'media-456', 'recording.MP3'))
+        .toBe(`public/originals/${ID}/media-456.mp3`);
+      expect(uploadService.buildOriginalPath(ID, 'media-456', 'video.mp4'))
+        .toBe(`public/originals/${ID}/media-456.mp4`);
     });
 
     it('should fall back to mp3 when no extension present', () => {
-      const key = uploadService.buildOriginalKey('m', 'noextension');
-      expect(key).toBe('originals/m.mp3');
+      expect(uploadService.buildOriginalPath(ID, 'm', 'noextension')).toBe(`public/originals/${ID}/m.mp3`);
+    });
+
+    it('should fail fast without an identity id', () => {
+      expect(() => uploadService.buildOriginalPath(undefined, 'm', 'a.mp3')).toThrow('no Cognito identity id');
+      expect(() => uploadService.buildOriginalPath('', 'm', 'a.mp3')).toThrow('no Cognito identity id');
     });
   });
 
   describe('uploadOriginal', () => {
-    it('should upload file with given key and return public/<key>', async () => {
-      const mockResult = Promise.resolve({ key: 'test-key' });
-      mockUploadData.mockReturnValue({
-        result: mockResult,
-        cancel: jest.fn(),
-        pause: jest.fn(),
-        resume: jest.fn(),
-        state: 'IN_PROGRESS'
-      } as any);
+    const ID = 'us-east-1:11111111-2222-3333-4444-555555555555';
 
-      const file = new File(['content'], 'audio.mp3', { type: 'audio/mpeg' });
-      const result = await uploadService.uploadOriginal(file, 'originals/media-1.mp3');
+    /** Fakes uploadData: resolves the path callback the way Amplify does, with the given identity. */
+    const fakeUpload = (identityId: string | undefined, progress?: { transferredBytes: number; totalBytes: number }) => {
+      const impl = (input: UploadDataWithPathInput): Partial<UploadDataWithPathOutput> => {
+        const result = (async () => {
+          const path = typeof input.path === 'string' ? input.path : input.path({ identityId });
+          if (progress) input.options?.onProgress?.(progress);
+          return { path };
+        })();
+        return { result: result as UploadDataWithPathOutput['result'] };
+      };
+      mockUploadData.mockImplementation(impl as typeof uploadData);
+    };
 
-      expect(uploadData).toHaveBeenCalledWith({
-        key: 'originals/media-1.mp3',
-        data: file,
-        options: {
-          accessLevel: 'guest',
-          onProgress: expect.any(Function),
-        },
-      });
-      expect(result).toBe('public/originals/media-1.mp3');
+    it('should upload into the identity folder and return the full key', async () => {
+      fakeUpload(ID);
+      const file = new File(['content'], 'audio.WAV', { type: 'audio/wav' });
+
+      const result = await uploadService.uploadOriginal(file, 'media-1');
+
+      expect(result).toBe(`public/originals/${ID}/media-1.wav`);
+      const input = mockUploadData.mock.calls[0][0];
+      expect(input.data).toBe(file);
+      expect('key' in input).toBe(false);
+    });
+
+    it('should fail fast when there is no identity id', async () => {
+      fakeUpload(undefined);
+      await expect(uploadService.uploadOriginal(new File(['x'], 'x.mp3'), 'm')).rejects.toThrow('no Cognito identity id');
     });
 
     it('should forward progress events', async () => {
+      fakeUpload(ID, { transferredBytes: 30, totalBytes: 100 });
       const progressCallback = jest.fn();
-      const mockResult = Promise.resolve({ key: 'test-key' });
 
-      mockUploadData.mockImplementation(({ options }) => {
-        if (options?.onProgress) {
-          options.onProgress({ transferredBytes: 30, totalBytes: 100 });
-        }
-        return {
-          result: mockResult,
-          cancel: jest.fn(),
-          pause: jest.fn(),
-          resume: jest.fn(),
-          state: 'IN_PROGRESS'
-        } as any;
-      });
+      await uploadService.uploadOriginal(new File(['x'], 'x.mp3'), 'm', { onProgress: progressCallback });
 
-      await uploadService.uploadOriginal(
-        new File(['x'], 'x.mp3', { type: 'audio/mpeg' }),
-        'originals/m.mp3',
-        { onProgress: progressCallback }
-      );
-
-      expect(progressCallback).toHaveBeenCalledWith({
-        transferredBytes: 30,
-        totalBytes: 100,
-        percentage: 30,
-      });
+      expect(progressCallback).toHaveBeenCalledWith({ transferredBytes: 30, totalBytes: 100, percentage: 30 });
     });
 
     it('should propagate upload errors', async () => {
-      mockUploadData.mockReturnValue({
-        result: Promise.reject(new Error('Upload failed')),
-        cancel: jest.fn(),
-        pause: jest.fn(),
-        resume: jest.fn(),
-        state: 'ERROR'
-      } as any);
-
-      await expect(
-        uploadService.uploadOriginal(new File(['x'], 'x.mp3'), 'originals/m.mp3')
-      ).rejects.toThrow('Upload failed');
+      mockUploadData.mockImplementation(() => {
+        const task: Partial<ReturnType<typeof uploadData>> = { result: Promise.reject(new Error('Upload failed')) };
+        return task as ReturnType<typeof uploadData>;
+      });
+      await expect(uploadService.uploadOriginal(new File(['x'], 'x.mp3'), 'm')).rejects.toThrow('Upload failed');
     });
   });
 }); 

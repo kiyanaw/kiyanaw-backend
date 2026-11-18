@@ -8,8 +8,17 @@ import { transcriptionStorage } from './transcriptionStorageService';
 import { Transcription as DSTranscription } from '../models';
 
 // Mock the dependencies
+// mediaAccess (/cloudfront/sign) stub: signs any key as a CDN URL under public/.
 jest.mock('aws-amplify/api', () => ({
   generateClient: jest.fn(),
+  post: jest.fn(({ options }: { options: { body: { s3Key: string } } }) => {
+    const relative = options.body.s3Key.replace(/^public\//, '');
+    return {
+      response: Promise.resolve({
+        body: { json: () => Promise.resolve({ signedUrl: `https://cdn.example/public/${relative}`, expiresAt: Date.now() + 3600 * 1000 }) },
+      }),
+    };
+  }),
 }));
 jest.mock('./regionService');
 jest.mock('./issueService');
@@ -19,9 +28,9 @@ jest.mock('./transcriptionStorageService');
 jest.mock('./inviteService');
 jest.mock('./mediaService');
 
-// Mock Amplify Storage
+// Mock Amplify Storage (only remove is used; reads go through mediaAccess)
 jest.mock('aws-amplify/storage', () => ({
-  getUrl: jest.fn(),
+  remove: jest.fn(),
 }));
 
 // Mock fetch globally
@@ -93,13 +102,6 @@ describe('TranscriptionService', () => {
       json: jest.fn().mockResolvedValue({ data: mockPeaksData, length: 100 }),
     });
 
-    // Mock getUrl from aws-amplify/storage - make it dynamic based on input
-    const { getUrl } = require('aws-amplify/storage');
-    (getUrl as jest.Mock).mockImplementation(({ path }) => {
-      return Promise.resolve({
-        url: new URL(`https://fake.s3.amazonaws.com/${path}`),
-      });
-    });
   });
 
   describe('loadInFull function signature and validation', () => {
@@ -151,7 +153,7 @@ describe('TranscriptionService', () => {
       
       expect(global.fetch).toHaveBeenCalledTimes(1);
       // Should use signed URL, not direct URL construction
-      expect(global.fetch).toHaveBeenCalledWith('https://fake.s3.amazonaws.com/public/audio.mp3.json');
+      expect(global.fetch).toHaveBeenCalledWith('https://cdn.example/public/audio.mp3.json');
     });
 
     it('should load regions and issues in parallel', async () => {
@@ -245,6 +247,71 @@ describe('TranscriptionService', () => {
       await expect(loadInFull(mockTranscriptionId)).rejects.toThrow(
         'Failed to load peaks data: 501 Not Implemented'
       );
+    });
+  });
+
+  describe('media signing failures (no S3 fallback)', () => {
+    const denySigning = () => {
+      const { post } = require('aws-amplify/api');
+      (post as jest.Mock).mockReturnValue({ response: Promise.reject(new Error('Forbidden')) });
+      return post as jest.Mock;
+    };
+
+    afterEach(() => {
+      const { post } = require('aws-amplify/api');
+      (post as jest.Mock).mockReset();
+      (post as jest.Mock).mockImplementation(({ options }: { options: { body: { s3Key: string } } }) => ({
+        response: Promise.resolve({
+          body: { json: () => Promise.resolve({ signedUrl: `https://cdn.example/public/${options.body.s3Key.replace(/^public\//, '')}`, expiresAt: Date.now() + 3600 * 1000 }) },
+        }),
+      }));
+    });
+
+    it('legacy source: fails fast without retrying or fetching when peaks signing is refused', async () => {
+      const post = denySigning();
+      const { MediaSigningError } = require('./transcriptionService');
+
+      await expect(loadInFull(mockTranscriptionId)).rejects.toBeInstanceOf(MediaSigningError);
+      expect(post).toHaveBeenCalledTimes(1);
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    it('media pipeline: signs the peaks key via mediaAccess and fetches the CDN URL', async () => {
+      mockGraphqlClient.graphql.mockResolvedValue({
+        data: {
+          getTranscription: {
+            ...mockRawTranscription,
+            source: null,
+            mediaId: 'media-1',
+            media: { id: 'media-1', status: 'READY', renditionKey: 'public/renditions/media-1.mp3', peaksKey: 'public/peaks/media-1.json' },
+          },
+        },
+      });
+
+      await loadInFull(mockTranscriptionId);
+
+      const { post } = require('aws-amplify/api');
+      expect((post as jest.Mock).mock.calls[0][0].options.body.s3Key).toBe('public/peaks/media-1.json');
+      expect(global.fetch).toHaveBeenCalledWith('https://cdn.example/public/peaks/media-1.json');
+    });
+
+    it('media pipeline: fails fast without retrying when peaks signing is refused', async () => {
+      mockGraphqlClient.graphql.mockResolvedValue({
+        data: {
+          getTranscription: {
+            ...mockRawTranscription,
+            source: null,
+            mediaId: 'media-1',
+            media: { id: 'media-1', status: 'READY', renditionKey: 'public/renditions/media-1.mp3', peaksKey: 'public/peaks/media-1.json' },
+          },
+        },
+      });
+      const post = denySigning();
+      const { MediaSigningError } = require('./transcriptionService');
+
+      await expect(loadInFull(mockTranscriptionId)).rejects.toBeInstanceOf(MediaSigningError);
+      expect(post).toHaveBeenCalledTimes(1);
+      expect(global.fetch).not.toHaveBeenCalled();
     });
   });
 
@@ -526,16 +593,10 @@ describe('TranscriptionService', () => {
         },
       });
       
-      // Mock getUrl to return different signed URL
-      const { getUrl } = require('aws-amplify/storage');
-      (getUrl as jest.Mock).mockResolvedValue({
-        url: new URL('https://fake.s3.amazonaws.com/public/media.wav.json'),
-      });
-      
       await loadInFull(mockTranscriptionId);
       
       // Should generate signed URL for the different source
-      expect(global.fetch).toHaveBeenCalledWith('https://fake.s3.amazonaws.com/public/media.wav.json');
+      expect(global.fetch).toHaveBeenCalledWith('https://cdn.example/public/media.wav.json');
     });
   });
 
@@ -545,14 +606,6 @@ describe('TranscriptionService', () => {
 
     beforeEach(() => {
       jest.clearAllMocks();
-      
-      // Reset getUrl mock for each test
-      const { getUrl } = require('aws-amplify/storage');
-      (getUrl as jest.Mock).mockImplementation(({ path }) => {
-        return Promise.resolve({
-          url: new URL(`https://fake.s3.amazonaws.com/${path}`),
-        });
-      });
     });
 
     it('should generate signed URL for media file without suffix', async () => {
@@ -560,7 +613,7 @@ describe('TranscriptionService', () => {
       
       const result = await generateSignedUrl(sourceUrl);
       
-      expect(result).toBe('https://fake.s3.amazonaws.com/public/test-audio.mp3');
+      expect(result).toBe('https://cdn.example/public/test-audio.mp3');
     });
 
     it('should generate signed URL for peaks file with .json suffix', async () => {
@@ -568,7 +621,7 @@ describe('TranscriptionService', () => {
       
       const result = await generateSignedUrl(sourceUrl, '.json');
       
-      expect(result).toBe('https://fake.s3.amazonaws.com/public/test-audio.mp3.json');
+      expect(result).toBe('https://cdn.example/public/test-audio.mp3.json');
     });
 
     it('should handle different file types', async () => {
@@ -576,7 +629,7 @@ describe('TranscriptionService', () => {
       
       const result = await generateSignedUrl(videoUrl);
       
-      expect(result).toBe('https://fake.s3.amazonaws.com/public/video.mp4');
+      expect(result).toBe('https://cdn.example/public/video.mp4');
     });
 
     it('should handle URLs with public prefix correctly', async () => {
@@ -584,7 +637,7 @@ describe('TranscriptionService', () => {
       
       const result = await generateSignedUrl(urlWithPublic, '.json');
       
-      expect(result).toBe('https://fake.s3.amazonaws.com/public/folder/file.wav.json');
+      expect(result).toBe('https://cdn.example/public/folder/file.wav.json');
     });
 
     it('should handle URLs without public prefix', async () => {
@@ -592,7 +645,7 @@ describe('TranscriptionService', () => {
       
       const result = await generateSignedUrl(urlWithoutPublic);
       
-      expect(result).toBe('https://fake.s3.amazonaws.com/public/direct-file.mp3');
+      expect(result).toBe('https://cdn.example/public/direct-file.mp3');
     });
 
     it('should throw error for invalid URL format', async () => {
@@ -601,29 +654,50 @@ describe('TranscriptionService', () => {
       await expect(generateSignedUrl(invalidUrl)).rejects.toThrow('Invalid source URL format');
     });
 
-    it('should handle getUrl errors gracefully', async () => {
-      // Mock getUrl to throw an error
-      const mockGetUrl = require('aws-amplify/storage').getUrl;
-      mockGetUrl.mockRejectedValueOnce(new Error('S3 access denied'));
-      
+    it('should fail fast with MediaSigningError when mediaAccess refuses, with no S3 fallback', async () => {
+      const { post } = require('aws-amplify/api');
+      const { MediaSigningError } = require('./transcriptionService');
+      (post as jest.Mock).mockReturnValueOnce({ response: Promise.reject(new Error('Forbidden')) });
+
       const sourceUrl = 'https://bucket.s3.amazonaws.com/public/test.mp3';
-      
-      await expect(generateSignedUrl(sourceUrl)).rejects.toThrow('Failed to generate signed URL for file');
+
+      await expect(generateSignedUrl(sourceUrl)).rejects.toBeInstanceOf(MediaSigningError);
+      expect(post).toHaveBeenCalledTimes(1);
     });
 
-    it('should use correct expiration time and options', async () => {
-      const mockGetUrl = require('aws-amplify/storage').getUrl;
+    it('should ask mediaAccess to sign the key relative to public/ with a 4 hour lifetime', async () => {
+      const { post } = require('aws-amplify/api');
       const sourceUrl = 'https://bucket.s3.amazonaws.com/public/test.mp3';
-      
+
       await generateSignedUrl(sourceUrl);
-      
-      expect(mockGetUrl).toHaveBeenCalledWith({
-        path: 'public/test.mp3',
-        options: {
-          expiresIn: 3600, // 60 minutes
-          useAccelerateEndpoint: false
-        }
+
+      expect(post).toHaveBeenCalledWith({
+        apiName: 'media',
+        path: '/cloudfront/sign',
+        options: { body: { s3Key: 'test.mp3', expiresInSeconds: 14400 } },
       });
+    });
+
+    it('should track the expiry mediaAccess returns', async () => {
+      const { post } = require('aws-amplify/api');
+      const { getSignedUrlExpirationTime } = require('./transcriptionService');
+      (post as jest.Mock).mockReturnValueOnce({
+        response: Promise.resolve({ body: { json: () => Promise.resolve({ signedUrl: 'https://cdn.example/x', expiresAt: 1234 }) } }),
+      });
+
+      await generateSignedUrl('https://bucket.s3.amazonaws.com/public/x.mp3');
+
+      expect(getSignedUrlExpirationTime()).toBe(1234);
+    });
+
+    it('should reject a response without a signed URL', async () => {
+      const { post } = require('aws-amplify/api');
+      const { MediaSigningError } = require('./transcriptionService');
+      (post as jest.Mock).mockReturnValueOnce({
+        response: Promise.resolve({ body: { json: () => Promise.resolve({ error: 'Forbidden' }) } }),
+      });
+
+      await expect(generateSignedUrl('https://bucket.s3.amazonaws.com/public/x.mp3')).rejects.toBeInstanceOf(MediaSigningError);
     });
 
     it('should handle complex S3 URLs with timestamps', async () => {
@@ -631,7 +705,7 @@ describe('TranscriptionService', () => {
       
       const result = await generateSignedUrl(complexUrl, '.json');
       
-      expect(result).toBe('https://fake.s3.amazonaws.com/public/1234567890-user-audio.mp3.json');
+      expect(result).toBe('https://cdn.example/public/1234567890-user-audio.mp3.json');
     });
 
     it('should preserve file extensions in key extraction', async () => {
@@ -639,7 +713,7 @@ describe('TranscriptionService', () => {
       
       const result = await generateSignedUrl(sourceUrl);
       
-      expect(result).toBe('https://fake.s3.amazonaws.com/public/test.file.with.dots.mp4');
+      expect(result).toBe('https://cdn.example/public/test.file.with.dots.mp4');
     });
   });
 
