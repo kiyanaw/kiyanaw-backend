@@ -48,6 +48,7 @@ type EagerTranscription = {
   readonly isPublished?: boolean | null;
   readonly publicIssues?: boolean | null;
   readonly disableAnalyzer?: boolean | null;
+  readonly extra?: string | null;
   readonly editors?: (string | null)[] | null;
   readonly viewers?: (string | null)[] | null;
   readonly editorGroups?: (string | null)[] | null;
@@ -83,6 +84,7 @@ type LazyTranscription = {
   readonly isPublished?: boolean | null;
   readonly publicIssues?: boolean | null;
   readonly disableAnalyzer?: boolean | null;
+  readonly extra?: string | null;
   readonly editors?: (string | null)[] | null;
   readonly viewers?: (string | null)[] | null;
   readonly editorGroups?: (string | null)[] | null;

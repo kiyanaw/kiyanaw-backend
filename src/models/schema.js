@@ -170,6 +170,13 @@ export const schema = {
                     "isRequired": false,
                     "attributes": []
                 },
+                "extra": {
+                    "name": "extra",
+                    "isArray": false,
+                    "type": "AWSJSON",
+                    "isRequired": false,
+                    "attributes": []
+                },
                 "editors": {
                     "name": "editors",
                     "isArray": true,
@@ -1523,5 +1530,5 @@ export const schema = {
     "enums": {},
     "nonModels": {},
     "codegenVersion": "3.4.4",
-    "version": "3e7c026d6f2489b69b99cd9ce410a9bb"
+    "version": "84c4fc1059ad5766f5db1f930007d601"
 };

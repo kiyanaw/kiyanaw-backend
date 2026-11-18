@@ -60,6 +60,7 @@ export const getTranscription = /* GraphQL */ `
       isPublished
       publicIssues
       disableAnalyzer
+      extra
       editors
       viewers
       editorGroups
@@ -127,6 +128,7 @@ export const listTranscriptions = /* GraphQL */ `
         isPublished
         publicIssues
         disableAnalyzer
+        extra
         editors
         viewers
         editorGroups
@@ -181,6 +183,7 @@ export const syncTranscriptions = /* GraphQL */ `
         isPublished
         publicIssues
         disableAnalyzer
+        extra
         editors
         viewers
         editorGroups
@@ -235,6 +238,7 @@ export const getRegion = /* GraphQL */ `
         isPublished
         publicIssues
         disableAnalyzer
+        extra
         editors
         viewers
         editorGroups
@@ -373,6 +377,7 @@ export const getIssue = /* GraphQL */ `
         isPublished
         publicIssues
         disableAnalyzer
+        extra
         editors
         viewers
         editorGroups
@@ -608,6 +613,7 @@ export const getComment = /* GraphQL */ `
         isPublished
         publicIssues
         disableAnalyzer
+        extra
         editors
         viewers
         editorGroups
@@ -993,6 +999,7 @@ export const transcriptionsByAuthor = /* GraphQL */ `
         isPublished
         publicIssues
         disableAnalyzer
+        extra
         editors
         viewers
         editorGroups
@@ -1051,6 +1058,7 @@ export const transcriptionsByAuthorDate = /* GraphQL */ `
         isPublished
         publicIssues
         disableAnalyzer
+        extra
         editors
         viewers
         editorGroups
@@ -1107,6 +1115,7 @@ export const transcriptionsByMedia = /* GraphQL */ `
         isPublished
         publicIssues
         disableAnalyzer
+        extra
         editors
         viewers
         editorGroups
@@ -1163,6 +1172,7 @@ export const byTitle = /* GraphQL */ `
         isPublished
         publicIssues
         disableAnalyzer
+        extra
         editors
         viewers
         editorGroups
