@@ -40,6 +40,7 @@ type Transcription
   isPublished: Boolean
   publicIssues: Boolean
   disableAnalyzer: Boolean # deprecated field, use `lang`
+  extra: AWSJSON # app-level marks, e.g. {"source":"mentor"} or {"importedToMentor":{...}}
   # ACL fields (no field-level auth, handled in custom resolvers)
   editors: [String]
   viewers: [String]

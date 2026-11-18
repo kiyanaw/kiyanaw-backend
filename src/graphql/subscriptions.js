@@ -58,6 +58,7 @@ export const onCreateTranscription = /* GraphQL */ `
       isPublished
       publicIssues
       disableAnalyzer
+      extra
       editors
       viewers
       editorGroups
@@ -143,6 +144,7 @@ export const onUpdateTranscription = /* GraphQL */ `
       isPublished
       publicIssues
       disableAnalyzer
+      extra
       editors
       viewers
       editorGroups
@@ -228,6 +230,7 @@ export const onDeleteTranscription = /* GraphQL */ `
       isPublished
       publicIssues
       disableAnalyzer
+      extra
       editors
       viewers
       editorGroups
@@ -293,6 +296,7 @@ export const onCreateRegion = /* GraphQL */ `
         isPublished
         publicIssues
         disableAnalyzer
+        extra
         editors
         viewers
         editorGroups
@@ -351,6 +355,7 @@ export const onUpdateRegion = /* GraphQL */ `
         isPublished
         publicIssues
         disableAnalyzer
+        extra
         editors
         viewers
         editorGroups
@@ -409,6 +414,7 @@ export const onDeleteRegion = /* GraphQL */ `
         isPublished
         publicIssues
         disableAnalyzer
+        extra
         editors
         viewers
         editorGroups
@@ -472,6 +478,7 @@ export const onCreateIssue = /* GraphQL */ `
         isPublished
         publicIssues
         disableAnalyzer
+        extra
         editors
         viewers
         editorGroups
@@ -535,6 +542,7 @@ export const onUpdateIssue = /* GraphQL */ `
         isPublished
         publicIssues
         disableAnalyzer
+        extra
         editors
         viewers
         editorGroups
@@ -598,6 +606,7 @@ export const onDeleteIssue = /* GraphQL */ `
         isPublished
         publicIssues
         disableAnalyzer
+        extra
         editors
         viewers
         editorGroups
@@ -734,6 +743,7 @@ export const onCreateComment = /* GraphQL */ `
         isPublished
         publicIssues
         disableAnalyzer
+        extra
         editors
         viewers
         editorGroups
@@ -815,6 +825,7 @@ export const onUpdateComment = /* GraphQL */ `
         isPublished
         publicIssues
         disableAnalyzer
+        extra
         editors
         viewers
         editorGroups
@@ -896,6 +907,7 @@ export const onDeleteComment = /* GraphQL */ `
         isPublished
         publicIssues
         disableAnalyzer
+        extra
         editors
         viewers
         editorGroups
