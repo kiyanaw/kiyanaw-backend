@@ -42,4 +42,29 @@ function clipDownloadName(region) {
   return `${safe}.mp3`
 }
 
-module.exports = { callerId, canClip, sanitizeStem, clipDownloadName }
+// Content-Disposition for a download, per RFC 6266 / 5987. S3 rejects a presigned
+// response-content-disposition that isn't ISO-8859-1, so the real (UTF-8) name goes in
+// filename* percent-encoded, and filename="" gets an ASCII-only fallback for old clients.
+function attachmentDisposition(downloadName, asciiFallback) {
+  const ascii = String(downloadName)
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^A-Za-z0-9._ -]/g, '')
+    .replace(/\s+/g, '-')
+  const stem = ascii.replace(/\.mp3$/, '').replace(/[-_.]/g, '')
+  const fallback = stem.length > 0 ? ascii : asciiFallback
+  const encoded = encodeURIComponent(downloadName).replace(
+    /['()*]/g,
+    (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`,
+  )
+  return `attachment; filename="${fallback}"; filename*=UTF-8''${encoded}`
+}
+
+// The disposition for a region clip: real name from the region text, and the
+// start-time name as the ASCII fallback when the text has no Latin letters (e.g. syllabics).
+function clipDisposition(region) {
+  const start = Math.max(0, Math.round((region && region.start) || 0))
+  return attachmentDisposition(clipDownloadName(region), `region-${start}s.mp3`)
+}
+
+module.exports = { callerId, canClip, sanitizeStem, clipDownloadName, attachmentDisposition, clipDisposition }

@@ -35,14 +35,14 @@ const putS3File = async (bucket, key, body, contentType = 'application/octet-str
 }
 
 /**
- * Presigned GET URL for a clip, forcing a download with a friendly filename via
- * Content-Disposition. Short TTL — the object is also swept by an S3 lifecycle rule.
+ * Presigned GET URL for a clip, forcing a download with the given Content-Disposition
+ * (build it with clipDisposition so non-ASCII names are encoded). Short TTL — the object is also swept by an S3 lifecycle rule.
  */
-const presignGetUrl = async (bucket, key, downloadName, expiresSeconds = 3600) => {
+const presignGetUrl = async (bucket, key, contentDisposition, expiresSeconds = 3600) => {
   const command = new GetObjectCommand({
     Bucket: bucket,
     Key: key,
-    ResponseContentDisposition: `attachment; filename="${downloadName}"`,
+    ResponseContentDisposition: contentDisposition,
     ResponseContentType: 'audio/mpeg',
   })
   return getSignedUrl(s3Client, command, { expiresIn: expiresSeconds })
