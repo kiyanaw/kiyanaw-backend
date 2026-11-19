@@ -3,7 +3,7 @@ const fs = require('fs')
 const { getS3File, putS3File, presignGetUrl, efsPath } = require('./s3')
 const { clipRegion } = require('./ffmpeg')
 const { getRegion, getTranscription, getMedia } = require('./dynamo')
-const { canClip, clipDownloadName } = require('./clip-auth')
+const { canClip, clipDisposition } = require('./clip-auth')
 
 const bucket = process.env.STORAGE_TRANSCRIPTIONS_BUCKETNAME
 
@@ -45,7 +45,7 @@ async function clipOne({ regionId, identity }) {
     }
     await clipRegion(renditionPath, region.start, region.end, clipPath)
     await putS3File(bucket, clipKey, fs.readFileSync(clipPath), 'audio/mpeg')
-    return presignGetUrl(bucket, clipKey, clipDownloadName(region), CLIP_URL_TTL_SECONDS)
+    return presignGetUrl(bucket, clipKey, clipDisposition(region), CLIP_URL_TTL_SECONDS)
   } finally {
     // Remove the per-clip file; keep the cached rendition for warm reuse.
     try { fs.unlinkSync(clipPath) } catch (_) {}

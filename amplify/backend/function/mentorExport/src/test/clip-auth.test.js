@@ -1,4 +1,4 @@
-const { callerId, canClip, sanitizeStem, clipDownloadName } = require('../lib/clip-auth')
+const { callerId, canClip, sanitizeStem, clipDownloadName, clipDisposition } = require('../lib/clip-auth')
 
 describe('callerId', () => {
   it('reads sub, then claims, then username', () => {
@@ -51,5 +51,33 @@ describe('clipDownloadName', () => {
   it('falls back to the start time when there is no text', () => {
     expect(clipDownloadName({ regionText: '', start: 12.6 })).toBe('region-13s.mp3')
     expect(clipDownloadName({ start: 0 })).toBe('region-0s.mp3')
+  })
+})
+
+describe('clipDisposition (RFC 6266/5987, S3 needs ISO-8859-1)', () => {
+  const isLatin1 = (v) => /^[\x20-\x7e]*$/.test(v)
+
+  it('encodes a name with non-Latin-1 letters and keeps an ASCII fallback', () => {
+    const d = clipDisposition({ regionText: 'Uŋčí-ĺi', start: 4 })
+    expect(d).toBe(`attachment; filename="Uci-li.mp3"; filename*=UTF-8''U%C5%8B%C4%8D%C3%AD-%C4%BAi.mp3`)
+    expect(isLatin1(d)).toBe(true)
+    expect(decodeURIComponent(d.split("UTF-8''")[1])).toBe('Uŋčí-ĺi.mp3')
+  })
+
+  it('falls back to the start-time name for syllabics', () => {
+    const d = clipDisposition({ regionText: 'ᓀᐦᐃᔭᐍᐏᐣ', start: 12.4 })
+    expect(d.startsWith('attachment; filename="region-12s.mp3"; filename*=UTF-8\'\'')).toBe(true)
+    expect(isLatin1(d)).toBe(true)
+    expect(decodeURIComponent(d.split("UTF-8''")[1])).toBe('ᓀᐦᐃᔭᐍᐏᐣ.mp3')
+  })
+
+  it('strips accents for the fallback and keeps the real name in filename*', () => {
+    const d = clipDisposition({ regionText: 'nêhiyawêwin', start: 0 })
+    expect(d).toBe(`attachment; filename="nehiyawewin.mp3"; filename*=UTF-8''n%C3%AAhiyaw%C3%AAwin.mp3`)
+  })
+
+  it('leaves plain ASCII names as they are', () => {
+    expect(clipDisposition({ regionText: 'Taanshi kiya?', start: 3 }))
+      .toBe(`attachment; filename="Taanshi-kiya.mp3"; filename*=UTF-8''Taanshi-kiya.mp3`)
   })
 })
