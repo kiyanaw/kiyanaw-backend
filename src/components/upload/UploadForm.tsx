@@ -11,6 +11,7 @@ export const UploadForm = () => {
   const [inputFile, setInputFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
@@ -32,6 +33,7 @@ export const UploadForm = () => {
     try {
       setLoading(true);
       setProgress(0);
+      setError(null);
 
       const useCase = new CreateTranscriptionUseCase({
         title,
@@ -47,7 +49,7 @@ export const UploadForm = () => {
       navigate('/transcribe-list');
     } catch (error) {
       console.error('Error creating transcription:', error);
-      // TODO: Show error message to user
+      setError('Upload failed. Please try again.');
     } finally {
       setLoading(false);
       setProgress(0);
@@ -131,6 +133,10 @@ export const UploadForm = () => {
                 {Math.round(progress)}%
               </span>
             </div>
+          )}
+
+          {error && (
+            <p role="alert" className="text-sm text-red-600">{error}</p>
           )}
         </div>
       </div>
