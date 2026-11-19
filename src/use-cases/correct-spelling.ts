@@ -1,8 +1,7 @@
 import { useEditorStore } from '../stores/useEditorStore';
 import { rteService } from '../services/rteService';
 import { REGION_TEXT_MATCH_PATTERN } from '../constants/text-patterns';
-import { UpdateRegionUseCase } from './update-region';
-import { services } from '../services';
+import { regionSaveManager } from '../services/regionSaveManager';
 
 /**
  * Corrects a misspelled word in the editor by replacing it with a suggested correction
@@ -70,20 +69,9 @@ export async function correctSpelling(
   // Move cursor to end of corrected word
   quill.setSelection(wordStart + correctedWord.length, 0, 'user');
   
-  // Get the updated text
-  const updatedText = quill.getText();
-  
-  // Save the updated text using UpdateRegionUseCase
-  const updateUseCase = new UpdateRegionUseCase({
-    regionId,
-    changes: { regionText: updatedText },
-    debounceMs: 0, // Save immediately
-    primaryField: 'regionText',
-    pendingEditField: 'text',
-    store: services.storeService,
-    services,
-  });
-  
-  await updateUseCase.execute();
+  // The 'user' edits above already queued the new text through the save manager
+  // (useTextEditors text-change handler). Save it now rather than after the typing
+  // debounce; the manager serialises it behind any save of this region in flight.
+  regionSaveManager.flushNow(regionId);
 }
 

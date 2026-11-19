@@ -1,12 +1,9 @@
 import { selectWordAnalysis } from './select-word-analysis';
 import { useEditorStore } from '../stores/useEditorStore';
-import { UpdateRegionUseCase } from './update-region';
+import { regionSaveManager } from '../services/regionSaveManager';
 
-// Mock the update-region module
-jest.mock('./update-region', () => ({
-  UpdateRegionUseCase: jest.fn().mockImplementation(() => ({
-    execute: jest.fn().mockResolvedValue(undefined),
-  })),
+jest.mock('../services/regionSaveManager', () => ({
+  regionSaveManager: { queueAnalysisChange: jest.fn() },
 }));
 
 describe('selectWordAnalysis', () => {
@@ -54,12 +51,10 @@ describe('selectWordAnalysis', () => {
     // Select the second analysis option
     await selectWordAnalysis('region-1', 0, 'anihi+Pron+Dem+Med+A+Obv');
 
-    // Verify UpdateRegionUseCase was instantiated with correct data
-    expect(UpdateRegionUseCase).toHaveBeenCalledWith(
-      expect.objectContaining({
-        regionId: 'region-1',
-        changes: expect.objectContaining({
-          regionAnalysis: [
+    // Verify the selection was queued through the region save manager
+    expect(regionSaveManager.queueAnalysisChange).toHaveBeenCalledWith(
+      'region-1',
+      [
             {
               word: 'anihi',
               analysis: 'anihi+Pron+Dem+Med+A+Obv',
@@ -75,10 +70,7 @@ describe('selectWordAnalysis', () => {
               allAnalysis: ['test+Ipc'],
               source: 'auto',
             },
-          ],
-        }),
-        primaryField: 'regionAnalysis',
-      })
+          ]
     );
   });
 
@@ -211,11 +203,9 @@ describe('selectWordAnalysis', () => {
     await selectWordAnalysis('region-1', 0, 'itêw+V+TA+Imp+Imm+2Sg+3SgO');
 
     // Verify only the first 'isi' was updated
-    expect(UpdateRegionUseCase).toHaveBeenCalledWith(
-      expect.objectContaining({
-        regionId: 'region-1',
-        changes: expect.objectContaining({
-          regionAnalysis: [
+    expect(regionSaveManager.queueAnalysisChange).toHaveBeenCalledWith(
+      'region-1',
+      [
             {
               word: 'isi',
               analysis: 'itêw+V+TA+Imp+Imm+2Sg+3SgO',
@@ -237,9 +227,7 @@ describe('selectWordAnalysis', () => {
               source: 'auto',
               index: 2,
             },
-          ],
-        }),
-      })
+          ]
     );
   });
 
@@ -327,11 +315,9 @@ describe('selectWordAnalysis', () => {
     await selectWordAnalysis('region-1', 2, 'isi+Ipc');
 
     // Verify the third 'isi' was updated and others remain unchanged
-    expect(UpdateRegionUseCase).toHaveBeenCalledWith(
-      expect.objectContaining({
-        regionId: 'region-1',
-        changes: expect.objectContaining({
-          regionAnalysis: [
+    expect(regionSaveManager.queueAnalysisChange).toHaveBeenCalledWith(
+      'region-1',
+      [
             {
               word: 'isi',
               analysis: 'itêw+V+TA+Imp+Imm+2Sg+3SgO',
@@ -353,9 +339,7 @@ describe('selectWordAnalysis', () => {
               source: 'user',
               index: 2,
             },
-          ],
-        }),
-      })
+          ]
     );
   });
 });

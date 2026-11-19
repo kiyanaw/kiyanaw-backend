@@ -32,6 +32,9 @@ interface SaveQueue {
 
 class RegionSaveManagerImpl {
   private queues = new Map<string, SaveQueue>();
+  // Per-region save chain: each flush waits for the previous save of that region,
+  // so every save reads _version after the one before it has landed.
+  private inFlight = new Map<string, Promise<void>>();
   
   /**
    * Queue a text change with automatic spell checking
@@ -57,22 +60,45 @@ class RegionSaveManagerImpl {
     
     const spellCheckKey = `spell-check-${regionId}`;
     queue.spellCheckTimer = spellCheckKey;
-    Timeout.set(
-      spellCheckKey,
-      async () => {
-        queue.spellCheckPromise = this.performSpellCheck(regionId, text);
-        try {
-          const analysis = await queue.spellCheckPromise;
-          queue.pendingChanges.regionAnalysis = analysis;
-        } catch (error) {
-          console.error(`SAVE-MANAGER: Spell check failed for ${regionId}:`, error);
-          queue.spellCheckPromise = null;
-        }
-      },
-      500
-    );
+    Timeout.set(spellCheckKey, () => this.startSpellCheck(queue, text), 500);
     
     this.resetSaveTimer(regionId, 3000);
+  }
+
+  /**
+   * Queue a user-selected word analysis and save it right away
+   */
+  queueAnalysisChange(regionId: string, regionAnalysis: WordAnalysis[]): void {
+    const queue = this.getOrCreateQueue(regionId);
+
+    queue.pendingChanges.regionAnalysis = regionAnalysis;
+    queue.lastChangeTime = Date.now();
+
+    services.storeService.setSaveStatus('pending');
+
+    this.resetSaveTimer(regionId, 0);
+  }
+
+  /**
+   * Save the queued changes for a region now instead of waiting for the debounce.
+   * Still serialised behind any save of that region already in flight.
+   */
+  flushNow(regionId: string): void {
+    if (!this.queues.has(regionId)) {
+      throw new Error(`No queued changes for region ${regionId}`);
+    }
+    this.resetSaveTimer(regionId, 0);
+  }
+
+  private async startSpellCheck(queue: SaveQueue, text: string): Promise<void> {
+    queue.spellCheckTimer = null;
+    const spellCheck = this.performSpellCheck(queue.regionId, text);
+    queue.spellCheckPromise = spellCheck;
+    const analysis = await spellCheck;
+    // A newer change restarts the spell check; only the latest result counts
+    if (queue.spellCheckPromise === spellCheck) {
+      queue.pendingChanges.regionAnalysis = analysis;
+    }
   }
   
   /**
@@ -184,33 +210,70 @@ class RegionSaveManagerImpl {
   }
   
   /**
-   * Flush pending changes to database
+   * Flush pending changes to database, after any save of this region already in flight
    */
   private async flush(regionId: string): Promise<void> {
+    const previous = this.inFlight.get(regionId) ?? Promise.resolve();
+    const save = () => this.saveQueuedChanges(regionId);
+    // Run after the previous save whether it succeeded or failed
+    const run = previous.then(save, save);
+    this.inFlight.set(regionId, run);
+
+    try {
+      await run;
+    } catch (error) {
+      services.storeService.setSaveStatus('error');
+      throw error;
+    } finally {
+      if (this.inFlight.get(regionId) === run) {
+        this.inFlight.delete(regionId);
+      }
+    }
+
+    this.reportSaveStatus();
+  }
+
+  /**
+   * Save whatever is queued for the region at the moment the save actually starts
+   */
+  private async saveQueuedChanges(regionId: string): Promise<void> {
     const queue = this.queues.get(regionId);
+    // An earlier chained flush already saved everything queued for this region
     if (!queue) return;
     
-    // Set status to saving
-    services.storeService.setSaveStatus('saving');
+    // Flushing before the spell-check debounce fired: run it now so the analysis is saved
+    if (queue.spellCheckTimer && queue.pendingChanges.regionText !== undefined) {
+      Timeout.clear(queue.spellCheckTimer);
+      this.startSpellCheck(queue, queue.pendingChanges.regionText);
+    }
     
-    // Wait for spell check if pending
     await this.waitForSpellCheckCompletion(queue);
     
-    // Collect changes and clear queue
+    // Collect changes and clear queue; anything queued from here on goes to the next flush
     const changes = { ...queue.pendingChanges };
     const pendingEditField = queue.pendingEditField;
     this.clearQueue(regionId);
+    this.reportSaveStatus();
     
-    // Perform the save
     try {
       await this.saveRegionChanges(regionId, changes, pendingEditField);
-      
-      // Only set to 'saved' if no other pending saves exist
-      if (!this.hasAnyPendingSaves()) {
-        services.storeService.setSaveStatus('saved');
-      }
     } catch (error) {
       await this.handleSaveError(error, regionId, changes, pendingEditField);
+    }
+  }
+
+  /**
+   * Indicator reflects the whole editor: pending while anything is queued (dirty),
+   * saving while a save is in flight, saved only when everything has landed.
+   * Also overrides the 'saved' that UpdateTranscriptionUseCase sets after each region save.
+   */
+  private reportSaveStatus(): void {
+    if (this.queues.size > 0) {
+      services.storeService.setSaveStatus('pending');
+    } else if (this.inFlight.size > 0) {
+      services.storeService.setSaveStatus('saving');
+    } else {
+      services.storeService.setSaveStatus('saved');
     }
   }
   
@@ -513,14 +576,14 @@ class RegionSaveManagerImpl {
    * Check if there are pending saves for a region
    */
   hasPendingSaves(regionId: string): boolean {
-    return this.queues.has(regionId);
+    return this.queues.has(regionId) || this.inFlight.has(regionId);
   }
   
   /**
    * Check if there are any pending saves across all regions
    */
   hasAnyPendingSaves(): boolean {
-    return this.queues.size > 0;
+    return this.queues.size > 0 || this.inFlight.size > 0;
   }
   
   // Helper methods
@@ -566,6 +629,7 @@ class RegionSaveManagerImpl {
       if (queue.saveTimer) Timeout.clear(queue.saveTimer);
     });
     this.queues.clear();
+    this.inFlight.clear();
   }
   
   __getQueueForTesting(regionId: string): SaveQueue | undefined {

@@ -1,8 +1,8 @@
 import { useEditorStore } from '../stores/useEditorStore';
-import { UpdateRegionUseCase } from './update-region';
 import { type WordAnalysis } from '../services/adt';
 import { services } from '../services';
 import { rteService } from '../services/rteService';
+import { regionSaveManager } from '../services/regionSaveManager';
 
 /**
  * Select a specific analysis for a word in a region
@@ -47,26 +47,14 @@ export async function selectWordAnalysis(
   const updatedRegionAnalysis = [...region.regionAnalysis];
   updatedRegionAnalysis[wordIndex] = updatedAnalysis;
 
-  // Update the store and save
+  // Update the store and save through the per-region save queue (serialised with typing saves)
   // DO NOT manually trigger highlighting here - it causes React-Quill corruption
   // because we're still in the middle of React's event handling.
-  // The highlighting will update naturally on the next:
-  // - Keystroke (triggers spell check + highlighting)
-  // - Cursor movement (may trigger highlighting)  
-  // - Or after the save completes and React finishes re-rendering
-  const updateRegionUseCase = new UpdateRegionUseCase({
-    regionId,
-    changes: { regionAnalysis: updatedRegionAnalysis },
-    debounceMs: 0, // No debounce for user-initiated selections
-    primaryField: 'regionAnalysis',
-    services,
-    store: services.storeService
-  });
-
-  await updateRegionUseCase.execute();
+  services.storeService.setRegionAnalysis(regionId, updatedRegionAnalysis);
+  regionSaveManager.queueAnalysisChange(regionId, updatedRegionAnalysis);
   
-  // Trigger highlighting update after save completes
-  // Now safe because we use consolidated deltas and double RAF deferral
+  // Trigger highlighting update
+  // Safe because we use consolidated deltas and double RAF deferral
   rteService.updateIssueHighlighting(regionId);
 }
 
