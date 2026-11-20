@@ -29,7 +29,7 @@ describe('SaveIndicator', () => {
   it('should render red error icon for error status', () => {
     render(<SaveIndicator status="error" />);
     
-    const indicator = screen.getByTitle('Error saving changes');
+    const indicator = screen.getByTitle("Couldn't save, retrying…");
     expect(indicator).toBeInTheDocument();
     expect(indicator).toHaveClass('bg-red-500');
   });

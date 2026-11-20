@@ -74,7 +74,9 @@ interface PendingCall {
   changes: Record<string, unknown>;
   sentVersion: number;
   release: () => void;
-  outcome?: 'ok' | 'conflict';
+  /** Reject like a dropped connection / 5xx (not a version conflict) */
+  fail: () => void;
+  outcome?: 'ok' | 'conflict' | 'network';
 }
 
 const mockServer = {
@@ -112,6 +114,10 @@ jest.mock('./regionService', () => ({
             Object.assign(row, changes, { _version: row._version + 1, userLastUpdated: username });
             call.outcome = 'ok';
             resolve();
+          },
+          fail: () => {
+            call.outcome = 'network';
+            reject(new Error('Network error'));
           },
         };
         mockServer.calls.push(call);
@@ -558,5 +564,163 @@ describe('region drags (bounds) share the per-region save queue', () => {
     expectNoConflicts();
     expect(mockServer.rows.get(REGION_ID)).toMatchObject({ regionText: 'awa tansi kiya', start: 0, end: 9 });
     expect(mockServer.rows.has('region-2')).toBe(false);
+  });
+});
+
+describe('non-conflict save failures are kept and retried', () => {
+  const saveStatus = () => useEditorStore.getState().saveStatus;
+  const user = { username: 'me@example.com', userId: 'u1' };
+
+  function drag(start: number, end: number) {
+    new UpdateRegionBounds({
+      regionId: REGION_ID,
+      newStart: start,
+      newEnd: end,
+      user,
+      services,
+      store: useEditorStore.getState(),
+    }).execute();
+  }
+
+  async function fail(i: number) {
+    mockServer.calls[i].fail();
+    await settle();
+  }
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+    jest.spyOn(console, 'debug').mockImplementation(() => {});
+    jest.spyOn(console, 'info').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    mockServer.reset();
+    mockQuills.clear();
+    mockShowConflictDialog.mockClear();
+    regionSaveManager.__clearAll();
+    useEditorStore.getState().cleanup();
+    useEditorStore.getState().setSaveStatus('saved');
+  });
+
+  afterEach(() => {
+    regionSaveManager.__clearAll();
+    jest.useRealTimers();
+    jest.restoreAllMocks();
+  });
+
+  it('drag save fails once: bounds stay, error shown, retry lands the new bounds', async () => {
+    seed('awa');
+    drag(1, 4);
+    await settle(2500);
+    expect(mockServer.calls).toHaveLength(1);
+
+    await fail(0);
+    expect(services.storeService.regionById(REGION_ID)).toMatchObject({ start: 1, end: 4 });
+    expect(saveStatus()).toBe('error');
+    expect(regionSaveManager.hasAnyPendingSaves()).toBe(true); // navigation guard blocks leaving
+
+    await settle(1999);
+    expect(mockServer.calls).toHaveLength(1);
+    await settle(1); // first retry after 2s
+    expect(mockServer.calls).toHaveLength(2);
+    expect(mockServer.calls[1].changes).toMatchObject({ start: 1, end: 4 });
+    expect(mockServer.calls[1].sentVersion).toBe(1);
+
+    await release(1);
+    expect(mockServer.rows.get(REGION_ID)).toMatchObject({ start: 1, end: 4 });
+    expect(saveStatus()).toBe('saved');
+    expect(regionSaveManager.hasAnyPendingSaves()).toBe(false);
+    expect(services.storeService.isPendingEdit(REGION_ID, 'bounds')).toBe(false);
+  });
+
+  it('typing after a failed save: the next save sends the newest text', async () => {
+    const quill = seed('awa');
+    type(quill, ' tansi');
+    await settle(3000);
+    await fail(0);
+    expect(saveStatus()).toBe('error');
+
+    type(quill, ' kiya');
+    expect(saveStatus()).toBe('error'); // still not saved
+
+    await settle(3000);
+    expect(mockServer.calls).toHaveLength(2);
+    expect(mockServer.calls[1].changes.regionText).toBe('awa tansi kiya');
+
+    await release(1);
+    await settle(60_000);
+    expect(mockServer.calls).toHaveLength(2);
+    expect(mockServer.rows.get(REGION_ID)!.regionText).toBe('awa tansi kiya');
+    expect(saveStatus()).toBe('saved');
+  });
+
+  it('failed retry merges under changes queued while it was in flight (newer wins)', async () => {
+    const quill = seed('awa');
+    type(quill, ' tansi');
+    await settle(3000); // save in flight
+    drag(1, 4);
+    type(quill, ' kiya'); // queued behind it
+
+    await fail(0); // queued flush (3s) not due yet; retry timer takes over
+    await settle(2000);
+    expect(mockServer.calls).toHaveLength(2);
+    expect(mockServer.calls[1].changes).toMatchObject({ regionText: 'awa tansi kiya', start: 1, end: 4 });
+
+    await release(1);
+    expect(mockServer.rows.get(REGION_ID)).toMatchObject({ regionText: 'awa tansi kiya', start: 1, end: 4 });
+    expect(saveStatus()).toBe('saved');
+  });
+
+  it('repeated failures back off: 2s, 4s, 8s, ... capped at 30s', async () => {
+    seed('awa');
+    drag(1, 4);
+    await settle(2500);
+    await fail(0);
+
+    const delays = [2000, 4000, 8000, 16000, 30000, 30000];
+    for (const [i, delay] of delays.entries()) {
+      await settle(delay - 1);
+      expect(mockServer.calls).toHaveLength(i + 1);
+      await settle(1);
+      expect(mockServer.calls).toHaveLength(i + 2);
+      expect(saveStatus()).toBe('error');
+      await fail(i + 1);
+    }
+
+    await settle(30_000);
+    await release(delays.length + 1);
+    expect(mockServer.rows.get(REGION_ID)).toMatchObject({ start: 1, end: 4 });
+    expect(saveStatus()).toBe('saved');
+  });
+
+  it('version conflict still opens the dialog and is not retried', async () => {
+    const quill = seed('awa');
+    Object.assign(mockServer.rows.get(REGION_ID)!, {
+      regionText: 'their text', _version: 2, userLastUpdated: 'them@example.com',
+    });
+
+    type(quill, ' tansi');
+    await settle(3000);
+    await release(0);
+    expect(mockServer.calls[0].outcome).toBe('conflict');
+    expect(mockShowConflictDialog).toHaveBeenCalledTimes(1);
+
+    await settle(60_000);
+    expect(mockServer.calls).toHaveLength(1);
+    expect(saveStatus()).not.toBe('error');
+  });
+
+  it('deleting a region drops a failed save instead of retrying it', async () => {
+    seed('awa');
+    drag(1, 4);
+    await settle(2500); // save in flight
+    const cancelled = regionSaveManager.cancelPendingSaves(REGION_ID);
+    await fail(0);
+    await cancelled;
+
+    await settle(60_000);
+    expect(mockServer.calls).toHaveLength(1);
+    expect(regionSaveManager.hasAnyPendingSaves()).toBe(false);
+    expect(saveStatus()).not.toBe('error');
   });
 });

@@ -807,18 +807,14 @@ describe('RegionSaveManager', () => {
         (services.storeService.getRegionVersion as jest.Mock).mockReturnValue(1);
       });
 
-      it('should rethrow non-conflict errors', async () => {
-        const error = new Error('Network error');
-        
-        // Mock isVersionConflictError to return false
-        jest.mock('./versionConflictService', () => ({
-          isVersionConflictError: jest.fn(() => false),
-          handleVersionConflict: jest.fn()
-        }));
-        
-        await expect(
-          regionSaveManager.__handleSaveError(error, 'region-1', { regionText: 'text' }, [])
-        ).rejects.toThrow('Network error');
+      it('should re-queue non-conflict errors for retry instead of throwing', async () => {
+        await regionSaveManager.__handleSaveError(
+          new Error('Network error'), 'region-1', { regionText: 'text' }, ['regionText']
+        );
+
+        const queue = regionSaveManager.__getQueueForTesting('region-1');
+        expect(queue?.pendingChanges).toEqual({ regionText: 'text' });
+        expect([...(queue?.pendingEditFields ?? [])]).toEqual(['regionText']);
       });
     });
   });

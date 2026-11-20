@@ -8,6 +8,10 @@ import type { PendingEdit } from './pendingEditsService';
 
 type PendingEditField = PendingEdit['field'];
 
+// Retry backoff for saves that failed with a non-conflict error: 2s, 4s, 8s, ... capped at 30s
+const RETRY_BASE_MS = 2000;
+const RETRY_MAX_MS = 30000;
+
 interface PendingChanges {
   regionText?: string;
   translation?: string;
@@ -39,6 +43,8 @@ class RegionSaveManagerImpl {
   // Per-region save chain: each flush waits for the previous save of that region,
   // so every save reads _version after the one before it has landed.
   private inFlight = new Map<string, Promise<void>>();
+  // Consecutive failed (non-conflict) saves per region; drives retry backoff and the error status
+  private failures = new Map<string, number>();
   
   /**
    * Queue a text change with automatic spell checking
@@ -53,8 +59,7 @@ class RegionSaveManagerImpl {
     queue.lastChangeTime = Date.now();
     queue.pendingEditFields.add('regionText');
     
-    // Set save status to pending
-    services.storeService.setSaveStatus('pending');
+    this.reportSaveStatus();
     
     // Cancel any existing spell check
     if (queue.spellCheckTimer) {
@@ -78,7 +83,7 @@ class RegionSaveManagerImpl {
     queue.pendingChanges.regionAnalysis = regionAnalysis;
     queue.lastChangeTime = Date.now();
 
-    services.storeService.setSaveStatus('pending');
+    this.reportSaveStatus();
 
     this.resetSaveTimer(regionId, 0);
   }
@@ -86,7 +91,7 @@ class RegionSaveManagerImpl {
   /**
    * Save the queued changes for a region now instead of waiting for the debounce.
    * Still serialised behind any save of that region already in flight.
-   * Resolves once the save has landed.
+   * Resolves once the save has landed, or has failed and been re-queued for retry.
    */
   flushNow(regionId: string): Promise<void> {
     const queue = this.queues.get(regionId);
@@ -124,8 +129,7 @@ class RegionSaveManagerImpl {
     queue.lastChangeTime = Date.now();
     queue.pendingEditFields.add('translation');
     
-    // Set save status to pending
-    services.storeService.setSaveStatus('pending');
+    this.reportSaveStatus();
     
     this.resetSaveTimer(regionId, 3000);
   }
@@ -144,8 +148,7 @@ class RegionSaveManagerImpl {
     queue.lastChangeTime = Date.now();
     queue.pendingEditFields.add('bounds');
     
-    // Set save status to pending
-    services.storeService.setSaveStatus('pending');
+    this.reportSaveStatus();
     
     this.resetSaveTimer(regionId, 2500);
   }
@@ -270,18 +273,22 @@ class RegionSaveManagerImpl {
     
     try {
       await this.saveRegionChanges(regionId, changes, pendingEditFields);
+      this.failures.delete(regionId);
     } catch (error) {
       await this.handleSaveError(error, regionId, changes, pendingEditFields);
     }
   }
 
   /**
-   * Indicator reflects the whole editor: pending while anything is queued (dirty),
-   * saving while a save is in flight, saved only when everything has landed.
+   * Indicator reflects the whole editor: error while any region's save has failed and is
+   * awaiting retry, pending while anything is queued (dirty), saving while a save is in
+   * flight, saved only when everything has landed.
    * Also overrides the 'saved' that UpdateTranscriptionUseCase sets after each region save.
    */
   private reportSaveStatus(): void {
-    if (this.queues.size > 0) {
+    if (this.failures.size > 0) {
+      services.storeService.setSaveStatus('error');
+    } else if (this.queues.size > 0) {
       services.storeService.setSaveStatus('pending');
     } else if (this.inFlight.size > 0) {
       services.storeService.setSaveStatus('saving');
@@ -367,7 +374,8 @@ class RegionSaveManagerImpl {
   }
   
   /**
-   * Handle save errors (primarily version conflicts)
+   * Handle save errors: version conflicts go to the conflict dialog; anything else
+   * (network, 5xx, auth) is re-queued and retried with backoff.
    */
   private async handleSaveError(
     error: unknown,
@@ -378,7 +386,8 @@ class RegionSaveManagerImpl {
     console.error(`❌ SAVE-MANAGER: Save failed for ${regionId}:`, error);
     
     if (!isVersionConflictError(error)) {
-      throw error;
+      this.requeueForRetry(regionId, changes, pendingEditFields);
+      return;
     }
     
     console.debug(`⚠️ SAVE-MANAGER: Version conflict detected for ${regionId}`);
@@ -409,6 +418,29 @@ class RegionSaveManagerImpl {
     );
   }
   
+  /**
+   * Put the changes of a failed save back in the region's queue, under anything queued
+   * since (newer wins), and schedule a retry with backoff. The retry goes through the
+   * normal flush, so it stays serialised with every other save of the region.
+   */
+  private requeueForRetry(
+    regionId: string,
+    changes: PendingChanges,
+    pendingEditFields: PendingEditField[]
+  ): void {
+    const queue = this.getOrCreateQueue(regionId);
+    queue.pendingChanges = { ...changes, ...queue.pendingChanges };
+    for (const field of pendingEditFields) {
+      queue.pendingEditFields.add(field);
+    }
+
+    const failures = (this.failures.get(regionId) ?? 0) + 1;
+    this.failures.set(regionId, failures);
+    const delay = Math.min(RETRY_BASE_MS * 2 ** (failures - 1), RETRY_MAX_MS);
+    console.warn(`SAVE-MANAGER: Save failed for ${regionId}, retrying in ${delay}ms`);
+    this.resetSaveTimer(regionId, delay);
+  }
+
   /**
    * Determine which field is the primary one being edited
    */
@@ -584,12 +616,19 @@ class RegionSaveManagerImpl {
    * races its own save.
    */
   async cancelPendingSaves(regionId: string): Promise<void> {
-    this.clearQueue(regionId);
-    this.reportSaveStatus();
+    this.dropRegion(regionId);
     const inFlight = this.inFlight.get(regionId);
     if (!inFlight) return;
     // A failure of that save is reported by its own flush (error status + rethrow)
     await inFlight.then(() => undefined, () => undefined);
+    // That save may have failed and re-queued itself for retry; drop that too
+    this.dropRegion(regionId);
+  }
+
+  private dropRegion(regionId: string): void {
+    this.clearQueue(regionId);
+    this.failures.delete(regionId);
+    this.reportSaveStatus();
   }
   
   /**
@@ -657,6 +696,7 @@ class RegionSaveManagerImpl {
     });
     this.queues.clear();
     this.inFlight.clear();
+    this.failures.clear();
   }
   
   __getQueueForTesting(regionId: string): SaveQueue | undefined {
