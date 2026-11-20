@@ -6,7 +6,7 @@ jest.mock('../services/regionSaveManager', () => ({
     queueTextChange: jest.fn(),
     queueTranslationChange: jest.fn(),
     queueBoundsChange: jest.fn(),
-    flushNow: jest.fn().mockResolvedValue(undefined),
+    saveNowOrThrow: jest.fn().mockResolvedValue(undefined),
   },
 }));
 
@@ -51,6 +51,7 @@ describe('MergeRegionUseCase', () => {
     setRegionText: jest.fn(),
     setRegionTranslation: jest.fn(),
     updateRegionBounds: jest.fn(),
+    setRegionAnalysis: jest.fn(),
     getRegionVersion: jest.fn(() => 3),
     setRegionVersion: jest.fn(),
     getIssuesForRegion: jest.fn(() => []),
@@ -88,7 +89,7 @@ describe('MergeRegionUseCase', () => {
     mockStore.getIssuesForRegion.mockReturnValue([]);
     mockStore.setRegionText.mockReset();
     (regionSaveManager.cancelPendingSaves as jest.Mock).mockReset().mockResolvedValue(undefined);
-    (regionSaveManager.flushNow as jest.Mock).mockReset().mockResolvedValue(undefined);
+    (regionSaveManager.saveNowOrThrow as jest.Mock).mockReset().mockResolvedValue(undefined);
   });
 
   describe('validate', () => {
@@ -157,7 +158,7 @@ describe('MergeRegionUseCase', () => {
     it('saves survivor through the save queue, and waits for it, before deleting absorbed', async () => {
       const order: string[] = [];
       let releaseSave!: () => void;
-      (regionSaveManager.flushNow as jest.Mock).mockImplementation(() => {
+      (regionSaveManager.saveNowOrThrow as jest.Mock).mockImplementation(() => {
         order.push('flush');
         return new Promise<void>((resolve) => {
           releaseSave = () => {
@@ -180,7 +181,7 @@ describe('MergeRegionUseCase', () => {
       expect(regionSaveManager.queueTextChange).toHaveBeenCalledWith('survivor', 'Hello world');
       expect(regionSaveManager.queueTranslationChange).toHaveBeenCalledWith('survivor', 'Bonjour monde');
       expect(regionSaveManager.queueBoundsChange).toHaveBeenCalledWith('survivor', 0, 10);
-      expect(regionSaveManager.flushNow).toHaveBeenCalledWith('survivor');
+      expect(regionSaveManager.saveNowOrThrow).toHaveBeenCalledWith('survivor');
       expect(mockServices.regionService.updateRegion).not.toHaveBeenCalled();
       expect(order).toEqual(['flush', 'saved', 'delete']);
     });

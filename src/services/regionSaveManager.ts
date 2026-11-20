@@ -105,6 +105,22 @@ class RegionSaveManagerImpl {
     return this.flush(regionId);
   }
 
+  /**
+   * Like flushNow, but all-or-nothing: if the save fails it rejects and nothing is
+   * re-queued for retry (used by merge, which must not half-apply).
+   */
+  saveNowOrThrow(regionId: string): Promise<void> {
+    const queue = this.queues.get(regionId);
+    if (!queue) {
+      throw new Error(`No queued changes for region ${regionId}`);
+    }
+    if (queue.saveTimer) {
+      Timeout.clear(queue.saveTimer);
+      queue.saveTimer = null;
+    }
+    return this.flush(regionId, 'throw');
+  }
+
   private async startSpellCheck(queue: SaveQueue, text: string): Promise<void> {
     queue.spellCheckTimer = null;
     const spellCheck = this.performSpellCheck(queue.regionId, text);
@@ -226,9 +242,9 @@ class RegionSaveManagerImpl {
   /**
    * Flush pending changes to database, after any save of this region already in flight
    */
-  private async flush(regionId: string): Promise<void> {
+  private async flush(regionId: string, onFailure: 'retry' | 'throw' = 'retry'): Promise<void> {
     const previous = this.inFlight.get(regionId) ?? Promise.resolve();
-    const save = () => this.saveQueuedChanges(regionId);
+    const save = () => this.saveQueuedChanges(regionId, onFailure);
     // Run after the previous save whether it succeeded or failed
     const run = previous.then(save, save);
     this.inFlight.set(regionId, run);
@@ -250,7 +266,7 @@ class RegionSaveManagerImpl {
   /**
    * Save whatever is queued for the region at the moment the save actually starts
    */
-  private async saveQueuedChanges(regionId: string): Promise<void> {
+  private async saveQueuedChanges(regionId: string, onFailure: 'retry' | 'throw'): Promise<void> {
     const queue = this.queues.get(regionId);
     // An earlier chained flush already saved everything queued for this region
     if (!queue) return;
@@ -275,6 +291,9 @@ class RegionSaveManagerImpl {
       await this.saveRegionChanges(regionId, changes, pendingEditFields);
       this.failures.delete(regionId);
     } catch (error) {
+      if (onFailure === 'throw' && !isVersionConflictError(error)) {
+        throw error;
+      }
       await this.handleSaveError(error, regionId, changes, pendingEditFields);
     }
   }

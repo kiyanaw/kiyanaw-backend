@@ -710,6 +710,65 @@ describe('non-conflict save failures are kept and retried', () => {
     expect(saveStatus()).not.toBe('error');
   });
 
+  function seedAbsorbed() {
+    const absorbed: ServerRow = {
+      id: 'region-2', transcriptionId: 'trans-1', regionText: 'kiya', start: 5, end: 9,
+      _version: 1, userLastUpdated: 'me@example.com',
+    };
+    mockServer.rows.set('region-2', absorbed);
+    services.storeService.addNewRegion({ ...absorbed } as unknown as RegionData);
+  }
+
+  function merge() {
+    return new MergeRegionUseCase({
+      survivorId: REGION_ID,
+      absorbedId: 'region-2',
+      transcriptionId: 'trans-1',
+      user,
+      services,
+      store: useEditorStore.getState(),
+    }).execute();
+  }
+
+  it('merge is all-or-nothing: survivor save fails -> both regions restored, nothing deleted, no retry', async () => {
+    seed('awa');
+    seedAbsorbed();
+
+    const merged = merge();
+    const outcome = merged.then(() => 'ok', (e: Error) => e.message);
+    await settle();
+    expect(mockServer.calls).toHaveLength(1);
+    expect(services.storeService.regionById(REGION_ID)).toMatchObject({ regionText: 'awa kiya', end: 9 });
+
+    await fail(0);
+    expect(await outcome).toBe('Network error');
+
+    expect(services.storeService.regionById(REGION_ID)).toMatchObject({ regionText: 'awa', start: 0, end: 5 });
+    expect(services.storeService.regionById('region-2')).toMatchObject({ regionText: 'kiya', start: 5, end: 9 });
+    expect(mockServer.rows.has('region-2')).toBe(true);
+    expect(mockServer.rows.get(REGION_ID)).toMatchObject({ regionText: 'awa', start: 0, end: 5 });
+    expect(saveStatus()).toBe('error');
+    expect(regionSaveManager.hasAnyPendingSaves()).toBe(false);
+
+    await settle(60_000);
+    expect(mockServer.calls).toHaveLength(1); // not retried
+  });
+
+  it('merge success deletes the absorbed region after the survivor save lands', async () => {
+    seed('awa');
+    seedAbsorbed();
+
+    const merged = merge();
+    await settle();
+    expect(mockServer.rows.has('region-2')).toBe(true); // not deleted while the save is in flight
+    await release(0);
+    await merged;
+
+    expect(mockServer.rows.get(REGION_ID)).toMatchObject({ regionText: 'awa kiya', start: 0, end: 9 });
+    expect(mockServer.rows.has('region-2')).toBe(false);
+    expect(saveStatus()).toBe('saved');
+  });
+
   it('deleting a region drops a failed save instead of retrying it', async () => {
     seed('awa');
     drag(1, 4);
