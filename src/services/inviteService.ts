@@ -426,6 +426,8 @@ export interface InviteWithValidation {
     userLastUpdated: string;
     createdAt: string;
     updatedAt: string;
+    /** Transcription.extra as a JSON string (same as AppSync AWSJSON), null when unset */
+    extra: string | null;
   };
 }
 

@@ -6,6 +6,7 @@ import { usePlay } from '../../hooks/usePlay';
 import { usePause } from '../../hooks/usePause';
 import { useSelectAndPlayRegion } from '../../hooks/useSelectAndPlayRegion';
 import { useEditorStore } from '../../stores/useEditorStore';
+import { ExtraBadges } from '../shared/ExtraBadges';
 import { CreateRegion } from '../../use-cases/create-region';
 import { services } from '../../services';
 import { SaveIndicator } from './SaveIndicator';
@@ -72,6 +73,7 @@ export const WaveformPlayer = ({
   const canEdit = useEditorStore((state) => state.canEdit);
   const wavesurferError = useEditorStore((state) => state.wavesurferError);
   const saveStatus = useEditorStore((state) => state.saveStatus);
+  const transcriptionBadges = useEditorStore((state) => state.transcriptionBadges);
   const showExpiredCredentialsDialog = useEditorStore((state) => state.showExpiredCredentialsDialog);
   const setShowExpiredCredentialsDialog = useEditorStore((state) => state.setShowExpiredCredentialsDialog);
   const peaks = useEditorStore((state) => state.peaks);
@@ -330,16 +332,20 @@ export const WaveformPlayer = ({
       <div className="w-full bg-white border border-gray-300 rounded-lg relative">
         {/* Header */}
         <div className="flex justify-between items-center bg-[#dbdbdb] h-8 px-4 text-gray-900 font-bold text-sm">
-          <div className="uppercase overflow-hidden text-ellipsis whitespace-nowrap flex-1">
+          <div className="uppercase overflow-hidden text-ellipsis whitespace-nowrap flex-1 flex items-center gap-2 min-w-0">
             <button
               onClick={onOpenSettings}
-              className="flex items-center gap-2 text-left hover:text-gray-700 transition-colors cursor-pointer"
+              className="flex items-center gap-2 min-w-0 text-left hover:text-gray-700 transition-colors cursor-pointer"
               title="Click to open transcription settings"
               data-testid="transcription-settings-button"
             >
-              <span>{title}</span>
+              <span className="truncate">{title}</span>
               <Settings size={14} className="flex-shrink-0" />
             </button>
+            {/* Desktop only: the phone title bar has no room next to the time and save state */}
+            <div className="hidden lg:flex items-center gap-2 min-w-0 normal-case font-normal">
+              <ExtraBadges badges={transcriptionBadges} />
+            </div>
           </div>
           <div className="flex items-center gap-2 font-bold text-sm">
                   <CredentialTimer onOpenDialog={() => setShowExpiredCredentialsDialog(true)} />

@@ -24,6 +24,8 @@ export interface TranscriptionData {
   updatedAt?: string;
   isVideo?: boolean;
   lang?: string; // language code for spell-checking
+  /** AWSJSON from AppSync: a JSON string. Parsed by TranscriptionModel into `extraInfo`. */
+  extra?: string | null;
 }
 
 export interface RegionData {
@@ -230,6 +232,94 @@ function floatToMSM(value: number): string {
   return `${minutes}:${pad(seconds, 2)}.${millis || '00'}`;
 }
 
+/** App-level marks stored in Transcription.extra (written by Mentor). Unknown keys are ignored. */
+export interface TranscriptionExtra {
+  // Mentor claims an import first as 'pending', then flips it to 'done'.
+  mentorImport?: { status: 'pending' | 'done'; date: string; by: string; playlistId?: string };
+  fromPlaylist?: { playlistId: string; name: string; date: string };
+}
+
+export interface ExtraBadge {
+  kind: 'fromPlaylist' | 'mentorImport';
+  label: string;
+}
+
+const isRecord = (v: unknown): v is Record<string, unknown> =>
+  typeof v === 'object' && v !== null && !Array.isArray(v);
+
+const isValidDate = (v: unknown): v is string =>
+  typeof v === 'string' && !Number.isNaN(new Date(v).getTime());
+
+/** A date-only ISO string ("2026-11-19") is a calendar day, not UTC midnight. */
+const toLocalDate = (iso: string): Date => {
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  return dateOnly
+    ? new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]))
+    : new Date(iso);
+};
+
+/**
+ * Parses Transcription.extra (AWSJSON string) into its typed shape.
+ *
+ * Deliberate exception to fail-fast: extra is display-only metadata, so a malformed
+ * value (bad JSON or a known key with the wrong shape) is logged and treated as absent
+ * rather than breaking the transcription list or editor. Missing extra is a normal case.
+ */
+export const parseTranscriptionExtra = (raw: string | null | undefined, transcriptionId: string): TranscriptionExtra => {
+  if (raw == null || raw === '') return {};
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (error) {
+    console.warn(`Ignoring malformed extra on transcription ${transcriptionId}`, error);
+    return {};
+  }
+  if (!isRecord(parsed)) {
+    console.warn(`Ignoring non-object extra on transcription ${transcriptionId}`);
+    return {};
+  }
+
+  const extra: TranscriptionExtra = {};
+  const { mentorImport, fromPlaylist } = parsed;
+
+  if (mentorImport !== undefined) {
+    const playlistId = isRecord(mentorImport) ? mentorImport.playlistId : undefined;
+    if (isRecord(mentorImport) && (mentorImport.status === 'pending' || mentorImport.status === 'done')
+      && isValidDate(mentorImport.date) && typeof mentorImport.by === 'string'
+      && (playlistId === undefined || typeof playlistId === 'string')) {
+      extra.mentorImport = { status: mentorImport.status, date: mentorImport.date, by: mentorImport.by };
+      if (typeof playlistId === 'string') extra.mentorImport.playlistId = playlistId;
+    } else {
+      console.warn(`Ignoring malformed extra.mentorImport on transcription ${transcriptionId}`);
+    }
+  }
+
+  if (fromPlaylist !== undefined) {
+    if (isRecord(fromPlaylist) && typeof fromPlaylist.playlistId === 'string'
+      && typeof fromPlaylist.name === 'string' && typeof fromPlaylist.date === 'string') {
+      extra.fromPlaylist = { playlistId: fromPlaylist.playlistId, name: fromPlaylist.name, date: fromPlaylist.date };
+    } else {
+      console.warn(`Ignoring malformed extra.fromPlaylist on transcription ${transcriptionId}`);
+    }
+  }
+
+  return extra;
+};
+
+/** Plain badges shown in the list row and editor title bar; empty when there is no extra. */
+const badgesFor = (extra: TranscriptionExtra): ExtraBadge[] => {
+  const badges: ExtraBadge[] = [];
+  if (extra.fromPlaylist) {
+    badges.push({ kind: 'fromPlaylist', label: `From playlist ${extra.fromPlaylist.name}` });
+  }
+  // A 'pending' import is still running (or was abandoned), so it gets no badge.
+  if (extra.mentorImport?.status === 'done') {
+    badges.push({ kind: 'mentorImport', label: `Imported to Mentor ${toLocalDate(extra.mentorImport.date).toLocaleDateString()}` });
+  }
+  return badges;
+};
+
 export class TranscriptionModel {
   public id: string;
   public data: TranscriptionData;
@@ -252,6 +342,7 @@ export class TranscriptionModel {
   public viewers?: string[] | null;
   public accessLevel?: 'owner' | 'editor' | 'viewer' | null;
   public lang?: string;
+  public extraInfo: TranscriptionExtra;
   private length: number;
 
   constructor(data: TranscriptionData) {
@@ -288,6 +379,12 @@ export class TranscriptionModel {
     this.isVideo = data.type?.includes('video') || false;
     this.lang = data.lang;
     this.length = data.length || 0;
+    this.extraInfo = parseTranscriptionExtra(data.extra, data.id);
+  }
+
+  /** Badges derived from extra ("From playlist …", "Imported to Mentor …"). */
+  get extraBadges(): ExtraBadge[] {
+    return badgesFor(this.extraInfo);
   }
 
   /**

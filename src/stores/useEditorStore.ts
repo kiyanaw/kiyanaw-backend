@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import type { TranscriptionData, RegionData } from '../types/shared';
-import type { IssueData, CommentData } from '../services/adt';
+import type { IssueData, CommentData, ExtraBadge } from '../services/adt';
 import type { WordAnalysis, SpellingSuggestion } from '../services/adt';
 
 const isWordAnalysis = (value: unknown): value is WordAnalysis => {
@@ -29,6 +29,8 @@ interface EditorDataPayload {
 interface EditorState {
   // Transcription state
   transcription: TranscriptionData | null;
+  /** Badges from Transcription.extra, set by LoadTranscription from the TranscriptionModel */
+  transcriptionBadges: ExtraBadge[];
   saved: boolean;
   saveStatus: 'saved' | 'saving' | 'pending' | 'error';
   peaks: number[] | null;
@@ -91,6 +93,7 @@ interface EditorState {
   
   // Transcription actions
   setTranscription: (transcription: TranscriptionData) => void;
+  setTranscriptionBadges: (badges: ExtraBadge[]) => void;
   setSaved: (saved: boolean) => void;
   setSaveStatus: (status: 'saved' | 'saving' | 'pending' | 'error') => void;
   setPeaks: (peaks: number[]) => void;
@@ -174,6 +177,7 @@ export const useEditorStore = create<EditorState>()(
     (set, get) => ({
       // Initial state
       transcription: null,
+      transcriptionBadges: [],
       saved: false,
       saveStatus: 'saved',
       peaks: null,
@@ -356,6 +360,7 @@ export const useEditorStore = create<EditorState>()(
         _subscriptions.forEach(sub => sub.unsubscribe());
         set({
           transcription: null,
+          transcriptionBadges: [],
           peaks: null,
           accessDenied: false,
           mediaStatus: null,
@@ -383,6 +388,7 @@ export const useEditorStore = create<EditorState>()(
 
       // Transcription actions
       setTranscription: (transcription) => set({ transcription }),
+      setTranscriptionBadges: (transcriptionBadges) => set({ transcriptionBadges }),
       
       setSaved: (saved) => {
         set({ saved });

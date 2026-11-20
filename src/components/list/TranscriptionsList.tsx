@@ -7,6 +7,7 @@ import { useAuthStore } from '../../stores/useAuthStore';
 import { useLoadTranscriptions } from '../../hooks/useLoadTranscriptions';
 import { SyncIndicator } from '../sync/SyncIndicator';
 import { MediaStatusIndicator } from './MediaStatusIndicator';
+import { ExtraBadges } from '../shared/ExtraBadges';
 import { DeleteTranscriptionModal } from '../shared/DeleteTranscriptionModal';
 import { SyncOwnedTranscriptions } from '../../use-cases/sync-owned-transcriptions';
 import { SyncSharedTranscriptions } from '../../use-cases/sync-shared-transcriptions';
@@ -196,10 +197,9 @@ export const TranscriptionsList = () => {
 
     // Sort
     filtered.sort((a, b) => {
-      // @ts-expect-error - Needed for dynamic property access
-      let aValue = a[sortBy];
-      // @ts-expect-error - Needed for dynamic property access  
-      let bValue = b[sortBy];
+      // Dynamic property access by sort key
+      let aValue = Reflect.get(a, sortBy);
+      let bValue = Reflect.get(b, sortBy);
 
       // Handle numeric values
       if (sortBy === 'length' || sortBy === 'coverage') {
@@ -574,6 +574,12 @@ export const TranscriptionsList = () => {
                       by {transcription.getOwnerDisplay(user?.userId)}
                     </div>
 
+                    {transcription.extraBadges.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mb-3" data-testid="extra-badges">
+                        <ExtraBadges badges={transcription.extraBadges} />
+                      </div>
+                    )}
+
                     {/* Mobile Meta Info - Stacked */}
                     <div className="space-y-2">
                       <div className="flex items-center justify-between text-sm">
@@ -730,6 +736,7 @@ export const TranscriptionsList = () => {
                           )}
                           {!transcription.isPrivate ? 'Discoverable' : 'Private'}
                         </span>
+                        <ExtraBadges badges={transcription.extraBadges} />
                       </div>
                       
                       {/* Right side: Coverage and last edited on same line */}

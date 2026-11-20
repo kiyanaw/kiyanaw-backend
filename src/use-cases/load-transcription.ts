@@ -46,6 +46,7 @@ export class LoadTranscription {
       const canEdit = userService.canEditTranscription(data.transcription);
       this.config.store.setCanEdit(canEdit);
       this.config.store.setTranscription(data.transcription);
+      this.config.store.setTranscriptionBadges(data.transcription.extraBadges);
       this.config.store.setMediaStatus(data.mediaStatus);
       return;
     }
@@ -61,6 +62,7 @@ export class LoadTranscription {
 
     // Set transcription data in store - use null instead of undefined for consistency with tests
     this.config.store.setFullTranscriptionData(data, selectedRegionId || null);
+    this.config.store.setTranscriptionBadges(data.transcription.extraBadges);
     // Persist selected issue id in store if provided
     if (selectedIssueId && this.config.store.setSelectedIssueId) {
       this.config.store.setSelectedIssueId(selectedIssueId);
