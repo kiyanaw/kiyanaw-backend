@@ -11,7 +11,7 @@ const base: TranscriptionData = {
   length: 10,
 };
 
-const MENTOR = { date: '2026-11-19T15:30:00.000Z', by: 'mentor-user', playlistId: 'pl-1' };
+const MENTOR = { status: 'done' as const, date: '2026-11-19T15:30:00.000Z', by: 'mentor-user', playlistId: 'pl-1' };
 const PLAYLIST = { playlistId: 'pl-1', name: 'Elders 2026', date: '2026-11-18T10:00:00.000Z' };
 
 const localDate = (iso: string) => new Date(iso).toLocaleDateString();
@@ -85,7 +85,7 @@ describe('Transcription extra', () => {
     });
 
     it('shows a date-only import date as that calendar day', () => {
-      const model = new TranscriptionModel({ ...base, extra: JSON.stringify({ mentorImport: { date: '2026-11-19', by: 'm' } }) });
+      const model = new TranscriptionModel({ ...base, extra: JSON.stringify({ mentorImport: { status: 'done', date: '2026-11-19', by: 'm' } }) });
       expect(model.extraBadges).toEqual([
         { kind: 'mentorImport', label: `Imported to Mentor ${new Date(2026, 10, 19).toLocaleDateString()}` },
       ]);
@@ -95,6 +95,22 @@ describe('Transcription extra', () => {
       const model = new TranscriptionModel(base);
       expect(model.extraInfo).toEqual({});
       expect(model.extraBadges).toEqual([]);
+    });
+
+    it('shows no Mentor badge while an import is still pending', () => {
+      const pending = { ...MENTOR, status: 'pending' as const };
+      const model = new TranscriptionModel({ ...base, extra: JSON.stringify({ mentorImport: pending, fromPlaylist: PLAYLIST }) });
+      expect(model.extraInfo.mentorImport).toEqual(pending);
+      expect(model.extraBadges.map((b) => b.kind)).toEqual(['fromPlaylist']);
+    });
+
+    it('drops mentorImport with a missing or unknown status', () => {
+      const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      const { status: _omit, ...noStatus } = MENTOR;
+      expect(parseTranscriptionExtra(JSON.stringify({ mentorImport: noStatus }), 'tx-1')).toEqual({});
+      expect(parseTranscriptionExtra(JSON.stringify({ mentorImport: { ...MENTOR, status: 'started' } }), 'tx-1')).toEqual({});
+      expect(warn).toHaveBeenCalledTimes(2);
+      warn.mockRestore();
     });
 
     it('has no badges when extra is malformed', () => {

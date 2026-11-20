@@ -234,7 +234,8 @@ function floatToMSM(value: number): string {
 
 /** App-level marks stored in Transcription.extra (written by Mentor). Unknown keys are ignored. */
 export interface TranscriptionExtra {
-  mentorImport?: { date: string; by: string; playlistId?: string };
+  // Mentor claims an import first as 'pending', then flips it to 'done'.
+  mentorImport?: { status: 'pending' | 'done'; date: string; by: string; playlistId?: string };
   fromPlaylist?: { playlistId: string; name: string; date: string };
 }
 
@@ -284,9 +285,10 @@ export const parseTranscriptionExtra = (raw: string | null | undefined, transcri
 
   if (mentorImport !== undefined) {
     const playlistId = isRecord(mentorImport) ? mentorImport.playlistId : undefined;
-    if (isRecord(mentorImport) && isValidDate(mentorImport.date) && typeof mentorImport.by === 'string'
+    if (isRecord(mentorImport) && (mentorImport.status === 'pending' || mentorImport.status === 'done')
+      && isValidDate(mentorImport.date) && typeof mentorImport.by === 'string'
       && (playlistId === undefined || typeof playlistId === 'string')) {
-      extra.mentorImport = { date: mentorImport.date, by: mentorImport.by };
+      extra.mentorImport = { status: mentorImport.status, date: mentorImport.date, by: mentorImport.by };
       if (typeof playlistId === 'string') extra.mentorImport.playlistId = playlistId;
     } else {
       console.warn(`Ignoring malformed extra.mentorImport on transcription ${transcriptionId}`);
@@ -311,7 +313,8 @@ const badgesFor = (extra: TranscriptionExtra): ExtraBadge[] => {
   if (extra.fromPlaylist) {
     badges.push({ kind: 'fromPlaylist', label: `From playlist ${extra.fromPlaylist.name}` });
   }
-  if (extra.mentorImport) {
+  // A 'pending' import is still running (or was abandoned), so it gets no badge.
+  if (extra.mentorImport?.status === 'done') {
     badges.push({ kind: 'mentorImport', label: `Imported to Mentor ${toLocalDate(extra.mentorImport.date).toLocaleDateString()}` });
   }
   return badges;

@@ -39,7 +39,7 @@ jest.mock('../../stores/useTranscriptionsStore', () => {
 });
 
 const PLAYLIST = { playlistId: 'pl-1', name: 'A very long playlist name from the Elders gathering 2026', date: '2026-11-18T10:00:00.000Z' };
-const MENTOR = { date: '2026-11-19T15:30:00.000Z', by: 'mentor-user' };
+const MENTOR = { status: 'done', date: '2026-11-19T15:30:00.000Z', by: 'mentor-user' };
 
 const model = (id: string, author: string, extra?: object) => {
   const data: TranscriptionData = {
