@@ -45,7 +45,7 @@ class TranscriptionService {
           [this.tableName]: {
             Keys: keys,
             // Only get the fields we need for card rendering to reduce data transfer
-            ProjectionExpression: 'id, title, author, authorFriendly, #type, #length, coverage, issueCount, regionCount, commentCount, isPrivate, dateLastUpdated, userLastUpdated, createdAt, updatedAt',
+            ProjectionExpression: 'id, title, author, authorFriendly, #type, #length, coverage, issueCount, regionCount, commentCount, isPrivate, dateLastUpdated, userLastUpdated, createdAt, updatedAt, extra',
             ExpressionAttributeNames: {
               '#type': 'type',
               '#length': 'length'

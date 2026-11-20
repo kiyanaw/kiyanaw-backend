@@ -46,6 +46,7 @@ export const transcriptionsByAuthorWithMedia = /* GraphQL */ `
         isPublished
         publicIssues
         disableAnalyzer
+        extra
         editors
         viewers
         editorGroups
@@ -112,6 +113,7 @@ export const transcriptionsByAuthorDate = /* GraphQL */ `
         isPublished
         publicIssues
         disableAnalyzer
+        extra
         editors
         viewers
         editorGroups

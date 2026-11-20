@@ -1,4 +1,4 @@
-import { loadInFull, loadAll, create, __resetClient, clearTranscriptionCache, isSyncing } from './transcriptionService';
+import { loadInFull, loadAll, create, __resetClient, clearTranscriptionCache, isSyncing, loadOwnedTranscriptionsOnly, loadSharedTranscriptionsOnly } from './transcriptionService';
 import { generateClient } from 'aws-amplify/api';
 import { loadRegionsForTranscription } from './regionService';
 import { loadIssuesForTranscription } from './issueService';
@@ -1039,6 +1039,44 @@ describe('TranscriptionService', () => {
       await expect(loadAll()).resolves.toBeDefined();
       expect(getMyInvites).toHaveBeenCalled();
       expect(mockGraphqlClient.graphql).toHaveBeenCalled();
+    });
+  });
+
+  describe('Transcription.extra in list loads', () => {
+    const EXTRA = JSON.stringify({ fromPlaylist: { playlistId: 'pl-1', name: 'Elders', date: '2026-11-18T00:00:00.000Z' } });
+
+    beforeEach(() => {
+      (currentUser as jest.Mock).mockReturnValue({ userId: 'test-user-id', username: 'test@example.com' });
+    });
+
+    it('owned list query selects extra and hands the raw JSON string to the ADT', async () => {
+      mockGraphqlClient.graphql.mockResolvedValue({
+        data: { transcriptionsByAuthor: { items: [{ id: 'owned-1', title: 'Mine', author: 'test-user-id', extra: EXTRA }] } },
+      });
+
+      await loadOwnedTranscriptionsOnly();
+
+      const { query } = mockGraphqlClient.graphql.mock.calls[0][0];
+      expect(query).toMatch(/\n\s+extra\n/);
+      expect(TranscriptionModel).toHaveBeenCalledWith(expect.objectContaining({ id: 'owned-1', extra: EXTRA }));
+    });
+
+    it('shared list passes extra from the invite lambda to the ADT', async () => {
+      const { getMyInvites } = require('./inviteService');
+      // mockReset drops once-values queued by earlier tests (clearAllMocks keeps them)
+      (getMyInvites as jest.Mock).mockReset().mockResolvedValueOnce({
+        invites: [{
+          invite: { id: 'inv-1', status: 'accepted', transcriptionId: 'shared-1' },
+          validation: {},
+          transcription: { id: 'shared-1', title: 'Shared', author: 'other', extra: EXTRA },
+        }],
+        total: 1,
+        filters: { userEmail: 'test@example.com', transcriptionId: null, inviteId: null },
+      });
+
+      await loadSharedTranscriptionsOnly();
+
+      expect(TranscriptionModel).toHaveBeenCalledWith(expect.objectContaining({ id: 'shared-1', extra: EXTRA }));
     });
   });
 

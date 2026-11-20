@@ -130,7 +130,9 @@ async function handleGetMyInvites(requestBody) {
             dateLastUpdated: transcriptionData.dateLastUpdated,
             userLastUpdated: transcriptionData.userLastUpdated,
             createdAt: transcriptionData.createdAt,
-            updatedAt: transcriptionData.updatedAt
+            updatedAt: transcriptionData.updatedAt,
+            // AppSync stores AWSJSON as a DynamoDB map; send it as a JSON string like AppSync does
+            extra: transcriptionData.extra == null ? null : JSON.stringify(transcriptionData.extra)
           };
         } else {
           console.warn(`⚠️ Transcription data not found for invite ${invite.id} -> ${invite.transcriptionId}`);

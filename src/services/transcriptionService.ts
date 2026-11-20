@@ -614,6 +614,7 @@ const loadSharedTranscriptions = async (userEmail: string, sinceTimestamp?: stri
           userLastUpdated: transcription.userLastUpdated,
           createdAt: transcription.createdAt,
           updatedAt: transcription.updatedAt,
+          extra: transcription.extra,
           // Set default values for fields not included in Lambda response
           issues: 0,
           comments: '',
