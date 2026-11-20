@@ -39,6 +39,7 @@ describe('LoadTranscription', () => {
     setAccessDenied: jest.fn(),
     setCanEdit: jest.fn(),
     setTranscription: jest.fn(),
+    setTranscriptionBadges: jest.fn(),
     setMediaStatus: jest.fn(),
   };
   const mockTranscriptionData = {
@@ -252,6 +253,32 @@ describe('LoadTranscription', () => {
 
       expect(services.userService.canEditTranscription).toHaveBeenCalledWith(mockTranscriptionData.transcription);
       expect(mockStore.setCanEdit).toHaveBeenCalledWith(false);
+    });
+
+    it('should put the transcription extra badges in the store', async () => {
+      const badges = [{ kind: 'fromPlaylist', label: 'From playlist Elders' }];
+      (services.transcriptionService.loadInFull as jest.Mock).mockResolvedValue({
+        ...mockTranscriptionData,
+        transcription: { ...mockTranscriptionData.transcription, extraBadges: badges },
+      });
+
+      await useCase.execute();
+
+      expect(mockStore.setTranscriptionBadges).toHaveBeenCalledWith(badges);
+    });
+
+    it('should put extra badges in the store while media is processing', async () => {
+      const badges = [{ kind: 'mentorImport', label: 'Imported to Mentor 11/19/2026' }];
+      (services.transcriptionService.loadInFull as jest.Mock).mockResolvedValue({
+        processing: true,
+        transcription: { id: mockTranscriptionId, title: 'Processing', extraBadges: badges },
+        mediaId: 'media-1',
+        mediaStatus: 'PENDING',
+      });
+
+      await useCase.execute();
+
+      expect(mockStore.setTranscriptionBadges).toHaveBeenCalledWith(badges);
     });
 
     it('should clear mediaStatus when load succeeds (dismisses processing overlay)', async () => {

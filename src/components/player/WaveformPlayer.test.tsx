@@ -125,6 +125,7 @@ describe('WaveformPlayer', () => {
             length: 120, // Duration in seconds
           },
           saved: false,
+          transcriptionBadges: [],
           saveStatus: 'saved' as const,
           peaks: null,
           wavesurferError: null,
@@ -161,6 +162,7 @@ describe('WaveformPlayer', () => {
           cleanup: jest.fn(),
         updateTranscription: jest.fn(),
         setTranscription: jest.fn(),
+        setTranscriptionBadges: jest.fn(),
         setSaved: jest.fn(),
         setSaveStatus: jest.fn(),
         setSelectedRegion: jest.fn(),
@@ -607,6 +609,7 @@ describe('WaveformPlayer', () => {
           length: 120, // Duration in seconds
         },
         saved: false,
+        transcriptionBadges: [],
         saveStatus: 'saved' as const,
         peaks: null,
         wavesurferError: null,
@@ -643,6 +646,7 @@ describe('WaveformPlayer', () => {
         cleanup: jest.fn(),
         updateTranscription: jest.fn(),
         setTranscription: jest.fn(),
+        setTranscriptionBadges: jest.fn(),
         setSaved: jest.fn(),
         setSaveStatus: jest.fn(),
         setSelectedRegion: jest.fn(),
@@ -739,6 +743,7 @@ describe('WaveformPlayer', () => {
             length: 120, // Duration in seconds
           },
           saved: false,
+          transcriptionBadges: [],
           saveStatus: 'saved' as const,
           peaks: null,
           wavesurferError: null,
@@ -775,6 +780,7 @@ describe('WaveformPlayer', () => {
           cleanup: jest.fn(),
           updateTranscription: jest.fn(),
           setTranscription: jest.fn(),
+          setTranscriptionBadges: jest.fn(),
           setSaved: jest.fn(),
         setSaveStatus: jest.fn(),
           setSelectedRegion: jest.fn(),
