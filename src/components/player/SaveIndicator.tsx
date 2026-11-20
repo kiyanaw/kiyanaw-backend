@@ -22,7 +22,7 @@ export const SaveIndicator = ({ status }: SaveIndicatorProps) => {
         className="flex items-center justify-center w-4 h-4"
         title="Changes pending save..."
       >
-        <Clock size={14} className="text-yellow-500" />
+        <Clock size={14} className="text-orange-500" />
       </div>
     );
   }
@@ -42,7 +42,7 @@ export const SaveIndicator = ({ status }: SaveIndicatorProps) => {
     return (
       <div 
         className="flex items-center justify-center w-4 h-4 bg-red-500 rounded-full"
-        title="Error saving changes"
+        title="Couldn't save, retrying…"
       >
         <AlertCircle size={10} className="text-white" />
       </div>

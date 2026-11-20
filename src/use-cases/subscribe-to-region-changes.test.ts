@@ -525,7 +525,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
 
         await subscriptionCallback(event);
 
-        // Should NOT update version tracking for self-triggered events (already handled by UpdateRegionUseCase)
+        // Should NOT update version tracking for self-triggered events (already handled by regionSaveManager)
         expect(mockServices.storeService.setRegionVersion).not.toHaveBeenCalled();
         
         // Should NOT update content for self-triggered events
@@ -566,7 +566,7 @@ describe('SubscribeToRegionChangesUseCase', () => {
 
       it('should skip version updates for self-triggered events to prevent conflicts', async () => {
         // This test ensures that self-triggered events do NOT update version tracking
-        // because UpdateRegionUseCase already handles version increments correctly
+        // because regionSaveManager already handles version increments correctly
         
         const firstSaveRegion = createMockRegion({
           userLastUpdated: 'current@user.com',

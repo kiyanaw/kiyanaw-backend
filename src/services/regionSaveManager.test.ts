@@ -22,6 +22,7 @@ jest.mock('./index', () => ({
       setRegionVersion: jest.fn(),
       setRegionText: jest.fn(),
       setRegionTranslation: jest.fn(),
+      updateRegionBounds: jest.fn(),
       setSaveStatus: jest.fn(),
     },
     spellCheckerService: {
@@ -648,7 +649,7 @@ describe('RegionSaveManager', () => {
       it('should update store with remote regionText', () => {
         const remoteData = { regionText: 'remote text', _version: 2 };
         
-        regionSaveManager.__updateStoreWithRemoteData('region-1', remoteData, 'regionText');
+        regionSaveManager.__updateStoreWithRemoteData('region-1', remoteData, { regionText: 'local' });
         
         expect(services.storeService.setRegionText).toHaveBeenCalledWith('region-1', 'remote text');
       });
@@ -656,20 +657,30 @@ describe('RegionSaveManager', () => {
       it('should update store with remote translation', () => {
         const remoteData = { translation: 'remote translation', _version: 2 };
         
-        regionSaveManager.__updateStoreWithRemoteData('region-1', remoteData, 'translation');
+        regionSaveManager.__updateStoreWithRemoteData('region-1', remoteData, { translation: 'local' });
         
         expect(services.storeService.setRegionTranslation).toHaveBeenCalledWith('region-1', 'remote translation');
       });
 
-      it('should not update store for bounds changes', () => {
-        const remoteData = { start: 10, end: 20, _version: 2 };
+      it('should restore remote bounds (and only bounds) for a rejected bounds save', () => {
+        const remoteData = { regionText: 'remote', start: 10, end: 20, _version: 2 };
         
         const setTextSpy = services.storeService.setRegionText as jest.Mock;
         setTextSpy.mockClear();
         
-        regionSaveManager.__updateStoreWithRemoteData('region-1', remoteData, 'start');
+        regionSaveManager.__updateStoreWithRemoteData('region-1', remoteData, { start: 1, end: 2 });
         
+        expect(services.storeService.updateRegionBounds).toHaveBeenCalledWith('region-1', 10, 20);
         expect(services.storeService.setRegionText).not.toHaveBeenCalled();
+      });
+
+      it('should restore every field of a combined text + bounds save', () => {
+        const remoteData = { regionText: 'remote', start: 10, end: 20, _version: 2 };
+        
+        regionSaveManager.__updateStoreWithRemoteData('region-1', remoteData, { regionText: 'x', start: 1, end: 2 });
+        
+        expect(services.storeService.setRegionText).toHaveBeenCalledWith('region-1', 'remote');
+        expect(services.storeService.updateRegionBounds).toHaveBeenCalledWith('region-1', 10, 20);
       });
     });
 
@@ -764,7 +775,7 @@ describe('RegionSaveManager', () => {
       it('should save region changes successfully', async () => {
         const changes = { regionText: 'new text' };
         
-        await regionSaveManager.__saveRegionChanges('region-1', changes, 'regionText');
+        await regionSaveManager.__saveRegionChanges('region-1', changes, ['regionText']);
         
         expect(services.regionService.updateRegion).toHaveBeenCalledWith(
           'region-1',
@@ -779,13 +790,13 @@ describe('RegionSaveManager', () => {
       it('should skip save when user not authenticated', async () => {
         (services.authService.currentUser as jest.Mock).mockReturnValue(null);
         
-        await regionSaveManager.__saveRegionChanges('region-1', { regionText: 'text' }, undefined);
+        await regionSaveManager.__saveRegionChanges('region-1', { regionText: 'text' }, []);
         
         expect(services.regionService.updateRegion).not.toHaveBeenCalled();
       });
 
       it('should not end pending edit when field not specified', async () => {
-        await regionSaveManager.__saveRegionChanges('region-1', { regionText: 'text' }, undefined);
+        await regionSaveManager.__saveRegionChanges('region-1', { regionText: 'text' }, []);
         
         expect(services.storeService.endPendingEdit).not.toHaveBeenCalled();
       });
@@ -796,18 +807,14 @@ describe('RegionSaveManager', () => {
         (services.storeService.getRegionVersion as jest.Mock).mockReturnValue(1);
       });
 
-      it('should rethrow non-conflict errors', async () => {
-        const error = new Error('Network error');
-        
-        // Mock isVersionConflictError to return false
-        jest.mock('./versionConflictService', () => ({
-          isVersionConflictError: jest.fn(() => false),
-          handleVersionConflict: jest.fn()
-        }));
-        
-        await expect(
-          regionSaveManager.__handleSaveError(error, 'region-1', { regionText: 'text' }, undefined)
-        ).rejects.toThrow('Network error');
+      it('should re-queue non-conflict errors for retry instead of throwing', async () => {
+        await regionSaveManager.__handleSaveError(
+          new Error('Network error'), 'region-1', { regionText: 'text' }, ['regionText']
+        );
+
+        const queue = regionSaveManager.__getQueueForTesting('region-1');
+        expect(queue?.pendingChanges).toEqual({ regionText: 'text' });
+        expect([...(queue?.pendingEditFields ?? [])]).toEqual(['regionText']);
       });
     });
   });

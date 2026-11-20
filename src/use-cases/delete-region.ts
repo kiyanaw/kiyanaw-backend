@@ -1,5 +1,6 @@
 import { services } from '../services';
 import { UpdateTranscriptionUseCase } from './update-transcription';
+import { regionSaveManager } from '../services/regionSaveManager';
 import type { User, WavesurferRegion } from '../types/shared';
 
 interface DeleteRegionConfig {
@@ -43,6 +44,10 @@ export class DeleteRegion {
     console.log(`🗑️ Starting deletion of region ${this.config.regionId}`);
 
     try {
+      // Drop unsent changes and wait for a save already on the network, so the
+      // delete never races the region's own save
+      await regionSaveManager.cancelPendingSaves(this.config.regionId);
+
       // Stop playback first to prevent race conditions with playing regions
       this.config.services.wavesurferService.pause();
       this.config.services.wavesurferService.clearRegionBoundedPlayback();
