@@ -1,5 +1,13 @@
 import { DeleteRegion } from './delete-region';
 
+jest.mock('../services/regionSaveManager', () => ({
+  regionSaveManager: {
+    cancelPendingSaves: jest.fn().mockResolvedValue(undefined),
+  },
+}));
+
+import { regionSaveManager } from '../services/regionSaveManager';
+
 describe('DeleteRegion', () => {
   const mockServices = {
     wavesurferService: {
@@ -122,6 +130,25 @@ describe('DeleteRegion', () => {
       expect(wsRegion.remove).toHaveBeenCalled();
       expect(mockServices.wavesurferService.updateRegionIndices).toHaveBeenCalled();
       expect(mockStore.deleteRegion).toHaveBeenCalledWith('region123');
+      expect(mockServices.regionService.deleteRegion).toHaveBeenCalledWith('region123');
+    });
+
+    it('waits for a save of the region already in flight before deleting it', async () => {
+      mockServices.wavesurferService.getRegionsPlugin.mockReturnValue(null);
+      mockServices.regionService.deleteRegion.mockResolvedValue(undefined);
+      let releaseSave!: () => void;
+      (regionSaveManager.cancelPendingSaves as jest.Mock).mockReturnValueOnce(
+        new Promise<void>((resolve) => { releaseSave = resolve; })
+      );
+
+      const done = new DeleteRegion(validConfig).execute();
+      await new Promise((r) => setTimeout(r, 0));
+      expect(regionSaveManager.cancelPendingSaves).toHaveBeenCalledWith('region123');
+      expect(mockStore.deleteRegion).not.toHaveBeenCalled();
+      expect(mockServices.regionService.deleteRegion).not.toHaveBeenCalled();
+
+      releaseSave();
+      await done;
       expect(mockServices.regionService.deleteRegion).toHaveBeenCalledWith('region123');
     });
 

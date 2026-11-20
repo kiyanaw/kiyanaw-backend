@@ -1,8 +1,6 @@
 import { services } from '../services';
-import { UpdateRegionUseCase } from './update-region';
+import { regionSaveManager } from '../services/regionSaveManager';
 import type { User } from '../types/shared';
-
-// NOTE: Conflict handling functions moved to versionConflictService.ts for reuse
 
 interface UpdateRegionBoundsConfig {
   regionId: string;
@@ -38,16 +36,20 @@ export class UpdateRegionBounds {
 
     const { regionId, newStart, newEnd, services, store } = this.config;
 
-    // Delegate to unified UpdateRegionUseCase
-    const updateRegionUseCase = new UpdateRegionUseCase({
-      regionId,
-      changes: { start: newStart, end: newEnd },
-      debounceMs: 2500, // 2.5 second debounce for bounds
-      primaryField: 'start', // Primary field for conflict resolution UI
-      services,
-      store
-    });
+    const existingRegion = store.regionById(regionId);
+    if (!existingRegion) {
+      throw new Error(`Region ${regionId} not found`);
+    }
+    if (existingRegion.start === newStart && existingRegion.end === newEnd) {
+      return;
+    }
 
-    updateRegionUseCase.execute();
+    // Optimistic store update for immediate UI feedback
+    store.updateRegionBounds(regionId, newStart, newEnd);
+    // Protect the dragged bounds from remote updates until the save lands
+    services.storeService.startPendingEdit(regionId, 'bounds');
+
+    // Same per-region queue as text edits, so a drag never races a text save
+    regionSaveManager.queueBoundsChange(regionId, newStart, newEnd);
   }
-} 
+}

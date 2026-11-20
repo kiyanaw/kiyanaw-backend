@@ -10,12 +10,12 @@ describe('SaveIndicator', () => {
     expect(indicator.querySelector('svg')).toHaveClass('text-green-500');
   });
 
-  it('should render yellow clock for pending status', () => {
+  it('should render orange clock for pending status', () => {
     render(<SaveIndicator status="pending" />);
     
     const indicator = screen.getByTitle('Changes pending save...');
     expect(indicator).toBeInTheDocument();
-    expect(indicator.querySelector('svg')).toHaveClass('text-yellow-500');
+    expect(indicator.querySelector('svg')).toHaveClass('text-orange-500');
   });
 
   it('should render spinning loader for saving status', () => {

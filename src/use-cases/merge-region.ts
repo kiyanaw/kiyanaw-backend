@@ -35,6 +35,16 @@ export class MergeRegionUseCase {
 
     const { survivorId, absorbedId, transcriptionId, services, store } = this.config;
 
+    const user = services.authService.currentUser();
+    if (!user) throw new Error('User must be authenticated');
+
+    // Drop unsent changes for both regions and wait for any save of them already on
+    // the network; the merged values below are read from the store after that.
+    await Promise.all([
+      regionSaveManager.cancelPendingSaves(survivorId),
+      regionSaveManager.cancelPendingSaves(absorbedId),
+    ]);
+
     const survivor = store.regionById(survivorId);
     const absorbed = store.regionById(absorbedId);
 
@@ -48,9 +58,6 @@ export class MergeRegionUseCase {
       .map((s: string | null | undefined) => (s || '').trim())
       .filter(Boolean)
       .join(' ');
-
-    regionSaveManager.cancelPendingSaves(survivorId);
-    regionSaveManager.cancelPendingSaves(absorbedId);
 
     // Optimistic store update for survivor
     store.setRegionText(survivorId, mergedText);
@@ -66,17 +73,12 @@ export class MergeRegionUseCase {
       services.rteService.setContent(`${survivorId}:translation`, mergedTranslation);
     }
 
-    // Backend save for survivor (await to bump version before delete)
-    const user = services.authService.currentUser();
-    if (!user) throw new Error('User must be authenticated');
-    const version = store.getRegionVersion(survivorId);
-    await services.regionService.updateRegion(
-      survivorId,
-      { regionText: mergedText, translation: mergedTranslation, start: newStart, end: newEnd },
-      user.username,
-      version,
-    );
-    store.setRegionVersion(survivorId, version + 1);
+    // Save the survivor through the per-region save queue (serialised with any other
+    // save of it) and wait for it to land before deleting the absorbed region
+    regionSaveManager.queueTextChange(survivorId, mergedText);
+    regionSaveManager.queueTranslationChange(survivorId, mergedTranslation);
+    regionSaveManager.queueBoundsChange(survivorId, newStart, newEnd);
+    await regionSaveManager.flushNow(survivorId);
 
     // Move wavesurfer region to span merged bounds
     services.wavesurferService.setRegionPosition(survivorId, { start: newStart, end: newEnd });

@@ -72,6 +72,7 @@ export async function correctSpelling(
   // The 'user' edits above already queued the new text through the save manager
   // (useTextEditors text-change handler). Save it now rather than after the typing
   // debounce; the manager serialises it behind any save of this region in flight.
-  regionSaveManager.flushNow(regionId);
+  // Not awaited: the editor stays usable while the save is queued/in flight.
+  void regionSaveManager.flushNow(regionId);
 }
 

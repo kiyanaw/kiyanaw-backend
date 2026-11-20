@@ -4,6 +4,9 @@ import { issueHighlightService } from './issueHighlightService';
 import { isVersionConflictError, handleVersionConflict } from './versionConflictService';
 import { UpdateTranscriptionUseCase } from '../use-cases/update-transcription';
 import type { WordAnalysis } from './adt';
+import type { PendingEdit } from './pendingEditsService';
+
+type PendingEditField = PendingEdit['field'];
 
 interface PendingChanges {
   regionText?: string;
@@ -23,7 +26,8 @@ interface SaveQueue {
   
   // Save coordination
   saveTimer: string | null;
-  pendingEditField?: string;
+  // Pending edits (started by the editor / drag) to end once these changes have landed
+  pendingEditFields: Set<PendingEditField>;
   
   // Metadata
   lastChangeTime: number;
@@ -47,7 +51,7 @@ class RegionSaveManagerImpl {
     queue.pendingChanges.regionText = text;
     queue.lastChangeSource = 'text';
     queue.lastChangeTime = Date.now();
-    queue.pendingEditField = 'regionText';
+    queue.pendingEditFields.add('regionText');
     
     // Set save status to pending
     services.storeService.setSaveStatus('pending');
@@ -82,12 +86,18 @@ class RegionSaveManagerImpl {
   /**
    * Save the queued changes for a region now instead of waiting for the debounce.
    * Still serialised behind any save of that region already in flight.
+   * Resolves once the save has landed.
    */
-  flushNow(regionId: string): void {
-    if (!this.queues.has(regionId)) {
+  flushNow(regionId: string): Promise<void> {
+    const queue = this.queues.get(regionId);
+    if (!queue) {
       throw new Error(`No queued changes for region ${regionId}`);
     }
-    this.resetSaveTimer(regionId, 0);
+    if (queue.saveTimer) {
+      Timeout.clear(queue.saveTimer);
+      queue.saveTimer = null;
+    }
+    return this.flush(regionId);
   }
 
   private async startSpellCheck(queue: SaveQueue, text: string): Promise<void> {
@@ -112,7 +122,7 @@ class RegionSaveManagerImpl {
     queue.pendingChanges.translation = translation;
     queue.lastChangeSource = 'translation';
     queue.lastChangeTime = Date.now();
-    queue.pendingEditField = 'translation';
+    queue.pendingEditFields.add('translation');
     
     // Set save status to pending
     services.storeService.setSaveStatus('pending');
@@ -132,6 +142,7 @@ class RegionSaveManagerImpl {
     queue.pendingChanges.end = end;
     queue.lastChangeSource = 'bounds';
     queue.lastChangeTime = Date.now();
+    queue.pendingEditFields.add('bounds');
     
     // Set save status to pending
     services.storeService.setSaveStatus('pending');
@@ -248,17 +259,19 @@ class RegionSaveManagerImpl {
     }
     
     await this.waitForSpellCheckCompletion(queue);
+    // Cancelled (e.g. region being deleted) while waiting for the spell check
+    if (this.queues.get(regionId) !== queue) return;
     
     // Collect changes and clear queue; anything queued from here on goes to the next flush
     const changes = { ...queue.pendingChanges };
-    const pendingEditField = queue.pendingEditField;
+    const pendingEditFields = [...queue.pendingEditFields];
     this.clearQueue(regionId);
     this.reportSaveStatus();
     
     try {
-      await this.saveRegionChanges(regionId, changes, pendingEditField);
+      await this.saveRegionChanges(regionId, changes, pendingEditFields);
     } catch (error) {
-      await this.handleSaveError(error, regionId, changes, pendingEditField);
+      await this.handleSaveError(error, regionId, changes, pendingEditFields);
     }
   }
 
@@ -307,7 +320,7 @@ class RegionSaveManagerImpl {
   private async saveRegionChanges(
     regionId: string,
     changes: PendingChanges,
-    pendingEditField?: string
+    pendingEditFields: PendingEditField[]
   ): Promise<void> {
     const store = services.storeService;
     const user = services.authService.currentUser();
@@ -333,10 +346,7 @@ class RegionSaveManagerImpl {
     // Update transcription metadata
     await this.updateTranscriptionMetadata(regionId);
     
-    // End pending edit
-    if (pendingEditField) {
-      services.storeService.endPendingEdit(regionId, pendingEditField);
-    }
+    this.endPendingEdits(regionId, pendingEditFields);
   }
   
   /**
@@ -363,7 +373,7 @@ class RegionSaveManagerImpl {
     error: unknown,
     regionId: string,
     changes: PendingChanges,
-    pendingEditField?: string
+    pendingEditFields: PendingEditField[]
   ): Promise<void> {
     console.error(`❌ SAVE-MANAGER: Save failed for ${regionId}:`, error);
     
@@ -386,15 +396,15 @@ class RegionSaveManagerImpl {
       (remoteRegion) => this.handleAcceptRemoteVersion(
         regionId,
         remoteRegion,
-        primaryField,
+        changes,
         currentVersion,
-        pendingEditField
+        pendingEditFields
       ),
       (latestVersion) => this.handleKeepLocalVersion(
         regionId,
         changes,
         latestVersion,
-        pendingEditField
+        pendingEditFields
       )
     );
   }
@@ -414,64 +424,70 @@ class RegionSaveManagerImpl {
   private async handleAcceptRemoteVersion(
     regionId: string,
     remoteRegion: unknown,
-    primaryField: 'regionText' | 'translation' | 'start',
+    changes: PendingChanges,
     currentVersion: number,
-    pendingEditField?: string
+    pendingEditFields: PendingEditField[]
   ): Promise<void> {
     const store = services.storeService;
     const remoteData = remoteRegion as Record<string, unknown>;
     
     console.debug(`✅ SAVE-MANAGER: User accepted remote version for ${regionId}`, {
       remoteVersion: remoteData._version,
-      primaryField
+      fields: Object.keys(changes)
     });
     
-    // Update store with remote data
-    this.updateStoreWithRemoteData(regionId, remoteData, primaryField);
+    // Update store with remote data for every field we tried to save
+    this.updateStoreWithRemoteData(regionId, remoteData, changes);
     
-    // Update RTE editor with remote content
-    await this.updateEditorWithRemoteContent(regionId, remoteData, primaryField);
+    // Update RTE editors with remote content
+    await this.updateEditorWithRemoteContent(regionId, remoteData, changes);
     
     // Update version
     const remoteVersion = (remoteData._version as number) || currentVersion + 1;
     store.setRegionVersion(regionId, remoteVersion);
     
-    // End pending edit
-    if (pendingEditField) {
-      services.storeService.endPendingEdit(regionId, pendingEditField);
-    }
+    this.endPendingEdits(regionId, pendingEditFields);
     
     console.debug(`✅ SAVE-MANAGER: Local state updated with remote version`);
   }
   
   /**
-   * Update store with remote region data
+   * Update store with remote region data for the fields that were in the rejected save
    */
   private updateStoreWithRemoteData(
     regionId: string,
     remoteData: Record<string, unknown>,
-    primaryField: 'regionText' | 'translation' | 'start'
+    changes: PendingChanges
   ): void {
     const store = services.storeService;
     
-    if (primaryField === 'regionText' && remoteData.regionText !== undefined) {
+    if (changes.regionText !== undefined && remoteData.regionText !== undefined) {
       store.setRegionText(regionId, remoteData.regionText as string);
-    } else if (primaryField === 'translation' && remoteData.translation !== undefined) {
+    }
+    if (changes.translation !== undefined && remoteData.translation !== undefined) {
       store.setRegionTranslation(regionId, remoteData.translation as string);
+    }
+    if (changes.start !== undefined || changes.end !== undefined) {
+      const { start, end } = remoteData;
+      if (typeof start !== 'number' || typeof end !== 'number') {
+        throw new Error(`Remote region ${regionId} has no bounds`);
+      }
+      store.updateRegionBounds(regionId, start, end);
     }
   }
   
   /**
-   * Update RTE editor with remote content and reapply highlighting
+   * Update RTE editors with remote content and reapply highlighting
    */
   private async updateEditorWithRemoteContent(
     regionId: string,
     remoteData: Record<string, unknown>,
-    primaryField: 'regionText' | 'translation' | 'start'
+    changes: PendingChanges
   ): Promise<void> {
-    if (primaryField === 'regionText') {
+    if (changes.regionText !== undefined) {
       await this.updateMainEditorWithRemote(regionId, remoteData.regionText as string);
-    } else if (primaryField === 'translation') {
+    }
+    if (changes.translation !== undefined) {
       await this.updateTranslationEditorWithRemote(regionId, remoteData.translation as string);
     }
   }
@@ -531,7 +547,7 @@ class RegionSaveManagerImpl {
     regionId: string,
     changes: PendingChanges,
     latestVersion: number,
-    pendingEditField?: string
+    pendingEditFields: PendingEditField[]
   ): Promise<void> {
     console.debug(`🔄 SAVE-MANAGER: User kept local version for ${regionId}, retrying with version ${latestVersion}`);
     
@@ -557,19 +573,23 @@ class RegionSaveManagerImpl {
     // Update transcription metadata
     await this.updateTranscriptionMetadata(regionId);
     
-    // End pending edit
-    if (pendingEditField) {
-      services.storeService.endPendingEdit(regionId, pendingEditField);
-    }
+    this.endPendingEdits(regionId, pendingEditFields);
     
     console.info(`✅ SAVE-MANAGER: Retry save completed for ${regionId}`);
   }
   
   /**
-   * Cancel any pending saves for a region
+   * Drop changes queued for a region (not yet sent), then wait for a save of it that
+   * is already on the network. Used before deleting a region, so the delete never
+   * races its own save.
    */
-  cancelPendingSaves(regionId: string): void {
+  async cancelPendingSaves(regionId: string): Promise<void> {
     this.clearQueue(regionId);
+    this.reportSaveStatus();
+    const inFlight = this.inFlight.get(regionId);
+    if (!inFlight) return;
+    // A failure of that save is reported by its own flush (error status + rethrow)
+    await inFlight.then(() => undefined, () => undefined);
   }
   
   /**
@@ -596,6 +616,7 @@ class RegionSaveManagerImpl {
         spellCheckPromise: null,
         spellCheckTimer: null,
         saveTimer: null,
+        pendingEditFields: new Set(),
         lastChangeTime: Date.now(),
         lastChangeSource: 'text'
       });
@@ -603,6 +624,12 @@ class RegionSaveManagerImpl {
     return this.queues.get(regionId)!;
   }
   
+  private endPendingEdits(regionId: string, fields: PendingEditField[]): void {
+    for (const field of fields) {
+      services.storeService.endPendingEdit(regionId, field);
+    }
+  }
+
   private clearQueue(regionId: string): void {
     const queue = this.queues.get(regionId);
     if (queue) {

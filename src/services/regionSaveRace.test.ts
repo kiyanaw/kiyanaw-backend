@@ -3,7 +3,7 @@
  *
  * correctSpelling() writes the region through two uncoordinated paths:
  *   - quill 'user' edits -> text-change -> regionSaveManager.queueTextChange (3s debounced flush)
- *   - an immediate UpdateRegionUseCase save (debounceMs 0)
+ *   - an immediate, separate region save (debounceMs 0)
  * Both read store.getRegionVersion() before the network call and only bump it after
  * the call resolves, so overlapping saves send the same _version and the server
  * rejects the second one -> conflict dialog against the user's own write.
@@ -118,6 +118,9 @@ jest.mock('./regionService', () => ({
       })
   ),
   getRegion: jest.fn(async (regionId: string) => ({ ...mockServer.rows.get(regionId)! })),
+  deleteRegion: jest.fn(async (regionId: string) => {
+    mockServer.rows.delete(regionId);
+  }),
 }));
 
 const mockShowConflictDialog = jest.fn(async () => ({ action: 'accept_remote' as const }));
@@ -136,6 +139,12 @@ jest.mock('./index', () => {
       conflictResolutionService: { showConflictDialog: mockShowConflictDialog },
       authService: { currentUser: () => ({ username: 'me@example.com' }) },
       spellCheckerService: { analyzeRegionText: jest.fn() },
+      wavesurferService: {
+        setRegionPosition: jest.fn(),
+        pause: jest.fn(),
+        clearRegionBoundedPlayback: jest.fn(),
+        getRegionsPlugin: () => null,
+      },
     },
   };
 });
@@ -154,6 +163,8 @@ import { services } from './index';
 import { regionSaveManager } from './regionSaveManager';
 import { correctSpelling } from '../use-cases/correct-spelling';
 import { useEditorStore } from '../stores/useEditorStore';
+import { UpdateRegionBounds } from '../use-cases/update-region-bounds';
+import { MergeRegionUseCase } from '../use-cases/merge-region';
 
 const REGION_ID = 'region-1';
 
@@ -410,5 +421,142 @@ describe('region save queue: no lost changes + save indicator (R-SAVE-IND-1)', (
 
     await release(1);
     expect(saveStatus()).toBe('saved');
+  });
+});
+
+describe('region drags (bounds) share the per-region save queue', () => {
+  const saveStatus = () => useEditorStore.getState().saveStatus;
+  const user = { username: 'me@example.com', userId: 'u1' };
+
+  function drag(start: number, end: number) {
+    new UpdateRegionBounds({
+      regionId: REGION_ID,
+      newStart: start,
+      newEnd: end,
+      user,
+      services,
+      store: useEditorStore.getState(),
+    }).execute();
+  }
+
+  function expectNoConflicts() {
+    expect(mockServer.calls.filter((c) => c.outcome === 'conflict')).toEqual([]);
+    expect(mockShowConflictDialog).not.toHaveBeenCalled();
+  }
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+    jest.spyOn(console, 'debug').mockImplementation(() => {});
+    jest.spyOn(console, 'info').mockImplementation(() => {});
+    mockServer.reset();
+    mockQuills.clear();
+    mockShowConflictDialog.mockClear();
+    regionSaveManager.__clearAll();
+    useEditorStore.getState().cleanup();
+    useEditorStore.getState().setSaveStatus('saved');
+  });
+
+  afterEach(() => {
+    regionSaveManager.__clearAll();
+    jest.useRealTimers();
+    jest.restoreAllMocks();
+  });
+
+  it('drag while a text save is in flight: no conflict, both saved', async () => {
+    const quill = seed('awa');
+    type(quill, ' tansi');
+    await settle(3000); // text save in flight
+    expect(mockServer.calls).toHaveLength(1);
+
+    drag(1, 4);
+    expect(services.storeService.regionById(REGION_ID)!.start).toBe(1); // store updated right away
+    await settle(2500); // bounds flush waits behind the text save
+    expect(mockServer.calls).toHaveLength(1);
+
+    await release(0);
+    expect(mockServer.calls).toHaveLength(2);
+    expect(mockServer.calls[1].changes).toMatchObject({ start: 1, end: 4 });
+    expect(mockServer.calls[1].sentVersion).toBe(2);
+    await drain();
+
+    expectNoConflicts();
+    expect(mockServer.rows.get(REGION_ID)).toMatchObject({ regionText: 'awa tansi', start: 1, end: 4 });
+    expect(services.storeService.isPendingEdit(REGION_ID, 'bounds')).toBe(false);
+  });
+
+  it('typing while a drag save is in flight: no conflict, both saved', async () => {
+    const quill = seed('awa');
+    drag(1, 4);
+    await settle(2500); // bounds save in flight
+    expect(mockServer.calls).toHaveLength(1);
+
+    type(quill, ' tansi');
+    await settle(3000);
+    expect(mockServer.calls).toHaveLength(1);
+
+    await release(0);
+    expect(mockServer.calls[1].sentVersion).toBe(2);
+    await drain();
+
+    expectNoConflicts();
+    expect(mockServer.rows.get(REGION_ID)).toMatchObject({ regionText: 'awa tansi', start: 1, end: 4 });
+  });
+
+  it('text and drag queued together go out in one save', async () => {
+    const quill = seed('awa');
+    type(quill, ' tansi');
+    drag(1, 4);
+    await drain();
+
+    expect(mockServer.calls).toHaveLength(1);
+    expect(mockServer.calls[0].changes).toMatchObject({ regionText: 'awa tansi', start: 1, end: 4 });
+    expectNoConflicts();
+  });
+
+  it('shows pending as soon as a region is dragged', async () => {
+    seed('awa');
+    drag(1, 4);
+    expect(saveStatus()).toBe('pending');
+    await settle(2500);
+    expect(saveStatus()).toBe('saving');
+    await drain();
+    expect(saveStatus()).toBe('saved');
+  });
+
+  it('merge waits for the survivor save in flight, then saves at the next version', async () => {
+    const quill = seed('awa');
+    const absorbed: ServerRow = {
+      id: 'region-2', transcriptionId: 'trans-1', regionText: 'kiya', start: 5, end: 9,
+      _version: 1, userLastUpdated: 'me@example.com',
+    };
+    mockServer.rows.set('region-2', absorbed);
+    services.storeService.addNewRegion({ ...absorbed } as unknown as RegionData);
+
+    type(quill, ' tansi');
+    await settle(3000); // survivor text save in flight
+    expect(mockServer.calls).toHaveLength(1);
+
+    const merged = new MergeRegionUseCase({
+      survivorId: REGION_ID,
+      absorbedId: 'region-2',
+      transcriptionId: 'trans-1',
+      user,
+      services,
+      store: useEditorStore.getState(),
+    }).execute();
+    await settle();
+    expect(mockServer.calls).toHaveLength(1); // merge save waits
+
+    await release(0);
+    expect(mockServer.calls).toHaveLength(2);
+    expect(mockServer.calls[1].sentVersion).toBe(2);
+    expect(mockServer.calls[1].changes).toMatchObject({ regionText: 'awa tansi kiya', start: 0, end: 9 });
+    await release(1);
+    await merged;
+
+    expectNoConflicts();
+    expect(mockServer.rows.get(REGION_ID)).toMatchObject({ regionText: 'awa tansi kiya', start: 0, end: 9 });
+    expect(mockServer.rows.has('region-2')).toBe(false);
   });
 });

@@ -2,7 +2,11 @@ import { MergeRegionUseCase } from './merge-region';
 
 jest.mock('../services/regionSaveManager', () => ({
   regionSaveManager: {
-    cancelPendingSaves: jest.fn(),
+    cancelPendingSaves: jest.fn().mockResolvedValue(undefined),
+    queueTextChange: jest.fn(),
+    queueTranslationChange: jest.fn(),
+    queueBoundsChange: jest.fn(),
+    flushNow: jest.fn().mockResolvedValue(undefined),
   },
 }));
 
@@ -82,6 +86,9 @@ describe('MergeRegionUseCase', () => {
     mockServices.authService.currentUser.mockReturnValue({ username: 'testuser', userId: 'u1' });
     mockStore.getRegionVersion.mockReturnValue(3);
     mockStore.getIssuesForRegion.mockReturnValue([]);
+    mockStore.setRegionText.mockReset();
+    (regionSaveManager.cancelPendingSaves as jest.Mock).mockReset().mockResolvedValue(undefined);
+    (regionSaveManager.flushNow as jest.Mock).mockReset().mockResolvedValue(undefined);
   });
 
   describe('validate', () => {
@@ -147,16 +154,54 @@ describe('MergeRegionUseCase', () => {
       expect(start).toBe(0); // survivor.start
     });
 
-    it('saves survivor to backend before deleting absorbed', async () => {
+    it('saves survivor through the save queue, and waits for it, before deleting absorbed', async () => {
       const order: string[] = [];
-      mockServices.regionService.updateRegion.mockImplementation(async () => { order.push('update'); });
+      let releaseSave!: () => void;
+      (regionSaveManager.flushNow as jest.Mock).mockImplementation(() => {
+        order.push('flush');
+        return new Promise<void>((resolve) => {
+          releaseSave = () => {
+            order.push('saved');
+            resolve();
+          };
+        });
+      });
       (DeleteRegion as jest.Mock).mockImplementation(() => ({
         execute: jest.fn().mockImplementation(async () => { order.push('delete'); }),
       }));
 
+      const done = new MergeRegionUseCase(validConfig).execute();
+      await new Promise((r) => setTimeout(r, 0));
+      expect(order).toEqual(['flush']);
+
+      releaseSave();
+      await done;
+
+      expect(regionSaveManager.queueTextChange).toHaveBeenCalledWith('survivor', 'Hello world');
+      expect(regionSaveManager.queueTranslationChange).toHaveBeenCalledWith('survivor', 'Bonjour monde');
+      expect(regionSaveManager.queueBoundsChange).toHaveBeenCalledWith('survivor', 0, 10);
+      expect(regionSaveManager.flushNow).toHaveBeenCalledWith('survivor');
+      expect(mockServices.regionService.updateRegion).not.toHaveBeenCalled();
+      expect(order).toEqual(['flush', 'saved', 'delete']);
+    });
+
+    it('waits for in-flight saves of both regions before reading merged values', async () => {
+      const order: string[] = [];
+      (regionSaveManager.cancelPendingSaves as jest.Mock).mockImplementation(async (id: string) => {
+        order.push(`cancel:${id}`);
+      });
+      mockStore.setRegionText.mockImplementation(() => order.push('setText'));
+
       await new MergeRegionUseCase(validConfig).execute();
 
-      expect(order.indexOf('update')).toBeLessThan(order.indexOf('delete'));
+      expect(order.slice(0, 3)).toEqual(['cancel:survivor', 'cancel:absorbed', 'setText']);
+    });
+
+    it('throws before touching anything when not authenticated', async () => {
+      mockServices.authService.currentUser.mockReturnValue(null as unknown as { username: string; userId: string });
+      await expect(new MergeRegionUseCase(validConfig).execute()).rejects.toThrow('User must be authenticated');
+      expect(regionSaveManager.cancelPendingSaves).not.toHaveBeenCalled();
+      expect(mockStore.setRegionText).not.toHaveBeenCalled();
     });
 
     it('calls setRegionPosition on wavesurfer with merged bounds', async () => {
@@ -186,11 +231,6 @@ describe('MergeRegionUseCase', () => {
     it('reselects survivor after merge', async () => {
       await new MergeRegionUseCase(validConfig).execute();
       expect(mockStore.setSelectedRegion).toHaveBeenCalledWith('survivor');
-    });
-
-    it('bumps survivor version after backend save', async () => {
-      await new MergeRegionUseCase(validConfig).execute();
-      expect(mockStore.setRegionVersion).toHaveBeenCalledWith('survivor', 4); // 3 + 1
     });
 
     it('refreshes RTE editors with merged content when instances exist', async () => {
